@@ -1,0 +1,11 @@
+# krenkelsesarmeen.no/robots.txt
+User-agent: *
+Disallow: /api/
+Disallow: /assets/
+Disallow: /css/
+Disallow: /src/
+Disallow: /vault/
+Disallow: /*.json
+Disallow: /*.php
+Disallow: /*.js
+Disallow: /*.md

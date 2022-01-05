@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="no">
+    <head>
+        <!-- Required meta tags -->
+        <meta charset="utf-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
+        <meta name="description" content="Nettside for logging av trening." />
+        <meta name="treningheten" content="index, follow" />
+
+        <title>Treningheten</title>
+
+        <!-- Bootstrap 4 CSS and custom CSS -->
+        <link rel="stylesheet" type="text/css" href="css/trening.css" />
+        <link rel="shortcut icon" href="assets/favicons/favicon.ico" />
+        <script src="https://code.jquery.com/jquery-3.2.1.min.js"></script>
+
+    </head>
+<body>
+
+<!-- navbar -->
+<div id="nav">
+    <nav class="navbar" id="navbar">
+        <div class="nav-logo" id="nav-logo">
+            <a href="./"><img src="assets/logo/logo.svg" style="box-sizing: border-box; height: 4em;padding: 0.5em; margin: auto;"></img></a>
+        </div>
+
+        <a class="nav-title" id="nav-title" href="./" id='home'>
+            <b>Treningheten</b>
+        </a>
+    
+        <a class="nav-icon" href="javascript:void(0);" class="icon" onclick="toggle_navbar()" style="padding: 0;">
+            <img src="assets/menu.svg" style="box-sizing: border-box;height: 4em;padding: 1em;margin: auto;"></img>
+        </a>
+    
+        <a class="nav-item disabled" href="#" id='update_account'>Bruker</a>
+        <a class="nav-item enabled" href="#" id='logg_inn'>Logg inn</a>
+        <a class="nav-item enabled" href="#" id='registrer'>Registrer deg</a>
+        <a class="nav-item disabled" href="#" onclick="logg_ut()" id='logg_ut'>Logg ut</a>
+    
+    </nav>
+</div>
+<!-- /navbar -->
+
+<!-- container -->
+<main role="main" class="content">
+
+    <!-- where prompt / messages will appear -->
+
+    <div id="response"></div>
+
+    <!-- where main content will appear -->
+    <div id="content-box"></div>
+
+</main>
+<!-- /container -->
+
+<script>
+    var cookie;
+
+    $(document).ready(function(){
+
+        $.when(
+
+            $.getScript("functions.js"),
+
+            $.getScript("index.js"),
+
+            $.Deferred(function( deferred ){
+                $( deferred.resolve );
+            })
+
+        ).done(function(){
+
+            show_logged_out_menu();
+            load_page();
+
+        });
+    });
+</script>
+
+<noscript>
+    <h3>Du trenger JavaScript på din nettleser for å bruke denne nettsiden. Skru det på eller bytt nettleser.</h3>
+</noscript>
+
+</body>
+</html>

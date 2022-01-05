@@ -1,0 +1,234 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="ChangeListManager">
+    <list default="true" id="b512fe87-0946-4f85-924f-dcc86df8bcd4" name="Default Changelist" comment="">
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/node-js-jwt-auth/node_modules/.package-lock.json" beforeDir="false" afterPath="$PROJECT_DIR$/node-js-jwt-auth/node_modules/.package-lock.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/node-js-jwt-auth/node_modules/sequelize/LICENSE" beforeDir="false" afterPath="$PROJECT_DIR$/node-js-jwt-auth/node_modules/sequelize/LICENSE" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/node-js-jwt-auth/node_modules/sequelize/README.md" beforeDir="false" afterPath="$PROJECT_DIR$/node-js-jwt-auth/node_modules/sequelize/README.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/node-js-jwt-auth/node_modules/sequelize/index.js" beforeDir="false" afterPath="$PROJECT_DIR$/node-js-jwt-auth/node_modules/sequelize/index.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/node-js-jwt-auth/node_modules/sequelize/lib/associations/base.js" beforeDir="false" afterPath="$PROJECT_DIR$/node-js-jwt-auth/node_modules/sequelize/lib/associations/base.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/node-js-jwt-auth/node_modules/sequelize/lib/associations/belongs-to-many.js" beforeDir="false" afterPath="$PROJECT_DIR$/node-js-jwt-auth/node_modules/sequelize/lib/associations/belongs-to-many.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/node-js-jwt-auth/node_modules/sequelize/lib/associations/belongs-to.js" beforeDir="false" afterPath="$PROJECT_DIR$/node-js-jwt-auth/node_modules/sequelize/lib/associations/belongs-to.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/node-js-jwt-auth/node_modules/sequelize/lib/associations/has-many.js" beforeDir="false" afterPath="$PROJECT_DIR$/node-js-jwt-auth/node_modules/sequelize/lib/associations/has-many.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/node-js-jwt-auth/node_modules/sequelize/lib/associations/has-one.js" beforeDir="false" afterPath="$PROJECT_DIR$/node-js-jwt-auth/node_modules/sequelize/lib/associations/has-one.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/node-js-jwt-auth/node_modules/sequelize/lib/associations/helpers.js" beforeDir="false" afterPath="$PROJECT_DIR$/node-js-jwt-auth/node_modules/sequelize/lib/associations/helpers.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/node-js-jwt-auth/node_modules/sequelize/lib/associations/index.js" beforeDir="false" afterPath="$PROJECT_DIR$/node-js-jwt-auth/node_modules/sequelize/lib/associations/index.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/node-js-jwt-auth/node_modules/sequelize/lib/associations/mixin.js" beforeDir="false" afterPath="$PROJECT_DIR$/node-js-jwt-auth/node_modules/sequelize/lib/associations/mixin.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/node-js-jwt-auth/node_modules/sequelize/lib/data-types.js" beforeDir="false" afterPath="$PROJECT_DIR$/node-js-jwt-auth/node_modules/sequelize/lib/data-types.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/node-js-jwt-auth/node_modules/sequelize/lib/deferrable.js" beforeDir="false" afterPath="$PROJECT_DIR$/node-js-jwt-auth/node_modules/sequelize/lib/deferrable.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/node-js-jwt-auth/node_modules/sequelize/lib/dialects/abstract/connection-manager.js" beforeDir="false" afterPath="$PROJECT_DIR$/node-js-jwt-auth/node_modules/sequelize/lib/dialects/abstract/connection-manager.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/node-js-jwt-auth/node_modules/sequelize/lib/dialects/abstract/index.js" beforeDir="false" afterPath="$PROJECT_DIR$/node-js-jwt-auth/node_modules/sequelize/lib/dialects/abstract/index.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/node-js-jwt-auth/node_modules/sequelize/lib/dialects/abstract/query-generator.js" beforeDir="false" afterPath="$PROJECT_DIR$/node-js-jwt-auth/node_modules/sequelize/lib/dialects/abstract/query-generator.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/node-js-jwt-auth/node_modules/sequelize/lib/dialects/abstract/query-generator/helpers/quote.js" beforeDir="false" afterPath="$PROJECT_DIR$/node-js-jwt-auth/node_modules/sequelize/lib/dialects/abstract/query-generator/helpers/quote.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/node-js-jwt-auth/node_modules/sequelize/lib/dialects/abstract/query-generator/operators.js" beforeDir="false" afterPath="$PROJECT_DIR$/node-js-jwt-auth/node_modules/sequelize/lib/dialects/abstract/query-generator/operators.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/node-js-jwt-auth/node_modules/sequelize/lib/dialects/abstract/query-generator/transaction.js" beforeDir="false" afterPath="$PROJECT_DIR$/node-js-jwt-auth/node_modules/sequelize/lib/dialects/abstract/query-generator/transaction.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/node-js-jwt-auth/node_modules/sequelize/lib/dialects/abstract/query-interface.js" beforeDir="false" afterPath="$PROJECT_DIR$/node-js-jwt-auth/node_modules/sequelize/lib/dialects/abstract/query-interface.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/node-js-jwt-auth/node_modules/sequelize/lib/dialects/abstract/query.js" beforeDir="false" afterPath="$PROJECT_DIR$/node-js-jwt-auth/node_modules/sequelize/lib/dialects/abstract/query.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/node-js-jwt-auth/node_modules/sequelize/lib/dialects/mariadb/connection-manager.js" beforeDir="false" afterPath="$PROJECT_DIR$/node-js-jwt-auth/node_modules/sequelize/lib/dialects/mariadb/connection-manager.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/node-js-jwt-auth/node_modules/sequelize/lib/dialects/mariadb/data-types.js" beforeDir="false" afterPath="$PROJECT_DIR$/node-js-jwt-auth/node_modules/sequelize/lib/dialects/mariadb/data-types.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/node-js-jwt-auth/node_modules/sequelize/lib/dialects/mariadb/index.js" beforeDir="false" afterPath="$PROJECT_DIR$/node-js-jwt-auth/node_modules/sequelize/lib/dialects/mariadb/index.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/node-js-jwt-auth/node_modules/sequelize/lib/dialects/mariadb/query-generator.js" beforeDir="false" afterPath="$PROJECT_DIR$/node-js-jwt-auth/node_modules/sequelize/lib/dialects/mariadb/query-generator.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/node-js-jwt-auth/node_modules/sequelize/lib/dialects/mariadb/query.js" beforeDir="false" afterPath="$PROJECT_DIR$/node-js-jwt-auth/node_modules/sequelize/lib/dialects/mariadb/query.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/node-js-jwt-auth/node_modules/sequelize/lib/dialects/mssql/async-queue.js" beforeDir="false" afterPath="$PROJECT_DIR$/node-js-jwt-auth/node_modules/sequelize/lib/dialects/mssql/async-queue.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/node-js-jwt-auth/node_modules/sequelize/lib/dialects/mssql/connection-manager.js" beforeDir="false" afterPath="$PROJECT_DIR$/node-js-jwt-auth/node_modules/sequelize/lib/dialects/mssql/connection-manager.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/node-js-jwt-auth/node_modules/sequelize/lib/dialects/mssql/data-types.js" beforeDir="false" afterPath="$PROJECT_DIR$/node-js-jwt-auth/node_modules/sequelize/lib/dialects/mssql/data-types.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/node-js-jwt-auth/node_modules/sequelize/lib/dialects/mssql/index.js" beforeDir="false" afterPath="$PROJECT_DIR$/node-js-jwt-auth/node_modules/sequelize/lib/dialects/mssql/index.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/node-js-jwt-auth/node_modules/sequelize/lib/dialects/mssql/query-generator.js" beforeDir="false" afterPath="$PROJECT_DIR$/node-js-jwt-auth/node_modules/sequelize/lib/dialects/mssql/query-generator.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/node-js-jwt-auth/node_modules/sequelize/lib/dialects/mssql/query-interface.js" beforeDir="false" afterPath="$PROJECT_DIR$/node-js-jwt-auth/node_modules/sequelize/lib/dialects/mssql/query-interface.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/node-js-jwt-auth/node_modules/sequelize/lib/dialects/mssql/query.js" beforeDir="false" afterPath="$PROJECT_DIR$/node-js-jwt-auth/node_modules/sequelize/lib/dialects/mssql/query.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/node-js-jwt-auth/node_modules/sequelize/lib/dialects/mysql/connection-manager.js" beforeDir="false" afterPath="$PROJECT_DIR$/node-js-jwt-auth/node_modules/sequelize/lib/dialects/mysql/connection-manager.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/node-js-jwt-auth/node_modules/sequelize/lib/dialects/mysql/data-types.js" beforeDir="false" afterPath="$PROJECT_DIR$/node-js-jwt-auth/node_modules/sequelize/lib/dialects/mysql/data-types.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/node-js-jwt-auth/node_modules/sequelize/lib/dialects/mysql/index.js" beforeDir="false" afterPath="$PROJECT_DIR$/node-js-jwt-auth/node_modules/sequelize/lib/dialects/mysql/index.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/node-js-jwt-auth/node_modules/sequelize/lib/dialects/mysql/query-generator.js" beforeDir="false" afterPath="$PROJECT_DIR$/node-js-jwt-auth/node_modules/sequelize/lib/dialects/mysql/query-generator.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/node-js-jwt-auth/node_modules/sequelize/lib/dialects/mysql/query-interface.js" beforeDir="false" afterPath="$PROJECT_DIR$/node-js-jwt-auth/node_modules/sequelize/lib/dialects/mysql/query-interface.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/node-js-jwt-auth/node_modules/sequelize/lib/dialects/mysql/query.js" beforeDir="false" afterPath="$PROJECT_DIR$/node-js-jwt-auth/node_modules/sequelize/lib/dialects/mysql/query.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/node-js-jwt-auth/node_modules/sequelize/lib/dialects/parserStore.js" beforeDir="false" afterPath="$PROJECT_DIR$/node-js-jwt-auth/node_modules/sequelize/lib/dialects/parserStore.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/node-js-jwt-auth/node_modules/sequelize/lib/dialects/postgres/connection-manager.js" beforeDir="false" afterPath="$PROJECT_DIR$/node-js-jwt-auth/node_modules/sequelize/lib/dialects/postgres/connection-manager.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/node-js-jwt-auth/node_modules/sequelize/lib/dialects/postgres/data-types.js" beforeDir="false" afterPath="$PROJECT_DIR$/node-js-jwt-auth/node_modules/sequelize/lib/dialects/postgres/data-types.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/node-js-jwt-auth/node_modules/sequelize/lib/dialects/postgres/hstore.js" beforeDir="false" afterPath="$PROJECT_DIR$/node-js-jwt-auth/node_modules/sequelize/lib/dialects/postgres/hstore.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/node-js-jwt-auth/node_modules/sequelize/lib/dialects/postgres/index.js" beforeDir="false" afterPath="$PROJECT_DIR$/node-js-jwt-auth/node_modules/sequelize/lib/dialects/postgres/index.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/node-js-jwt-auth/node_modules/sequelize/lib/dialects/postgres/query-generator.js" beforeDir="false" afterPath="$PROJECT_DIR$/node-js-jwt-auth/node_modules/sequelize/lib/dialects/postgres/query-generator.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/node-js-jwt-auth/node_modules/sequelize/lib/dialects/postgres/query-interface.js" beforeDir="false" afterPath="$PROJECT_DIR$/node-js-jwt-auth/node_modules/sequelize/lib/dialects/postgres/query-interface.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/node-js-jwt-auth/node_modules/sequelize/lib/dialects/postgres/query.js" beforeDir="false" afterPath="$PROJECT_DIR$/node-js-jwt-auth/node_modules/sequelize/lib/dialects/postgres/query.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/node-js-jwt-auth/node_modules/sequelize/lib/dialects/postgres/range.js" beforeDir="false" afterPath="$PROJECT_DIR$/node-js-jwt-auth/node_modules/sequelize/lib/dialects/postgres/range.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/node-js-jwt-auth/node_modules/sequelize/lib/dialects/sqlite/connection-manager.js" beforeDir="false" afterPath="$PROJECT_DIR$/node-js-jwt-auth/node_modules/sequelize/lib/dialects/sqlite/connection-manager.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/node-js-jwt-auth/node_modules/sequelize/lib/dialects/sqlite/data-types.js" beforeDir="false" afterPath="$PROJECT_DIR$/node-js-jwt-auth/node_modules/sequelize/lib/dialects/sqlite/data-types.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/node-js-jwt-auth/node_modules/sequelize/lib/dialects/sqlite/index.js" beforeDir="false" afterPath="$PROJECT_DIR$/node-js-jwt-auth/node_modules/sequelize/lib/dialects/sqlite/index.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/node-js-jwt-auth/node_modules/sequelize/lib/dialects/sqlite/query-generator.js" beforeDir="false" afterPath="$PROJECT_DIR$/node-js-jwt-auth/node_modules/sequelize/lib/dialects/sqlite/query-generator.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/node-js-jwt-auth/node_modules/sequelize/lib/dialects/sqlite/query-interface.js" beforeDir="false" afterPath="$PROJECT_DIR$/node-js-jwt-auth/node_modules/sequelize/lib/dialects/sqlite/query-interface.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/node-js-jwt-auth/node_modules/sequelize/lib/dialects/sqlite/query.js" beforeDir="false" afterPath="$PROJECT_DIR$/node-js-jwt-auth/node_modules/sequelize/lib/dialects/sqlite/query.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/node-js-jwt-auth/node_modules/sequelize/lib/errors/aggregate-error.js" beforeDir="false" afterPath="$PROJECT_DIR$/node-js-jwt-auth/node_modules/sequelize/lib/errors/aggregate-error.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/node-js-jwt-auth/node_modules/sequelize/lib/errors/association-error.js" beforeDir="false" afterPath="$PROJECT_DIR$/node-js-jwt-auth/node_modules/sequelize/lib/errors/association-error.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/node-js-jwt-auth/node_modules/sequelize/lib/errors/base-error.js" beforeDir="false" afterPath="$PROJECT_DIR$/node-js-jwt-auth/node_modules/sequelize/lib/errors/base-error.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/node-js-jwt-auth/node_modules/sequelize/lib/errors/bulk-record-error.js" beforeDir="false" afterPath="$PROJECT_DIR$/node-js-jwt-auth/node_modules/sequelize/lib/errors/bulk-record-error.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/node-js-jwt-auth/node_modules/sequelize/lib/errors/connection-error.js" beforeDir="false" afterPath="$PROJECT_DIR$/node-js-jwt-auth/node_modules/sequelize/lib/errors/connection-error.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/node-js-jwt-auth/node_modules/sequelize/lib/errors/connection/access-denied-error.js" beforeDir="false" afterPath="$PROJECT_DIR$/node-js-jwt-auth/node_modules/sequelize/lib/errors/connection/access-denied-error.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/node-js-jwt-auth/node_modules/sequelize/lib/errors/connection/connection-acquire-timeout-error.js" beforeDir="false" afterPath="$PROJECT_DIR$/node-js-jwt-auth/node_modules/sequelize/lib/errors/connection/connection-acquire-timeout-error.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/node-js-jwt-auth/node_modules/sequelize/lib/errors/connection/connection-refused-error.js" beforeDir="false" afterPath="$PROJECT_DIR$/node-js-jwt-auth/node_modules/sequelize/lib/errors/connection/connection-refused-error.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/node-js-jwt-auth/node_modules/sequelize/lib/errors/connection/connection-timed-out-error.js" beforeDir="false" afterPath="$PROJECT_DIR$/node-js-jwt-auth/node_modules/sequelize/lib/errors/connection/connection-timed-out-error.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/node-js-jwt-auth/node_modules/sequelize/lib/errors/connection/host-not-found-error.js" beforeDir="false" afterPath="$PROJECT_DIR$/node-js-jwt-auth/node_modules/sequelize/lib/errors/connection/host-not-found-error.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/node-js-jwt-auth/node_modules/sequelize/lib/errors/connection/host-not-reachable-error.js" beforeDir="false" afterPath="$PROJECT_DIR$/node-js-jwt-auth/node_modules/sequelize/lib/errors/connection/host-not-reachable-error.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/node-js-jwt-auth/node_modules/sequelize/lib/errors/connection/invalid-connection-error.js" beforeDir="false" afterPath="$PROJECT_DIR$/node-js-jwt-auth/node_modules/sequelize/lib/errors/connection/invalid-connection-error.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/node-js-jwt-auth/node_modules/sequelize/lib/errors/database-error.js" beforeDir="false" afterPath="$PROJECT_DIR$/node-js-jwt-auth/node_modules/sequelize/lib/errors/database-error.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/node-js-jwt-auth/node_modules/sequelize/lib/errors/database/exclusion-constraint-error.js" beforeDir="false" afterPath="$PROJECT_DIR$/node-js-jwt-auth/node_modules/sequelize/lib/errors/database/exclusion-constraint-error.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/node-js-jwt-auth/node_modules/sequelize/lib/errors/database/foreign-key-constraint-error.js" beforeDir="false" afterPath="$PROJECT_DIR$/node-js-jwt-auth/node_modules/sequelize/lib/errors/database/foreign-key-constraint-error.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/node-js-jwt-auth/node_modules/sequelize/lib/errors/database/timeout-error.js" beforeDir="false" afterPath="$PROJECT_DIR$/node-js-jwt-auth/node_modules/sequelize/lib/errors/database/timeout-error.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/node-js-jwt-auth/node_modules/sequelize/lib/errors/database/unknown-constraint-error.js" beforeDir="false" afterPath="$PROJECT_DIR$/node-js-jwt-auth/node_modules/sequelize/lib/errors/database/unknown-constraint-error.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/node-js-jwt-auth/node_modules/sequelize/lib/errors/eager-loading-error.js" beforeDir="false" afterPath="$PROJECT_DIR$/node-js-jwt-auth/node_modules/sequelize/lib/errors/eager-loading-error.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/node-js-jwt-auth/node_modules/sequelize/lib/errors/empty-result-error.js" beforeDir="false" afterPath="$PROJECT_DIR$/node-js-jwt-auth/node_modules/sequelize/lib/errors/empty-result-error.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/node-js-jwt-auth/node_modules/sequelize/lib/errors/index.js" beforeDir="false" afterPath="$PROJECT_DIR$/node-js-jwt-auth/node_modules/sequelize/lib/errors/index.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/node-js-jwt-auth/node_modules/sequelize/lib/errors/instance-error.js" beforeDir="false" afterPath="$PROJECT_DIR$/node-js-jwt-auth/node_modules/sequelize/lib/errors/instance-error.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/node-js-jwt-auth/node_modules/sequelize/lib/errors/optimistic-lock-error.js" beforeDir="false" afterPath="$PROJECT_DIR$/node-js-jwt-auth/node_modules/sequelize/lib/errors/optimistic-lock-error.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/node-js-jwt-auth/node_modules/sequelize/lib/errors/query-error.js" beforeDir="false" afterPath="$PROJECT_DIR$/node-js-jwt-auth/node_modules/sequelize/lib/errors/query-error.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/node-js-jwt-auth/node_modules/sequelize/lib/errors/sequelize-scope-error.js" beforeDir="false" afterPath="$PROJECT_DIR$/node-js-jwt-auth/node_modules/sequelize/lib/errors/sequelize-scope-error.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/node-js-jwt-auth/node_modules/sequelize/lib/errors/validation-error.js" beforeDir="false" afterPath="$PROJECT_DIR$/node-js-jwt-auth/node_modules/sequelize/lib/errors/validation-error.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/node-js-jwt-auth/node_modules/sequelize/lib/errors/validation/unique-constraint-error.js" beforeDir="false" afterPath="$PROJECT_DIR$/node-js-jwt-auth/node_modules/sequelize/lib/errors/validation/unique-constraint-error.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/node-js-jwt-auth/node_modules/sequelize/lib/hooks.js" beforeDir="false" afterPath="$PROJECT_DIR$/node-js-jwt-auth/node_modules/sequelize/lib/hooks.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/node-js-jwt-auth/node_modules/sequelize/lib/index-hints.js" beforeDir="false" afterPath="$PROJECT_DIR$/node-js-jwt-auth/node_modules/sequelize/lib/index-hints.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/node-js-jwt-auth/node_modules/sequelize/lib/instance-validator.js" beforeDir="false" afterPath="$PROJECT_DIR$/node-js-jwt-auth/node_modules/sequelize/lib/instance-validator.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/node-js-jwt-auth/node_modules/sequelize/lib/model-manager.js" beforeDir="false" afterPath="$PROJECT_DIR$/node-js-jwt-auth/node_modules/sequelize/lib/model-manager.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/node-js-jwt-auth/node_modules/sequelize/lib/model.js" beforeDir="false" afterPath="$PROJECT_DIR$/node-js-jwt-auth/node_modules/sequelize/lib/model.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/node-js-jwt-auth/node_modules/sequelize/lib/operators.js" beforeDir="false" afterPath="$PROJECT_DIR$/node-js-jwt-auth/node_modules/sequelize/lib/operators.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/node-js-jwt-auth/node_modules/sequelize/lib/query-types.js" beforeDir="false" afterPath="$PROJECT_DIR$/node-js-jwt-auth/node_modules/sequelize/lib/query-types.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/node-js-jwt-auth/node_modules/sequelize/lib/sequelize.js" beforeDir="false" afterPath="$PROJECT_DIR$/node-js-jwt-auth/node_modules/sequelize/lib/sequelize.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/node-js-jwt-auth/node_modules/sequelize/lib/sql-string.js" beforeDir="false" afterPath="$PROJECT_DIR$/node-js-jwt-auth/node_modules/sequelize/lib/sql-string.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/node-js-jwt-auth/node_modules/sequelize/lib/table-hints.js" beforeDir="false" afterPath="$PROJECT_DIR$/node-js-jwt-auth/node_modules/sequelize/lib/table-hints.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/node-js-jwt-auth/node_modules/sequelize/lib/transaction.js" beforeDir="false" afterPath="$PROJECT_DIR$/node-js-jwt-auth/node_modules/sequelize/lib/transaction.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/node-js-jwt-auth/node_modules/sequelize/lib/utils.js" beforeDir="false" afterPath="$PROJECT_DIR$/node-js-jwt-auth/node_modules/sequelize/lib/utils.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/node-js-jwt-auth/node_modules/sequelize/lib/utils/class-to-invokable.js" beforeDir="false" afterPath="$PROJECT_DIR$/node-js-jwt-auth/node_modules/sequelize/lib/utils/class-to-invokable.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/node-js-jwt-auth/node_modules/sequelize/lib/utils/deprecations.js" beforeDir="false" afterPath="$PROJECT_DIR$/node-js-jwt-auth/node_modules/sequelize/lib/utils/deprecations.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/node-js-jwt-auth/node_modules/sequelize/lib/utils/join-sql-fragments.js" beforeDir="false" afterPath="$PROJECT_DIR$/node-js-jwt-auth/node_modules/sequelize/lib/utils/join-sql-fragments.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/node-js-jwt-auth/node_modules/sequelize/lib/utils/logger.js" beforeDir="false" afterPath="$PROJECT_DIR$/node-js-jwt-auth/node_modules/sequelize/lib/utils/logger.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/node-js-jwt-auth/node_modules/sequelize/lib/utils/validator-extras.js" beforeDir="false" afterPath="$PROJECT_DIR$/node-js-jwt-auth/node_modules/sequelize/lib/utils/validator-extras.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/node-js-jwt-auth/node_modules/sequelize/package.json" beforeDir="false" afterPath="$PROJECT_DIR$/node-js-jwt-auth/node_modules/sequelize/package.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/node-js-jwt-auth/node_modules/sequelize/types/index.d.ts" beforeDir="false" afterPath="$PROJECT_DIR$/node-js-jwt-auth/node_modules/sequelize/types/index.d.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/node-js-jwt-auth/node_modules/sequelize/types/lib/associations/base.d.ts" beforeDir="false" afterPath="$PROJECT_DIR$/node-js-jwt-auth/node_modules/sequelize/types/lib/associations/base.d.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/node-js-jwt-auth/node_modules/sequelize/types/lib/associations/belongs-to-many.d.ts" beforeDir="false" afterPath="$PROJECT_DIR$/node-js-jwt-auth/node_modules/sequelize/types/lib/associations/belongs-to-many.d.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/node-js-jwt-auth/node_modules/sequelize/types/lib/associations/belongs-to.d.ts" beforeDir="false" afterPath="$PROJECT_DIR$/node-js-jwt-auth/node_modules/sequelize/types/lib/associations/belongs-to.d.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/node-js-jwt-auth/node_modules/sequelize/types/lib/associations/has-many.d.ts" beforeDir="false" afterPath="$PROJECT_DIR$/node-js-jwt-auth/node_modules/sequelize/types/lib/associations/has-many.d.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/node-js-jwt-auth/node_modules/sequelize/types/lib/associations/has-one.d.ts" beforeDir="false" afterPath="$PROJECT_DIR$/node-js-jwt-auth/node_modules/sequelize/types/lib/associations/has-one.d.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/node-js-jwt-auth/node_modules/sequelize/types/lib/associations/index.d.ts" beforeDir="false" afterPath="$PROJECT_DIR$/node-js-jwt-auth/node_modules/sequelize/types/lib/associations/index.d.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/node-js-jwt-auth/node_modules/sequelize/types/lib/connection-manager.d.ts" beforeDir="false" afterPath="$PROJECT_DIR$/node-js-jwt-auth/node_modules/sequelize/types/lib/connection-manager.d.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/node-js-jwt-auth/node_modules/sequelize/types/lib/data-types.d.ts" beforeDir="false" afterPath="$PROJECT_DIR$/node-js-jwt-auth/node_modules/sequelize/types/lib/data-types.d.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/node-js-jwt-auth/node_modules/sequelize/types/lib/deferrable.d.ts" beforeDir="false" afterPath="$PROJECT_DIR$/node-js-jwt-auth/node_modules/sequelize/types/lib/deferrable.d.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/node-js-jwt-auth/node_modules/sequelize/types/lib/errors.d.ts" beforeDir="false" afterPath="$PROJECT_DIR$/node-js-jwt-auth/node_modules/sequelize/types/lib/errors.d.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/node-js-jwt-auth/node_modules/sequelize/types/lib/hooks.d.ts" beforeDir="false" afterPath="$PROJECT_DIR$/node-js-jwt-auth/node_modules/sequelize/types/lib/hooks.d.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/node-js-jwt-auth/node_modules/sequelize/types/lib/index-hints.d.ts" beforeDir="false" afterPath="$PROJECT_DIR$/node-js-jwt-auth/node_modules/sequelize/types/lib/index-hints.d.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/node-js-jwt-auth/node_modules/sequelize/types/lib/instance-validator.d.ts" beforeDir="false" afterPath="$PROJECT_DIR$/node-js-jwt-auth/node_modules/sequelize/types/lib/instance-validator.d.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/node-js-jwt-auth/node_modules/sequelize/types/lib/model-manager.d.ts" beforeDir="false" afterPath="$PROJECT_DIR$/node-js-jwt-auth/node_modules/sequelize/types/lib/model-manager.d.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/node-js-jwt-auth/node_modules/sequelize/types/lib/model.d.ts" beforeDir="false" afterPath="$PROJECT_DIR$/node-js-jwt-auth/node_modules/sequelize/types/lib/model.d.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/node-js-jwt-auth/node_modules/sequelize/types/lib/operators.d.ts" beforeDir="false" afterPath="$PROJECT_DIR$/node-js-jwt-auth/node_modules/sequelize/types/lib/operators.d.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/node-js-jwt-auth/node_modules/sequelize/types/lib/query-interface.d.ts" beforeDir="false" afterPath="$PROJECT_DIR$/node-js-jwt-auth/node_modules/sequelize/types/lib/query-interface.d.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/node-js-jwt-auth/node_modules/sequelize/types/lib/query-types.d.ts" beforeDir="false" afterPath="$PROJECT_DIR$/node-js-jwt-auth/node_modules/sequelize/types/lib/query-types.d.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/node-js-jwt-auth/node_modules/sequelize/types/lib/sequelize.d.ts" beforeDir="false" afterPath="$PROJECT_DIR$/node-js-jwt-auth/node_modules/sequelize/types/lib/sequelize.d.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/node-js-jwt-auth/node_modules/sequelize/types/lib/sql-string.d.ts" beforeDir="false" afterPath="$PROJECT_DIR$/node-js-jwt-auth/node_modules/sequelize/types/lib/sql-string.d.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/node-js-jwt-auth/node_modules/sequelize/types/lib/table-hints.d.ts" beforeDir="false" afterPath="$PROJECT_DIR$/node-js-jwt-auth/node_modules/sequelize/types/lib/table-hints.d.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/node-js-jwt-auth/node_modules/sequelize/types/lib/transaction.d.ts" beforeDir="false" afterPath="$PROJECT_DIR$/node-js-jwt-auth/node_modules/sequelize/types/lib/transaction.d.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/node-js-jwt-auth/node_modules/sequelize/types/lib/utils.d.ts" beforeDir="false" afterPath="$PROJECT_DIR$/node-js-jwt-auth/node_modules/sequelize/types/lib/utils.d.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/node-js-jwt-auth/node_modules/sequelize/types/lib/utils/logger.d.ts" beforeDir="false" afterPath="$PROJECT_DIR$/node-js-jwt-auth/node_modules/sequelize/types/lib/utils/logger.d.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/node-js-jwt-auth/node_modules/sequelize/types/lib/utils/validator-extras.d.ts" beforeDir="false" afterPath="$PROJECT_DIR$/node-js-jwt-auth/node_modules/sequelize/types/lib/utils/validator-extras.d.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/node-js-jwt-auth/package-lock.json" beforeDir="false" afterPath="$PROJECT_DIR$/node-js-jwt-auth/package-lock.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/node-js-jwt-auth/package.json" beforeDir="false" afterPath="$PROJECT_DIR$/node-js-jwt-auth/package.json" afterDir="false" />
+    </list>
+    <option name="SHOW_DIALOG" value="false" />
+    <option name="HIGHLIGHT_CONFLICTS" value="true" />
+    <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
+    <option name="LAST_RESOLUTION" value="IGNORE" />
+  </component>
+  <component name="ComposerSettings" doNotAsk="true" synchronizationState="SYNCHRONIZE">
+    <pharConfigPath>$PROJECT_DIR$/src/composer.json</pharConfigPath>
+    <execution />
+  </component>
+  <component name="Git.Settings">
+    <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
+  </component>
+  <component name="MavenImportPreferences">
+    <option name="importingSettings">
+      <MavenImportingSettings>
+        <option name="vmOptionsForImporter" value="-Xmx768m" />
+      </MavenImportingSettings>
+    </option>
+  </component>
+  <component name="PhpWorkspaceProjectConfiguration" interpreter_name="PHP 7.2" />
+  <component name="ProjectId" id="1cJ4YkzNbQO5Jfe39NjOOHpDFsQ" />
+  <component name="ProjectViewState">
+    <option name="hideEmptyMiddlePackages" value="true" />
+    <option name="showLibraryContents" value="true" />
+  </component>
+  <component name="PropertiesComponent">
+    <property name="RunOnceActivity.OpenProjectViewOnStart" value="true" />
+    <property name="RunOnceActivity.ShowReadmeOnStart" value="true" />
+    <property name="WebServerToolWindowFactoryState" value="false" />
+    <property name="com.jetbrains.php.phpunit.codeGeneration.PhpNewTestDialog.defaultLibrary" value="PHPUnit" />
+    <property name="ignore.virus.scanning.warn.message" value="true" />
+    <property name="last_opened_file_path" value="$PROJECT_DIR$" />
+    <property name="project.structure.last.edited" value="Project" />
+    <property name="project.structure.proportion" value="0.0" />
+    <property name="project.structure.side.proportion" value="0.2" />
+    <property name="settings.editor.selected.configurable" value="preferences.pluginManager" />
+  </component>
+  <component name="RecentsManager">
+    <key name="CopyFile.RECENT_KEYS">
+      <recent name="C:\xampp\htdocs\krenkelsesarmeen\api" />
+      <recent name="C:\xampp\htdocs\krenkelsesarmeen" />
+      <recent name="C:\xampp\htdocs\krenkelsesarmeen\api\objects" />
+    </key>
+    <key name="MoveFile.RECENT_KEYS">
+      <recent name="C:\xampp\htdocs\krenkelsesarmeen\node-js-jwt-auth\app\config" />
+    </key>
+  </component>
+  <component name="RunManager">
+    <configuration name="BrukereTest" type="PHPUnitRunConfigurationType" factoryName="PHPUnit" temporary="true">
+      <TestRunner class="BrukereTest" file="$PROJECT_DIR$/BrukereTest.php" scope="Class" />
+      <method v="2" />
+    </configuration>
+    <configuration name="BrukereTest.testSjekk_epost" type="PHPUnitRunConfigurationType" factoryName="PHPUnit" temporary="true">
+      <TestRunner class="BrukereTest" file="$PROJECT_DIR$/BrukereTest.php" method="testSjekk_epost" scope="Method" />
+      <method v="2" />
+    </configuration>
+    <configuration name="BrukereTest.testUpdate" type="PHPUnitRunConfigurationType" factoryName="PHPUnit" temporary="true">
+      <TestRunner class="BrukereTest" file="$PROJECT_DIR$/BrukereTest.php" method="testUpdate" scope="Method" />
+      <method v="2" />
+    </configuration>
+    <configuration name="BrukereTest.test__construct" type="PHPUnitRunConfigurationType" factoryName="PHPUnit" temporary="true">
+      <TestRunner class="BrukereTest" file="$PROJECT_DIR$/BrukereTest.php" method="test__construct" scope="Method" />
+      <method v="2" />
+    </configuration>
+    <configuration name="update_user.php" type="PhpLocalRunConfigurationType" factoryName="PHP Console" temporary="true" path="$PROJECT_DIR$/api/update_user.php">
+      <method v="2" />
+    </configuration>
+  </component>
+  <component name="SpellCheckerSettings" RuntimeDictionaries="0" Folders="0" CustomDictionaries="0" DefaultDictionary="application-level" UseSingleDictionary="true" transferred="true" />
+  <component name="SvnConfiguration">
+    <configuration />
+  </component>
+  <component name="TaskManager">
+    <task active="true" id="Default" summary="Default task">
+      <changelist id="b512fe87-0946-4f85-924f-dcc86df8bcd4" name="Default Changelist" comment="" />
+      <created>1590233411378</created>
+      <option name="number" value="Default" />
+      <option name="presentableId" value="Default" />
+      <updated>1590233411378</updated>
+      <workItem from="1590234390629" duration="216000" />
+      <workItem from="1590234614323" duration="223000" />
+      <workItem from="1590234846548" duration="8180000" />
+    </task>
+    <servers />
+  </component>
+  <component name="TypeScriptGeneratedFilesManager">
+    <option name="version" value="2" />
+  </component>
+  <component name="Vcs.Log.Tabs.Properties">
+    <option name="TAB_STATES">
+      <map>
+        <entry key="MAIN">
+          <value>
+            <State />
+          </value>
+        </entry>
+      </map>
+    </option>
+    <option name="oldMeFiltersMigrated" value="true" />
+  </component>
+</project>
