@@ -6,7 +6,7 @@ class Database{
     private $host = "localhost";
     private $db_name = "treniufu_treningheten_db";
     private $username = "treniufu_master";
-    private $password = "";
+    private $password = "#tyWgx62cQ#*oF";
     public $conn;
     private $utf = "utf8mb4";
 
