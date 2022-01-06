@@ -1,27 +1,25 @@
 <?php
 // 'user' object
-class Brukere{
+class User{
 
     // database connection and table name
     private $conn;
-    private $table_name = "brukere";
-    private $table_name2 = "postnr";
+    private $table_name = "users";
 
     // object properties
-    public $b_id;
-    public $b_fornavn;
-    public $b_etternavn;
-    public $b_epost;
-    public $b_passord;
-    public $b_admin;
-    public $b_bio;
-    public $b_update;
-    public $b_skapelse;
-    public $b_active;
-    public $b_tittel;
-    public $b_kallenavn;
-    public $b_hash;
-    public $postnr;
+    public $user_id;
+    public $user_email;
+    public $user_password;
+    public $user_firstname;
+    public $user_lastname;
+    public $user_leave;
+    public $user_hash;
+    public $user_active;
+    public $user_disabled;
+    public $user_admin;
+    public $user_creation;
+    public $user_lastactivity;
+    public $code_id;
 
     // constructor
     public function __construct($db){
@@ -29,106 +27,47 @@ class Brukere{
     }
 
     // create new user record
-    function create(){
+    function create_user(){
 
-        $hash = md5( rand(0,1000) );
-
-        // sanitize
-        $this->b_fornavn=htmlspecialchars(strip_tags($this->b_fornavn));
-        $this->b_etternavn=htmlspecialchars(strip_tags($this->b_etternavn));
-        $this->b_epost=htmlspecialchars(strip_tags($this->b_epost));
-        $this->postnr=htmlspecialchars(strip_tags($this->postnr));
+        $this->user_hash = md5(rand(0,1000));
 
         // hash the password before saving to database
-        $password_hash = password_hash($this->b_passord, PASSWORD_BCRYPT);
+        $password_hash = password_hash($this->user_password, PASSWORD_BCRYPT);
 
         // insert query
         $query = "INSERT INTO " . $this->table_name .
                  " SET
-                    b_fornavn = '" . $this->b_fornavn . "',
-                    b_etternavn = '" . $this->b_etternavn . "',
-                    b_epost = '" . $this->b_epost . "',
-                    b_hash = '" . $hash . "',
-                    postnr = '" . $this->postnr . "',
-                    b_passord = '" . $password_hash . "'";
+                    user_firstname = '" . $this->user_firstname . "',
+                    user_lastname = '" . $this->user_lastname . "',
+                    user_email = '" . $this->user_email . "',
+                    user_hash = '" . $this->user_hash . "',
+                    code_id = '" . $this->code_id . "',
+                    user_password = '" . $password_hash . "'";
 
         // prepare the query
         $stmt = $this->conn->prepare($query);
 
         // execute the query, also check if query was successful
         if($stmt->execute()){
-            //$this->ver_email();
-
             return true;
         }
-        echo $query;
+        
         return false;
     }
 
-    // check if given email exist in the database
-    function getUser(){
+    function check_email(){
 
         // query to check if email exists
-        $query = "SELECT b_id, b_fornavn, b_etternavn, b_passord, b_admin, b_tittel, b_kallenavn, b_update, b_bio, b_active, b_skapelse, postnr
-                FROM " . $this->table_name . "
-                WHERE b_epost = ?
-                LIMIT 0,1";
+        $query = "SELECT user_email FROM " . $this->table_name . " WHERE user_email = '" . $this->user_email . "' LIMIT 0,1";
 
         // prepare the query
         $stmt = $this->conn->prepare( $query );
 
         // sanitize
-        $this->b_epost=htmlspecialchars(strip_tags($this->b_epost));
+        $this->user_email = htmlspecialchars(strip_tags($this->user_email));
 
         // bind given email value
-        $stmt->bindParam(1, $this->b_epost);
-
-        // execute the query
-        $stmt->execute();
-
-        // get number of rows
-        $num = $stmt->rowCount();
-
-        // if email exists, assign values to object properties for easy access and use for php sessions
-        if($num>0){
-
-            // get record details / values
-            $row = $stmt->fetch(PDO::FETCH_ASSOC);
-
-            // assign values to object properties
-            $this->b_id = $row['b_id'];
-            $this->b_fornavn = $row['b_fornavn'];
-            $this->b_etternavn = $row['b_etternavn'];
-            $this->b_passord = $row['b_passord'];
-            $this->b_kallenavn = $row['b_kallenavn'];
-            $this->b_tittel = $row['b_tittel'];
-            $this->b_admin = $row['b_admin'];
-            $this->b_update = $row['b_update'];
-            $this->b_bio = $row['b_bio'];
-            $this->b_active = $row['b_active'];
-            $this->b_skapelse = $row['b_skapelse'];
-            $this->postnr = $row['postnr'];
-
-            return true;
-        }
-
-        // return false if email does not exist in the database
-        return false;
-    }
-
-    function sjekk_epost(){
-
-        // query to check if email exists
-        $query = "SELECT b_epost FROM " . $this->table_name . " WHERE b_epost = '" . $this->b_epost . "' LIMIT 0,1";
-
-        // prepare the query
-        $stmt = $this->conn->prepare( $query );
-
-        // sanitize
-        $this->b_epost=htmlspecialchars(strip_tags($this->b_epost));
-
-        // bind given email value
-        $stmt->bindParam(1, $this->b_epost);
+        $stmt->bindParam(1, $this->user_email);
 
         // execute the query
         $stmt->execute();
@@ -145,27 +84,68 @@ class Brukere{
         return false;
     }
 
-    function ver_email(){
+    function verification_email(){
+        
+        $this->get_user_data();
 
-        $hash    = $this->sjekk_hash();
-        $to      = $this->b_epost; // Send email to our user
-        $subject = 'Registrering | Validering'; // Give the email a subject
+        $to      = $this->user_email; // Send email to our user
+        $subject = 'Aktiver brukeren din!'; // Give the email a subject
         $message = '
 
         Takk for registreringen!
         Brukeren din er skapt, men er ikke aktivert. Følg lenken under for å aktivere brukeren din.
 
         Lenke:
-        http://www.localhost/planteverden/verify.html?email='.$this->b_epost.'&hash='.$hash.'
+        https://treningheten.no?activate_email=' . $this->user_email . '&activate_hash=' . $this->user_hash.'
 
         '; // Our message above including the link
 
-        $headers = 'From:oystein.sverre@gmail.com' . "\r\n"; // Set from headers
-        if(mail($to, $subject, $message, $headers)) {
+        $headers = 'From:noreply@treningheten.no' . "\r\n"; // Set from headers
+        if(@mail($to, $subject, $message, $headers)) {
             return true;
         }
 
         return false;
+    }
+
+    function get_user_data(){
+
+        // query to check if email exists
+        $query = "SELECT * FROM " . $this->table_name . " WHERE `user_email` = '" . $this->user_email . "'";
+
+        $stmt = $this->conn->prepare($query);
+
+        // execute the query
+        $stmt->execute();
+
+        // get number of rows
+        $num = $stmt->rowCount();
+
+        // if email exists, assign values to object properties for easy access and use for php sessions
+        if($num === 1){
+
+            // get record details / values
+            $row = $stmt->fetch(PDO::FETCH_ASSOC);
+
+            // assign values to object properties
+            $this->user_id = $row['user_id'];
+            $this->user_firstname = $row['user_firstname'];
+            $this->user_lastname = $row['user_lastname'];
+            $this->user_leave = $row['user_leave'];
+            $this->user_hash = $row['user_hash'];
+            $this->user_active = $row['user_active'];
+            $this->user_disabled = $row['user_disabled'];
+            $this->user_admin = $row['user_admin'];
+            $this->user_creation = $row['user_creation'];
+            $this->user_lastactivity = $row['user_lastactivity'];
+            $this->code_id = $row['code_id'];
+
+            return true;
+
+        } else {
+            
+            return false;
+        }
     }
 
     function set_account(){

@@ -6,62 +6,87 @@ header("Access-Control-Allow-Methods: POST");
 header("Access-Control-Max-Age: 3600");
 header("Access-Control-Allow-Headers: Content-Type, Access-Control-Allow-Headers, Authorization, X-Requested-With");
 
-// files needed to connect to database
-include_once 'config/database.php';
-include_once 'objects/user.php';
+// Files needed to use objects
+require(dirname(__FILE__) . '/config/database.php');
+require(dirname(__FILE__) . '/objects/user.php');
+require(dirname(__FILE__) . '/objects/code.php');
 
 // get database connection
 $database = new Database();
 $db = $database->getConnection();
 
 // instantiate product object
-$brukere = new Brukere($db);
+$user = new User($db);
+$code = new Code($db);
 
 // get posted data
 $data = json_decode(file_get_contents("php://input"));
 
-$brukere->b_hash = $data->b_hash;
-if(!$brukere->val_hash()) {
+// Validate creation hash/invite
+$code->code_hash = $data->code_hash;
+$code_object = $code->get_code();
+if(!$code_object) {
     echo json_encode(
         array(
-            "message" => "Ugydlig registeringslenke.",
-            "error" => "true"
+            "message" => "Ugydlig invitasjonskode.",
+            "error" => true
         )
     );
     exit;
 }
+$code_object = json_decode($code_object);
+if($code_object->code_used !== '0') {
+    echo json_encode(
+        array(
+            "message" => "Invitasjonskoden er allerede brukt.",
+            "error" => true
+        )
+    );
+    exit;
+}
+$code_id = $code_object->code_id;
 
 // set product property values
-$brukere->b_fornavn = $data->b_fornavn;
-$brukere->b_etternavn = $data->b_etternavn;
-$brukere->b_epost = $data->b_epost;
-$brukere->b_passord = $data->b_passord;
-$brukere->postnr = $data->postnr;
+$user->user_firstname = htmlspecialchars(strip_tags($data->user_firstname));
+$user->user_lastname = htmlspecialchars(strip_tags($data->user_lastname));
+$user->user_email = htmlspecialchars(strip_tags($data->user_email));
+$user->user_password = htmlspecialchars(strip_tags($data->user_password));
+$user->code_id = htmlspecialchars(strip_tags($code_id));
 
 // create the user
-if($brukere->getUser()) {
-
+if($user->check_email()) {
     // display message: unable to create user
-    echo json_encode(array("message" => "Epost er i bruk.", "error" => "true"));
+    echo json_encode(array("message" => "Epost er i bruk.", "error" => true));
     exit;
 }
 
 if(
-    !empty($brukere->b_fornavn) &&
-    !empty($brukere->b_epost) &&
-    !empty($brukere->b_passord) &&
-    !empty($brukere->postnr) &&
-    $brukere->create()
+    !empty($user->user_firstname) &&
+    !empty($user->user_lastname) &&
+    !empty($user->user_email) &&
+    !empty($user->user_password) &&
+    !empty($user->code_id) &&
+    $user->create_user()
 ){
 
+    // Mark code as used
+    $code->set_code_used();
+
+    // Mark code as used
+    $email = $user->verification_email();
+    if(!$email) {
+        echo json_encode(array("message" => "Bruker ble skapt, men aktiverings-epost ble ikke sendt.", "error" => false));
+        exit();
+    }
+
     // display message: user was created
-    echo json_encode(array("message" => "Bruker ble skapt.", "error" => "false"));
+    echo json_encode(array("message" => "Bruker ble skapt.", "error" => false));
 }
 
 // message if unable to create user
 else{
 
     // display message: unable to create user
-    echo json_encode(array("message" => "Bruker ble ikke skapt.", "error" => "true"));
+    echo json_encode(array("message" => "Bruker ble ikke skapt.", "error" => true));
 }
 ?>

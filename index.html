@@ -33,16 +33,16 @@
         </a>
     
         <a class="nav-item disabled" href="#" id='update_account'>Bruker</a>
-        <a class="nav-item enabled" href="#" id='logg_inn'>Logg inn</a>
-        <a class="nav-item enabled" href="#" id='registrer'>Registrer deg</a>
-        <a class="nav-item disabled" href="#" onclick="logg_ut()" id='logg_ut'>Logg ut</a>
+        <a class="nav-item enabled" href="#" id='log_in_tab'>Logg inn</a>
+        <a class="nav-item enabled" href="#" onclick='load_page_register();' id='register_tab'>Registrer deg</a>
+        <a class="nav-item disabled" href="#" onclick="logg_ut()" id='log_out_tab'>Logg ut</a>
     
     </nav>
 </div>
 <!-- /navbar -->
 
 <!-- container -->
-<main role="main" class="content">
+<main role="main" class="content" id="content">
 
     <!-- where prompt / messages will appear -->
 

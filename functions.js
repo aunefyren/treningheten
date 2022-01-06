@@ -52,41 +52,71 @@ function makeRequest (method, url, data) {
 
 function show_logged_in_menu() {
     // hide login and sign up from navbar & show logout button
-    document.getElementById('logg_inn').classList.add('disabled');
-    document.getElementById('logg_inn').classList.remove('enabled');
+    document.getElementById('log_in_tab').classList.add('disabled');
+    document.getElementById('log_in_tab').classList.remove('enabled');
 
-    document.getElementById('registrer').classList.add('disabled');
-    document.getElementById('registrer').classList.remove('enabled');
+    document.getElementById('register_tab').classList.add('disabled');
+    document.getElementById('register_tab').classList.remove('enabled');
 
-    document.getElementById('logg_ut').classList.add('enabled');
-    document.getElementById('logg_ut').classList.remove('disabled');
+    document.getElementById('log_out_tab').classList.add('enabled');
+    document.getElementById('log_out_tab').classList.remove('disabled');
 
     document.getElementById('update_account').classList.add('enabled');
     document.getElementById('update_account').classList.remove('disabled');
 }
 
 function show_logged_out_menu() {
-    document.getElementById('logg_inn').classList.add('enabled');
-    document.getElementById('logg_inn').classList.remove('disabled');
+    document.getElementById('log_in_tab').classList.add('enabled');
+    document.getElementById('log_in_tab').classList.remove('disabled');
 
-    document.getElementById('registrer').classList.add('enabled');
-    document.getElementById('registrer').classList.remove('disabled');
+    document.getElementById('register_tab').classList.add('enabled');
+    document.getElementById('register_tab').classList.remove('disabled');
 
-    document.getElementById('logg_ut').classList.add('disabled');
-    document.getElementById('logg_ut').classList.remove('enabled');
+    document.getElementById('log_out_tab').classList.add('disabled');
+    document.getElementById('log_out_tab').classList.remove('enabled');
 
     document.getElementById('update_account').classList.add('disabled');
     document.getElementById('update_account').classList.remove('enabled');
 }
 
+function remove_active_menu() {
+  document.getElementById('log_in_tab').classList.remove('active');
+  document.getElementById('register_tab').classList.remove('active');
+  document.getElementById('log_out_tab').classList.remove('active');
+  document.getElementById('update_account').classList.remove('active');
+}
+
+function add_active_menu(tab_id) {
+  document.getElementById(tab_id).classList.add('active');
+}
+
 function toggle_navbar() {
-    var x = document.getElementById("navbar");
-    var y = document.getElementById("nav-logo");
-    if (x.className === "navbar") {
-      x.className += " responsive";
-      y.className += " responsive";
-    } else {
-      x.className = "navbar";
-      y.className = "nav-logo";
-    }
+  var x = document.getElementById("navbar");
+  var y = document.getElementById("nav-logo");
+  if (x.className === "navbar") {
+    x.className += " responsive";
+    y.className += " responsive";
+  } else {
+    x.className = "navbar";
+    y.className = "nav-logo";
   }
+}
+
+function alert_clear() {
+  document.getElementById('response').innerHTML = '';
+}
+
+function alert_error(message) {
+  document.getElementById('response').innerHTML = '<div class="response-box" style="background-color:var(--red)"><div>' + message + '</div><img onclick="alert_clear()" src="assets/close.svg" class="alert_close"></div>';
+  window.scrollTo(0, 0);
+}
+
+function alert_info(message) {
+  document.getElementById('response').innerHTML = '<div class="response-box" style="background-color:var(--blue)"><div>' + message + '</div><img onclick="alert_clear()" src="assets/close.svg" class="alert_close"></div>';
+  window.scrollTo(0, 0);
+}
+
+function alert_success(message) {
+  document.getElementById('response').innerHTML = '<div class="response-box" style="background-color:var(--green)"><div>' + message + '</div><img onclick="alert_clear()" src="assets/close.svg" class="alert_close"></div>';
+  window.scrollTo(0, 0);
+}
