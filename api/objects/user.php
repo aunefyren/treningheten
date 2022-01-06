@@ -5,6 +5,8 @@ class User{
     // database connection and table name
     private $conn;
     private $table_name = "users";
+    const METHOD = 'aes-256-ctr';
+    private $token_encrypter = 'this_token_encrypts_trening_420';
 
     // object properties
     public $user_id;
@@ -58,16 +60,10 @@ class User{
     function check_email(){
 
         // query to check if email exists
-        $query = "SELECT user_email FROM " . $this->table_name . " WHERE user_email = '" . $this->user_email . "' LIMIT 0,1";
-
+        $query = "SELECT `user_email` FROM " . $this->table_name . " WHERE user_email = '" . $this->user_email . "'";
+        
         // prepare the query
         $stmt = $this->conn->prepare( $query );
-
-        // sanitize
-        $this->user_email = htmlspecialchars(strip_tags($this->user_email));
-
-        // bind given email value
-        $stmt->bindParam(1, $this->user_email);
 
         // execute the query
         $stmt->execute();
@@ -96,7 +92,7 @@ class User{
         Brukeren din er skapt, men er ikke aktivert. Følg lenken under for å aktivere brukeren din.
 
         Lenke:
-        https://treningheten.no?activate_email=' . $this->user_email . '&activate_hash=' . $this->user_hash.'
+        https://treningheten.no?activate_email=' . urlencode($this->user_email) . '&activate_hash=' . urlencode($this->user_hash) . '
 
         '; // Our message above including the link
 
@@ -148,6 +144,113 @@ class User{
         }
     }
 
+    function get_user_cookie() {
+
+        $this->get_user_data();
+
+        // Get the current date
+        $now = new DateTime('NOW');
+
+        $token_data = array(
+            "issued" => $now->format('Y-m-d H:i:s'),
+            "data" => array(
+               "user_id" => $this->user_id,
+               "user_firstname" => $this->user_firstname,
+               "user_lastname" => $this->user_lastname,
+               "user_leave" => $this->user_leave,
+               "user_hash" => $this->user_hash,
+               "user_active" => $this->user_active,
+               "user_disabled" => $this->user_disabled,
+               "user_admin" => $this->user_admin,
+               "user_creation" => $this->user_creation,
+               "user_lastactivity" => $this->user_lastactivity,
+               "code_id" => $this->code_id
+           )
+        );
+  
+        $nonceSize = openssl_cipher_iv_length(self::METHOD);
+        $nonce = openssl_random_pseudo_bytes($nonceSize);
+
+        $token = openssl_encrypt(
+            json_encode($token_data),
+            self::METHOD,
+            $this->token_encrypter,
+            OPENSSL_RAW_DATA,
+            $nonce
+        );
+
+        return base64_encode($nonce.$token);
+        
+    }
+
+    function refresh_hash(){
+        $hash = md5( rand(0,1000) );
+
+        // query to check if email exists
+        $query = "UPDATE " . $this->table_name . " SET user_hash = '" . $hash . "' WHERE user_email = '" . $this->user_email . "'";
+
+        // prepare the query
+        $stmt = $this->conn->prepare( $query );
+
+        // execute the query
+        if($stmt->execute()) {
+            return true;
+        }
+
+        return false;
+
+    }
+
+    function set_user_active(){
+        // query to check if email exists
+        $query = "UPDATE " . $this->table_name . " SET user_active = '1' WHERE user_email = '" . $this->user_email . "'";
+
+        // prepare the query
+        $stmt = $this->conn->prepare( $query );
+
+        // execute the query
+        if($stmt->execute()) {
+            return true;
+        } else {
+            return false;
+        }
+
+    }
+
+    function check_password(){
+
+        // query to check if email exists
+        $query = "SELECT `user_password` FROM " . $this->table_name . " WHERE `user_email` = '" . $this->user_email . "'";
+        
+        $stmt = $this->conn->prepare($query);
+
+        // execute the query
+        $stmt->execute();
+
+        // get number of rows
+        $num = $stmt->rowCount();
+
+        // if email exists, assign values to object properties for easy access and use for php sessions
+        if($num === 1){
+
+            // get record details / values
+            $row = $stmt->fetch(PDO::FETCH_ASSOC);
+
+            // assign values to object properties
+            $password_hash = $row['user_password'];
+            
+            if(password_verify($this->user_password, $password_hash)) {
+                return true;
+            }
+
+            return false;
+
+        } else {
+            
+            return false;
+        }
+    }
+
     function set_account(){
         // query to check if email exists
         $query = "UPDATE " . $this->table_name . " SET b_active = '1' WHERE b_hash = '" . $this->b_hash . "' AND b_epost = '" . $this->b_epost . "'";
@@ -181,24 +284,6 @@ class User{
             }
 
         }
-
-    function ny_hash(){
-        $hash = md5( rand(0,1000) );
-
-        // query to check if email exists
-        $query = "UPDATE " . $this->table_name . " SET b_hash = '" . $hash . "' WHERE b_id = " . $this->b_id;
-
-        // prepare the query
-        $stmt = $this->conn->prepare( $query );
-
-        // execute the query
-        if($stmt->execute()) {
-            return true;
-        }
-
-        return false;
-
-    }
 
     function sjekk_hash(){
 
