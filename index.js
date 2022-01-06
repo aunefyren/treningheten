@@ -28,19 +28,24 @@ function validate_user_cookie(cookie) {
             } catch(error) {
                 alert_error("API response kunne ikke tolkes.");
                 console.log(error);
+                console.log(this.responseText);
             }
             
             if(result.error) {
                 set_cookie("treningheten-bruker", "", 1);
+                logged_out = false;
                 load_page_home();
             } else {
+                logged_in = true;
+                login_data = result.cookie;
+                show_logged_in_menu();
                 load_page_home();
             }
 
         }
     };
     xhttp.withCredentials = true;
-    xhttp.open("post", "api/validate_user_cookie.php");
+    xhttp.open("post", "api/validate_login_cookie.php");
     xhttp.send(json_cookie);
     return;
 }
@@ -94,12 +99,23 @@ function verify_user(activate_email, activate_hash) {
 }
 
 function load_page_home() {
-    var html = `
-        <div>
-            <h1>Tren da</h1>
-            <p>Siden er under konstruksjon.</p>
-        </div>
-    `;
+    alert_clear();
+
+    if(logged_in) {
+        var html = `
+            <div>
+                <h1>Tren da, ` + login_data.user_firstname + `</h1>
+                <p>Siden er fortsatt under konstruksjon.</p>
+            </div>
+        `;
+    } else {
+        var html = `
+            <div>
+                <h1>Tren da</h1>
+                <p>Siden er under konstruksjon.</p>
+            </div>
+        `;
+    }
 
     document.getElementById('content-box').innerHTML = html;
 }
@@ -107,6 +123,7 @@ function load_page_home() {
 // ( Create user
 function load_page_register() {
 
+    alert_clear();
     remove_active_menu();
     add_active_menu('register_tab');
     toggle_navbar();
@@ -238,6 +255,7 @@ function register_user() {
 // ( login user
 function load_page_login() {
 
+    alert_clear();
     remove_active_menu();
     add_active_menu('log_in_tab');
     toggle_navbar();
@@ -310,8 +328,10 @@ function login_user() {
                 document.getElementById("login_user_button").disabled = false;
                 document.getElementById("login_user_button").style.opacity = '1';
             } else {
+                document.getElementById('user_password').value = '';
                 alert_success(result.message);
                 set_cookie("treningheten-bruker", result.cookie, 1);
+                show_logged_in_menu();
             }
 
         }
@@ -322,3 +342,10 @@ function login_user() {
     return;
 }
 // Create user )
+
+function log_out() {
+    show_logged_out_menu();
+    set_cookie("treningheten-bruker", "", 1);
+    logged_in = false;
+    load_page_home();
+}

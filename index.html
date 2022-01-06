@@ -56,6 +56,9 @@
 
 <script>
     var cookie;
+    var logged_in = false;
+
+    var login_data;
 
     $(document).ready(function(){
 
@@ -71,7 +74,6 @@
 
         ).done(function(){
 
-            show_logged_out_menu();
             load_page();
 
         });

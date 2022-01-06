@@ -61,6 +61,6 @@ if($user->user_active !== '1') {
 $cookie = $user->get_user_cookie();
 
 // Print cookie and exit
-echo json_encode(array("error" => false, "message" => "Informasjonskapsel/kjeks skapt.", "cookie" => $cookie));
+echo json_encode(array("error" => false, "message" => "Innlogging suksessfull!", "cookie" => $cookie));
 exit(0);
 ?>

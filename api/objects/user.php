@@ -6,7 +6,7 @@ class User{
     private $conn;
     private $table_name = "users";
     const METHOD = 'aes-256-ctr';
-    private $token_encrypter = 'this_token_encrypts_trening_420';
+    private $token_encrypter = 'this_token_encrypts_trening_420_69';
 
     // object properties
     public $user_id;
@@ -96,7 +96,7 @@ class User{
 
         '; // Our message above including the link
 
-        $headers = 'From:noreply@treningheten.no' . "\r\n"; // Set from headers
+        $headers = 'From:noreply@treningheten.no' . "\r\n" . "Content-Type: text/html; charset=UTF-8"; // Set from headers
         if(@mail($to, $subject, $message, $headers)) {
             return true;
         }
@@ -180,6 +180,48 @@ class User{
         );
 
         return base64_encode($nonce.$token);
+        
+    }
+
+    function validate_user_cookie($cookie) {
+
+        // Debase cookie
+        $cookie_debased = base64_decode($cookie, true);
+        if ($cookie_debased === false) {
+            return false;
+        }
+
+        // Assign variables
+        $nonceSize = openssl_cipher_iv_length(self::METHOD);
+        $nonce = mb_substr($cookie_debased, 0, $nonceSize, '8bit');
+        $ciphertext = mb_substr($cookie_debased, $nonceSize, null, '8bit');
+        
+        // Decrypt cookie
+        $cookie_data = openssl_decrypt(
+            $ciphertext,
+            self::METHOD,
+            $this->token_encrypter,
+            OPENSSL_RAW_DATA,
+            $nonce
+        );
+
+        // Decode the JSON response
+        $cookie_result = json_decode($cookie_data, true);
+
+        if(!isset($cookie_result['issued'])) {
+            return false;
+        }
+
+        $now = new DateTime('NOW');
+        $then = date_create_from_format('Y-m-d H:i:s', $cookie_result['issued']);
+        $diff = (array) date_diff($now, $then);
+
+        if($diff['days'] > 7) {
+            return false;
+        }
+        
+        // Return Plex token
+        return $cookie_data;
         
     }
 
