@@ -359,37 +359,41 @@ function load_home_exercises(goal_id) {
                 alert_error(result.message);
             } else {
                 alert_clear();
-                document.getElementById('week_info').innerHTML = 'Uke ' + result.exercises.week_number;
+                document.getElementById('exercises').style.display = 'flex';
+                document.getElementById('week_info').innerHTML = 'Uke ' + result.week_number;
 
-                if(result.exercises.days['1']) {
-                    document.getElementById('day_1').checked = true;
-                }
+                if(result.exercises,length > 0) {
 
-                if(result.exercises.days['2']) {
-                    document.getElementById('day_2').checked = true;
-                }
+                    if(result.exercises.days['1']) {
+                        document.getElementById('day_1').checked = true;
+                    }
 
-                if(result.exercises.days['3']) {
-                    document.getElementById('day_3').checked = true;
-                }
+                    if(result.exercises.days['2']) {
+                        document.getElementById('day_2').checked = true;
+                    }
 
-                if(result.exercises.days['4']) {
-                    document.getElementById('day_4').checked = true;
-                }
+                    if(result.exercises.days['3']) {
+                        document.getElementById('day_3').checked = true;
+                    }
 
-                if(result.exercises.days['5']) {
-                    document.getElementById('day_5').checked = true;
-                }
+                    if(result.exercises.days['4']) {
+                        document.getElementById('day_4').checked = true;
+                    }
 
-                if(result.exercises.days['6']) {
-                    document.getElementById('day_6').checked = true;
+                    if(result.exercises.days['5']) {
+                        document.getElementById('day_5').checked = true;
+                    }
+
+                    if(result.exercises.days['6']) {
+                        document.getElementById('day_6').checked = true;
+                    }
+                    
+                    if(result.exercises.days['7']) {
+                        document.getElementById('day_7').checked = true;
+                    }
+                
                 }
                 
-                if(result.exercises.days['7']) {
-                    document.getElementById('day_7').checked = true;
-                }
-
-                document.getElementById('exercises').style.display = 'flex';
             }
 
         }

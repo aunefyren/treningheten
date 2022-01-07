@@ -63,8 +63,7 @@ $week = array(
                     5 => false,
                     6 => false,
                     7 => false
-                ), 
-                "week_number" => $now->format('W')
+                )
             );
 
 $exercises = json_decode($exercises, true);
@@ -75,6 +74,6 @@ for($i = 0; $i < count($exercises); $i++) {
     }
 }
 
-echo json_encode(array("error" => false, "message" => "Fant trening for uken.", "exercises" => $week));
+echo json_encode(array("error" => false, "message" => "Fant trening for uken.", "exercises" => $week, "week_number" => $now->format('W')));
 exit(0);
 ?>
