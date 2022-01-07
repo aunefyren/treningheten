@@ -263,7 +263,7 @@ function load_home_goal() {
                     html += '<br>';
                     html += '<br>';
                     if(!result.goal.goal_started) {
-                    html += 'Dette målet starer ' + goal_start.toLocaleDateString("no-NO") + '.';
+                    html += 'Dette målet starter ' + goal_start.toLocaleDateString("no-NO") + '.';
                     html += '<br>';
                     }
                     html += 'Dette målet varer til ' + goal_end.toLocaleDateString("no-NO") + '.';
