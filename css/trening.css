@@ -2,7 +2,7 @@
   --red: #F94144;
   --yellow: #F9C74F;
   --green: #43AA8B;
-  --blue: #0175ff;
+  --blue: #31b3dd;
   --grey: #f1f1f1;
   --black: #181818;
   --white: #ffffff;
@@ -26,7 +26,7 @@ body {
 }
 
 #content-box {
-  width: 85%;
+  width: 90%;
   margin: 1em auto 1em auto;
   padding: 1em;
   border-radius: 0.5em;
@@ -35,7 +35,7 @@ body {
 }
 
 #response {
-  width: 85%;
+  width: 90%;
   margin: 0 auto 1em auto;
   padding: 0;
   box-sizing: border-box;
@@ -197,7 +197,7 @@ form {
 
 .newline {
   width: 100%;
-  box-sizing: content-box;
+  box-sizing: border-box;
 }
 
 label {
@@ -215,8 +215,8 @@ label {
   text-align: center;
   border-radius: 0.25em;
   border: none;
-  width: 15em;
-  max-width: 100%;
+  max-width: 18em;
+  width: -webkit-fill-available;
   margin: auto;
   border: 1px solid var(--grey);
 }
@@ -231,7 +231,8 @@ label {
   align-content: center;
   justify-content: center;
   align-items: center;
-  max-width: 15em;
+  max-width: 18em;
+  width: -webkit-fill-available;
   margin: auto;
 }
 
@@ -254,4 +255,12 @@ input[type="checkbox" i] {
 .alert_close {
   max-height: 1em;
   cursor: pointer;
+}
+
+.goal_div {
+  text-align: center;
+  margin: 1em auto 1em auto;
+  width: fit-content;
+  max-width: 90%;
+  box-sizing: border-box;
 }

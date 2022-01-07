@@ -153,3 +153,15 @@ function getParameterByName(name, url = window.location.href) {
     if (!results[2]) return '';
     return decodeURIComponent(results[2].replace(/\+/g, ' '));
 }
+
+var ignoreNav = document.getElementById('nav');
+
+document.addEventListener('click', function(event) {
+  var isClickInsideElement = ignoreNav.contains(event.target);
+  if (!isClickInsideElement) {
+    var nav_classlist = document.getElementById('navbar').classList;
+    if (nav_classlist.contains('responsive')) {
+      toggle_navbar();
+    }
+  }
+});

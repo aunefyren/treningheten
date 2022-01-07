@@ -1,5 +1,5 @@
 <?php
-// 'user' object
+// 'code' object
 class Code{
 
     // database connection and table name

@@ -98,6 +98,7 @@ function verify_user(activate_email, activate_hash) {
     return;
 }
 
+// ( Home page
 function load_page_home() {
     alert_clear();
 
@@ -108,6 +109,8 @@ function load_page_home() {
                 <p>Siden er fortsatt under konstruksjon.</p>
             </div>
         `;
+
+        load_home_goal();
     } else {
         var html = `
             <div>
@@ -119,6 +122,110 @@ function load_page_home() {
 
     document.getElementById('content-box').innerHTML = html;
 }
+
+function load_home_goal() {
+
+    user_goal_get_form = {
+                            "cookie" : cookie
+                        };
+
+    var user_goal_get_data = JSON.stringify(user_goal_get_form);
+
+    var xhttp = new XMLHttpRequest();
+    xhttp.onreadystatechange = function() {
+
+        alert_info('Laster inn...');
+
+        if (this.readyState == 4 && this.status == 200) {
+            try {
+                var result= JSON.parse(this.responseText);
+            } catch(error) {
+                alert_error('Klarte ikke tolke API respons.');
+                console.log('Failed to parse API response. Response: ' + this.responseText);
+            }
+            
+            if(result.error) {
+                alert_error(result.message);
+            } else {
+                alert_clear();
+                if(!result.goal) {
+                    var html = '';
+                    html += '<div class="form-group newline" style="border: solid 1px var(--blue); border-radius: 0.5em; background-color: lightblue; display: block;">';
+                    html += 'Du har ikke noe mål for øyeblikket. Det er aldri for sent å sette igang!';
+                    html += '<form id="goal_amount_form" onsubmit="set_home_goal();return false;">';
+                    html += '<div class="form-group newline">';
+                    html += '<label for="goal_exer_week" title="Dette blir målet du må nå i 6 måneder.">Hvor mange ganger i uka vil du trene?</label>';
+                    html += '<input type="number" inputmode="numeric" name="goal_exer_week" id="goal_exer_week" class="form-input" min="1" max="7" value="" autocomplete="on" required />';
+                    html += '</div>';
+                    html += '<div class="form-group newline">';
+                    html += '<button type="submit" class="form-input btn" id="goal_amount_button"><img src="assets/done.svg" class="btn_logo"><p2>Start!</p2></button>';
+                    html += '</div>';
+                    html += '</div>';
+                }  else {
+                    var goal_end_num = Date.parse(result.goal.goal_end);
+                    var goal_end = new Date(goal_end_num);
+                    var html = '';
+                    html += '<div class="form-group newline" style="border: solid 1px var(--blue); border-radius: 0.5em; background-color: lightblue;">';
+                    html += 'Du har satt et mål! Du prøver å trene <b>' + result.goal.goal_exer_week + '</b> ganger i uka.';
+                    html += '<br>';
+                    html += '<br>';
+                    html += 'Dette målet varer til ' + goal_end.toLocaleDateString("no-NO");
+                    html += '</div>';
+                }
+
+                document.getElementById('goal_div').innerHTML = html;
+            }
+
+        }
+    };
+    xhttp.withCredentials = true;
+    xhttp.open("post", "api/get_goal.php");
+    xhttp.send(user_goal_get_data);
+    return;
+}
+
+function set_home_goal() {
+
+    var goal_exer_week = document.getElementById('goal_exer_week').value;
+
+    if(!confirm('Er du helt sikkert på at du vil sette ' + goal_exer_week + ' som treningsmål? Dette kan ikke endres på 6 måneder.')) {
+        return;
+    }
+
+    user_goal_get_form = {
+                            "cookie" : cookie,
+                            "goal_exer_week" : goal_exer_week
+                        };
+
+    var user_goal_get_data = JSON.stringify(user_goal_get_form);
+
+    var xhttp = new XMLHttpRequest();
+    xhttp.onreadystatechange = function() {
+
+        alert_info('Laster inn...');
+
+        if (this.readyState == 4 && this.status == 200) {
+            try {
+                var result= JSON.parse(this.responseText);
+            } catch(error) {
+                alert_error('Klarte ikke tolke API respons.');
+                console.log('Failed to parse API response. Response: ' + this.responseText);
+            }
+            
+            if(result.error) {
+                alert_error(result.message);
+            } else {
+                location.reload();
+            }
+
+        }
+    };
+    xhttp.withCredentials = true;
+    xhttp.open("post", "api/set_goal.php");
+    xhttp.send(user_goal_get_data);
+    return;
+}
+// Home page )
 
 // ( Create user
 function load_page_register() {
@@ -347,5 +454,8 @@ function log_out() {
     show_logged_out_menu();
     set_cookie("treningheten-bruker", "", 1);
     logged_in = false;
+    document.getElementById('goal_div').innerHTML = '';
     load_page_home();
+    alert_info('Du har blitt logget ut.');
+    toggle_navbar();
 }
