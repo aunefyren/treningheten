@@ -1,5 +1,6 @@
 function load_page() {
     show_logged_out_menu();
+    alert_info('Laster inn...');
 
     var activate_email = getParameterByName('activate_email');
     var activate_hash = getParameterByName('activate_hash');
