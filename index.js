@@ -152,12 +152,16 @@ function load_home_goal() {
                     var html = '';
                     html += '<div class="form-group newline" style="border: solid 1px var(--blue); border-radius: 0.5em; background-color: lightblue; display: block;">';
                     html += 'Du har ikke noe mål for øyeblikket. Det er aldri for sent å sette igang!';
+                    html += '<br>';
+                    html += '<br>';
                     html += '<form id="goal_amount_form" onsubmit="set_home_goal();return false;">';
                     html += '<div class="form-group newline">';
                     html += '<label for="goal_exer_week" title="Dette blir målet du må nå i 6 måneder.">Hvor mange ganger i uka vil du trene?</label>';
                     html += '<input type="number" inputmode="numeric" name="goal_exer_week" id="goal_exer_week" class="form-input" min="1" max="7" value="" autocomplete="on" required />';
                     html += '</div>';
                     html += '<div class="form-group newline">';
+                    html += '</div>';
+                    html += '<div class="form-group">';
                     html += '<button type="submit" class="form-input btn" id="goal_amount_button"><img src="assets/done.svg" class="btn_logo"><p2>Start!</p2></button>';
                     html += '</div>';
                     html += '</div>';
@@ -250,6 +254,14 @@ function load_page_register() {
             </div>
 
             <div class='form-group'>
+                <label for="code_hash" title="Hva er invitasjonskoden din?">Invitasjonskode:</label>
+                <input type="text" name="code_hash" id="code_hash" class="form-input" value="" autocomplete="off" required />
+            </div>
+
+            <div class='form-group newline'>
+            </div>
+
+            <div class='form-group'>
                 <label for="user_firstname" title="Hva heter du?">Fornavn:</label>
                 <input type="text" name="user_firstname" id="user_firstname" class="form-input" value="" autocomplete="on" required />
             </div>
@@ -272,18 +284,18 @@ function load_page_register() {
                 <input type="password" name="user_password_confirm" id="user_password_confirm" class="form-input" value="" autocomplete="off" required />
             </div>
 
-            <div class='form-group'>
-                <label for="code_hash" title="Hva er invitasjonskoden din?">Invitasjonskode:</label>
-                <input type="text" name="code_hash" id="code_hash" class="form-input" value="" autocomplete="off" required />
+            <div class='form-group newline'>
             </div>
 
-            <div class='form-group newline'>
+            <div class='form-group'>
                 <label for="accept_terms_check" title="Godkjenn vilkårene for å lage brukeren din.">Jeg godtar at denne siden lagrer data for eget bruk og at jeg er over 18 år:</label>
                 <input type="checkbox" class="form-control" id="accept_terms_check" required>
             </div>
 
-
             <div class='form-group newline'>
+            </div>
+
+            <div class='form-group'>
                 <button type="submit" class="form-input btn" id="register_user_button"><img src="assets/done.svg" class="btn_logo"><p2>Registrer</p2></button>
             </div>
 
@@ -340,14 +352,20 @@ function register_user() {
                 console.log('Failed to parse API response. Response: ' + this.responseText);
                 document.getElementById("register_user_button").disabled = false;
                 document.getElementById("register_user_button").style.opacity = '1';
+                document.getElementById('user_password').value = "";
+                document.getElementById('user_password_confirm').value = "";
             }
             
             if(result.error) {
                 alert_error(result.message);
                 document.getElementById("register_user_button").disabled = false;
                 document.getElementById("register_user_button").style.opacity = '1';
+                document.getElementById('user_password').value = "";
+                document.getElementById('user_password_confirm').value = "";
             } else {
                 alert_success(result.message);
+                document.getElementById('user_password').value = "";
+                document.getElementById('user_password_confirm').value = "";
             }
 
         }
@@ -387,6 +405,9 @@ function load_page_login() {
             </div>
 
             <div class='form-group newline'>
+            </div>
+
+            <div class='form-group'>
                 <button type="submit" class="form-input btn" id="login_user_button"><img src="assets/done.svg" class="btn_logo"><p2>Logg inn</p2></button>
             </div>
 

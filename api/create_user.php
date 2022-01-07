@@ -46,11 +46,25 @@ if($code_object->code_used !== '0') {
 }
 $code_id = $code_object->code_id;
 
+if(!preg_match('/^(?=.*[a-zæøå])(?=.*[A-ZÆØÅ])(?=.*\d)[a-zæøåA-ZÆØÅ\d]{8,}$/', $data->user_password)) {
+
+    echo json_encode(array("message" => "Ugyldig passord. Minst 8 tegn, en stor bokstav og ett tall.", "error" => true));
+    exit();
+
+}
+
+if(!filter_var($data->user_email, FILTER_VALIDATE_EMAIL)) {
+    
+    echo json_encode(array("message" => "Ugyldig e-post.", "error" => true));
+    exit();
+
+}
+
 // set product property values
 $user->user_firstname = htmlspecialchars(strip_tags($data->user_firstname));
 $user->user_lastname = htmlspecialchars(strip_tags($data->user_lastname));
-$user->user_email = htmlspecialchars(strip_tags($data->user_email));
-$user->user_password = htmlspecialchars(strip_tags($data->user_password));
+$user->user_email = $data->user_email;
+$user->user_password = $data->user_password;
 $user->code_id = htmlspecialchars(strip_tags($code_id));
 
 // create the user
