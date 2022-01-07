@@ -13,6 +13,7 @@ class Goal{
     public $goal_end;
     public $user_id;
     public $goal_enabled;
+    public $goal_compete;
 
     // constructor
     public function __construct($db){
@@ -36,6 +37,7 @@ class Goal{
         $stmt->bindColumn(4, $end);
         $stmt->bindColumn(5, $user);
         $stmt->bindColumn(6, $enabled);
+        $stmt->bindColumn(7, $compete);
 
         // get number of rows
         $num = $stmt->rowCount();
@@ -54,6 +56,7 @@ class Goal{
                 'goal_end' => $end,
                 'user_id' => $user,
                 'goal_enabled' => $enabled,
+                'goal_compete' => $compete,
                 );
             }
 
@@ -72,7 +75,9 @@ class Goal{
         $query = "INSERT INTO " . $this->table_name .
                  " SET
                     goal_exer_week = '" . $this->goal_exer_week . "',
+                    goal_start = '" . $this->goal_start->format('Y-m-d H:i:s') . "',
                     goal_end = '" . $this->goal_end->format('Y-m-d H:i:s') . "',
+                    goal_compete = '" . $this->goal_compete . "',
                     user_id = '" . $this->user_id . "'";
 
         // prepare the query

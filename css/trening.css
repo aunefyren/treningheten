@@ -264,3 +264,35 @@ input[type="checkbox" i] {
   max-width: 90%;
   box-sizing: border-box;
 }
+
+.exercises {
+  width: fit-content;
+  margin: auto;
+  border: solid 1px var(--blue);
+  display: none;
+  flex-direction: column;
+  flex-wrap: nowrap;
+  justify-content: center;
+  align-content: center;
+  align-items: center;
+  border-radius: 0.5em;
+}
+
+.week_days {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-content: center;
+  justify-content: center;
+  align-items: center;
+  background-color: var(--white);
+  border-radius: 0.5em;
+}
+
+.week_info {
+  background-color: var(--blue);
+  width: -webkit-fill-available;
+  text-align: center;
+  border-radius: 0.5em 0.5em 0 0;
+  padding: 0.25em;
+}

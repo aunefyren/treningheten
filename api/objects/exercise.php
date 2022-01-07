@@ -19,10 +19,10 @@ class Exercise{
         $this->conn = $db;
     }
 
-    function get_goals(){
+    function get_exercises(){
 
         // query to check if email exists
-        $query = "SELECT * FROM " . $this->table_name . " WHERE `user_id` = '" . $this->user_id . "' AND `goal_enabled` = '1'";
+        $query = "SELECT * FROM " . $this->table_name . " WHERE `goal_id` = '" . $this->goal_id . "' AND `exer_enabled` = '1'";
 
         $stmt = $this->conn->prepare($query);
 
@@ -31,11 +31,11 @@ class Exercise{
 
         //Bind by column number
         $stmt->bindColumn(1, $id);
-        $stmt->bindColumn(2, $exer_week);
-        $stmt->bindColumn(3, $start);
-        $stmt->bindColumn(4, $end);
-        $stmt->bindColumn(5, $user);
-        $stmt->bindColumn(6, $enabled);
+        $stmt->bindColumn(2, $date);
+        $stmt->bindColumn(3, $note);
+        $stmt->bindColumn(4, $enabled);
+        $stmt->bindColumn(5, $goal);
+        $stmt->bindColumn(6, $leave);
 
         // get number of rows
         $num = $stmt->rowCount();
@@ -48,12 +48,12 @@ class Exercise{
 
             while($stmt->fetch()){
                 $data[] = array(
-                'goal_id' => $id,
-                'goal_exer_week' => $exer_week,
-                'goal_start' => $start,
-                'goal_end' => $end,
-                'user_id' => $user,
-                'goal_enabled' => $enabled,
+                'exer_id' => $id,
+                'exer_date' => $date,
+                'exer_note' => $note,
+                'exer_enabled' => $enabled,
+                'goal_id' => $goal,
+                'exer_leave' => $leave,
                 );
             }
 
@@ -66,7 +66,7 @@ class Exercise{
         }
     }
 
-    function create_goal(){
+    function create_exercise(){
 
         // insert query
         $query = "INSERT INTO " . $this->table_name .
