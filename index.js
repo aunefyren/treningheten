@@ -1,5 +1,6 @@
 function load_page() {
     show_logged_out_menu();
+    remove_active_menu();
     alert_info('Laster inn...');
 
     var activate_email = getParameterByName('activate_email');
@@ -102,6 +103,7 @@ function verify_user(activate_email, activate_hash) {
 // ( Home page
 function load_page_home() {
     alert_clear();
+    remove_active_menu();
 
     if(logged_in) {
         var html = `
@@ -115,44 +117,49 @@ function load_page_home() {
                     </div>
 
                     <div class="week_days">
-                        <div class="form-group" style="border-right: solid 1px var(--blue); border-top: solid 1px var(--blue);">
+                        <div class="form-group" style="border: solid 1px var(--blue); width: 5em; padding: 0.5em;" id="day_1_group">
                             <label for="day_1" title="Har du trent?">Mandag</label>
                             <input type="checkbox" class="form-control" id="day_1">
                         </div>
 
-                        <div class="form-group" style="border-right: solid 1px var(--blue); border-top: solid 1px var(--blue);">
+                        <div class="form-group" style="border: solid 1px var(--blue); width: 5em; padding: 0.5em;" id="day_2_group">
                             <label for="day_2" title="Har du trent?">Tirsdag</label>
                             <input type="checkbox" class="form-control" id="day_2">
                         </div>
 
-                        <div class="form-group" style="border-right: solid 1px var(--blue); border-top: solid 1px var(--blue);">
+                        <div class="form-group" style="border: solid 1px var(--blue); width: 5em; padding: 0.5em;" id="day_3_group">
                             <label for="day_3" title="Har du trent?">Onsdag</label>
                             <input type="checkbox" class="form-control" id="day_3">
                         </div>
 
-                        <div class="form-group" style="border-right: solid 1px var(--blue); border-top: solid 1px var(--blue);">
+                        <div class="form-group" style="border: solid 1px var(--blue); width: 5em; padding: 0.5em;" id="day_4_group">
                             <label for="day_4" title="Har du trent?">Torsdag</label>
                             <input type="checkbox" class="form-control" id="day_4">
                         </div>
 
-                        <div class="form-group" style="border-right: solid 1px var(--blue); border-top: solid 1px var(--blue);">
+                        <div class="form-group" style="border: solid 1px var(--blue); width: 5em; padding: 0.5em;" id="day_5_group">
                             <label for="day_5" title="Har du trent?">Fredag</label>
                             <input type="checkbox" class="form-control" id="day_5">
                         </div>
 
-                        <div class="form-group" style="border-right: solid 1px var(--blue); border-top: solid 1px var(--blue);">
+                        <div class="form-group" style="border: solid 1px var(--blue); width: 5em; padding: 0.5em;" id="day_6_group">
                             <label for="day_6" title="Har du trent?">Lørdag</label>
                             <input type="checkbox" class="form-control" id="day_6">
                         </div>
 
-                        <div class="form-group" style="border-top: solid 1px var(--blue);">
+                        <div class="form-group" style="border: solid 1px var(--blue); width: 15em; padding: 0.5em;" id="day_7_group">
                             <label for="day_7" title="Har du trent?">Søndag</label>
                             <input type="checkbox" class="form-control" id="day_7">
                         </div>
 
                     </div>
 
+                    <div class="form-group" style="background-color: var(--white); width: 100%; border-radius: 0 0 0.5em 0.5em; border: solid 1px var(--blue);">
+                        <button type="submit" onclick="update_exercises();" class="form-input btn" id="goal_amount_button" style="width: auto;"><img src="assets/done.svg" class="btn_logo"><p2>Lagre</p2></button>
+                    </div>
+
                 </div>
+
             </div>
         `;
 
@@ -259,14 +266,14 @@ function load_home_goal() {
                     var goal_end = new Date(goal_end_num);
                     var html = '';
                     html += '<div class="form-group newline" style="border: solid 1px var(--blue); border-radius: 0.5em; background-color: lightblue;">';
-                    html += 'Du har satt et mål! Du prøver å trene <b>' + result.goal.goal_exer_week + '</b> ganger i uka.';
+                    html += 'Du har satt et mål! Du skal trene <b>' + result.goal.goal_exer_week + '</b> ganger i uka.';
                     html += '<br>';
                     html += '<br>';
                     if(!result.goal.goal_started) {
                     html += 'Dette målet starter ' + goal_start.toLocaleDateString("no-NO") + '.';
                     html += '<br>';
                     }
-                    html += 'Dette målet varer til ' + goal_end.toLocaleDateString("no-NO") + '.';
+                    html += 'Dette målet varer til og med ' + goal_end.toLocaleDateString("no-NO") + '.';
                     if(result.goal.goal_compete === '1') {
                         html += '<br>';
                         html += '<br>';
@@ -362,36 +369,21 @@ function load_home_exercises(goal_id) {
                 document.getElementById('exercises').style.display = 'flex';
                 document.getElementById('week_info').innerHTML = 'Uke ' + result.week_number;
 
-                if(result.exercises,length > 0) {
+                for(var i = 1; i <= result.exercises.days.length; i++) {
 
-                    if(result.exercises.days['1']) {
-                        document.getElementById('day_1').checked = true;
-                    }
-
-                    if(result.exercises.days['2']) {
-                        document.getElementById('day_2').checked = true;
+                    if(result.exercises.days[i]) {
+                        document.getElementById('day_' + i).checked = true;
+                        exercise_this_week += 1;
                     }
 
-                    if(result.exercises.days['3']) {
-                        document.getElementById('day_3').checked = true;
+                    if(i > parseInt(result.week_day)) {
+                        document.getElementById('day_' + i).disabled = true;
                     }
 
-                    if(result.exercises.days['4']) {
-                        document.getElementById('day_4').checked = true;
+                    if(i == parseInt(result.week_day)) {
+                        document.getElementById('day_' + i + '_group').style.backgroundColor = 'lightblue';
                     }
 
-                    if(result.exercises.days['5']) {
-                        document.getElementById('day_5').checked = true;
-                    }
-
-                    if(result.exercises.days['6']) {
-                        document.getElementById('day_6').checked = true;
-                    }
-                    
-                    if(result.exercises.days['7']) {
-                        document.getElementById('day_7').checked = true;
-                    }
-                
                 }
                 
             }
@@ -401,6 +393,66 @@ function load_home_exercises(goal_id) {
     xhttp.withCredentials = true;
     xhttp.open("post", "api/get_exercises_week.php");
     xhttp.send(user_goal_get_data);
+    return;
+}
+
+function update_exercises() {
+
+    var exercise_this_week_new = 0;
+    for(var i = 1; i < 8; i++) {
+        if(document.getElementById('day_' + i).checked) {
+            exercise_this_week_new += 1;
+        }
+    }
+    
+    exercises_get_form = {
+        "cookie" : cookie,
+        "exercises" : {
+            "days": [
+                document.getElementById('day_1').checked,
+                document.getElementById('day_2').checked,
+                document.getElementById('day_3').checked,
+                document.getElementById('day_4').checked,
+                document.getElementById('day_5').checked,
+                document.getElementById('day_6').checked,
+                document.getElementById('day_7').checked
+            ]
+        }
+
+    };
+
+    var exercises_get_data = JSON.stringify(exercises_get_form);
+
+    var xhttp = new XMLHttpRequest();
+    xhttp.onreadystatechange = function() {
+
+    alert_info('Laster inn...');
+
+    if (this.readyState == 4 && this.status == 200) {
+        try {
+            var result= JSON.parse(this.responseText);
+        } catch(error) {
+            alert_error('Klarte ikke tolke API respons.');
+            console.log('Failed to parse API response. Response: ' + this.responseText);
+        }
+
+        if(result.error) {
+            alert_error(result.message);
+        } else {
+            alert_success(result.message);
+
+            if(exercise_this_week < exercise_this_week_new) {
+                trigger_fireworks(1);
+            }
+
+            exercise_this_week = exercise_this_week_new;
+        }
+
+    }
+    };
+    xhttp.withCredentials = true;
+    xhttp.open("post", "api/create_exercises_week.php");
+    xhttp.send(exercises_get_data);
     return;
 }
 // Home page )
@@ -631,9 +683,9 @@ function login_user() {
                 document.getElementById("login_user_button").style.opacity = '1';
             } else {
                 document.getElementById('user_password').value = '';
-                alert_success(result.message);
                 set_cookie("treningheten-bruker", result.cookie, 1);
-                show_logged_in_menu();
+                load_page();
+                alert_success(result.message);
             }
 
         }
@@ -654,3 +706,133 @@ function log_out() {
     alert_info('Du har blitt logget ut.');
     toggle_navbar();
 }
+
+// ( Update user
+function load_page_user() {
+
+    alert_clear();
+    remove_active_menu();
+    add_active_menu('update_account');
+    toggle_navbar();
+    document.getElementById('goal_div').innerHTML = '';
+
+    var html = `
+        <div>
+            <h1>Brukeren din</h1>
+            <p>Her kan du endre noen detaljer om deg selv.</p>
+        </div>
+
+        <div>
+            <form id='password_login_form' onsubmit='update_user();return false;'>
+
+            <div class='form-group'>
+                <label for="user_email" title="Eposten du registrerte med.">E-post:</label>
+                <input type="email" name="user_email" id="user_email" class="form-input" value="` + login_data.user_email + `" autocomplete="on" required />
+            </div>
+
+            <div class='form-group'>
+                <label for="user_creation" title="Når du skapte brukeren.">Bruker siden:</label>
+                <input type="text" name="user_creation" id="user_creation" class="form-input" value="` + login_data.user_creation + `" autocomplete="on" readonly />
+            </div>
+
+            <div class='form-group newline'>
+            </div>
+
+            <div class='form-group'>
+                <label for="user_firstname" title="Det du heter.">Fornavn:</label>
+                <input type="text" name="user_firstname" id="user_firstname" class="form-input" value="` + login_data.user_firstname + `" autocomplete="on" readonly />
+            </div>
+
+            <div class='form-group'>
+                <label for="user_lastname" title="Det familien din heter.">Etternavn:</label>
+                <input type="text" name="user_lastname" id="user_lastname" class="form-input" value="` + login_data.user_lastname + `" autocomplete="on" readonly />
+            </div>
+
+            <div class='form-group newline'>
+            </div>
+
+            <div class='form-group'>
+                <label for="user_password_new" title="Ditt hemmelige passord.">Nytt passord:</label>
+                <input type="password" name="user_password_new" id="user_password_new" class="form-input" value="" autocomplete="off" />
+            </div>
+
+            <div class='form-group'>
+                <label for="user_password_new_repeat" title="Ditt hemmelige passord.">Gjenta ditt nye passord:</label>
+                <input type="password" name="user_password_new_repeat" id="user_password_new_repeat" class="form-input" value="" autocomplete="off" />
+            </div>
+
+            <div class='form-group newline'>
+            </div>
+
+            <div class='form-group'>
+                <label for="user_password" title="Ditt hemmelige passord.">Passord:</label>
+                <input type="password" name="user_password" id="user_password" class="form-input" value="" autocomplete="off" required />
+            </div>
+
+            <div class='form-group newline'>
+            </div>
+
+            <div class='form-group'>
+                <button type="submit" class="form-input btn" id="login_user_button"><img src="assets/done.svg" class="btn_logo"><p2>Lagre endringer</p2></button>
+            </div>
+
+            </form>
+        </div>
+    `;
+
+    document.getElementById('content-box').innerHTML = html;
+    alert_info('Denne siden fungerer ikke enda.');
+}
+
+function update_user() {
+    // Disable button
+    document.getElementById("login_user_button").disabled = true;
+    document.getElementById("login_user_button").style.opacity = '0.5';
+
+    user_password = document.getElementById('user_password').value;
+    user_email = document.getElementById('user_email').value;
+
+
+    user_login_form = {
+                            "user_password" : user_password, 
+                            "user_email" : user_email
+                        };
+
+    var user_login_data = JSON.stringify(user_login_form);
+
+    var xhttp = new XMLHttpRequest();
+    xhttp.onreadystatechange = function() {
+
+        alert_info('Laster inn...');
+
+        if (this.readyState == 4 && this.status == 200) {
+            try {
+                var result= JSON.parse(this.responseText);
+            } catch(error) {
+                alert_error('Klarte ikke tolke API respons.');
+                console.log('Failed to parse API response. Response: ' + this.responseText)
+                document.getElementById('user_password').value = '';
+                document.getElementById("login_user_button").disabled = false;
+                document.getElementById("login_user_button").style.opacity = '1';
+            }
+            
+            if(result.error) {
+                alert_error(result.message);
+                document.getElementById('user_password').value = '';
+                document.getElementById("login_user_button").disabled = false;
+                document.getElementById("login_user_button").style.opacity = '1';
+            } else {
+                document.getElementById('user_password').value = '';
+                set_cookie("treningheten-bruker", result.cookie, 1);
+                load_page();
+                alert_success(result.message);
+            }
+
+        }
+    };
+    xhttp.withCredentials = true;
+    xhttp.open("post", "api/update_user.php");
+    xhttp.send(user_login_data);
+    return;
+}
+// Update user )

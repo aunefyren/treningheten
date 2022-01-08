@@ -155,6 +155,7 @@ class User{
             "issued" => $now->format('Y-m-d H:i:s'),
             "data" => array(
                "user_id" => $this->user_id,
+               "user_email" => $this->user_email,
                "user_firstname" => $this->user_firstname,
                "user_lastname" => $this->user_lastname,
                "user_leave" => $this->user_leave,

@@ -49,20 +49,14 @@ $now = new DateTime('NOW');
 
 if(!$exercises) {
 
-    echo json_encode(array("error" => false, "message" => "Ingen trening funnet.", "exercises" => array(), "week_number" => $now->format('W')));
+    echo json_encode(array("error" => false, "message" => "Ingen trening funnet.", "exercises" => array(), "week_number" => $now->format('W'), "week_day" => $now->format('N')));
     exit(0);
 
 }
 
 $week = array(
                 'days' => array(
-                    1 => false,
-                    2 => false,
-                    3 => false,
-                    4 => false,
-                    5 => false,
-                    6 => false,
-                    7 => false
+                    false, false,false,false,false,false,false
                 )
             );
 
@@ -74,6 +68,6 @@ for($i = 0; $i < count($exercises); $i++) {
     }
 }
 
-echo json_encode(array("error" => false, "message" => "Fant trening for uken.", "exercises" => $week, "week_number" => $now->format('W')));
+echo json_encode(array("error" => false, "message" => "Fant trening for uken.", "exercises" => $week, "week_number" => $now->format('W'), "week_day" => $now->format('N')));
 exit(0);
 ?>

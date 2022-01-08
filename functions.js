@@ -165,3 +165,14 @@ document.addEventListener('click', function(event) {
     }
   }
 });
+
+function trigger_fireworks(number) {
+  if(number >0) {
+  document.getElementById('pyro').style.display = 'block';
+  setTimeout(function () {
+      trigger_fireworks(number-1);
+  }, 5000);
+  } else {
+      document.getElementById('pyro').style.display = 'none';
+  }
+}

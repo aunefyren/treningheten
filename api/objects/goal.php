@@ -69,6 +69,99 @@ class Goal{
         }
     }
 
+    function get_goal() {
+        $goals = $this->get_goals();
+
+        $now = new DateTime('NOW');
+
+        $season_start_1 = new DateTime($now->format('Y') . '-01-01');
+        $season_start_2 = new DateTime($now->format('Y') . '-08-01');
+
+        $season_end_1 = new DateTime($now->format('Y') . '-06-30');
+        if($season_end_1->format('N') !== 7) {
+            $correct_date = false;
+            while(!$correct_date) {
+                $season_end_1->modify('-1 days');
+
+                if($season_end_1->format('N') == 7) {
+                    $correct_date = true;
+                }
+            }
+        }
+
+        $season_end_2 = new DateTime($now->format('Y') . '-12-24');
+        if($season_end_2->format('N') === 7) {
+            $season_end_2->modify('-1 days');
+        }
+        if($season_end_2->format('N') !== 7) {
+            $correct_date = false;
+            while(!$correct_date) {
+                $season_end_2->modify('-1 days');
+
+                if($season_end_2->format('N') == 7) {
+                    $correct_date = true;
+                }
+            }
+        }
+
+        if($now > $season_start_1 && $now < $season_end_1) {
+            $season = 1;
+            $chosen_season_start = $season_start_1;
+            $chosen_season_end = $season_end_1;
+        } else if($now > $season_start_2 && $now < $season_end_2) {
+            $season = 2;
+            $chosen_season_start = $season_start_2;
+            $chosen_season_end = $season_end_2;
+        } else {
+            return false;
+        }
+
+        if(!$goals) {
+
+            return false;
+
+        }
+
+        $goals = json_decode($goals, true);
+        $goal_index = false;
+        for($i = 0; $i < count($goals); $i++) {
+            $goal_start = date_create_from_format('Y-m-d H:i:s', $goals[$i]['goal_start']);
+            $goal_end = date_create_from_format('Y-m-d H:i:s', $goals[$i]['goal_end']);
+
+            if($chosen_season_start < $goal_end && $chosen_season_end > $goal_start) {
+
+                $goal_index = $i;
+                break;
+            }
+        }
+
+        if($goal_index === false) {
+
+            return false;
+
+        } else {
+
+            $goal_started = false;
+
+            $goal_start_chosen = new DateTime($goals[$goal_index]['goal_start']);
+            if($now > $goal_start_chosen) {
+                $goal_started = true;
+            }
+
+            return json_encode(array(  "season_start" => $chosen_season_start->format('Y-m-d'), 
+                                "season_end" => $chosen_season_end->format('Y-m-d'), 
+                                "goal" => array(
+                                    "goal_id" => $goals[$goal_index]['goal_id'],
+                                    "goal_exer_week" => $goals[$goal_index]['goal_exer_week'],
+                                    "goal_start" => $goals[$goal_index]['goal_start'],
+                                    "goal_end" => $goals[$goal_index]['goal_end'],
+                                    "goal_compete" => $goals[$goal_index]['goal_compete'],
+                                    "goal_started" => $goal_started
+                                    )
+                                ));
+        }
+    }
+
     function create_goal(){
 
         // insert query

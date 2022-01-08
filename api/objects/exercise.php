@@ -71,9 +71,8 @@ class Exercise{
         // insert query
         $query = "INSERT INTO " . $this->table_name .
                  " SET
-                    goal_exer_week = '" . $this->goal_exer_week . "',
-                    goal_end = '" . $this->goal_end->format('Y-m-d H:i:s') . "',
-                    user_id = '" . $this->user_id . "'";
+                    exer_date = '" . $this->exer_date->format('Y-m-d') . "',
+                    goal_id = '" . $this->goal_id . "'";
 
         // prepare the query
         $stmt = $this->conn->prepare($query);
@@ -84,5 +83,61 @@ class Exercise{
         }
         
         return false;
+    }
+
+    function set_exercise($value){
+
+        if($value) {
+            $this->exer_enabled = '1';
+        } else {
+            $this->exer_enabled = '0';
+        }
+
+        // query to check if email exists
+        $query = "UPDATE " . $this->table_name . " SET" .
+        " exer_enabled = '" . $this->exer_enabled .
+        "' WHERE exer_date = '" . $this->exer_date->format('Y-m-d') . "' AND `goal_id` = '" . $this->goal_id . "'";
+
+        // prepare the query
+        $stmt = $this->conn->prepare( $query );
+
+        // execute the query
+        $stmt->execute();
+
+        $num = $stmt->rowCount();
+
+        // if email exists, assign values to object properties for easy access and use for php sessions
+        if($num === 1){
+
+            return true;
+
+        } else {
+
+            return false;
+        }
+    }
+
+    function get_exercise_date(){
+
+        // query to check if email exists
+        $query = "SELECT * FROM " . $this->table_name . " WHERE `exer_date` = '" . $this->exer_date->format('Y-m-d') . "' AND `goal_id` = '" . $this->goal_id . "'";
+
+        $stmt = $this->conn->prepare($query);
+
+        // execute the query
+        $stmt->execute();
+
+        // get number of rows
+        $num = $stmt->rowCount();
+
+        // if email exists, assign values to object properties for easy access and use for php sessions
+        if($num === 1){
+
+            return true;
+
+        } else {
+
+            return false;
+        }
     }
 }

@@ -21,19 +21,19 @@
 <div id="nav">
     <nav class="navbar" id="navbar">
         <div class="nav-logo" id="nav-logo">
-            <a href="./"><img src="assets/logo/logo.svg" style="box-sizing: border-box; height: 4em;padding: 0.5em; margin: auto;"></img></a>
+            <a href="#" onclick="load_page_home();"><img src="assets/logo/logo.svg" style="box-sizing: border-box; height: 4em;padding: 0.5em; margin: auto;"></img></a>
         </div>
 
-        <a class="nav-title" id="nav-title" href="./" id='home'>
+        <a class="nav-title" id="nav-title" href="#" onclick="load_page_home();" id='home'>
             <b>Treningheten</b>
         </a>
     
         <a class="nav-icon" href="javascript:void(0);" class="icon" onclick="toggle_navbar()" style="padding: 0;">
             <img src="assets/menu.svg" style="box-sizing: border-box;height: 4em;padding: 1em;margin: auto;"></img>
         </a>
-    
-        <a class="nav-item disabled" href="#" id='update_account'>Bruker</a>
+        
         <a class="nav-item enabled" href="#" onclick='load_page_login();' id='log_in_tab'>Logg inn</a>
+        <a class="nav-item disabled" href="#" onclick='load_page_user();' id='update_account'>Bruker</a>
         <a class="nav-item enabled" href="#" onclick='load_page_register();' id='register_tab'>Registrer deg</a>
         <a class="nav-item disabled" href="#" onclick="log_out()" id='log_out_tab'>Logg ut</a>
     
@@ -45,6 +45,10 @@
 <main role="main" class="content" id="content">
 
     <!-- where prompt / messages will appear -->
+    <div class="pyro" id="pyro">
+        <div class="before"></div>
+        <div class="after"></div>
+    </div>
 
     <div id="response"></div>
 
@@ -52,7 +56,8 @@
     </div>
 
     <!-- where main content will appear -->
-    <div id="content-box"></div>
+    <div id="content-box">
+    </div>
 
 </main>
 <!-- /container -->
@@ -62,6 +67,7 @@
     var logged_in = false;
 
     var login_data;
+    var exercise_this_week = 0;
 
     $(document).ready(function(){
 
