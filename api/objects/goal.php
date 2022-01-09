@@ -148,13 +148,16 @@ class Goal{
                 $goal_started = true;
             }
 
-            return json_encode(array(  "season_start" => $chosen_season_start->format('Y-m-d'), 
-                                "season_end" => $chosen_season_end->format('Y-m-d'), 
+            $goal_start = new DateTime($goals[$goal_index]['goal_start']);
+            $goal_end = new DateTime($goals[$goal_index]['goal_end']);
+
+            return json_encode(array(  "season_start" => $chosen_season_start->format('d.n.Y'), 
+                                "season_end" => $chosen_season_end->format('d.n.Y'), 
                                 "goal" => array(
                                     "goal_id" => $goals[$goal_index]['goal_id'],
                                     "goal_exer_week" => $goals[$goal_index]['goal_exer_week'],
-                                    "goal_start" => $goals[$goal_index]['goal_start'],
-                                    "goal_end" => $goals[$goal_index]['goal_end'],
+                                    "goal_start" => $goal_start->format('d.n.Y'),
+                                    "goal_end" => $goal_end->format('d.n.Y'),
                                     "goal_compete" => $goals[$goal_index]['goal_compete'],
                                     "goal_started" => $goal_started
                                     )

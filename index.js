@@ -5,7 +5,7 @@ function load_page() {
 
     var activate_email = getParameterByName('activate_email');
     var activate_hash = getParameterByName('activate_hash');
-    if(activate_email !== null & activate_hash !== null) {
+    if(activate_email !== null & activate_hash !== null && !stop_url_react) {
         load_page_verify(activate_email, activate_hash);
         return;
     }
@@ -56,7 +56,7 @@ function load_page_verify(activate_email, activate_hash) {
     var html = `
         <div>
             <h1>Aktiverer brukeren din</h1>
-            <p>Vær tålmodig.</p>
+            <p>:)</p>
         </div>
     `;
 
@@ -85,6 +85,8 @@ function verify_user(activate_email, activate_hash) {
                 alert_error('Klarte ikke tolke API respons.');
                 console.log('Failed to parse API response. Response: ' + this.responseText);
             }
+
+            stop_url_react = true;
             
             if(result.error) {
                 alert_error(result.message);
@@ -208,12 +210,7 @@ function load_home_goal() {
                     html += 'Du har ikke noe mål for øyeblikket. Det er aldri for sent å sette igang!';
                     html += '<br>';
                     html += '<br>';
-                    html += 'Dette gjelder nåværende sesong, som er ';
-                    if(result.season == '1') {
-                        html += 'våren, til og med juni.';
-                    } else {
-                        html += 'høsten, til og med siste uken i desember.';
-                    }
+                    html += 'Dette gjelder nåværende sesong, som er ' + result.season_start + ' til ' + result.season_end + '.';
                     html += '<br>';
                     html += '<br>';
                     html += '<form id="goal_amount_form" onsubmit="set_home_goal();return false;">';
@@ -227,7 +224,7 @@ function load_home_goal() {
                     html += '</div>';
                     if(result.can_compete) {
                         html += '<div class="form-group">';
-                        html += '<label for="goal_compete" title="Du kan sloss mot dine søsken.">Ja, jeg er med på utfordringen og forstår konsekvensene dersom jeg ikke når målet mitt.</label>';
+                        html += '<label for="goal_compete" title="Du kan sloss mot dine søsken.">Ja, jeg er med på utfordringen med de andre og forstår konsekvensene dersom jeg ikke når målet mitt.</label>';
                         html += '<input type="checkbox" class="form-control" id="goal_compete" checked>';
                         html += '</div>';
 
@@ -243,13 +240,15 @@ function load_home_goal() {
                         html += '</div>';
                     }
                     html += '<div class="form-group">';
-                    html += 'Treningslogging starter førstkommende mandag.';
+                    html += 'Logging av trening starter førstkommende mandag.';
                     html += '<br>';
                     html += '(Ja, <b>i dag</b> hvis det er mandag)';
                     html += '<br>';
+                    html += '<br>';
                     html += 'Du har to sykmeldinger per sesong.';
                     html += '<br>';
-                    html += 'Du kan bare logge i uken du er i.';
+                    html += '<br>';
+                    html += 'Du kan bare logge i uken du er i, og dager som er eller har vært.';
                     html += '</div>';
 
                     html += '<div class="form-group newline">';
@@ -260,24 +259,20 @@ function load_home_goal() {
                     html += '</div>';
                     html += '</div>';
                 }  else {
-                    var goal_start_num = Date.parse(result.goal.goal_start);
-                    var goal_start = new Date(goal_start_num);
-                    var goal_end_num = Date.parse(result.goal.goal_end);
-                    var goal_end = new Date(goal_end_num);
                     var html = '';
                     html += '<div class="form-group newline" style="border: solid 1px var(--blue); border-radius: 0.5em; background-color: lightblue;">';
                     html += 'Du har satt et mål! Du skal trene <b>' + result.goal.goal_exer_week + '</b> ganger i uka.';
                     html += '<br>';
                     html += '<br>';
                     if(!result.goal.goal_started) {
-                    html += 'Dette målet starter ' + goal_start.toLocaleDateString("no-NO") + '.';
+                    html += 'Dette målet starter ' + result.goal.goal_start + '.';
                     html += '<br>';
                     }
-                    html += 'Dette målet varer til og med ' + goal_end.toLocaleDateString("no-NO") + '.';
+                    html += 'Dette målet varer til og med ' + result.goal.goal_end + '.';
                     if(result.goal.goal_compete === '1') {
                         html += '<br>';
                         html += '<br>';
-                        html += 'Du deltar i konkurransen.';
+                        html += 'Du er med på utfordringen med de andre.';
                     }
                     html += '</div>';
                     if(result.goal.goal_started) {
@@ -301,7 +296,7 @@ function set_home_goal() {
     var goal_exer_week = document.getElementById('goal_exer_week').value;
     var goal_compete = document.getElementById('goal_compete').checked;
 
-    if(!confirm('Er du helt sikkert på at du vil sette ' + goal_exer_week + ' som treningsmål? Dette kan ikke endres på 6 måneder.')) {
+    if(!confirm('Er du helt sikkert på at du vil sette ' + goal_exer_week + ' som treningsmål? Dette kan ikke endres denne sesongen.')) {
         return;
     }
 
@@ -371,7 +366,7 @@ function load_home_exercises(goal_id) {
 
                 for(var i = 1; i <= result.exercises.days.length; i++) {
 
-                    if(result.exercises.days[i]) {
+                    if(result.exercises.days[i-1]) {
                         document.getElementById('day_' + i).checked = true;
                         exercise_this_week += 1;
                     }
@@ -684,8 +679,7 @@ function login_user() {
             } else {
                 document.getElementById('user_password').value = '';
                 set_cookie("treningheten-bruker", result.cookie, 1);
-                load_page();
-                alert_success(result.message);
+                window.location = window.location.pathname;
             }
 
         }
@@ -824,8 +818,6 @@ function update_user() {
             } else {
                 document.getElementById('user_password').value = '';
                 set_cookie("treningheten-bruker", result.cookie, 1);
-                load_page();
-                alert_success(result.message);
             }
 
         }

@@ -52,7 +52,7 @@ if($user->user_disabled !== '0') {
 // Check if user is active
 if($user->user_active !== '1') {
 
-    echo json_encode(array("error" => true, "message" => "Denne brukeren er ikke aktivert enda. Sjekk e-posten din."));
+    echo json_encode(array("error" => true, "message" => "Denne brukeren er ikke aktivert enda. Sjekk e-posten din for lenke, eventuelt spam-mappen."));
     exit(0);
 
 }
