@@ -44,6 +44,6 @@ $user->set_user_active();
 $user->refresh_hash();
 
 // Print cookie and exit
-echo json_encode(array("error" => false, "message" => "Brukeren ble aktivert!"));
+echo json_encode(array("error" => false, "message" => "Brukeren ble aktivert! Du kan nå logge inn."));
 exit(0);
 ?>

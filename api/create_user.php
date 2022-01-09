@@ -94,7 +94,7 @@ if(
     }
 
     // display message: user was created
-    echo json_encode(array("message" => "Bruker ble skapt.", "error" => false));
+    echo json_encode(array("message" => "Bruker ble skapt. Sjekk e-post for aktiverings-lenke.", "error" => false));
 }
 
 // message if unable to create user
