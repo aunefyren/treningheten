@@ -225,7 +225,7 @@ function load_home_goal() {
                     if(result.can_compete) {
                         html += '<div class="form-group">';
                         html += '<label for="goal_compete" title="Du kan sloss mot dine søsken.">Ja, jeg er med på utfordringen med de andre og forstår konsekvensene dersom jeg ikke når målet mitt.</label>';
-                        html += '<input type="checkbox" class="form-control" id="goal_compete" checked>';
+                        html += '<input type="checkbox" class="form-control" id="goal_compete">';
                         html += '</div>';
 
                         html += '<div class="form-group newline">';
