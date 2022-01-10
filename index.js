@@ -497,12 +497,12 @@ function load_page_register() {
 
             <div class='form-group'>
                 <label for="user_password" title="Ditt hemmelige passord.">Passord:</label>
-                <input type="password" name="user_password" id="user_password" class="form-input" value="" autocomplete="off" required />
+                <input type="password" name="user_password" id="user_password" class="form-input" value="" minlength="8" autocomplete="off" required />
             </div>
 
             <div class='form-group'>
                 <label for="user_password_confirm" title="Gjenta ditt hemmelige passord.">Gjenta passord:</label>
-                <input type="password" name="user_password_confirm" id="user_password_confirm" class="form-input" value="" autocomplete="off" required />
+                <input type="password" name="user_password_confirm" id="user_password_confirm" class="form-input" value="" minlength="8" autocomplete="off" required />
             </div>
 
             <div class='form-group newline'>
