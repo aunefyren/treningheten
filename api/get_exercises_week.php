@@ -49,7 +49,7 @@ $now = new DateTime('NOW');
 
 if(!$exercises) {
 
-    echo json_encode(array("error" => false, "message" => "Ingen trening funnet.", "exercises" => array("days" => array()), "week_number" => $now->format('W'), "week_day" => $now->format('N')));
+    echo json_encode(array("error" => false, "message" => "Ingen trening funnet.", "exercises" => array("days" => array(false,false,false,false,false,false,false)), "week_number" => $now->format('W'), "week_day" => $now->format('N')));
     exit(0);
 
 }
