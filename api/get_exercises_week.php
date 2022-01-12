@@ -41,6 +41,12 @@ if(!$cookie_object) {
 
 }
 
+$week = array(
+    'days' => array(
+        false,false,false,false,false,false,false
+    )
+);
+
 $cookie_decoded = json_decode($cookie_object, true);
 $exercise->goal_id = $data->goal_id;
 $exercises = $exercise->get_exercises();
@@ -49,16 +55,10 @@ $now = new DateTime('NOW');
 
 if(!$exercises) {
 
-    echo json_encode(array("error" => false, "message" => "Ingen trening funnet.", "exercises" => array("days" => array(false,false,false,false,false,false,false)), "week_number" => $now->format('W'), "week_day" => $now->format('N')));
+    echo json_encode(array("error" => false, "message" => "Ingen trening funnet.", "exercises" => $week, "week_number" => $now->format('W'), "week_day" => $now->format('N')));
     exit(0);
 
 }
-
-$week = array(
-                'days' => array(
-                    false,false,false,false,false,false,false
-                )
-            );
 
 $exercises = json_decode($exercises, true);
 for($i = 0; $i < count($exercises); $i++) {

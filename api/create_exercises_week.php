@@ -46,7 +46,26 @@ if(!$cookie_object) {
 $cookie_decoded = json_decode($cookie_object, true);
 $goal->user_id = $cookie_decoded['data']['user_id'];
 
-$goals = $goal->get_goal();
+$goal_dates = $goal->get_current_season_dates();
+
+if(!$goal_dates) {
+
+    echo json_encode(array( "error" => false, 
+                            "message" => "Ingen mål funnet. Ingen sesong funnet.",
+                            "can_compete" => $can_compete, 
+                            "season_start" => false,
+                            "season_end" => false,
+                            "season_name" => false,
+                            "goal" => false));
+    exit(0);
+
+}
+
+$goal_dates = json_decode($goal_dates, true);
+$season_start = new DateTime($goal_dates['season_start']);
+$season_end = new DateTime($goal_dates['season_end']);
+
+$goals = $goal->get_goal($season_start, $season_end);
 
 if($goals === false) {
 

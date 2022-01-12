@@ -107,57 +107,76 @@ function load_page_home() {
     alert_clear();
     remove_active_menu();
 
+    exercise_this_week = 0;
+
     if(logged_in) {
         var html = `
             <div>
                 <h1>Tren da, ` + login_data.user_firstname + `</h1>
                 <p>Siden er fortsatt under konstruksjon.</p>
 
-                <div id="exercises" class="exercises">
-                    <div class="week_info" id="week_info">
-                        Laster inn...
+                <div class="modules">
+
+                    <div id="exercises" class="exercises">
+                        <div class="week_info" id="week_info">
+                            Laster inn...
+                        </div>
+
+                        <div class="week_days">
+                            <div class="form-group" style="border: solid 1px var(--blue); width: 5em; padding: 0.5em;" id="day_1_group">
+                                <label for="day_1" title="Har du trent?">Mandag</label>
+                                <input type="checkbox" class="form-control" id="day_1">
+                            </div>
+
+                            <div class="form-group" style="border: solid 1px var(--blue); width: 5em; padding: 0.5em;" id="day_2_group">
+                                <label for="day_2" title="Har du trent?">Tirsdag</label>
+                                <input type="checkbox" class="form-control" id="day_2">
+                            </div>
+
+                            <div class="form-group" style="border: solid 1px var(--blue); width: 5em; padding: 0.5em;" id="day_3_group">
+                                <label for="day_3" title="Har du trent?">Onsdag</label>
+                                <input type="checkbox" class="form-control" id="day_3">
+                            </div>
+
+                            <div class="form-group" style="border: solid 1px var(--blue); width: 5em; padding: 0.5em;" id="day_4_group">
+                                <label for="day_4" title="Har du trent?">Torsdag</label>
+                                <input type="checkbox" class="form-control" id="day_4">
+                            </div>
+
+                            <div class="form-group" style="border: solid 1px var(--blue); width: 5em; padding: 0.5em;" id="day_5_group">
+                                <label for="day_5" title="Har du trent?">Fredag</label>
+                                <input type="checkbox" class="form-control" id="day_5">
+                            </div>
+
+                            <div class="form-group" style="border: solid 1px var(--blue); width: 5em; padding: 0.5em;" id="day_6_group">
+                                <label for="day_6" title="Har du trent?">Lørdag</label>
+                                <input type="checkbox" class="form-control" id="day_6">
+                            </div>
+
+                            <div class="form-group" style="border: solid 1px var(--blue); width: 15em; padding: 0.5em;" id="day_7_group">
+                                <label for="day_7" title="Har du trent?">Søndag</label>
+                                <input type="checkbox" class="form-control" id="day_7">
+                            </div>
+
+                        </div>
+
+                        <div class="form-group" style="background-color: var(--white); width: 100%; border-radius: 0 0 0.5em 0.5em; border: solid 1px var(--blue);">
+                            <button type="submit" onclick="update_exercises();" class="form-input btn" id="goal_amount_button" style="width: auto;"><img src="assets/done.svg" class="btn_logo"><p2>Lagre</p2></button>
+                        </div>
+
                     </div>
 
-                    <div class="week_days">
-                        <div class="form-group" style="border: solid 1px var(--blue); width: 5em; padding: 0.5em;" id="day_1_group">
-                            <label for="day_1" title="Har du trent?">Mandag</label>
-                            <input type="checkbox" class="form-control" id="day_1">
+                    <div class="sub-module">
+
+                        <div id="goal_stats" class="goal_stats">
                         </div>
 
-                        <div class="form-group" style="border: solid 1px var(--blue); width: 5em; padding: 0.5em;" id="day_2_group">
-                            <label for="day_2" title="Har du trent?">Tirsdag</label>
-                            <input type="checkbox" class="form-control" id="day_2">
+                        <div id="week_stats" class="week_stats">
                         </div>
 
-                        <div class="form-group" style="border: solid 1px var(--blue); width: 5em; padding: 0.5em;" id="day_3_group">
-                            <label for="day_3" title="Har du trent?">Onsdag</label>
-                            <input type="checkbox" class="form-control" id="day_3">
+                        <div id="season_stats" class="season_stats">
                         </div>
 
-                        <div class="form-group" style="border: solid 1px var(--blue); width: 5em; padding: 0.5em;" id="day_4_group">
-                            <label for="day_4" title="Har du trent?">Torsdag</label>
-                            <input type="checkbox" class="form-control" id="day_4">
-                        </div>
-
-                        <div class="form-group" style="border: solid 1px var(--blue); width: 5em; padding: 0.5em;" id="day_5_group">
-                            <label for="day_5" title="Har du trent?">Fredag</label>
-                            <input type="checkbox" class="form-control" id="day_5">
-                        </div>
-
-                        <div class="form-group" style="border: solid 1px var(--blue); width: 5em; padding: 0.5em;" id="day_6_group">
-                            <label for="day_6" title="Har du trent?">Lørdag</label>
-                            <input type="checkbox" class="form-control" id="day_6">
-                        </div>
-
-                        <div class="form-group" style="border: solid 1px var(--blue); width: 15em; padding: 0.5em;" id="day_7_group">
-                            <label for="day_7" title="Har du trent?">Søndag</label>
-                            <input type="checkbox" class="form-control" id="day_7">
-                        </div>
-
-                    </div>
-
-                    <div class="form-group" style="background-color: var(--white); width: 100%; border-radius: 0 0 0.5em 0.5em; border: solid 1px var(--blue);">
-                        <button type="submit" onclick="update_exercises();" class="form-input btn" id="goal_amount_button" style="width: auto;"><img src="assets/done.svg" class="btn_logo"><p2>Lagre</p2></button>
                     </div>
 
                 </div>
@@ -204,13 +223,13 @@ function load_home_goal() {
             } else {
                 alert_clear();
                 
-                if(!result.goal) {
+                if(!result.goal && result.season_start) {
                     var html = '';
                     html += '<div class="form-group" style="border: solid 1px var(--blue); border-radius: 0.5em; background-color: lightblue; display: block;">';
                     html += 'Du har ikke noe mål for øyeblikket. Det er aldri for sent å sette igang!';
                     html += '<br>';
                     html += '<br>';
-                    html += 'Dette gjelder nåværende sesong, som er ' + result.season_start + ' til ' + result.season_end + '.';
+                    html += 'Dette gjelder nåværende sesong, som er ' + result.season_name + ' (' + result.season_start + ' - ' + result.season_end + ').';
                     html += '<br>';
                     html += '<br>';
                     html += '<form id="goal_amount_form" onsubmit="set_home_goal();return false;">';
@@ -258,10 +277,21 @@ function load_home_goal() {
                     html += '<button type="submit" class="form-input btn" id="goal_amount_button"><img src="assets/done.svg" class="btn_logo"><p2>Start!</p2></button>';
                     html += '</div>';
                     html += '</div>';
-                }  else {
+
+                } else if(!result.goal && !result.season_start) { 
+
                     var html = '';
                     html += '<div class="form-group newline" style="border: solid 1px var(--blue); border-radius: 0.5em; background-color: lightblue;">';
-                    html += 'Du har satt et mål! Du skal trene <b>' + result.goal.goal_exer_week + '</b> ganger i uka.';
+                    html += 'Det er ingen treningssesong for øyeblikket. Du kan trene på egenhånd.';
+                    html += '</div>';
+                
+                } else {
+                    var html = '';
+                    html += '<div class="form-group newline" style="border: solid 1px var(--blue); border-radius: 0.5em; background-color: lightblue;">';
+
+                    exer_goal = result.goal.goal_exer_week;
+
+                    html += 'Du har satt et mål! Du skal trene <b>' + exer_goal + '</b> ganger i uka.';
                     html += '<br>';
                     html += '<br>';
                     if(!result.goal.goal_started) {
@@ -380,6 +410,9 @@ function load_home_exercises(goal_id) {
                     }
 
                 }
+
+                goal_stats();
+                get_week_stats();
                 
             }
 
@@ -441,6 +474,9 @@ function update_exercises() {
             }
 
             exercise_this_week = exercise_this_week_new;
+
+            goal_stats();
+            get_week_stats();
         }
 
     }
@@ -448,6 +484,126 @@ function update_exercises() {
     xhttp.withCredentials = true;
     xhttp.open("post", "api/create_exercises_week.php");
     xhttp.send(exercises_get_data);
+    return;
+}
+
+function goal_stats() {
+
+    var remaining = exer_goal - exercise_this_week;
+    if(remaining < 1) {
+        remaining = 0;
+    }
+
+    var finish_percentage = (exercise_this_week / exer_goal) * 100;
+
+    var html = `
+
+        <div class='form-group'>
+            <label for="exer_goal" title="">Treningsmål</label>
+            <div id="exer_goal" class="stat_result">
+                ` + exer_goal + `
+            </div>
+        </div>
+
+        <div class='form-group'>
+            <label for="remaning" title="">Gjenstående trening</label>
+            <div id="remaning" class="stat_result">
+                ` + remaining + `
+            </div>
+        </div>
+
+        <div class='form-group'>
+            <label for="finish_percentage" title="">Fullføringsprosent</label>
+            <div id="finish_percentage" class="stat_result">
+                ` + finish_percentage + `%
+            </div>
+        </div>
+
+    `;
+
+    document.getElementById('goal_stats').innerHTML = html;
+
+}
+
+function get_week_stats() {
+
+    user_goal_get_form = {
+                            "cookie" : cookie
+                        };
+
+    var user_goal_get_data = JSON.stringify(user_goal_get_form);
+
+    var xhttp = new XMLHttpRequest();
+    xhttp.onreadystatechange = function() {
+
+        if (this.readyState == 4 && this.status == 200) {
+            try {
+                var result= JSON.parse(this.responseText);
+            } catch(error) {
+                alert_error('Klarte ikke tolke API respons.');
+                console.log('Failed to parse API response. Response: ' + this.responseText);
+            }
+            
+            if(result.error) {
+                alert_error(result.message);
+            } else {
+                var html = ``;
+                
+                for(var i = 0; i < result.users.length; i++) {
+                    html += `
+                        <div class='user_stat'>
+
+                            <div class='user_stat_detail'>
+                                <img class='user_stat_icon' src='assets/profiles/` + result.users[i].user_id + `.svg'>
+                            </div>
+
+                            <div class='user_stat_detail'>
+                                ` + result.users[i].user_firstname + `
+                            </div>
+                        `;
+                    
+                    if(result.users[i].goal_compete === '1') {
+                        html += `
+                            <div class='user_stat_detail'>
+                                🏆
+                            </div>
+                        `;
+                    }
+
+                    html += `
+                            <div class='user_stat_detail'>
+                                <div>` + result.users[i].streak + `🔥</div>
+                            </div>
+                        `;
+
+                    if(result.users[i].week_complete) {
+                        html += `
+                            <div class='user_stat_detail'>
+                                ✔️
+                            </div>
+                        `;
+                    } else {
+                        html += `
+                            <div class='user_stat_detail'>
+                                ❌
+                            </div>
+                        `;
+                    }
+                    
+                    html += `
+                        </div>
+
+                        `;
+                }
+
+                document.getElementById('week_stats').innerHTML = html;
+            }
+
+        }
+    };
+    xhttp.withCredentials = true;
+    xhttp.open("post", "api/get_exercises_week_stats.php");
+    xhttp.send(user_goal_get_data);
     return;
 }
 // Home page )

@@ -54,6 +54,84 @@ body {
   align-items: center;
 }
 
+.modules {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: flex-start;
+  align-content: flex-start;
+}
+
+.sub-module {
+  display: flex;
+  flex-direction: column;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: flex-start;
+  align-content: center;
+}
+
+.stat_result {
+  text-align: center;
+  font-size: 1.5em;
+}
+
+.goal_stats {
+  text-align: center;
+  margin: 1em;
+  width: fit-content;
+  box-sizing: border-box;
+  border: solid 1px var(--blue);
+  border-radius: 0.5em;
+  background-color: lightblue;
+}
+
+.week_stats {
+  text-align: center;
+  margin: 1em;
+  width: fit-content;
+  box-sizing: border-box;
+  border: solid 1px var(--blue);
+  border-radius: 0.5em;
+  background-color: lightblue;
+}
+
+.seson_stats {
+  text-align: center;
+  margin: 1em;
+  width: fit-content;
+  box-sizing: border-box;
+  border: solid 1px var(--blue);
+  border-radius: 0.5em;
+  background-color: lightblue;
+}
+
+.user_stat {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: nowrap;
+  align-content: center;
+  justify-content: flex-start;
+  align-items: center;
+}
+
+.user_stat_detail {
+  margin: 0.5em;
+  display: flex;
+  flex-direction: row;
+  flex-wrap: nowrap;
+  align-content: center;
+  justify-content: center;
+  align-items: center;
+  font-size: 1.5em;
+}
+
+.user_stat_icon {
+  margin: 0;
+  height: 1em;
+}
+
 #nav {
   width: -webkit-fill-available;
 }
@@ -272,7 +350,7 @@ input:read-only {
 
 .exercises {
   width: 15em;
-  margin: auto;
+  margin: 1em;
   border: solid 1px var(--blue);
   display: none;
   flex-direction: column;

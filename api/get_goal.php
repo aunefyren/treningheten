@@ -52,57 +52,36 @@ if($now->format('m') == 1 || $now->format('m') == 8) {
     $can_compete = false;
 }
 
-$goals = $goal->get_goal();
+$goal_dates = $goal->get_current_season_dates();
 
-$season_start_1 = new DateTime($now->format('Y') . '-01-01');
-$season_start_2 = new DateTime($now->format('Y') . '-08-01');
+if(!$goal_dates) {
 
-$season_end_1 = new DateTime($now->format('Y') . '-06-30');
-if($season_end_1->format('N') !== 7) {
-    $correct_date = false;
-    while(!$correct_date) {
-        $season_end_1->modify('-1 days');
+    echo json_encode(array( "error" => false, 
+                            "message" => "Ingen mål funnet. Ingen sesong funnet.",
+                            "can_compete" => $can_compete, 
+                            "season_start" => false,
+                            "season_end" => false,
+                            "season_name" => false,
+                            "goal" => false));
+    exit(0);
 
-        if($season_end_1->format('N') == 7) {
-            $correct_date = true;
-        }
-    }
 }
 
-$season_end_2 = new DateTime($now->format('Y') . '-12-24');
-if($season_end_2->format('N') === 7) {
-    $season_end_2->modify('-1 days');
-}
-if($season_end_2->format('N') !== 7) {
-    $correct_date = false;
-    while(!$correct_date) {
-        $season_end_2->modify('-1 days');
+$goal_dates = json_decode($goal_dates, true);
+$season_start = new DateTime($goal_dates['season_start']);
+$season_end = new DateTime($goal_dates['season_end']);
+$season_name = $goal_dates['season_name'];
 
-        if($season_end_2->format('N') == 7) {
-            $correct_date = true;
-        }
-    }
-}
-
-if($now > $season_start_1 && $now < $season_end_1) {
-    $season = 1;
-    $chosen_season_start = $season_start_1;
-    $chosen_season_end = $season_end_1;
-} else if($now > $season_start_2 && $now < $season_end_2) {
-    $season = 2;
-    $chosen_season_start = $season_start_2;
-    $chosen_season_end = $season_end_2;
-} else {
-    return false;
-}
+$goals = $goal->get_goal($season_start, $season_end);
 
 if($goals === false) {
 
     echo json_encode(array( "error" => false, 
                             "message" => "Ingen mål funnet.",
                             "can_compete" => $can_compete, 
-                            "season_start" => $chosen_season_start->format('d.m.Y'),
-                            "season_end" => $chosen_season_end->format('d.m.Y'),
+                            "season_start" => $season_start->format('d.m.Y'),
+                            "season_end" => $season_end->format('d.m.Y'),
+                            "season_name" => $season_name,
                             "goal" => false));
     exit(0);
 
@@ -113,8 +92,9 @@ if($goals === false) {
     echo json_encode(array( "error" => false, 
                             "message" => "Fant et mål.", 
                             "can_compete" => $can_compete, 
-                            "season_start" => $goals['season_start'],
-                            "season_end" => $goals['season_end'],  
+                            "season_start" => $season_start->format('d.m.Y'),
+                            "season_end" => $season_end->format('d.m.Y'),
+                            "season_name" => $season_name,
                             "goal" => 
                                 array(
                                     "goal_id" => $goals['goal']['goal_id'],
