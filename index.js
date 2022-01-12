@@ -553,11 +553,11 @@ function get_week_stats() {
                     html += `
                         <div class='user_stat'>
 
-                            <div class='user_stat_detail'>
-                                <img class='user_stat_icon' src='assets/profiles/` + result.users[i].user_id + `.svg'>
+                            <div class='user_stat_detail' style='margin: 0;'>
+                                <img class='user_stat_icon' style='height: 2em;' src='assets/profiles/` + result.users[i].user_id + `.svg'>
                             </div>
 
-                            <div class='user_stat_detail'>
+                            <div class='user_stat_detail' style='width: 5em;'>
                                 ` + result.users[i].user_firstname + `
                             </div>
                         `;
@@ -572,7 +572,7 @@ function get_week_stats() {
 
                     html += `
                             <div class='user_stat_detail'>
-                                <div>` + result.users[i].streak + `🔥</div>
+                                ` + result.users[i].streak + `🔥
                             </div>
                         `;
 
