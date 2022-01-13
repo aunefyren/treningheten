@@ -577,7 +577,7 @@ function get_week_stats() {
                     <div class='user_stats'>
                     `;
                 
-                result.users.sort((a, b) => a.week_percent - b.week_percent)
+                result.users.sort((a, b) => b.week_percent - a.week_percent)
                 for(var i = 0; i < result.users.length; i++) {
                     html += `
                         <div class='user_stat'>
