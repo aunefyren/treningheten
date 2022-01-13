@@ -92,6 +92,7 @@ for($i = 0; $i < count($goal_id_list); $i++) {
         $goal_id_list[$i]['goal_end'] = false;
         $goal_id_list[$i]['goal_exer_week'] = false;
         $goal_id_list[$i]['week_complete'] = false;
+        $goal_id_list[$i]['week_percent'] = 0;
         $goal_id_list[$i]['goal_compete'] = false;
         $goal_id_list[$i]['streak'] = 0;
 
@@ -125,6 +126,7 @@ for($i = 0; $i < count($goal_id_list); $i++) {
         $goal_id_list[$i]['goal_exer_week'] = $data[0]['goal_exer_week'];
         $goal_id_list[$i]['goal_compete'] = $data[0]['goal_compete'];
         $goal_id_list[$i]['week_complete'] = false;
+        $goal_id_list[$i]['week_percent'] = 0;
         $goal_id_list[$i]['streak'] = 0;
 
         $weeks = array_fill(0, 52, 0);
@@ -163,6 +165,8 @@ for($i = 0; $i < count($goal_id_list); $i++) {
         } else {
             $goal_id_list[$i]['week_complete'] = false;
         }
+
+        $goal_id_list[$i]['week_percent'] = $weeks[$current_week] / $goal_id_list[$i]['goal_exer_week'] * 100;
     }
 }
 

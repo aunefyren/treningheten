@@ -515,7 +515,7 @@ function goal_stats() {
         <div class='form-group'>
             <label for="finish_percentage" title="">Fullføringsprosent</label>
             <div id="finish_percentage" class="stat_result">
-                ` + finish_percentage + `%
+                ` + Math.trunc(finish_percentage) + `%
             </div>
         </div>
 
@@ -550,7 +550,7 @@ function get_week_stats() {
                 var html = `
                     <div class='user_bar'>
                         <div class='user_stat_detail'>
-                            <img class='user_stat_icon' src='assets/profiles/1.svg'>
+                            <img class='user_stat_icon' src='assets/profile.svg'>
                         </div>
 
                         <div class='user_stat_detail name'>
@@ -568,11 +568,16 @@ function get_week_stats() {
                         <div class='user_stat_detail'>
                             <img class='user_stat_icon' src='assets/week.svg'>
                         </div>
+
+                        <div class='user_stat_detail'>
+                            <img class='user_stat_icon' src='assets/percent.svg'>
+                        </div>
                     </div>
 
                     <div class='user_stats'>
                     `;
                 
+                result.users.sort((a, b) => a.week_percent - b.week_percent)
                 for(var i = 0; i < result.users.length; i++) {
                     html += `
                         <div class='user_stat'>
@@ -621,6 +626,9 @@ function get_week_stats() {
                     }
                     
                     html += `
+                            <div class='user_stat_detail'>
+                                ` + Math.trunc(result.users[i].week_percent) + `%
+                            </div>
                         </div>
 
                         `;
