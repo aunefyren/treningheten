@@ -547,17 +547,41 @@ function get_week_stats() {
             if(result.error) {
                 alert_error(result.message);
             } else {
-                var html = ``;
+                var html = `
+                    <div class='user_bar'>
+                        <div class='user_stat_detail'>
+                            <img class='user_stat_icon' src='assets/profiles/1.svg'>
+                        </div>
+
+                        <div class='user_stat_detail name'>
+                            <img class='user_stat_icon' src='assets/name.svg'>
+                        </div>
+
+                        <div class='user_stat_detail'>
+                            <img class='user_stat_icon' src='assets/competition.svg'>
+                        </div>
+
+                        <div class='user_stat_detail'>
+                            <img class='user_stat_icon' src='assets/flames.svg'>
+                        </div>
+
+                        <div class='user_stat_detail'>
+                            <img class='user_stat_icon' src='assets/week.svg'>
+                        </div>
+                    </div>
+
+                    <div class='user_stats'>
+                    `;
                 
                 for(var i = 0; i < result.users.length; i++) {
                     html += `
                         <div class='user_stat'>
 
-                            <div class='user_stat_detail' style='margin: 0;'>
-                                <img class='user_stat_icon' style='height: 2em;' src='assets/profiles/` + result.users[i].user_id + `.svg'>
+                            <div class='user_stat_detail'>
+                                <img class='user_stat_icon' src='assets/profiles/` + result.users[i].user_id + `.svg'>
                             </div>
 
-                            <div class='user_stat_detail' style='width: 5em;'>
+                            <div class='user_stat_detail name'>
                                 ` + result.users[i].user_firstname + `
                             </div>
                         `;
@@ -565,27 +589,33 @@ function get_week_stats() {
                     if(result.users[i].goal_compete === '1') {
                         html += `
                             <div class='user_stat_detail'>
-                                🏆
+                                <img class='user_stat_icon' src='assets/complete.svg'>
                             </div>
                         `;
+                    } else {
+                        html += `
+                            <div class='user_stat_detail'>
+                                <img class='user_stat_icon' src='assets/incomplete.svg'>
+                            </div>
+                        `;                        
                     }
 
                     html += `
                             <div class='user_stat_detail'>
-                                ` + result.users[i].streak + `🔥
+                                ` + result.users[i].streak + `
                             </div>
                         `;
 
                     if(result.users[i].week_complete) {
                         html += `
                             <div class='user_stat_detail'>
-                                ✔️
+                                <img class='user_stat_icon' src='assets/complete.svg'>
                             </div>
                         `;
                     } else {
                         html += `
                             <div class='user_stat_detail'>
-                                ❌
+                                <img class='user_stat_icon' src='assets/incomplete.svg'>
                             </div>
                         `;
                     }
@@ -595,6 +625,7 @@ function get_week_stats() {
 
                         `;
                 }
+                html += '</div>';
 
                 document.getElementById('week_stats').innerHTML = html;
             }
