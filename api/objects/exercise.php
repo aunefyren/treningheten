@@ -206,4 +206,53 @@ class Exercise{
             return false;
         }
     }
+
+    function get_exercises_all(){
+
+        // query to check if email exists
+        $query =    "SELECT DISTINCT * " .
+                    "FROM `exercises` " . 
+                    "WHERE `exer_enabled` = '1'";
+
+        $stmt = $this->conn->prepare($query);
+
+        // execute the query
+        $stmt->execute();
+
+        //Bind by column number
+        $stmt->bindColumn(1, $id);
+        $stmt->bindColumn(2, $date);
+        $stmt->bindColumn(3, $note);
+        $stmt->bindColumn(4, $enabled);
+        $stmt->bindColumn(5, $goal);
+        $stmt->bindColumn(6, $leave);
+
+        // get number of rows
+        $num = $stmt->rowCount();
+
+        // if email exists, assign values to object properties for easy access and use for php sessions
+        if($num>0){
+
+            // get record details / values
+            $data = array();
+
+            while($stmt->fetch()){
+                $data[] = array(
+                'exer_id' => $id,
+                'exer_date' => $date,
+                'exer_note' => $note,
+                'exer_enabled' => $enabled,
+                'goal_id' => $goal,
+                'exer_leave' => $leave,
+                );
+            }
+
+            $json = json_encode($data);
+            return $json;
+
+        } else {
+
+            return false;
+        }
+    }
 }

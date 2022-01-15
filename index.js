@@ -174,6 +174,10 @@ function load_page_home() {
                         <div id="week_stats" class="week_stats">
                         </div>
 
+                    </div>
+
+                    <div class="sub-module">
+
                         <div id="season_stats" class="season_stats">
                         </div>
 
@@ -189,7 +193,8 @@ function load_page_home() {
         var html = `
             <div>
                 <h1>Tren da</h1>
-                <p>Siden er under konstruksjon.</p>
+                <p>Siden er under konstruksjon. Kanskje du har en bruker?</p>
+                <button type="submit" onclick='load_page_login();' class="form-input btn" id="load_page_login" style="width: auto;"><img src="assets/done.svg" class="btn_logo"><p2>Logg inn</p2></button>
             </div>
         `;
     }
@@ -413,6 +418,7 @@ function load_home_exercises(goal_id) {
 
                 goal_stats();
                 get_week_stats();
+                get_season_stats();
                 
             }
 
@@ -645,6 +651,86 @@ function get_week_stats() {
     xhttp.send(user_goal_get_data);
     return;
 }
+
+function get_season_stats() {
+
+    user_goal_get_form = {
+                            "cookie" : cookie
+                        };
+
+    var user_goal_get_data = JSON.stringify(user_goal_get_form);
+
+    var xhttp = new XMLHttpRequest();
+    xhttp.onreadystatechange = function() {
+
+        if (this.readyState == 4 && this.status == 200) {
+            try {
+                var result= JSON.parse(this.responseText);
+            } catch(error) {
+                alert_error('Klarte ikke tolke API respons.');
+                console.log('Failed to parse API response. Response: ' + this.responseText);
+            }
+            
+            if(result.error) {
+                alert_error(result.message);
+            } else {
+                var html = `
+                    `;
+                
+                var year;
+                result.weeks.sort((a, b) => b.date - a.date)
+                for(var i = 0; i < result.weeks.length; i++) {
+
+                    if(year != result.weeks[i].year) {
+                        year = result.weeks[i].year;
+                        html += `<div class='results_year'>År ` + year + '</div>';
+                    }
+
+                    html += `<div class='results_row'>`;
+                    
+                    html += `<div class='results_week'>Uke ` + result.weeks[i].week + '</div>';
+
+                    for(var j = 0; j < result.weeks[i].contestants.length; j++) {
+                        if(result.weeks[i].contestants[j].workouts >= result.weeks[i].contestants[j].goal_exer_week) {
+                            html += `
+                                <div class='results_user'>
+                                    <div class='results_user_detail'>
+                                        <img class='user_stat_icon' src='assets/profiles/` + result.weeks[i].contestants[j].user_id + `.svg'>
+                                    </div>
+
+                                    <div class='results_user_detail'>
+                                        <img class='user_stat_icon' src='assets/complete.svg'>
+                                    </div>
+                                </div>
+                            `;
+                        } else {
+                            html += `
+                                <div class='results_user'>
+                                    <div class='results_user_detail'>
+                                        <img class='user_stat_icon' src='assets/profiles/` + result.weeks[i].contestants[j].user_id + `.svg'>
+                                    </div>
+
+                                    <div class='results_user_detail'>
+                                        <img class='user_stat_icon' src='assets/incomplete.svg'>
+                                    </div>
+                                </div>
+                            `;
+                        }
+                    }
+
+                    html += `</div>`;
+                }
+
+                document.getElementById('season_stats').innerHTML = html;
+            }
+
+        }
+    };
+    xhttp.withCredentials = true;
+    xhttp.open("post", "api/get_week_results.php");
+    xhttp.send(user_goal_get_data);
+    return;
+}
 // Home page )
 
 // ( Create user
@@ -873,7 +959,7 @@ function login_user() {
                 document.getElementById("login_user_button").style.opacity = '1';
             } else {
                 document.getElementById('user_password').value = '';
-                set_cookie("treningheten-bruker", result.cookie, 1);
+                set_cookie("treningheten-bruker", result.cookie, 14);
                 window.location = window.location.pathname;
             }
 
