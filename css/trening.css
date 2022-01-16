@@ -82,9 +82,13 @@ body {
   margin: 1em;
   width: fit-content;
   box-sizing: border-box;
-  border: solid 1px var(--blue);
   border-radius: 0.5em;
+}
+
+.goal_stats_inner {
+  border: solid 1px var(--blue);
   background-color: lightblue;
+  border-radius: 0.5em;
 }
 
 .week_stats {
@@ -92,18 +96,21 @@ body {
   margin: 1em;
   width: fit-content;
   box-sizing: border-box;
-  border: solid 1px var(--blue);
-  border-radius: 0.5em;
   background-color: lightblue;
+  border-radius: 0.5em;
+}
+
+.week_stats_inner {
+  border: solid 1px var(--blue);
+  background-color: lightblue;
+  border-radius: 0.5em;
 }
 
 .season_stats {
   text-align: center;
   margin: 1em;
   box-sizing: border-box;
-  border: solid 1px var(--blue);
   border-radius: 0.5em;
-  background-color: lightblue;
   width: auto;
   min-width: 20em;
   max-height: 25em;
@@ -114,6 +121,13 @@ body {
   align-content: center;
   justify-content: space-around;
   align-items: center;
+}
+
+.season_stats_inner{
+  background-color: lightblue;
+  border: solid 1px var(--blue);
+  border-radius: 0.5em;
+  width: -webkit-fill-available;
 }
 
 .results_year{

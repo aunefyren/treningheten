@@ -113,7 +113,7 @@ function load_page_home() {
         var html = `
             <div>
                 <h1>Tren da, ` + login_data.user_firstname + `</h1>
-                <p>Siden er fortsatt under konstruksjon.</p>
+                <p>Trening er viktig og sånn.</p>
 
                 <div class="modules">
 
@@ -189,6 +189,9 @@ function load_page_home() {
         `;
 
         load_home_goal();
+        get_week_stats();
+        get_season_stats();
+        
     } else {
         var html = `
             <div>
@@ -417,8 +420,6 @@ function load_home_exercises(goal_id) {
                 }
 
                 goal_stats();
-                get_week_stats();
-                get_season_stats();
                 
             }
 
@@ -503,7 +504,7 @@ function goal_stats() {
     var finish_percentage = (exercise_this_week / exer_goal) * 100;
 
     var html = `
-
+    <div class='goal_stats_inner'>
         <div class='form-group'>
             <label for="exer_goal" title="">Treningsmål</label>
             <div id="exer_goal" class="stat_result">
@@ -524,7 +525,7 @@ function goal_stats() {
                 ` + Math.trunc(finish_percentage) + `%
             </div>
         </div>
-
+    </div>
     `;
 
     document.getElementById('goal_stats').innerHTML = html;
@@ -554,6 +555,7 @@ function get_week_stats() {
                 alert_error(result.message);
             } else {
                 var html = `
+                <div class='week_stats_inner'>
                     <div class='user_bar'>
                         <div class='user_stat_detail'>
                             <img class='user_stat_icon' src='assets/profile.svg'>
@@ -640,6 +642,7 @@ function get_week_stats() {
                         `;
                 }
                 html += '</div>';
+                html += '</div>';
 
                 document.getElementById('week_stats').innerHTML = html;
             }
@@ -675,6 +678,7 @@ function get_season_stats() {
                 alert_error(result.message);
             } else {
                 var html = `
+                    <div class='season_stats_inner'>
                     `;
                 
                 var year;
@@ -720,6 +724,8 @@ function get_season_stats() {
 
                     html += `</div>`;
                 }
+
+                html += `</div>`;
 
                 document.getElementById('season_stats').innerHTML = html;
             }
