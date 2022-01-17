@@ -470,6 +470,24 @@ input:read-only {
   padding: 0.25em;
 }
 
+.profile_photo_section {
+  margin: auto;
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-content: center;
+  justify-content: center;
+  align-items: center;
+}
+
+.profile_photo {
+  margin: auto;
+  height: 10em;
+  border: 2px solid var(--blue);
+  border-radius: 0.25em;
+  background-color: lightblue;
+}
+
 /* Start of fireworks */
 .pyro {
   display: none;

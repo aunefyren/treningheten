@@ -294,6 +294,45 @@ class User{
         }
     }
 
+    function set_user_email(){
+
+        // query to check if email exists
+        $query = "UPDATE " . $this->table_name . " SET" .
+        " user_email = '" . $this->user_email .
+        "' WHERE user_id = '" . $this->user_id . "'";
+
+        // prepare the query
+        $stmt = $this->conn->prepare( $query );
+
+        // execute the query
+        if($stmt->execute()) {
+            return true;
+        } else {
+            return false;
+        }
+    }
+
+    function set_user_password(){
+
+        // hash the password before saving to database
+        $password_hash = password_hash($this->user_password, PASSWORD_BCRYPT);
+
+        // query to check if email exists
+        $query = "UPDATE " . $this->table_name . " SET" .
+        " user_password = '" . $password_hash .
+        "' WHERE user_id = '" . $this->user_id . "'";
+
+        // prepare the query
+        $stmt = $this->conn->prepare( $query );
+
+        // execute the query
+        if($stmt->execute()) {
+            return true;
+        } else {
+            return false;
+        }
+    }
+
     function set_account(){
         // query to check if email exists
         $query = "UPDATE " . $this->table_name . " SET b_active = '1' WHERE b_hash = '" . $this->b_hash . "' AND b_epost = '" . $this->b_epost . "'";
@@ -479,25 +518,6 @@ class User{
             return $json;
         }
 
-    }
-
-    function set_brukere(){
-
-        // query to check if email exists
-        $query = "UPDATE " . $this->table_name . " SET" .
-        " b_update = '" . $this->b_update .
-        "', b_epost = '" . $this->b_epost .
-        "', b_active = '" . $this->b_active .
-        "', b_tittel = '" . $this->b_tittel .
-        "' WHERE b_id = '" . $this->b_id . "'";
-
-        // prepare the query
-        $stmt = $this->conn->prepare( $query );
-
-        // execute the query
-        $stmt->execute();
-
-        return true;
     }
 
     function sjekk_refresh(){

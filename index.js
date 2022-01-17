@@ -106,6 +106,7 @@ function verify_user(activate_email, activate_hash) {
 function load_page_home() {
     alert_clear();
     remove_active_menu();
+    toggle_navbar();
 
     exercise_this_week = 0;
 
@@ -1003,6 +1004,10 @@ function load_page_user() {
             <p>Her kan du endre noen detaljer om deg selv.</p>
         </div>
 
+        <div class='profile_photo_section'>
+            <img class='profile_photo' src='assets/profiles/` + login_data.user_id + `.svg'>
+        </div>
+
         <div>
             <form id='password_login_form' onsubmit='update_user();return false;'>
 
@@ -1054,7 +1059,7 @@ function load_page_user() {
             </div>
 
             <div class='form-group'>
-                <button type="submit" class="form-input btn" id="login_user_button"><img src="assets/done.svg" class="btn_logo"><p2>Lagre endringer</p2></button>
+                <button type="submit" class="form-input btn" id="update_user_button"><img src="assets/done.svg" class="btn_logo"><p2>Lagre endringer</p2></button>
             </div>
 
             </form>
@@ -1062,21 +1067,38 @@ function load_page_user() {
     `;
 
     document.getElementById('content-box').innerHTML = html;
-    alert_info('Denne siden fungerer ikke enda.');
 }
 
 function update_user() {
     // Disable button
-    document.getElementById("login_user_button").disabled = true;
-    document.getElementById("login_user_button").style.opacity = '0.5';
+    document.getElementById("update_user_button").disabled = true;
+    document.getElementById("update_user_button").style.opacity = '0.5';
+
+    user_password_new = document.getElementById('user_password_new').value;
+    user_password_new_repeat = document.getElementById('user_password_new_repeat').value;
+
+    if(user_password_new !== user_password_new_repeat) {
+
+        document.getElementById("update_user_button").disabled = false;
+        document.getElementById("update_user_button").style.opacity = '1';
+        document.getElementById("user_password").value = '';
+        alert_error('De to passordene må være like.');
+        return;
+
+    }
+
+    user_email = document.getElementById('user_email').value;
 
     user_password = document.getElementById('user_password').value;
-    user_email = document.getElementById('user_email').value;
 
 
     user_login_form = {
                             "user_password" : user_password, 
-                            "user_email" : user_email
+                            "cookie" : cookie,
+                            "data" : {
+                                "user_email" : user_email,
+                                "user_password" : user_password_new
+                            }
                         };
 
     var user_login_data = JSON.stringify(user_login_form);
@@ -1093,18 +1115,19 @@ function update_user() {
                 alert_error('Klarte ikke tolke API respons.');
                 console.log('Failed to parse API response. Response: ' + this.responseText)
                 document.getElementById('user_password').value = '';
-                document.getElementById("login_user_button").disabled = false;
-                document.getElementById("login_user_button").style.opacity = '1';
+                document.getElementById("update_user_button").disabled = false;
+                document.getElementById("update_user_button").style.opacity = '1';
             }
             
             if(result.error) {
                 alert_error(result.message);
                 document.getElementById('user_password').value = '';
-                document.getElementById("login_user_button").disabled = false;
-                document.getElementById("login_user_button").style.opacity = '1';
+                document.getElementById("update_user_button").disabled = false;
+                document.getElementById("update_user_button").style.opacity = '1';
             } else {
                 document.getElementById('user_password').value = '';
-                set_cookie("treningheten-bruker", result.cookie, 1);
+                set_cookie("treningheten-bruker", result.cookie, 14);
+                alert_success(result.message);
             }
 
         }
