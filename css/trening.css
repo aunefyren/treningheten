@@ -178,7 +178,7 @@ body {
 }
 
 .user_stats {
-  max-height: 14em;
+  max-height: 20em;
   display: flex;
   flex-direction: column;
   flex-wrap: nowrap;

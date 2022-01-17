@@ -35,7 +35,7 @@ function validate_user_cookie(cookie) {
             
             if(result.error) {
                 set_cookie("treningheten-bruker", "", 1);
-                logged_out = false;
+                logged_in = false;
                 load_page_home();
             } else {
                 logged_in = true;

@@ -6,7 +6,7 @@ class User{
     private $conn;
     private $table_name = "users";
     const METHOD = 'aes-256-ctr';
-    private $token_encrypter = 'this_token_encrypts_trening_420_69';
+    private $token_encrypter = 'this_token_encrypts_treningheten_yo_69';
 
     // object properties
     public $user_id;

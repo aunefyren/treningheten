@@ -60,6 +60,16 @@ if($user->user_active !== '1') {
 // Get cookie
 $cookie = $user->get_user_cookie();
 
+// Check profile photo
+$filename = dirname(__FILE__, 2) . '/assets/profiles/' . $user->user_id . '.jpg';
+$default = dirname(__FILE__, 2) . '/assets/default.jpg';
+
+if (!file_exists($filename)) {
+    
+    copy($default, $filename);
+
+}
+
 // Print cookie and exit
 echo json_encode(array("error" => false, "message" => "Innlogging suksessfull!", "cookie" => $cookie));
 exit(0);
