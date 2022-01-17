@@ -76,7 +76,7 @@ $now = new DateTime('NOW');
 for($i = 0; $i < count($all_goals); $i++) {
     $goal_start = date_create_from_format('Y-m-d H:i:s', $all_goals[$i]['goal_start']);
     $goal_end = date_create_from_format('Y-m-d H:i:s', $all_goals[$i]['goal_end']);
-    if($goal_start >= $season_start && $goal_end <= $season_end && $goal_start < $now) {
+    if($goal_start >= $season_start && $goal_end <= $season_end && ($goal_start->format('Y-m-d') == $now->format('Y-m-d') || $goal_start < $now)) {
         array_push($goal_id_list, array('goal_id' => $all_goals[$i]['goal_id'], 'user_id' => $all_goals[$i]['user_id'], 'exercise_found' => false));
     }
 }

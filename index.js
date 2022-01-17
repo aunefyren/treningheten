@@ -682,7 +682,7 @@ function get_season_stats() {
                     `;
                 
                 var year;
-                result.weeks.sort((a, b) => b.date - a.date)
+                
                 for(var i = 0; i < result.weeks.length; i++) {
 
                     if(year != result.weeks[i].year) {

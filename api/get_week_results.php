@@ -122,6 +122,9 @@ for($j = 0; $j < count($weeks); $j++) {
 
 }
 
+$date = array_column($weeks, 'date');
+array_multisort($date, SORT_DESC, $weeks);
+
 echo json_encode(array("error" => false, "message" => "Uke stats funnet.", "weeks" => $weeks));
 exit(0);
 ?>
