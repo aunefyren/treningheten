@@ -97,6 +97,25 @@ if($user->user_email !== $data->data->user_email) {
 
 }
 
+if($data->data->user_profile_photo !== false) {
+
+    list($type, $data) = explode(';', $data->data->user_profile_photo);
+    list(, $data)      = explode(',', $data);
+
+    $image = base64_decode($data);
+
+    if(!$image) {
+
+        echo json_encode(array("error" => true, "message" => "Bildet ble ikke godkjent."));
+        exit(0);
+
+    }
+
+    $path = dirname(__FILE__, 2) . '/assets/profiles/' . $cookie_decoded['data']['user_id'] . '.jpg';
+    $success = file_put_contents($path, $image);
+
+}
+
 // Load user data for inspection
 $user->get_user_data();
 

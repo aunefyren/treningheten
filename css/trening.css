@@ -222,6 +222,15 @@ body {
   height: 1em;
 }
 
+.user_stat_photo {
+  margin: 0;
+  height: 2em;
+  width: 2em;
+  border-radius: 50%;
+  box-shadow: 0 1px 3px 0 rgb(0 0 0 / 20%), 0 2px 4px 0 rgb(0 0 0 / 19%) !important;
+  object-fit: cover;
+}
+
 #nav {
   width: -webkit-fill-available;
 }
@@ -473,7 +482,7 @@ input:read-only {
 .profile_photo_section {
   margin: auto;
   display: flex;
-  flex-direction: row;
+  flex-direction: column;
   flex-wrap: wrap;
   align-content: center;
   justify-content: center;
@@ -481,7 +490,6 @@ input:read-only {
 }
 
 .profile_photo {
-  margin: auto;
   height: 10em;
   border: 2px solid var(--blue);
   border-radius: 0.25em;

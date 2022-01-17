@@ -591,7 +591,7 @@ function get_week_stats() {
                         <div class='user_stat'>
 
                             <div class='user_stat_detail'>
-                                <img class='user_stat_icon' src='assets/profiles/` + result.users[i].user_id + `.svg'>
+                                <img class='user_stat_photo' src='assets/profiles/` + result.users[i].user_id + `.jpg'>
                             </div>
 
                             <div class='user_stat_detail name'>
@@ -699,7 +699,7 @@ function get_season_stats() {
                             html += `
                                 <div class='results_user'>
                                     <div class='results_user_detail'>
-                                        <img class='user_stat_icon' src='assets/profiles/` + result.weeks[i].contestants[j].user_id + `.svg'>
+                                        <img class='user_stat_photo' src='assets/profiles/` + result.weeks[i].contestants[j].user_id + `.jpg'>
                                     </div>
 
                                     <div class='results_user_detail'>
@@ -711,7 +711,7 @@ function get_season_stats() {
                             html += `
                                 <div class='results_user'>
                                     <div class='results_user_detail'>
-                                        <img class='user_stat_icon' src='assets/profiles/` + result.weeks[i].contestants[j].user_id + `.svg'>
+                                        <img class='user_stat_photo' src='assets/profiles/` + result.weeks[i].contestants[j].user_id + `.jpg'>
                                     </div>
 
                                     <div class='results_user_detail'>
@@ -1004,11 +1004,19 @@ function load_page_user() {
         </div>
 
         <div class='profile_photo_section'>
-            <img class='profile_photo' src='assets/profiles/` + login_data.user_id + `.svg'>
+            <img class='profile_photo' src='assets/profiles/` + login_data.user_id + `.jpg'>
         </div>
 
         <div>
-            <form id='password_login_form' onsubmit='update_user();return false;'>
+            <form id='user_update_form' onsubmit='event.preventDefault(); update_user(); return false;'>
+
+            <div class='form-group'>
+                <label for="user_profile_photo">Profilbilde:</label>
+                <input type="file" id="user_profile_photo" name="user_profile_photo" accept=".jpg,.jpeg,.png" class="form-input" />
+            </div>
+
+            <div class='form-group newline'>
+            </div>
 
             <div class='form-group'>
                 <label for="user_email" title="Eposten du registrerte med.">E-post:</label>
@@ -1087,25 +1095,54 @@ function update_user() {
     }
 
     user_email = document.getElementById('user_email').value;
+    user_profile_photo = document.getElementById('user_profile_photo').files[0];
 
     user_password = document.getElementById('user_password').value;
 
+    alert_info('Laster inn...');
 
-    user_login_form = {
-                            "user_password" : user_password, 
-                            "cookie" : cookie,
-                            "data" : {
-                                "user_email" : user_email,
-                                "user_password" : user_password_new
-                            }
-                        };
+    if(user_profile_photo) {
+        user_profile_photo = get_base64(user_profile_photo);
+        
+        user_profile_photo.then(function(result) {
+            
+            user_login_form = {
+                "user_password" : user_password, 
+                "cookie" : cookie,
+                "data" : {
+                    "user_email" : user_email,
+                    "user_password" : user_password_new,
+                    "user_profile_photo" : result
+                }
+            };
 
-    var user_login_data = JSON.stringify(user_login_form);
+            var user_login_data = JSON.stringify(user_login_form);
 
+            update_user_call(user_login_data);
+        });
+
+    } else {
+
+        user_login_form = {
+            "user_password" : user_password, 
+            "cookie" : cookie,
+            "data" : {
+                "user_email" : user_email,
+                "user_password" : user_password_new,
+                "user_profile_photo" : false
+            }
+        };
+
+        var user_login_data = JSON.stringify(user_login_form);
+
+        update_user_call(user_login_data);
+
+    }
+}
+
+function update_user_call(data) {
     var xhttp = new XMLHttpRequest();
     xhttp.onreadystatechange = function() {
-
-        alert_info('Laster inn...');
 
         if (this.readyState == 4 && this.status == 200) {
             try {
@@ -1133,7 +1170,7 @@ function update_user() {
     };
     xhttp.withCredentials = true;
     xhttp.open("post", "api/update_user.php");
-    xhttp.send(user_login_data);
+    xhttp.send(data);
     return;
 }
 // Update user )
