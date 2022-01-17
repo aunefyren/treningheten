@@ -106,7 +106,6 @@ function verify_user(activate_email, activate_hash) {
 function load_page_home() {
     alert_clear();
     remove_active_menu();
-    toggle_navbar();
 
     exercise_this_week = 0;
 
