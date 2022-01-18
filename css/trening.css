@@ -227,7 +227,7 @@ body {
   height: 2em;
   width: 2em;
   border-radius: 50%;
-  box-shadow: 0 1px 3px 0 rgb(0 0 0 / 20%), 0 2px 4px 0 rgb(0 0 0 / 19%) !important;
+  border: solid 2px var(--blue);
   object-fit: cover;
 }
 
@@ -490,7 +490,9 @@ input:read-only {
 }
 
 .profile_photo {
-  height: 10em;
+  height: 15em;
+  width: 15em;
+  object-fit: cover;
   border: 2px solid var(--blue);
   border-radius: 0.25em;
   background-color: lightblue;

@@ -108,7 +108,7 @@ function load_page_home() {
     remove_active_menu();
 
     exercise_this_week = 0;
-
+    
     if(logged_in) {
         var html = `
             <div>
@@ -1011,7 +1011,7 @@ function load_page_user() {
             <form id='user_update_form' onsubmit='event.preventDefault(); update_user(); return false;'>
 
             <div class='form-group'>
-                <label for="user_profile_photo">Profilbilde:</label>
+                <label for="user_profile_photo" title="Hvordan ser du ut?">Profilbilde:</label>
                 <input type="file" id="user_profile_photo" name="user_profile_photo" accept=".jpg,.jpeg,.png" class="form-input" />
             </div>
 
@@ -1045,12 +1045,12 @@ function load_page_user() {
             </div>
 
             <div class='form-group'>
-                <label for="user_password_new" title="Ditt hemmelige passord.">Nytt passord:</label>
+                <label for="user_password_new" title="Ditt nye hemmelige passord.">Nytt passord:</label>
                 <input type="password" name="user_password_new" id="user_password_new" class="form-input" value="" autocomplete="off" />
             </div>
 
             <div class='form-group'>
-                <label for="user_password_new_repeat" title="Ditt hemmelige passord.">Gjenta ditt nye passord:</label>
+                <label for="user_password_new_repeat" title="Gjenta ditt nye hemmelige passord.">Gjenta ditt nye passord:</label>
                 <input type="password" name="user_password_new_repeat" id="user_password_new_repeat" class="form-input" value="" autocomplete="off" />
             </div>
 
@@ -1058,7 +1058,7 @@ function load_page_user() {
             </div>
 
             <div class='form-group'>
-                <label for="user_password" title="Ditt hemmelige passord.">Passord:</label>
+                <label for="user_password" title="Ditt hemmelige passord.">Nåværende passord:</label>
                 <input type="password" name="user_password" id="user_password" class="form-input" value="" autocomplete="off" required />
             </div>
 
