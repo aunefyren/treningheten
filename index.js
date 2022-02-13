@@ -122,7 +122,7 @@ function load_page_home() {
                             Laster inn...
                         </div>
 
-                        <div class="week_days">
+                        <div class="week_days" id='calendar'>
                             <div class="form-group" style="border: solid 1px var(--blue); width: 5em; padding: 0.5em;" id="day_1_group">
                                 <label for="day_1" title="Har du trent?">Mandag</label>
                                 <input type="checkbox" class="form-control" id="day_1">
@@ -404,12 +404,12 @@ function load_home_exercises(goal_id) {
 
                 for(var i = 1; i <= result.exercises.days.length; i++) {
 
-                    if(result.exercises.days[i-1]) {
+                    if(result.exercises.days[i-1] && !result.exercises.leave) {
                         document.getElementById('day_' + i).checked = true;
                         exercise_this_week += 1;
                     }
 
-                    if(i > parseInt(result.week_day)) {
+                    if(i > parseInt(result.week_day) || result.exercises.leave) {
                         document.getElementById('day_' + i).disabled = true;
                     }
 
@@ -417,6 +417,11 @@ function load_home_exercises(goal_id) {
                         document.getElementById('day_' + i + '_group').style.backgroundColor = 'lightblue';
                     }
 
+                }
+
+                if(result.exercises.leave) {
+                    document.getElementById('calendar').style.opacity = '0.5';
+                    weeK_leave = result.exercises.leave;
                 }
 
                 goal_stats();
@@ -503,9 +508,13 @@ function goal_stats() {
 
     var finish_percentage = (exercise_this_week / exer_goal) * 100;
 
-    var html = `
-    <div class='goal_stats_inner'>
-        <div class='form-group'>
+    if(!weeK_leave) {
+        var html = `<div class='goal_stats_inner' id='leave_box'>`;
+    } else {
+        var html = `<div class='goal_stats_inner' id='leave_box' style='opacity: 0.5;'>`;
+    }
+
+    html += `<div class='form-group'>
             <label for="exer_goal" title="">Treningsmål</label>
             <div id="exer_goal" class="stat_result">
                 ` + exer_goal + `
@@ -587,9 +596,14 @@ function get_week_stats() {
                 
                 result.users.sort((a, b) => b.week_percent - a.week_percent)
                 for(var i = 0; i < result.users.length; i++) {
-                    html += `
-                        <div class='user_stat'>
+                    
+                    if(!result.users[i].week_leave) {
+                        html += `<div class='user_stat'>`;
+                    } else {
+                        html += `<div class='user_stat' style='opacity: 0.5;'>`;
+                    }
 
+                    html += `
                             <div class='user_stat_detail'>
                                 <img class='user_stat_photo' src='assets/profiles/` + result.users[i].user_id + `.jpg'>
                             </div>
@@ -695,9 +709,15 @@ function get_season_stats() {
                     html += `<div class='results_week'>Uke ` + result.weeks[i].week + '</div>';
 
                     for(var j = 0; j < result.weeks[i].contestants.length; j++) {
-                        if(result.weeks[i].contestants[j].workouts >= result.weeks[i].contestants[j].goal_exer_week) {
+                        if(result.weeks[i].contestants[j].workouts >= result.weeks[i].contestants[j].goal_exer_week || result.weeks[i].contestants[j].week_leave) {
+                            
+                            if(result.weeks[i].contestants[j].week_leave) {
+                                html += `<div class='results_user' style='opacity: 0.5'>`;
+                            } else {
+                                html += `<div class='results_user'>`;
+                            }
+
                             html += `
-                                <div class='results_user'>
                                     <div class='results_user_detail'>
                                         <img class='user_stat_photo' src='assets/profiles/` + result.weeks[i].contestants[j].user_id + `.jpg'>
                                     </div>

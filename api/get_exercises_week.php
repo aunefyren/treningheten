@@ -42,9 +42,11 @@ if(!$cookie_object) {
 }
 
 $week = array(
-    'days' => array(
-        false,false,false,false,false,false,false
-    )
+    'days' => array
+                (
+                false,false,false,false,false,false,false
+                ),
+    'leave' => false
 );
 
 $cookie_decoded = json_decode($cookie_object, true);
@@ -64,7 +66,11 @@ $exercises = json_decode($exercises, true);
 for($i = 0; $i < count($exercises); $i++) {
     $exer = new DateTime($exercises[$i]['exer_date']);
     if($exer->format('W') === $now->format('W') && $exer->format('Y') === $now->format('Y')) {
-        $week['days'][$exer->format('N')-1] = true;
+        if(!$exercises[$i]['exer_leave']) {
+            $week['days'][$exer->format('N')-1] = true;
+        } else {
+            $week['leave'] = true;
+        }
     }
 }
 

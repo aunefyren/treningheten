@@ -97,6 +97,7 @@ for($i = 0; $i < count($goal_id_list); $i++) {
         $goal_id_list[$i]['week_percent'] = 0;
         $goal_id_list[$i]['goal_compete'] = false;
         $goal_id_list[$i]['streak'] = 0;
+        $goal_id_list[$i]['week_leave'] = false;
 
         $goal->goal_id = $goal_id_list[$i]['goal_id'];
         $goal_data = $goal->get_goal_user();
@@ -130,14 +131,19 @@ for($i = 0; $i < count($goal_id_list); $i++) {
         $goal_id_list[$i]['week_complete'] = false;
         $goal_id_list[$i]['week_percent'] = 0;
         $goal_id_list[$i]['streak'] = 0;
+        $goal_id_list[$i]['week_leave'] = false;
 
         $weeks = array_fill(0, 52, 0);
 
         for($j = 0; $j < count($data); $j++) {
             $exer_date = new DateTime($data[$j]['exer_date']);
             $week = intval($exer_date->format('W'));
-            $weeks[$week] = intval($weeks[$week]) + 1;
 
+            if($data[$j]['exer_leave']) {
+                $weeks[$week] = NULL;
+            } else if($weeks[$week] !== NULL) {
+                $weeks[$week] = intval($weeks[$week]) + 1;
+            }
         }
 
         $streak = 0;
@@ -152,17 +158,21 @@ for($i = 0; $i < count($goal_id_list); $i++) {
         $current_week = intval($now->format('W'));
 
         for($j = $start_week; $j <= $current_week-1; $j++) {
-            if($weeks[$j] >= $goal_id_list[$i]['goal_exer_week']) {
+            if($weeks[$j] !== NULL && $weeks[$j] >= $goal_id_list[$i]['goal_exer_week']) {
                 $streak++;
-            } else {
+            } else if($weeks[$j] !== NULL){
                 $streak = 0;
             }
 
         }
 
+        if($weeks[$current_week] === NULL) {
+            $goal_id_list[$i]['week_leave'] = true;
+        }
+
         $goal_id_list[$i]['streak'] = $streak;
 
-        if($weeks[$current_week] >= $goal_id_list[$i]['goal_exer_week']) {
+        if($weeks[$current_week] >= $goal_id_list[$i]['goal_exer_week'] || $weeks[$current_week] === NULL) {
             $goal_id_list[$i]['week_complete'] = true;
         } else {
             $goal_id_list[$i]['week_complete'] = false;

@@ -76,7 +76,7 @@ while($earliest_date->format('W') < $now->format('W') || $earliest_date->format(
         $goal_compete = true;
 
         if(intval($goal_start->format('W')) <= intval($earliest_date->format('W')) && intval($earliest_date->format('W')) <= intval($goal_end->format('W')) && intval($earliest_date->format('Y')) == intval($goal_start->format('Y')) && $goal_compete) {
-            array_push($week_contestants, array('goal_id' => $all_goals[$i]['goal_id'], 'user_id' => $all_goals[$i]['user_id'], 'goal_exer_week' => $all_goals[$i]['goal_exer_week'], 'workouts' => 0));
+            array_push($week_contestants, array('goal_id' => $all_goals[$i]['goal_id'], 'user_id' => $all_goals[$i]['user_id'], 'goal_exer_week' => $all_goals[$i]['goal_exer_week'], 'workouts' => 0, 'week_leave' => false));
         }
     }
 
@@ -111,9 +111,15 @@ for($j = 0; $j < count($weeks); $j++) {
 
             $workout_date = new DateTime($all_exercises[$l]['exer_date']);
             $workout_goal_id = $all_exercises[$l]['goal_id'];
+            $workout_leave = $all_exercises[$l]['exer_leave'];
 
             if($date->format('W') == $workout_date->format('W') && $date->format('Y') == $workout_date->format('Y') && $goal_id == $workout_goal_id) {
-                $weeks[$j]['contestants'][$i]['workouts']++;
+                
+                if(!$workout_leave) {
+                    $weeks[$j]['contestants'][$i]['workouts']++;
+                } else {
+                    $weeks[$j]['contestants'][$i]['week_leave'] = true;
+                }
             }
         
         }
