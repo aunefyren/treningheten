@@ -4,9 +4,9 @@ class Database{
 
     // specify your own database credentials
     private $host = "localhost";
-    private $db_name = "treniufu_treningheten_db";
-    private $username = "treniufu_master";
-    private $password = "#tyWgx62cQ#*oF";
+    private $db_name = "trening_db";
+    private $username = "root";
+    private $password = "ocs#bKX2r#qBM^&q74d!PU";
     public $conn;
     private $utf = "utf8mb4";
 

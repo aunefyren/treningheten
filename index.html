@@ -9,11 +9,27 @@
 
         <title>Treningheten</title>
 
+        <!-- Favicon generator https://www.favicon-generator.org/ -->
+        <link rel="apple-touch-icon" sizes="57x57" href="assets/favicons/apple-icon-57x57.png">
+        <link rel="apple-touch-icon" sizes="60x60" href="assets/favicons/apple-icon-60x60.png">
+        <link rel="apple-touch-icon" sizes="72x72" href="assets/favicons/apple-icon-72x72.png">
+        <link rel="apple-touch-icon" sizes="76x76" href="assets/favicons/apple-icon-76x76.png">
+        <link rel="apple-touch-icon" sizes="114x114" href="assets/favicons/apple-icon-114x114.png">
+        <link rel="apple-touch-icon" sizes="120x120" href="assets/favicons/apple-icon-120x120.png">
+        <link rel="apple-touch-icon" sizes="144x144" href="assets/favicons/apple-icon-144x144.png">
+        <link rel="apple-touch-icon" sizes="152x152" href="assets/favicons/apple-icon-152x152.png">
+        <link rel="apple-touch-icon" sizes="180x180" href="assets/favicons/apple-icon-180x180.png">
+        <link rel="icon" type="image/png" sizes="192x192"  href="assets/favicons/android-icon-192x192.png">
+        <link rel="icon" type="image/png" sizes="32x32" href="assets/favicons/favicon-32x32.png">
+        <link rel="icon" type="image/png" sizes="96x96" href="assets/favicons/favicon-96x96.png">
+        <link rel="icon" type="image/png" sizes="16x16" href="assets/favicons/favicon-16x16.png">
+        <link rel="manifest" href="assets/favicons/manifest.json">
+        <meta name="msapplication-TileColor" content="#ffffff">
+        <meta name="msapplication-TileImage" content="assets/favicons/ms-icon-144x144.png">
+        <meta name="theme-color" content="#ffffff">
+        
         <!-- Bootstrap 4 CSS and custom CSS -->
-        <link rel="apple-touch-icon" sizes="180x180" href="assets/favicons/apple-touch-icon.png">
-        <link rel="shortcut icon" sizes="180x180" href="assets/favicons/android-touch-icon.png">
         <link rel="stylesheet" type="text/css" href="css/trening.css" />
-        <link rel="shortcut icon" href="assets/favicons/favicon.ico" />
         <script src="https://code.jquery.com/jquery-3.2.1.min.js"></script>
 
     </head>
@@ -23,7 +39,7 @@
 <div id="nav">
     <nav class="navbar" id="navbar">
         <div class="nav-logo" id="nav-logo">
-            <a href="#" onclick="location.reload();"><img src="assets/logo/logo.svg" style="box-sizing: border-box; height: 4em;padding: 0.5em; margin: auto;"></img></a>
+            <a href="#" onclick="location.reload();"><img src="assets/logo/logo_white.svg" style="box-sizing: border-box; height: 4em;padding: 0.5em; margin: auto;"></img></a>
         </div>
 
         <a class="nav-title" id="nav-title" href="#" onclick="location.reload();" id='home'>
@@ -46,12 +62,13 @@
 <!-- container -->
 <main role="main" class="content" id="content">
 
-    <!-- where prompt / messages will appear -->
+    <!-- where fireworks will appear -->
     <div class="pyro" id="pyro">
         <div class="before"></div>
         <div class="after"></div>
     </div>
 
+    <!-- where loading screen will appear -->
     <div id="loading_screen" style="position: fixed;
                                     display: block;
                                     width: 100%;
@@ -77,8 +94,10 @@
         </div>
     </div>
 
+    <!-- where notifications will appear -->
     <div id="response"></div>
 
+    <!-- where the current goal will appear -->
     <div id="goal_div" class="goal_div">
     </div>
 
@@ -89,6 +108,7 @@
 </main>
 <!-- /container -->
 
+<!-- JS script -->
 <script>
     var cookie;
     var logged_in = false;
@@ -121,6 +141,7 @@
     });
 </script>
 
+<!-- If no JS -->
 <noscript>
     <h3>Du trenger JavaScript på din nettleser for å bruke denne nettsiden. Skru det på eller bytt nettleser.</h3>
 </noscript>
