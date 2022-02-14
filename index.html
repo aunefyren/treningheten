@@ -51,13 +51,16 @@
         <div class="after"></div>
     </div>
 
-    <div id="response"></div>
-
-    <div id="goal_div" class="goal_div">
-    </div>
-
-    <!-- where main content will appear -->
-    <div id="content-box">
+    <div id="loading_screen" style="position: fixed;
+                                    display: block;
+                                    width: 100%;
+                                    height: 100%;
+                                    top: 0;
+                                    left: 0;
+                                    text-align: center;
+                                    background-color: #fff;
+                                    z-index: 99;
+                                    margin-top: 4em;">
         <div style="margin: 5em auto;
                     display: flex;
                     flex-direction: column;
@@ -73,6 +76,15 @@
         </div>
     </div>
 
+    <div id="response"></div>
+
+    <div id="goal_div" class="goal_div">
+    </div>
+
+    <!-- where main content will appear -->
+    <div id="content-box">
+    </div>
+
 </main>
 <!-- /container -->
 
@@ -85,6 +97,8 @@
     var exercise_this_week = 0;
     var exer_goal = 0;
     var stop_url_react = false;
+
+    var login_load = false;
 
     $(document).ready(function(){
 

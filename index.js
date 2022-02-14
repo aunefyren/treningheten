@@ -19,6 +19,12 @@ function load_page() {
     load_page_home();
 }
 
+function finish_loading(loaded) {
+    if(loaded == 'login_load') {
+        document.getElementById('loading_screen').style.display = 'none';
+    }
+}
+
 function validate_user_cookie(cookie) {
     var json_cookie = JSON.stringify({"cookie": cookie});
     var xhttp = new XMLHttpRequest();
@@ -106,6 +112,9 @@ function verify_user(activate_email, activate_hash) {
 function load_page_home() {
     alert_clear();
     remove_active_menu();
+
+    // Finish loading user-login
+    finish_loading('login_load');
 
     exercise_this_week = 0;
     
