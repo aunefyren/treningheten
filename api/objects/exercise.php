@@ -151,8 +151,6 @@ class Exercise{
                     "WHERE `exercises`.`goal_id`= `goals`.`goal_id` AND `goals`.`user_id` = `users`.`user_id` " . 
                     "AND `exercises`.`exer_enabled` = '1' AND `exercises`.`goal_id` = '" . $this->goal_id . "'";
 
-        echo $query;
-
         $stmt = $this->conn->prepare($query);
 
         // execute the query
@@ -163,18 +161,19 @@ class Exercise{
         $stmt->bindColumn(2, $date);
         $stmt->bindColumn(3, $note);
         $stmt->bindColumn(4, $enabled);
-        $stmt->bindColumn(5, $exer_create);
-        $stmt->bindColumn(6, $goal);
-        $stmt->bindColumn(7, $leave);
-        $stmt->bindColumn(8, $goalid);
-        $stmt->bindColumn(9, $goalexer);
-        $stmt->bindColumn(10, $goalstart);
-        $stmt->bindColumn(11, $goalend);
-        $stmt->bindColumn(12, $goal_create);
+        $stmt->bindColumn(5, $goalid);
+        $stmt->bindColumn(6, $leave);
+        $stmt->bindColumn(8, $exer_create);
+        $stmt->bindColumn(9, $goalid_2);
+        $stmt->bindColumn(10, $goalexer);
+        $stmt->bindColumn(11, $goalstart);
+        $stmt->bindColumn(12, $goalend);
         $stmt->bindColumn(13, $userid);
-        $stmt->bindColumn(14, $goalcompete);
-        $stmt->bindColumn(15, $firstname);
-        $stmt->bindColumn(16, $lastname);
+        $stmt->bindColumn(14, $goalenabled);
+        $stmt->bindColumn(15, $goalcompete);
+        $stmt->bindColumn(16, $goal_create);
+        $stmt->bindColumn(17, $firstname);
+        $stmt->bindColumn(18, $lastname);
 
         // get number of rows
         $num = $stmt->rowCount();
@@ -192,7 +191,6 @@ class Exercise{
                 'exer_note' => $note,
                 'exer_enabled' => $enabled,
                 'exer_creation' => $exer_create,
-                'goal_id' => $goal,
                 'exer_leave' => $leave,
                 'goal_id' => $goalid,
                 'goal_exer_week' => $goalexer,
