@@ -85,7 +85,8 @@ for($i = 0; $i < count($all_goals); $i++) {
     }
 }
 
-if($goal_id_list !== 1) {
+if(count($goal_id_list) !== 1) {
+
     echo json_encode(array("error" => true, "message" => "Fant flere mål? Weird..."));
     exit(0);
 }
