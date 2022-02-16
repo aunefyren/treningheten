@@ -477,6 +477,8 @@ function update_exercises() {
 
     alert_info('Laster inn...');
 
+    console.log(exercises_get_data);
+
     if (this.readyState == 4 && this.status == 200) {
         try {
             var result= JSON.parse(this.responseText);
