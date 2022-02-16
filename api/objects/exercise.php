@@ -73,7 +73,7 @@ class Exercise{
                  " SET
                     exer_date = '" . $this->exer_date->format('Y-m-d') . "',
                     goal_id = '" . $this->goal_id . "'";
-
+   
         // prepare the query
         $stmt = $this->conn->prepare($query);
 
