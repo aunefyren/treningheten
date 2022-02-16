@@ -133,6 +133,9 @@ body {
     align-content: center;
     justify-content: center;
     align-items: center;
+    border: solid 1px var(--blue);
+    background-color: lightblue;
+    border-radius: 0.5em;
 }
 
 .results_year{

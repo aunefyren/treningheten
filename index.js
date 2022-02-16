@@ -819,7 +819,6 @@ function get_leave_stats() {
                     </div>
 
                     <div class='form-group'>
-                        <label for="remaning" title="">Syk?</label>
                         <div class="form-group">
                         <button type="submit" class="form-input btn" id="goal_amount_button" disabled><img src="assets/done.svg" class="btn_logo"><p2>Bruk sykemelding</p2></button>';
                         </div>
