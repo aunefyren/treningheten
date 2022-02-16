@@ -63,6 +63,9 @@ function show_logged_in_menu() {
 
     document.getElementById('update_account').classList.add('enabled');
     document.getElementById('update_account').classList.remove('disabled');
+
+    document.getElementById('news_tab').classList.add('enabled');
+    document.getElementById('news_tab').classList.remove('disabled');
 }
 
 function show_logged_out_menu() {
@@ -77,6 +80,9 @@ function show_logged_out_menu() {
 
     document.getElementById('update_account').classList.add('disabled');
     document.getElementById('update_account').classList.remove('enabled');
+
+    document.getElementById('news_tab').classList.add('disabled');
+    document.getElementById('news_tab').classList.remove('enabled');
 }
 
 function remove_active_menu() {
@@ -84,6 +90,7 @@ function remove_active_menu() {
   document.getElementById('register_tab').classList.remove('active');
   document.getElementById('log_out_tab').classList.remove('active');
   document.getElementById('update_account').classList.remove('active');
+  document.getElementById('news_tab').classList.remove('active');
 }
 
 function add_active_menu(tab_id) {
