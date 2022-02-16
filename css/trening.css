@@ -124,6 +124,17 @@ body {
   width: -webkit-fill-available;
 }
 
+.leave_stats_inner {
+  opacity: 0.5;
+    max-width: 29em;
+    display: flex;
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-content: center;
+    justify-content: center;
+    align-items: center;
+}
+
 .results_year{
   width: -webkit-fill-available;
   border: 2px solid var(--blue);

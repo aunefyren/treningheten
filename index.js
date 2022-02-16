@@ -180,6 +180,10 @@ function load_page_home() {
                         <div id="goal_stats" class="goal_stats">
                         </div>
 
+                    </div>
+
+                    <div class="sub-module">
+
                         <div id="week_stats" class="week_stats">
                         </div>
 
