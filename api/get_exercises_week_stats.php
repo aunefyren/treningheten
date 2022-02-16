@@ -149,6 +149,7 @@ for($i = 0; $i < count($goal_id_list); $i++) {
 
         $streak = 0;
         
+        echo $goal_id_list[$i]['goal_start'];
         $goal_start = DateTime::createFromFormat('Y-m-d H:i:s', $goal_id_list[$i]['goal_start']);
         $start_week = intval($goal_start->format('W'));
 
