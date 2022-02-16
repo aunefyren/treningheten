@@ -122,6 +122,8 @@ for($i = 0; $i < count($goal_id_list); $i++) {
     } else {
         $data = json_decode($data, true);
 
+        print_r($data);
+
         $goal_id_list[$i]['exercise_found'] = true;
         $goal_id_list[$i]['user_firstname'] = $data[0]['user_firstname'];
         $goal_id_list[$i]['user_lastname'] = $data[0]['user_lastname'];
@@ -149,7 +151,6 @@ for($i = 0; $i < count($goal_id_list); $i++) {
 
         $streak = 0;
         
-        echo $goal_id_list[$i]['goal_start'];
         $goal_start = DateTime::createFromFormat('Y-m-d H:i:s', $goal_id_list[$i]['goal_start']);
         $start_week = intval($goal_start->format('W'));
 
