@@ -85,109 +85,32 @@ for($i = 0; $i < count($all_goals); $i++) {
     }
 }
 
-for($i = 0; $i < count($goal_id_list); $i++) {
-    $exercise->goal_id = $goal_id_list[$i]['goal_id'];
-    $data = $exercise->get_exercises_stats();
-
-    if(!$data) {
-
-        $goal_id_list[$i]['exercise_found'] = false;
-        $goal_id_list[$i]['user_firstname'] = false;
-        $goal_id_list[$i]['user_lastname'] = false;
-        $goal_id_list[$i]['goal_start'] = false;
-        $goal_id_list[$i]['goal_end'] = false;
-        $goal_id_list[$i]['goal_exer_week'] = false;
-        $goal_id_list[$i]['week_complete'] = false;
-        $goal_id_list[$i]['week_percent'] = 0;
-        $goal_id_list[$i]['goal_compete'] = false;
-        $goal_id_list[$i]['streak'] = 0;
-        $goal_id_list[$i]['week_leave'] = false;
-
-        $goal->goal_id = $goal_id_list[$i]['goal_id'];
-        $goal_data = $goal->get_goal_user();
-
-        if(!$goal_data) {
-
-            echo json_encode(array("error" => true, "message" => "Feilet i å finne brukerdata for mål."));
-            exit(0);
-
-        }
-
-        $goal_data = json_decode($goal_data, true);
-
-        $goal_id_list[$i]['user_firstname'] = $goal_data[0]['user_firstname'];
-        $goal_id_list[$i]['user_lastname'] = $goal_data[0]['user_lastname'];
-        $goal_id_list[$i]['goal_start'] = $goal_data[0]['goal_start'];
-        $goal_id_list[$i]['goal_end'] = $goal_data[0]['goal_end'];
-        $goal_id_list[$i]['goal_exer_week'] = $goal_data[0]['goal_exer_week'];
-        $goal_id_list[$i]['goal_compete'] = $goal_data[0]['goal_compete'];
-
-    } else {
-        $data = json_decode($data, true);
-
-        //print_r($data);
-
-        $goal_id_list[$i]['exercise_found'] = true;
-        $goal_id_list[$i]['user_firstname'] = $data[0]['user_firstname'];
-        $goal_id_list[$i]['user_lastname'] = $data[0]['user_lastname'];
-        $goal_id_list[$i]['goal_start'] = $data[0]['goal_start'];
-        $goal_id_list[$i]['goal_end'] = $data[0]['goal_end'];
-        $goal_id_list[$i]['goal_exer_week'] = $data[0]['goal_exer_week'];
-        $goal_id_list[$i]['goal_compete'] = $data[0]['goal_compete'];
-        $goal_id_list[$i]['week_complete'] = false;
-        $goal_id_list[$i]['week_percent'] = 0;
-        $goal_id_list[$i]['streak'] = 0;
-        $goal_id_list[$i]['week_leave'] = false;
-
-        $weeks = array_fill(0, 52, 0);
-
-        for($j = 0; $j < count($data); $j++) {
-            $exer_date = new DateTime($data[$j]['exer_date']);
-            $week = intval($exer_date->format('W'));
-
-            if($data[$j]['exer_leave']) {
-                $weeks[$week] = NULL;
-            } else if($weeks[$week] !== NULL) {
-                $weeks[$week] = intval($weeks[$week]) + 1;
-            }
-        }
-
-        $streak = 0;
-        
-        $goal_start = DateTime::createFromFormat('Y-m-d H:i:s', $goal_id_list[$i]['goal_start']);
-        $start_week = intval($goal_start->format('W'));
-
-        $goal_end = DateTime::createFromFormat('Y-m-d H:i:s', $goal_id_list[$i]['goal_end']);
-        $end_week = intval($goal_end->format('W'));
-
-        $now = new DateTime('NOW');
-        $current_week = intval($now->format('W'));
-
-        for($j = $start_week; $j <= $current_week-1; $j++) {
-            if($weeks[$j] !== NULL && $weeks[$j] >= $goal_id_list[$i]['goal_exer_week']) {
-                $streak++;
-            } else if($weeks[$j] !== NULL){
-                $streak = 0;
-            }
-
-        }
-
-        if($weeks[$current_week] === NULL) {
-            $goal_id_list[$i]['week_leave'] = true;
-        }
-
-        $goal_id_list[$i]['streak'] = $streak;
-
-        if($weeks[$current_week] >= $goal_id_list[$i]['goal_exer_week'] || $weeks[$current_week] === NULL) {
-            $goal_id_list[$i]['week_complete'] = true;
-        } else {
-            $goal_id_list[$i]['week_complete'] = false;
-        }
-
-        $goal_id_list[$i]['week_percent'] = $weeks[$current_week] / $goal_id_list[$i]['goal_exer_week'] * 100;
-    }
+if($goal_id_list !== 1) {
+    echo json_encode(array("error" => true, "message" => "Fant flere mål? Weird..."));
+    exit(0);
 }
 
-echo json_encode(array("error" => false, "message" => "Fant trening for uken.", "users" => $goal_id_list));
+$exercise->goal_id = $goal_id_list[$i]['goal_id'];
+$data = $exercise->get_exercises_stats();
+
+if(!$data) {
+
+    echo json_encode(array("error" => true, "message" => "Feilet i å finne treninger for ditt mål."));
+    exit(0);
+
+} else {
+    $data = json_decode($data, true);
+
+    $leave = 0;
+
+    for($j = 0; $j < count($data); $j++) {
+        if($data[$j]['exer_leave']) {
+            $leave++;
+        }
+    }
+
+}
+
+echo json_encode(array("error" => false, "message" => "Fant antall sykedager i denne sesongen.", "exer_leave_sum" => $leave));
 exit(0);
 ?>
