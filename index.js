@@ -113,9 +113,6 @@ function load_page_home() {
     alert_clear();
     remove_active_menu();
 
-    // Finish loading user-login
-    finish_loading('login_load');
-
     exercise_this_week = 0;
     
     if(logged_in) {
@@ -177,6 +174,13 @@ function load_page_home() {
 
                     <div class="sub-module">
 
+                        <div id="leave_stats" class="leave_stats">
+                        </div>
+
+                    </div>
+
+                    <div class="sub-module">
+
                         <div id="goal_stats" class="goal_stats">
                         </div>
 
@@ -212,6 +216,9 @@ function load_page_home() {
     }
 
     document.getElementById('content-box').innerHTML = html;
+
+    // Finish loading user-login
+    finish_loading('login_load');
 }
 
 function load_home_goal() {
