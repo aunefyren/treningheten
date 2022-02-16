@@ -1,5 +1,4 @@
 <?php
-ini_set('display_errors', 1);
 // Required headers
 header("Access-Control-Allow-Origin: *");
 header("Content-Type: application/json; charset=UTF-8");
@@ -112,6 +111,9 @@ if(!$data) {
 
 }
 
-echo json_encode(array("error" => false, "message" => "Fant antall sykedager i denne sesongen.", "exer_leave_sum" => $leave));
+$user->user_id = $cookie_object["data"]["user_id"];
+$user->get_user_leave();
+
+echo json_encode(array("error" => false, "message" => "Fant antall sykedager i denne sesongen.", "exer_leave_sum" => $leave, "user_leave" => $user->user_leave));
 exit(0);
 ?>

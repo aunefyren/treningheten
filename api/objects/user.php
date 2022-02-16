@@ -367,22 +367,35 @@ class User{
 
         }
 
-    function sjekk_hash(){
+        function get_user_leave(){
 
-        // query to check if email exists
-        $query = "SELECT b_hash FROM " . $this->table_name . " WHERE b_id = " . $this->b_id;
-
-        // prepare the query
-        $stmt = $this->conn->prepare( $query );
-
-        // execute the query
-        $stmt->execute();
-
-        $row = $stmt->fetch(PDO::FETCH_ASSOC);
-
-        return $row["b_hash"];
-
-    }
+            // query to check if email exists
+            $query = "SELECT user_leave FROM " . $this->table_name . " WHERE `user_id` = '" . $this->user_id . "'";
+    
+            $stmt = $this->conn->prepare($query);
+    
+            // execute the query
+            $stmt->execute();
+    
+            // get number of rows
+            $num = $stmt->rowCount();
+    
+            // if email exists, assign values to object properties for easy access and use for php sessions
+            if($num === 1){
+    
+                // get record details / values
+                $row = $stmt->fetch(PDO::FETCH_ASSOC);
+    
+                // assign values to object properties
+                $this->user_leave = $row['user_leave'];
+    
+                return true;
+    
+            } else {
+                
+                return false;
+            }
+        }
 
     function val_hash(){
 
