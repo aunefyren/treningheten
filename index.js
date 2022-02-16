@@ -177,10 +177,6 @@ function load_page_home() {
                         <div id="leave_stats" class="leave_stats">
                         </div>
 
-                    </div>
-
-                    <div class="sub-module">
-
                         <div id="goal_stats" class="goal_stats">
                         </div>
 
@@ -805,16 +801,23 @@ function get_leave_stats() {
                 var html = `<div class='goal_stats_inner' id='leave_box' style='opacity: 0.5;'>`;
 
                 html += `<div class='form-group'>
-                        <label for="exer_leave_sum" title="">Sykedager brukt</label>
+                        <label for="exer_leave_sum" title="">Sykemeldinger brukt</label>
                         <div id="exer_leave_sum" class="stat_result">
                             ` + result.exer_leave_sum + `
                         </div>
                     </div>
 
                     <div class='form-group'>
-                        <label for="remaning" title="">Gjenstående sykedager</label>
+                        <label for="remaning" title="">Gjenstående sykemeldinger</label>
                         <div id="remaning" class="stat_result">
                             ` + leave_rest + `
+                        </div>
+                    </div>
+
+                    <div class='form-group'>
+                        <label for="remaning" title="">Syk?</label>
+                        <div class="form-group">
+                        <button type="submit" class="form-input btn" id="goal_amount_button" disabled><img src="assets/done.svg" class="btn_logo"><p2>Bruk sykemelding</p2></button>';
                         </div>
                     </div>
                 </div>
