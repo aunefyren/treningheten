@@ -204,6 +204,7 @@ function load_page_home() {
         load_home_goal();
         get_week_stats();
         get_season_stats();
+        get_leave_stats();
         
     } else {
         var html = `
@@ -773,6 +774,61 @@ function get_season_stats() {
     xhttp.withCredentials = true;
     xhttp.open("post", "api/get_week_results.php");
     xhttp.send(user_goal_get_data);
+    return;
+}
+
+function get_leave_stats() {
+
+    user_leave_get_form = {
+                            "cookie" : cookie
+                        };
+
+    var user_leave_get_data = JSON.stringify(user_leave_get_form);
+
+    var xhttp = new XMLHttpRequest();
+    xhttp.onreadystatechange = function() {
+
+        if (this.readyState == 4 && this.status == 200) {
+            try {
+                var result= JSON.parse(this.responseText);
+            } catch(error) {
+                alert_error('Klarte ikke tolke API respons.');
+                console.log('Failed to parse API response. Response: ' + this.responseText);
+            }
+            
+            if(result.error) {
+                alert_error(result.message);
+            } else {
+
+                var leave_rest = result.user_leave - result.exer_leave_sum;
+
+                var html = `<div class='goal_stats_inner' id='leave_box' style='opacity: 0.5;'>`;
+
+                html += `<div class='form-group'>
+                        <label for="exer_leave_sum" title="">Sykedager brukt</label>
+                        <div id="exer_leave_sum" class="stat_result">
+                            ` + result.exer_leave_sum + `
+                        </div>
+                    </div>
+
+                    <div class='form-group'>
+                        <label for="remaning" title="">Gjenstående sykedager</label>
+                        <div id="remaning" class="stat_result">
+                            ` + leave_rest + `
+                        </div>
+                    </div>
+                </div>
+                `;
+
+                document.getElementById('leave_stats').innerHTML = html;
+
+            }
+
+        }
+    };
+    xhttp.withCredentials = true;
+    xhttp.open("post", "api/get_leave_days.php");
+    xhttp.send(user_leave_get_data);
     return;
 }
 // Home page )
