@@ -91,7 +91,7 @@ if(count($goal_id_list) !== 1) {
     exit(0);
 }
 
-$exercise->goal_id = $goal_id_list[$i]['goal_id'];
+$exercise->goal_id = $goal_id_list[0]['goal_id'];
 $data = $exercise->get_exercises_stats();
 
 if(!$data) {
