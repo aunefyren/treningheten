@@ -35,6 +35,7 @@ if(empty($data) || !isset($data->cookie)) {
 $cookie = htmlspecialchars($data->cookie);
 
 $cookie_object = $user->validate_user_cookie($cookie);
+print_r($cookie_object);
 
 // Check if cookie was accepted
 if(!$cookie_object) {
