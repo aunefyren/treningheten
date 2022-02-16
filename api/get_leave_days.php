@@ -35,7 +35,6 @@ if(empty($data) || !isset($data->cookie)) {
 $cookie = htmlspecialchars($data->cookie);
 
 $cookie_object = $user->validate_user_cookie($cookie);
-print_r($cookie_object);
 
 // Check if cookie was accepted
 if(!$cookie_object) {
@@ -43,6 +42,8 @@ if(!$cookie_object) {
     echo json_encode(array("error" => true, "message" => "Kjeksen ble ikke akseptert."));
     exit(0);
 
+} else {
+    $cookie_object = json_decode($cookie_object, true);
 }
 
 $all_goals = $goal->get_goals_all();
