@@ -3,8 +3,8 @@
  "short_name": "Treningheten",
  "description": "Side for å logge trening og konkurrere med andre.",
  "display": "fullscreen",
- "start_url": "../..",
- "background_color": "white",
+ "start_url": "./",
+ "background_color": "#ffffff",
  "icons": [
   {
    "src": "/assets/favicons/android-icon-36x36.png",

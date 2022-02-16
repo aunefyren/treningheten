@@ -1,4 +1,5 @@
 <?php
+ini_set('display_errors', 1);
 // Required headers
 header("Access-Control-Allow-Origin: *");
 header("Content-Type: application/json; charset=UTF-8");
@@ -148,10 +149,10 @@ for($i = 0; $i < count($goal_id_list); $i++) {
 
         $streak = 0;
         
-        $goal_start = date_create_from_format('Y-m-d H:i:s', $goal_id_list[$i]['goal_start']);
+        $goal_start = new DateTime($goal_id_list[$i]['goal_start']);
         $start_week = intval($goal_start->format('W'));
 
-        $goal_end = date_create_from_format('Y-m-d H:i:s', $goal_id_list[$i]['goal_end']);
+        $goal_end = new DateTime($goal_id_list[$i]['goal_end']);
         $end_week = intval($goal_end->format('W'));
 
         $now = new DateTime('NOW');
