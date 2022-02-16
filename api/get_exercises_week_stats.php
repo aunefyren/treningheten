@@ -1,5 +1,4 @@
 <?php
-ini_set('display_errors', 1);
 // Required headers
 header("Access-Control-Allow-Origin: *");
 header("Content-Type: application/json; charset=UTF-8");

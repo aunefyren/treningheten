@@ -87,6 +87,7 @@ class Goal{
         $stmt->bindColumn(5, $user);
         $stmt->bindColumn(6, $enabled);
         $stmt->bindColumn(7, $compete);
+        $stmt->bindColumn(8, $creation);
 
         // get number of rows
         $num = $stmt->rowCount();
@@ -106,6 +107,7 @@ class Goal{
                 'user_id' => $user,
                 'goal_enabled' => $enabled,
                 'goal_compete' => $compete,
+                'goal_creation' => $creation,
                 );
             }
 
@@ -277,8 +279,9 @@ class Goal{
         $stmt->bindColumn(5, $user);
         $stmt->bindColumn(6, $enabled);
         $stmt->bindColumn(7, $compete);
-        $stmt->bindColumn(8, $firstname);
-        $stmt->bindColumn(9, $lastname);
+        $stmt->bindColumn(8, $creation);
+        $stmt->bindColumn(9, $firstname);
+        $stmt->bindColumn(10, $lastname);
 
         // get number of rows
         $num = $stmt->rowCount();
@@ -298,6 +301,7 @@ class Goal{
                 'user_id' => $user,
                 'goal_enabled' => $enabled,
                 'goal_compete' => $compete,
+                'goal_creation' => $creation,
                 'user_firstname' => $firstname,
                 'user_lastname' => $lastname,
                 );
