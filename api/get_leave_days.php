@@ -11,6 +11,7 @@ header("Access-Control-Allow-Headers: Content-Type, Access-Control-Allow-Headers
 require(dirname(__FILE__) . '/config/database.php');
 require(dirname(__FILE__) . '/objects/user.php');
 require(dirname(__FILE__) . '/objects/goal.php');
+require(dirname(__FILE__) . '/objects/exercise.php');
 
 // get database connection
 $database = new Database();
