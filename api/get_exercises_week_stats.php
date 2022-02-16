@@ -122,7 +122,7 @@ for($i = 0; $i < count($goal_id_list); $i++) {
     } else {
         $data = json_decode($data, true);
 
-        print_r($data);
+        //print_r($data);
 
         $goal_id_list[$i]['exercise_found'] = true;
         $goal_id_list[$i]['user_firstname'] = $data[0]['user_firstname'];

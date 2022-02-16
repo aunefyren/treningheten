@@ -36,6 +36,7 @@ class Exercise{
         $stmt->bindColumn(4, $enabled);
         $stmt->bindColumn(5, $goal);
         $stmt->bindColumn(6, $leave);
+        $stmt->bindColumn(7, $creation);
 
         // get number of rows
         $num = $stmt->rowCount();
@@ -54,6 +55,7 @@ class Exercise{
                 'exer_enabled' => $enabled,
                 'goal_id' => $goal,
                 'exer_leave' => $leave,
+                'exer_creation' => $creation,
                 );
             }
 
@@ -159,16 +161,18 @@ class Exercise{
         $stmt->bindColumn(2, $date);
         $stmt->bindColumn(3, $note);
         $stmt->bindColumn(4, $enabled);
-        $stmt->bindColumn(5, $goal);
-        $stmt->bindColumn(6, $leave);
-        $stmt->bindColumn(7, $goalid);
-        $stmt->bindColumn(8, $goalexer);
-        $stmt->bindColumn(9, $goalstart);
-        $stmt->bindColumn(10, $goalend);
-        $stmt->bindColumn(11, $userid);
-        $stmt->bindColumn(13, $goalcompete);
-        $stmt->bindColumn(14, $firstname);
-        $stmt->bindColumn(15, $lastname);
+        $stmt->bindColumn(5, $exer_create);
+        $stmt->bindColumn(6, $goal);
+        $stmt->bindColumn(7, $leave);
+        $stmt->bindColumn(8, $goalid);
+        $stmt->bindColumn(9, $goalexer);
+        $stmt->bindColumn(10, $goalstart);
+        $stmt->bindColumn(11, $goalend);
+        $stmt->bindColumn(12, $goal_create);
+        $stmt->bindColumn(13, $userid);
+        $stmt->bindColumn(14, $goalcompete);
+        $stmt->bindColumn(15, $firstname);
+        $stmt->bindColumn(16, $lastname);
 
         // get number of rows
         $num = $stmt->rowCount();
@@ -185,12 +189,14 @@ class Exercise{
                 'exer_date' => $date,
                 'exer_note' => $note,
                 'exer_enabled' => $enabled,
+                'exer_creation' => $exer_create,
                 'goal_id' => $goal,
                 'exer_leave' => $leave,
                 'goal_id' => $goalid,
                 'goal_exer_week' => $goalexer,
                 'goal_start' => $goalstart,
                 'goal_end' => $goalend,
+                'goal_creation' => $goal_create,
                 'user_id' => $userid,
                 'goal_compete' => $goalcompete,
                 'user_firstname' => $firstname,
@@ -226,6 +232,7 @@ class Exercise{
         $stmt->bindColumn(4, $enabled);
         $stmt->bindColumn(5, $goal);
         $stmt->bindColumn(6, $leave);
+        $stmt->bindColumn(7, $creation);
 
         // get number of rows
         $num = $stmt->rowCount();
@@ -244,6 +251,7 @@ class Exercise{
                 'exer_enabled' => $enabled,
                 'goal_id' => $goal,
                 'exer_leave' => $leave,
+                'exer_creation' => $creation,
                 );
             }
 
