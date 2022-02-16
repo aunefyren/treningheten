@@ -802,7 +802,7 @@ function get_leave_stats() {
 
                 var leave_rest = result.user_leave - result.exer_leave_sum;
 
-                var html = `<div class='goal_stats_inner' id='leave_box' style='opacity: 0.5;'>`;
+                var html = `<div class='leave_stats_inner' id='leave_box' style='opacity: 0.5;'>`;
 
                 html += `<div class='form-group'>
                         <label for="exer_leave_sum" title="">Sykemeldinger brukt</label>
