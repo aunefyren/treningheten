@@ -38,6 +38,7 @@ class Goal{
         $stmt->bindColumn(5, $user);
         $stmt->bindColumn(6, $enabled);
         $stmt->bindColumn(7, $compete);
+        $stmt->bindColumn(8, $creation);
 
         // get number of rows
         $num = $stmt->rowCount();
@@ -57,6 +58,7 @@ class Goal{
                 'user_id' => $user,
                 'goal_enabled' => $enabled,
                 'goal_compete' => $compete,
+                'goal_creation' => $creation,
                 );
             }
 

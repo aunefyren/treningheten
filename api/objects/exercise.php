@@ -151,6 +151,8 @@ class Exercise{
                     "WHERE `exercises`.`goal_id`= `goals`.`goal_id` AND `goals`.`user_id` = `users`.`user_id` " . 
                     "AND `exercises`.`exer_enabled` = '1' AND `exercises`.`goal_id` = '" . $this->goal_id . "'";
 
+        echo $query;
+
         $stmt = $this->conn->prepare($query);
 
         // execute the query
