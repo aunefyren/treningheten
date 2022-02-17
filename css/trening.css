@@ -125,7 +125,6 @@ body {
 }
 
 .leave_stats_inner {
-  opacity: 0.5;
     max-width: 29em;
     display: flex;
     flex-direction: row;
