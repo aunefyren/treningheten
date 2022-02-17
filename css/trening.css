@@ -125,6 +125,10 @@ body {
 }
 
 .leave_stats_inner {
+  margin-top: 1em;
+}
+
+.leave_stats_inner {
     max-width: 29em;
     display: flex;
     flex-direction: row;
