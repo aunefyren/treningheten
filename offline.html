@@ -92,7 +92,7 @@
                                                 padding: 1em;
                                                 background-color: var(--white);
                                                 border-radius: 0.5em;">
-            <h1>Laster inn...</h1>
+            <h1 id="loading_screen_text">Laster inn...</h1>
         </div>
     </div>
 
@@ -127,24 +127,39 @@
 
         $.when(
 
-            $.getScript("functions.js"),
-
-            $.getScript("index.js"),
-
             $.Deferred(function( deferred ){
                 $( deferred.resolve );
             })
 
         ).done(function(){
 
-            var html = `
-            <div>
-                <h1>Tren da</h1>
-                <p>Er du offline?</p>
-            </div>
-        `;
+            document.getElementById('loading_screen_text').innerHTML = 'Kan det hende du er offline?';
 
-            document.getElementById('content-box').innerHTML = html;
+            // <!-- Inline the page's JavaScript file. -->
+            // Listen to changes in the network state, reload when online.
+            // This handles the case when the device is completely offline.
+            window.addEventListener('online', () => {
+                window.location.reload();
+            });
+
+            // Check if the server is responding and reload the page if it is.
+            // This handles the case when the device is online, but the server
+            // is offline or misbehaving.
+            async function checkNetworkAndReload() {
+                try {
+                const response = await fetch('./index.html');
+                // Verify we get a valid response from the server
+                if (response.status >= 200 && response.status < 500) {
+                    window.location.href = "./";
+                    return;
+                }
+                } catch {
+                // Unable to connect to the server, ignore.
+                }
+                window.setTimeout(checkNetworkAndReload, 2500);
+            }
+
+            checkNetworkAndReload();
 
         });
     });
