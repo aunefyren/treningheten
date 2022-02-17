@@ -1,3 +1,9 @@
+window.addEventListener("load", () => {
+  if ("serviceWorker" in navigator) {
+      navigator.serviceWorker.register("service-worker.js");
+  }
+});
+
 function set_cookie(cname, cvalue, exdays) {
     var d = new Date();
     d.setTime(d.getTime() + (exdays*24*60*60*1000));
