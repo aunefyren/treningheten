@@ -119,7 +119,7 @@ function load_page_home() {
         var html = `
             <div>
                 <h1>Tren da, ` + login_data.user_firstname + `</h1>
-                <p>Trening er viktig og sånn.</p>
+                <p>Ikke vær som Anette, husk å logge trening før uka er over...</p>
 
                 <div class="modules">
 
