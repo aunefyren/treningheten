@@ -1,4 +1,8 @@
 <?php
+
+// Set default timezone
+date_default_timezone_set('Europe/Oslo');
+
 // used to get mysql database connection
 class Database{
 
