@@ -2,9 +2,14 @@
   "name": "Treningheten",
   "short_name": "Treningheten",
   "description": "Side for å logge trening og konkurrere med andre.",
-  "display": "fullscreen",
   "start_url": "./",
   "background_color": "#ffffff",
+  "lang": "no",
+	"dir": "ltr",
+	"theme_color": "#31b3dd",
+	"display": "standalone",
+	"orientation": "portrait",
+	"scope": "/",
   "icons": [
     {
       "src": "./assets/favicons/manifest-icon-192.maskable.png",
