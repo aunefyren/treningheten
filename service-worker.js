@@ -32,6 +32,7 @@ const urlsToCache = [
 	'css/trening.css',
   'assets/logo/logo_round_white.svg',
   'assets/logo/logo_white.svg',
+  'assets/barbell.gif',
 	'assets/menu.svg'
 ];
 
