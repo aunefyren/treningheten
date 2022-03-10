@@ -29,7 +29,7 @@ const urlsToCache = [
   'index.html',
   'index.js',
   'functions.js',
-	'css/custom.css',
+	'css/trening.css',
   'assets/logo/logo_round_white.svg',
   'assets/logo/logo_white.svg',
 	'assets/menu.svg'
