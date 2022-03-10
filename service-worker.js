@@ -31,6 +31,7 @@ const urlsToCache = [
   'functions.js',
 	'css/custom.css',
   'assets/logo/logo_round_white.svg',
+  'assets/logo/logo_white.svg',
 	'assets/menu.svg'
 ];
 
