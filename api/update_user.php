@@ -117,7 +117,7 @@ if($data->data->user_profile_photo !== false) {
 
     if(!$success) {
         echo json_encode(array("error" => true, "message" => "Klarte ikke oppdatere bildet."));
-    exit(0);
+        exit(0);
     }
 
 }
