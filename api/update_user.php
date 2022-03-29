@@ -99,7 +99,8 @@ if($user->user_email !== $data->data->user_email) {
 
 if($data->data->user_profile_photo !== false) {
 
-    list($type, $data) = explode(';', $data->data->user_profile_photo);
+    $photo = str_replace(' ', '+', $data->data->user_profile_photo);
+    list($type, $data) = explode(';', $photo);
     list(, $data)      = explode(',', $data);
 
     $image = base64_decode($data);
