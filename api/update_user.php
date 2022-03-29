@@ -114,6 +114,11 @@ if($data->data->user_profile_photo !== false) {
     $path = dirname(__FILE__, 2) . '/assets/profiles/' . $cookie_decoded['data']['user_id'] . '.jpg';
     $success = file_put_contents($path, $image);
 
+    if(!$success) {
+        echo json_encode(array("error" => true, "message" => "Klarte ikke oppdatere bildet."));
+    exit(0);
+    }
+
 }
 
 // Load user data for inspection

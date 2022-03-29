@@ -1218,6 +1218,8 @@ function update_user() {
 
             var user_login_data = JSON.stringify(user_login_form);
 
+            console.log(user_login_data);
+
             update_user_call(user_login_data);
         });
 
