@@ -17,4 +17,4 @@ Like the project? Have too much money? Buy me a coffee or something! ☕️
 
 ## Introduction
 
-Workout time
+Workout time.
