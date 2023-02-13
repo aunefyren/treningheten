@@ -24,7 +24,7 @@ jobs:
         goos: ${{ matrix.goos }}
         goarch: ${{ matrix.goarch }}
         goversion: "1.19"
-        binary_name: "poenskelisten"
+        binary_name: "treningheten"
         ldflags: "-s -w"
         extra_files: README.md auth config controllers database middlewares models utilities web Dockerfile
         retry: 10

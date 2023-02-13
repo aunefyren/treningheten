@@ -15,8 +15,8 @@ jobs:
       uses: docker/metadata-action@v3
       with:
         images: |
-          aunefyren/poenskelisten
-          ghcr.io/${{ github.repository_owner }}/poenskelisten
+          aunefyren/treningheten
+          ghcr.io/${{ github.repository_owner }}/treningheten
         tags: |
           type-raw,value=${{ github.ref_name }}
         flavor: |
