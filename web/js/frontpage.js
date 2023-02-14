@@ -42,7 +42,7 @@ function load_page(result) {
                             <h3 id="register_season_title">Loading...</h3>
                             <p id="register_season_start">...</p>
                             <p id="register_season_end">...</p>
-                            <p style="margin-top: 1em;" id="register_season_desc">...</p>
+                            <p style="margin-top: 1em; text-align: center;" id="register_season_desc">...</p>
 
                             <hr>
 
@@ -71,7 +71,7 @@ function load_page(result) {
                             <h3 id="countdown_season_title">Loading...</h3>
                             <p id="countdown_season_start">...</p>
                             <p id="countdown_season_end">...</p>
-                            <p style="margin-top: 1em;" id="countdown_season_desc">...</p>
+                            <p style="margin-top: 1em; text-align: center;" id="countdown_season_desc">...</p>
 
                             <hr>
 
