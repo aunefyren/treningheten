@@ -17,7 +17,7 @@
     line-height:1.5;
     color:var(--black);
     text-align:left;
-    background-color: var(--eggshell);
+    background-color: var(--white);
     /*background-image: url("../assets/pattern.png");*/
     background-repeat: repeat;
     font-family: Arial;
@@ -121,7 +121,7 @@
     flex-direction:column;
     min-width:0;
     word-wrap:break-word;
-    background-color: var(--grey);
+    background-color: var(--eggshell);
     background-clip:border-box;
     margin-bottom: 25%;
     border-radius: 1em;
@@ -191,7 +191,7 @@
   .alert-danger{color:var(--red);background-color:#f8d7da;border-color:#f5c6cb}
   
   .navbar {
-    background-color: var(--grey);
+    background-color: var(--eggshell);
     overflow: hidden;
     top: 0;
     width: 100%;

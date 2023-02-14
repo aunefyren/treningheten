@@ -5,7 +5,7 @@
 	"short_name": "Treningheten",
 	"description": "Track workouts.",
 	"theme_color": "#e0e1dd",
-	"background_color": "#e0e1dd",
+	"background_color": "#ffffff",
 	"display": "standalone",
 	"orientation": "portrait",
 	"scope": "/",
