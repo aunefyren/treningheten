@@ -52,7 +52,7 @@ func SendSMTPResetEmail(user models.User) error {
 	m.SetAddressHeader("From", config.SMTPFrom, config.TreninghetenName)
 	m.SetHeader("To", user.Email)
 	m.SetHeader("Subject", "Password reset request")
-	m.SetBody("text/html", "Hello <b>"+user.FirstName+"</b>!<br><br>Someone attempted a password change on your Treningheten account. If this wasn't you, please ignore this e-mail.<br><br>To reset your password, visit Treningheten using this link: <b>"+link+"</b>.")
+	m.SetBody("text/html", "Hello <b>"+user.FirstName+"</b>!<br><br>Someone attempted a password change on your Treningheten account. If this wasn't you, please ignore this e-mail.<br><br>To reset your password, visit Treningheten using <a href='"+link+"' target='_blank'>this link</a>.")
 
 	d := mail.NewDialer(config.SMTPHost, config.SMTPPort, config.SMTPUsername, config.SMTPPassword)
 
