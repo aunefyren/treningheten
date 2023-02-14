@@ -12,6 +12,7 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/thanhpk/randstr"
@@ -545,6 +546,15 @@ func APIChangePassword(context *gin.Context) {
 	user, err = database.GetAllUserInformationByResetCode(userUpdatePasswordRequest.ResetCode)
 	if err != nil {
 		log.Println("Failed to retrieve user using reset code. Error: " + err.Error())
+		context.JSON(http.StatusBadRequest, gin.H{"error": "Reset code has expired."})
+		context.Abort()
+		return
+	}
+
+	now := time.Now()
+
+	// Check if code has expired
+	if user.ResetExpiration.Before(now) {
 		context.JSON(http.StatusBadRequest, gin.H{"error": "Reset code has expired."})
 		context.Abort()
 		return

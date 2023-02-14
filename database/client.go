@@ -8,6 +8,7 @@ import (
 	"log"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/thanhpk/randstr"
 	"gorm.io/driver/mysql"
@@ -275,6 +276,8 @@ func GenrateRandomResetCodeForuser(userID int) (string, error) {
 	randomString := randstr.String(8)
 	resetCode := strings.ToUpper(randomString)
 
+	expirationDate := time.Now().AddDate(0, 0, 7)
+
 	var user models.User
 	userrecord := Instance.Model(user).Where("`users`.enabled = ?", 1).Where("`users`.ID = ?", userID).Update("reset_code", resetCode)
 	if userrecord.Error != nil {
@@ -282,6 +285,14 @@ func GenrateRandomResetCodeForuser(userID int) (string, error) {
 	}
 	if userrecord.RowsAffected != 1 {
 		return "", errors.New("Reset code not changed in database.")
+	}
+
+	userrecord = Instance.Model(user).Where("`users`.enabled = ?", 1).Where("`users`.ID = ?", userID).Update("reset_expiration", expirationDate)
+	if userrecord.Error != nil {
+		return "", userrecord.Error
+	}
+	if userrecord.RowsAffected != 1 {
+		return "", errors.New("Reset code expiration not changed in database.")
 	}
 
 	return resetCode, nil
