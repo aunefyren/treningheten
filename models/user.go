@@ -15,6 +15,7 @@ type User struct {
 	Enabled          bool   `json:"enabled" gorm:"not null; default: false"`
 	Verified         bool   `json:"verified" gorm:"not null; default: false"`
 	VerificationCode string `json:"verification_code"`
+	ResetCode        string `json:"reset_code"`
 }
 
 type UserCreationRequest struct {
@@ -28,6 +29,12 @@ type UserCreationRequest struct {
 
 type UserUpdateRequest struct {
 	Email          string `json:"email"`
+	Password       string `json:"password"`
+	PasswordRepeat string `json:"password_repeat"`
+}
+
+type UserUpdatePasswordRequest struct {
+	ResetCode      string `json:"reset_code"`
 	Password       string `json:"password"`
 	PasswordRepeat string `json:"password_repeat"`
 }

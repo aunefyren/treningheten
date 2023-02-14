@@ -35,3 +35,33 @@ func SendSMTPVerificationEmail(user models.User) error {
 	return nil
 
 }
+
+func SendSMTPResetEmail(user models.User) error {
+
+	// Get configuration
+	config, err := config.GetConfig()
+	if err != nil {
+		return err
+	}
+
+	log.Println("Sending e-mail to: " + user.Email + ".")
+
+	link := config.TreninghetenExternalURL + "/login?reset_code=" + user.ResetCode
+
+	m := mail.NewMessage()
+	m.SetAddressHeader("From", config.SMTPFrom, config.TreninghetenName)
+	m.SetHeader("To", user.Email)
+	m.SetHeader("Subject", "Password reset request")
+	m.SetBody("text/html", "Hello <b>"+user.FirstName+"</b>!<br><br>Someone attempted a password change on your Treningheten account. If this wasn't you, please ignore this e-mail.<br><br>To reset your password, visit Treningheten using this link: <b>"+link+"</b>.")
+
+	d := mail.NewDialer(config.SMTPHost, config.SMTPPort, config.SMTPUsername, config.SMTPPassword)
+
+	// Send the email
+	err = d.DialAndSend(m)
+	if err != nil {
+		return err
+	}
+
+	return nil
+
+}

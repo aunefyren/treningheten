@@ -220,6 +220,7 @@ func GetUserInformation(UserID int) (models.User, error) {
 	user.Password = "REDACTED"
 	user.Email = "REDACTED"
 	user.VerificationCode = "REDACTED"
+	user.ResetCode = "REDACTED"
 
 	return user, nil
 }
@@ -235,4 +236,54 @@ func GetAllUserInformation(UserID int) (models.User, error) {
 	}
 
 	return user, nil
+}
+
+func GetAllUserInformationByResetCode(resetCode string) (models.User, error) {
+	var user models.User
+	userrecord := Instance.Where("`users`.enabled = ?", 1).Where("`users`.reset_code = ?", resetCode).Find(&user)
+	if userrecord.Error != nil {
+		return models.User{}, userrecord.Error
+	} else if userrecord.RowsAffected != 1 {
+		return models.User{}, errors.New("Failed to find correct user in DB.")
+	}
+
+	return user, nil
+}
+
+// Get user information using email
+func GetUserInformationByEmail(email string) (models.User, error) {
+	var user models.User
+	userrecord := Instance.Where("`users`.enabled = ?", 1).Where("`users`.email = ?", email).Find(&user)
+	if userrecord.Error != nil {
+		return models.User{}, userrecord.Error
+	} else if userrecord.RowsAffected != 1 {
+		return models.User{}, errors.New("Failed to find correct user in DB.")
+	}
+
+	// Redact user information
+	user.Password = "REDACTED"
+	user.Email = "REDACTED"
+	user.VerificationCode = "REDACTED"
+	user.ResetCode = "REDACTED"
+
+	return user, nil
+}
+
+// Genrate a random reset code and return it
+func GenrateRandomResetCodeForuser(userID int) (string, error) {
+
+	randomString := randstr.String(8)
+	resetCode := strings.ToUpper(randomString)
+
+	var user models.User
+	userrecord := Instance.Model(user).Where("`users`.enabled = ?", 1).Where("`users`.ID = ?", userID).Update("reset_code", resetCode)
+	if userrecord.Error != nil {
+		return "", userrecord.Error
+	}
+	if userrecord.RowsAffected != 1 {
+		return "", errors.New("Reset code not changed in database.")
+	}
+
+	return resetCode, nil
+
 }
