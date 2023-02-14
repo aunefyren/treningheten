@@ -114,7 +114,7 @@ func APIRegisterWeek(context *gin.Context) {
 			return
 		}
 
-		if day.Date.After(now) && day.ExerciseInterval > 0 {
+		if day.Date.Truncate(24*time.Hour).After(now.Truncate(24*time.Hour)) && day.ExerciseInterval > 0 {
 			context.JSON(http.StatusBadRequest, gin.H{"error": "You can't register exercises on days in the future."})
 			context.Abort()
 			return

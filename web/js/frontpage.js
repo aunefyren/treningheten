@@ -64,6 +64,27 @@ function load_page(result) {
 
                     </div>
 
+                    <div class="module" id="countdownseason" style="display: none;">
+
+                        <div id="season" class="season">
+
+                            <h3 id="countdown_season_title">Loading...</h3>
+                            <p id="countdown_season_start">...</p>
+                            <p id="countdown_season_end">...</p>
+                            <p style="margin-top: 1em;" id="countdown_season_desc">...</p>
+
+                            <hr>
+
+                            <p style="" id="countdown_goal">...</p>
+
+                            <hr>
+                            
+                            <p style="font-size: 2em;" id="countdown_number"></p>
+
+                        </div>
+
+                    </div>
+
                     <div class="module" id="ongoingseason" style="display: none;">
 
                         <div class="modules">
@@ -401,26 +422,22 @@ function get_season(user_id){
                 for(var i = 0; i < season.goals.length; i++) {
                     if(season.goals[i].user.ID == user_id) {
                         user_found = true
+                        var goal = season.goals[i].exercise_interval
                         break
                     }
                 }
 
-                if(user_found) {
+                var date_start = new Date(season.start);
+                var now = Date.now();
+
+                if(user_found && now < date_start) {
+                    countdown_module(season, goal)
+                } else if(user_found) {
                     document.getElementById("ongoingseason").style.display = "flex"
                     get_calendar(false);
                     place_season(season);
                 } else {
-
-                    var date_start = new Date(season.start);
-                    var date_end = new Date(season.end);
-
-                    const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
-
-                    document.getElementById("registergoal").style.display = "flex"
-                    document.getElementById("register_season_title").innerHTML = season.name
-                    document.getElementById("register_season_start").innerHTML = "Season start: " + date_start.toLocaleString("no-NO", options)
-                    document.getElementById("register_season_end").innerHTML = "Season end: " + date_end.toLocaleString("no-NO", options)
-                    document.getElementById("register_season_desc").innerHTML = season.description
+                    registergoal_module(season)
                 }
 
             }
@@ -435,6 +452,38 @@ function get_season(user_id){
     xhttp.setRequestHeader("Authorization", jwt);
     xhttp.send();
     return false;
+
+}
+
+function countdown_module(season_object, exercise_goal) {
+
+    var date_start = new Date(season_object.start);
+    var date_end = new Date(season_object.end);
+
+    const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+                
+    document.getElementById("countdownseason").style.display = "flex"
+    document.getElementById("countdown_season_title").innerHTML = season_object.name
+    document.getElementById("countdown_season_start").innerHTML = "Season start: " + date_start.toLocaleString("us-EN", options)
+    document.getElementById("countdown_season_end").innerHTML = "Season end: " + date_end.toLocaleString("us-EN", options)
+    document.getElementById("countdown_season_desc").innerHTML = season_object.description
+    document.getElementById("countdown_goal").innerHTML = "You are signed up for " + exercise_goal + " exercises a week."
+
+    StartCountDown(date_start);
+}
+
+function registergoal_module(season_object) {
+
+    var date_start = new Date(season_object.start);
+    var date_end = new Date(season_object.end);
+
+    const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+
+    document.getElementById("registergoal").style.display = "flex"
+    document.getElementById("register_season_title").innerHTML = season_object.name
+    document.getElementById("register_season_start").innerHTML = "Season start: " + date_start.toLocaleString("us-EN", options)
+    document.getElementById("register_season_end").innerHTML = "Season end: " + date_end.toLocaleString("us-EN", options)
+    document.getElementById("register_season_desc").innerHTML = season_object.description
 
 }
 
@@ -721,4 +770,36 @@ function DecreaseNumberInput(input_id, min, max) {
     if(new_number <= max && new_number >= min) {
         input_element.value = new_number
     }
+}
+
+function StartCountDown(countdownDate){
+
+    // Set the date we're counting down to
+    var countDownDate = countdownDate.getTime();
+
+    // Update the count down every 1 second
+    var x = setInterval(function() {
+
+        // Get today's date and time
+        var now = new Date().getTime();
+    
+        // Find the distance between now and the count down date
+        var distance = countDownDate - now;
+    
+        // Time calculations for days, hours, minutes and seconds
+        var days = Math.floor(distance / (1000 * 60 * 60 * 24));
+        var hours = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+        var minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
+        var seconds = Math.floor((distance % (1000 * 60)) / 1000);
+    
+        // Display the result in the element with id="demo"
+        document.getElementById("countdown_number").innerHTML = days + "d " + hours + "h "
+        + minutes + "m " + seconds + "s ";
+    
+        // If the count down is finished, write some text
+        if (distance < 0) {
+            clearInterval(x);
+            document.getElementById("countdown_number").innerHTML = "EXPIRED";
+        }
+    }, 1000);
 }
