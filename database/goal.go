@@ -1,6 +1,9 @@
 package database
 
-import "aunefyren/treningheten/models"
+import (
+	"aunefyren/treningheten/models"
+	"errors"
+)
 
 // Create new goal within a season
 func CreateGoalInDB(goal models.Goal) error {
@@ -31,6 +34,18 @@ func GetGoalsFromWithinSeason(seasonID int) ([]models.Goal, error) {
 		return []models.Goal{}, goalrecord.Error
 	} else if goalrecord.RowsAffected == 0 {
 		return []models.Goal{}, nil
+	}
+	return goal, nil
+}
+
+// Get goal from user within season
+func GetGoalFromUserWithinSeason(seasonID int, userID int) (models.Goal, error) {
+	var goal models.Goal
+	goalrecord := Instance.Where("`goals`.enabled = ?", 1).Where("`goals`.season = ?", seasonID).Where("`goals`.user = ?", userID).Find(&goal)
+	if goalrecord.Error != nil {
+		return models.Goal{}, goalrecord.Error
+	} else if goalrecord.RowsAffected == 0 {
+		return models.Goal{}, errors.New("User does not have a goal for the season.")
 	}
 	return goal, nil
 }

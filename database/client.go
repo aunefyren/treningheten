@@ -222,6 +222,7 @@ func GetUserInformation(UserID int) (models.User, error) {
 	user.Email = "REDACTED"
 	user.VerificationCode = "REDACTED"
 	user.ResetCode = "REDACTED"
+	user.ResetExpiration = time.Now()
 
 	return user, nil
 }
@@ -266,6 +267,7 @@ func GetUserInformationByEmail(email string) (models.User, error) {
 	user.Email = "REDACTED"
 	user.VerificationCode = "REDACTED"
 	user.ResetCode = "REDACTED"
+	user.ResetExpiration = time.Now()
 
 	return user, nil
 }

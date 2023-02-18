@@ -965,7 +965,6 @@ input[type=number]
   width: auto;
   max-width: 100%;
   margin: 1em;
-  border: solid 1px var(--blue);
   display: flex;
   flex-direction: column;
   flex-wrap: nowrap;
@@ -987,18 +986,16 @@ input[type=number]
 
 .leaderboard {
   width: auto;
-  max-width: 100%;
   margin: 1em;
-  border: solid 1px var(--blue);
   display: flex;
   flex-direction: column;
   flex-wrap: nowrap;
   justify-content: center;
   align-content: center;
   align-items: center;
-  border-radius: 0.5em;
   width: 20em;
-  height: 40em;
+  height: auto;
+  max-height: 50em;
   max-width: 100%;
   max-width: -webkit-fill-available;
   max-width: -moz-available;
@@ -1015,4 +1012,65 @@ input[type=number]
   align-items: center;
   width: auto;
   margin: 0;
+}
+
+.leaderboard-weeks {
+  display: flex;
+  flex-direction: column;
+  flex-wrap: wrap;
+  align-content: center;
+  justify-content: space-between;
+  align-items: center;
+  box-sizing: border-box;
+  width: 100%;
+  width: -webkit-fill-available;
+  width: -moz-available;
+  height: auto;
+  overflow-y: auto;
+}
+
+.leaderboard-week {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-content: center;
+  justify-content: space-between;
+  align-items: center;
+  box-sizing: border-box;
+  width: 100%;
+  width: -webkit-fill-available;
+  width: -moz-available;
+  padding: 0.5em;
+  border: solid 2px var(--lightblue);
+  border-radius: 0.5em;
+  margin: 0.12em;
+}
+
+.leaderboard-week-number {
+  box-sizing: border-box;
+  width: 33%;
+}
+
+.leaderboard-week-results {
+  box-sizing: border-box;
+  width: 66%;
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-content: center;
+  justify-content: center;
+  align-items: center;
+  overflow-x: auto;
+  overflow-y: hidden;
+}
+
+.leaderboard-week-result {
+  display: flex;
+  flex-direction: column;
+  flex-wrap: wrap;
+  align-content: center;
+  justify-content: space-between;
+  align-items: center;
+  box-sizing: border-box;
+  padding: 0 0.5em;
 }

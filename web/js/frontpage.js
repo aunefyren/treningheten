@@ -25,12 +25,7 @@ function load_page(result) {
                         </div>
 
                         <div class="text-body" style="text-align: center;">
-                            Workout time.
-
-                            <br>
-                            <br>
-
-                            Welcome to the front page. Not much to see here currently.
+       
                         </div>
 
                     </div>
@@ -79,7 +74,7 @@ function load_page(result) {
 
                             <hr>
                             
-                            <p style="font-size: 2em;" id="countdown_number"></p>
+                            <p style="font-size: 2em;" id="countdown_number">00d 00h 0m 00s</p>
 
                         </div>
 
@@ -223,12 +218,18 @@ function load_page(result) {
                                     <h3 id="season_title">Loading...</h3>
                                     <p id="season_desc">...</p>
 
+                                    <p id="current_streak_title" style="margin-top: 1em;">Week streak: <b><a id="current_streak">0</a></b></p>
+                                    <p id="week_goal_title">Week goal: <b><a id="week_goal">0</a></b></p>
+                                    <p id="week_completion_title">This week: <b><a id="week_completion">0%</a></b></p>
+
                                 </div>
 
                                 <div id="leaderboard" class="leaderboard">
 
-                                    <h3>Leaderboard...</h3>
-                                    <p id="season_desc">Coming soon...</p>
+                                    <h3 style="margin: 0.5em;">Leaderboard</h3>
+
+                                    <div id="leaderboard-weeks" class="leaderboard-weeks">
+                                    </div>
 
                                 </div>
 
@@ -436,6 +437,7 @@ function get_season(user_id){
                     document.getElementById("ongoingseason").style.display = "flex"
                     get_calendar(false);
                     place_season(season);
+                    get_leaderboard();
                 } else {
                     registergoal_module(season)
                 }
@@ -736,6 +738,7 @@ function update_exercises() {
 
                 console.log("Placing intial week: ")
                 place_week(week, new_fireworks);
+                get_leaderboard();
 
                 success(result.message)
 
@@ -802,4 +805,99 @@ function StartCountDown(countdownDate){
             document.getElementById("countdown_number").innerHTML = "EXPIRED";
         }
     }, 1000);
+}
+
+function get_leaderboard(fireworks){
+
+    var xhttp = new XMLHttpRequest();
+    xhttp.onreadystatechange = function() {
+        if (this.readyState == 4) {
+            
+            try {
+                result = JSON.parse(this.responseText);
+            } catch(e) {
+                console.log(e +' - Response: ' + this.responseText);
+                error("Could not reach API.");
+                return;
+            }
+            
+            if(result.error) {
+
+                error(result.error);
+
+            } else {
+
+                clearResponse();
+                weeks = result.leaderboard.weeks;
+
+                console.log(weeks);
+
+                console.log("Placing weeks: ")
+                place_current_week(result.leaderboard.current_streak, result.leaderboard.goal.exercise_interval, result.leaderboard.current_completion);
+                place_leaderboard(weeks);
+                
+            }
+
+        } else {
+            info("Loading week...");
+        }
+    };
+    xhttp.withCredentials = true;
+    xhttp.open("post", api_url + "auth/season/leaderboard");
+    xhttp.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
+    xhttp.setRequestHeader("Authorization", jwt);
+    xhttp.send();
+    return false;
+
+}
+
+function place_leaderboard(weeks_array) {
+
+    var html = ``;
+
+    for(var i = 0; i < weeks_array.length; i++) {
+        var week_html = `
+            <div class="leaderboard-week" id="">
+
+                <div class="leaderboard-week-number">
+                    Week ` + weeks_array[i].week_number + ` (` + weeks_array[i].week_year + `)
+                </div>
+
+                <div class="leaderboard-week-results">
+        `;
+
+        var results_html = "";
+        for(var j = 0; j < weeks_array[i].users.length; j++) {
+            var result_html = `
+            <div class="leaderboard-week-result" id="">
+
+                <div class="leaderboard-week-result-user">
+                    ` + weeks_array[i].users[j].user.first_name + `
+                </div>
+
+                <div class="leaderboard-week-result-exercise">
+                    ` + (weeks_array[i].users[j].week_completion * 100)  + `%
+                </div>
+
+            </div>
+            `;
+            results_html += result_html;
+        }
+
+        week_html += results_html + `</div></div>`;
+
+        html += week_html
+
+    }
+
+    document.getElementById("leaderboard-weeks").innerHTML = html
+
+    return
+
+}
+
+function place_current_week(streak, goal, completion) {
+    document.getElementById("current_streak").innerHTML = streak + "🔥"
+    document.getElementById("week_goal").innerHTML = goal
+    document.getElementById("week_completion").innerHTML = (completion * 100) + "%"
 }

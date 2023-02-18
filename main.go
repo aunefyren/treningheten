@@ -178,6 +178,7 @@ func initRouter() *gin.Engine {
 			auth.POST("/token/validate", controllers.ValidateToken)
 
 			auth.POST("/season/getongoing", controllers.APIGetOngoingSeason)
+			auth.POST("/season/leaderboard", controllers.APIGetCurrentSeasonLeaderboard)
 			auth.POST("/season/register", controllers.APIRegisterSeason)
 
 			auth.POST("/goal/register", controllers.APIRegisterGoalToSeason)

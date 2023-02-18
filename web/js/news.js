@@ -21,7 +21,7 @@ function load_page(result) {
 
                     <div class="module">
 
-                        <div id="divider-1" class="divider" style="display: none;">
+                        <div id="divider-1" class="divider color-invert" style="display: none;">
                             <hr></hr>
                         </div>
 
@@ -30,7 +30,7 @@ function load_page(result) {
                             News:
                         </div>
 
-                        <div id="divider-2" class="divider" style="display: none;">
+                        <div id="divider-2" class="divider color-invert" style="display: none;">
                             <hr></hr>
                         </div>
 
@@ -137,7 +137,7 @@ function place_news(news_array, admin) {
 
         html += '</div>'
 
-        html += '<div class="divider">'
+        html += '<div class="divider color-invert">'
         html += '<hr></hr>'
         html += '</div>'
 
