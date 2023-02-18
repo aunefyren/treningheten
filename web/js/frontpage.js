@@ -216,7 +216,7 @@ function load_page(result) {
                                 <div id="season" class="season">
 
                                     <h3 id="season_title">Loading...</h3>
-                                    <p id="season_desc">...</p>
+                                    <p id="season_desc" style="text-align: center;">...</p>
 
                                     <p id="current_streak_title" style="margin-top: 1em;">Week streak: <b><a id="current_streak">0</a></b></p>
                                     <p id="week_goal_title">Week goal: <b><a id="week_goal">0</a></b></p>
