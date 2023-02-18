@@ -207,7 +207,7 @@ func UpdateUserValuesByUserID(userID int, email string, password string) error {
 	return nil
 }
 
-// Get user information
+// Get user information by user ID
 func GetUserInformation(UserID int) (models.User, error) {
 	var user models.User
 	userrecord := Instance.Where("`users`.enabled = ?", 1).Where("`users`.id = ?", UserID).Find(&user)
@@ -225,6 +225,30 @@ func GetUserInformation(UserID int) (models.User, error) {
 	user.ResetExpiration = time.Now()
 
 	return user, nil
+}
+
+// Get all users
+func GetUsersInformation() ([]models.User, error) {
+	var users []models.User
+	userrecord := Instance.Where("`users`.enabled = ?", 1).Find(&users)
+	if userrecord.Error != nil {
+		return []models.User{}, userrecord.Error
+	} else if userrecord.RowsAffected == 0 {
+		return []models.User{}, nil
+	}
+
+	for _, user := range users {
+
+		// Redact user information
+		user.Password = "REDACTED"
+		user.Email = "REDACTED"
+		user.VerificationCode = "REDACTED"
+		user.ResetCode = "REDACTED"
+		user.ResetExpiration = time.Now()
+
+	}
+
+	return users, nil
 }
 
 // Get ALL user information

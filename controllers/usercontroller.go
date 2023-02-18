@@ -170,24 +170,17 @@ func GetUser(context *gin.Context) {
 
 func GetUsers(context *gin.Context) {
 
-	// Create user request
-	var user_struct []models.User
-
-	userrecord := database.Instance.Where("`users`.enabled = ?", 1).Find(&user_struct)
-	if userrecord.Error != nil {
-		context.JSON(http.StatusBadRequest, gin.H{"error": userrecord.Error})
+	// Get users from DB
+	users, err := database.GetUsersInformation()
+	if err != nil {
+		log.Println("Failed to get users. Error: " + err.Error())
+		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get users."})
 		context.Abort()
 		return
 	}
 
-	for index, _ := range user_struct {
-		// Redact user information
-		user_struct[index].Email = "REDACTED"
-		user_struct[index].Password = "REDACTED"
-	}
-
 	// Reply
-	context.JSON(http.StatusOK, gin.H{"users": user_struct, "message": "Users retrieved."})
+	context.JSON(http.StatusOK, gin.H{"users": users, "message": "Users retrieved."})
 }
 
 func VerifyUser(context *gin.Context) {
@@ -476,7 +469,7 @@ func APIResetPassword(context *gin.Context) {
 	user, err := database.GetUserInformationByEmail(resetRequestVar.Email)
 	if err != nil {
 		log.Println("Failed to find user using email during password reset. Replied with okay 200. Error: " + err.Error())
-		context.JSON(http.StatusOK, gin.H{"message": "If the user exists, an email with a password reset has been sent to the email."})
+		context.JSON(http.StatusOK, gin.H{"message": "If the user exists, an email with a password reset has been sent."})
 		context.Abort()
 		return
 	}
@@ -505,7 +498,7 @@ func APIResetPassword(context *gin.Context) {
 		return
 	}
 
-	context.JSON(http.StatusOK, gin.H{"message": "If the user exists, an email with a password reset has been sent to the email."})
+	context.JSON(http.StatusOK, gin.H{"message": "If the user exists, an email with a password reset has been sent."})
 
 }
 
