@@ -224,7 +224,7 @@ func APIGetCurrentSeasonLeaderboard(context *gin.Context) {
 	goal, err := database.GetGoalFromUserWithinSeason(int(season.ID), userID)
 	if err != nil {
 		log.Println("Failed to verify goal status. Error: " + err.Error())
-		context.JSON(http.StatusBadRequest, gin.H{"error": "Failed to verify goal status."})
+		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to verify goal status."})
 		context.Abort()
 		return
 	}
@@ -233,7 +233,7 @@ func APIGetCurrentSeasonLeaderboard(context *gin.Context) {
 	goalObject, err := ConvertGoalToGoalObject(goal)
 	if err != nil {
 		log.Println("Failed to verify goal status. Error: " + err.Error())
-		context.JSON(http.StatusBadRequest, gin.H{"error": "Failed to verify goal status."})
+		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to verify goal status."})
 		context.Abort()
 		return
 	}
@@ -243,64 +243,40 @@ func APIGetCurrentSeasonLeaderboard(context *gin.Context) {
 		Season:   seasonObject,
 	}
 
-	seasonLeaderboard.Weeks, err = RetrieveWeeksFromSeason(now, seasonObject)
+	seasonLeaderboard.PastWeeks, err = RetrieveWeekResultsFromSeasonWithinTimeframe(seasonObject.Start, now.AddDate(0, 0, -7), seasonObject)
 	if err != nil {
-		log.Println("Failed to retrieve weeks for season. Error: " + err.Error())
+		log.Println("Failed to retrieve past weeks for season. Error: " + err.Error())
 		context.JSON(http.StatusBadRequest, gin.H{"error": "Failed to retrieve weeks for season."})
 		context.Abort()
 		return
 	}
 
-	if len(seasonLeaderboard.Weeks) > 0 {
-		userFound := false
-		userIndex := 0
-		for index, user := range seasonLeaderboard.Weeks[0].UserWeekResults {
-			if user.User.ID == uint(userID) {
-				userFound = true
-				userIndex = index
-				break
-			}
-		}
-		if userFound {
-			if seasonLeaderboard.Weeks[0].UserWeekResults[userIndex].WeekCompletion >= 1 {
-				seasonLeaderboard.CurrentStreak = seasonLeaderboard.Weeks[0].UserWeekResults[userIndex].CurrentStreak + 1
-			} else {
-				seasonLeaderboard.CurrentStreak = 0
-			}
-		}
-	}
-
-	exercisesThisWeek, err := GetExercisesForWeekUsingGoal(now, int(goalObject.ID))
+	thisWeek, err := RetrieveWeekResultsFromSeasonWithinTimeframe(now.AddDate(0, 0, -7), now, seasonObject)
 	if err != nil {
-		log.Println("Failed to retrieve exercises for this week. Error: " + err.Error())
-		context.JSON(http.StatusBadRequest, gin.H{"error": "Failed to retrieve exercises for this week."})
+		log.Println("Failed to retrieve current week for season. Error: " + err.Error())
+		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to retrieve weeks for season."})
 		context.Abort()
 		return
+	} else if len(thisWeek) != 1 {
+		log.Println("Got more than one week for current week. Error: " + err.Error())
+		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to retrieve weeks for season."})
+		context.Abort()
+		return
+	} else {
+		seasonLeaderboard.CurrentWeek = thisWeek[0]
 	}
-
-	// Define exercise sum
-	exerciseSum := 0
-
-	// Sum all exercises
-	for _, day := range exercisesThisWeek.Days {
-
-		exerciseSum += day.ExerciseInterval
-
-	}
-
-	seasonLeaderboard.CurrentCompletion = float64(exerciseSum) / float64(goalObject.ExerciseInterval)
 
 	// Return group with owner and success message
 	context.JSON(http.StatusOK, gin.H{"leaderboard": seasonLeaderboard, "message": "Season leaderboard retrieved."})
 
 }
 
-func RetrieveWeeksFromSeason(pointInTime time.Time, season models.SeasonObject) ([]models.WeekResults, error) {
+func RetrieveWeekResultsFromSeasonWithinTimeframe(firstPointInTime time.Time, lastPointInTime time.Time, season models.SeasonObject) ([]models.WeekResults, error) {
 
 	var weeksResults []models.WeekResults
 
 	// Season has not started, return zero weeks
-	if pointInTime.Before(season.Start) {
+	if lastPointInTime.Before(firstPointInTime) {
 		return []models.WeekResults{}, nil
 	}
 
@@ -309,14 +285,9 @@ func RetrieveWeeksFromSeason(pointInTime time.Time, season models.SeasonObject) 
 		return []models.WeekResults{}, err
 	}
 
-	type UserStreak struct {
-		UserID int `json:"user_id"`
-		Streak int `json:"streak"`
-	}
-
 	currentTime := season.Start
 	finished := false
-	userStreaks := []UserStreak{}
+	userStreaks := []models.UserStreak{}
 	for finished == false {
 
 		// New week
@@ -324,104 +295,130 @@ func RetrieveWeeksFromSeason(pointInTime time.Time, season models.SeasonObject) 
 
 		// Add weel details
 		weekResult.WeekYear, weekResult.WeekNumber = currentTime.ISOWeek()
+		weekResult.WeekDate = currentTime
 
 		// Go through all goals
 		for _, goal := range goals {
 
-			// Weel result for goal
-			newResult := models.UserWeekResults{}
-
-			// Get the exercises from the week
-			week, err := GetExercisesForWeekUsingGoal(currentTime, int(goal.ID))
+			// Get Week result for goal
+			weekResultForGoal, newUserStreaks, err := GetWeekResultForGoal(goal, currentTime, userStreaks)
 			if err != nil {
 				return []models.WeekResults{}, err
 			}
 
-			// Define exercise sum
-			exerciseSum := 0
-
-			// Sum all exercises
-			for _, day := range week.Days {
-
-				exerciseSum += day.ExerciseInterval
-
-			}
-
-			// Get goal object
-			goalObject, err := ConvertGoalToGoalObject(goal)
-			if err != nil {
-				return []models.WeekResults{}, err
-			}
-
-			// Add details to week result for goal
-			newResult.User = goalObject.User
-			newResult.WeekCompletion = float64(exerciseSum) / float64(goal.ExerciseInterval)
-			newResult.CurrentStreak = 0
-
-			// Find user in streak dict
-			userFound := false
-			userIndex := 0
-			for index, userStreak := range userStreaks {
-				if userStreak.UserID == int(goalObject.User.ID) {
-					userFound = true
-					userIndex = index
-					break
-				}
-			}
-
-			if !userFound {
-				// Not found in dict, current streak is 0
-				newResult.CurrentStreak = 0
-				userStreak := UserStreak{
-					UserID: int(goalObject.User.ID),
-					Streak: 0,
-				}
-				userStreaks = append(userStreaks, userStreak)
-				// Find new index
-				userFound = false
-				userIndex = 0
-				for index, userStreak := range userStreaks {
-					if userStreak.UserID == int(goalObject.User.ID) {
-						userFound = true
-						userIndex = index
-						break
-					}
-				}
-			}
-
-			if !userFound {
-				return []models.WeekResults{}, errors.New("Failed to process streak.")
-			}
-
-			// Found in streak, retrieve current streak
-			if newResult.WeekCompletion >= 1 {
-				newResult.CurrentStreak = userStreaks[userIndex].Streak
-				userStreaks[userIndex].Streak = userStreaks[userIndex].Streak + 1
-			} else {
-				newResult.CurrentStreak = userStreaks[userIndex].Streak
-				userStreaks[userIndex].Streak = 0
-			}
+			userStreaks = newUserStreaks
 
 			// Append to array
-			weekResult.UserWeekResults = append(weekResult.UserWeekResults, newResult)
+			weekResult.UserWeekResults = append(weekResult.UserWeekResults, weekResultForGoal)
 
-		}
-
-		currentTime = currentTime.AddDate(0, 0, 7)
-		pointInTimeYear, pointInTimeWeek := pointInTime.ISOWeek()
-		_, currentTimeWeek := currentTime.ISOWeek()
-
-		if currentTime.After(season.End) || (currentTime.Year() > pointInTimeYear || (currentTimeWeek >= pointInTimeWeek && currentTime.Year() == pointInTimeYear)) {
-			finished = true
 		}
 
 		weeksResults = append(weeksResults, weekResult)
 
+		currentTime = currentTime.AddDate(0, 0, 7)
+
+		if currentTime.After(season.End) || currentTime.After(lastPointInTime) {
+			finished = true
+		}
+
 	}
 
-	weeksResults = ReverseWeeksArray(weeksResults)
+	// Remove weeks from before selected starting point
+	newWeeksResults := []models.WeekResults{}
+	for _, weeksResult := range weeksResults {
 
-	return weeksResults, nil
+		if weeksResult.WeekDate.Before(firstPointInTime) || weeksResult.WeekDate.After(lastPointInTime) {
+			continue
+		}
+
+		newWeeksResults = append(newWeeksResults, weeksResult)
+
+	}
+
+	// Reverse array
+	newWeeksResults = ReverseWeeksArray(newWeeksResults)
+
+	return newWeeksResults, nil
+
+}
+
+func GetWeekResultForGoal(goal models.Goal, currentTime time.Time, userStreaks []models.UserStreak) (models.UserWeekResults, []models.UserStreak, error) {
+
+	// Weel result for goal
+	newResult := models.UserWeekResults{}
+
+	// Get the exercises from the week
+	week, err := GetExercisesForWeekUsingGoal(currentTime, int(goal.ID))
+	if err != nil {
+		return models.UserWeekResults{}, userStreaks, err
+	}
+
+	// Define exercise sum
+	exerciseSum := 0
+
+	// Sum all exercises
+	for _, day := range week.Days {
+
+		exerciseSum += day.ExerciseInterval
+
+	}
+
+	// Get goal object
+	goalObject, err := ConvertGoalToGoalObject(goal)
+	if err != nil {
+		return models.UserWeekResults{}, userStreaks, err
+	}
+
+	// Add details to week result for goal
+	newResult.User = goalObject.User
+	newResult.WeekCompletion = float64(exerciseSum) / float64(goal.ExerciseInterval)
+	newResult.CurrentStreak = 0
+
+	// Find user in streak dict
+	userFound := false
+	userIndex := 0
+	for index, userStreak := range userStreaks {
+		if userStreak.UserID == int(goalObject.User.ID) {
+			userFound = true
+			userIndex = index
+			break
+		}
+	}
+
+	if !userFound {
+		// Not found in dict, current streak is 0
+		newResult.CurrentStreak = 0
+		userStreak := models.UserStreak{
+			UserID: int(goalObject.User.ID),
+			Streak: 0,
+		}
+		userStreaks = append(userStreaks, userStreak)
+		// Find new index
+		userFound = false
+		userIndex = 0
+		for index, userStreak := range userStreaks {
+			if userStreak.UserID == int(goalObject.User.ID) {
+				userFound = true
+				userIndex = index
+				break
+			}
+		}
+	}
+
+	if !userFound {
+		return models.UserWeekResults{}, userStreaks, errors.New("Failed to process streak.")
+	}
+
+	// Found in streak, retrieve current streak
+	if newResult.WeekCompletion >= 1 {
+		newResult.CurrentStreak = userStreaks[userIndex].Streak
+		userStreaks[userIndex].Streak = userStreaks[userIndex].Streak + 1
+	} else {
+		newResult.CurrentStreak = userStreaks[userIndex].Streak
+		userStreaks[userIndex].Streak = 0
+	}
+
+	return newResult, userStreaks, nil
 
 }
 

@@ -218,9 +218,17 @@ function load_page(result) {
                                     <h3 id="season_title">Loading...</h3>
                                     <p id="season_desc" style="text-align: center;">...</p>
 
-                                    <p id="current_streak_title" style="margin-top: 1em;">Week streak: <b><a id="current_streak">0</a></b></p>
-                                    <p id="week_goal_title">Week goal: <b><a id="week_goal">0</a></b></p>
-                                    <p id="week_completion_title">This week: <b><a id="week_completion">0%</a></b></p>
+                                    <p id="week_goal_title" style="margin-top: 1em;">Week goal: <b><a id="week_goal">0</a></b></p>
+
+                                </div>
+
+                                <div id="current-week" class="current-week">
+
+                                    <h3 id="current-week-title">Current week</h3>
+
+                                    <div id="current-week-users" class="current-week-users">
+                                    </div>
+
 
                                 </div>
 
@@ -828,13 +836,13 @@ function get_leaderboard(fireworks){
             } else {
 
                 clearResponse();
-                weeks = result.leaderboard.weeks;
-
-                console.log(weeks);
+                past_weeks = result.leaderboard.past_weeks;
+                this_week = result.leaderboard.this_week;
 
                 console.log("Placing weeks: ")
-                place_current_week(result.leaderboard.current_streak, result.leaderboard.goal.exercise_interval, result.leaderboard.current_completion);
-                place_leaderboard(weeks);
+                place_current_week(this_week);
+                place_season_goal(result.leaderboard.goal.exercise_interval);
+                place_leaderboard(past_weeks);
                 
             }
 
@@ -868,6 +876,10 @@ function place_leaderboard(weeks_array) {
 
         var results_html = "";
         for(var j = 0; j < weeks_array[i].users.length; j++) {
+            var completion = "❌"
+            if(weeks_array[i].users[j].week_completion >= 1) {
+                completion = "✅"
+            }
             var result_html = `
             <div class="leaderboard-week-result" id="">
 
@@ -876,7 +888,7 @@ function place_leaderboard(weeks_array) {
                 </div>
 
                 <div class="leaderboard-week-result-exercise">
-                    ` + (weeks_array[i].users[j].week_completion * 100)  + `%
+                    ` + completion  + `
                 </div>
 
             </div>
@@ -896,8 +908,52 @@ function place_leaderboard(weeks_array) {
 
 }
 
-function place_current_week(streak, goal, completion) {
-    document.getElementById("current_streak").innerHTML = streak + "🔥"
+function place_season_goal(goal) {
     document.getElementById("week_goal").innerHTML = goal
-    document.getElementById("week_completion").innerHTML = (completion * 100) + "%"
+}
+
+function place_current_week(week_array) {
+    
+    var html = ``;
+
+    for(var i = 0; i < week_array.users.length; i++) {
+
+        var completion = (week_array.users[i].week_completion * 100)
+
+        if(week_array.users[i].current_streak > 0) {
+            var current_streak = week_array.users[i].current_streak + "🔥"
+        } else {
+            var current_streak = week_array.users[i].current_streak + "💀"
+        }
+
+        var week_html = `
+            <div class="current-week-user" id="">
+
+                <div class="current-week-user-name">
+                    ` + week_array.users[i].user.first_name + `
+                </div>
+
+                <div class="current-week-user-results">
+
+                    <div class="current-week-user-completion">
+                        ` + completion + `%
+                    </div>
+
+                    <div class="current-week-user-completion">
+                        ` + current_streak + ` 
+                    </div>
+
+                </div>
+
+            </div>
+        `;
+
+        html += week_html
+
+    }
+
+    document.getElementById("current-week-users").innerHTML = html
+
+    return
+
 }

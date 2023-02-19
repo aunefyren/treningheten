@@ -33,16 +33,16 @@ type SeasonObject struct {
 }
 
 type SeasonLeaderboard struct {
-	CurrentStreak     int           `json:"current_streak"`
-	CurrentCompletion float64       `json:"current_completion"`
-	UserGoal          GoalObject    `json:"goal"`
-	Season            SeasonObject  `json:"season"`
-	Weeks             []WeekResults `json:"weeks"`
+	UserGoal    GoalObject    `json:"goal"`
+	Season      SeasonObject  `json:"season"`
+	PastWeeks   []WeekResults `json:"past_weeks"`
+	CurrentWeek WeekResults   `json:"this_week"`
 }
 
 type WeekResults struct {
 	WeekNumber      int               `json:"week_number"`
 	WeekYear        int               `json:"week_year"`
+	WeekDate        time.Time         `json:"week_date"`
 	UserWeekResults []UserWeekResults `json:"users"`
 }
 
@@ -50,4 +50,9 @@ type UserWeekResults struct {
 	WeekCompletion float64 `json:"week_completion"`
 	CurrentStreak  int     `json:"current_streak"`
 	User           User    `json:"user"`
+}
+
+type UserStreak struct {
+	UserID int `json:"user_id"`
+	Streak int `json:"streak"`
 }
