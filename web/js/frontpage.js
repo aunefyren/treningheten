@@ -70,11 +70,11 @@ function load_page(result) {
 
                             <hr>
 
-                            <p style="" id="countdown_goal">...</p>
+                            <p style="text-align: center;" id="countdown_goal">...</p>
 
                             <hr>
                             
-                            <p style="font-size: 2em;" id="countdown_number">00d 00h 0m 00s</p>
+                            <p style="font-size: 2em; text-align: center;" id="countdown_number">00d 00h 0m 00s</p>
 
                         </div>
 
