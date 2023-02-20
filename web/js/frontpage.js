@@ -875,25 +875,33 @@ function place_leaderboard(weeks_array) {
         `;
 
         var results_html = "";
-        for(var j = 0; j < weeks_array[i].users.length; j++) {
-            var completion = "❌"
-            if(weeks_array[i].users[j].week_completion >= 1) {
-                completion = "✅"
-            }
-            var result_html = `
-            <div class="leaderboard-week-result" id="">
-
-                <div class="leaderboard-week-result-user">
-                    ` + weeks_array[i].users[j].user.first_name + `
+        if(weeks_array[i].users.length == 0) {
+            results_html = `
+                <div class="leaderboard-week-result" id="">
+                    ...
                 </div>
-
-                <div class="leaderboard-week-result-exercise">
-                    ` + completion  + `
-                </div>
-
-            </div>
             `;
-            results_html += result_html;
+        } else {
+            for(var j = 0; j < weeks_array[i].users.length; j++) {
+                var completion = "❌"
+                if(weeks_array[i].users[j].week_completion >= 1) {
+                    completion = "✅"
+                }
+                var result_html = `
+                <div class="leaderboard-week-result" id="">
+
+                    <div class="leaderboard-week-result-user">
+                        ` + weeks_array[i].users[j].user.first_name + `
+                    </div>
+
+                    <div class="leaderboard-week-result-exercise">
+                        ` + completion  + `
+                    </div>
+
+                </div>
+                `;
+                results_html += result_html;
+            }
         }
 
         week_html += results_html + `</div></div>`;
