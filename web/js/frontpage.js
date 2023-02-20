@@ -865,8 +865,8 @@ function place_leaderboard(weeks_array) {
     
     if(weeks_array.length == 0) {
         html = `
-            <div class="leaderboard-week" id="">
-                ...
+            <div id="" class="leaderboard-weeks">
+                <p id="" style="margin: 0.5em; text-align: center;">...</p>
             </div>
         `;
     } else {
