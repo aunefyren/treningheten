@@ -57,6 +57,7 @@ func RegisterUser(context *gin.Context) {
 	user.FirstName = usercreationrequest.FirstName
 	user.LastName = usercreationrequest.LastName
 	user.Enabled = true
+	user.ResetExpiration = time.Now()
 
 	randomString := randstr.String(8)
 	user.VerificationCode = strings.ToUpper(randomString)
