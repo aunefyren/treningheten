@@ -941,6 +941,11 @@ input[type=number]
   margin: 0;
 }
 
+input[type=checkbox]
+{
+  margin: 1em;
+}
+
 .modules {
   display: flex;
   flex-direction: row;
