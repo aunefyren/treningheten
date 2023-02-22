@@ -851,7 +851,7 @@ function get_leaderboard(fireworks){
 
             } else {
 
-                clearResponse();
+                //clearResponse();
                 past_weeks = result.leaderboard.past_weeks;
                 this_week = result.leaderboard.this_week;
 
@@ -863,7 +863,7 @@ function get_leaderboard(fireworks){
             }
 
         } else {
-            info("Loading week...");
+            // info("Loading week...");
         }
     };
     xhttp.withCredentials = true;
