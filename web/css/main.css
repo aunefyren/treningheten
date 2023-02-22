@@ -1120,3 +1120,9 @@ input[type=checkbox]
 .current-week-user-completion {
   margin: 0.25em;
 }
+
+.number-box {
+  text-align: center;
+  margin: 0.25em;
+  font-size: 1.25em;
+}

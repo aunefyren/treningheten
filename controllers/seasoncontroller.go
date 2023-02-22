@@ -6,7 +6,6 @@ import (
 	"aunefyren/treningheten/models"
 	"errors"
 	"log"
-	"math"
 	"net/http"
 	"time"
 
@@ -372,7 +371,7 @@ func GetWeekResultForGoal(goal models.Goal, currentTime time.Time, userStreaks [
 
 	// Add details to week result for goal
 	newResult.User = goalObject.User
-	newResult.WeekCompletion = math.Floor(float64(exerciseSum) / float64(goal.ExerciseInterval))
+	newResult.WeekCompletion = (float64(exerciseSum) / float64(goal.ExerciseInterval))
 	newResult.CurrentStreak = 0
 
 	// Find user in streak dict

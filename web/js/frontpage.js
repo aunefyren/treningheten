@@ -42,7 +42,9 @@ function load_page(result) {
                             <hr>
 
                             <label for="commitment" title="How many days a week are you going to work out?">Weekly exercise goal</label>
-                            <input type="number" value="1" min="1" max="21" class="form-control-small" id="commitment">
+                            <div class="number-box" id="commitment">
+                                0
+                            </div>
                             <div class="two-buttons">
                                 <img src="assets/minus.svg" class="small-button-icon" onclick="DecreaseNumberInput('commitment', 1, 21);">
                                 <img src="assets/plus.svg" class="small-button-icon" onclick="IncreaseNumberInput('commitment', 1, 21);">
@@ -91,7 +93,9 @@ function load_page(result) {
                                     <div class="form-group" style="" id="day_1_group">
                                         <div class="day-check">
                                             <label for="day_1_check" title="Have you been working out?">Monday</label>
-                                            <input type="number" value="0" min="0" max="3" class="form-control-small" id="day_1_check">
+                                            <div class="number-box" id="day_1_check">
+                                                0
+                                            </div>
                                             <div class="two-buttons">
                                                 <img src="assets/minus.svg" class="small-button-icon" onclick="DecreaseNumberInput('day_1_check', 0, 3);">
                                                 <img src="assets/plus.svg" class="small-button-icon" onclick="IncreaseNumberInput('day_1_check', 0, 3);">
@@ -108,7 +112,9 @@ function load_page(result) {
                                     <div class="form-group" style="" id="day_2_group">
                                         <div class="day-check">
                                             <label for="day_2_check" title="Have you been working out?">Tuesday</label>
-                                            <input type="number" value="0" min="0" max="3" class="form-control-small" id="day_2_check">
+                                            <div class="number-box" id="day_2_check">
+                                                0
+                                            </div>
                                             <div class="two-buttons">
                                                 <img src="assets/minus.svg" class="small-button-icon" onclick="DecreaseNumberInput('day_2_check', 0, 3);">
                                                 <img src="assets/plus.svg" class="small-button-icon" onclick="IncreaseNumberInput('day_2_check', 0, 3);">
@@ -125,7 +131,9 @@ function load_page(result) {
                                     <div class="form-group" style="" id="day_3_group">
                                         <div class="day-check">
                                             <label for="day_3_check" title="Have you been working out?">Wednesday</label>
-                                            <input type="number" value="0" min="0" max="3" class="form-control-small" id="day_3_check">
+                                            <div class="number-box" id="day_3_check">
+                                                0
+                                            </div>
                                             <div class="two-buttons">
                                                 <img src="assets/minus.svg" class="small-button-icon" onclick="DecreaseNumberInput('day_3_check', 0, 3);">
                                                 <img src="assets/plus.svg" class="small-button-icon" onclick="IncreaseNumberInput('day_3_check', 0, 3);">
@@ -142,7 +150,9 @@ function load_page(result) {
                                     <div class="form-group" style="" id="day_4_group">
                                         <div class="day-check">
                                             <label for="day_4_check" title="Have you been working out?">Thursday</label>
-                                            <input type="number" value="0" min="0" max="3" class="form-control-small" id="day_4_check">
+                                            <div class="number-box" id="day_4_check">
+                                                0
+                                            </div>
                                             <div class="two-buttons">
                                                 <img src="assets/minus.svg" class="small-button-icon" onclick="DecreaseNumberInput('day_4_check', 0, 3);">
                                                 <img src="assets/plus.svg" class="small-button-icon" onclick="IncreaseNumberInput('day_4_check', 0, 3);">
@@ -159,7 +169,9 @@ function load_page(result) {
                                     <div class="form-group" style="" id="day_5_group">
                                         <div class="day-check">
                                             <label for="day_5_check" title="Have you been working out?">Friday</label>
-                                            <input type="number" value="0" min="0" max="3" class="form-control-small" id="day_5_check">
+                                            <div class="number-box" id="day_5_check">
+                                                0
+                                            </div>
                                             <div class="two-buttons">
                                                 <img src="assets/minus.svg" class="small-button-icon" onclick="DecreaseNumberInput('day_5_check', 0, 3);">
                                                 <img src="assets/plus.svg" class="small-button-icon" onclick="IncreaseNumberInput('day_5_check', 0, 3);">
@@ -176,7 +188,9 @@ function load_page(result) {
                                     <div class="form-group" style="" id="day_6_group">
                                         <div class="day-check">
                                             <label for="day_6_check" title="Have you been working out?">Saturday</label>
-                                            <input type="number" value="0" min="0" max="3" class="form-control-small" id="day_6_check">
+                                            <div class="number-box" id="day_6_check">
+                                                0
+                                            </div>
                                             <div class="two-buttons">
                                                 <img src="assets/minus.svg" class="small-button-icon" onclick="DecreaseNumberInput('day_6_check', 0, 3);">
                                                 <img src="assets/plus.svg" class="small-button-icon" onclick="IncreaseNumberInput('day_6_check', 0, 3);">
@@ -193,7 +207,9 @@ function load_page(result) {
                                     <div class="form-group" style="" id="day_7_group">
                                         <div class="day-check">
                                             <label for="day_7_check" title="Have you been working out?">Sunday</label>
-                                            <input type="number" value="0" min="0" max="3" class="form-control-small" id="day_7_check">
+                                            <div class="number-box" id="day_7_check">
+                                                0
+                                            </div>
                                             <div class="two-buttons">
                                                 <img src="assets/minus.svg" class="small-button-icon" onclick="DecreaseNumberInput('day_7_check', 0, 3);">
                                                 <img src="assets/plus.svg" class="small-button-icon" onclick="IncreaseNumberInput('day_7_check', 0, 3);">
@@ -506,7 +522,7 @@ function place_season(season_object) {
 
 function register_goal() {
 
-    var exercise_goal = Number(document.getElementById("commitment").value);
+    var exercise_goal = Number(document.getElementById("commitment").innerHTML);
     var goal_compete = document.getElementById("compete").checked
 
     var form_obj = {
@@ -604,31 +620,31 @@ function place_week(week, fireworks) {
 
     fireworks_int = week.days[0].exercise_interval + week.days[1].exercise_interval + week.days[2].exercise_interval + week.days[3].exercise_interval + week.days[4].exercise_interval + week.days[5].exercise_interval + week.days[6].exercise_interval
 
-    document.getElementById("day_1_check").value = week.days[0].exercise_interval
+    document.getElementById("day_1_check").innerHTML = week.days[0].exercise_interval
     document.getElementById("day_1_note").value = week.days[0].note
     document.getElementById("day_1_date").value = week.days[0].date
 
-    document.getElementById("day_2_check").value = week.days[1].exercise_interval
+    document.getElementById("day_2_check").innerHTML = week.days[1].exercise_interval
     document.getElementById("day_2_note").value = week.days[1].note
     document.getElementById("day_2_date").value = week.days[1].date
 
-    document.getElementById("day_3_check").value = week.days[2].exercise_interval
+    document.getElementById("day_3_check").innerHTML = week.days[2].exercise_interval
     document.getElementById("day_3_note").value = week.days[2].note
     document.getElementById("day_3_date").value = week.days[2].date
 
-    document.getElementById("day_4_check").value = week.days[3].exercise_interval
+    document.getElementById("day_4_check").innerHTML = week.days[3].exercise_interval
     document.getElementById("day_4_note").value = week.days[3].note
     document.getElementById("day_4_date").value = week.days[3].date
 
-    document.getElementById("day_5_check").value = week.days[4].exercise_interval
+    document.getElementById("day_5_check").innerHTML = week.days[4].exercise_interval
     document.getElementById("day_5_note").value = week.days[4].note
     document.getElementById("day_5_date").value = week.days[4].date
 
-    document.getElementById("day_6_check").value = week.days[5].exercise_interval
+    document.getElementById("day_6_check").innerHTML = week.days[5].exercise_interval
     document.getElementById("day_6_note").value = week.days[5].note
     document.getElementById("day_6_date").value = week.days[5].date
 
-    document.getElementById("day_7_check").value = week.days[6].exercise_interval
+    document.getElementById("day_7_check").innerHTML = week.days[6].exercise_interval
     document.getElementById("day_7_note").value = week.days[6].note
     document.getElementById("day_7_date").value = week.days[6].date
 
@@ -638,31 +654,31 @@ function place_week(week, fireworks) {
 
 function update_exercises() {
 
-    var day_1_check = document.getElementById("day_1_check").value
+    var day_1_check = document.getElementById("day_1_check").innerHTML
     var day_1_note = document.getElementById("day_1_note").value
     var day_1_date = document.getElementById("day_1_date").value
 
-    var day_2_check = document.getElementById("day_2_check").value
+    var day_2_check = document.getElementById("day_2_check").innerHTML
     var day_2_note = document.getElementById("day_2_note").value
     var day_2_date = document.getElementById("day_2_date").value
 
-    var day_3_check = document.getElementById("day_3_check").value
+    var day_3_check = document.getElementById("day_3_check").innerHTML
     var day_3_note = document.getElementById("day_3_note").value
     var day_3_date = document.getElementById("day_3_date").value
 
-    var day_4_check = document.getElementById("day_4_check").value
+    var day_4_check = document.getElementById("day_4_check").innerHTML
     var day_4_note = document.getElementById("day_4_note").value
     var day_4_date = document.getElementById("day_4_date").value
 
-    var day_5_check = document.getElementById("day_5_check").value
+    var day_5_check = document.getElementById("day_5_check").innerHTML
     var day_5_note = document.getElementById("day_5_note").value
     var day_5_date = document.getElementById("day_5_date").value
 
-    var day_6_check = document.getElementById("day_6_check").value
+    var day_6_check = document.getElementById("day_6_check").innerHTML
     var day_6_note = document.getElementById("day_6_note").value
     var day_6_date = document.getElementById("day_6_date").value
 
-    var day_7_check = document.getElementById("day_7_check").value
+    var day_7_check = document.getElementById("day_7_check").innerHTML
     var day_7_note = document.getElementById("day_7_note").value
     var day_7_date = document.getElementById("day_7_date").value
 
@@ -767,19 +783,19 @@ function update_exercises() {
 
 function IncreaseNumberInput(input_id, min, max) {
     var input_element = document.getElementById(input_id)
-    var old_number = Number(input_element.value)
+    var old_number = Number(input_element.innerHTML)
     var new_number = old_number + 1
     if(new_number <= max && new_number >= min) {
-        input_element.value = new_number
+        input_element.innerHTML = new_number
     }
 }
 
 function DecreaseNumberInput(input_id, min, max) {
     var input_element = document.getElementById(input_id)
-    var old_number = Number(input_element.value)
+    var old_number = Number(input_element.innerHTML)
     var new_number = old_number - 1
     if(new_number <= max && new_number >= min) {
-        input_element.value = new_number
+        input_element.innerHTML = new_number
     }
 }
 
@@ -922,7 +938,7 @@ function place_current_week(week_array) {
 
     for(var i = 0; i < week_array.users.length; i++) {
 
-        var completion = (week_array.users[i].week_completion * 100)
+        var completion = Math.trunc((week_array.users[i].week_completion * 100))
 
         if(week_array.users[i].current_streak > 0) {
             var current_streak = week_array.users[i].current_streak + "🔥"
