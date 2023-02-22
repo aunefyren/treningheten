@@ -349,10 +349,10 @@ button {
   margin: 1em;
   border-radius: 5px; 
   border: none;
-  background: var(--mediumblue); 
+  background: var(--lightblue); 
   font-size: 1em;
   font-weight: 600;
-  color: var(--eggshell);
+  color: var(--white);
   cursor: pointer;
   display: flex;
   flex-direction: row;
@@ -363,7 +363,7 @@ button {
 }
 
 button:hover {
-  background: var(--darkblue);
+  background: var(--mediumblue);
 }
 
 button:disabled {
