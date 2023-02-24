@@ -933,6 +933,8 @@ function place_season_goal(goal) {
 }
 
 function place_current_week(week_array) {
+
+    week_array.users = week_array.users.sort((a,b) => b.week_completion - a.week_completion);
     
     var html = ``;
 
