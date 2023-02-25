@@ -127,7 +127,7 @@ function send_update() {
                 success(result.message);
 
                 // store jwt to cookie
-                set_cookie("poenskelisten", result.token, 7);
+                set_cookie("treningheten", result.token, 7);
 
                 if(result.verified) {
                     location.reload();

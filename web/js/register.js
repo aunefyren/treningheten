@@ -1,7 +1,7 @@
 function load_page(result) {
 
     // Reset cookie
-    set_cookie("poenskelisten", "", 1);
+    set_cookie("treningheten", "", 1);
 
     var html = `
                 <div class="" id="forside">

@@ -177,6 +177,8 @@ func initRouter() *gin.Engine {
 		{
 			auth.POST("/token/validate", controllers.ValidateToken)
 
+			auth.POST("/season", controllers.APIGetSeasons)
+			auth.POST("/season/:season_id/leaderboard/", controllers.APIGetSeasonWeeks)
 			auth.POST("/season/getongoing", controllers.APIGetOngoingSeason)
 			auth.POST("/season/leaderboard", controllers.APIGetCurrentSeasonLeaderboard)
 			auth.POST("/season/register", controllers.APIRegisterSeason)
@@ -245,6 +247,11 @@ func initRouter() *gin.Engine {
 	// Static endpoint for seeing news
 	router.GET("/news", func(c *gin.Context) {
 		c.HTML(http.StatusOK, "news.html", nil)
+	})
+
+	// Static endpoint for seeing seasons
+	router.GET("/seasons", func(c *gin.Context) {
+		c.HTML(http.StatusOK, "seasons.html", nil)
 	})
 
 	return router

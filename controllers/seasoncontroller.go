@@ -7,6 +7,7 @@ import (
 	"errors"
 	"log"
 	"net/http"
+	"strconv"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -427,4 +428,72 @@ func ReverseWeeksArray(input []models.WeekResults) []models.WeekResults {
 		return input
 	}
 	return append(ReverseWeeksArray(input[1:]), input[0])
+}
+
+// Get all enabled seasons
+func APIGetSeasons(context *gin.Context) {
+
+	seasonObjects := []models.SeasonObject{}
+
+	seasons, err := database.GetAllEnabledSeasons()
+	if err != nil {
+		log.Println("Failed to get seasons from database. Error: " + err.Error())
+		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get seasons from database."})
+		context.Abort()
+		return
+	}
+
+	for _, season := range seasons {
+		seasonObject, err := ConvertSeasonToSeasonObject(season)
+		if err != nil {
+			log.Println("Failed process season. Error: " + err.Error())
+			context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed process season."})
+			context.Abort()
+			return
+		}
+		seasonObjects = append(seasonObjects, seasonObject)
+	}
+
+	// Return seasons
+	context.JSON(http.StatusOK, gin.H{"seasons": seasonObjects, "message": "Seasons retrieved."})
+
+}
+
+// Get all enabled seasons
+func APIGetSeasonWeeks(context *gin.Context) {
+
+	// Create user request
+	var seasonID = context.Param("season_id")
+
+	// Parse group id
+	seasonIDInt, err := strconv.Atoi(seasonID)
+	if err != nil {
+		context.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		context.Abort()
+		return
+	}
+
+	season, err := database.GetSeasonByID(seasonIDInt)
+	if err != nil {
+		log.Println("Failed to get season from database. Error: " + err.Error())
+		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get season from database."})
+		context.Abort()
+		return
+	}
+
+	seasonObject, err := ConvertSeasonToSeasonObject(season)
+	if err != nil {
+		log.Println("Failed process season. Error: " + err.Error())
+		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed process season."})
+		context.Abort()
+		return
+	}
+
+	now := time.Now()
+
+	weekResults, err := RetrieveWeekResultsFromSeasonWithinTimeframe(season.Start, now, seasonObject)
+
+	// Return seasons
+	context.JSON(http.StatusOK, gin.H{"leaderboard": weekResults, "message": "Season leaderboard retrieved."})
+
 }

@@ -77,6 +77,7 @@
                 </a>
 
                 <a class="nav-item disabled" href="/news" id='news'>News</a>
+                <a class="nav-item disabled" href="/seasons" id='seasons'>Seasons</a>
        
                 <a class="nav-item disabled" href="/account" id='account'>Account</a>
                 <a class="nav-item enabled" href="/login" id='login'>Log in</a>
@@ -112,7 +113,7 @@
             var jwt;
             info('Loading...');
             showLoggedOutMenu();
-            jwt = get_cookie('poenskelisten');
+            jwt = get_cookie('treningheten');
             get_login(jwt);
             
         </script>

@@ -1,7 +1,7 @@
 function load_page(result) {
 
     // Reset cookie
-    set_cookie("poenskelisten", "", 1);
+    set_cookie("treningheten", "", 1);
 
     var html = `
                 <div class="" id="forside">
@@ -225,7 +225,7 @@ function send_log_in(){
             } else {
 
                 // store jwt to cookie
-                set_cookie("poenskelisten", result.token, 7);
+                set_cookie("treningheten", result.token, 7);
 
                 // show home page &amp; tell the user it was a successful login
                 showLoggedInMenu();

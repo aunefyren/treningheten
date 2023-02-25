@@ -24,7 +24,7 @@ function load_page(result) {
                             Treningheten
                         </div>
 
-                        <div class="text-body" style="text-align: center;">
+                        <div class="text-body" id="front-page-text" style="text-align: center;">
        
                         </div>
 
@@ -234,7 +234,9 @@ function load_page(result) {
                                     <h3 id="season_title">Loading...</h3>
                                     <p id="season_desc" style="text-align: center;">...</p>
 
-                                    <p id="week_goal_title" style="margin-top: 1em;">Week goal: <b><a id="week_goal">0</a></b></p>
+                                    <p id="season_start_title" style="margin-top: 1em;">Season start: <a id="season_start">...</a></p>
+                                    <p id="season_end_title" style="">Season end: <a id="season_end">...</a></p>
+                                    <p id="week_goal_title" style="">Week goal: <b><a id="week_goal">0</a></b></p>
 
                                 </div>
 
@@ -248,16 +250,18 @@ function load_page(result) {
 
                                 </div>
 
-                                <div id="leaderboard" class="leaderboard">
+                            </div>
+                            
 
-                                    <h3 style="margin: 0.5em;">Leaderboard</h3>
+                            <div id="leaderboard" class="leaderboard">
 
-                                    <div id="leaderboard-weeks" class="leaderboard-weeks">
-                                    </div>
+                                <h3 style="margin: 0.5em;">Leaderboard</h3>
 
+                                <div id="leaderboard-weeks" class="leaderboard-weeks">
                                 </div>
 
                             </div>
+
 
                         </div>
 
@@ -294,8 +298,10 @@ function load_page(result) {
         showLoggedInMenu();
         //get_news(login_data.admin);
         get_season(user_id);
+        document.getElementById('front-page-text').innerHTML = 'Remember to log your workouts, Anette.';
     } else {
         showLoggedOutMenu();
+        document.getElementById('front-page-text').innerHTML = 'Log in to use the platform.';
     }
 }
 
@@ -365,7 +371,7 @@ function verify_account(){
             } else {
 
                 // store jwt to cookie
-                set_cookie("poenskelisten", result.token, 7);
+                set_cookie("treningheten", result.token, 7);
                 location.reload();
 
             }
@@ -857,7 +863,7 @@ function get_leaderboard(fireworks){
 
                 console.log("Placing weeks: ")
                 place_current_week(this_week);
-                place_season_goal(result.leaderboard.goal.exercise_interval);
+                place_season_details(result.leaderboard.goal.exercise_interval, result.leaderboard.season.start, result.leaderboard.season.end);
                 place_leaderboard(past_weeks);
                 
             }
@@ -928,8 +934,24 @@ function place_leaderboard(weeks_array) {
 
 }
 
-function place_season_goal(goal) {
+function place_season_details(goal, seasonStart, SeasonEnd) {
+
+    try {
+        var date_start = new Date(seasonStart);
+        var date_end = new Date(SeasonEnd);
+
+        const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+  
+        var date_start_string = date_start.toLocaleString("us-EN", options)
+        var date_end_string = date_end.toLocaleString("us-EN", options)
+    } catch {
+        var date_start_string = "Error"
+        var date_end_string = "Error"
+    }
+
     document.getElementById("week_goal").innerHTML = goal
+    document.getElementById("season_start").innerHTML = date_start_string
+    document.getElementById("season_end").innerHTML = date_end_string
 }
 
 function place_current_week(week_array) {

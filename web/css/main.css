@@ -617,7 +617,7 @@ hr {
   margin: 1em 0;
 }
 
-.news {
+.news, .seasons {
   width: 100%;
   width: -webkit-fill-available;
   width: -moz-available;
@@ -990,7 +990,6 @@ input[type=checkbox]
   align-items: center;
   width: 20em;
   height: auto;
-  max-height: 50em;
   max-width: 100%;
   max-width: -webkit-fill-available;
   max-width: -moz-available;
@@ -1021,7 +1020,7 @@ input[type=checkbox]
   width: -webkit-fill-available;
   width: -moz-available;
   height: auto;
-  max-height: 27.5em;
+  max-height: 58em;
   overflow-y: auto;
 }
 
@@ -1142,4 +1141,56 @@ input[type=checkbox]
   -moz-user-select: none;
   -ms-user-select: none;
   user-select: none;
+}
+
+.season-object {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-content: center;
+  justify-content: space-evenly;
+  align-items: center;
+  width: 100%;
+  width: -webkit-fill-available;
+  width: -moz-available;
+  background-color: var(--white);
+  border-radius: 1em;
+}
+
+.season-object-wrapper {
+  background-color: var(--white);
+  border-radius: 1em;
+  border: solid 2px var(--lightblue); 
+}
+
+.season-title, .season-body, .season-date {
+  margin: 0.5em;
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-content: center;
+  justify-content: space-evenly;
+  align-items: center;
+}
+
+.season-title {
+  font-size: 1.25em;
+  text-decoration: underline;
+}
+
+.leaderboard-week-two {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-content: center;
+  justify-content: space-between;
+  align-items: center;
+  box-sizing: border-box;
+  width: 100%;
+  width: -webkit-fill-available;
+  width: -moz-available;
+  padding: 0.5em;
+  border: solid 2px var(--lightblue);
+  border-radius: 0.5em;
+  margin: 0.5em;
 }

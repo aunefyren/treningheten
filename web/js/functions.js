@@ -159,6 +159,9 @@ function showLoggedInMenu() {
     document.getElementById('news').classList.add('enabled');
     document.getElementById('news').classList.remove('disabled');
 
+    document.getElementById('seasons').classList.add('enabled');
+    document.getElementById('seasons').classList.remove('disabled');
+
     document.getElementById('account').classList.add('enabled');
     document.getElementById('account').classList.remove('disabled');
 
@@ -176,6 +179,9 @@ function showLoggedOutMenu() {
 
     document.getElementById('news').classList.add('disabled');
     document.getElementById('news').classList.remove('enabled');
+
+    document.getElementById('seasons').classList.add('disabled');
+    document.getElementById('seasons').classList.remove('enabled');
 
     document.getElementById('account').classList.add('disabled');
     document.getElementById('account').classList.remove('enabled');
@@ -242,7 +248,7 @@ function error(message) {
 
 // When log out button is pressed, remove cookie and redirect to home page
 function logout() {
-    set_cookie("poenskelisten", "", 1);
+    set_cookie("treningheten", "", 1);
     window.location.href = '../../';
 }
 
