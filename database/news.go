@@ -9,7 +9,7 @@ func GetNewsPosts() ([]models.News, error) {
 
 	var newsPosts []models.News
 
-	newsPostsRecords := Instance.Where("`news`.enabled = ?", 1).Find(&newsPosts)
+	newsPostsRecords := Instance.Order("date desc").Where("`news`.enabled = ?", 1).Find(&newsPosts)
 
 	if newsPostsRecords.Error != nil {
 		return []models.News{}, newsPostsRecords.Error
