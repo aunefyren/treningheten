@@ -1161,6 +1161,7 @@ input[type=checkbox]
   background-color: var(--white);
   border-radius: 1em;
   border: solid 2px var(--lightblue); 
+  margin: 1em 0;
 }
 
 .season-title, .season-body, .season-date {

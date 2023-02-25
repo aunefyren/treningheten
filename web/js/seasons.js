@@ -21,7 +21,7 @@ function load_page(result) {
 
                     <div class="module">
 
-                        <div id="seasons-title" class="title" style="display: none; margin: 0.5em;">
+                        <div id="seasons-title" class="title" style="display: none;">
                             Seasons:
                         </div>
 
