@@ -21,7 +21,7 @@ func VerifyUniqueSeasonName(providedSeasonName string) (bool, error) {
 // Get all enabled seasons
 func GetAllEnabledSeasons() ([]models.Season, error) {
 	var seasons []models.Season
-	seasonrecord := Instance.Where("`seasons`.enabled = ?", 1).Find(&seasons)
+	seasonrecord := Instance.Order("start desc").Where("`seasons`.enabled = ?", 1).Find(&seasons)
 	if seasonrecord.Error != nil {
 		return []models.Season{}, seasonrecord.Error
 	}
