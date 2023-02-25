@@ -34,7 +34,7 @@ function load_page(result) {
     `;
 
     document.getElementById('content').innerHTML = html;
-    document.getElementById('card-header').innerHTML = 'NRK 2.0...';
+    document.getElementById('card-header').innerHTML = 'The archive';
     clearResponse();
 
     if(result !== false) {
