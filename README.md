@@ -17,4 +17,25 @@ Like the project? Have too much money? Buy me a coffee or something! ☕️
 
 ## Introduction
 
-Workout time.
+Treningheten is a web-based platform for tracking workouts. A workout season is set with a start and end-date defined. Users join the season with a weekly workout goal. Then users track their workouts within the platform, showing their percentage completion of each week. If a user achieves 100% or more, a workout-streak is added to the leaderboard. The point is to motivate each other to reach a personal workout goal!
+
+<br>
+<br>
+
+![Image showing the wishlist section of Pønskelisten.](https://raw.githubusercontent.com/aunefyren/treningheten/main/web/assets/images/dashboard_example.png?raw=true)
+
+<br>
+<br>
+
+## Features
+
+- User registration and verification using invitation codes and e-mail
+- Season-based workout periods
+- Weekly workout tracking
+- Dynamic leaderboard and season history
+
+## Planned features 
+
+- Compete to uphold streaks and win prices from other users
+- Sick days to be used when unable to work out
+- Admin interface for management
