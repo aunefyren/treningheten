@@ -311,7 +311,7 @@ func UpdateUser(context *gin.Context) {
 	}
 
 	// Make password is strong enough
-	valid, requirements, err := utilities.ValidatePasswordFormat(usercreationrequest.Password)
+	valid, requirements, err := utilities.ValidatePasswordFormat(userUpdateRequest.Password)
 	if err != nil {
 		log.Println("Failed to verify password quality. Error: " + err.Error())
 		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to verify password quality."})
