@@ -201,8 +201,12 @@ func initRouter() *gin.Engine {
 		admin := api.Group("/admin").Use(middlewares.Auth(true))
 		{
 			admin.POST("/invite/register", controllers.RegisterInvite)
+			admin.POST("/invite/get", controllers.APIGetAllInvites)
+
 			admin.POST("/news/register", controllers.RegisterNewsPost)
 			admin.POST("/news/:news_id/delete", controllers.DeleteNewsPost)
+
+			admin.POST("/server-info", controllers.APIGetServerInfo)
 		}
 
 	}
@@ -252,6 +256,11 @@ func initRouter() *gin.Engine {
 	// Static endpoint for seeing seasons
 	router.GET("/seasons", func(c *gin.Context) {
 		c.HTML(http.StatusOK, "seasons.html", nil)
+	})
+
+	// Static endpoint for admin functions
+	router.GET("/admin", func(c *gin.Context) {
+		c.HTML(http.StatusOK, "admin.html", nil)
 	})
 
 	return router

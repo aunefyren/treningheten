@@ -57,3 +57,16 @@ func SetUsedUserInviteCode(providedCode string, userIDClaimer int) error {
 
 	return nil
 }
+
+// Set invite code to used
+func GetAllEnabledInvites() ([]models.Invite, error) {
+	var invitestruct []models.Invite
+	inviterecords := Instance.Where("`invites`.invite_enabled = ?", 1).Find(&invitestruct)
+	if inviterecords.Error != nil {
+		return []models.Invite{}, inviterecords.Error
+	}
+	if inviterecords.RowsAffected == 0 {
+		return []models.Invite{}, nil
+	}
+	return invitestruct, nil
+}

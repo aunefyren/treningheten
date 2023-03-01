@@ -11,6 +11,7 @@ type ConfigStruct struct {
 	TreninghetenPort        int    `json:"treningheten_port"`
 	TreninghetenName        string `json:"treningheten_name"`
 	TreninghetenExternalURL string `json:"treningheten_external_url"`
+	TreninghetenVersion     string `json:"treningheten_version"`
 	SMTPEnabled             bool   `json:"smtp_enabled"`
 	SMTPHost                string `json:"smtp_host"`
 	SMTPPort                int    `json:"smtp_port"`

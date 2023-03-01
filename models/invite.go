@@ -11,3 +11,11 @@ type Invite struct {
 	InviteRecipient int    `json:"invite_recipient" gorm:"default: null"`
 	InviteEnabled   *bool  `json:"invite_enabled" gorm:"not null;default: true"`
 }
+
+type InviteObject struct {
+	gorm.Model
+	InviteCode    string `json:"invite_code"`
+	InviteUsed    *bool  `json:"invite_used"`
+	User          User   `json:"user"`
+	InviteEnabled *bool  `json:"invite_enabled"`
+}

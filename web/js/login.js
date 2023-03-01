@@ -7,13 +7,9 @@ function load_page(result) {
                 <div class="" id="forside">
 
                     <div class="module" id="action">
-                    
-                        
-                        
                     </div>
 
                     <div class="module" id="change_action">
-                        
                     </div>
 
                 </div>

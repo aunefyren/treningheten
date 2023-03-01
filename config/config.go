@@ -10,7 +10,7 @@ import (
 	"path/filepath"
 )
 
-var wrapperr_version_parameter = "v0.0.1"
+var treningheten_version_parameter = "v0.0.1"
 var config_path, _ = filepath.Abs("./files/config.json")
 
 func GetConfig() (*models.ConfigStruct, error) {
@@ -69,6 +69,8 @@ func GetConfig() (*models.ConfigStruct, error) {
 		}
 	}
 
+	config.TreninghetenVersion = treningheten_version_parameter
+
 	// Return config object
 	return &config, nil
 
@@ -83,6 +85,7 @@ func CreateConfigFile() error {
 	config.TreninghetenName = "Treningheten"
 	config.DBPort = 3306
 	config.SMTPEnabled = true
+	config.TreninghetenVersion = treningheten_version_parameter
 
 	err := SaveConfig(&config)
 	if err != nil {
