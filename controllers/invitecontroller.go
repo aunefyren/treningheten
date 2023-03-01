@@ -53,7 +53,7 @@ func ConvertInviteToInviteObject(invite models.Invite) (models.InviteObject, err
 	} else {
 		user, err := database.GetUserInformation(invite.InviteRecipient)
 		if err != nil {
-			fmt.Println("Failed to get user information for user '" + strconv.Itoa(invite.InviteRecipient) + "'. Returning. Error: " + err.Error())
+			fmt.Println("Failed to get user information for user '" + strconv.Itoa(int(invite.InviteRecipient)) + "'. Returning. Error: " + err.Error())
 			return models.InviteObject{}, err
 		}
 		inviteObject.User = user
