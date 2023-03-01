@@ -78,7 +78,7 @@ func ConvertInvitesToInviteObjects(invites []models.Invite) ([]models.InviteObje
 	for _, invite := range invites {
 		inviteObject, err := ConvertInviteToInviteObject(invite)
 		if err != nil {
-			fmt.Println("Failed convert invite '" + string(invite.ID) + "' to season object. Returning. Error: " + err.Error())
+			fmt.Println("Failed convert invite '" + strconv.Itoa(int(invite.ID)) + "' to season object. Returning. Error: " + err.Error())
 			return []models.InviteObject{}, err
 		}
 		inviteObjects = append(inviteObjects, inviteObject)
