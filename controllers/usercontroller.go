@@ -310,6 +310,13 @@ func UpdateUser(context *gin.Context) {
 		return
 	}
 
+	// Make sure password match
+	if userUpdateRequest.Password != "" && userUpdateRequest.Password != userUpdateRequest.PasswordRepeat {
+		context.JSON(http.StatusBadRequest, gin.H{"error": "Passwords must match."})
+		context.Abort()
+		return
+	}
+
 	// Get user ID
 	userID, err := middlewares.GetAuthUsername(context.GetHeader("Authorization"))
 	if err != nil {
