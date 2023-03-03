@@ -202,6 +202,7 @@ func initRouter() *gin.Engine {
 		{
 			admin.POST("/invite/register", controllers.RegisterInvite)
 			admin.POST("/invite/get", controllers.APIGetAllInvites)
+			admin.POST("/invite/:invite_id/delete", controllers.APIDeleteInvite)
 
 			admin.POST("/news/register", controllers.RegisterNewsPost)
 			admin.POST("/news/:news_id/delete", controllers.DeleteNewsPost)

@@ -10,12 +10,14 @@ function load_page(result) {
         } catch {
             admin = false
         }
+
+        showAdminMenu(admin)
     }
 
     var html = `
-                <div class="" id="admin-page">
+                <div class="modules" id="admin-page">
                     
-                    <div class="module" id="server-info-module">
+                    <div class="server-info-module" id="server-info-module">
 
                         <div class="server-info" id="server-info">
                             <h3 id="server-info-title">Server info:</h3>
@@ -25,7 +27,19 @@ function load_page(result) {
 
                     </div>
 
-                    <div class="module" id="invitation-module">
+                    <div class="invitation-module" id="invitation-module">
+
+                        <div class="invites" id="invites">
+
+                            <h3 id="invitation-module-title">Invites:</h3>
+
+                            <div class="invite-list" id="invite-list">
+                            </div>
+
+                            <button type="submit" onclick="generate_invite();" id="generate_invite_button" style=""><img src="assets/plus.svg" class="btn_logo color-invert"><p2>Generate</p2></button>
+                        
+                        </div>
+
                     </div>
 
                 </div>
@@ -42,7 +56,6 @@ function load_page(result) {
             document.getElementById('content').innerHTML = "...";
             error("You are not an admin.")
         } else {
-            info("Loading...")
             get_server_info();
             get_invites();
         }
@@ -129,5 +142,121 @@ function get_invites() {
 }
 
 function place_invites(invites_array) {
-    console.log(invites_array)
+    var html = ``;
+    
+    if(invites_array.length == 0) {
+        html = `
+            <div id="" class="invitation-object">
+                <p id="" style="margin: 0.5em; text-align: center;">...</p>
+            </div>
+        `;
+    } else {
+        for(var i = 0; i < invites_array.length; i++) {
+            html += `
+                <div id="" class="invitation-object">
+                    <div class="leaderboard-object-code">
+                        Code: ` + invites_array[i].invite_code + `
+                    </div>
+            `;
+
+            if(invites_array[i].invite_used) {
+                html += `
+                        <div class="leaderboard-object-user">
+                            Used by: ` + invites_array[i].user.first_name + ` ` + invites_array[i].user.last_name + `
+                        </div>
+                    `;
+            } else {
+                html += `
+                        <div class="leaderboard-object-user">
+                            Not used
+                        </div>
+                        <img class="icon-img clickable" onclick="delete_invite(` + invites_array[i].ID + `)" src="../../assets/trash-2.svg"></img>
+                    `;
+            }
+
+            html += `</div>`;
+
+        }
+        
+    }
+
+    document.getElementById("invite-list").innerHTML = html
+
+    return
+}
+
+function generate_invite() {
+
+    var xhttp = new XMLHttpRequest();
+    xhttp.onreadystatechange = function() {
+        if (this.readyState == 4) {
+            
+            try {
+                result = JSON.parse(this.responseText);
+            } catch(e) {
+                console.log(e +' - Response: ' + this.responseText);
+                error("Could not reach API.");
+                return;
+            }
+            
+            if(result.error) {
+
+                error(result.error);
+
+            } else {
+
+                success(result.message)
+                place_invites(result.invites)
+                
+            }
+
+        }
+    };
+    xhttp.withCredentials = true;
+    xhttp.open("post", api_url + "admin/invite/register");
+    xhttp.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
+    xhttp.setRequestHeader("Authorization", jwt);
+    xhttp.send();
+    return false;
+
+}
+
+function delete_invite(invide_id) {
+
+    if(!confirm("Are you sure you want to delete this invite?")) {
+        return
+    }
+
+    var xhttp = new XMLHttpRequest();
+    xhttp.onreadystatechange = function() {
+        if (this.readyState == 4) {
+            
+            try {
+                result = JSON.parse(this.responseText);
+            } catch(e) {
+                console.log(e +' - Response: ' + this.responseText);
+                error("Could not reach API.");
+                return;
+            }
+            
+            if(result.error) {
+
+                error(result.error);
+
+            } else {
+
+                success(result.message)
+                place_invites(result.invites)
+                
+            }
+
+        }
+    };
+    xhttp.withCredentials = true;
+    xhttp.open("post", api_url + "admin/invite/" + invide_id + "/delete");
+    xhttp.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
+    xhttp.setRequestHeader("Authorization", jwt);
+    xhttp.send();
+    return false;
+
 }

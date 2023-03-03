@@ -10,9 +10,18 @@ function load_page(result) {
 
         user_id = login_data.data.id
 
+        try {
+            admin = login_data.data.admin
+        } catch {
+            admin = false
+        }
+
+        showAdminMenu(admin)
+
     } else {
         var login_data = false;
         var user_id = 0
+        var admin = false;
     }
 
     var html = `
