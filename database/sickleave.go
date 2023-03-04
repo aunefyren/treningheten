@@ -3,7 +3,6 @@ package database
 import (
 	"aunefyren/treningheten/models"
 	"errors"
-	"log"
 	"time"
 )
 
@@ -43,7 +42,6 @@ func GetUsedSickleaveForGoalWithinWeek(time time.Time, goalID int) (models.Sickl
 		for finished == false {
 			timeTwo = timeTwo.AddDate(0, 0, 1)
 			timeTwoWeekday := timeTwo.Weekday()
-			log.Println(timeTwoWeekday)
 			if int(timeTwoWeekday) == 0 {
 				finished = true
 				endDayString = timeTwo.Format("2006-01-02") + " 23:59:59"
