@@ -12,10 +12,20 @@ function load_page(result) {
             var first_name = ""
             var last_name = ""
         }
+
+        try {
+            admin = login_data.data.admin
+        } catch {
+            admin = false
+        }
+
+        showAdminMenu(admin)
+
     } else {
         var email = ""
         var first_name = ""
         var last_name = ""
+        var admin = false;
     }
 
     try {
