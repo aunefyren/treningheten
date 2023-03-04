@@ -20,9 +20,11 @@ function load_page(result) {
 
     } else {
         var login_data = false;
-        var user_id = 0
+        user_id = 0
         var admin = false;
     }
+
+    console.log(user_id)
 
     var html = `
                 <div class="" id="front-page">
@@ -983,7 +985,13 @@ function place_current_week(week_array) {
         if(week_array.users[i].sickleave) {
             var current_streak = week_array.users[i].current_streak + "🤢"
             transparent = "transparent"
-            document.getElementById("calendar").classList.add("transparent")
+
+            if(week_array.users[i].user.ID == user_id){
+                document.getElementById("calendar").classList.add("transparent")
+            } else {
+                console.log(user_id)
+            }
+
         } else if(week_array.users[i].current_streak > 0) {
             var current_streak = week_array.users[i].current_streak + "🔥"
         } else {
