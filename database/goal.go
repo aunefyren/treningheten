@@ -6,12 +6,12 @@ import (
 )
 
 // Create new goal within a season
-func CreateGoalInDB(goal models.Goal) error {
+func CreateGoalInDB(goal models.Goal) (uint, error) {
 	record := Instance.Create(&goal)
 	if record.Error != nil {
-		return record.Error
+		return 0, record.Error
 	}
-	return nil
+	return goal.ID, nil
 }
 
 // Verify if a user has a goal within a season

@@ -188,6 +188,8 @@ func initRouter() *gin.Engine {
 			auth.POST("/exercise/update", controllers.APIRegisterWeek)
 			auth.POST("/exercise/get", controllers.APIRGetWeek)
 
+			auth.POST("/sickleave/register", controllers.APIRegisterSickleave)
+
 			auth.POST("/news/get", controllers.GetNews)
 			auth.POST("/news/get/:news_id", controllers.GetNewsPost)
 

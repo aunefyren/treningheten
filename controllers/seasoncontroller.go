@@ -410,8 +410,17 @@ func GetWeekResultForGoal(goal models.Goal, currentTime time.Time, userStreaks [
 		return models.UserWeekResults{}, userStreaks, errors.New("Failed to process streak.")
 	}
 
+	sickleave, sickleaveFound, err := database.GetUsedSickleaveForGoalWithinWeek(currentTime, int(goal.ID))
+	if err != nil {
+		log.Println("Failed to process sickleave. Returning.")
+		return models.UserWeekResults{}, userStreaks, errors.New("Failed to process sickleave.")
+	}
+
 	// Found in streak, retrieve current streak
-	if newResult.WeekCompletion >= 1 {
+	if sickleaveFound && sickleave.SickleaveUsed {
+		newResult.CurrentStreak = userStreaks[userIndex].Streak
+		newResult.Sickleave = true
+	} else if newResult.WeekCompletion >= 1 {
 		newResult.CurrentStreak = userStreaks[userIndex].Streak
 		userStreaks[userIndex].Streak = userStreaks[userIndex].Streak + 1
 	} else {

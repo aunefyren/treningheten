@@ -70,12 +70,20 @@ func APIRegisterGoalToSeason(context *gin.Context) {
 	goalDB.User = userID
 
 	// Create goal in DB
-	err = database.CreateGoalInDB(goalDB)
+	goalID, err := database.CreateGoalInDB(goalDB)
 	if err != nil {
 		log.Println("Failed to create goal for season. Error: " + strconv.Itoa(int(season.ID)))
 		context.JSON(http.StatusBadRequest, gin.H{"error": "Failed to create goal for season."})
 		context.Abort()
 		return
+	}
+
+	// Create unused scikleave for goal
+	for i := 0; i < 2; i++ {
+		sickleave := models.Sickleave{
+			Goal: int(goalID),
+		}
+		database.CreateSickleave(sickleave)
 	}
 
 	context.JSON(http.StatusCreated, gin.H{"message": "Goal created."})
@@ -91,6 +99,16 @@ func ConvertGoalToGoalObject(goal models.Goal) (models.GoalObject, error) {
 	}
 
 	goalObject.User = user
+
+	sickleaveArray, sickleaveFound, err := database.GetUnusedSickleaveForGoalWithinWeek(int(goal.ID))
+	if err != nil {
+		log.Println("Failed to process sickleave. Setting to 0.")
+		goalObject.SickleaveLeft = 0
+	} else if !sickleaveFound {
+		goalObject.SickleaveLeft = 0
+	} else {
+		goalObject.SickleaveLeft = len(sickleaveArray)
+	}
 
 	goalObject.Competing = goal.Competing
 	goalObject.CreatedAt = goal.CreatedAt

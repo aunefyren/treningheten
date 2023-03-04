@@ -69,9 +69,7 @@ func Migrate() {
 	Instance.AutoMigrate(&models.Season{})
 	Instance.AutoMigrate(&models.Goal{})
 	Instance.AutoMigrate(&models.Exercise{})
-	//Instance.AutoMigrate(&models.WishlistMembership{})
-	//Instance.AutoMigrate(&models.Wish{})
-	//Instance.AutoMigrate(&models.WishClaim{})
+	Instance.AutoMigrate(&models.Sickleave{})
 	Instance.AutoMigrate(&models.News{})
 	log.Println("Database Migration Completed!")
 }

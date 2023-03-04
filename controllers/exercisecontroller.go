@@ -70,6 +70,19 @@ func APIRegisterWeek(context *gin.Context) {
 		return
 	}
 
+	// Check if week is sickleave
+	sickleave, sickleaveFound, err := database.GetUsedSickleaveForGoalWithinWeek(now, int(goalID))
+	if err != nil {
+		log.Println("Failed to verify sickleave. Error: " + err.Error())
+		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to verify sickleave."})
+		context.Abort()
+		return
+	} else if sickleaveFound && sickleave.SickleaveUsed {
+		context.JSON(http.StatusBadRequest, gin.H{"error": "This week is marked as sickleave."})
+		context.Abort()
+		return
+	}
+
 	// Verify all weekdays are present
 	if len(week.Days) != 7 {
 		context.JSON(http.StatusBadRequest, gin.H{"error": "Week is not seven days."})

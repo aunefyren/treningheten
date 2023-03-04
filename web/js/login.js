@@ -89,7 +89,7 @@ function action_login() {
     `;
 
     var html2 = `
-    <a style="font-size:0.75em;cursor:pointer;" onclick="action_newpassword();">I forgot my password!</i>
+    <a style="font-size:0.75em;cursor:pointer;" onclick="action_newpassword();">I forgot my password!</a>
     `;
 
     document.getElementById("action").innerHTML = html;
@@ -134,7 +134,7 @@ function action_newpassword() {
     `;
 
     var html2 = `
-    <a style="font-size:0.75em;cursor:pointer;" onclick="action_login();">Log in!</i>
+    <a style="font-size:0.75em;cursor:pointer;" onclick="action_login();">Log in!</a>
     `;
 
     document.getElementById("action").innerHTML = html;
@@ -180,7 +180,7 @@ function action_resetpassword(reset_code) {
     `;
 
     var html2 = `
-    <a style="font-size:0.75em;cursor:pointer;" onclick="action_login();">Log in!</i>
+    <a style="font-size:0.75em;cursor:pointer;" onclick="action_login();">Log in!</a>
     `;
 
     document.getElementById("action").innerHTML = html;

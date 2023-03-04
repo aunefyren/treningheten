@@ -232,6 +232,8 @@ function load_page(result) {
 
                                     <button type="submit" onclick="update_exercises();" id="goal_amount_button" style=""><img src="assets/done.svg" class="btn_logo color-invert"><p2>Save</p2></button>
 
+                                    <a style="margin: 0 0 0.5em 0; font-size:0.75em;cursor:pointer;" onclick="use_sickleave();">Use sickleave</i></a>
+
                                 </div>
 
                             </div>
@@ -246,6 +248,7 @@ function load_page(result) {
                                     <p id="season_start_title" style="margin-top: 1em;">Season start: <a id="season_start">...</a></p>
                                     <p id="season_end_title" style="">Season end: <a id="season_end">...</a></p>
                                     <p id="week_goal_title" style="">Week goal: <b><a id="week_goal">0</a></b></p>
+                                    <p id="goal_sickleave_title" style="">Sickleave left: <b><a id="goal_sickleave">0</a></b></p>
 
                                 </div>
 
@@ -872,7 +875,7 @@ function get_leaderboard(fireworks){
 
                 console.log("Placing weeks: ")
                 place_current_week(this_week);
-                place_season_details(result.leaderboard.goal.exercise_interval, result.leaderboard.season.start, result.leaderboard.season.end);
+                place_season_details(result.leaderboard.goal.exercise_interval, result.leaderboard.goal.sickleave_left, result.leaderboard.season.start, result.leaderboard.season.end);
                 place_leaderboard(past_weeks);
                 
             }
@@ -913,7 +916,9 @@ function place_leaderboard(weeks_array) {
             var results_html = "";
             for(var j = 0; j < weeks_array[i].users.length; j++) {
                 var completion = "❌"
-                if(weeks_array[i].users[j].week_completion >= 1) {
+                if(weeks_array[i].users[j].sickleave) {
+                    completion = "🤢"
+                } else if(weeks_array[i].users[j].week_completion >= 1) {
                     completion = "✅"
                 }
                 var result_html = `
@@ -943,7 +948,7 @@ function place_leaderboard(weeks_array) {
 
 }
 
-function place_season_details(goal, seasonStart, SeasonEnd) {
+function place_season_details(goal, sickleave, seasonStart, SeasonEnd) {
 
     try {
         var date_start = new Date(seasonStart);
@@ -959,6 +964,7 @@ function place_season_details(goal, seasonStart, SeasonEnd) {
     }
 
     document.getElementById("week_goal").innerHTML = goal
+    document.getElementById("goal_sickleave").innerHTML = sickleave
     document.getElementById("season_start").innerHTML = date_start_string
     document.getElementById("season_end").innerHTML = date_end_string
 }
@@ -972,8 +978,13 @@ function place_current_week(week_array) {
     for(var i = 0; i < week_array.users.length; i++) {
 
         var completion = Math.trunc((week_array.users[i].week_completion * 100))
+        var transparent = ""
 
-        if(week_array.users[i].current_streak > 0) {
+        if(week_array.users[i].sickleave) {
+            var current_streak = week_array.users[i].current_streak + "🤢"
+            transparent = "transparent"
+            document.getElementById("calendar").classList.add("transparent")
+        } else if(week_array.users[i].current_streak > 0) {
             var current_streak = week_array.users[i].current_streak + "🔥"
         } else {
             var current_streak = week_array.users[i].current_streak + "💀"
@@ -988,7 +999,7 @@ function place_current_week(week_array) {
 
                 <div class="current-week-user-results">
 
-                    <div class="current-week-user-completion">
+                    <div class="current-week-user-completion ` + transparent + `">
                         ` + completion + `%
                     </div>
 
@@ -1008,5 +1019,46 @@ function place_current_week(week_array) {
     document.getElementById("current-week-users").innerHTML = html
 
     return
+
+}
+
+function use_sickleave() {
+
+    if(!confirm("Are you sure you want to use sickleave? The week will be marked as sickleave, no workouts can be logged, the current streak will be perserved.")) {
+        return
+    }
+
+    var xhttp = new XMLHttpRequest();
+    xhttp.onreadystatechange = function() {
+        if (this.readyState == 4) {
+            
+            try {
+                result = JSON.parse(this.responseText);
+            } catch(e) {
+                console.log(e +' - Response: ' + this.responseText);
+                error("Could not reach API.");
+                return;
+            }
+            
+            if(result.error) {
+
+                error(result.error);
+
+            } else {
+
+                location.reload();
+                
+            }
+
+        } else {
+            // info("Loading week...");
+        }
+    };
+    xhttp.withCredentials = true;
+    xhttp.open("post", api_url + "auth/sickleave/register");
+    xhttp.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
+    xhttp.setRequestHeader("Authorization", jwt);
+    xhttp.send();
+    return false;
 
 }

@@ -50,6 +50,7 @@ type UserWeekResults struct {
 	WeekCompletion float64 `json:"week_completion"`
 	CurrentStreak  int     `json:"current_streak"`
 	User           User    `json:"user"`
+	Sickleave      bool    `json:"sickleave"`
 }
 
 type UserStreak struct {
