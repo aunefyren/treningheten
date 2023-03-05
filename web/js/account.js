@@ -7,15 +7,13 @@ function load_page(result) {
             var email = login_data.data.email
             var first_name = login_data.data.first_name
             var last_name = login_data.data.last_name
+            var sunday_alert = login_data.data.sunday_alert
+            admin = login_data.data.admin
         } catch {
             var email = ""
             var first_name = ""
             var last_name = ""
-        }
-
-        try {
-            admin = login_data.data.admin
-        } catch {
+            var sunday_alert = false
             admin = false
         }
 
@@ -26,6 +24,7 @@ function load_page(result) {
         var first_name = ""
         var last_name = ""
         var admin = false;
+        var sunday_reminder = false
     }
 
     try {
@@ -37,6 +36,12 @@ function load_page(result) {
     catch {
         group_id = 0
         wishlist_id = 0
+    }
+
+    if(sunday_alert) {
+        sunday_reminder_str = "checked"
+    } else {
+        sunday_reminder_str = ""
     }
 
     var html = `
@@ -55,8 +60,8 @@ function load_page(result) {
                             <label id="form-input-icon" for="last_name"></label>
                             <input type="text" name="last_name" id="last_name" placeholder="Last name" value="` + last_name + `" disabled required/>
 
-                            <input onclick="change_password_toggle();" style="margin-top: 2em;" type="checkbox" id="password-toggle" name="confirm" value="confirm" >
-                            <label for="password-toggle">Change my password.</label><br>
+                            <input onclick="change_password_toggle();" style="margin-top: 2em;" class="clickable" type="checkbox" id="password-toggle" name="confirm" value="confirm" >
+                            <label for="password-toggle" class="unselectable clickable">Change my password.</label><br>
 
                             <div id="change-password-box" style="display:none;">
 
@@ -67,6 +72,9 @@ function load_page(result) {
                                 <input type="password" name="password_repeat" id="password_repeat" placeholder="Repeat the password" />
 
                             </div>
+
+                            <input style="margin-top: 2em;" class="clickable" type="checkbox" id="reminder-toggle" name="reminder-toggle" value="reminder-toggle" ` + sunday_reminder_str + `>
+                            <label for="reminder-toggle" class="unselectable clickable">Send me logging reminders on Sundays.</label><br>
 
                             <button id="update-button" style="margin-top: 2em;" type="submit" href="/">Update account</button>
 
@@ -107,11 +115,13 @@ function send_update() {
     var email = document.getElementById("email").value;
     var password = document.getElementById("password").value;
     var password_repeat = document.getElementById("password_repeat").value;
+    var sunday_alert = document.getElementById("reminder-toggle").checked;
 
     var form_obj = { 
                         "email" : email,
                         "password" : password,
-                        "password_repeat": password_repeat
+                        "password_repeat": password_repeat,
+                        "sunday_alert": sunday_alert
                     };
 
     var form_data = JSON.stringify(form_obj);

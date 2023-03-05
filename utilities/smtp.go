@@ -65,3 +65,33 @@ func SendSMTPResetEmail(user models.User) error {
 	return nil
 
 }
+
+func SendSMTPSundayReminderEmail(user models.User) error {
+
+	// Get configuration
+	config, err := config.GetConfig()
+	if err != nil {
+		return err
+	}
+
+	log.Println("Sending e-mail to: " + user.Email + ".")
+
+	link := config.TreninghetenExternalURL
+
+	m := mail.NewMessage()
+	m.SetAddressHeader("From", config.SMTPFrom, config.TreninghetenName)
+	m.SetHeader("To", user.Email)
+	m.SetHeader("Subject", "Sunday reminder")
+	m.SetBody("text/html", "Hello <b>"+user.FirstName+"</b>!<br><br>It's Sunday and the week is almost over.<br><br>If you haven't already, head to Treningheten using <a href='"+link+"' target='_blank'>this link</a> and log your workouts.<br><br>You can disable this alert in your settings.")
+
+	d := mail.NewDialer(config.SMTPHost, config.SMTPPort, config.SMTPUsername, config.SMTPPassword)
+
+	// Send the email
+	err = d.DialAndSend(m)
+	if err != nil {
+		return err
+	}
+
+	return nil
+
+}

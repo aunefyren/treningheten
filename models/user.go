@@ -19,6 +19,7 @@ type User struct {
 	VerificationCode string    `json:"verification_code"`
 	ResetCode        string    `json:"reset_code"`
 	ResetExpiration  time.Time `json:"reset_expiration"`
+	SundayAlert      bool      `json:"sunday_alert" gorm:"not null; default: false"`
 }
 
 type UserCreationRequest struct {
@@ -34,6 +35,7 @@ type UserUpdateRequest struct {
 	Email          string `json:"email"`
 	Password       string `json:"password"`
 	PasswordRepeat string `json:"password_repeat"`
+	SundayAlert    bool   `json:"sunday_alert"`
 }
 
 type UserUpdatePasswordRequest struct {

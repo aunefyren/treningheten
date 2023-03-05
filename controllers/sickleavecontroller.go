@@ -59,8 +59,8 @@ func APIRegisterSickleave(context *gin.Context) {
 	// Check for sickleave left
 	sickleaveArray, sickleaveFound, err := database.GetUnusedSickleaveForGoalWithinWeek(int(goalID))
 	if err != nil {
-		log.Println("Failed to verify sickleave. Error: " + err.Error())
-		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to verify sickleave."})
+		log.Println("Failed to verify sick leave. Error: " + err.Error())
+		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to verify sick leave."})
 		context.Abort()
 		return
 	} else if !sickleaveFound {
@@ -72,24 +72,24 @@ func APIRegisterSickleave(context *gin.Context) {
 	// Check if week is already sickleave
 	sickleave, sickleaveFound, err := database.GetUsedSickleaveForGoalWithinWeek(now, int(goalID))
 	if err != nil {
-		log.Println("Failed to verify sickleave. Error: " + err.Error())
-		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to verify sickleave."})
+		log.Println("Failed to verify sick leave. Error: " + err.Error())
+		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to verify sick leave."})
 		context.Abort()
 		return
 	} else if sickleaveFound && sickleave.SickleaveUsed {
-		context.JSON(http.StatusBadRequest, gin.H{"error": "This week is already marked as sickleave."})
+		context.JSON(http.StatusBadRequest, gin.H{"error": "This week is already marked as sick leave."})
 		context.Abort()
 		return
 	}
 
 	err = database.SetSickleaveToUsedByID(int(sickleaveArray[0].ID))
 	if err != nil {
-		log.Println("Failed to update sickleave. Error: " + err.Error())
-		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update sickleave."})
+		log.Println("Failed to update sick leave. Error: " + err.Error())
+		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update sick leave."})
 		context.Abort()
 		return
 	}
 
-	context.JSON(http.StatusOK, gin.H{"message": "Sickleave used."})
+	context.JSON(http.StatusOK, gin.H{"message": "Sick leave used."})
 
 }

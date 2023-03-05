@@ -112,9 +112,10 @@ func RegisterUser(context *gin.Context) {
 	}
 
 	// Create user in DB
-	record := database.Instance.Create(&user)
-	if record.Error != nil {
-		context.JSON(http.StatusInternalServerError, gin.H{"error": record.Error.Error()})
+	err = database.RegisterUserInDB(user)
+	if err != nil {
+		log.Println("Failed to save user in database. Error: " + err.Error())
+		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to save user in database."})
 		context.Abort()
 		return
 	}
@@ -238,7 +239,7 @@ func VerifyUser(context *gin.Context) {
 	}
 
 	// Generate new JWT token
-	tokenString, err := auth.GenerateJWT(user.FirstName, user.LastName, user.Email, int(user.ID), *user.Admin, user.Verified)
+	tokenString, err := auth.GenerateJWT(user.FirstName, user.LastName, user.Email, int(user.ID), *user.Admin, user.Verified, user.SundayAlert)
 	if err != nil {
 		context.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		context.Abort()
@@ -377,8 +378,11 @@ func UpdateUser(context *gin.Context) {
 		}
 	}
 
+	// Transfer alert value
+	userOriginal.SundayAlert = userUpdateRequest.SundayAlert
+
 	// Update user in database
-	err = database.UpdateUserValuesByUserID(int(userOriginal.ID), userOriginal.Email, userOriginal.Password)
+	err = database.UpdateUserValuesByUserID(int(userOriginal.ID), userOriginal.Email, userOriginal.Password, userOriginal.SundayAlert)
 	if err != nil {
 		context.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		context.Abort()
@@ -396,7 +400,7 @@ func UpdateUser(context *gin.Context) {
 	}
 
 	// Generate new JWT token
-	tokenString, err := auth.GenerateJWT(user.FirstName, user.LastName, user.Email, int(user.ID), *user.Admin, user.Verified)
+	tokenString, err := auth.GenerateJWT(user.FirstName, user.LastName, user.Email, int(user.ID), *user.Admin, user.Verified, user.SundayAlert)
 	if err != nil {
 		context.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		context.Abort()
@@ -576,7 +580,7 @@ func APIChangePassword(context *gin.Context) {
 	}
 
 	// Save new password
-	err = database.UpdateUserValuesByUserID(int(user.ID), user.Email, user.Password)
+	err = database.UpdateUserValuesByUserID(int(user.ID), user.Email, user.Password, user.SundayAlert)
 	if err != nil {
 		log.Println("Failed to update password. Error: " + err.Error())
 		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update password."})
@@ -594,5 +598,46 @@ func APIChangePassword(context *gin.Context) {
 	}
 
 	context.JSON(http.StatusOK, gin.H{"message": "Password reset. You can now log in."})
+
+}
+
+func SendSundayEmailReminder() {
+
+	now := time.Now()
+
+	// Get current season
+	season, err := GetOngoingSeasonFromDB(now)
+	if err != nil {
+		log.Println("Failed to verify current season status. Returning. Error: " + err.Error())
+		return
+	}
+
+	if season.Start.After(now) || season.End.Before(now) {
+		log.Println("Not in the middle of a season. Returning.")
+		return
+	}
+
+	usersWithAlerts, err := database.GetAllUsersWithSundayAlertsEnabled()
+	if err != nil {
+		log.Println("Failed to get users with alerts enabled. Returning. Error: " + err.Error())
+		return
+	}
+
+	usersToAlert := []models.User{}
+
+	for _, user := range usersWithAlerts {
+
+		goalStatus, _, err := database.VerifyUserGoalInSeason(int(user.ID), int(season.ID))
+		if err != nil {
+			log.Println("Failed to verify user '" + strconv.Itoa(int(user.ID)) + "'. Skipping.")
+		} else if goalStatus {
+			usersToAlert = append(usersToAlert, user)
+		}
+
+	}
+
+	for _, user := range usersToAlert {
+		utilities.SendSMTPSundayReminderEmail(user)
+	}
 
 }

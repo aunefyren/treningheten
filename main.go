@@ -8,6 +8,7 @@ import (
 	"aunefyren/treningheten/middlewares"
 	"aunefyren/treningheten/models"
 	"aunefyren/treningheten/utilities"
+	"context"
 	"flag"
 	"fmt"
 	"log"
@@ -23,6 +24,7 @@ import (
 
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
+	"github.com/procyon-projects/chrono"
 	"github.com/thanhpk/randstr"
 )
 
@@ -145,6 +147,18 @@ func main() {
 		}
 		fmt.Println("Generated new invite code. Code: " + invite)
 		log.Println("Generated new invite code. Code: " + invite)
+	}
+
+	// Create task scheduler
+	taskScheduler := chrono.NewDefaultTaskScheduler()
+
+	_, err = taskScheduler.ScheduleWithCron(func(ctx context.Context) {
+		log.Println("Sunday reminder task executing.")
+		controllers.SendSundayEmailReminder()
+	}, "0 0 18 * * 7")
+
+	if err != nil {
+		log.Println("Sunday reminder task was not scheduled successfully.")
 	}
 
 	// Initialize Router
