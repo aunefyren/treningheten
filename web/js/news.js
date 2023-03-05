@@ -31,17 +31,8 @@ function load_page(result) {
 
                     <div class="module">
 
-                        <div id="divider-1" class="divider color-invert" style="display: none;">
-                            <hr></hr>
-                        </div>
-
-
                         <div id="news-title" class="title" style="display: none;">
                             News:
-                        </div>
-
-                        <div id="divider-2" class="divider color-invert" style="display: none;">
-                            <hr></hr>
                         </div>
 
                         <div id="news-box" class="news">
@@ -115,8 +106,6 @@ function place_news(news_array, admin) {
         return;
     } else {
         document.getElementById("news-title").style.display = "inline-block"
-        document.getElementById("divider-1").style.display = "inline-block"
-        document.getElementById("divider-2").style.display = "inline-block"
     }
 
     var html = ''
@@ -145,10 +134,6 @@ function place_news(news_array, admin) {
         html += date_string
         html += '</div>';
 
-        html += '</div>'
-
-        html += '<div class="divider color-invert">'
-        html += '<hr></hr>'
         html += '</div>'
 
     }

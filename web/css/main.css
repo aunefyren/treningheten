@@ -524,7 +524,7 @@ button:disabled {
 
 .text-date{
   text-align: center;
-  margin: 0 0 2em 0;
+  margin: 0;
   text-align: end;
   font-size: 0.75em;
 }
@@ -614,7 +614,10 @@ hr {
 }
 
 .news-post {
-  margin: 1em 0;
+  margin: 2em 0;
+  padding: 0.5em;
+  background-color: var(--white);
+  border-radius: 1em;
 }
 
 .news, .seasons {
