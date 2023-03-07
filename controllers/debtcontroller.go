@@ -52,19 +52,6 @@ func GenerateLastWeeksDebt() {
 
 	for _, user := range lastWeek.UserWeekResults {
 
-		log.Println(user.User.FirstName + ": ")
-		if user.Competing {
-			log.Println("Competing")
-		} else {
-			log.Println("Not competing")
-		}
-		if user.Sickleave {
-			log.Println("Sickleave")
-		} else {
-			log.Println("Not sickleave")
-		}
-		log.Println("___________")
-
 		if user.Competing && user.WeekCompletion < 1 && !user.Sickleave {
 			losers = append(losers, user.User)
 		} else if user.Competing && user.WeekCompletion >= 1 && !user.Sickleave {
@@ -385,19 +372,6 @@ func APIChooseWinnerForDebt(context *gin.Context) {
 
 	// Find weeks winners
 	for _, user := range lastWeek.UserWeekResults {
-
-		log.Println(user.User.FirstName + ": ")
-		if user.Competing {
-			log.Println("Competing")
-		} else {
-			log.Println("Not competing")
-		}
-		if user.Sickleave {
-			log.Println("Sickleave")
-		} else {
-			log.Println("Not sickleave")
-		}
-		log.Println("___________")
 
 		if user.Competing && user.WeekCompletion >= 1 && !user.Sickleave {
 			userWithTickets := models.UserWithTickets{
