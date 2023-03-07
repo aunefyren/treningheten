@@ -190,7 +190,7 @@ function placeWheel(canidateArray) {
 
     for(var i = 0; i < canidateArray.length; i++) {
         for(var j = 0; j < canidateArray[i].tickets; j++) {
-            placementArray.push({'fillStyle' : canidateArray[i].color, 'text' : canidateArray[i].user.first_name + ' ' + canidateArray[i].user.last_name, 'user_id' : canidateArray[i].user.ID})
+            placementArray.push({'fillStyle' : canidateArray[i].color, 'text' : canidateArray[i].user.first_name, 'user_id' : canidateArray[i].user.ID})
         }
     }
 
