@@ -238,7 +238,6 @@ async function calculatePrize()
     if(winner != false) {
         for(var i = 0; i < placementArray.length; i++) {
             if(placementArray[i].user_id == winner.ID) {
-                console.log("Winner ID matched: " + placementArray[i].user_id)
                 segment = i+1;
             }
         }
@@ -246,8 +245,6 @@ async function calculatePrize()
         error("No winner.");
         return
     }
-
-    console.log("Segment: " + segment)
 
     if(segment == 0) {
         error("Failed to find correct segment.");
@@ -286,7 +283,14 @@ function drawTriangle()
 }
 
 function spinFinished() {
-    info(winner.first_name + " won " + prize.quantity + " " + prize.name + " from " + loser.first_name + ".")
+    
+
+    if(winner.ID == user_id) {
+        info("You won " + prize.quantity + " " + prize.name + " from " + loser.first_name + ".")
+        trigger_fireworks(1);
+    } else {
+        info(winner.first_name + " won " + prize.quantity + " " + prize.name + " from " + loser.first_name + ".")
+    }
 }
 
 async function choose_winner(resolve, debt_id) {
