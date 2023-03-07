@@ -373,7 +373,7 @@ func APIChooseWinnerForDebt(context *gin.Context) {
 	// Find weeks winners
 	for _, user := range lastWeek.UserWeekResults {
 
-		if user.Competing && user.WeekCompletion >= 1 {
+		if user.Competing && user.WeekCompletion >= 1 && !user.Sickleave {
 			userWithTickets := models.UserWithTickets{
 				User:    user.User,
 				Tickets: user.CurrentStreak + 1,
