@@ -367,7 +367,7 @@ func APIChooseWinnerForDebt(context *gin.Context) {
 	}
 
 	// Get weeks results
-	lastWeekArray, err := RetrieveWeekResultsFromSeasonWithinTimeframe(debtObject.Date.AddDate(0, 0, -14), debtObject.Date.AddDate(0, 0, -7), debtObject.Season)
+	lastWeekArray, err := RetrieveWeekResultsFromSeasonWithinTimeframe(debtObject.Date.AddDate(0, 0, -7), debtObject.Date, debtObject.Season)
 	if err != nil {
 		log.Println("Failed to retrieve last week for season. Error: " + err.Error())
 		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed process results."})
