@@ -96,6 +96,13 @@ func ConvertSeasonToSeasonObject(season models.Season) (models.SeasonObject, err
 
 	}
 
+	prize, _, err := database.GetPrizeByID(season.Prize)
+	if err != nil {
+		return models.SeasonObject{}, err
+	}
+
+	seasonObject.Prize = prize
+
 	seasonObject.CreatedAt = season.CreatedAt
 	seasonObject.DeletedAt = season.DeletedAt
 	seasonObject.Description = season.Description
@@ -374,6 +381,20 @@ func GetWeekResultForGoal(goal models.Goal, currentTime time.Time, userStreaks [
 	newResult.User = goalObject.User
 	newResult.WeekCompletion = (float64(exerciseSum) / float64(goal.ExerciseInterval))
 	newResult.CurrentStreak = 0
+	newResult.Competing = goalObject.Competing
+
+	// Check for debt for week
+	debt, debtFound, err := database.GetDebtForWeekForUser(currentTime, int(goalObject.User.ID))
+	if err != nil {
+		log.Println("Failed to check for debt for user '" + strconv.Itoa(int(goalObject.User.ID)) + "'. Debt will be null.")
+	} else if debtFound {
+		debtObject, err := ConvertDebtToDebtObject(debt)
+		if err != nil {
+			log.Println("Failed to convert debt to debt object for user '" + strconv.Itoa(int(goalObject.User.ID)) + "'. Debt will be null.")
+		} else {
+			newResult.Debt = &debtObject
+		}
+	}
 
 	// Find user in streak dict
 	userFound := false

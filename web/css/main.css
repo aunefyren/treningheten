@@ -368,6 +368,7 @@ button:hover {
 
 button:disabled {
   cursor:default;
+  opacity: 0.5;
 }
 
 .groups, .wishlists, .wishes {
@@ -958,7 +959,7 @@ input[type=checkbox]
   align-content: center;
 }
 
-.season, .current-week, .server-info, .invites {
+.season, .current-week, .server-info, .invites, .debt-module {
   width: auto;
   max-width: 100%;
   margin: 1em;
@@ -1227,4 +1228,55 @@ input[type=checkbox]
   -moz-user-select: none;
   -ms-user-select: none;
   user-select: none;
+}
+
+.canvas-buttons, .spinner-info {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-content: center;
+  justify-content: center;
+  align-items: center;
+  box-sizing: border-box;
+  width: 100%;
+  width: -webkit-fill-available;
+  width: -moz-available;
+}
+
+.spinner-info {
+  margin: 1em;
+  font-size: 1.2em;
+}
+
+#unspun-wheel {
+  text-align: center;
+}
+
+
+.debt-module-notifications {
+  display: flex;
+  flex-direction: column;
+  flex-wrap: nowrap;
+  align-content: center;
+  justify-content: space-between;
+  align-items: center;
+  box-sizing: border-box;
+  width: 100%;
+  width: -webkit-fill-available;
+  width: -moz-available;
+  height: auto;
+  max-height: 23em;
+  overflow-y: auto;
+}
+
+.debt-module-notification-view, .debt-module-notification-prize, .debt-module-notification-debt {
+  border: solid 2px var(--lightblue);
+  border-radius: 0.5em;
+  margin: 0.25em;
+  padding: 0.5em;
+}
+
+.debt-module-notification-debt {
+  border: solid 2px var(--red) !important;
+  background-color: var(--eggshell) !important;
 }

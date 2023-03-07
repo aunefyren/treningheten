@@ -9,7 +9,7 @@ import (
 	"github.com/thanhpk/randstr"
 )
 
-// Recieve a user strcut and save it in the database
+// receive a user strcut and save it in the database
 func RegisterUserInDB(user models.User) error {
 	dbRecord := Instance.Create(&user)
 

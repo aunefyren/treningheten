@@ -138,7 +138,7 @@ function get_image(url, cookie, info, iteration) {
     return;
 }
 
-/// Recieves file and returns Base64 string of file
+/// receives file and returns Base64 string of file
 function get_base64(file, onLoadCallback) {
     return new Promise(function(resolve, reject) {
         var reader = new FileReader();
@@ -290,4 +290,9 @@ function trigger_fireworks(number) {
     } else {
         document.getElementById('pyro').style.display = 'none';
     }
-  }
+}
+
+Date.prototype.GetWeek = function() {
+    var onejan = new Date(this.getFullYear(), 0, 1);
+    return Math.ceil((((this - onejan) / 86400000) + onejan.getDay() + 1) / 7);
+}

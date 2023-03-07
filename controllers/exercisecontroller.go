@@ -83,6 +83,19 @@ func APIRegisterWeek(context *gin.Context) {
 		return
 	}
 
+	// Check if any debt is unspun
+	_, debtsFound, err := database.GetUnchosenDebtForUserByUserID(userID)
+	if err != nil {
+		log.Println("Failed to get unspun spins. Error: " + err.Error())
+		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get unviewed spins."})
+		context.Abort()
+		return
+	} else if debtsFound {
+		context.JSON(http.StatusBadRequest, gin.H{"error": "You must spin the wheel first."})
+		context.Abort()
+		return
+	}
+
 	// Verify all weekdays are present
 	if len(week.Days) != 7 {
 		context.JSON(http.StatusBadRequest, gin.H{"error": "Week is not seven days."})

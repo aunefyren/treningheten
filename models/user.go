@@ -44,6 +44,11 @@ type UserUpdatePasswordRequest struct {
 	PasswordRepeat string `json:"password_repeat"`
 }
 
+type UserWithTickets struct {
+	User    User `json:"user"`
+	Tickets int  `json:"tickets"`
+}
+
 func (user *User) HashPassword(password string) error {
 	bytes, err := bcrypt.GenerateFromPassword([]byte(password), 14)
 	if err != nil {

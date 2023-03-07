@@ -12,6 +12,7 @@ type Season struct {
 	Description string    `json:"description"`
 	Start       time.Time `json:"start" gorm:"not null"`
 	End         time.Time `json:"end" gorm:"not null"`
+	Prize       int       `json:"prize"`
 	Enabled     bool      `json:"enabled" gorm:"not null;default: true"`
 }
 
@@ -20,6 +21,7 @@ type SeasonCreationRequest struct {
 	Description string    `json:"description"`
 	Start       time.Time `json:"start"`
 	End         time.Time `json:"end"`
+	Prize       int       `json:"prize"`
 }
 
 type SeasonObject struct {
@@ -30,6 +32,7 @@ type SeasonObject struct {
 	End         time.Time    `json:"end"`
 	Enabled     bool         `json:"enabled"`
 	Goals       []GoalObject `json:"goals"`
+	Prize       Prize        `json:"prize"`
 }
 
 type SeasonLeaderboard struct {
@@ -47,10 +50,12 @@ type WeekResults struct {
 }
 
 type UserWeekResults struct {
-	WeekCompletion float64 `json:"week_completion"`
-	CurrentStreak  int     `json:"current_streak"`
-	User           User    `json:"user"`
-	Sickleave      bool    `json:"sickleave"`
+	WeekCompletion float64     `json:"week_completion"`
+	CurrentStreak  int         `json:"current_streak"`
+	User           User        `json:"user"`
+	Sickleave      bool        `json:"sickleave"`
+	Competing      bool        `json:"competing"`
+	Debt           *DebtObject `json:"debt"`
 }
 
 type UserStreak struct {

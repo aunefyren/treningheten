@@ -254,6 +254,15 @@ function load_page(result) {
 
                                 </div>
 
+                                <div id="debt-module" class="debt-module" style="display: none;">
+
+                                    <h3 id="debt-module-title">Prizes</h3>
+
+                                    <div id="debt-module-notifications" class="debt-module-notifications">
+                                    </div>
+
+                                </div>
+
                                 <div id="current-week" class="current-week">
 
                                     <h3 id="current-week-title">Current week</h3>
@@ -281,24 +290,8 @@ function load_page(result) {
 
                     </div>
 
-                    <div class="module">
+                    <div class="module" id="unspun-wheel" style="display: none;">
 
-                        <div id="divider-1" class="divider" style="display: none;">
-                            <hr></hr>
-                        </div>
-
-
-                        <div id="news-title" class="title" style="display: none;">
-                            News:
-                        </div>
-
-                        <div id="divider-2" class="divider" style="display: none;">
-                            <hr></hr>
-                        </div>
-
-                        <div id="news-box" class="news">
-                        </div>
-                        
                     </div>
 
                 </div>
@@ -482,6 +475,7 @@ function get_season(user_id){
                     get_calendar(false);
                     place_season(season);
                     get_leaderboard();
+                    get_debtoverview();
                 } else {
                     registergoal_module(season)
                 }
@@ -917,18 +911,29 @@ function place_leaderboard(weeks_array) {
 
             var results_html = "";
             for(var j = 0; j < weeks_array[i].users.length; j++) {
+
                 var completion = "❌"
                 if(weeks_array[i].users[j].sickleave) {
                     completion = "🤢"
                 } else if(weeks_array[i].users[j].week_completion >= 1) {
                     completion = "✅"
                 }
+
+                var onclick_command_str = "return;"
+                var clickable_str = ""
+                if(weeks_array[i].users[j].debt !== null && weeks_array[i].users[j].debt.winner.ID !== 0) {
+                    onclick_command_str = "location.replace('./wheel?debt_id=" + weeks_array[i].users[j].debt.ID + "'); "
+                    clickable_str = "clickable"
+                    completion += "🎡"
+                }
+
+
                 var result_html = `
                 <div class="leaderboard-week-result" id="">
                     <div class="leaderboard-week-result-user">
                         ` + weeks_array[i].users[j].user.first_name + `
                     </div>
-                    <div class="leaderboard-week-result-exercise">
+                    <div class="leaderboard-week-result-exercise ` + clickable_str  + `" onclick="` + onclick_command_str  + `">
                         ` + completion  + `
                     </div>
                 </div>
@@ -1069,4 +1074,181 @@ function use_sickleave() {
     xhttp.send();
     return false;
 
+}
+
+function get_debtoverview() {
+
+    var xhttp = new XMLHttpRequest();
+    xhttp.onreadystatechange = function() {
+        if (this.readyState == 4) {
+            
+            try {
+                result = JSON.parse(this.responseText);
+            } catch(e) {
+                console.log(e +' - Response: ' + this.responseText);
+                error("Could not reach API.");
+                return;
+            }
+            
+            if(result.error) {
+
+                error(result.error);
+
+            } else {
+
+                if(result.overview.debt_lost.length > 0) {
+
+                    var date_str = ""
+                    try {
+                        var date = new Date(result.overview.debt_lost[0].date);
+                        var date_week = date.GetWeek();
+                        var date_year = date.getFullYear();
+                        var date_str = date_week + " (" + date_year + ")"
+                    } catch {
+                        date_str = "Error"
+                    }
+    
+                    document.getElementById("ongoingseason").style.display = "none";
+                    document.getElementById("unspun-wheel").style.display = "flex";
+                    document.getElementById("unspun-wheel").innerHTML = `
+                        You failed to reach your goal for week ${date_str} and must spin the wheel.
+                        <div id="canvas-buttons" class="canvas-buttons">
+                            <button id="go-to-wheel" onclick="location.replace('./wheel?debt_id=${result.overview.debt_lost[0].ID}');">Take me there</button>
+                        </div>
+                        `;
+
+                    return;
+
+                } else if(result.overview.debt_unviewed.length > 0 || result.overview.debt_won.length > 0 || result.overview.debt_unpaid.length > 0) {
+
+                    place_debtoverview(result.overview);
+
+                } else {
+
+                    document.getElementById("debt-module").style.display = "none";
+
+                }
+
+            }
+
+        }
+    };
+    xhttp.withCredentials = true;
+    xhttp.open("post", api_url + "auth/debt");
+    xhttp.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
+    xhttp.setRequestHeader("Authorization", jwt);
+    xhttp.send();
+    return false;
+
+}
+
+function place_debtoverview(overviewArray) {
+
+    var html = "";
+
+    document.getElementById("debt-module").style.display = "flex";
+
+    for(var i = 0; i < overviewArray.debt_unviewed.length; i++) {
+
+        var date_str = ""
+        try {
+            var date = new Date(overviewArray.debt_unviewed[i].debt.date);
+            var date_week = date.GetWeek();
+            var date_year = date.getFullYear();
+            var date_str = date_week + " (" + date_year + ")"
+        } catch {
+            date_str = "Error"
+        }
+
+        html += `
+            <div class="debt-module-notification-view" id="">
+                ${overviewArray.debt_unviewed[i].debt.loser.first_name} spun the wheel for week ${date_str}.<br>See if you won!<br>
+                <img src="assets/arrow-right.svg" class="small-button-icon" onclick="location.replace('./wheel?debt_id=${overviewArray.debt_unviewed[i].debt.ID}'); ">
+            </div>
+            `;
+    }
+
+    for(var i = 0; i < overviewArray.debt_won.length; i++) {
+
+        var date_str = ""
+        try {
+            var date = new Date(overviewArray.debt_won[i].date);
+            var date_week = date.GetWeek();
+            var date_year = date.getFullYear();
+            var date_str = date_week + " (" + date_year + ")"
+        } catch {
+            date_str = "Error"
+        }
+
+        console.log(overviewArray.debt_won)
+
+        html += `
+            <div class="debt-module-notification-prize" id="">
+                ${overviewArray.debt_won[i].loser.first_name} spun the wheel for week ${date_str} and you won <b>${overviewArray.debt_won[i].season.prize.quantity} ${overviewArray.debt_won[i].season.prize.name}</b>!<br>Have you received it?<br>
+                <img src="assets/done.svg" class="small-button-icon" onclick="set_prizereceived(${overviewArray.debt_won[i].ID});">
+            </div>
+            `;
+    }
+
+    for(var i = 0; i < overviewArray.debt_unpaid.length; i++) {
+
+        var date_str = ""
+        try {
+            var date = new Date(overviewArray.debt_unpaid[i].date);
+            var date_week = date.GetWeek();
+            var date_year = date.getFullYear();
+            var date_str = date_week + " (" + date_year + ")"
+        } catch {
+            date_str = "Error"
+        }
+
+        console.log(overviewArray.debt_unpaid)
+
+        html += `
+            <div class="debt-module-notification-debt" id="">
+                You spun the wheel for week ${date_str} and ${overviewArray.debt_unpaid[i].winner.first_name} won ${overviewArray.debt_unpaid[i].season.prize.quantity} ${overviewArray.debt_unpaid[i].season.prize.name}!<br>Provide the prize as soon as possible!<br>
+            </div>
+            `;
+    }
+
+    document.getElementById("debt-module-notifications").innerHTML = html;
+
+}
+
+function set_prizereceived(debt_id) {
+
+    if(!confirm("Are you sure?")) {
+        return;
+    }
+
+    var xhttp = new XMLHttpRequest();
+    xhttp.onreadystatechange = function() {
+        if (this.readyState == 4) {
+            
+            try {
+                result = JSON.parse(this.responseText);
+            } catch(e) {
+                console.log(e +' - Response: ' + this.responseText);
+                error("Could not reach API.");
+                return;
+            }
+            
+            if(result.error) {
+
+                error(result.error);
+
+            } else {
+
+                get_debtoverview();
+
+            }
+
+        }
+    };
+    xhttp.withCredentials = true;
+    xhttp.open("post", api_url + "auth/debt/" + debt_id + "/received");
+    xhttp.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
+    xhttp.setRequestHeader("Authorization", jwt);
+    xhttp.send();
+    return false;
 }

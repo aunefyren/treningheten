@@ -149,7 +149,7 @@ func main() {
 		log.Println("Generated new invite code. Code: " + invite)
 	}
 
-	// Create task scheduler
+	// Create task scheduler for sunday reminders
 	taskScheduler := chrono.NewDefaultTaskScheduler()
 
 	_, err = taskScheduler.ScheduleWithCron(func(ctx context.Context) {
@@ -159,6 +159,15 @@ func main() {
 
 	if err != nil {
 		log.Println("Sunday reminder task was not scheduled successfully.")
+	}
+
+	_, err = taskScheduler.ScheduleWithCron(func(ctx context.Context) {
+		log.Println("Monday competition task executing.")
+		controllers.GenerateLastWeeksDebt()
+	}, "0 0 6 * * 1")
+
+	if err != nil {
+		log.Println("Monday competition task was not scheduled successfully.")
 	}
 
 	// Initialize Router
@@ -212,6 +221,12 @@ func initRouter() *gin.Engine {
 			auth.POST("/user/get/:user_id", controllers.GetUser)
 			auth.POST("/user/get", controllers.GetUsers)
 			auth.POST("/user/update", controllers.UpdateUser)
+
+			auth.POST("/debt/unchosen", controllers.APIGetUnchosenDebt)
+			auth.POST("/debt/:debt_id", controllers.APIGetDebt)
+			auth.POST("/debt/:debt_id/choose", controllers.APIChooseWinnerForDebt)
+			auth.POST("/debt", controllers.APIGetDebtOverview)
+			auth.POST("/debt/:debt_id/received", controllers.APISetPrizeReceived)
 		}
 
 		admin := api.Group("/admin").Use(middlewares.Auth(true))
@@ -278,6 +293,11 @@ func initRouter() *gin.Engine {
 	// Static endpoint for admin functions
 	router.GET("/admin", func(c *gin.Context) {
 		c.HTML(http.StatusOK, "admin.html", nil)
+	})
+
+	// Static endpoint for wheel spinning
+	router.GET("/wheel", func(c *gin.Context) {
+		c.HTML(http.StatusOK, "wheel.html", nil)
 	})
 
 	return router
