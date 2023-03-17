@@ -774,6 +774,11 @@ function update_exercises() {
                     new_fireworks = true
                 }
 
+                if(result.token != null && result.token != "") {
+                    // store jwt to cookie
+                    set_cookie("treningheten", result.token, 7);
+                }
+
                 console.log("Placing intial week: ")
                 place_week(week, new_fireworks);
                 get_leaderboard();
