@@ -249,12 +249,21 @@ function place_leaderboard(weeks_array, season_id) {
                 } else if(weeks_array[i].users[j].week_completion >= 1) {
                     completion = "✅"
                 }
+
+                var onclick_command_str = "return;"
+                var clickable_str = ""
+                if(weeks_array[i].users[j].debt !== null && weeks_array[i].users[j].debt.winner.ID !== 0) {
+                    onclick_command_str = "location.replace('./wheel?debt_id=" + weeks_array[i].users[j].debt.ID + "'); "
+                    clickable_str = "clickable"
+                    completion += "🎡"
+                }
+
                 var result_html = `
                 <div class="leaderboard-week-result" id="">
                     <div class="leaderboard-week-result-user">
                         ` + weeks_array[i].users[j].user.first_name + `
                     </div>
-                    <div class="leaderboard-week-result-exercise">
+                    <div class="leaderboard-week-result-exercise ` + clickable_str  + `" onclick="` + onclick_command_str  + `">
                         ` + completion  + `
                     </div>
                 </div>

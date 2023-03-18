@@ -195,7 +195,9 @@ function placeWheel(canidateArray) {
     }
 
     // Shuffle array order
-    placementArray = placementArray.sort((a, b) => 0.5 - Math.random());
+    for(var i = 0; i < 10; i++) {
+        placementArray = placementArray.sort((a, b) => 0.5 - Math.random());
+    }
 
     theWheel = new Winwheel({
         'numSegments'    : placementArray.length,

@@ -299,7 +299,9 @@ func RetrieveWeekResultsFromSeasonWithinTimeframe(firstPointInTime time.Time, la
 	for finished == false {
 
 		// New week
-		weekResult := models.WeekResults{}
+		weekResult := models.WeekResults{
+			UserWeekResults: []models.UserWeekResults{},
+		}
 
 		// Add weel details
 		weekResult.WeekYear, weekResult.WeekNumber = currentTime.ISOWeek()

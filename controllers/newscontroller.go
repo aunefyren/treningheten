@@ -3,6 +3,7 @@ package controllers
 import (
 	"aunefyren/treningheten/database"
 	"aunefyren/treningheten/models"
+	"log"
 	"net/http"
 	"strconv"
 	"time"
@@ -57,7 +58,8 @@ func RegisterNewsPost(context *gin.Context) {
 	// Bind the incoming request body to the NewsCreationRequest model
 	if err := context.ShouldBindJSON(&newsCreationRequest); err != nil {
 		// If there is an error binding the request, return a Bad Request response
-		context.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		log.Println("Failed to parse request. Error: " + err.Error())
+		context.JSON(http.StatusBadRequest, gin.H{"error": "Failed to parse request."})
 		context.Abort()
 		return
 	}
