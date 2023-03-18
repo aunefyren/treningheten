@@ -482,7 +482,6 @@ func APIGetDebtOverview(context *gin.Context) {
 		// Check if viewed by reciever
 		for _, debt := range debtObjects {
 			wheelview, wheelviewFound, err := database.GetWheelviewByDebtIDAndUserID(userID, int(debt.ID))
-			log.Println(debt.ID)
 			if err != nil {
 				log.Println("Failed to get wheelview for debt. Error: " + err.Error())
 				context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get wheelview for debt."})
