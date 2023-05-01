@@ -332,7 +332,7 @@ function place_statistics(leaderboard_array) {
                 },
                 {
                     fill: false,
-                    borderColor: "rgba(119,141,169,0.5)",
+                    borderColor: "rgba(119,141,169,0.25)",
                     responsive: true,
                     data: goals,
                 }
@@ -342,7 +342,7 @@ function place_statistics(leaderboard_array) {
             legend: {display: false},
             title: {
                 display: true,
-                text: "Week completion percentage",
+                text: "Week exercise interval",
                 fontSize: 16
             }
         }
