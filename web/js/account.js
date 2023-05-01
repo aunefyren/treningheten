@@ -314,9 +314,9 @@ function place_statistics(leaderboard_array) {
 
     leaderboard_array = leaderboard_array.reverse();
 
-    const xValues = [];
-    const yValues = [];
-    const goals = [];
+    var xValues = [];
+    var yValues = [];
+    var goals = [];
     generateData();
 
     new Chart("myChart", {
