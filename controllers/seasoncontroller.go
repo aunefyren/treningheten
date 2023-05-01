@@ -529,3 +529,103 @@ func APIGetSeasonWeeks(context *gin.Context) {
 	context.JSON(http.StatusOK, gin.H{"leaderboard": weekResults, "message": "Season leaderboard retrieved."})
 
 }
+
+// Get all weeks from within season with actual exercise intervals
+func APIGetSeasonWeeksPersonal(context *gin.Context) {
+
+	// Create user request
+	var seasonID = context.Param("season_id")
+
+	// Parse group id
+	seasonIDInt, err := strconv.Atoi(seasonID)
+	if err != nil {
+		context.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		context.Abort()
+		return
+	}
+
+	// Get user ID
+	userID, err := middlewares.GetAuthUsername(context.GetHeader("Authorization"))
+	if err != nil {
+		log.Println("Failed to get user ID. Error: " + err.Error())
+		context.JSON(http.StatusBadRequest, gin.H{"error": "Failed to get user ID."})
+		context.Abort()
+		return
+	}
+
+	// Verify goal exists within season
+	goal, err := database.GetGoalFromUserWithinSeason(int(seasonIDInt), userID)
+	if err != nil {
+		log.Println("Failed to verify goal status. Error: " + err.Error())
+		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to verify goal status."})
+		context.Abort()
+		return
+	}
+
+	season, err := database.GetSeasonByID(seasonIDInt)
+	if err != nil {
+		log.Println("Failed to get season from database. Error: " + err.Error())
+		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get season from database."})
+		context.Abort()
+		return
+	}
+
+	seasonObject, err := ConvertSeasonToSeasonObject(season)
+	if err != nil {
+		log.Println("Failed process season. Error: " + err.Error())
+		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed process season."})
+		context.Abort()
+		return
+	}
+
+	now := time.Now()
+
+	weekResults, err := RetrieveWeekResultsFromSeasonWithinTimeframe(season.Start, now, seasonObject)
+	weekResultsPersonal := []models.WeekResultsPersonal{}
+
+	for _, weekResult := range weekResults {
+
+		weekResultPersonal := models.WeekResultsPersonal{
+			WeekNumber: weekResult.WeekNumber,
+			WeekDate:   weekResult.WeekDate,
+			WeekYear:   weekResult.WeekYear,
+		}
+
+		userFound := false
+
+		for _, result := range weekResult.UserWeekResults {
+
+			if int(result.User.ID) == userID {
+				userWeekResultPersonal := models.UserWeekResultPersonal{
+					CurrentStreak: result.CurrentStreak,
+					User:          result.User,
+					Sickleave:     result.Sickleave,
+					Competing:     result.Competing,
+					Debt:          result.Debt,
+					ExerciseGoal:  goal.ExerciseInterval,
+				}
+
+				userWeekResultPersonal.WeekCompletionInterval = int(float64(result.WeekCompletion) * float64(goal.ExerciseInterval))
+
+				weekResultPersonal.UserWeekResults = userWeekResultPersonal
+				userFound = true
+				break
+
+			}
+
+		}
+
+		if !userFound {
+			context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create statistics for user."})
+			context.Abort()
+			return
+		}
+
+		weekResultsPersonal = append(weekResultsPersonal, weekResultPersonal)
+
+	}
+
+	// Return seasons
+	context.JSON(http.StatusOK, gin.H{"leaderboard": weekResultsPersonal, "message": "Season weeks retrieved."})
+
+}

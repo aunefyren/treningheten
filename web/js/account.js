@@ -232,8 +232,22 @@ function get_seasons(){
 function place_seasons(seasons_array) {
 
     var select_season = document.getElementById("select_season");
+    var seasons = []
 
     for(var i = 0; i < seasons_array.length; i++) {
+        var user_found = false;
+        for(var j = 0; j < seasons_array[i].goals.length; j++) {
+            if(seasons_array[i].goals[j].user.ID == user_id) {
+                user_found = true;
+                break
+            }
+        }
+        if(user_found) {
+            seasons.push(seasons_array[i])
+        }
+    }
+
+    for(var i = 0; i < seasons.length; i++) {
         
         var option = document.createElement("option");
         option.text = seasons_array[i].name
@@ -285,7 +299,7 @@ function get_season_leaderboard(seasonID){
         }
     };
     xhttp.withCredentials = true;
-    xhttp.open("post", api_url + "auth/season/" + seasonID + "/leaderboard");
+    xhttp.open("post", api_url + "auth/season/" + seasonID + "/leaderboard-personal");
     xhttp.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
     xhttp.setRequestHeader("Authorization", jwt);
     xhttp.send();
@@ -302,18 +316,27 @@ function place_statistics(leaderboard_array) {
 
     const xValues = [];
     const yValues = [];
+    const goals = [];
     generateData();
 
     new Chart("myChart", {
         type: "line",
         data: {
             labels: xValues,
-            datasets: [{
-                fill: false,
-                borderColor: "rgba(255,0,0,0.5)",
-                responsive: true,
-                data: yValues,
-            }]
+            datasets: [
+                {
+                    fill: false,
+                    borderColor: "rgba(119,141,169,1)",
+                    responsive: true,
+                    data: yValues,
+                },
+                {
+                    fill: false,
+                    borderColor: "rgba(119,141,169,0.5)",
+                    responsive: true,
+                    data: goals,
+                }
+            ]
         },    
         options: {
             legend: {display: false},
@@ -331,25 +354,12 @@ function place_statistics(leaderboard_array) {
 
             xValues.push("" + leaderboard_array[i].week_number + " (" + leaderboard_array[i].week_year + ")");
 
-            var user_found = false;
+            var exercise = leaderboard_array[i].user.week_completion_interval
+            var goal = leaderboard_array[i].user.exercise_goal
 
-            for(var j = 0; j < leaderboard_array[i].users.length; j++) {
-
-                if(leaderboard_array[i].users[j].user.ID == user_id) {
-
-                    var percentage = Math.trunc(leaderboard_array[i].users[j].week_completion * 100)
-
-                    yValues.push(eval(percentage));
-                    
-                    user_found = true;
-                    break;
-                }
-
-            }
-
-            if(!user_found) {
-                yValues.push(0);
-            }
+            yValues.push(eval(exercise));
+            goals.push(eval(goal));
+               
         }
 
     }
