@@ -329,12 +329,16 @@ function place_statistics(leaderboard_array) {
                     borderColor: "rgba(119,141,169,1)",
                     responsive: true,
                     data: yValues,
+                    tension: 0.25,
+                    label: "Exercise count",
                 },
                 {
-                    fill: false,
+                    fill: true,
                     borderColor: "rgba(119,141,169,0.25)",
                     responsive: true,
                     data: goals,
+                    tension: 0.25,
+                    label: "Goal",
                 }
             ]
         },    
