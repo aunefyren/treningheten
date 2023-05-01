@@ -346,7 +346,7 @@ function place_statistics(leaderboard_array) {
             legend: {display: false},
             title: {
                 display: true,
-                text: "Week exercise interval",
+                text: "Week exercise count",
                 fontSize: 16
             }
         }
