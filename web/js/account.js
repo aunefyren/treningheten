@@ -100,7 +100,19 @@ function load_page(result) {
                 </select>
             </div>
 
-            <canvas id="myChart" style="width:100%;max-width:1000px;display:none;"></canvas>
+            <div>
+
+                <div id="season-longest-streak-div" class="text-body">
+                </div>
+
+                <div id="season-highest-week-div" class="text-body">
+                </div>
+
+                <div id="chart-canvas-div">
+                    <canvas id="myChart" style="width:100%;max-width:1000px;display:none;"></canvas>
+                </div>
+
+            </div>
 
         </div>
 
@@ -261,6 +273,12 @@ function place_seasons(seasons_array) {
 function choose_season() {
     var select_season = document.getElementById("select_season");
 
+    canvas_div = document.getElementById("chart-canvas-div");
+    canvas_div.innerHTML = "";
+    canvas_div.innerHTML = '<canvas id="myChart" style="width:100%;max-width:1000px;display:none;"></canvas>';
+    document.getElementById("season-longest-streak-div").innerHTML = "";
+    document.getElementById("season-highest-week-div").innerHTML = "";
+
     if(select_season.value == null || select_season.value == 0 || select_season.value == "null") {
         var myChartElement = document.getElementById("myChart");
         myChartElement.style.display = "none"
@@ -317,9 +335,32 @@ function place_statistics(leaderboard_array) {
     var xValues = [];
     var yValues = [];
     var goals = [];
-    generateData();
+    var longest_streak = 0;
+    var highest_week = 0;
 
-    new Chart("myChart", {
+    // Look through array of data
+    for (var i = 0; i < leaderboard_array.length; i++) {
+
+        xValues.push("" + leaderboard_array[i].week_number + " (" + leaderboard_array[i].week_year + ")");
+
+        var exercise = leaderboard_array[i].user.week_completion_interval
+        var goal = leaderboard_array[i].user.exercise_goal
+        var streak = leaderboard_array[i].user.current_streak
+
+        if(streak > longest_streak) {
+            longest_streak = streak;
+        }
+
+        if(exercise > highest_week) {
+            highest_week = exercise;
+        }
+
+        yValues.push(eval(exercise));
+        goals.push(eval(goal));
+           
+    }
+
+    const lineChart = new Chart("myChart", {
         type: "line",
         data: {
             labels: xValues,
@@ -352,6 +393,7 @@ function place_statistics(leaderboard_array) {
             scales: {
                 yAxes: [
                     {
+                        min: 0,
                         ticks: {
                             precision: 0
                         }
@@ -361,19 +403,12 @@ function place_statistics(leaderboard_array) {
         }
     });
 
-    function generateData() {
-
-        for (var i = 0; i < leaderboard_array.length; i++) {
-
-            xValues.push("" + leaderboard_array[i].week_number + " (" + leaderboard_array[i].week_year + ")");
-
-            var exercise = leaderboard_array[i].user.week_completion_interval
-            var goal = leaderboard_array[i].user.exercise_goal
-
-            yValues.push(eval(exercise));
-            goals.push(eval(goal));
-               
-        }
-
+    if(longest_streak > 0) {
+        document.getElementById("season-longest-streak-div").innerHTML = "Longest streak: " + longest_streak + "🔥";
     }
+
+    if(highest_week > 0) {
+        document.getElementById("season-highest-week-div").innerHTML = "Most exercise in a week: " + highest_week + "🏋️";
+    }
+
 }
