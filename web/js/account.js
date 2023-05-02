@@ -348,6 +348,15 @@ function place_statistics(leaderboard_array) {
                 display: true,
                 text: "Week exercise count",
                 fontSize: 16
+            },
+            scales: {
+                yAxes: [
+                    {
+                        ticks: {
+                            precision: 0
+                        }
+                    }
+                ]
             }
         }
     });
