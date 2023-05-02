@@ -102,6 +102,10 @@ function load_page(result) {
 
             <div>
 
+                <div class="module" id="loading-dumbell" style="display: none;">
+                    <img src="./assets/images/barbell.gif">
+                </div>
+
                 <div id="season-longest-streak-div" class="text-body">
                 </div>
 
@@ -271,8 +275,10 @@ function place_seasons(seasons_array) {
 }
 
 function choose_season() {
+
     var select_season = document.getElementById("select_season");
 
+    // Purge data
     canvas_div = document.getElementById("chart-canvas-div");
     canvas_div.innerHTML = "";
     canvas_div.innerHTML = '<canvas id="myChart" style="width:100%;max-width:1000px;display:none;"></canvas>';
@@ -283,6 +289,9 @@ function choose_season() {
         var myChartElement = document.getElementById("myChart");
         myChartElement.style.display = "none"
     } else {
+        // Show loading gif
+        document.getElementById("loading-dumbell").style.display = "inline-block";
+
         get_season_leaderboard(select_season.value)
     }
 
@@ -410,5 +419,8 @@ function place_statistics(leaderboard_array) {
     if(highest_week > 0) {
         document.getElementById("season-highest-week-div").innerHTML = "Most exercise in a week: " + highest_week + "🏋️";
     }
+
+    // Remove loading gif
+    document.getElementById("loading-dumbell").style.display = "none";
 
 }
