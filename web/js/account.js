@@ -278,6 +278,9 @@ function choose_season() {
 
     var select_season = document.getElementById("select_season");
 
+    // Show loading gif
+    document.getElementById("loading-dumbell").style.display = "inline-block";
+
     // Purge data
     canvas_div = document.getElementById("chart-canvas-div");
     canvas_div.innerHTML = "";
@@ -286,13 +289,17 @@ function choose_season() {
     document.getElementById("season-highest-week-div").innerHTML = "";
 
     if(select_season.value == null || select_season.value == 0 || select_season.value == "null") {
+
+        // Show loading gif
+        document.getElementById("loading-dumbell").style.display = "none";
+
         var myChartElement = document.getElementById("myChart");
         myChartElement.style.display = "none"
-    } else {
-        // Show loading gif
-        document.getElementById("loading-dumbell").style.display = "inline-block";
 
+    } else {
+        
         get_season_leaderboard(select_season.value)
+
     }
 
 }
