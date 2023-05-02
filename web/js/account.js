@@ -91,7 +91,7 @@ function load_page(result) {
         <div class="module" id="stats_module">
 
             <div class="title">
-                Season workouts
+                Season statistics
             </div>
 
             <div class="form-group">
