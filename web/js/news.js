@@ -124,6 +124,7 @@ function get_news(){
 function place_news(news_array) {
 
     if(news_array.length == 0) {
+        info("No news posts found.");
         return;
     } else {
         document.getElementById("news-title").style.display = "inline-block"

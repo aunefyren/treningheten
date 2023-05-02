@@ -103,6 +103,8 @@ function get_seasons(){
 function place_seasons(seasons_array) {
 
     if(seasons_array.length == 0) {
+        info("No seasons found.");
+        error_splash_image();
         return;
     } else {
         document.getElementById("seasons-title").style.display = "inline-block"

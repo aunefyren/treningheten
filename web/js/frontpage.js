@@ -39,6 +39,10 @@ function load_page(result) {
        
                         </div>
 
+                        <div class="log-in-button" style="margin-top: 2em; display: hidden; width: 10em;">
+                            <button id="update-button" type="submit" href="#" onclick="window.location = './login';">Log in</button>
+                        </div>
+
                     </div>
 
                     <div class="module" id="registergoal" style="display: none;">
@@ -309,6 +313,7 @@ function load_page(result) {
     } else {
         showLoggedOutMenu();
         document.getElementById('front-page-text').innerHTML = 'Log in to use the platform.';
+        document.getElementById('log-in-button').style.display = 'inline-block';
     }
 }
 
@@ -450,6 +455,7 @@ function get_season(user_id){
             if(result.error) {
 
                 error(result.error);
+                error_splash_image();
 
             } else {
 

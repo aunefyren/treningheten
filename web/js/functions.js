@@ -296,3 +296,17 @@ Date.prototype.GetWeek = function() {
     var onejan = new Date(this.getFullYear(), 0, 1);
     return Math.ceil((((this - onejan) / 86400000) + onejan.getDay() + 1) / 7);
 }
+
+function error_splash_image() {
+    try {
+        var html = `
+            <div class="module">
+                <img src="./assets/images/barbell.gif">
+            </div>
+        `;
+
+        document.getElementById("content").innerHTML = html;
+    } catch(e) {
+        console.log("Failed to add splash error. Error: " + e)
+    }
+}
