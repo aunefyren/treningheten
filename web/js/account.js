@@ -112,8 +112,8 @@ function load_page(result) {
                 <div id="season-highest-week-div" class="text-body">
                 </div>
 
-                <div id="chart-canvas-div">
-                    <canvas id="myChart" style="width:100%;max-width:1000px;display:none;"></canvas>
+                <div id="chart-canvas-div" style="width: 100%;">
+                    <canvas id="myChart" style="width: 100%; max-width: 50em; display:none;"></canvas>
                 </div>
 
             </div>
@@ -284,7 +284,7 @@ function choose_season() {
     // Purge data
     canvas_div = document.getElementById("chart-canvas-div");
     canvas_div.innerHTML = "";
-    canvas_div.innerHTML = '<canvas id="myChart" style="width:100%;max-width:1000px;display:none;"></canvas>';
+    canvas_div.innerHTML = '<canvas id="myChart" style="width: 100%; max-width: 50em; display:none;"></canvas>';
     document.getElementById("season-longest-streak-div").innerHTML = "";
     document.getElementById("season-highest-week-div").innerHTML = "";
 
@@ -409,6 +409,7 @@ function place_statistics(leaderboard_array) {
             scales: {
                 yAxes: [
                     {
+                        beginAtZero: true,
                         min: 0,
                         ticks: {
                             precision: 0
