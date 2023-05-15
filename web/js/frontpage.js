@@ -39,7 +39,7 @@ function load_page(result) {
        
                         </div>
 
-                        <div class="log-in-button" style="margin-top: 2em; display: none; width: 10em;">
+                        <div id="log-in-button" style="margin-top: 2em; display: none; width: 10em;">
                             <button id="update-button" type="submit" href="#" onclick="window.location = './login';">Log in</button>
                         </div>
 
