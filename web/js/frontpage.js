@@ -43,6 +43,10 @@ function load_page(result) {
                             <button id="update-button" type="submit" href="#" onclick="window.location = './login';">Log in</button>
                         </div>
 
+                        <div class="module" id="barbell-gif" style="display: none;">
+                            <img src="./assets/images/barbell.gif">
+                        </div>
+
                     </div>
 
                     <div class="module" id="registergoal" style="display: none;">
@@ -246,7 +250,7 @@ function load_page(result) {
 
                             <div class="module-two">
 
-                                <div id="season" class="season">
+                                <div id="season-module" class="season">
 
                                     <h3 id="season_title">Loading...</h3>
                                     <p id="season_desc" style="text-align: center;">...</p>
@@ -307,9 +311,7 @@ function load_page(result) {
 
     if(result !== false) {
         showLoggedInMenu();
-        //get_news(login_data.admin);
         get_season(user_id);
-        get_debtoverview();
         document.getElementById('front-page-text').innerHTML = 'Remember to log your workouts, Anette.';
     } else {
         showLoggedOutMenu();
@@ -453,7 +455,22 @@ function get_season(user_id){
                 return;
             }
             
-            if(result.error) {
+            if(result.error == "No active or future seasons found.") {
+
+                info(result.error);
+                document.getElementById('front-page-text').innerHTML = 'An administrator must plan a new season.';
+
+                document.getElementById("exercises").style.display = "none";
+                document.getElementById("leaderboard").style.display = "none";
+                document.getElementById("season-module").style.display = "none";
+                document.getElementById("current-week").style.display = "none";
+
+                document.getElementById("ongoingseason").style.display = "flex";
+                document.getElementById("barbell-gif").style.display = "flex";
+
+                get_debtoverview();
+
+            } else if(result.error) {
 
                 error(result.error);
                 error_splash_image();
@@ -482,6 +499,7 @@ function get_season(user_id){
                     get_calendar(false);
                     place_season(season);
                     get_leaderboard();
+                    get_debtoverview();
                 } else {
                     registergoal_module(season)
                 }
