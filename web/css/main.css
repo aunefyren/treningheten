@@ -1280,3 +1280,7 @@ input[type=checkbox]
   border: solid 2px var(--red) !important;
   background-color: var(--eggshell) !important;
 }
+
+.countdown_number {
+  font-family: 'Monaco';
+}

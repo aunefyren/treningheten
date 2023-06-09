@@ -71,8 +71,8 @@ function load_page(result) {
 
                             <hr>
 
-                            <input style="" type="checkbox" id="compete" name="compete" value="compete" required>
-                            <label for="compete" style="user-select: none; text-align: center;"> I want to compete with others to uphold my workout streak.</label><br>
+                            <input style="" type="checkbox" id="compete" class="clickable" name="compete" value="compete" required>
+                            <label for="compete" class="unselectable clickable" style="user-select: none; text-align: center;"> I want to compete with others to uphold my workout streak.</label><br>
 
                             <button type="submit" onclick="register_goal();" id="register_goal_button" style=""><img src="assets/done.svg" class="btn_logo color-invert"><p2>Join season</p2></button>
 
@@ -95,7 +95,7 @@ function load_page(result) {
 
                             <hr>
                             
-                            <p style="font-size: 2em; text-align: center;" id="countdown_number">00d 00h 0m 00s</p>
+                            <p style="font-size: 2em; text-align: center;" id="countdown_number" class="countdown_number">00d 00h 00m 00s</p>
 
                         </div>
 
@@ -460,15 +460,7 @@ function get_season(user_id){
                 info(result.error);
                 document.getElementById('front-page-text').innerHTML = 'An administrator must plan a new season.';
 
-                document.getElementById("exercises").style.display = "none";
-                document.getElementById("leaderboard").style.display = "none";
-                document.getElementById("season-module").style.display = "none";
-                document.getElementById("current-week").style.display = "none";
-
-                document.getElementById("ongoingseason").style.display = "flex";
-                document.getElementById("barbell-gif").style.display = "flex";
-
-                get_debtoverview();
+                get_debtoverview_prepare(true);
 
             } else if(result.error) {
 
@@ -494,6 +486,7 @@ function get_season(user_id){
 
                 if(user_found && now < date_start) {
                     countdown_module(season, goal)
+                    get_debtoverview_prepare(false);
                 } else if(user_found) {
                     document.getElementById("ongoingseason").style.display = "flex"
                     get_calendar(false);
@@ -502,6 +495,7 @@ function get_season(user_id){
                     get_debtoverview();
                 } else {
                     registergoal_module(season)
+                    get_debtoverview_prepare(false);
                 }
 
             }
@@ -863,8 +857,8 @@ function StartCountDown(countdownDate){
         var seconds = Math.floor((distance % (1000 * 60)) / 1000);
     
         // Display the result in the element with id="demo"
-        document.getElementById("countdown_number").innerHTML = days + "d " + hours + "h "
-        + minutes + "m " + seconds + "s ";
+        document.getElementById("countdown_number").innerHTML = padNumber(days, 2) + "d " + padNumber(hours, 2) + "h "
+        + padNumber(minutes, 2) + "m " + padNumber(seconds, 2) + "s ";
     
         // If the count down is finished, write some text
         if (distance < 0) {
@@ -1280,4 +1274,21 @@ function set_prizereceived(debt_id) {
     xhttp.setRequestHeader("Authorization", jwt);
     xhttp.send();
     return false;
+}
+
+function get_debtoverview_prepare(show_barbell) {
+
+    document.getElementById("exercises").style.display = "none";
+    document.getElementById("leaderboard").style.display = "none";
+    document.getElementById("season-module").style.display = "none";
+    document.getElementById("current-week").style.display = "none";
+
+    document.getElementById("ongoingseason").style.display = "flex";
+
+    if(show_barbell) {
+        document.getElementById("barbell-gif").style.display = "flex";
+    }
+
+    get_debtoverview();
+
 }

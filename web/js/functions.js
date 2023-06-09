@@ -310,3 +310,8 @@ function error_splash_image() {
         console.log("Failed to add splash error. Error: " + e)
     }
 }
+
+function padNumber(num, size) {
+    var s = "000000000" + num;
+    return s.substr(s.length-size);
+}
