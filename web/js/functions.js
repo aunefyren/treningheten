@@ -315,3 +315,32 @@ function padNumber(num, size) {
     var s = "000000000" + num;
     return s.substr(s.length-size);
 }
+
+function gcdOfArray(input) {
+    if (toString.call(input) !== "[object Array]")  
+        return  false;  
+    var len, a, b;
+    len = input.length;
+    if ( !len ) {
+        return null;
+    }
+    a = input[ 0 ];
+    for ( var i = 1; i < len; i++ ) {
+        b = input[ i ];
+        a = gcdOfTwoNumbers( a, b );
+    }
+    return a;
+}
+
+function gcdOfTwoNumbers(x, y) {
+    if ((typeof x !== 'number') || (typeof y !== 'number')) 
+      return false;
+    x = Math.abs(x);
+    y = Math.abs(y);
+    while(y) {
+      var t = y;
+      y = x % y;
+      x = t;
+    }
+    return x;
+}

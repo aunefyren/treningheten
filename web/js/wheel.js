@@ -188,6 +188,25 @@ function placeWheel(canidateArray) {
 
     console.log("Placing " + ticketAmount + " tickets.");
 
+    // Establish all the different integers of tickets for users
+    var ticketAmounts = []
+    for(var i = 0; i < canidateArray.length; i++) {
+        ticketAmounts.push(canidateArray[i].tickets)
+    }
+
+    // Calculate Greatest Common Divisor
+    var GCD = gcdOfArray(ticketAmounts)
+    console.log("GCD: " + GCD)
+
+    // Divide all tickets by GCD
+    if(GCD > 1) {
+        console.log("Dividing tickets by GCD.");
+        for(var i = 0; i < canidateArray.length; i++) {
+            canidateArray[i].tickets = Math.floor(canidateArray[i].tickets / GCD)
+        }
+    }
+
+    // Add tickets to wheel dict
     for(var i = 0; i < canidateArray.length; i++) {
         for(var j = 0; j < canidateArray[i].tickets; j++) {
             placementArray.push({'fillStyle' : canidateArray[i].color, 'text' : canidateArray[i].user.first_name, 'user_id' : canidateArray[i].user.ID})
