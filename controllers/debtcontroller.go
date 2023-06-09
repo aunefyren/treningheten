@@ -4,6 +4,7 @@ import (
 	"aunefyren/treningheten/database"
 	"aunefyren/treningheten/middlewares"
 	"aunefyren/treningheten/models"
+	"errors"
 	"log"
 	"net/http"
 	"strconv"
@@ -15,34 +16,45 @@ import (
 
 func GenerateLastWeeksDebt() {
 
-	now := time.Now()
+	lastWeek := time.Now().AddDate(0, 0, -7)
+
+	err := GenerateDebtForWeek(lastWeek)
+	if err != nil {
+		log.Println("Returned error generating las tweeks debt: " + err.Error())
+	}
+
+	return
+
+}
+
+func GenerateDebtForWeek(givenTime time.Time) error {
 
 	// Get current season
-	season, err := GetOngoingSeasonFromDB(now)
+	season, err := GetOngoingSeasonFromDB(givenTime)
 	if err != nil {
 		log.Println("Failed to verify current season status. Returning. Error: " + err.Error())
-		return
+		return errors.New("Failed to verify current season status.")
 	}
 
 	// Stop if not within season
-	if season.Start.After(now) || season.End.Before(now) {
+	if season.Start.After(givenTime) || season.End.Before(givenTime) {
 		log.Println("Not in the middle of a season. Returning.")
-		return
+		return errors.New("Not in the middle of a season.")
 	}
 
 	seasonObject, err := ConvertSeasonToSeasonObject(season)
 	if err != nil {
 		log.Println("Failed to convert season to season object. Returning. Error: " + err.Error())
-		return
+		return errors.New("Failed to convert season to season object.")
 	}
 
-	lastWeekArray, err := RetrieveWeekResultsFromSeasonWithinTimeframe(now.AddDate(0, 0, -14), now.AddDate(0, 0, -7), seasonObject)
+	lastWeekArray, err := RetrieveWeekResultsFromSeasonWithinTimeframe(givenTime.AddDate(0, 0, -7), givenTime, seasonObject)
 	if err != nil {
 		log.Println("Failed to retrieve last week for season. Returning. Error: " + err.Error())
-		return
+		return errors.New("Failed to retrieve last week for season.")
 	} else if len(lastWeekArray) != 1 {
 		log.Println("Failed to retrieve ONE week for season. Returning. Error: " + err.Error())
-		return
+		return errors.New("Failed to retrieve ONE week for season.")
 	}
 
 	lastWeek := lastWeekArray[0]
@@ -64,19 +76,19 @@ func GenerateLastWeeksDebt() {
 
 	if len(losers) == 0 {
 		log.Println("No losers this week. Returning.")
-		return
+		return errors.New("No losers this week.")
 	}
 
 	if len(winners) == 0 {
 		log.Println("No winners this week. Returning.")
-		return
+		return errors.New("No winners this week.")
 	} else if len(winners) == 1 {
 		winner = int(winners[0].ID)
 	}
 
 	for _, user := range losers {
 
-		_, debtFound, err := database.GetDebtForWeekForUserInSeasonID(now.AddDate(0, 0, -7), int(user.ID), int(seasonObject.ID))
+		_, debtFound, err := database.GetDebtForWeekForUserInSeasonID(givenTime, int(user.ID), int(seasonObject.ID))
 		if err != nil {
 			log.Println("Failed check for debt for '" + strconv.Itoa(int(user.ID)) + "'. Skipping.")
 			continue
@@ -86,7 +98,7 @@ func GenerateLastWeeksDebt() {
 		}
 
 		debt := models.Debt{}
-		debt.Date = now.AddDate(0, 0, -7).Truncate(24 * time.Hour)
+		debt.Date = givenTime.Truncate(24 * time.Hour)
 		debt.Loser = int(user.ID)
 		debt.Winner = winner
 		debt.Season = int(season.ID)
@@ -101,6 +113,7 @@ func GenerateLastWeeksDebt() {
 	}
 
 	log.Println("Done logging debt. Returning.")
+	return nil
 
 }
 
@@ -563,5 +576,30 @@ func APISetPrizeReceived(context *gin.Context) {
 	}
 
 	context.JSON(http.StatusOK, gin.H{"message": "Prize payment status updated."})
+
+}
+
+func APIGenerateDebtForWeek(context *gin.Context) {
+
+	var debtCreationRequest models.DebtCreationRequest
+
+	// Bind the incoming request body to the GenerateDebtRequest model
+	if err := context.ShouldBindJSON(&debtCreationRequest); err != nil {
+		// If there is an error binding the request, return a Bad Request response
+		log.Println("Failed to parse request. Error: " + err.Error())
+		context.JSON(http.StatusBadRequest, gin.H{"error": "Failed to parse request."})
+		context.Abort()
+		return
+	}
+
+	err := GenerateDebtForWeek(debtCreationRequest.Date)
+	if err != nil {
+		log.Println("Failed to generate debt. Error: " + err.Error())
+		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to generate debt. Error: " + err.Error()})
+		context.Abort()
+		return
+	}
+
+	context.JSON(http.StatusOK, gin.H{"message": "Debt generated."})
 
 }

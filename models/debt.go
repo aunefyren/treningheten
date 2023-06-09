@@ -32,3 +32,7 @@ type DebtOverview struct {
 	UnreceivedWonDebt []DebtObject      `json:"debt_won"`
 	UnpaidLostDebt    []DebtObject      `json:"debt_unpaid"`
 }
+
+type DebtCreationRequest struct {
+	Date time.Time `json:"date" gorm:"not null"`
+}

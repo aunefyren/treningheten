@@ -1284,3 +1284,9 @@ input[type=checkbox]
 .countdown_number {
   font-family: 'Monaco';
 }
+
+.debt-form {
+  width: 100%;
+  width: -webkit-fill-available;
+  width: -moz-available;
+}

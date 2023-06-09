@@ -42,6 +42,25 @@ function load_page(result) {
 
                     </div>
 
+                    <div class="debt-module" id="debt-module">
+
+                        <div class="debt-form" id="debt-form">
+
+                            <h3 id="debt-module-title">Debt:</h3>
+
+                            <form action="" onsubmit="event.preventDefault(); generate_debt();">
+                                
+                                <label for="debt-week" class="unselectable clickable">Week with debt</label><br>
+                                <input style="" class="clickable" type="date" id="debt-week" name="ebt-week" value="" required>
+
+                                <button type="submit" onclick="" id="generate-debt-button" style=""><img src="assets/plus.svg" class="btn_logo color-invert"><p2>Generate debt</p2></button>
+
+                            </form>
+
+                        </div>
+
+                    </div>
+
                 </div>
     `;
 
@@ -257,6 +276,63 @@ function delete_invite(invide_id) {
     xhttp.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
     xhttp.setRequestHeader("Authorization", jwt);
     xhttp.send();
+    return false;
+
+}
+
+function generate_debt() {
+
+    if(!confirm("Are you sure you want to generate debt for the chosen week?")) {
+        return
+    }
+
+    var debt_week = document.getElementById("debt-week").value;
+
+    try {
+        var debt_week_object = new Date(debt_week);
+        var debt_week_string = debt_week_object.toISOString()
+        console.log(debt_week_string)
+    } catch(e) {
+        error("Failed to parse date request.")
+        console.log("Error: " + e)
+        return;
+    }
+
+    var form_obj = { 
+            "date" : debt_week_string
+        };
+
+    var form_data = JSON.stringify(form_obj);
+
+    var xhttp = new XMLHttpRequest();
+    xhttp.onreadystatechange = function() {
+        if (this.readyState == 4) {
+            
+            try {
+                result = JSON.parse(this.responseText);
+            } catch(e) {
+                console.log(e +' - Response: ' + this.responseText);
+                error("Could not reach API.");
+                return;
+            }
+            
+            if(result.error) {
+
+                error(result.error);
+
+            } else {
+
+                success(result.message);
+                
+            }
+
+        }
+    };
+    xhttp.withCredentials = true;
+    xhttp.open("post", api_url + "admin/debt/generate");
+    xhttp.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
+    xhttp.setRequestHeader("Authorization", jwt);
+    xhttp.send(form_data);
     return false;
 
 }
