@@ -309,6 +309,7 @@ function load_page(result) {
         showLoggedInMenu();
         //get_news(login_data.admin);
         get_season(user_id);
+        get_debtoverview();
         document.getElementById('front-page-text').innerHTML = 'Remember to log your workouts, Anette.';
     } else {
         showLoggedOutMenu();
@@ -481,7 +482,6 @@ function get_season(user_id){
                     get_calendar(false);
                     place_season(season);
                     get_leaderboard();
-                    get_debtoverview();
                 } else {
                     registergoal_module(season)
                 }
@@ -510,8 +510,8 @@ function countdown_module(season_object, exercise_goal) {
                 
     document.getElementById("countdownseason").style.display = "flex"
     document.getElementById("countdown_season_title").innerHTML = season_object.name
-    document.getElementById("countdown_season_start").innerHTML = "Season start: " + date_start.toLocaleString("us-EN", options)
-    document.getElementById("countdown_season_end").innerHTML = "Season end: " + date_end.toLocaleString("us-EN", options)
+    document.getElementById("countdown_season_start").innerHTML = "Season start: " + date_start.toLocaleString("nb-NO", options)
+    document.getElementById("countdown_season_end").innerHTML = "Season end: " + date_end.toLocaleString("nb-NO", options)
     document.getElementById("countdown_season_desc").innerHTML = season_object.description
     document.getElementById("countdown_goal").innerHTML = "You are signed up for " + exercise_goal + " exercises a week."
 
@@ -527,8 +527,8 @@ function registergoal_module(season_object) {
 
     document.getElementById("registergoal").style.display = "flex"
     document.getElementById("register_season_title").innerHTML = season_object.name
-    document.getElementById("register_season_start").innerHTML = "Season start: " + date_start.toLocaleString("us-EN", options)
-    document.getElementById("register_season_end").innerHTML = "Season end: " + date_end.toLocaleString("us-EN", options)
+    document.getElementById("register_season_start").innerHTML = "Season start: " + date_start.toLocaleString("nb-NO", options)
+    document.getElementById("register_season_end").innerHTML = "Season end: " + date_end.toLocaleString("nb-NO", options)
     document.getElementById("register_season_desc").innerHTML = season_object.description
 
 }
@@ -974,8 +974,8 @@ function place_season_details(goal, sickleave, seasonStart, SeasonEnd) {
 
         const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
   
-        var date_start_string = date_start.toLocaleString("us-EN", options)
-        var date_end_string = date_end.toLocaleString("us-EN", options)
+        var date_start_string = date_start.toLocaleString("nb-NO", options)
+        var date_end_string = date_end.toLocaleString("nb-NO", options)
     } catch {
         var date_start_string = "Error"
         var date_end_string = "Error"
