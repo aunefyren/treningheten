@@ -14,19 +14,21 @@ import (
 	"github.com/mroth/weightedrand/v2"
 )
 
+// Calcluates a time set one week in the past and generates the debt for that week.
 func GenerateLastWeeksDebt() {
 
 	lastWeek := time.Now().AddDate(0, 0, -7)
 
 	err := GenerateDebtForWeek(lastWeek)
 	if err != nil {
-		log.Println("Returned error generating las tweeks debt: " + err.Error())
+		log.Println("Returned error generating last weeks debt: " + err.Error())
 	}
 
 	return
 
 }
 
+// Recieves a time and generates resulting debts based on the results of that week. Should be run on weeks after the results are gathered.
 func GenerateDebtForWeek(givenTime time.Time) error {
 
 	// Get current season
