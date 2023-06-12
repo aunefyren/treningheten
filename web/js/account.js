@@ -112,8 +112,8 @@ function load_page(result) {
                 <div id="season-highest-week-div" class="text-body">
                 </div>
 
-                <div id="chart-canvas-div" style="width: 100%;">
-                    <canvas id="myChart" style="width: 100%; max-width: 50em; display:none;"></canvas>
+                <div id="chart-canvas-div" style="max-width: 40; margin: 1em;">
+                    <canvas id="myChart" style="max-width: 100%; width: 1000px; display:none;"></canvas>
                 </div>
 
             </div>
@@ -284,7 +284,7 @@ function choose_season() {
     // Purge data
     canvas_div = document.getElementById("chart-canvas-div");
     canvas_div.innerHTML = "";
-    canvas_div.innerHTML = '<canvas id="myChart" style="width: 100%; max-width: 50em; display:none;"></canvas>';
+    canvas_div.innerHTML = '<canvas id="myChart" style="max-width: 100%; width: 1000px; display:none;"></canvas>';
     document.getElementById("season-longest-streak-div").innerHTML = "";
     document.getElementById("season-highest-week-div").innerHTML = "";
 
@@ -351,6 +351,8 @@ function place_statistics(leaderboard_array) {
     var xValues = [];
     var yValues = [];
     var goals = [];
+    var pointBackgroundColorArray = [];
+    var borderColorArray = [];
     var longest_streak = 0;
     var highest_week = 0;
 
@@ -360,6 +362,7 @@ function place_statistics(leaderboard_array) {
         xValues.push("" + leaderboard_array[i].week_number + " (" + leaderboard_array[i].week_year + ")");
 
         var exercise = leaderboard_array[i].user.week_completion_interval
+        var sickleave = leaderboard_array[i].user.sickleave
         var goal = leaderboard_array[i].user.exercise_goal
         var streak = leaderboard_array[i].user.current_streak
 
@@ -369,6 +372,14 @@ function place_statistics(leaderboard_array) {
 
         if(exercise > highest_week) {
             highest_week = exercise;
+        }
+        
+        if(sickleave) {
+            pointBackgroundColorArray.push("rgba(28, 159, 28, 0.8)")
+            borderColorArray.push("rgba(28, 159, 28, 0.8)")
+        } else {
+            pointBackgroundColorArray.push("rgba(119,141,169,1)")
+            borderColorArray.push("rgba(119,141,169,1)")
         }
 
         yValues.push(eval(exercise));
@@ -382,8 +393,10 @@ function place_statistics(leaderboard_array) {
             labels: xValues,
             datasets: [
                 {
-                    fill: false,
-                    borderColor: "rgba(119,141,169,1)",
+                    fill: true,
+                    borderColor: borderColorArray,
+                    pointBackgroundColor: pointBackgroundColorArray,
+                    backgroundColor: "rgba(119,141,169,0.5)",
                     responsive: true,
                     data: yValues,
                     tension: 0.25,
