@@ -54,9 +54,11 @@ function load_page(result) {
             <div id="spinner-info" class="spinner-info">
             </div>
 
-            <canvas id='canvas' width='400' height='400'>
-                Canvas not supported, use another browser.
-            </canvas>
+            <div style="overflow: hidden; max-width: 50em;">
+                <canvas id='canvas' width='1000' height='1000' style="max-width: 100%;">
+                    Canvas not supported, use another browser.
+                </canvas>
+            </div>
 
             <div id="canvas-buttons" class="canvas-buttons">
 
@@ -209,7 +211,7 @@ function placeWheel(canidateArray) {
     // Add tickets to wheel dict
     for(var i = 0; i < canidateArray.length; i++) {
         for(var j = 0; j < canidateArray[i].tickets; j++) {
-            placementArray.push({'fillStyle' : canidateArray[i].color, 'text' : canidateArray[i].user.first_name, 'user_id' : canidateArray[i].user.ID})
+            placementArray.push({'fillStyle' : canidateArray[i].color, 'textStrokeStyle' : '#000000', 'text' : canidateArray[i].user.first_name, 'user_id' : canidateArray[i].user.ID})
         }
     }
 
@@ -220,9 +222,13 @@ function placeWheel(canidateArray) {
 
     theWheel = new Winwheel({
         'numSegments'    : placementArray.length,
-        'outerRadius'    : 170,
+        'outerRadius'    : 450,
+        'centerX'        : 500,    // correctly position the wheel
+        'centerY'        : 500,
         'segments'       : placementArray,
-        'animation' :
+        'textAlignment'  : 'outer',
+        'textFontSize'   : 30,
+        'animation'      :
         {
             'type'          : 'spinToStop',
             'duration'      : 8,
@@ -295,10 +301,10 @@ function drawTriangle()
     ctx.fillStyle   = 'aqua';     // Set fill colour.
     ctx.lineWidth   = 2;
     ctx.beginPath();              // Begin path.
-    ctx.moveTo(170, 5);           // Move to initial position.
-    ctx.lineTo(230, 5);           // Draw lines to make the shape.
-    ctx.lineTo(200, 40);
-    ctx.lineTo(171, 5);
+    ctx.moveTo(460, 5);           // Move to initial position.
+    ctx.lineTo(540, 5);           // Draw lines to make the shape.
+    ctx.lineTo(500, 75);
+    ctx.lineTo(460, 5);
     ctx.stroke();                 // Complete the path by stroking (draw lines).
     ctx.fill();                   // Then fill.
 }
