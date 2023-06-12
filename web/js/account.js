@@ -412,6 +412,7 @@ function place_statistics(leaderboard_array) {
                         beginAtZero: true,
                         min: 0,
                         ticks: {
+                            beginAtZero: true,
                             precision: 0
                         }
                     }
