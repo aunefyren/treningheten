@@ -375,8 +375,8 @@ function place_statistics(leaderboard_array) {
         }
         
         if(sickleave) {
-            pointBackgroundColorArray.push("rgba(28, 159, 28, 0.8)")
-            borderColorArray.push("rgba(28, 159, 28, 0.8)")
+            pointBackgroundColorArray.push("rgba(215, 20, 20, 1)")
+            borderColorArray.push("rgba(215, 20, 20, 1)")
         } else {
             pointBackgroundColorArray.push("rgba(119,141,169,1)")
             borderColorArray.push("rgba(119,141,169,1)")

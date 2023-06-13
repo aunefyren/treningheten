@@ -1029,21 +1029,24 @@ function place_current_week(week_array) {
         var week_html = `
             <div class="current-week-user" id="">
 
-                <div class="current-week-user-name">
-                    ` + week_array.users[i].user.first_name + `
+                <div class="current-week-user-photo" title="` + week_array.users[i].user.first_name + ` ` + week_array.users[i].user.last_name + `">
+                    <img style="width: 100%; height: 100%;" class="current-week-user-photo-img" id="current-week-user-photo-` + week_array.users[i].user.ID + `-` + i + `">
                 </div>
 
                 <div class="current-week-user-results">
 
-                    <div class="current-week-user-completion ` + transparent + `">
+                    <div class="current-week-user-completion ` + transparent + `" title="How much of the goal for this week is finished.">
                         ` + completion + `%
                     </div>
 
-                    <div class="current-week-user-completion">
+                    <div class="current-week-user-completion" title="How many weeks in a row have been at least 100%.">
                         ` + current_streak + ` 
                     </div>
 
                 </div>
+
+                
+
 
             </div>
         `;
@@ -1054,7 +1057,55 @@ function place_current_week(week_array) {
 
     document.getElementById("current-week-users").innerHTML = html
 
+    for(var i = 0; i < week_array.users.length; i++) {
+        GetProfileImagesForCurrentWeek(week_array.users[i].user.ID, i)
+    }
+
     return
+
+}
+
+function GetProfileImagesForCurrentWeek(userID, index) {
+
+    var xhttp = new XMLHttpRequest();
+    xhttp.onreadystatechange = function() {
+        if (this.readyState == 4) {
+            
+            try {
+                result = JSON.parse(this.responseText);
+            } catch(e) {
+                console.log(e +' - Response: ' + this.responseText);
+                error("Could not reach API.");
+                return;
+            }
+            
+            if(result.error) {
+
+                error(result.error);
+
+            } else {
+
+                PlaceProfileImagesForCurrentWeek(result.image, userID, index)
+                
+            }
+
+        } else {
+            // info("Loading week...");
+        }
+    };
+    xhttp.withCredentials = true;
+    xhttp.open("post", api_url + "auth/user/get/" + user_id + "/image");
+    xhttp.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
+    xhttp.setRequestHeader("Authorization", jwt);
+    xhttp.send();
+
+    return;
+
+}
+
+function PlaceProfileImagesForCurrentWeek(imageBase64, userID, index) {
+
+    document.getElementById("current-week-user-photo-" + userID + "-" + index).src = imageBase64
 
 }
 

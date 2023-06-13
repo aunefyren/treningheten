@@ -1,3 +1,5 @@
 /files/*
 treningheten
 treningheten.exe
+/images/profiles/*
+!/images/profiles/default.svg

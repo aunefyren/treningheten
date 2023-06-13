@@ -220,6 +220,7 @@ func initRouter() *gin.Engine {
 			open.POST("/user/verify/:code", controllers.VerifyUser)
 			open.POST("/user/verification", controllers.SendUserVerificationCode)
 			auth.POST("/user/get/:user_id", controllers.GetUser)
+			auth.POST("/user/get/:user_id/image", controllers.APIGetUserProfileImage)
 			auth.POST("/user/get", controllers.GetUsers)
 			auth.POST("/user/update", controllers.UpdateUser)
 
