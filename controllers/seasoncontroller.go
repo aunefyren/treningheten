@@ -586,6 +586,7 @@ func APIGetSeasonWeeksPersonal(context *gin.Context) {
 
 	weekResults, err := RetrieveWeekResultsFromSeasonWithinTimeframe(season.Start, now, seasonObject)
 	weekResultsPersonal := []models.WeekResultsPersonal{}
+	weekDaysPersonal := models.WeekFrequency{}
 
 	for _, weekResult := range weekResults {
 
@@ -611,6 +612,35 @@ func APIGetSeasonWeeksPersonal(context *gin.Context) {
 
 				userWeekResultPersonal.WeekCompletionInterval = int(float64(result.WeekCompletion) * float64(goal.ExerciseInterval))
 
+				// Get the exercises from the week
+				week, err := GetExercisesForWeekUsingGoal(weekResult.WeekDate, int(goal.ID))
+				if err != nil {
+					log.Println("Failed to get exercise. Using empty week.")
+					week = models.Week{
+						Days: []models.Exercise{},
+					}
+				}
+
+				for _, day := range week.Days {
+					weekday := day.Date.Weekday()
+
+					if weekday == 0 {
+						weekDaysPersonal.Sunday = weekDaysPersonal.Sunday + day.ExerciseInterval
+					} else if weekday == 1 {
+						weekDaysPersonal.Monday = weekDaysPersonal.Monday + day.ExerciseInterval
+					} else if weekday == 2 {
+						weekDaysPersonal.Tuesday = weekDaysPersonal.Tuesday + day.ExerciseInterval
+					} else if weekday == 3 {
+						weekDaysPersonal.Sunday = weekDaysPersonal.Sunday + day.ExerciseInterval
+					} else if weekday == 4 {
+						weekDaysPersonal.Sunday = weekDaysPersonal.Sunday + day.ExerciseInterval
+					} else if weekday == 5 {
+						weekDaysPersonal.Sunday = weekDaysPersonal.Sunday + day.ExerciseInterval
+					} else if weekday == 6 {
+						weekDaysPersonal.Sunday = weekDaysPersonal.Sunday + day.ExerciseInterval
+					}
+				}
+
 				weekResultPersonal.UserWeekResults = userWeekResultPersonal
 				userFound = true
 				break
@@ -630,6 +660,6 @@ func APIGetSeasonWeeksPersonal(context *gin.Context) {
 	}
 
 	// Return seasons
-	context.JSON(http.StatusOK, gin.H{"leaderboard": weekResultsPersonal, "message": "Season weeks retrieved."})
+	context.JSON(http.StatusOK, gin.H{"leaderboard": weekResultsPersonal, "weekdays": weekDaysPersonal, "message": "Season weeks retrieved."})
 
 }

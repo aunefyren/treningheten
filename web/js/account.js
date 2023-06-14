@@ -119,8 +119,18 @@ function load_page(result) {
                 <div id="season-highest-week-div" class="text-body">
                 </div>
 
+                <div id="season-combined-exercise-div" class="text-body">
+                </div>
+
+                <div id="season-combined-sickleave-div" class="text-body">
+                </div>
+
                 <div id="chart-canvas-div" style="max-width: 40; margin: 1em;">
                     <canvas id="myChart" style="max-width: 100%; width: 1000px; display:none;"></canvas>
+                </div>
+
+                <div id="chart-canvas-div-two" style="max-width: 40; margin: 2em 1em 1em 1em;">
+                    <canvas id="myChartTwo" style="max-width: 100%; width: 1000px; display:none;"></canvas>
                 </div>
 
             </div>
@@ -332,8 +342,15 @@ function choose_season() {
     canvas_div = document.getElementById("chart-canvas-div");
     canvas_div.innerHTML = "";
     canvas_div.innerHTML = '<canvas id="myChart" style="max-width: 100%; width: 1000px; display:none;"></canvas>';
+
+    canvas_div_two = document.getElementById("chart-canvas-div-two");
+    canvas_div_two.innerHTML = "";
+    canvas_div_two.innerHTML = '<canvas id="myChartTwo" style="max-width: 100%; width: 1000px; display:none;"></canvas>';
+
     document.getElementById("season-longest-streak-div").innerHTML = "";
     document.getElementById("season-highest-week-div").innerHTML = "";
+    document.getElementById("season-combined-exercise-div").innerHTML = "";
+    document.getElementById("season-combined-sickleave-div").innerHTML = "";
 
     if(select_season.value == null || select_season.value == 0 || select_season.value == "null") {
 
@@ -371,7 +388,7 @@ function get_season_leaderboard(seasonID){
 
             } else {
 
-                place_statistics(result.leaderboard);
+                place_statistics(result.leaderboard, result.weekdays);
                 
             }
 
@@ -388,9 +405,12 @@ function get_season_leaderboard(seasonID){
 
 }
 
-function place_statistics(leaderboard_array) {
+function place_statistics(leaderboard_array, weekday_array) {
 
     var myChartElement = document.getElementById("myChart");
+    myChartElement.style.display = "inline-block"
+
+    var myChartElement = document.getElementById("myChartTwo");
     myChartElement.style.display = "inline-block"
 
     leaderboard_array = leaderboard_array.reverse();
@@ -402,6 +422,8 @@ function place_statistics(leaderboard_array) {
     var borderColorArray = [];
     var longest_streak = 0;
     var highest_week = 0;
+    var exercise_amount = 0;
+    var sickleave_amount = 0;
 
     // Look through array of data
     for (var i = 0; i < leaderboard_array.length; i++) {
@@ -412,6 +434,7 @@ function place_statistics(leaderboard_array) {
         var sickleave = leaderboard_array[i].user.sickleave
         var goal = leaderboard_array[i].user.exercise_goal
         var streak = leaderboard_array[i].user.current_streak
+        exercise_amount = exercise_amount + exercise
 
         if(streak > longest_streak) {
             longest_streak = streak;
@@ -424,6 +447,7 @@ function place_statistics(leaderboard_array) {
         if(sickleave) {
             pointBackgroundColorArray.push("rgba(215, 20, 20, 1)")
             borderColorArray.push("rgba(215, 20, 20, 1)")
+            sickleave_amount = sickleave_amount + 1
         } else {
             pointBackgroundColorArray.push("rgba(119,141,169,1)")
             borderColorArray.push("rgba(119,141,169,1)")
@@ -446,7 +470,7 @@ function place_statistics(leaderboard_array) {
                     backgroundColor: "rgba(119,141,169,0.5)",
                     responsive: true,
                     data: yValues,
-                    tension: 0.25,
+                    tension: 0,
                     label: "Exercise count",
                 },
                 {
@@ -454,7 +478,7 @@ function place_statistics(leaderboard_array) {
                     borderColor: "rgba(119,141,169,0.25)",
                     responsive: true,
                     data: goals,
-                    tension: 0.25,
+                    tension: 0,
                     label: "Goal",
                 }
             ]
@@ -463,7 +487,50 @@ function place_statistics(leaderboard_array) {
             legend: {display: false},
             title: {
                 display: true,
-                text: "Week exercise count",
+                text: "Weekly exercise graph",
+                fontSize: 16
+            },
+            scales: {
+                yAxes: [
+                    {
+                        beginAtZero: true,
+                        min: 0,
+                        ticks: {
+                            beginAtZero: true,
+                            precision: 0
+                        }
+                    }
+                ]
+            }
+        }
+    });
+
+
+    xValues2 = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
+    yValues2 = [weekday_array.monday, weekday_array.tuesday, weekday_array.wednesday, weekday_array.thursday, weekday_array.friday, weekday_array.saturday, weekday_array.sunday]
+
+    const lineChartTwo = new Chart("myChartTwo", {
+        type: "line",
+        data: {
+            labels: xValues2,
+            datasets: [
+                {
+                    fill: true,
+                    borderColor: borderColorArray,
+                    pointBackgroundColor: pointBackgroundColorArray,
+                    backgroundColor: "rgba(119,141,169,0.5)",
+                    responsive: true,
+                    data: yValues2,
+                    tension: 0,
+                    label: "Exercise count",
+                }
+            ]
+        },    
+        options: {
+            legend: {display: false},
+            title: {
+                display: true,
+                text: "Weekday exercise graph",
                 fontSize: 16
             },
             scales: {
@@ -488,6 +555,16 @@ function place_statistics(leaderboard_array) {
     if(highest_week > 0) {
         document.getElementById("season-highest-week-div").innerHTML = "Most exercise in a week: " + highest_week + "🏋️";
     }
+
+    if(exercise_amount > 0) {
+        document.getElementById("season-combined-exercise-div").innerHTML = "All exercise combined: " + exercise_amount + "💰";
+    }
+
+    if(sickleave_amount > 0) {
+        document.getElementById("season-combined-sickleave-div").innerHTML = "Weeks of sick leave: " + sickleave_amount + "🤢";
+    }
+
+    console.log("sickleave: " + sickleave_amount)
 
     // Remove loading gif
     document.getElementById("loading-dumbell").style.display = "none";
