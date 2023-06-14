@@ -1298,13 +1298,13 @@ input[type=checkbox]
   border: solid 0.2em var(--lightblue);
 }
 
-.current-week-user-photo-img, .user-ative-profile-photo-img {
+.current-week-user-photo-img, .user-active-profile-photo-img {
   border-radius: 10em;
   object-fit: cover;
   overflow: hidden;
 }
 
-.user-ative-profile-photo{
+.user-active-profile-photo{
   border-radius: 10em;
   margin: auto;
   width: 10em;

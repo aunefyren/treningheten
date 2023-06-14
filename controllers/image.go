@@ -115,7 +115,7 @@ func LoadImageFile(filePath string) ([]byte, error) {
 
 func SaveImageFile(filePath string, fileName string, imageFile image.Image) error {
 
-	err := os.MkdirAll(filePath, os.ModePerm)
+	err := os.MkdirAll(filePath, 0755)
 	if err != nil {
 		log.Println("Failed to create directory for image. Error: " + err.Error())
 		return errors.New("Failed to create directory for image.")

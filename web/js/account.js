@@ -51,8 +51,8 @@ function load_page(result) {
 
         <div class="module">
 
-            <div class="user-ative-profile-photo">
-                <img style="width: 100%; height: 100%;" class="user-ative-profile-photo-img" id="user-ative-profile-photo-img" src="/assets/images/barbell.gif">
+            <div class="user-active-profile-photo">
+                <img style="width: 100%; height: 100%;" class="user-active-profile-photo-img" id="user-active-profile-photo-img" src="/assets/images/barbell.gif">
             </div>
         
             <form action="" onsubmit="event.preventDefault(); send_update();">
