@@ -113,6 +113,12 @@ function load_page(result) {
                     <img src="./assets/images/barbell.gif">
                 </div>
 
+                <div id="season-weekly-goal-div" class="text-body">
+                </div>
+
+                <div id="season-weekly-percentage-div" class="text-body">
+                </div>
+
                 <div id="season-longest-streak-div" class="text-body">
                 </div>
 
@@ -347,6 +353,7 @@ function choose_season() {
     canvas_div_two.innerHTML = "";
     canvas_div_two.innerHTML = '<canvas id="myChartTwo" style="max-width: 100%; width: 1000px; display:none;"></canvas>';
 
+    document.getElementById("season-weekly-goal-div").innerHTML = "";
     document.getElementById("season-longest-streak-div").innerHTML = "";
     document.getElementById("season-highest-week-div").innerHTML = "";
     document.getElementById("season-combined-exercise-div").innerHTML = "";
@@ -424,6 +431,10 @@ function place_statistics(leaderboard_array, weekday_array) {
     var highest_week = 0;
     var exercise_amount = 0;
     var sickleave_amount = 0;
+    var goal = 0;
+    var week_count = 0;
+    var complete_weeks = 0;
+    var incomplete_weeks = 0;
 
     // Look through array of data
     for (var i = 0; i < leaderboard_array.length; i++) {
@@ -432,7 +443,7 @@ function place_statistics(leaderboard_array, weekday_array) {
 
         var exercise = leaderboard_array[i].user.week_completion_interval
         var sickleave = leaderboard_array[i].user.sickleave
-        var goal = leaderboard_array[i].user.exercise_goal
+        goal = leaderboard_array[i].user.exercise_goal
         var streak = leaderboard_array[i].user.current_streak
         exercise_amount = exercise_amount + exercise
 
@@ -455,8 +466,22 @@ function place_statistics(leaderboard_array, weekday_array) {
 
         yValues.push(eval(exercise));
         goals.push(eval(goal));
+
+        if(exercise >= goal) {
+            complete_weeks = complete_weeks + 1
+        } else {
+            incomplete_weeks = incomplete_weeks + 1
+        }
+
+        week_count = week_count + 1
            
     }
+
+    console.log("goal: " + goal)
+    console.log("weeks: " + week_count)
+    console.log("complete weeks: " + complete_weeks)
+
+    week_completion_percentage = Math.floor((complete_weeks / week_count) * 100)
 
     const lineChart = new Chart("myChart", {
         type: "line",
@@ -548,8 +573,16 @@ function place_statistics(leaderboard_array, weekday_array) {
         }
     });
 
+    if(goal > 0) {
+        document.getElementById("season-weekly-goal-div").innerHTML = "Weekly goal: " + goal + "🏆";
+    }
+
+    if(week_completion_percentage > 0) {
+        document.getElementById("season-weekly-percentage-div").innerHTML = "Average weekly goal completion: " + week_completion_percentage + "%";
+    }
+
     if(longest_streak > 0) {
-        document.getElementById("season-longest-streak-div").innerHTML = "Longest streak: " + longest_streak + "🔥";
+        document.getElementById("season-longest-streak-div").innerHTML = "Longest week streak: " + longest_streak + "🔥";
     }
 
     if(highest_week > 0) {

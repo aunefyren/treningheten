@@ -1333,6 +1333,12 @@ input[type=checkbox]
 
 .leaderboard-week-member {
   margin: 0.5em;
+  display: flex;
+  flex-direction: column;
+  flex-wrap: wrap;
+  align-content: center;
+  justify-content: center;
+  align-items: center;
 }
 
 .leaderboard-week-members-wrapper {

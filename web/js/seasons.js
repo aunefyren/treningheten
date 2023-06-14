@@ -288,6 +288,7 @@ function place_leaderboard(weeks_array, season_id) {
                         <div class="leaderboard-week-member-image">
                             <img style="width: 100%; height: 100%;" class="leaderboard-week-member-image-img" id="member-img-${season_id}-${weeks_array[i].users[j].user.ID}" src="/assets/images/barbell.gif">
                         </div>
+                        ${weeks_array[i].users[j].user.first_name}
                     </div>
                     `;
                     members += joined_image
