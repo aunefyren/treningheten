@@ -1302,6 +1302,7 @@ input[type=checkbox]
   border-radius: 10em;
   object-fit: cover;
   overflow: hidden;
+  background-image: var(--white);
 }
 
 .user-active-profile-photo{

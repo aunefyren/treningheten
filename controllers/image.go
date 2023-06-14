@@ -178,12 +178,8 @@ func Base64ToImageBytes(base64String string) ([]byte, string, error) {
 		mimeType = b64DataArray[0]
 	}
 
-	log.Println("Old mime: " + mimeType)
-
 	mimeType = strings.Replace(mimeType, "data:", "", -1)
 	mimeType = strings.Replace(mimeType, ";", "", -1)
-
-	log.Println("New mime: " + mimeType)
 
 	// Append the base64 encoded output
 	imageBytes, err := base64.StdEncoding.DecodeString(b64Data)
