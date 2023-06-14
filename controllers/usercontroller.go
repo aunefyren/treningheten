@@ -294,11 +294,11 @@ func UpdateUser(context *gin.Context) {
 	// Initialize variables
 	var userUpdateRequest models.UserUpdateRequest
 	var err error
-	emailChanged := false
 
 	// Parse creation request
 	if err := context.ShouldBindJSON(&userUpdateRequest); err != nil {
-		context.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		log.Println("Failed to prase update request. Error: " + err.Error())
+		context.JSON(http.StatusBadRequest, gin.H{"error": "Failed to prase update request."})
 		context.Abort()
 		return
 	}
@@ -364,7 +364,6 @@ func UpdateUser(context *gin.Context) {
 		}
 
 		userOriginal.Email = userUpdateRequest.Email
-		emailChanged = true
 
 	}
 
@@ -380,10 +379,22 @@ func UpdateUser(context *gin.Context) {
 	// Transfer alert value
 	userOriginal.SundayAlert = userUpdateRequest.SundayAlert
 
+	// Update profile image
+	if userUpdateRequest.ProfileImage != "" {
+		err = UpdateUserProfileImage(int(userOriginal.ID), userUpdateRequest.ProfileImage)
+		if err != nil {
+			log.Println("Failed to update profile image. Error: " + err.Error())
+			context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update profile image."})
+			context.Abort()
+			return
+		}
+	}
+
 	// Update user in database
 	err = database.UpdateUserValuesByUserID(int(userOriginal.ID), userOriginal.Email, userOriginal.Password, userOriginal.SundayAlert)
 	if err != nil {
-		context.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		log.Println("Failed to update database. Error: " + err.Error())
+		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update database."})
 		context.Abort()
 		return
 	}
@@ -414,15 +425,8 @@ func UpdateUser(context *gin.Context) {
 		return
 	}
 
-	// If SMTP is disabled, create the user as verified
-	if config.SMTPEnabled {
-		user.Verified = false
-	} else {
-		user.Verified = true
-	}
-
 	// If user is not verified and SMTP is enabled, send verification e-mail
-	if !user.Verified && config.SMTPEnabled && emailChanged {
+	if config.SMTPEnabled && !user.Verified {
 
 		verificationCode, err := database.GenrateRandomVerificationCodeForuser(userID)
 		if err != nil {

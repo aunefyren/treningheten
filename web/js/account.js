@@ -50,6 +50,10 @@ function load_page(result) {
     var html = `
 
         <div class="module">
+
+            <div class="user-ative-profile-photo">
+                <img style="width: 100%; height: 100%;" class="user-ative-profile-photo-img" id="user-ative-profile-photo-img" src="/assets/images/barbell.gif">
+            </div>
         
             <form action="" onsubmit="event.preventDefault(); send_update();">
 
@@ -61,6 +65,9 @@ function load_page(result) {
 
                 <label id="form-input-icon" for="last_name"></label>
                 <input type="text" name="last_name" id="last_name" placeholder="Last name" value="` + last_name + `" disabled required/>
+
+                <label id="form-input-icon" for="new_profile_image" style="margin-top: 2em;">Replace profile image:</label>
+                <input type="file" name="new_profile_image" id="new_profile_image" placeholder="" value="" accept="image/png, image/jpeg" />
 
                 <input onclick="change_password_toggle();" style="margin-top: 2em;" class="clickable" type="checkbox" id="password-toggle" name="confirm" value="confirm" >
                 <label for="password-toggle" class="unselectable clickable">Change my password.</label><br>
@@ -128,6 +135,7 @@ function load_page(result) {
 
     if(result !== false) {
         showLoggedInMenu();
+        GetProfileImage(user_id);
         get_seasons();
     } else {
         showLoggedOutMenu();
@@ -154,15 +162,54 @@ function send_update() {
     var password = document.getElementById("password").value;
     var password_repeat = document.getElementById("password_repeat").value;
     var sunday_alert = document.getElementById("reminder-toggle").checked;
+    var new_profile_image = document.getElementById('new_profile_image').files[0];
 
-    var form_obj = { 
-                        "email" : email,
-                        "password" : password,
-                        "password_repeat": password_repeat,
-                        "sunday_alert": sunday_alert
-                    };
+    if(new_profile_image) {
 
-    var form_data = JSON.stringify(form_obj);
+        if(new_profile_image.size > 1048576) {
+            error("Image exceeds 10MB size limit.")
+            return;
+        } else if(new_profile_image.size < 10485) {
+            error("Image smaller than 0.01MB size requirement.")
+            return;
+        }
+
+        new_profile_image = get_base64(new_profile_image);
+        
+        new_profile_image.then(function(result) {
+            
+            var form_obj = { 
+                "email" : email,
+                "password" : password,
+                "password_repeat": password_repeat,
+                "sunday_alert": sunday_alert,
+                "profile_image": result
+            };
+
+            var form_data = JSON.stringify(form_obj);
+
+            document.getElementById("user-ative-profile-photo-img").src = 'assets/images/barbell.gif';
+
+            send_update_two(form_data);
+        
+        });
+
+    } else {
+        var form_obj = { 
+                            "email" : email,
+                            "password" : password,
+                            "password_repeat": password_repeat,
+                            "sunday_alert": sunday_alert,
+                            "profile_image": ""
+                        };
+
+        var form_data = JSON.stringify(form_obj);
+        
+        send_update_two(form_data);
+    }
+}
+
+function send_update_two(form_data) {
 
     var xhttp = new XMLHttpRequest();
     xhttp.onreadystatechange = function() {
@@ -444,5 +491,49 @@ function place_statistics(leaderboard_array) {
 
     // Remove loading gif
     document.getElementById("loading-dumbell").style.display = "none";
+
+}
+
+function GetProfileImage(userID) {
+
+    var xhttp = new XMLHttpRequest();
+    xhttp.onreadystatechange = function() {
+        if (this.readyState == 4) {
+            
+            try {
+                result = JSON.parse(this.responseText);
+            } catch(e) {
+                console.log(e +' - Response: ' + this.responseText);
+                error("Could not reach API.");
+                return;
+            }
+            
+            if(result.error) {
+
+                error(result.error);
+
+            } else {
+
+                PlaceProfileImage(result.image)
+                
+            }
+
+        } else {
+            // info("Loading week...");
+        }
+    };
+    xhttp.withCredentials = true;
+    xhttp.open("post", api_url + "auth/user/get/" + user_id + "/image");
+    xhttp.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
+    xhttp.setRequestHeader("Authorization", jwt);
+    xhttp.send();
+
+    return;
+
+}
+
+function PlaceProfileImage(imageBase64) {
+
+    document.getElementById("user-ative-profile-photo-img").src = imageBase64
 
 }

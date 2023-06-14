@@ -7,18 +7,21 @@ import (
 	"errors"
 	"image"
 	"image/jpeg"
+	"image/png"
 	"io/ioutil"
 	"log"
 	"net/http"
+	"os"
 	"path/filepath"
 	"strconv"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 	"github.com/nfnt/resize"
 )
 
 var profile_image_path, _ = filepath.Abs("./images/profiles")
-var default_profile_image_path, _ = filepath.Abs("./images/profiles/default.svg")
+var default_profile_image_path, _ = filepath.Abs("./web/assets/user.svg")
 var default_max_image_height = 1000
 var default_max_image_width = 1000
 var default_max_thumbnail_height = 100
@@ -110,6 +113,29 @@ func LoadImageFile(filePath string) ([]byte, error) {
 
 }
 
+func SaveImageFile(filePath string, fileName string, imageFile image.Image) error {
+
+	err := os.MkdirAll(filePath, os.ModePerm)
+	if err != nil {
+		log.Println("Failed to create directory for image. Error: " + err.Error())
+		return errors.New("Failed to create directory for image.")
+	}
+
+	file, err := os.Create(filePath + "/" + fileName)
+	if err != nil {
+		log.Println("Failed to create file for image. Error: " + err.Error())
+		return errors.New("Failed to create file for image.")
+	}
+	defer file.Close()
+	if err = jpeg.Encode(file, imageFile, nil); err != nil {
+		log.Println("Failed to encode file for image. Error: " + err.Error())
+		return errors.New("Failed to encode file for image.")
+	}
+
+	return nil
+
+}
+
 func ImageBytesToBase64(image []byte) (string, error) {
 
 	var base64Encoding string
@@ -134,6 +160,39 @@ func ImageBytesToBase64(image []byte) (string, error) {
 	base64Encoding += base64.StdEncoding.EncodeToString(image)
 
 	return base64Encoding, nil
+
+}
+
+func Base64ToImageBytes(base64String string) ([]byte, string, error) {
+
+	var imageBytes []byte
+	var b64Data string
+	var mimeType string
+
+	b64DataArray := strings.Split(base64String, "base64,")
+
+	if len(b64DataArray) != 2 {
+		return nil, "", errors.New("Base64 string does not contain mime type.")
+	} else {
+		b64Data = b64DataArray[1]
+		mimeType = b64DataArray[0]
+	}
+
+	log.Println("Old mime: " + mimeType)
+
+	mimeType = strings.Replace(mimeType, "data:", "", -1)
+	mimeType = strings.Replace(mimeType, ";", "", -1)
+
+	log.Println("New mime: " + mimeType)
+
+	// Append the base64 encoded output
+	imageBytes, err := base64.StdEncoding.DecodeString(b64Data)
+	if err != nil {
+		log.Println("Failed to convert Base64 string to byte array. Returning. Error: " + err.Error())
+		return nil, "", errors.New("Invalid Base64 string.")
+	}
+
+	return imageBytes, mimeType, nil
 
 }
 
@@ -171,4 +230,51 @@ func ResizeImage(maxWidth uint, maxHeight uint, imageBytes []byte) ([]byte, erro
 	resizedImageBytes := buf.Bytes()
 
 	return resizedImageBytes, nil
+}
+
+func UpdateUserProfileImage(userID int, base64String string) error {
+
+	imageBytes, mimeType, err := Base64ToImageBytes(base64String)
+	if err != nil {
+		log.Println("Failed to convert Base64 String to bytes. Error: " + err.Error())
+		return errors.New("Invalid Base64 string.")
+	}
+
+	if len(imageBytes) > 1048576 {
+		return errors.New("Image is too large.")
+	}
+
+	if len(imageBytes) < 10485 {
+		return errors.New("Image is too small.")
+	}
+
+	var imageObject image.Image
+
+	if mimeType == "image/jpeg" {
+		imageObject, err = jpeg.Decode(bytes.NewReader(imageBytes))
+		if err != nil {
+			log.Println("Failed to create image from byte array. Returning. Error: " + err.Error())
+			return errors.New("Failed to create image from, byte array.")
+		}
+	} else if mimeType == "image/png" {
+		imageObject, err = png.Decode(bytes.NewReader(imageBytes))
+		if err != nil {
+			log.Println("Failed to create image from byte array. Returning. Error: " + err.Error())
+			return errors.New("Failed to create image from, byte array.")
+		}
+	} else {
+		log.Println("Invalid mime type for image. Type: " + mimeType)
+		return errors.New("Invalid image type.")
+	}
+
+	userIDString := strconv.Itoa(userID)
+
+	err = SaveImageFile(profile_image_path, userIDString+".jpg", imageObject)
+	if err != nil {
+		log.Println("Failed to save image to disk. Returning. Error: " + err.Error())
+		return errors.New("Failed to save image to disk.")
+	}
+
+	return nil
+
 }

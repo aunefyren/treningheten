@@ -70,7 +70,7 @@ function load_page(result) {
     `;
 
     document.getElementById('content').innerHTML = html;
-    document.getElementById('card-header').innerHTML = 'Your very own page...';
+    document.getElementById('card-header').innerHTML = 'It\'s not gambling...';
     clearResponse();
 
     console.log("user id: " + user_id)

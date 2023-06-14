@@ -101,6 +101,12 @@ func CreateConfigFile() error {
 // Saves the given config struct as config.json
 func SaveConfig(config *models.ConfigStruct) error {
 
+	err := os.MkdirAll("./files", os.ModePerm)
+	if err != nil {
+		log.Println("Failed to create directory for config. Error: " + err.Error())
+		return errors.New("Failed to create directory for config.")
+	}
+
 	file, err := json.MarshalIndent(config, "", "	")
 	if err != nil {
 		return err

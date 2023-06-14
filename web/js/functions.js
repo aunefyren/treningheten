@@ -146,7 +146,7 @@ function get_base64(file, onLoadCallback) {
         reader.onerror = reject;
         reader.readAsDataURL(file);
     });
-  }
+}
 
 // Show options that can be access when logged in
 function showLoggedInMenu() {

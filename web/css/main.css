@@ -137,8 +137,8 @@
     margin-bottom:0;
     background-color:var(--grey);
     border-bottom:1px solid rgba(0,0,0,.125);
-    border-top: 2px solid var(--grey);
-    border-bottom: 2px solid var(--grey);
+    border-top: 0.2em solid var(--grey);
+    border-bottom: 0.2em solid var(--grey);
     text-align: center;
     font-size: 0.8em;
     font-weight:200;
@@ -318,7 +318,7 @@ form {
   margin: 1em 0;
 }
 
-input[type=text], input[type=password], input[type=email], input[type=date], select {
+input[type=text], input[type=password], input[type=email], input[type=date], input[type=file], select {
   width: 100%;
   width: -webkit-fill-available;
   width: -moz-available;
@@ -382,7 +382,7 @@ button:disabled {
   width: -webkit-fill-available;
   width: -moz-available;
   padding: 0.5em;
-  border: 2px solid var(--eggshell);
+  border: 0.2em solid var(--eggshell);
   margin: 1em 1em;
   border-radius: 1em;
   background-color: var(--mediumblue);
@@ -474,7 +474,7 @@ button:disabled {
   align-items: center;
   align-content: center;
   margin: 1em 1em;
-  border: 2px solid var(--eggshell);
+  border: 0.2em solid var(--eggshell);
   border-radius: 1em;
   background-color: var(--lightblue);
   transition: 2s;
@@ -591,7 +591,7 @@ button:disabled {
   padding: 1em;
   margin: 0 1em 2em 1em;
   background-color: var(--mediumblue);
-  border: 2px solid var(--eggshell);
+  border: 0.2em solid var(--eggshell);
   width: 100%;
   width: -webkit-fill-available;
   width: -moz-available;
@@ -1040,7 +1040,7 @@ input[type=checkbox]
   width: -webkit-fill-available;
   width: -moz-available;
   padding: 0.5em;
-  border: solid 2px var(--lightblue);
+  border: solid 0.2em var(--lightblue);
   border-radius: 0.5em;
   margin: 0.25em;
 }
@@ -1164,7 +1164,7 @@ input[type=checkbox]
 .season-object-wrapper {
   background-color: var(--white);
   border-radius: 1em;
-  border: solid 2px var(--lightblue); 
+  border: solid 0.2em var(--lightblue); 
   margin: 1em 0;
 }
 
@@ -1195,7 +1195,7 @@ input[type=checkbox]
   width: -webkit-fill-available;
   width: -moz-available;
   padding: 0.5em;
-  border: solid 2px var(--lightblue);
+  border: solid 0.2em var(--lightblue);
   border-radius: 0.5em;
   margin: 0.5em;
 }
@@ -1211,7 +1211,7 @@ input[type=checkbox]
   width: 100%;
   width: -webkit-fill-available;
   width: -moz-available;
-  border: solid 2px var(--lightblue);
+  border: solid 0.2em var(--lightblue);
   border-radius: 0.5em;
   padding: 0.5em;
   margin: 0.5em;
@@ -1269,14 +1269,14 @@ input[type=checkbox]
 }
 
 .debt-module-notification-view, .debt-module-notification-prize, .debt-module-notification-debt {
-  border: solid 2px var(--lightblue);
+  border: solid 0.2em var(--lightblue);
   border-radius: 0.5em;
   margin: 0.25em;
   padding: 0.5em;
 }
 
 .debt-module-notification-debt {
-  border: solid 2px var(--red) !important;
+  border: solid 0.2em var(--red) !important;
   background-color: var(--eggshell) !important;
 }
 
@@ -1295,11 +1295,21 @@ input[type=checkbox]
   margin: auto;
   width: 3em;
   height: 3em;
-  border: solid 2px var(--lightblue);
+  border: solid 0.2em var(--lightblue);
 }
 
-.current-week-user-photo-img {
+.current-week-user-photo-img, .user-ative-profile-photo-img {
   border-radius: 10em;
   object-fit: cover;
   overflow: hidden;
+}
+
+.user-ative-profile-photo{
+  border-radius: 10em;
+  margin: auto;
+  width: 10em;
+  height: 10em;
+  max-width: 100%;
+  max-height: 100%;
+  border: solid 0.2em var(--lightblue);
 }

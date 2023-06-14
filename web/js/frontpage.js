@@ -1030,7 +1030,7 @@ function place_current_week(week_array) {
             <div class="current-week-user" id="">
 
                 <div class="current-week-user-photo" title="` + week_array.users[i].user.first_name + ` ` + week_array.users[i].user.last_name + `">
-                    <img style="width: 100%; height: 100%;" class="current-week-user-photo-img" id="current-week-user-photo-` + week_array.users[i].user.ID + `-` + i + `">
+                    <img style="width: 100%; height: 100%;" class="current-week-user-photo-img" id="current-week-user-photo-` + week_array.users[i].user.ID + `-` + i + `" src="/assets/images/barbell.gif">
                 </div>
 
                 <div class="current-week-user-results">
@@ -1094,7 +1094,7 @@ function GetProfileImagesForCurrentWeek(userID, index) {
         }
     };
     xhttp.withCredentials = true;
-    xhttp.open("post", api_url + "auth/user/get/" + user_id + "/image");
+    xhttp.open("post", api_url + "auth/user/get/" + user_id + "/image?thumbnail=true");
     xhttp.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
     xhttp.setRequestHeader("Authorization", jwt);
     xhttp.send();
