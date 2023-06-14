@@ -26,7 +26,8 @@ func APIGetOngoingSeason(context *gin.Context) {
 
 	seasonObject, err := ConvertSeasonToSeasonObject(season)
 	if err != nil {
-		context.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		log.Println("Failed to convert season to season object. Error: " + err.Error())
+		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to convert season to season object."})
 		context.Abort()
 		return
 	}
@@ -89,7 +90,8 @@ func ConvertSeasonToSeasonObject(season models.Season) (models.SeasonObject, err
 
 		goalObject, err := ConvertGoalToGoalObject(goal)
 		if err != nil {
-			return models.SeasonObject{}, err
+			log.Println("Failed to convert goal to goal object. Error: " + err.Error() + ". Skipping goal...")
+			continue
 		}
 
 		seasonObject.Goals = append(seasonObject.Goals, goalObject)
@@ -98,7 +100,8 @@ func ConvertSeasonToSeasonObject(season models.Season) (models.SeasonObject, err
 
 	prize, _, err := database.GetPrizeByID(season.Prize)
 	if err != nil {
-		return models.SeasonObject{}, err
+		log.Println("Failed to find prize by ID. Error: " + err.Error() + ". Returning.")
+		return models.SeasonObject{}, errors.New("Failed to find prize by ID.")
 	}
 
 	seasonObject.Prize = prize
@@ -262,12 +265,12 @@ func APIGetCurrentSeasonLeaderboard(context *gin.Context) {
 	thisWeek, err := RetrieveWeekResultsFromSeasonWithinTimeframe(now.AddDate(0, 0, -7), now, seasonObject)
 	if err != nil {
 		log.Println("Failed to retrieve current week for season. Error: " + err.Error())
-		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to retrieve weeks for season."})
+		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to retrieve current week for season."})
 		context.Abort()
 		return
 	} else if len(thisWeek) != 1 {
 		log.Println("Got more than one week for current week. Error: " + err.Error())
-		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to retrieve weeks for season."})
+		context.JSON(http.StatusInternalServerError, gin.H{"error": "Got more than one week for current week."})
 		context.Abort()
 		return
 	} else {
@@ -313,7 +316,8 @@ func RetrieveWeekResultsFromSeasonWithinTimeframe(firstPointInTime time.Time, la
 			// Get Week result for goal
 			weekResultForGoal, newUserStreaks, err := GetWeekResultForGoal(goal, currentTime, userStreaks)
 			if err != nil {
-				return []models.WeekResults{}, err
+				log.Println("Failed to get week results for user. Goal: " + strconv.Itoa(int(goal.ID)) + ". Error: " + err.Error() + ". Creating blank user.")
+				continue
 			}
 
 			userStreaks = newUserStreaks

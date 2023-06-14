@@ -28,13 +28,17 @@ func VerifyUserGoalInSeason(userID int, seasonID int) (bool, int, error) {
 
 // Get goals from within season
 func GetGoalsFromWithinSeason(seasonID int) ([]models.Goal, error) {
+
 	var goal []models.Goal
+
 	goalrecord := Instance.Where("`goals`.enabled = ?", 1).Where("`goals`.season = ?", seasonID).Find(&goal)
+
 	if goalrecord.Error != nil {
 		return []models.Goal{}, goalrecord.Error
 	} else if goalrecord.RowsAffected == 0 {
 		return []models.Goal{}, nil
 	}
+
 	return goal, nil
 }
 

@@ -162,8 +162,12 @@ func ConvertDebtToDebtObject(debt models.Debt) (models.DebtObject, error) {
 	if debt.Winner != 0 {
 		user, err := database.GetUserInformation(debt.Winner)
 		if err != nil {
-			log.Println("Failed to get user information for user '" + strconv.Itoa(debt.Winner) + "'. Returning. Error: " + err.Error())
-			return models.DebtObject{}, err
+			log.Println("Failed to get user information for user '" + strconv.Itoa(debt.Winner) + "'. Creating blank user. Error: " + err.Error())
+			user = models.User{
+				FirstName: "Deleted",
+				LastName:  "Deleted",
+				Email:     "Deleted",
+			}
 		}
 
 		debtObject.Winner = user
@@ -174,8 +178,12 @@ func ConvertDebtToDebtObject(debt models.Debt) (models.DebtObject, error) {
 	if debt.Loser != 0 {
 		user, err := database.GetUserInformation(debt.Loser)
 		if err != nil {
-			log.Println("Failed to get user information for user '" + strconv.Itoa(debt.Loser) + "'. Returning. Error: " + err.Error())
-			return models.DebtObject{}, err
+			log.Println("Failed to get user information for user '" + strconv.Itoa(debt.Loser) + "'. Creating blank user. Error: " + err.Error())
+			user = models.User{
+				FirstName: "Deleted",
+				LastName:  "Deleted",
+				Email:     "Deleted",
+			}
 		}
 
 		debtObject.Loser = user
