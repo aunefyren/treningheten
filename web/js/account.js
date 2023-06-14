@@ -188,7 +188,7 @@ function send_update() {
 
             var form_data = JSON.stringify(form_obj);
 
-            document.getElementById("user-ative-profile-photo-img").src = 'assets/images/barbell.gif';
+            document.getElementById("user-active-profile-photo-img").src = 'assets/images/barbell.gif';
 
             send_update_two(form_data);
         
@@ -534,6 +534,6 @@ function GetProfileImage(userID) {
 
 function PlaceProfileImage(imageBase64) {
 
-    document.getElementById("user-ative-profile-photo-img").src = imageBase64
+    document.getElementById("user-active-profile-photo-img").src = imageBase64
 
 }

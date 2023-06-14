@@ -915,6 +915,8 @@ function get_leaderboard(fireworks){
 function place_leaderboard(weeks_array) {
 
     var html = ``;
+    var members = ``;
+    var memberPhotoIDArray = [];
     
     if(weeks_array.length == 0) {
         html = `
@@ -962,6 +964,27 @@ function place_leaderboard(weeks_array) {
                 </div>
                 `;
                 results_html += result_html;
+
+                var userFound = false;
+                for(var l = 0; l < memberPhotoIDArray.length; l++) {
+                    if(memberPhotoIDArray[l] == weeks_array[i].users[j].user.ID) {
+                        userFound = true;
+                        break;
+                    }
+                }
+
+                if(!userFound) {
+                    var joined_image = `
+                    <div class="leaderboard-week-member" id="member-${weeks_array[i].users[j].user.ID}" title="${weeks_array[i].users[j].user.first_name} ${weeks_array[i].users[j].user.last_name}">
+                        <div class="leaderboard-week-member-image">
+                            <img style="width: 100%; height: 100%;" class="leaderboard-week-member-image-img" id="member-img-${weeks_array[i].users[j].user.ID}" src="/assets/images/barbell.gif">
+                        </div>
+                    </div>
+                    `;
+                    members += joined_image
+                    memberPhotoIDArray.push(weeks_array[i].users[j].user.ID)
+                }
+
             }
 
             week_html += results_html + `</div></div>`;
@@ -972,9 +995,70 @@ function place_leaderboard(weeks_array) {
         
     }
 
-    document.getElementById("leaderboard-weeks").innerHTML = html
+    if(members == "") {
+        members = "None."
+    }
+
+    var members_html = `
+    <div class="leaderboard-week-members-wrapper">
+        Participants:
+        <div class="leaderboard-week-members" id="">
+            ${members}
+        </div>
+    </div>
+    `;
+
+    document.getElementById("leaderboard-weeks").innerHTML = members_html + html
+
+    for(var i = 0; i < memberPhotoIDArray.length; i++) {
+        GetProfileImageForUserOnLeaderboard(memberPhotoIDArray[i])
+    }
 
     return
+
+}
+
+function GetProfileImageForUserOnLeaderboard(userID) {
+
+    var xhttp = new XMLHttpRequest();
+    xhttp.onreadystatechange = function() {
+        if (this.readyState == 4) {
+            
+            try {
+                result = JSON.parse(this.responseText);
+            } catch(e) {
+                console.log(e +' - Response: ' + this.responseText);
+                error("Could not reach API.");
+                return;
+            }
+            
+            if(result.error) {
+
+                error(result.error);
+
+            } else {
+
+                PlaceProfileImageForUserOnLeaderboard(result.image, userID)
+                
+            }
+
+        } else {
+            // info("Loading week...");
+        }
+    };
+    xhttp.withCredentials = true;
+    xhttp.open("post", api_url + "auth/user/get/" + userID + "/image?thumbnail=true");
+    xhttp.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
+    xhttp.setRequestHeader("Authorization", jwt);
+    xhttp.send();
+
+    return;
+
+}
+
+function PlaceProfileImageForUserOnLeaderboard(imageBase64, userID) {
+
+    document.getElementById("member-img-" + userID).src = imageBase64
 
 }
 
@@ -1094,7 +1178,7 @@ function GetProfileImagesForCurrentWeek(userID, index) {
         }
     };
     xhttp.withCredentials = true;
-    xhttp.open("post", api_url + "auth/user/get/" + user_id + "/image?thumbnail=true");
+    xhttp.open("post", api_url + "auth/user/get/" + userID + "/image?thumbnail=true");
     xhttp.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
     xhttp.setRequestHeader("Authorization", jwt);
     xhttp.send();
