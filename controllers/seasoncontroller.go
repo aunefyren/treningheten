@@ -631,13 +631,13 @@ func APIGetSeasonWeeksPersonal(context *gin.Context) {
 					} else if weekday == 2 {
 						weekDaysPersonal.Tuesday = weekDaysPersonal.Tuesday + day.ExerciseInterval
 					} else if weekday == 3 {
-						weekDaysPersonal.Sunday = weekDaysPersonal.Sunday + day.ExerciseInterval
+						weekDaysPersonal.Wednesday = weekDaysPersonal.Wednesday + day.ExerciseInterval
 					} else if weekday == 4 {
-						weekDaysPersonal.Sunday = weekDaysPersonal.Sunday + day.ExerciseInterval
+						weekDaysPersonal.Thursday = weekDaysPersonal.Thursday + day.ExerciseInterval
 					} else if weekday == 5 {
-						weekDaysPersonal.Sunday = weekDaysPersonal.Sunday + day.ExerciseInterval
+						weekDaysPersonal.Friday = weekDaysPersonal.Friday + day.ExerciseInterval
 					} else if weekday == 6 {
-						weekDaysPersonal.Sunday = weekDaysPersonal.Sunday + day.ExerciseInterval
+						weekDaysPersonal.Saturday = weekDaysPersonal.Saturday + day.ExerciseInterval
 					}
 				}
 

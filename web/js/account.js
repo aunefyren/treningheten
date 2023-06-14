@@ -506,8 +506,8 @@ function place_statistics(leaderboard_array, weekday_array) {
     });
 
 
-    xValues2 = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
-    yValues2 = [weekday_array.monday, weekday_array.tuesday, weekday_array.wednesday, weekday_array.thursday, weekday_array.friday, weekday_array.saturday, weekday_array.sunday]
+    var xValues2 = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
+    var yValues2 = [weekday_array.monday, weekday_array.tuesday, weekday_array.wednesday, weekday_array.thursday, weekday_array.friday, weekday_array.saturday, weekday_array.sunday]
 
     const lineChartTwo = new Chart("myChartTwo", {
         type: "line",
@@ -516,8 +516,8 @@ function place_statistics(leaderboard_array, weekday_array) {
             datasets: [
                 {
                     fill: true,
-                    borderColor: borderColorArray,
-                    pointBackgroundColor: pointBackgroundColorArray,
+                    borderColor: "rgba(119,141,169,1)",
+                    pointBackgroundColor: "rgba(119,141,169,1)",
                     backgroundColor: "rgba(119,141,169,0.5)",
                     responsive: true,
                     data: yValues2,
