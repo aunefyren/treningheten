@@ -236,11 +236,11 @@ func UpdateUserProfileImage(userID int, base64String string) error {
 		return errors.New("Invalid Base64 string.")
 	}
 
-	if len(imageBytes) > 1048576 {
+	if len(imageBytes) > 10000000 {
 		return errors.New("Image is too large.")
 	}
 
-	if len(imageBytes) < 10485 {
+	if len(imageBytes) < 10000 {
 		return errors.New("Image is too small.")
 	}
 

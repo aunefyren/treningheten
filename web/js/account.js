@@ -166,10 +166,10 @@ function send_update() {
 
     if(new_profile_image) {
 
-        if(new_profile_image.size > 1048576) {
+        if(new_profile_image.size > 10000000) {
             error("Image exceeds 10MB size limit.")
             return;
-        } else if(new_profile_image.size < 10485) {
+        } else if(new_profile_image.size < 10000) {
             error("Image smaller than 0.01MB size requirement.")
             return;
         }
