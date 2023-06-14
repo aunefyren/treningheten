@@ -358,6 +358,7 @@ function choose_season() {
     document.getElementById("season-highest-week-div").innerHTML = "";
     document.getElementById("season-combined-exercise-div").innerHTML = "";
     document.getElementById("season-combined-sickleave-div").innerHTML = "";
+    document.getElementById("season-weekly-percentage-div").innerHTML = "";
 
     if(select_season.value == null || select_season.value == 0 || select_season.value == "null") {
 
