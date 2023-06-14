@@ -564,8 +564,6 @@ function place_statistics(leaderboard_array, weekday_array) {
         document.getElementById("season-combined-sickleave-div").innerHTML = "Weeks of sick leave: " + sickleave_amount + "🤢";
     }
 
-    console.log("sickleave: " + sickleave_amount)
-
     // Remove loading gif
     document.getElementById("loading-dumbell").style.display = "none";
 
