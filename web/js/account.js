@@ -116,11 +116,11 @@ function load_page(result) {
                 <div id="season-statistics-element-wrapper-div" class="season-statistics-element-wrapper-div">
                 </div>
 
-                <div id="chart-canvas-div" style="max-width: 40; margin: 1em;">
+                <div id="chart-canvas-div" style="max-width: 40em; margin: 1em auto; padding: 0 0.5em;">
                     <canvas id="myChart" style="max-width: 100%; width: 1000px; display:none;"></canvas>
                 </div>
 
-                <div id="chart-canvas-div-two" style="max-width: 40; margin: 1em;">
+                <div id="chart-canvas-div-two" style="max-width: 40em; margin: 1em auto; padding: 0 0.5em;">
                     <canvas id="myChartTwo" style="max-width: 100%; width: 1000px; display:none;"></canvas>
                 </div>
 
