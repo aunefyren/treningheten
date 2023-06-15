@@ -955,7 +955,7 @@ function place_leaderboard(weeks_array) {
 
                 var result_html = `
                 <div class="leaderboard-week-result" id="">
-                    <div class="leaderboard-week-result-user">
+                    <div class="leaderboard-week-result-user unselectable">
                         ` + weeks_array[i].users[j].user.first_name + `
                     </div>
                     <div class="leaderboard-week-result-exercise ` + clickable_str  + `" onclick="` + onclick_command_str  + `">
@@ -1112,7 +1112,9 @@ function place_current_week(week_array) {
         }
 
         var week_html = `
-            <div class="current-week-user" id="">
+            <div class="current-week-user unselectable" id="">
+
+                ${week_array.users[i].user.first_name}
 
                 <div class="current-week-user-photo" title="` + week_array.users[i].user.first_name + ` ` + week_array.users[i].user.last_name + `">
                     <img style="width: 100%; height: 100%;" class="current-week-user-photo-img" id="current-week-user-photo-` + week_array.users[i].user.ID + `-` + i + `" src="/assets/images/barbell.gif">

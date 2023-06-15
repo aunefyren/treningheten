@@ -113,29 +113,14 @@ function load_page(result) {
                     <img src="./assets/images/barbell.gif">
                 </div>
 
-                <div id="season-weekly-goal-div" class="text-body">
-                </div>
-
-                <div id="season-weekly-percentage-div" class="text-body">
-                </div>
-
-                <div id="season-longest-streak-div" class="text-body">
-                </div>
-
-                <div id="season-highest-week-div" class="text-body">
-                </div>
-
-                <div id="season-combined-exercise-div" class="text-body">
-                </div>
-
-                <div id="season-combined-sickleave-div" class="text-body">
+                <div id="season-statistics-element-wrapper-div" class="season-statistics-element-wrapper-div">
                 </div>
 
                 <div id="chart-canvas-div" style="max-width: 40; margin: 1em;">
                     <canvas id="myChart" style="max-width: 100%; width: 1000px; display:none;"></canvas>
                 </div>
 
-                <div id="chart-canvas-div-two" style="max-width: 40; margin: 2em 1em 1em 1em;">
+                <div id="chart-canvas-div-two" style="max-width: 40; margin: 1em;">
                     <canvas id="myChartTwo" style="max-width: 100%; width: 1000px; display:none;"></canvas>
                 </div>
 
@@ -353,12 +338,7 @@ function choose_season() {
     canvas_div_two.innerHTML = "";
     canvas_div_two.innerHTML = '<canvas id="myChartTwo" style="max-width: 100%; width: 1000px; display:none;"></canvas>';
 
-    document.getElementById("season-weekly-goal-div").innerHTML = "";
-    document.getElementById("season-longest-streak-div").innerHTML = "";
-    document.getElementById("season-highest-week-div").innerHTML = "";
-    document.getElementById("season-combined-exercise-div").innerHTML = "";
-    document.getElementById("season-combined-sickleave-div").innerHTML = "";
-    document.getElementById("season-weekly-percentage-div").innerHTML = "";
+    document.getElementById("season-statistics-element-wrapper-div").innerHTML = "";
 
     if(select_season.value == null || select_season.value == 0 || select_season.value == "null") {
 
@@ -502,7 +482,7 @@ function place_statistics(leaderboard_array, weekday_array) {
                 {
                     fill: true,
                     borderColor: "rgba(119,141,169,0.25)",
-                    responsive: true,
+                    responsive: false,
                     data: goals,
                     tension: 0,
                     label: "Goal",
@@ -575,29 +555,53 @@ function place_statistics(leaderboard_array, weekday_array) {
     });
 
     if(goal > 0) {
-        document.getElementById("season-weekly-goal-div").innerHTML = "Weekly goal: " + goal + "🏆";
+        document.getElementById("season-statistics-element-wrapper-div").innerHTML += `
+            <div class="season-statistics-element unselectable">
+                Weekly goal: ${goal}🏆
+            </div>
+        `;
     }
 
     if(week_completion_percentage > 0) {
-        document.getElementById("season-weekly-percentage-div").innerHTML = "Average weekly goal completion: " + week_completion_percentage + "%";
+        document.getElementById("season-statistics-element-wrapper-div").innerHTML += `
+            <div class="season-statistics-element unselectable">
+                Average weekly goal completion: ${week_completion_percentage}%
+            </div>
+        `;
     }
 
     if(longest_streak > 0) {
-        document.getElementById("season-longest-streak-div").innerHTML = "Longest week streak: " + longest_streak + "🔥";
+        document.getElementById("season-statistics-element-wrapper-div").innerHTML += `
+            <div class="season-statistics-element unselectable">
+                Longest week streak: ${longest_streak}🔥
+            </div>
+        `;
     }
 
     if(highest_week > 0) {
-        document.getElementById("season-highest-week-div").innerHTML = "Most exercise in a week: " + highest_week + "🏋️";
+        document.getElementById("season-statistics-element-wrapper-div").innerHTML += `
+            <div class="season-statistics-element unselectable">
+                Most exercise in a week: ${highest_week}🏋️
+            </div>
+        `;
     }
 
     if(exercise_amount > 0) {
-        document.getElementById("season-combined-exercise-div").innerHTML = "All exercise combined: " + exercise_amount + "💰";
+        document.getElementById("season-statistics-element-wrapper-div").innerHTML += `
+            <div class="season-statistics-element unselectable">
+                All exercise combined: ${exercise_amount}💰
+            </div>
+        `;
     }
 
     if(sickleave_amount > 0) {
-        document.getElementById("season-combined-sickleave-div").innerHTML = "Weeks of sick leave: " + sickleave_amount + "🤢";
+        document.getElementById("season-statistics-element-wrapper-div").innerHTML += `
+            <div class="season-statistics-element unselectable">
+                Weeks of sick leave: ${sickleave_amount}🤢
+            </div>
+        `;
     }
-
+    
     // Remove loading gif
     document.getElementById("loading-dumbell").style.display = "none";
 

@@ -1106,6 +1106,10 @@ input[type=checkbox]
   margin: 0.25em;
 }
 
+.current-week-user:hover {
+  background-color: rgba(119, 141, 169, 0.25);
+}
+
 .current-week-user-results {
   display: flex;
   flex-direction: row;
@@ -1333,12 +1337,18 @@ input[type=checkbox]
 
 .leaderboard-week-member {
   margin: 0.5em;
+  padding: 0.5em;
   display: flex;
   flex-direction: column;
   flex-wrap: wrap;
   align-content: center;
   justify-content: center;
   align-items: center;
+  border-radius: 1em;
+}
+
+.leaderboard-week-member:hover {
+  background-color: rgba(119, 141, 169, 0.25);
 }
 
 .leaderboard-week-members-wrapper {
@@ -1348,4 +1358,26 @@ input[type=checkbox]
   align-content: center;
   justify-content: center;
   align-items: center;
+}
+
+.season-statistics-element-wrapper-div {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-content: center;
+  justify-content: center;
+  align-items: center;
+  margin: 1em 0;
+}
+
+.season-statistics-element {
+  border-radius: 10em;
+  margin: 0.5em;
+  background-color: rgba(119, 141, 169, 0.5);
+  padding: 0.5em 1em;
+}
+
+.season-statistics-element:hover {
+  background-color: rgba(119, 141, 169, 0.25);
+  transition: 1s;
 }
