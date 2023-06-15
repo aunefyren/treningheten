@@ -567,7 +567,7 @@ function place_statistics(leaderboard_array, weekday_array, wheel_statistics) {
     if(week_completion_percentage > 0) {
         document.getElementById("season-statistics-element-wrapper-div").innerHTML += `
             <div class="season-statistics-element unselectable">
-                Average weekly goal completion: ${week_completion_percentage}%
+                Average weekly goal completion: ${week_completion_percentage}%📊
             </div>
         `;
     }
