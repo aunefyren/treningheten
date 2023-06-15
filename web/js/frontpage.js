@@ -518,12 +518,10 @@ function countdown_module(season_object, exercise_goal) {
     var date_start = new Date(season_object.start);
     var date_end = new Date(season_object.end);
 
-    const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
-                
     document.getElementById("countdownseason").style.display = "flex"
     document.getElementById("countdown_season_title").innerHTML = season_object.name
-    document.getElementById("countdown_season_start").innerHTML = "Season start: " + date_start.toLocaleString("nb-NO", options)
-    document.getElementById("countdown_season_end").innerHTML = "Season end: " + date_end.toLocaleString("nb-NO", options)
+    document.getElementById("countdown_season_start").innerHTML = "Season start: " + GetDateString(date_start)
+    document.getElementById("countdown_season_end").innerHTML = "Season end: " + GetDateString(date_end)
     document.getElementById("countdown_season_desc").innerHTML = season_object.description
     document.getElementById("countdown_goal").innerHTML = "You are signed up for " + exercise_goal + " exercises a week."
 
@@ -535,12 +533,10 @@ function registergoal_module(season_object) {
     var date_start = new Date(season_object.start);
     var date_end = new Date(season_object.end);
 
-    const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
-
     document.getElementById("registergoal").style.display = "flex"
     document.getElementById("register_season_title").innerHTML = season_object.name
-    document.getElementById("register_season_start").innerHTML = "Season start: " + date_start.toLocaleString("nb-NO", options)
-    document.getElementById("register_season_end").innerHTML = "Season end: " + date_end.toLocaleString("nb-NO", options)
+    document.getElementById("register_season_start").innerHTML = "Season start: " + GetDateString(date_start)
+    document.getElementById("register_season_end").innerHTML = "Season end: " + GetDateString(date_end)
     document.getElementById("register_season_desc").innerHTML = season_object.description
 
 }
@@ -1069,10 +1065,8 @@ function place_season_details(goal, sickleave, seasonStart, SeasonEnd) {
         var date_start = new Date(seasonStart);
         var date_end = new Date(SeasonEnd);
 
-        const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
-  
-        var date_start_string = date_start.toLocaleString("nb-NO", options)
-        var date_end_string = date_end.toLocaleString("nb-NO", options)
+        var date_start_string = GetDateString(date_start)
+        var date_end_string = GetDateString(date_end)
     } catch {
         var date_start_string = "Error"
         var date_end_string = "Error"

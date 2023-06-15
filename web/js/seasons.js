@@ -116,13 +116,11 @@ function place_seasons(seasons_array) {
 
         // parse date object
         try {
-            const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
-            
             var date = new Date(Date.parse(seasons_array[i].start));
-            var date_string = date.toLocaleString("nb-NO", options);
+            var date_string = GetDateString(date)
 
             var date2 = new Date(Date.parse(seasons_array[i].end));
-            var date_string2 = date2.toLocaleString("nb-NO", options);
+            var date_string2 = GetDateString(date2)
         } catch {
             var date_string = "Error"
             var date_string2 = "Error"
