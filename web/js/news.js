@@ -137,7 +137,7 @@ function place_news(news_array) {
         // parse date object
         try {
             var date = new Date(Date.parse(news_array[i].date));
-            var date_string = date.toLocaleDateString();
+            var date_string = GetDateString(date);
         } catch {
             var date_string = "Error"
         }

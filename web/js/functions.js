@@ -368,7 +368,7 @@ function GetDateString(dateTime) {
         if(yearInt >= 100) {
             year = yearInt + 1900
         } else {
-            year = "19" + yearInt
+            year = 1900 + yearInt
         }
 
         return weekDay + ", " + day + ". " + month + ", " + year;

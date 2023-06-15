@@ -659,7 +659,40 @@ func APIGetSeasonWeeksPersonal(context *gin.Context) {
 
 	}
 
+	wheelSpins := 0
+	wheelsWon := 0
+
+	_, debtFound, err := database.GetDebtInSeasonLostByUserID(seasonIDInt, userID)
+	if err != nil {
+		log.Println("Failed process wheel spins. Error: " + err.Error())
+		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed process wheel spins."})
+		context.Abort()
+		return
+	} else if debtFound {
+		wheelSpins += 1
+	}
+
+	_, debtFound, err = database.GetDebtInSeasonWonByUserID(seasonIDInt, userID)
+	if err != nil {
+		log.Println("Failed process wheel spin wins. Error: " + err.Error())
+		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed process wheel spin wins."})
+		context.Abort()
+		return
+	} else if debtFound {
+		wheelsWon += 1
+	}
+
+	type wheelStatistics struct {
+		WheelSpins int `json:"wheel_spins"`
+		WheelWon   int `json:"wheels_won"`
+	}
+
+	wheelStatisticsStruct := wheelStatistics{
+		WheelSpins: wheelSpins,
+		WheelWon:   wheelsWon,
+	}
+
 	// Return seasons
-	context.JSON(http.StatusOK, gin.H{"leaderboard": weekResultsPersonal, "weekdays": weekDaysPersonal, "message": "Season weeks retrieved."})
+	context.JSON(http.StatusOK, gin.H{"leaderboard": weekResultsPersonal, "weekdays": weekDaysPersonal, "message": "Season weeks retrieved.", "wheel_statistics": wheelStatisticsStruct})
 
 }

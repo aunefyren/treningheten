@@ -1108,6 +1108,7 @@ input[type=checkbox]
 
 .current-week-user:hover {
   background-color: rgba(119, 141, 169, 0.25);
+  transition: 1s;
 }
 
 .current-week-user-results {
@@ -1349,6 +1350,7 @@ input[type=checkbox]
 
 .leaderboard-week-member:hover {
   background-color: rgba(119, 141, 169, 0.25);
+  transition: 1s;
 }
 
 .leaderboard-week-members-wrapper {

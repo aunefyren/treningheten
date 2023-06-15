@@ -376,7 +376,7 @@ function get_season_leaderboard(seasonID){
 
             } else {
 
-                place_statistics(result.leaderboard, result.weekdays);
+                place_statistics(result.leaderboard, result.weekdays, result.wheel_statistics);
                 
             }
 
@@ -393,7 +393,7 @@ function get_season_leaderboard(seasonID){
 
 }
 
-function place_statistics(leaderboard_array, weekday_array) {
+function place_statistics(leaderboard_array, weekday_array, wheel_statistics) {
 
     var myChartElement = document.getElementById("myChart");
     myChartElement.style.display = "inline-block"
@@ -416,6 +416,8 @@ function place_statistics(leaderboard_array, weekday_array) {
     var week_count = 0;
     var complete_weeks = 0;
     var incomplete_weeks = 0;
+    var wheels_won = wheel_statistics.wheels_won;
+    var wheels_lost = wheel_statistics.wheel_spins;
 
     // Look through array of data
     for (var i = 0; i < leaderboard_array.length; i++) {
@@ -557,7 +559,7 @@ function place_statistics(leaderboard_array, weekday_array) {
     if(goal > 0) {
         document.getElementById("season-statistics-element-wrapper-div").innerHTML += `
             <div class="season-statistics-element unselectable">
-                Weekly goal: ${goal}🏆
+                Weekly exercise goal: ${goal}🏆
             </div>
         `;
     }
@@ -598,6 +600,22 @@ function place_statistics(leaderboard_array, weekday_array) {
         document.getElementById("season-statistics-element-wrapper-div").innerHTML += `
             <div class="season-statistics-element unselectable">
                 Weeks of sick leave: ${sickleave_amount}🤢
+            </div>
+        `;
+    }
+
+    if(wheels_lost > 0) {
+        document.getElementById("season-statistics-element-wrapper-div").innerHTML += `
+            <div class="season-statistics-element unselectable">
+                Wheels spun: ${wheels_lost}🎡
+            </div>
+        `;
+    }
+
+    if(wheels_won > 0) {
+        document.getElementById("season-statistics-element-wrapper-div").innerHTML += `
+            <div class="season-statistics-element unselectable">
+                Wheels won: ${wheels_won}⭐
             </div>
         `;
     }
