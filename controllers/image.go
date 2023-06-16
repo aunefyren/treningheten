@@ -24,8 +24,8 @@ var profile_image_path, _ = filepath.Abs("./images/profiles")
 var default_profile_image_path, _ = filepath.Abs("./web/assets/user.svg")
 var default_max_image_height = 1000
 var default_max_image_width = 1000
-var default_max_thumbnail_height = 100
-var default_max_thumbnail_width = 100
+var default_max_thumbnail_height = 250
+var default_max_thumbnail_width = 250
 
 func APIGetUserProfileImage(context *gin.Context) {
 
