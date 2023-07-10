@@ -1301,6 +1301,7 @@ input[type=checkbox]
   width: 3em;
   height: 3em;
   border: solid 0.2em var(--lightblue);
+  background-color: var(--white);
 }
 
 .current-week-user-photo-img, .user-active-profile-photo-img, .leaderboard-week-member-image-img {
