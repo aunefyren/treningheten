@@ -50,10 +50,61 @@ function load_page(result) {
 
                             <form action="" onsubmit="event.preventDefault(); generate_debt();">
                                 
-                                <label for="debt-week" class="unselectable clickable">Week with debt</label><br>
-                                <input style="" class="clickable" type="date" id="debt-week" name="ebt-week" value="" required>
+                                <label for="debt-week" class="clickable">Week with debt</label><br>
+                                <input style="" class="" type="date" id="debt-week" name="debt-week" value="" required>
 
                                 <button type="submit" onclick="" id="generate-debt-button" style=""><img src="assets/plus.svg" class="btn_logo color-invert"><p2>Generate debt</p2></button>
+
+                            </form>
+
+                        </div>
+
+                    </div>
+
+                    <div class="prize-module" id="prize-module">
+
+                        <div class="prize-form" id="prize-form">
+
+                            <h3 id="prize-module-title">Prize:</h3>
+
+                            <form action="" onsubmit="event.preventDefault(); add_prize();">
+                                
+                                <label for="prize-name" class="clickable">Name of prize</label><br>
+                                <input style="" class="" type="text" id="prize-name" name="prize-name" value="" required>
+
+                                <label for="prize-quantity" class="clickable">Quantity of prize</label><br>
+                                <input style="" class="" type="number" id="prize-quantity" name="prize-quantity" value="1" min="1" required>
+
+                                <button type="submit" onclick="" id="add-prize-button" style=""><img src="assets/done.svg" class="btn_logo color-invert"><p2>Add prize</p2></button>
+
+                            </form>
+
+                        </div>
+
+                    </div>
+
+                    <div class="add-season-module" id="add-season-module">
+
+                        <div class="season-form" id="season-form">
+
+                            <h3 id="season-module-title">Season:</h3>
+
+                            <form action="" onsubmit="event.preventDefault(); add_season();">
+
+                                <label for="season-start" class="clickable">Start of season (monday)</label><br>
+                                <input style="" class="" type="date" id="season-start" name="season-start" value="" required>
+
+                                <label for="season-end" class="clickable">End of season (sunday)</label><br>
+                                <input style="" class="" type="date" id="season-end" name="season-end" value="" required>
+                                
+                                <input style="" class="clickable" type="text" id="season-name" name="season-name" value="" placeholder="Name" required>
+                                <input style="" class="" type="text" id="season-desc" name="season-desc" value="" placeholder="Description" required>
+
+                                <label for="season-prize" class="clickable">Season prize</label><br>
+                                <select style="" class="form-control" id="season-prize" name="season-prize" value="" required>
+                                </select>
+
+                                <button type="submit" onclick="" id="add-season-button" style=""><img src="assets/done.svg" class="btn_logo color-invert"><p2>Add season</p2></button>
 
                             </form>
 

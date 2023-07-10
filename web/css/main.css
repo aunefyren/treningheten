@@ -318,7 +318,7 @@ form {
   margin: 1em 0;
 }
 
-input[type=text], input[type=password], input[type=email], input[type=date], input[type=file], select {
+input[type=text], input[type=password], input[type=email], input[type=date], input[type=file], input[type=number], select {
   width: 100%;
   width: -webkit-fill-available;
   width: -moz-available;
@@ -933,6 +933,7 @@ hr {
   align-content: center;
 }
 
+/*
 input[type=number]
 {
   -moz-appearance: textfield;
@@ -944,6 +945,7 @@ input[type=number]
   padding: 0;
   margin: 0;
 }
+*/
 
 input[type=checkbox]
 {
@@ -959,7 +961,7 @@ input[type=checkbox]
   align-content: center;
 }
 
-.season, .current-week, .server-info, .invites, .debt-module {
+.season, .current-week, .server-info, .invites, .debt-module, .prize-module, .add-season-module {
   width: auto;
   max-width: 100%;
   margin: 1em;
@@ -981,6 +983,10 @@ input[type=checkbox]
   border-radius: 0.5em;
   box-sizing: border-box;
   text-align: center;
+}
+
+.add-season-module {
+  max-height: 50em !important;
 }
 
 .leaderboard {
