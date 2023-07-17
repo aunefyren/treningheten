@@ -86,8 +86,8 @@ function get_login(cookie) {
             
             if(result.error) {
 
-                error(result.error);
-                load_page(false)
+                console.log("Error: " + result.error);
+                load_page(this.responseText)
 
             } else {
 
