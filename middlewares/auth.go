@@ -5,6 +5,7 @@ import (
 	"aunefyren/treningheten/config"
 	"aunefyren/treningheten/database"
 	"errors"
+	"log"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -34,20 +35,43 @@ func Auth(admin bool) gin.HandlerFunc {
 			return
 		}
 
+		// Get userID from header
+		userID, err := GetAuthUsername(context.GetHeader("Authorization"))
+		if err != nil {
+			context.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			context.Abort()
+			return
+		}
+
+		// Check if the user is verified
+		enabled, err := database.VerifyUserIsEnabled(userID)
+		if err != nil {
+
+			log.Println("Failed to check account. Error: " + err.Error())
+			context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to check account."})
+			context.Abort()
+			return
+
+		} else if !enabled {
+
+			context.JSON(http.StatusInternalServerError, gin.H{"error": "Account disabled."})
+			context.Abort()
+			return
+
+		}
 		// If SMTP is enabled, verify if user is enabled
 		if config.SMTPEnabled {
 
-			// Get userID from header
-			userID, err := GetAuthUsername(context.GetHeader("Authorization"))
-			if err != nil {
-				context.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-				context.Abort()
-				return
-			}
-
 			// Check if the user is verified
 			verified, err := database.VerifyUserIsVerified(userID)
-			if !verified {
+			if err != nil {
+
+				log.Println("Failed to check verification. Error: " + err.Error())
+				context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to check verification."})
+				context.Abort()
+				return
+
+			} else if !verified {
 
 				// Verify user has verification code
 				hasVerficationCode, err := database.VerifyUserHasVerfificationCode(userID)

@@ -84,11 +84,16 @@ function get_login(cookie) {
                 return;
             }
             
-            if(result.error) {
+            if(result.error === "You must verify your account.") {
 
-                console.log("Error: " + result.error);
                 load_page(this.responseText)
 
+            } else if (result.error) {
+                
+                error(result.error)
+                showLoggedInMenu();
+                return;
+                
             } else {
 
                 load_page(this.responseText)

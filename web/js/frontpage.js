@@ -341,7 +341,7 @@ function load_verify_account() {
 
                         <form action="" onsubmit="event.preventDefault(); verify_account();">
                             <label for="email_code">Code:</label><br>
-                            <input type="text" name="email_code" id="email_code" placeholder="Code" autocomplete="off" required />
+                            <input type="text" name="email_code" id="email_code" placeholder="Code" autocomplete="one-time-code" required />
                             <button id="verify-button" type="submit" href="/">Verify</button>
                         </form>
 

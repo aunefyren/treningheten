@@ -75,10 +75,10 @@ function action_login() {
             <hr>
 
             <label id="form-input-icon" for="email"></label>
-            <input type="email" name="email" id="email" value="` + email + `" placeholder="Email" required/>
+            <input type="email" name="email" id="email" value="` + email + `" placeholder="Email" autocomplete="email" required/>
 
             <label id="form-input-icon" for="password"></label>
-            <input type="password" name="password" id="password" placeholder="Password" required/>
+            <input type="password" name="password" id="password" placeholder="Password" autocomplete="current-password" required/>
             
             <hr>
 

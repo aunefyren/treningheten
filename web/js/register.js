@@ -28,7 +28,7 @@ function load_page(result) {
                                 <hr>
 
                                 <label id="form-input-icon" for="email"></label>
-                                <input type="email" name="email" id="email" placeholder="Email" required/>
+                                <input type="email" name="email" id="email" placeholder="Email" autocomplete="email" required/>
 
                                 <label id="form-input-icon" for="first_name"></label>
                                 <input type="text" name="first_name" id="first_name" placeholder="First name" required/>
@@ -37,13 +37,13 @@ function load_page(result) {
                                 <input type="text" name="last_name" id="last_name" placeholder="Last name" required/>
 
                                 <label id="form-input-icon" for="password"></label>
-                                <input type="password" name="password" id="password" placeholder="Password" required/>
+                                <input type="password" name="password" id="password" placeholder="Password" autocomplete="new-password" required/>
 
                                 <label id="form-input-icon" for="password_repeat"></label>
-                                <input type="password" name="password_repeat" id="password_repeat" placeholder="Repeat the password" required/>
+                                <input type="password" name="password_repeat" id="password_repeat" placeholder="Repeat the password" autocomplete="new-password" required/>
 
                                 <label id="form-input-icon" for="invitation_code"></label>
-                                <input type="text" name="invitation_code" id="invitation_code" placeholder="Invitation code" required/>
+                                <input type="text" name="invitation_code" id="invitation_code" placeholder="Invitation code" autocomplete="one-time-code" required/>
                                 
                                 <input style="margin-top: 2em;" type="checkbox" id="confirm" name="confirm" value="confirm" required>
                                 <label for="confirm"> I confirm that Treningheten can store relevant information about me and that I am atleast thirteen years of age.</label><br>

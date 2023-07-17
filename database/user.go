@@ -106,6 +106,21 @@ func VerifyUserIsVerified(userID int) (bool, error) {
 	return user.Verified, nil
 }
 
+// Verify if user is enabled
+func VerifyUserIsEnabled(userID int) (bool, error) {
+
+	var user models.User
+	userrecords := Instance.Where("`users`.id= ?", userID).Find(&user)
+	if userrecords.Error != nil {
+		return false, userrecords.Error
+	}
+	if userrecords.RowsAffected != 1 {
+		return false, errors.New("No user found.")
+	}
+
+	return user.Enabled, nil
+}
+
 // Set user to verified
 func SetUserVerification(userID int, verified bool) error {
 
