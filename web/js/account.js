@@ -297,6 +297,7 @@ function place_seasons(seasons_array) {
 
     var select_season = document.getElementById("select_season");
     var seasons = []
+    var now = new Date();
 
     for(var i = 0; i < seasons_array.length; i++) {
         var user_found = false;
@@ -306,7 +307,18 @@ function place_seasons(seasons_array) {
                 break
             }
         }
-        if(user_found) {
+
+        var futureSeason = true;
+        try {
+            var season_start_object = new Date(seasons_array[i].start);
+            if(now > season_start_object) {
+                futureSeason = false;
+            }
+        } catch(e) {
+            console.log("Failed to parse season start. Error: " + e)
+        }
+
+        if(user_found && !futureSeason) {
             seasons.push(seasons_array[i])
         }
     }
@@ -314,8 +326,8 @@ function place_seasons(seasons_array) {
     for(var i = 0; i < seasons.length; i++) {
         
         var option = document.createElement("option");
-        option.text = seasons_array[i].name
-        option.value = seasons_array[i].ID
+        option.text = seasons[i].name
+        option.value = seasons[i].ID
         select_season.add(option); 
 
     }

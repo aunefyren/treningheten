@@ -230,7 +230,7 @@ function place_leaderboard(weeks_array, season_id) {
     if(weeks_array.length == 0) {
         html = `
             <div id="" class="leaderboard-weeks">
-                <p id="" style="margin: 0.5em; text-align: center;">...</p>
+                <p id="" style="margin: 0.5em; text-align: center;">Season has not started yet.</p>
             </div>
         `;
     } else {

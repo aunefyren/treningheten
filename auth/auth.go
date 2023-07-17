@@ -4,7 +4,7 @@ import (
 	"errors"
 	"time"
 
-	"github.com/golang-jwt/jwt/v4"
+	"github.com/golang-jwt/jwt/v5"
 )
 
 var jwtKey = []byte("supersecretkey")
@@ -17,7 +17,7 @@ type JWTClaim struct {
 	Verified    bool   `json:"verified"`
 	UserID      int    `json:"id"`
 	SundayAlert bool   `json:"sunday_alert"`
-	jwt.StandardClaims
+	jwt.RegisteredClaims
 }
 
 func SetPrivateKey(PrivateKey string) error {
@@ -39,8 +39,9 @@ func GenerateJWT(firstname string, lastname string, email string, userid int, ad
 		UserID:      userid,
 		Verified:    verified,
 		SundayAlert: sundayAlert,
-		StandardClaims: jwt.StandardClaims{
-			ExpiresAt: expirationTime.Unix(),
+		RegisteredClaims: jwt.RegisteredClaims{
+			ExpiresAt: jwt.NewNumericDate(expirationTime),
+			NotBefore: jwt.NewNumericDate(time.Now()),
 		},
 	}
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
@@ -63,9 +64,17 @@ func ValidateToken(signedToken string, admin bool) (err error) {
 	if !ok {
 		err = errors.New("Couldn't parse claims.")
 		return
+	} else if claims.ExpiresAt == nil || claims.NotBefore == nil {
+		err = errors.New("Claims not present.")
+		return
 	}
-	if claims.ExpiresAt < time.Now().Local().Unix() {
+	now := time.Now()
+	if claims.ExpiresAt.Time.Before(now) {
 		err = errors.New("Token expired.")
+		return
+	}
+	if claims.NotBefore.Time.After(now) {
+		err = errors.New("Token not begun.")
 		return
 	}
 	if admin && !claims.Admin {
@@ -90,9 +99,17 @@ func ParseToken(signedToken string) (*JWTClaim, error) {
 	if !ok {
 		err = errors.New("couldn't parse claims")
 		return nil, err
+	} else if claims.ExpiresAt == nil || claims.NotBefore == nil {
+		err = errors.New("Claims not present.")
+		return nil, err
 	}
-	if claims.ExpiresAt < time.Now().Local().Unix() {
-		err = errors.New("token expired")
+	now := time.Now()
+	if claims.ExpiresAt.Time.Before(now) {
+		err = errors.New("Token expired.")
+		return nil, err
+	}
+	if claims.NotBefore.Time.After(now) {
+		err = errors.New("Token not begun.")
 		return nil, err
 	}
 	return claims, nil

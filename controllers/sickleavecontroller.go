@@ -24,12 +24,16 @@ func APIRegisterSickleave(context *gin.Context) {
 	}
 
 	// Get current season
-	season, err := GetOngoingSeasonFromDB(time.Now())
+	season, seasonFound, err := GetOngoingSeasonFromDB(time.Now())
 	if err != nil {
 		log.Println("Failed to verify current season status. Error: " + err.Error())
 		context.JSON(http.StatusBadRequest, gin.H{"error": "Failed to verify current season status."})
 		context.Abort()
 		return
+	} else if !seasonFound {
+		log.Println("Failed to verify current season status. Error: No active or future seasons found.")
+		context.JSON(http.StatusBadRequest, gin.H{"error": "Failed to verify current season status."})
+		context.Abort()
 	}
 
 	// Current time

@@ -609,9 +609,12 @@ func SendSundayEmailReminder() {
 	now := time.Now()
 
 	// Get current season
-	season, err := GetOngoingSeasonFromDB(now)
+	season, seasonFound, err := GetOngoingSeasonFromDB(now)
 	if err != nil {
 		log.Println("Failed to verify current season status. Returning. Error: " + err.Error())
+		return
+	} else if !seasonFound {
+		log.Println("Failed to verify current season status. Returning. Error: No active or future seasons found.")
 		return
 	}
 

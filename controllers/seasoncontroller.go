@@ -17,9 +17,13 @@ import (
 func APIGetOngoingSeason(context *gin.Context) {
 
 	// Verify user membership to group
-	season, err := GetOngoingSeasonFromDB(time.Now())
+	season, seasonFound, err := GetOngoingSeasonFromDB(time.Now())
 	if err != nil {
 		context.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		context.Abort()
+		return
+	} else if !seasonFound {
+		context.JSON(http.StatusBadRequest, gin.H{"error": "No active or future seasons found."})
 		context.Abort()
 		return
 	}
@@ -37,7 +41,7 @@ func APIGetOngoingSeason(context *gin.Context) {
 
 }
 
-func GetOngoingSeasonFromDB(giventime time.Time) (models.Season, error) {
+func GetOngoingSeasonFromDB(giventime time.Time) (models.Season, bool, error) {
 
 	current_time := giventime
 	chosen_season := models.Season{}
@@ -45,11 +49,11 @@ func GetOngoingSeasonFromDB(giventime time.Time) (models.Season, error) {
 
 	seasons, err := database.GetAllEnabledSeasons()
 	if err != nil {
-		return models.Season{}, err
+		return models.Season{}, false, err
 	}
 
 	if len(seasons) == 0 {
-		return models.Season{}, errors.New("Zero active or future seasons found.")
+		return models.Season{}, false, errors.New("Zero active or future seasons found.")
 	}
 
 	for _, season := range seasons {
@@ -68,10 +72,10 @@ func GetOngoingSeasonFromDB(giventime time.Time) (models.Season, error) {
 	}
 
 	if !change {
-		return models.Season{}, errors.New("No active or future seasons found.")
+		return models.Season{}, false, nil
 	}
 
-	return chosen_season, nil
+	return chosen_season, true, nil
 
 }
 
@@ -158,14 +162,18 @@ func APIRegisterSeason(context *gin.Context) {
 		return
 	}
 
-	// Verify season start
-	seasonOnGoing, err := GetOngoingSeasonFromDB(season.Start)
-	if err == nil && (season.Start.After(seasonOnGoing.Start) && season.Start.Before(seasonOnGoing.End)) {
+	// Verify season overlap
+	seasonOnGoing, seasonFound, err := GetOngoingSeasonFromDB(season.Start)
+	if err != nil {
+		log.Println("Failed to check season. Error: " + err.Error())
+		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to check season."})
+		context.Abort()
+		return
+	} else if season.Start.After(seasonOnGoing.Start) && season.Start.Before(seasonOnGoing.End) && seasonFound {
 		context.JSON(http.StatusBadRequest, gin.H{"error": "Season starts within season '" + seasonOnGoing.Name + "'."})
 		context.Abort()
 		return
-	}
-	if err == nil && (season.End.After(seasonOnGoing.Start) && season.End.Before(seasonOnGoing.End)) {
+	} else if season.End.After(seasonOnGoing.Start) && season.End.Before(seasonOnGoing.End) && seasonFound {
 		context.JSON(http.StatusBadRequest, gin.H{"error": "Season ends within season '" + seasonOnGoing.Name + "'."})
 		context.Abort()
 		return
@@ -184,11 +192,25 @@ func APIRegisterSeason(context *gin.Context) {
 		return
 	}
 
+	// Verify prize ID
+	_, prizeFound, err := database.GetPrizeByID(season.Prize)
+	if err != nil {
+		log.Println("Failed to verify prize ID. Error: " + err.Error())
+		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to verify prize ID."})
+		context.Abort()
+		return
+	} else if !prizeFound {
+		context.JSON(http.StatusBadRequest, gin.H{"error": "Failed to find prize ID."})
+		context.Abort()
+		return
+	}
+
 	// Create DB object
 	seasonDB.Description = season.Description
 	seasonDB.Name = season.Name
 	seasonDB.Start = season.Start
 	seasonDB.End = season.End
+	seasonDB.Prize = season.Prize
 
 	// Register season in DB
 	err = database.CreateSeasonInDB(seasonDB)
@@ -202,6 +224,10 @@ func APIRegisterSeason(context *gin.Context) {
 	context.JSON(http.StatusCreated, gin.H{"message": "Season created."})
 }
 
+func compareTimes(t1, t2 time.Time) int {
+	return int(t1.Sub(t2))
+}
+
 // Get current leaderboard from ongoing season
 func APIGetCurrentSeasonLeaderboard(context *gin.Context) {
 
@@ -209,9 +235,14 @@ func APIGetCurrentSeasonLeaderboard(context *gin.Context) {
 	now := time.Now()
 
 	// Verify user membership to group
-	season, err := GetOngoingSeasonFromDB(now)
+	season, seasonFound, err := GetOngoingSeasonFromDB(now)
 	if err != nil {
+		log.Println("Failed to check ongoing season. Error: " + err.Error())
 		context.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		context.Abort()
+		return
+	} else if !seasonFound {
+		context.JSON(http.StatusBadRequest, gin.H{"error": "No active or future seasons found."})
 		context.Abort()
 		return
 	}

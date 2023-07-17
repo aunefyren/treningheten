@@ -70,7 +70,7 @@ function load_page(result) {
                             <form action="" onsubmit="event.preventDefault(); add_prize();">
                                 
                                 <label for="prize-name" class="clickable">Name of prize</label><br>
-                                <input style="" class="" type="text" id="prize-name" name="prize-name" value="" required>
+                                <input style="" class="" type="text" id="prize-name" name="prize-name" value="" autocomplete="off" required>
 
                                 <label for="prize-quantity" class="clickable">Quantity of prize</label><br>
                                 <input style="" class="" type="number" id="prize-quantity" name="prize-quantity" value="1" min="1" required>
@@ -97,8 +97,8 @@ function load_page(result) {
                                 <label for="season-end" class="clickable">End of season (sunday)</label><br>
                                 <input style="" class="" type="date" id="season-end" name="season-end" value="" required>
                                 
-                                <input style="" class="clickable" type="text" id="season-name" name="season-name" value="" placeholder="Name" required>
-                                <input style="" class="" type="text" id="season-desc" name="season-desc" value="" placeholder="Description" required>
+                                <input style="" class="clickable" type="text" id="season-name" name="season-name" value="" placeholder="Name" autocomplete="off" required>
+                                <input style="" class="" type="text" id="season-desc" name="season-desc" value="" placeholder="Description" autocomplete="off" required>
 
                                 <label for="season-prize" class="clickable">Season prize</label><br>
                                 <select style="" class="form-control" id="season-prize" name="season-prize" value="" required>
@@ -128,6 +128,7 @@ function load_page(result) {
         } else {
             get_server_info();
             get_invites();
+            get_prizes();
         }
 
     } else {
@@ -381,6 +382,211 @@ function generate_debt() {
     };
     xhttp.withCredentials = true;
     xhttp.open("post", api_url + "admin/debt/generate");
+    xhttp.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
+    xhttp.setRequestHeader("Authorization", jwt);
+    xhttp.send(form_data);
+    return false;
+
+}
+
+function get_prizes() {
+
+    var xhttp = new XMLHttpRequest();
+    xhttp.onreadystatechange = function() {
+        if (this.readyState == 4) {
+            
+            try {
+                result = JSON.parse(this.responseText);
+            } catch(e) {
+                console.log(e +' - Response: ' + this.responseText);
+                error("Could not reach API.");
+                return;
+            }
+            
+            if(result.error) {
+
+                error(result.error);
+
+            } else {
+
+                place_prizes(result.prizes)
+                
+            }
+
+        }
+    };
+    xhttp.withCredentials = true;
+    xhttp.open("post", api_url + "admin/prize");
+    xhttp.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
+    xhttp.setRequestHeader("Authorization", jwt);
+    xhttp.send();
+    return false;
+
+}
+
+function place_prizes(prizesArray) {
+
+    var selectObject = document.getElementById("season-prize");
+
+    for(var i = selectObject.options.length-1; i >= 0; i--) {
+        selectObject.remove(i)
+    }
+
+    for(var i = 0; i < prizesArray.length; i++) {
+        var option = document.createElement("option");
+        option.text = prizesArray[i].quantity + " " + prizesArray[i].name;
+        option.value = prizesArray[i].ID;
+        selectObject.add(option); 
+    }
+
+}
+
+function add_season() {
+
+    clearResponse();
+
+    var now = new Date;
+
+    var season_start = document.getElementById("season-start").value;
+    var season_end = document.getElementById("season-end").value;
+    var season_start_string = "";
+    var season_end_string = "";
+
+    try {
+        var season_prize_select = document.getElementById("season-prize");
+        var season_prize = parseInt(season_prize_select[season_prize_select.selectedIndex].value);
+    } catch(e) {
+        console.log("Failed to parse prize. Error: " + e)
+        error("Failed to parse prize.")
+        return
+    }
+
+    var season_name = document.getElementById("season-name").value;
+    var season_desc = document.getElementById("season-desc").value;
+
+    try {
+
+        var season_start_object = new Date(season_start);
+        season_start_string = season_start_object.toISOString()
+        var season_end_object = new Date(season_end);
+        season_end_string = season_end_object.toISOString()
+
+        if(season_start_object.getDay() != 1) {
+            console.log("Day: " + season_start_object.getDay())
+            error("Season start must be a monday.");
+            return;
+        }
+
+        if(season_end_object.getDay() != 0) {
+            error("Season end must be a sunday.");
+            return;
+        }
+
+        if(season_end_object < season_start_object) {
+            error("Season start must be before season end.");
+            return;
+        }
+
+        if(season_start_object < now) {
+            error("Season start must later than now.");
+            return;
+        }
+        
+    } catch(e) {
+        error("Failed to parse date object.")
+        console.log("Error: " + e)
+        return;
+    }
+
+    var form_obj = { 
+        "start" : season_start_string,
+        "end" : season_end_string,
+        "name" : season_name,
+        "description" : season_desc,
+        "prize" : season_prize,
+    };
+
+    var form_data = JSON.stringify(form_obj);
+
+    var xhttp = new XMLHttpRequest();
+    xhttp.onreadystatechange = function() {
+        if (this.readyState == 4) {
+            
+            try {
+                result = JSON.parse(this.responseText);
+            } catch(e) {
+                console.log(e +' - Response: ' + this.responseText);
+                error("Could not reach API.");
+                return;
+            }
+            
+            if(result.error) {
+
+                error(result.error);
+
+            } else {
+
+                success(result.message);
+
+                document.getElementById("season-name").value = "";
+                document.getElementById("season-desc").value = "";
+                
+            }
+
+        }
+    };
+    xhttp.withCredentials = true;
+    xhttp.open("post", api_url + "admin/season/register");
+    xhttp.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
+    xhttp.setRequestHeader("Authorization", jwt);
+    xhttp.send(form_data);
+    return false;
+
+}
+
+function add_prize() {
+
+    var prize_name = document.getElementById("prize-name").value;
+    var prize_quantity = parseInt(document.getElementById("prize-quantity").value);
+
+    var form_obj = { 
+        "name" : prize_name,
+        "quantity" : prize_quantity
+    };
+
+    var form_data = JSON.stringify(form_obj);
+
+    var xhttp = new XMLHttpRequest();
+    xhttp.onreadystatechange = function() {
+        if (this.readyState == 4) {
+            
+            try {
+                result = JSON.parse(this.responseText);
+            } catch(e) {
+                console.log(e +' - Response: ' + this.responseText);
+                error("Could not reach API.");
+                return;
+            }
+            
+            if(result.error) {
+
+                error(result.error);
+
+            } else {
+
+                success(result.message);
+
+                document.getElementById("prize-name").value = "";
+                document.getElementById("prize-quantity").value = "";
+
+                get_prizes();
+                
+            }
+
+        }
+    };
+    xhttp.withCredentials = true;
+    xhttp.open("post", api_url + "admin/prize/register");
     xhttp.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
     xhttp.setRequestHeader("Authorization", jwt);
     xhttp.send(form_data);

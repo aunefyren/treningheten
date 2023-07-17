@@ -73,13 +73,26 @@ function get_login(cookie) {
 
     var xhttp = new XMLHttpRequest();
     xhttp.onreadystatechange = function() {
+
         if (this.readyState == 4) {
 
-            var result;
-            if(result = JSON.parse(this.responseText)) { 
-                load_page(this.responseText);
+            try {
+                result = JSON.parse(this.responseText);
+            } catch(e) {
+                console.log(e +' - Response: ' + this.responseText);
+                error("Could not reach API.");
+                return;
+            }
+            
+            if(result.error) {
+
+                error(result.error);
+                load_page(false)
+
             } else {
-                load_page(false);
+
+                load_page(this.responseText)
+                
             }
 
         }

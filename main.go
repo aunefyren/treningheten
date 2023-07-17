@@ -205,7 +205,6 @@ func initRouter() *gin.Engine {
 			auth.POST("/season/:season_id/leaderboard-personal", controllers.APIGetSeasonWeeksPersonal)
 			auth.POST("/season/getongoing", controllers.APIGetOngoingSeason)
 			auth.POST("/season/leaderboard", controllers.APIGetCurrentSeasonLeaderboard)
-			auth.POST("/season/register", controllers.APIRegisterSeason)
 
 			auth.POST("/goal/register", controllers.APIRegisterGoalToSeason)
 
@@ -237,12 +236,17 @@ func initRouter() *gin.Engine {
 			admin.POST("/invite/get", controllers.APIGetAllInvites)
 			admin.POST("/invite/:invite_id/delete", controllers.APIDeleteInvite)
 
+			admin.POST("/season/register", controllers.APIRegisterSeason)
+
 			admin.POST("/news/register", controllers.RegisterNewsPost)
 			admin.POST("/news/:news_id/delete", controllers.DeleteNewsPost)
 
 			admin.POST("/server-info", controllers.APIGetServerInfo)
 
 			admin.POST("/debt/generate", controllers.APIGenerateDebtForWeek)
+
+			admin.POST("/prize", controllers.APIGetPrizes)
+			admin.POST("/prize/register", controllers.APIRegisterPrize)
 		}
 
 	}

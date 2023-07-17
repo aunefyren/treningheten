@@ -32,9 +32,12 @@ func GenerateLastWeeksDebt() {
 func GenerateDebtForWeek(givenTime time.Time) error {
 
 	// Get current season
-	season, err := GetOngoingSeasonFromDB(givenTime)
+	season, seasonFound, err := GetOngoingSeasonFromDB(givenTime)
 	if err != nil {
 		log.Println("Failed to verify current season status. Returning. Error: " + err.Error())
+		return errors.New("Failed to verify current season status.")
+	} else if !seasonFound {
+		log.Println("Failed to verify current season status. Returning. Error: No active or future seasons found.")
 		return errors.New("Failed to verify current season status.")
 	}
 
