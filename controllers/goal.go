@@ -83,8 +83,8 @@ func APIRegisterGoalToSeason(context *gin.Context) {
 		return
 	}
 
-	// Create unused scikleave for goal
-	for i := 0; i < 2; i++ {
+	// Create unused sickleave for goal
+	for i := 0; i < season.Sickleave; i++ {
 		sickleave := models.Sickleave{
 			Goal: int(goalID),
 		}

@@ -6,6 +6,7 @@ import (
 	"log"
 	"net/http"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -65,8 +66,8 @@ func RegisterNewsPost(context *gin.Context) {
 	}
 
 	// Copy the data from the NewsCreationRequest model to the News model
-	news.Title = newsCreationRequest.Title
-	news.Body = newsCreationRequest.Body
+	news.Title = strings.TrimSpace(newsCreationRequest.Title)
+	news.Body = strings.TrimSpace(newsCreationRequest.Body)
 
 	// Verify that the News title is not empty and has at least 5 characters
 	if len(news.Title) < 5 || news.Title == "" {

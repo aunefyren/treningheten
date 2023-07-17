@@ -97,8 +97,11 @@ function load_page(result) {
                                 <label for="season-end" class="clickable">End of season (sunday)</label><br>
                                 <input style="" class="" type="date" id="season-end" name="season-end" value="" required>
                                 
-                                <input style="" class="clickable" type="text" id="season-name" name="season-name" value="" placeholder="Name" autocomplete="off" required>
+                                <input style="" class="" type="text" id="season-name" name="season-name" value="" placeholder="Name" autocomplete="off" required>
                                 <input style="" class="" type="text" id="season-desc" name="season-desc" value="" placeholder="Description" autocomplete="off" required>
+
+                                <label for="season-sickleave" class="clickable">Season sick leave</label><br>
+                                <input style="" class="" type="number" id="season-sickleave" name="season-sickleave" value="0" min="0" max="99" placeholder="" autocomplete="off" required>
 
                                 <label for="season-prize" class="clickable">Season prize</label><br>
                                 <select style="" class="form-control" id="season-prize" name="season-prize" value="" required>
@@ -463,6 +466,7 @@ function add_season() {
 
     var season_name = document.getElementById("season-name").value;
     var season_desc = document.getElementById("season-desc").value;
+    var season_sickleave = parseInt(document.getElementById("season-sickleave").value);
 
     try {
 
@@ -504,6 +508,7 @@ function add_season() {
         "name" : season_name,
         "description" : season_desc,
         "prize" : season_prize,
+        "sickleave" : season_sickleave
     };
 
     var form_data = JSON.stringify(form_obj);
@@ -530,6 +535,7 @@ function add_season() {
 
                 document.getElementById("season-name").value = "";
                 document.getElementById("season-desc").value = "";
+                document.getElementById("season-sickleave").value = 0;
                 
             }
 

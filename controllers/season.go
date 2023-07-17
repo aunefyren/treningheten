@@ -8,6 +8,7 @@ import (
 	"log"
 	"net/http"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -120,6 +121,7 @@ func ConvertSeasonToSeasonObject(season models.Season) (models.SeasonObject, err
 	seasonObject.Name = season.Name
 	seasonObject.Start = season.Start
 	seasonObject.UpdatedAt = season.UpdatedAt
+	seasonObject.Sickleave = season.Sickleave
 
 	return seasonObject, nil
 
@@ -137,6 +139,9 @@ func APIRegisterSeason(context *gin.Context) {
 		context.Abort()
 		return
 	}
+
+	season.Name = strings.TrimSpace(season.Name)
+	season.Description = strings.TrimSpace(season.Description)
 
 	// Verify season name
 	if season.Name == "" || len(season.Name) < 5 {
@@ -158,6 +163,13 @@ func APIRegisterSeason(context *gin.Context) {
 	weekdaytwo := int(season.End.Weekday())
 	if season.End.Before(season.Start) || weekdaytwo != 0 {
 		context.JSON(http.StatusBadRequest, gin.H{"error": "Your season must end after the start and end on a sunday."})
+		context.Abort()
+		return
+	}
+
+	// Verify season sickleave
+	if season.Sickleave < 0 || season.Sickleave > 99 {
+		context.JSON(http.StatusBadRequest, gin.H{"error": "The season sick leave must be between 0 and 99."})
 		context.Abort()
 		return
 	}
@@ -211,6 +223,7 @@ func APIRegisterSeason(context *gin.Context) {
 	seasonDB.Start = season.Start
 	seasonDB.End = season.End
 	seasonDB.Prize = season.Prize
+	seasonDB.Sickleave = season.Sickleave
 
 	// Register season in DB
 	err = database.CreateSeasonInDB(seasonDB)

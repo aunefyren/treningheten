@@ -13,6 +13,7 @@ type Season struct {
 	Start       time.Time `json:"start" gorm:"not null"`
 	End         time.Time `json:"end" gorm:"not null"`
 	Prize       int       `json:"prize"`
+	Sickleave   int       `json:"sickleave"`
 	Enabled     bool      `json:"enabled" gorm:"not null;default: true"`
 }
 
@@ -22,6 +23,7 @@ type SeasonCreationRequest struct {
 	Start       time.Time `json:"start"`
 	End         time.Time `json:"end"`
 	Prize       int       `json:"prize"`
+	Sickleave   int       `json:"sickleave"`
 }
 
 type SeasonObject struct {
@@ -33,6 +35,7 @@ type SeasonObject struct {
 	Enabled     bool         `json:"enabled"`
 	Goals       []GoalObject `json:"goals"`
 	Prize       Prize        `json:"prize"`
+	Sickleave   int          `json:"sickleave"`
 }
 
 type SeasonLeaderboard struct {

@@ -5,6 +5,7 @@ import (
 	"aunefyren/treningheten/models"
 	"log"
 	"net/http"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 )
@@ -36,6 +37,8 @@ func APIRegisterPrize(context *gin.Context) {
 		context.Abort()
 		return
 	}
+
+	prize.Name = strings.TrimSpace(prize.Name)
 
 	if len(prize.Name) < 5 || prize.Name == "" {
 		context.JSON(http.StatusBadRequest, gin.H{"error": "Name must be five characters or more."})

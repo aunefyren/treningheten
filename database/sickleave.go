@@ -19,7 +19,7 @@ func GetUsedSickleaveForGoalWithinWeek(time time.Time, goalID int) (models.Sickl
 
 	// Find monday
 	if int(timeWeekday) == 1 {
-		startDayString = time.Format("2006-01-02") + " 00:00:00"
+		startDayString = time.Format("2006-01-02") + " 00:00:00.000"
 	} else {
 		finished = false
 		timeTwo = time
@@ -28,7 +28,7 @@ func GetUsedSickleaveForGoalWithinWeek(time time.Time, goalID int) (models.Sickl
 			timeTwoWeekday := timeTwo.Weekday()
 			if int(timeTwoWeekday) == 1 {
 				finished = true
-				startDayString = timeTwo.Format("2006-01-02") + " 00:00:00"
+				startDayString = timeTwo.Format("2006-01-02") + " 00:00:00.000"
 			}
 		}
 	}
@@ -49,7 +49,7 @@ func GetUsedSickleaveForGoalWithinWeek(time time.Time, goalID int) (models.Sickl
 		}
 	}
 
-	sickleaverecord := Instance.Where("`sickleaves`.enabled = ?", 1).Where("`sickleaves`.Goal = ?", goalID).Where("`sickleaves`.Date > ?", startDayString).Where("`sickleaves`.Date < ?", endDayString).Find(&sickleavestruct)
+	sickleaverecord := Instance.Where("`sickleaves`.enabled = ?", 1).Where("`sickleaves`.Goal = ?", goalID).Where("`sickleaves`.Date >= ?", startDayString).Where("`sickleaves`.Date <= ?", endDayString).Find(&sickleavestruct)
 	if sickleaverecord.Error != nil {
 		return models.Sickleave{}, false, sickleaverecord.Error
 	} else if sickleaverecord.RowsAffected != 1 {
@@ -82,7 +82,7 @@ func SetSickleaveToUsedByID(sickleaveID int) error {
 	var sickleavestruct models.Sickleave
 
 	now := time.Now()
-	Date := now.Format("2006-01-02") + " 00:00:00"
+	Date := now.Format("2006-01-02") + " 00:00:00.000"
 
 	sickleaverecord := Instance.Model(sickleavestruct).Where("`sickleaves`.enabled = ?", 1).Where("`sickleaves`.ID = ?", sickleaveID).Update("sickleave_used", 1)
 	if sickleaverecord.Error != nil {

@@ -32,7 +32,7 @@ func GetDebtForWeekForUser(time time.Time, userID int) (models.Debt, bool, error
 
 	// Find monday
 	if int(timeWeekday) == 1 {
-		startDayString = time.Format("2006-01-02") + " 00:00:00"
+		startDayString = time.Format("2006-01-02") + " 00:00:00.000"
 	} else {
 		finished = false
 		timeTwo = time
@@ -41,7 +41,7 @@ func GetDebtForWeekForUser(time time.Time, userID int) (models.Debt, bool, error
 			timeTwoWeekday := timeTwo.Weekday()
 			if int(timeTwoWeekday) == 1 {
 				finished = true
-				startDayString = timeTwo.Format("2006-01-02") + " 00:00:00"
+				startDayString = timeTwo.Format("2006-01-02") + " 00:00:00.000"
 			}
 		}
 	}
@@ -62,7 +62,7 @@ func GetDebtForWeekForUser(time time.Time, userID int) (models.Debt, bool, error
 		}
 	}
 
-	debtRecord := Instance.Where("`debts`.enabled = ?", 1).Where("`debts`.Loser = ?", userID).Where("`debts`.Date > ?", startDayString).Where("`debts`.Date < ?", endDayString).Find(&debtStruct)
+	debtRecord := Instance.Where("`debts`.enabled = ?", 1).Where("`debts`.Loser = ?", userID).Where("`debts`.Date >= ?", startDayString).Where("`debts`.Date <= ?", endDayString).Find(&debtStruct)
 	if debtRecord.Error != nil {
 		return models.Debt{}, false, debtRecord.Error
 	} else if debtRecord.RowsAffected != 1 {
@@ -86,7 +86,7 @@ func GetDebtForWeekForUserInSeasonID(time time.Time, userID int, seasonID int) (
 
 	// Find monday
 	if int(timeWeekday) == 1 {
-		startDayString = time.Format("2006-01-02") + " 00:00:00"
+		startDayString = time.Format("2006-01-02") + " 00:00:00.000"
 	} else {
 		finished = false
 		timeTwo = time
@@ -95,7 +95,7 @@ func GetDebtForWeekForUserInSeasonID(time time.Time, userID int, seasonID int) (
 			timeTwoWeekday := timeTwo.Weekday()
 			if int(timeTwoWeekday) == 1 {
 				finished = true
-				startDayString = timeTwo.Format("2006-01-02") + " 00:00:00"
+				startDayString = timeTwo.Format("2006-01-02") + " 00:00:00.000"
 			}
 		}
 	}
@@ -116,7 +116,7 @@ func GetDebtForWeekForUserInSeasonID(time time.Time, userID int, seasonID int) (
 		}
 	}
 
-	debtRecord := Instance.Where("`debts`.enabled = ?", 1).Where("`debts`.Loser = ?", userID).Where("`debts`.season = ?", seasonID).Where("`debts`.Date > ?", startDayString).Where("`debts`.Date < ?", endDayString).Find(&debtStruct)
+	debtRecord := Instance.Where("`debts`.enabled = ?", 1).Where("`debts`.Loser = ?", userID).Where("`debts`.season = ?", seasonID).Where("`debts`.Date >= ?", startDayString).Where("`debts`.Date <= ?", endDayString).Find(&debtStruct)
 	if debtRecord.Error != nil {
 		return models.Debt{}, false, debtRecord.Error
 	} else if debtRecord.RowsAffected != 1 {

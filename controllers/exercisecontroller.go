@@ -9,6 +9,7 @@ import (
 	"log"
 	"net/http"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -187,7 +188,7 @@ func APIRegisterWeek(context *gin.Context) {
 		if exercise != nil {
 
 			exercise.ExerciseInterval = day.ExerciseInterval
-			exercise.Note = day.Note
+			exercise.Note = strings.TrimSpace(day.Note)
 
 			err = database.UpdateExerciseInDatabase(*exercise)
 			if err != nil {

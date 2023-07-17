@@ -51,10 +51,10 @@ func RegisterUser(context *gin.Context) {
 	}
 
 	// Move values from request to object
-	user.Email = usercreationrequest.Email
+	user.Email = strings.TrimSpace(usercreationrequest.Email)
 	user.Password = usercreationrequest.Password
-	user.FirstName = usercreationrequest.FirstName
-	user.LastName = usercreationrequest.LastName
+	user.FirstName = strings.TrimSpace(usercreationrequest.FirstName)
+	user.LastName = strings.TrimSpace(usercreationrequest.LastName)
 	user.Enabled = true
 	user.ResetExpiration = time.Now()
 
@@ -87,7 +87,7 @@ func RegisterUser(context *gin.Context) {
 	}
 
 	// Verify unsued invite code exists
-	unique_invitecode, err := database.VerifyUnusedUserInviteCode(usercreationrequest.InviteCode)
+	unique_invitecode, err := database.VerifyUnusedUserInviteCode(strings.TrimSpace(usercreationrequest.InviteCode))
 	if err != nil {
 		context.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		context.Abort()
@@ -120,7 +120,7 @@ func RegisterUser(context *gin.Context) {
 	}
 
 	// Set code to used
-	err = database.SetUsedUserInviteCode(usercreationrequest.InviteCode, int(user.ID))
+	err = database.SetUsedUserInviteCode(strings.TrimSpace(usercreationrequest.InviteCode), int(user.ID))
 	if err != nil {
 		context.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		context.Abort()
@@ -340,6 +340,8 @@ func UpdateUser(context *gin.Context) {
 		context.Abort()
 		return
 	}
+
+	userUpdateRequest.Email = strings.TrimSpace(userUpdateRequest.Email)
 
 	if userOriginal.Email != userUpdateRequest.Email {
 
