@@ -47,6 +47,12 @@ func APIRegisterGoalToSeason(context *gin.Context) {
 		return
 	}
 
+	if season.Start.Before(time.Now()) {
+		context.JSON(http.StatusBadRequest, gin.H{"error": "Season has already started."})
+		context.Abort()
+		return
+	}
+
 	// Verify goal doesn't exist within season
 	goalStatus, _, err := database.VerifyUserGoalInSeason(userID, int(season.ID))
 	if err != nil {
@@ -127,4 +133,59 @@ func ConvertGoalToGoalObject(goal models.Goal) (models.GoalObject, error) {
 
 	return goalObject, nil
 
+}
+
+func APIDeleteGoalToSeason(context *gin.Context) {
+
+	// Get user ID
+	userID, err := middlewares.GetAuthUsername(context.GetHeader("Authorization"))
+	if err != nil {
+		context.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		context.Abort()
+		return
+	}
+
+	// Get current season
+	season, seasonFound, err := GetOngoingSeasonFromDB(time.Now())
+	if err != nil {
+		log.Println("Failed to verify current season status. Error: " + err.Error())
+		context.JSON(http.StatusBadRequest, gin.H{"error": "Failed to verify current season status."})
+		context.Abort()
+		return
+	} else if !seasonFound {
+		log.Println("Failed to verify current season status. Error: No active or future seasons found.")
+		context.JSON(http.StatusBadRequest, gin.H{"error": "Failed to verify current season status."})
+		context.Abort()
+		return
+	}
+
+	if season.Start.Before(time.Now()) {
+		context.JSON(http.StatusBadRequest, gin.H{"error": "Season has already started."})
+		context.Abort()
+		return
+	}
+
+	// Verify goal exists within season
+	goalStatus, goalID, err := database.VerifyUserGoalInSeason(userID, int(season.ID))
+	if err != nil {
+		log.Println("Failed to verify goal status. Error: " + err.Error())
+		context.JSON(http.StatusBadRequest, gin.H{"error": "Failed to verify goal status."})
+		context.Abort()
+		return
+	} else if !goalStatus {
+		log.Println("User does not have a goal for season: " + strconv.Itoa(int(season.ID)))
+		context.JSON(http.StatusBadRequest, gin.H{"error": "You don't have a goal this season."})
+		context.Abort()
+		return
+	}
+
+	err = database.DisableGoalInDBUsingGoalID(goalID)
+	if err != nil {
+		log.Println("Failed to disable goal in database. Error: " + err.Error())
+		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to disable goal in database."})
+		context.Abort()
+		return
+	}
+
+	context.JSON(http.StatusCreated, gin.H{"message": "Goal deleted."})
 }

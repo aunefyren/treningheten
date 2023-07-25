@@ -207,6 +207,7 @@ func initRouter() *gin.Engine {
 			auth.POST("/season/leaderboard", controllers.APIGetCurrentSeasonLeaderboard)
 
 			auth.POST("/goal/register", controllers.APIRegisterGoalToSeason)
+			auth.POST("/goal/delete", controllers.APIDeleteGoalToSeason)
 
 			auth.POST("/exercise/update", controllers.APIRegisterWeek)
 			auth.POST("/exercise/get", controllers.APIRGetWeek)

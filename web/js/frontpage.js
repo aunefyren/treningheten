@@ -58,7 +58,7 @@ function load_page(result) {
                             <p id="register_season_end">...</p>
                             <p style="margin-top: 1em; text-align: center;" id="register_season_desc">...</p>
 
-                            <hr>
+                            <hr style="margin: 1em 0;">
 
                             <label for="commitment" title="How many days a week are you going to work out?">Weekly exercise goal</label>
                             <div class="number-box" id="commitment">
@@ -69,10 +69,10 @@ function load_page(result) {
                                 <img src="assets/plus.svg" class="small-button-icon" onclick="IncreaseNumberInput('commitment', 1, 21);">
                             </div>
 
-                            <hr>
+                            <hr style="margin: 1em 0;">
 
                             <input style="" type="checkbox" id="compete" class="clickable" name="compete" value="compete" required>
-                            <label for="compete" class="unselectable clickable" style="user-select: none; text-align: center;"> I want to compete with others to uphold my workout streak.</label><br>
+                            <label for="compete" class="unselectable clickable" style="user-select: none; text-align: center;" title="If I fail to complete my goal, I must spin a wheel of fortune and provide a prize to the winner."> I want to compete with others to uphold my workout streak.</label><br>
 
                             <button type="submit" onclick="register_goal();" id="register_goal_button" style=""><img src="assets/done.svg" class="btn_logo color-invert"><p2>Join season</p2></button>
 
@@ -89,13 +89,15 @@ function load_page(result) {
                             <p id="countdown_season_end">...</p>
                             <p style="margin-top: 1em; text-align: center;" id="countdown_season_desc">...</p>
 
-                            <hr>
+                            <hr style="margin: 1em 0;">
 
                             <p style="text-align: center;" id="countdown_goal">...</p>
 
-                            <hr>
+                            <hr style="margin: 1em 0;">
                             
                             <p style="font-size: 2em; text-align: center;" id="countdown_number" class="countdown_number">00d 00h 00m 00s</p>
+
+                            <a style="margin: 1em 0 0 0; font-size:0.75em; cursor: pointer;" onclick="delete_goal();">I changed my mind!</i></a>
 
                         </div>
 
@@ -1422,5 +1424,46 @@ function get_debtoverview_prepare(show_barbell) {
     }
 
     get_debtoverview();
+
+}
+
+function delete_goal() {
+
+    if(!confirm("Are you sure you want to delete your goal? You are free to create another one afterward as long as the season has not started.")) {
+        return
+    }
+
+    var xhttp = new XMLHttpRequest();
+    xhttp.onreadystatechange = function() {
+        if (this.readyState == 4) {
+            
+            try {
+                result = JSON.parse(this.responseText);
+            } catch(e) {
+                console.log(e +' - Response: ' + this.responseText);
+                error("Could not reach API.");
+                return;
+            }
+            
+            if(result.error) {
+
+                error(result.error);
+
+            } else {
+
+                location.reload();
+                
+            }
+
+        } else {
+            // info("Loading week...");
+        }
+    };
+    xhttp.withCredentials = true;
+    xhttp.open("post", api_url + "auth/goal/delete");
+    xhttp.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
+    xhttp.setRequestHeader("Authorization", jwt);
+    xhttp.send();
+    return false;
 
 }

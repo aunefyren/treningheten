@@ -53,3 +53,19 @@ func GetGoalFromUserWithinSeason(seasonID int, userID int) (models.Goal, error) 
 	}
 	return goal, nil
 }
+
+// Set goal to disabled in DB using goal ID
+func DisableGoalInDBUsingGoalID(goalID int) error {
+
+	var goal models.Goal
+	goalRecord := Instance.Model(goal).Where("`goals`.ID = ?", goalID).Update("enabled", 0)
+	if goalRecord.Error != nil {
+		return goalRecord.Error
+	}
+	if goalRecord.RowsAffected != 1 {
+		return errors.New("Goal not changed in database.")
+	}
+
+	return nil
+
+}

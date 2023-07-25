@@ -111,7 +111,7 @@ func RegisterUser(context *gin.Context) {
 	}
 
 	// Create user in DB
-	err = database.RegisterUserInDB(user)
+	user, err = database.RegisterUserInDB(user)
 	if err != nil {
 		log.Println("Failed to save user in database. Error: " + err.Error())
 		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to save user in database."})

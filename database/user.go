@@ -10,16 +10,16 @@ import (
 )
 
 // receive a user strcut and save it in the database
-func RegisterUserInDB(user models.User) error {
+func RegisterUserInDB(user models.User) (models.User, error) {
 	dbRecord := Instance.Create(&user)
 
 	if dbRecord.Error != nil {
-		return dbRecord.Error
+		return models.User{}, dbRecord.Error
 	} else if dbRecord.RowsAffected != 1 {
-		return errors.New("Failed to update DB.")
+		return models.User{}, errors.New("Failed to update DB.")
 	}
 
-	return nil
+	return user, nil
 }
 
 // Genrate a random verification code an return ut
