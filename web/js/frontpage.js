@@ -53,7 +53,7 @@ function load_page(result) {
 
                         <div id="season" class="season">
 
-                            <h3 id="register_season_title">Loading...</h3>
+                            <h3 id="register_season_title" style="margin: 0 0 0.5em 0;">Loading...</h3>
                             <p id="register_season_start">...</p>
                             <p id="register_season_end">...</p>
                             <p style="margin-top: 1em; text-align: center;" id="register_season_desc">...</p>
@@ -84,7 +84,7 @@ function load_page(result) {
 
                         <div id="season" class="season">
 
-                            <h3 id="countdown_season_title">Loading...</h3>
+                            <h3 id="countdown_season_title" style="margin: 0 0 0.5em 0;">Loading...</h3>
                             <p id="countdown_season_start">...</p>
                             <p id="countdown_season_end">...</p>
                             <p style="margin-top: 1em; text-align: center;" id="countdown_season_desc">...</p>
@@ -94,6 +94,8 @@ function load_page(result) {
                             <p style="text-align: center;" id="countdown_goal">...</p>
 
                             <hr style="margin: 1em 0;">
+
+                            <p id="countdown_title">Starting in:</p>
                             
                             <p style="font-size: 2em; text-align: center;" id="countdown_number" class="countdown_number">00d 00h 00m 00s</p>
 
@@ -526,6 +528,13 @@ function countdown_module(season_object, exercise_goal) {
     document.getElementById("countdown_season_end").innerHTML = "Season end: " + GetDateString(date_end)
     document.getElementById("countdown_season_desc").innerHTML = season_object.description
     document.getElementById("countdown_goal").innerHTML = "You are signed up for " + exercise_goal + " exercises a week."
+
+    var partici_string = "participants"
+    if(season_object.goals.length == 1) {
+        partici_string = "participant"
+    }
+
+    document.getElementById("countdown_title").innerHTML = season_object.goals.length + " " + partici_string + ". Starting in: "
 
     StartCountDown(date_start);
 }
