@@ -864,16 +864,19 @@ function StartCountDown(countdownDate){
         var hours = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
         var minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
         var seconds = Math.floor((distance % (1000 * 60)) / 1000);
-    
-        // Display the result in the element with id="demo"
-        document.getElementById("countdown_number").innerHTML = padNumber(days, 2) + "d " + padNumber(hours, 2) + "h "
-        + padNumber(minutes, 2) + "m " + padNumber(seconds, 2) + "s ";
-    
-        // If the count down is finished, write some text
-        if (distance < 0) {
+
+        if (distance > 0) {
+            // Display the result in the element with id="demo"
+            document.getElementById("countdown_number").innerHTML = padNumber(days, 2) + "d " + padNumber(hours, 2) + "h "
+            + padNumber(minutes, 2) + "m " + padNumber(seconds, 2) + "s ";
+        
+            // If the count down is finished, write some text
+        } else {
             clearInterval(x);
-            document.getElementById("countdown_number").innerHTML = "EXPIRED";
+            document.getElementById("countdown_number").innerHTML = "...";
+            location.reload();
         }
+        
     }, 1000);
 }
 
