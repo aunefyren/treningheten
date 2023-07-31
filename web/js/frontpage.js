@@ -851,8 +851,20 @@ function StartCountDown(countdownDate){
     // Update the count down every 1 second
     var x = setInterval(function() {
 
-        // Get today's date and time
-        var now = new Date().getTime();
+        // Get today's date and time in Oslo time zone
+        let options = {
+            timeZone: 'Europe/Oslo',
+            year: 'numeric',
+            month: 'numeric',
+            day: 'numeric',
+            hour: 'numeric',
+            minute: 'numeric',
+            second: 'numeric',
+        }
+        
+        formatter = new Intl.DateTimeFormat([], options);
+        
+        now = formatter.format(new Date());
     
         // Find the distance between now and the count down date
         var distance = countDownDate - now;
