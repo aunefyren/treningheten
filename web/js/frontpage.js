@@ -852,22 +852,12 @@ function StartCountDown(countdownDate){
     var x = setInterval(function() {
 
         // Get today's date and time in Oslo time zone
-        let options = {
-            timeZone: 'Europe/Oslo',
-            year: 'numeric',
-            month: 'numeric',
-            day: 'numeric',
-            hour: 'numeric',
-            minute: 'numeric',
-            second: 'numeric',
-        }
-        
-        formatter = new Intl.DateTimeFormat([], options);
-        
-        now = formatter.format(new Date());
+        var now = new Date();
+        var difference_minutes = now.getTimezoneOffset();
+        var difference_miliseconds = Math.floor(difference_minutes * 60000)
     
         // Find the distance between now and the count down date
-        var distance = countDownDate - now;
+        var distance = Math.floor(countDownDate - now.getTime() + difference_miliseconds);
     
         // Time calculations for days, hours, minutes and seconds
         var days = Math.floor(distance / (1000 * 60 * 60 * 24));
