@@ -46,7 +46,7 @@ function load_page(result) {
                             Exercises:
                         </div>
 
-                        <div id="exercises-box" class="exercises">
+                        <div id="exercises-box" class="exercises-box">
                         </div>
                         
                     </div>

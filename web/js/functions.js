@@ -180,8 +180,8 @@ function showLoggedInMenu() {
     document.getElementById('seasons').classList.add('enabled');
     document.getElementById('seasons').classList.remove('disabled');
 
-    document.getElementById('exercises').classList.add('enabled');
-    document.getElementById('exercises').classList.remove('disabled');
+    document.getElementById('exercises-tab').classList.add('enabled');
+    document.getElementById('exercises-tab').classList.remove('disabled');
 
     document.getElementById('account').classList.add('enabled');
     document.getElementById('account').classList.remove('disabled');
@@ -204,8 +204,8 @@ function showLoggedOutMenu() {
     document.getElementById('seasons').classList.add('disabled');
     document.getElementById('seasons').classList.remove('enabled');
 
-    document.getElementById('exercises').classList.add('disabled');
-    document.getElementById('exercises').classList.remove('enabled');
+    document.getElementById('exercises-tab').classList.add('disabled');
+    document.getElementById('exercises-tab').classList.remove('enabled');
 
     document.getElementById('account').classList.add('disabled');
     document.getElementById('account').classList.remove('enabled');
