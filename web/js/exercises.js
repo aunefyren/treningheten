@@ -156,7 +156,7 @@ function place_goals(goals_array) {
                 html += '</div>';
 
                 html += '<div id="goal-join-date" class="goal-join-date">';
-                html += 'Join date: ' + date_string
+                html += '<img src="assets/calendar.svg" class="btn_logo"></img> Join date: ' + date_string
                 html += '</div>';
 
             html += '</div>'
