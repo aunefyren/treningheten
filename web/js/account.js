@@ -54,7 +54,7 @@ function load_page(result) {
             <div class="user-active-profile-photo">
                 <img style="width: 100%; height: 100%;" class="user-active-profile-photo-img" id="user-active-profile-photo-img" src="/assets/images/barbell.gif">
             </div>
-        
+
             <form action="" onsubmit="event.preventDefault(); send_update();">
 
                 <label id="form-input-icon" for="email"></label>

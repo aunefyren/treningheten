@@ -621,7 +621,7 @@ hr {
   border-radius: 1em;
 }
 
-.news, .seasons {
+.news, .seasons, .goals {
   width: 100%;
   width: -webkit-fill-available;
   width: -moz-available;
@@ -1158,7 +1158,7 @@ input[type=checkbox]
   user-select: none;
 }
 
-.season-object {
+.season-object, .goal-object {
   padding: 1em;
   display: flex;
   flex-direction: row;
@@ -1173,14 +1173,14 @@ input[type=checkbox]
   border-radius: 1em;
 }
 
-.season-object-wrapper {
+.season-object-wrapper, .goal-object-wrapper {
   background-color: var(--white);
   border-radius: 1em;
   border: solid 0.2em var(--lightblue); 
   margin: 1em 0;
 }
 
-.season-title, .season-body, .season-date {
+.season-title, .season-body, .season-date, .goal-exercise, .goal-compete, .goal-join-date {
   margin: 0.5em;
   display: flex;
   flex-direction: row;
@@ -1195,7 +1195,7 @@ input[type=checkbox]
   text-decoration: underline;
 }
 
-.leaderboard-week-two {
+.leaderboard-week-two, .exercise-object {
   display: flex;
   flex-direction: row;
   flex-wrap: wrap;
@@ -1309,6 +1309,7 @@ input[type=checkbox]
   height: 3em;
   border: solid 0.2em var(--lightblue);
   background-color: var(--white);
+  cursor: pointer;
 }
 
 .current-week-user-photo-img, .user-active-profile-photo-img, .leaderboard-week-member-image-img {
@@ -1354,6 +1355,7 @@ input[type=checkbox]
   justify-content: center;
   align-items: center;
   border-radius: 0.5em;
+  cursor: pointer;
 }
 
 .leaderboard-week-member:hover {
@@ -1390,4 +1392,42 @@ input[type=checkbox]
 .season-statistics-element:hover {
   background-color: rgba(119, 141, 169, 0.25);
   transition: 1s;
+}
+
+.goal-leaderboard {
+  width: 100%;
+  width: -webkit-fill-available;
+  width: -moz-available;
+}
+
+.exercise-details {
+  width: 100%;
+  width: -webkit-fill-available;
+  width: -moz-available;
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-content: center;
+  justify-content: center;
+  align-items: center;
+  box-sizing: border-box;
+  padding: 0 0.5em;
+  margin-top: 1em;
+}
+
+.exercise-date {
+  box-sizing: border-box;
+  width: 100%;
+  width: -webkit-fill-available;
+  width: -moz-available;
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-content: center;
+  justify-content: center;
+  align-items: center;
+}
+
+.exercise-exercise-number, .exercise-notes {
+  margin: 0.5em 1em;
 }

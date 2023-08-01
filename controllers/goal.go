@@ -106,6 +106,7 @@ func ConvertGoalToGoalObject(goal models.Goal) (models.GoalObject, error) {
 
 	user, err := database.GetUserInformation(goal.User)
 	if err != nil {
+		log.Println("Failed to get information for user '" + strconv.Itoa(goal.User) + "'. Returning. Error: " + err.Error())
 		return models.GoalObject{}, err
 	}
 
@@ -132,6 +133,23 @@ func ConvertGoalToGoalObject(goal models.Goal) (models.GoalObject, error) {
 	goalObject.UpdatedAt = goal.UpdatedAt
 
 	return goalObject, nil
+
+}
+
+func ConvertGoalsToGoalObjects(goals []models.Goal) ([]models.GoalObject, error) {
+
+	var goalObjects []models.GoalObject
+
+	for _, goal := range goals {
+		goalObject, err := ConvertGoalToGoalObject(goal)
+		if err != nil {
+			log.Println("Failed to convert goal to goal object. Returning. Error: " + err.Error())
+			return []models.GoalObject{}, err
+		}
+		goalObjects = append(goalObjects, goalObject)
+	}
+
+	return goalObjects, nil
 
 }
 
@@ -188,4 +206,34 @@ func APIDeleteGoalToSeason(context *gin.Context) {
 	}
 
 	context.JSON(http.StatusCreated, gin.H{"message": "Goal deleted."})
+}
+
+func APIGetGoals(context *gin.Context) {
+
+	// Get user ID
+	userID, err := middlewares.GetAuthUsername(context.GetHeader("Authorization"))
+	if err != nil {
+		context.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		context.Abort()
+		return
+	}
+
+	// Verify goal exists within season
+	goals, err := database.GetGoalsForUserUsingUserID(userID)
+	if err != nil {
+		log.Println("Failed to get goals. Error: " + err.Error())
+		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get goals."})
+		context.Abort()
+		return
+	}
+
+	goalObject, err := ConvertGoalsToGoalObjects(goals)
+	if err != nil {
+		log.Println("Failed to convert goals to goal objects. Error: " + err.Error())
+		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to convert goals to goal objects."})
+		context.Abort()
+		return
+	}
+
+	context.JSON(http.StatusCreated, gin.H{"message": "Goals retrieved.", "goals": goalObject})
 }

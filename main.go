@@ -208,9 +208,11 @@ func initRouter() *gin.Engine {
 
 			auth.POST("/goal/register", controllers.APIRegisterGoalToSeason)
 			auth.POST("/goal/delete", controllers.APIDeleteGoalToSeason)
+			auth.POST("/goal", controllers.APIGetGoals)
 
 			auth.POST("/exercise/update", controllers.APIRegisterWeek)
 			auth.POST("/exercise/get", controllers.APIRGetWeek)
+			auth.POST("/exercise/", controllers.APIRGetExercise)
 
 			auth.POST("/sickleave/register", controllers.APIRegisterSickleave)
 
@@ -289,6 +291,11 @@ func initRouter() *gin.Engine {
 		c.HTML(http.StatusOK, "account.html", nil)
 	})
 
+	// Static endpoint for other accounts
+	router.GET("/user/:user_id", func(c *gin.Context) {
+		c.HTML(http.StatusOK, "user.html", nil)
+	})
+
 	// Static endpoint for seeing news
 	router.GET("/news", func(c *gin.Context) {
 		c.HTML(http.StatusOK, "news.html", nil)
@@ -297,6 +304,11 @@ func initRouter() *gin.Engine {
 	// Static endpoint for seeing seasons
 	router.GET("/seasons", func(c *gin.Context) {
 		c.HTML(http.StatusOK, "seasons.html", nil)
+	})
+
+	// Static endpoint for seeing exercises
+	router.GET("/exercises", func(c *gin.Context) {
+		c.HTML(http.StatusOK, "exercises.html", nil)
 	})
 
 	// Static endpoint for admin functions

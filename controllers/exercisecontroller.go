@@ -391,3 +391,28 @@ func GetExercisesForWeekUsingGoal(timeReq time.Time, goalID int) (models.Week, e
 	return week, nil
 
 }
+
+// Get full workout calender for the week from the database, and return to user
+func APIRGetExercise(context *gin.Context) {
+
+	// Get user ID
+	userID, err := middlewares.GetAuthUsername(context.GetHeader("Authorization"))
+	if err != nil {
+		log.Println("Failed to verify user ID. Error: " + "Failed to verify user ID.")
+		context.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		context.Abort()
+		return
+	}
+
+	// Get exercises from user
+	exercise, err := database.GetExercisesForUserUsingUserID(userID)
+	if err != nil {
+		log.Println("Failed to get exercise. Error: " + err.Error())
+		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get exercise."})
+		context.Abort()
+		return
+	}
+
+	context.JSON(http.StatusOK, gin.H{"message": "Exercise retrieved.", "exercise": exercise})
+
+}

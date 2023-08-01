@@ -12,8 +12,9 @@
         <!-- Custom CSS -->
         <link rel="stylesheet" type="text/css" href="/css/main.css">
         <link rel="manifest" href="/json/manifest.json" />
-        <script src="/js/frontpage.js"></script>
+        <script src="/js/user.js"></script>
         <script src="/js/functions.js"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.9.4/Chart.js"></script>
         <link rel="preconnect" href="https://fonts.googleapis.com">
         <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
         <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300&display=swap" rel="stylesheet"> 
@@ -79,7 +80,7 @@
                 <a class="nav-item disabled" href="/news" id='news'>News</a>
                 <a class="nav-item disabled" href="/seasons" id='seasons'>Seasons</a>
                 <a class="nav-item disabled" href="/exercises" id='exercises'>Exercises</a>
-       
+                
                 <a class="nav-item disabled" href="/account" id='account'>Account</a>
 
                 <a class="nav-item disabled" href="/admin" id='admin'>Admin</a>
@@ -103,13 +104,6 @@
                     <!-- where main content will appear -->
                     <div class="card">
                         <div class="card-header" id="card-header"></div>
-
-                        <!-- where fireworks will appear -->
-                        <div class="pyro" id="pyro">
-                            <div class="before"></div>
-                            <div class="after"></div>
-                        </div>
-
                         <div class="card-body" id="content"></div>
                     </div>
                 </div>
@@ -120,9 +114,10 @@
         <script>
 
             var ignoreNav = document.getElementById('nav');
+            var groups;
+            var user_id;
             var jwt;
-            var fireworks_int = 0;
-            var user_id = 0;
+            
             info('Loading...');
             showLoggedOutMenu();
             jwt = get_cookie('treningheten');

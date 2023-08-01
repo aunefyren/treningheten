@@ -69,3 +69,18 @@ func DisableGoalInDBUsingGoalID(goalID int) error {
 	return nil
 
 }
+
+func GetGoalsForUserUsingUserID(userID int) ([]models.Goal, error) {
+
+	var goals []models.Goal
+
+	goalRecord := Instance.Order("created_at desc").Where("`goals`.enabled = ?", 1).Where("`goals`.user = ?", userID).Find(&goals)
+	if goalRecord.Error != nil {
+		return []models.Goal{}, goalRecord.Error
+	} else if goalRecord.RowsAffected == 0 {
+		return []models.Goal{}, nil
+	}
+
+	return goals, nil
+
+}
