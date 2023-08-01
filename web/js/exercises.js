@@ -55,7 +55,7 @@ function load_page(result) {
     `;
 
     document.getElementById('content').innerHTML = html;
-    document.getElementById('card-header').innerHTML = 'The archive';
+    document.getElementById('card-header').innerHTML = 'I\'m sure your notes are really useful.';
     clearResponse();
 
     if(result !== false) {
@@ -157,6 +157,10 @@ function place_goals(goals_array) {
 
                 html += '<div id="goal-join-date" class="goal-join-date">';
                 html += '<img src="assets/calendar.svg" class="btn_logo"></img> Join date: ' + date_string
+                html += '</div>';
+
+                html += '<div id="goal-exercises" class="goal-exercises">';
+                html += 'Exercises: '
                 html += '</div>';
 
             html += '</div>'

@@ -55,16 +55,18 @@ function load_page(result) {
                 <img style="width: 100%; height: 100%;" class="user-active-profile-photo-img" id="user-active-profile-photo-img" src="/assets/images/barbell.gif">
             </div>
 
+            <b><p id="user_name" style="margin-top: 1em; font-size: 1.25em;"></p></b>
+            <p id="join_date" style=""></p>
+            <p id="user_admin" style=""></p>
+
+            <div class="module color-invert">
+                <hr>
+            </div>
+
             <form action="" onsubmit="event.preventDefault(); send_update();">
 
-                <label id="form-input-icon" for="email"></label>
-                <input type="email" name="email" id="email" placeholder="Email" value="` + email + `" required/>
-
-                <label id="form-input-icon" for="first_name"></label>
-                <input type="text" name="first_name" id="first_name" placeholder="First name" value="` + first_name + `" required disabled />
-
-                <label id="form-input-icon" for="last_name"></label>
-                <input type="text" name="last_name" id="last_name" placeholder="Last name" value="` + last_name + `" disabled required/>
+                <label id="form-input-icon" for="email">Replace email:</label>
+                <input type="email" name="email" id="email" placeholder="Email" value="" required/>
 
                 <label id="form-input-icon" for="new_profile_image" style="margin-top: 2em;">Replace profile image:</label>
                 <input type="file" name="new_profile_image" id="new_profile_image" placeholder="" value="" accept="image/png, image/jpeg" />
@@ -82,7 +84,7 @@ function load_page(result) {
 
                 </div>
 
-                <input style="margin-top: 2em;" class="clickable" type="checkbox" id="reminder-toggle" name="reminder-toggle" value="reminder-toggle" ` + sunday_reminder_str + `>
+                <input style="margin-top: 2em;" class="clickable" type="checkbox" id="reminder-toggle" name="reminder-toggle" value="reminder-toggle">
                 <label for="reminder-toggle" class="unselectable clickable">Send me logging reminders on Sundays.</label><br>
 
                 <button id="update-button" style="margin-top: 2em;" type="submit" href="/">Update account</button>
@@ -136,6 +138,7 @@ function load_page(result) {
 
     if(result !== false) {
         showLoggedInMenu();
+        GetUserData(user_id);
         GetProfileImage(user_id);
         get_seasons();
     } else {
@@ -234,7 +237,7 @@ function send_update_two(form_data) {
 
                 // store jwt to cookie
                 set_cookie("treningheten", result.token, 7);
-
+                
                 if(result.verified) {
                     location.reload();
                 } else {
@@ -678,5 +681,72 @@ function GetProfileImage(userID) {
 function PlaceProfileImage(imageBase64) {
 
     document.getElementById("user-active-profile-photo-img").src = imageBase64
+
+}
+
+function GetUserData(userID) {
+
+    var xhttp = new XMLHttpRequest();
+    xhttp.onreadystatechange = function() {
+        if (this.readyState == 4) {
+            
+            try {
+                result = JSON.parse(this.responseText);
+            } catch(e) {
+                console.log(e +' - Response: ' + this.responseText);
+                error("Could not reach API.");
+                return;
+            }
+            
+            if(result.error) {
+
+                error(result.error);
+
+            } else {
+
+                PlaceUserData(result.user)
+                
+            }
+
+        } else {
+            // info("Loading week...");
+        }
+    };
+    xhttp.withCredentials = true;
+    xhttp.open("post", api_url + "auth/user/get/" + userID);
+    xhttp.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
+    xhttp.setRequestHeader("Authorization", jwt);
+    xhttp.send();
+
+    return;
+
+}
+
+function PlaceUserData(user_object) {
+
+    document.getElementById("user_name").innerHTML = user_object.first_name + " " + user_object.last_name
+    document.getElementById("email").value = user_object.email
+
+    // parse date object
+    try {
+        var date = new Date(Date.parse(user_object.CreatedAt));
+        var date_string = GetDateString(date)
+    } catch {
+        var date_string = "Error"
+    }
+
+    document.getElementById("join_date").innerHTML = "Joined: " + date_string
+
+    if(user_object.admin) {
+        var admin_string = "Yes"
+    } else {
+        var admin_string = "No"
+    }
+
+    document.getElementById("user_admin").innerHTML = "Administrator: " + admin_string
+
+    if(user_object.sunday_alert) {
+        document.getElementById("reminder-toggle").checked = true;
+    }
 
 }

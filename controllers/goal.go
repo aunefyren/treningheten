@@ -149,6 +149,10 @@ func ConvertGoalsToGoalObjects(goals []models.Goal) ([]models.GoalObject, error)
 		goalObjects = append(goalObjects, goalObject)
 	}
 
+	if len(goalObjects) == 0 {
+		return []models.GoalObject{}, nil
+	}
+
 	return goalObjects, nil
 
 }

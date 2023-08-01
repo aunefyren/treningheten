@@ -48,12 +48,17 @@ function load_page(result) {
                 <img style="width: 100%; height: 100%;" class="user-active-profile-photo-img" id="user-active-profile-photo-img" src="/assets/images/barbell.gif">
             </div>
 
-            <div style="margin-top: 1em; display: flex; flex-direction: row; flex-wrap: wrap; align-content: center; justify-content: center; align-items: center;">
-                <p id="first_name" style="margin: 0.25em"></p>
-                <p id="last_name" style="margin: 0.25em"></p>
-            </div>
+            <b><p id="user_name" style="margin-top: 1em; font-size: 1.25em;"></p></b>
+            <p id="join_date" style=""></p>
+            <p id="user_admin" style=""></p>
 
-            <p id="join_date" style="margin: 0.25em"></p>
+        </div>
+
+        <div class="module">
+
+            <div id="achievements-title" class="title" style="display: none;">
+                Achievements:
+            </div>
 
         </div>
 
@@ -157,8 +162,7 @@ function GetUserData(userID) {
 
 function PlaceUserData(user_object) {
 
-    document.getElementById("first_name").innerHTML = user_object.first_name
-    document.getElementById("last_name").innerHTML = user_object.last_name
+    document.getElementById("user_name").innerHTML = user_object.first_name + " " + user_object.last_name
 
     // parse date object
     try {
@@ -169,5 +173,13 @@ function PlaceUserData(user_object) {
     }
 
     document.getElementById("join_date").innerHTML = "Joined: " + date_string
+
+    if(user_object.admin) {
+        var admin_string = "Yes"
+    } else {
+        var admin_string = "No"
+    }
+
+    document.getElementById("user_admin").innerHTML = "Administrator: " + admin_string
 
 }

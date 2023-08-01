@@ -150,7 +150,7 @@ func GetUser(context *gin.Context) {
 	// Create user request
 	var user = context.Param("user_id")
 
-	// Parse group id
+	// Parse requested user id
 	user_id_int, err := strconv.Atoi(user)
 	if err != nil {
 		context.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
@@ -158,11 +158,33 @@ func GetUser(context *gin.Context) {
 		return
 	}
 
-	user_object, err := database.GetUserInformation(user_id_int)
+	// Get user ID from requestor
+	requesterUserID, err := middlewares.GetAuthUsername(context.GetHeader("Authorization"))
 	if err != nil {
-		context.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		log.Println("Failed to get requesting user ID. Error: " + err.Error())
+		context.JSON(http.StatusBadRequest, gin.H{"error": "Failed to get requesting user ID."})
 		context.Abort()
 		return
+	}
+
+	user_object, err := database.GetUserInformation(user_id_int)
+	if err != nil {
+		log.Println("Failed to get user. Error: " + err.Error())
+		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get user."})
+		context.Abort()
+		return
+	}
+
+	if requesterUserID == user_id_int {
+		complete_user, err := database.GetAllUserInformation(requesterUserID)
+		if err != nil {
+			log.Println("Failed to get user details. Error: " + err.Error())
+			context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get user details."})
+			context.Abort()
+			return
+		}
+		user_object.Email = complete_user.Email
+		user_object.SundayAlert = complete_user.SundayAlert
 	}
 
 	// Reply
