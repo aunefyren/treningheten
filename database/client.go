@@ -71,5 +71,8 @@ func Migrate() {
 	Instance.AutoMigrate(&models.Debt{})
 	Instance.AutoMigrate(&models.Prize{})
 	Instance.AutoMigrate(&models.Wheelview{})
+	Instance.AutoMigrate(&models.Achievement{})
+	Instance.AutoMigrate(&models.AchievementDelegation{})
+
 	log.Println("Database Migration Completed!")
 }

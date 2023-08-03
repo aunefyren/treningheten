@@ -524,8 +524,8 @@ function countdown_module(season_object, exercise_goal) {
 
     document.getElementById("countdownseason").style.display = "flex"
     document.getElementById("countdown_season_title").innerHTML = season_object.name
-    document.getElementById("countdown_season_start").innerHTML = "Season start: " + GetDateString(date_start)
-    document.getElementById("countdown_season_end").innerHTML = "Season end: " + GetDateString(date_end)
+    document.getElementById("countdown_season_start").innerHTML = "Season start: " + GetDateString(date_start, true)
+    document.getElementById("countdown_season_end").innerHTML = "Season end: " + GetDateString(date_end, true)
     document.getElementById("countdown_season_desc").innerHTML = season_object.description
     document.getElementById("countdown_goal").innerHTML = "You are signed up for " + exercise_goal + " exercises a week."
 
@@ -546,8 +546,8 @@ function registergoal_module(season_object) {
 
     document.getElementById("registergoal").style.display = "flex"
     document.getElementById("register_season_title").innerHTML = season_object.name
-    document.getElementById("register_season_start").innerHTML = "Season start: " + GetDateString(date_start)
-    document.getElementById("register_season_end").innerHTML = "Season end: " + GetDateString(date_end)
+    document.getElementById("register_season_start").innerHTML = "Season start: " + GetDateString(date_start, true)
+    document.getElementById("register_season_end").innerHTML = "Season end: " + GetDateString(date_end, true)
     document.getElementById("register_season_desc").innerHTML = season_object.description
 
 }
@@ -1081,8 +1081,8 @@ function place_season_details(goal, sickleave, seasonStart, SeasonEnd) {
         var date_start = new Date(seasonStart);
         var date_end = new Date(SeasonEnd);
 
-        var date_start_string = GetDateString(date_start)
-        var date_end_string = GetDateString(date_end)
+        var date_start_string = GetDateString(date_start, true)
+        var date_end_string = GetDateString(date_end, true)
     } catch {
         var date_start_string = "Error"
         var date_end_string = "Error"
@@ -1111,6 +1111,8 @@ function place_current_week(week_array) {
 
             if(week_array.users[i].user.ID == user_id){
                 document.getElementById("calendar").classList.add("transparent")
+                document.getElementById("calendar").classList.add("unselectable")
+                document.getElementById("calendar").classList.add("noninteractive")
             } else {
                 console.log(user_id)
             }

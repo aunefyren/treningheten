@@ -137,6 +137,19 @@ func main() {
 	log.Println("Database connected.")
 	fmt.Println("Database connected.")
 
+	achivementsFound, err := controllers.CheckIfAchivementsExist()
+	if err != nil {
+		log.Println("Failed to check achievements. Error: " + err.Error())
+		return
+	} else if !achivementsFound {
+		log.Println("No achievements, creating default.")
+		err = controllers.CreateDefaultAchivements()
+		if err != nil {
+			log.Println("Failed to create achievements. Error: " + err.Error())
+			return
+		}
+	}
+
 	if generateInvite {
 		invite, err := database.GenrateRandomInvite()
 		if err != nil {
@@ -231,6 +244,10 @@ func initRouter() *gin.Engine {
 			auth.POST("/debt/:debt_id/choose", controllers.APIChooseWinnerForDebt)
 			auth.POST("/debt", controllers.APIGetDebtOverview)
 			auth.POST("/debt/:debt_id/received", controllers.APISetPrizeReceived)
+
+			auth.POST("/achievement/", controllers.APIGetAchivements)
+			auth.POST("/achievement/:user_id", controllers.APIGetPersonalAchivements)
+			auth.POST("/achievement/get/:achievement_id/image", controllers.APIGetAchievementsImage)
 		}
 
 		admin := api.Group("/admin").Use(middlewares.Auth(true))

@@ -94,6 +94,12 @@ func APIRegisterSickleave(context *gin.Context) {
 		return
 	}
 
+	// Give achivement to user
+	err = GiveUserAnAchivement(userID, 10)
+	if err != nil {
+		log.Println("Failed to give achivement for user '" + strconv.Itoa(userID) + "'. Ignoring. Error: " + err.Error())
+	}
+
 	context.JSON(http.StatusOK, gin.H{"message": "Sick leave used."})
 
 }

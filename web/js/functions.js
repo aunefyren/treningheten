@@ -369,7 +369,7 @@ function gcdOfTwoNumbers(x, y) {
     return x;
 }
 
-function GetDateString(dateTime) {
+function GetDateString(dateTime, giveWeekday) {
 
     try {
 
@@ -395,8 +395,11 @@ function GetDateString(dateTime) {
             year = 1900 + yearInt
         }
 
-        return weekDay + ", " + day + ". " + month + ", " + year;
-
+        if(giveWeekday) {
+            return weekDay + ", " + day + ". " + month + ", " + year;
+        } else {
+            return day + ". " + month + ", " + year;
+        }
 
     } catch(e) {
         console.log("Failed to generate string for date time. Error: " + e)

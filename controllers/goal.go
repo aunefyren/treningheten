@@ -97,7 +97,14 @@ func APIRegisterGoalToSeason(context *gin.Context) {
 		database.CreateSickleave(sickleave)
 	}
 
+	// Give achivement to user
+	err = GiveUserAnAchivement(userID, 1)
+	if err != nil {
+		log.Println("Failed to give achivement for user '" + strconv.Itoa(userID) + "'. Ignoring. Error: " + err.Error())
+	}
+
 	context.JSON(http.StatusCreated, gin.H{"message": "Goal created."})
+
 }
 
 func ConvertGoalToGoalObject(goal models.Goal) (models.GoalObject, error) {

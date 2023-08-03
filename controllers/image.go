@@ -21,6 +21,7 @@ import (
 )
 
 var profile_image_path, _ = filepath.Abs("./images/profiles")
+var achievements_image_path, _ = filepath.Abs("./images/achievements")
 var default_profile_image_path, _ = filepath.Abs("./web/assets/user.svg")
 var default_max_image_height = 1000
 var default_max_image_width = 1000
@@ -272,5 +273,73 @@ func UpdateUserProfileImage(userID int, base64String string) error {
 	}
 
 	return nil
+
+}
+
+func APIGetAchievementsImage(context *gin.Context) {
+
+	// Create achievement request
+	var achievementIDString = context.Param("achievement_id")
+	var thumbnail = context.Query("thumbnail")
+	var imageWidth uint
+	var imageHeight uint
+
+	if thumbnail == "true" {
+		imageWidth = uint(default_max_thumbnail_width)
+		imageHeight = uint(default_max_thumbnail_height)
+	} else {
+		imageWidth = uint(default_max_image_width)
+		imageHeight = uint(default_max_image_height)
+	}
+
+	// Parse achievement id
+	achievementID, err := strconv.Atoi(achievementIDString)
+	if err != nil {
+		log.Println("Failed to parse achievement ID. Error: " + err.Error())
+		context.JSON(http.StatusBadRequest, gin.H{"error": "Failed to parse achievement ID."})
+		context.Abort()
+		return
+	}
+
+	// Check if achievement exists
+	_, err = database.GetAchievementByID(achievementID)
+	if err != nil {
+		log.Println("Failed to find achievement. Error: " + err.Error())
+		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to find achievement."})
+		context.Abort()
+		return
+	}
+
+	var filePath = achievements_image_path + "/" + achievementIDString + ".jpg"
+
+	imageBytes, err := LoadImageFile(filePath)
+	resize := true
+	if err != nil {
+		log.Println("Failed to find achievement image. Error: " + err.Error())
+		context.JSON(http.StatusBadRequest, gin.H{"error": "Failed to find achievement image."})
+		context.Abort()
+		return
+	}
+
+	if resize {
+		imageBytes, err = ResizeImage(imageWidth, imageHeight, imageBytes)
+		if err != nil {
+			log.Println("Failed to resize image. Error: " + err.Error())
+			context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to resize image."})
+			context.Abort()
+			return
+		}
+	}
+
+	base64, err := ImageBytesToBase64(imageBytes)
+	if err != nil {
+		log.Println("Failed to convert image file to Base64. Error: " + err.Error())
+		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to convert image file to Base64."})
+		context.Abort()
+		return
+	}
+
+	// Reply
+	context.JSON(http.StatusOK, gin.H{"image": base64, "message": "Picture retrieved."})
 
 }

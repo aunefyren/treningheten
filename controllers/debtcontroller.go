@@ -115,6 +115,22 @@ func GenerateDebtForWeek(givenTime time.Time) error {
 			log.Println("Failed to log debt for '" + strconv.Itoa(int(user.ID)) + "'. Skipping.")
 			continue
 		}
+
+		if len(winners) == 1 {
+
+			// Give achivement to winner
+			err = GiveUserAnAchivement(winner, 5)
+			if err != nil {
+				log.Println("Failed to give achivement for user '" + strconv.Itoa(winner) + "'. Ignoring. Error: " + err.Error())
+			}
+
+			// Give achivement to loser
+			err = GiveUserAnAchivement(int(user.ID), 4)
+			if err != nil {
+				log.Println("Failed to give achivement for user '" + strconv.Itoa(int(user.ID)) + "'. Ignoring. Error: " + err.Error())
+			}
+
+		}
 	}
 
 	log.Println("Done logging debt. Returning.")
@@ -434,6 +450,18 @@ func APIChooseWinnerForDebt(context *gin.Context) {
 
 	// Update winner in DB
 	database.UpdateDebtWinner(debtIDInt, winnerID)
+
+	// Give achivement to winner
+	err = GiveUserAnAchivement(winnerID, 5)
+	if err != nil {
+		log.Println("Failed to give achivement for user '" + strconv.Itoa(winnerID) + "'. Ignoring. Error: " + err.Error())
+	}
+
+	// Give achivement to loser
+	err = GiveUserAnAchivement(userID, 4)
+	if err != nil {
+		log.Println("Failed to give achivement for user '" + strconv.Itoa(userID) + "'. Ignoring. Error: " + err.Error())
+	}
 
 	// Get user object
 	winnerUser, err := database.GetUserInformation(winnerID)

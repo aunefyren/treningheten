@@ -54,10 +54,17 @@ function load_page(result) {
 
         </div>
 
-        <div class="module">
+        <div class="module color-invert" id="achievements-hr" style="display: none;">
+            <hr>
+        </div>
 
-            <div id="achievements-title" class="title" style="display: none;">
+        <div class="module" id="achievements-module" style="display: none;">
+
+            <div id="achievements-title" class="title" style="margin-bottom: 1em;">
                 Achievements:
+            </div>
+
+            <div id="achievements-box" class="achievements-box">
             </div>
 
         </div>
@@ -181,5 +188,135 @@ function PlaceUserData(user_object) {
     }
 
     document.getElementById("user_admin").innerHTML = "Administrator: " + admin_string
+
+    GetUserAhievements(user_object.ID);
+
+}
+
+function GetUserAhievements(userID) {
+
+    var xhttp = new XMLHttpRequest();
+    xhttp.onreadystatechange = function() {
+        if (this.readyState == 4) {
+            
+            try {
+                result = JSON.parse(this.responseText);
+            } catch(e) {
+                console.log(e +' - Response: ' + this.responseText);
+                error("Could not reach API.");
+                return;
+            }
+            
+            if(result.error) {
+
+                error(result.error);
+
+            } else {
+
+                PlaceUserAhievements(result.achivements)
+                
+            }
+
+        } else {
+            // info("Loading week...");
+        }
+    };
+    xhttp.withCredentials = true;
+    xhttp.open("post", api_url + "auth/achievement/" + userID);
+    xhttp.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
+    xhttp.setRequestHeader("Authorization", jwt);
+    xhttp.send();
+
+    return;
+
+}
+
+function PlaceUserAhievements(achivementArray) {
+
+    if(achivementArray.length > 0) {
+        document.getElementById("achievements-module").style.display = "flex"
+        document.getElementById("achievements-hr").style.display = "flex"
+    } else {
+        return;
+    }
+
+    for(var i = 0; i < achivementArray.length; i++) {
+
+        // parse date object
+        try {
+            var date = new Date(Date.parse(achivementArray[i].given_at));
+            var date_string = GetDateString(date, false)
+        } catch {
+            var date_string = "Error"
+        }
+
+        var html = `
+
+        <div class="achievement unselectable" title="${achivementArray[i].description}">
+
+            <div class="achievement-image">
+                <img style="width: 100%; height: 100%;" class="achievement-img" id="achievement-img-${achivementArray[i].id}" src="/assets/images/barbell.gif">
+            </div>
+
+            <div class="achievement-title">
+                ${achivementArray[i].name}
+            </div>
+
+            <div class="achievement-date">
+                ${date_string}
+            </div>
+
+        </div>
+        `;
+
+        document.getElementById("achievements-box").innerHTML += html
+
+        GetAchievementImage(achivementArray[i].id)
+
+    }
+
+}
+
+function GetAchievementImage(achievementID) {
+
+    var xhttp = new XMLHttpRequest();
+    xhttp.onreadystatechange = function() {
+        if (this.readyState == 4) {
+            
+            try {
+                result = JSON.parse(this.responseText);
+            } catch(e) {
+                console.log(e +' - Response: ' + this.responseText);
+                error("Could not reach API.");
+                return;
+            }
+            
+            if(result.error) {
+
+                error(result.error);
+
+            } else {
+
+                PlaceAchievementImage(result.image, achievementID)
+                
+            }
+
+        } else {
+            // info("Loading week...");
+        }
+    };
+    xhttp.withCredentials = true;
+    xhttp.open("post", api_url + "auth/achievement/get/" + achievementID + "/image");
+    xhttp.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
+    xhttp.setRequestHeader("Authorization", jwt);
+    xhttp.send();
+
+    return;
+
+}
+
+function PlaceAchievementImage(imageBase64, achievementID) {
+
+    document.getElementById("achievement-img-" + achievementID).src = imageBase64
 
 }
