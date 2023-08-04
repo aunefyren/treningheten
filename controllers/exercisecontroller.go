@@ -5,6 +5,7 @@ import (
 	"aunefyren/treningheten/database"
 	"aunefyren/treningheten/middlewares"
 	"aunefyren/treningheten/models"
+	"aunefyren/treningheten/utilities"
 	"errors"
 	"log"
 	"net/http"
@@ -317,43 +318,26 @@ func GetExercisesForWeekUsingGoal(timeReq time.Time, goalID int) (models.Week, e
 	_, timeReqWeek := timeReq.ISOWeek()
 
 	// Find monday
-	if timeReq.Weekday() == 1 {
-		startTime = timeReq
-		_, startTimeWeek = timeReq.ISOWeek()
-	} else {
-		previousDate := timeReq
-
-		for i := 0; i < 8; i++ {
-			previousDate = previousDate.AddDate(0, 0, -1)
-			if previousDate.Weekday() == 1 {
-				startTime = previousDate
-				_, startTimeWeek = previousDate.ISOWeek()
-				break
-			}
-		}
-
+	startTime, err := utilities.FindEarlierMonday(timeReq)
+	if err != nil {
+		log.Println("Failed to find earlier Monday for date. Error: " + err.Error())
+		return models.Week{}, errors.New("Failed to find earlier Monday for date.")
 	}
+	_, startTimeWeek = startTime.ISOWeek()
 
 	// Find sunday
-	if timeReq.Weekday() == 0 {
-		endTime = timeReq
-		_, endTimeWeek = timeReq.ISOWeek()
-	} else {
-		nextDate := timeReq
-
-		for i := 0; i < 8; i++ {
-			nextDate = nextDate.AddDate(0, 0, +1)
-			if nextDate.Weekday() == 0 {
-				endTime = nextDate
-				_, endTimeWeek = nextDate.ISOWeek()
-				break
-			}
-		}
-
+	endTime, err = utilities.FindNextSunday(timeReq)
+	if err != nil {
+		log.Println("Failed to find next Sunday for date. Error: " + err.Error())
+		return models.Week{}, errors.New("Failed to find next Sunday for date.")
 	}
+	_, endTimeWeek = endTime.ISOWeek()
 
 	// Verify all dates are the same week
 	if timeReqWeek != startTimeWeek || timeReqWeek != endTimeWeek {
+		log.Println("Required time week: " + strconv.Itoa(timeReqWeek))
+		log.Println("Start time week: " + strconv.Itoa(startTimeWeek))
+		log.Println("End time week: " + strconv.Itoa(endTimeWeek))
 		return models.Week{}, errors.New("Managed to find dates outside of chosen week.")
 	}
 

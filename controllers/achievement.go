@@ -3,10 +3,13 @@ package controllers
 import (
 	"aunefyren/treningheten/database"
 	"aunefyren/treningheten/models"
+	"aunefyren/treningheten/utilities"
 	"errors"
 	"log"
 	"net/http"
+	"sort"
 	"strconv"
+	"time"
 
 	"github.com/gin-gonic/gin"
 )
@@ -61,6 +64,10 @@ func APIGetPersonalAchivements(context *gin.Context) {
 		return
 	}
 
+	sort.Slice(achivementObjectsArray, func(i, j int) bool {
+		return achivementObjectsArray[i].GivenAt.After(achivementObjectsArray[j].GivenAt)
+	})
+
 	context.JSON(http.StatusOK, gin.H{"message": "Achivements for user found.", "achivements": achivementObjectsArray})
 
 }
@@ -75,7 +82,7 @@ func CreateDefaultAchivements() error {
 	achievements := []models.Achievement{}
 
 	leapAchievement := models.Achievement{
-		Name:        "New year, new me",
+		Name:        "One of us",
 		Description: "Join a season by creating a goal.",
 	}
 	achievements = append(achievements, leapAchievement)
@@ -94,7 +101,7 @@ func CreateDefaultAchivements() error {
 
 	deserveAchievement := models.Achievement{
 		Name:        "What you deserve",
-		Description: "Spin the wheel after losing a week.",
+		Description: "Spin the wheel after failing a week.",
 	}
 	achievements = append(achievements, deserveAchievement)
 
@@ -111,7 +118,7 @@ func CreateDefaultAchivements() error {
 	achievements = append(achievements, anotherAchievement)
 
 	overAchievement := models.Achievement{
-		Name:        "Averachiever",
+		Name:        "Overachiever",
 		Description: "Exercise more than required in a week.",
 	}
 	achievements = append(achievements, overAchievement)
@@ -130,7 +137,7 @@ func CreateDefaultAchivements() error {
 
 	sickAchievement := models.Achievement{
 		Name:        "Your week off",
-		Description: "Use a day of sick leave.",
+		Description: "Use a week of sick leave.",
 	}
 	achievements = append(achievements, sickAchievement)
 
@@ -167,7 +174,7 @@ func ConvertAchivementDelegationToAchivementObject(achievementDelegation models.
 		Description: achievement.Description,
 		ID:          achievement.ID,
 		Enabled:     achievement.Enabled,
-		GivenAt:     achievementDelegation.CreatedAt,
+		GivenAt:     achievementDelegation.GivenAt,
 		GivenTo:     user,
 	}
 
@@ -195,7 +202,7 @@ func ConvertAchivementDelegationsToAchivementObjects(achievementDelegations []mo
 
 }
 
-func GiveUserAnAchivement(userID int, achivementID int) error {
+func GiveUserAnAchivement(userID int, achivementID int, achivementTime time.Time) error {
 
 	_, found, err := database.GetAchievementDelegationByAchivementIDAndUserID(userID, achivementID)
 	if err != nil {
@@ -208,12 +215,108 @@ func GiveUserAnAchivement(userID int, achivementID int) error {
 	delegation := models.AchievementDelegation{
 		User:        userID,
 		Achievement: achivementID,
+		GivenAt:     achivementTime,
 	}
 
 	_, err = database.RegisterAchievementDelegationInDB(delegation)
 	if err != nil {
 		log.Println("Failed to give achivement. Error: " + err.Error())
 		return errors.New("Failed to give achivement.")
+	}
+
+	return nil
+
+}
+
+func GenerateAchivementsForWeek(weekResults models.WeekResults) error {
+
+	sundayDate, err := utilities.FindNextSunday(weekResults.WeekDate)
+	if err != nil {
+		log.Println("Failed to find next Sunday. Error: " + err.Error())
+		return errors.New("Failed to find next Sunday.")
+	}
+
+	for _, user := range weekResults.UserWeekResults {
+
+		if user.WeekCompletion > 1.0 {
+
+			// Give achivement to user
+			err := GiveUserAnAchivement(int(user.User.ID), 7, sundayDate)
+			if err != nil {
+				log.Println("Failed to give achivement for user '" + strconv.Itoa(int(user.User.ID)) + "'. Ignoring. Error: " + err.Error())
+			}
+
+		}
+
+		week, err := GetExercisesForWeekUsingGoal(weekResults.WeekDate, user.Goal)
+		if err != nil {
+			log.Println("Failed to get week exercises for user '" + strconv.Itoa(int(user.User.ID)) + "'. Returning. Error: " + err.Error())
+			return errors.New("Failed to get week exercises for user.")
+		}
+
+		everyday := true
+
+		for _, day := range week.Days {
+
+			dayDate := day.Date.Day()
+			dayMonth := day.Date.Month()
+
+			if dayDate == 17 && dayMonth == 5 && day.ExerciseInterval > 0 {
+
+				// Give achivement to user
+				err := GiveUserAnAchivement(int(user.User.ID), 8, day.Date)
+				if err != nil {
+					log.Println("Failed to give achivement for user '" + strconv.Itoa(int(user.User.ID)) + "'. Ignoring. Error: " + err.Error())
+				}
+
+			}
+
+			if dayDate == 24 && dayMonth == 12 && day.ExerciseInterval > 0 {
+
+				// Give achivement to user
+				err := GiveUserAnAchivement(int(user.User.ID), 9, day.Date)
+				if err != nil {
+					log.Println("Failed to give achivement for user '" + strconv.Itoa(int(user.User.ID)) + "'. Ignoring. Error: " + err.Error())
+				}
+
+			}
+
+			if len(day.Note) > 59 {
+
+				// Give achivement to user
+				err := GiveUserAnAchivement(int(user.User.ID), 3, day.Date)
+				if err != nil {
+					log.Println("Failed to give achivement for user '" + strconv.Itoa(int(user.User.ID)) + "'. Ignoring. Error: " + err.Error())
+				}
+
+			}
+
+			if day.ExerciseInterval > 1 {
+
+				// Give achivement to user
+				err := GiveUserAnAchivement(int(user.User.ID), 6, day.Date)
+				if err != nil {
+					log.Println("Failed to give achivement for user '" + strconv.Itoa(int(user.User.ID)) + "'. Ignoring. Error: " + err.Error())
+				}
+
+			}
+
+			if day.ExerciseInterval == 0 {
+				everyday = false
+			}
+
+		}
+
+		if everyday {
+
+			// Give achivement to user
+			err := GiveUserAnAchivement(int(user.User.ID), 2, sundayDate)
+			if err != nil {
+				log.Println("Failed to give achivement for user '" + strconv.Itoa(int(user.User.ID)) + "'. Ignoring. Error: " + err.Error())
+			}
+
+		}
+
 	}
 
 	return nil

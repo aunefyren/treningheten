@@ -66,6 +66,7 @@ type UserWeekResults struct {
 	Sickleave      bool        `json:"sickleave"`
 	Competing      bool        `json:"competing"`
 	Debt           *DebtObject `json:"debt"`
+	Goal           int         `json:"goal"`
 }
 
 type UserWeekResultPersonal struct {

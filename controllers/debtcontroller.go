@@ -4,6 +4,7 @@ import (
 	"aunefyren/treningheten/database"
 	"aunefyren/treningheten/middlewares"
 	"aunefyren/treningheten/models"
+	"aunefyren/treningheten/utilities"
 	"errors"
 	"log"
 	"net/http"
@@ -19,9 +20,14 @@ func GenerateLastWeeksDebt() {
 
 	lastWeek := time.Now().AddDate(0, 0, -7)
 
-	err := GenerateDebtForWeek(lastWeek)
+	weekResults, err := GenerateDebtForWeek(lastWeek)
 	if err != nil {
 		log.Println("Returned error generating last weeks debt: " + err.Error())
+	}
+
+	err = GenerateAchivementsForWeek(weekResults)
+	if err != nil {
+		log.Println("Returned error generating weeks achivements: " + err.Error())
 	}
 
 	return
@@ -29,37 +35,37 @@ func GenerateLastWeeksDebt() {
 }
 
 // Recieves a time and generates resulting debts based on the results of that week. Should be run on weeks after the results are gathered.
-func GenerateDebtForWeek(givenTime time.Time) error {
+func GenerateDebtForWeek(givenTime time.Time) (models.WeekResults, error) {
 
 	// Get current season
 	season, seasonFound, err := GetOngoingSeasonFromDB(givenTime)
 	if err != nil {
 		log.Println("Failed to verify current season status. Returning. Error: " + err.Error())
-		return errors.New("Failed to verify current season status.")
+		return models.WeekResults{}, errors.New("Failed to verify current season status.")
 	} else if !seasonFound {
 		log.Println("Failed to verify current season status. Returning. Error: No active or future seasons found.")
-		return errors.New("Failed to verify current season status.")
+		return models.WeekResults{}, errors.New("Failed to verify current season status.")
 	}
 
 	// Stop if not within season
 	if season.Start.After(givenTime) || season.End.Before(givenTime) {
 		log.Println("Not in the middle of a season. Returning.")
-		return errors.New("Not in the middle of a season.")
+		return models.WeekResults{}, errors.New("Not in the middle of a season.")
 	}
 
 	seasonObject, err := ConvertSeasonToSeasonObject(season)
 	if err != nil {
 		log.Println("Failed to convert season to season object. Returning. Error: " + err.Error())
-		return errors.New("Failed to convert season to season object.")
+		return models.WeekResults{}, errors.New("Failed to convert season to season object.")
 	}
 
 	lastWeekArray, err := RetrieveWeekResultsFromSeasonWithinTimeframe(givenTime.AddDate(0, 0, -7), givenTime, seasonObject)
 	if err != nil {
 		log.Println("Failed to retrieve last week for season. Returning. Error: " + err.Error())
-		return errors.New("Failed to retrieve last week for season.")
+		return models.WeekResults{}, errors.New("Failed to retrieve last week for season.")
 	} else if len(lastWeekArray) != 1 {
 		log.Println("Failed to retrieve ONE week for season. Returning. Error: " + err.Error())
-		return errors.New("Failed to retrieve ONE week for season.")
+		return models.WeekResults{}, errors.New("Failed to retrieve ONE week for season.")
 	}
 
 	lastWeek := lastWeekArray[0]
@@ -81,12 +87,12 @@ func GenerateDebtForWeek(givenTime time.Time) error {
 
 	if len(losers) == 0 {
 		log.Println("No losers this week. Returning.")
-		return errors.New("No losers this week.")
+		return models.WeekResults{}, errors.New("No losers this week.")
 	}
 
 	if len(winners) == 0 {
 		log.Println("No winners this week. Returning.")
-		return errors.New("No winners this week.")
+		return models.WeekResults{}, errors.New("No winners this week.")
 	} else if len(winners) == 1 {
 		winner = int(winners[0].ID)
 	}
@@ -118,23 +124,30 @@ func GenerateDebtForWeek(givenTime time.Time) error {
 
 		if len(winners) == 1 {
 
-			// Give achivement to winner
-			err = GiveUserAnAchivement(winner, 5)
+			nextSunday, err := utilities.FindNextSunday(givenTime)
 			if err != nil {
-				log.Println("Failed to give achivement for user '" + strconv.Itoa(winner) + "'. Ignoring. Error: " + err.Error())
-			}
+				log.Println("Failed to find next Sunday for date. Skipping.")
+			} else {
 
-			// Give achivement to loser
-			err = GiveUserAnAchivement(int(user.ID), 4)
-			if err != nil {
-				log.Println("Failed to give achivement for user '" + strconv.Itoa(int(user.ID)) + "'. Ignoring. Error: " + err.Error())
+				// Give achivement to winner
+				err = GiveUserAnAchivement(winner, 5, nextSunday)
+				if err != nil {
+					log.Println("Failed to give achivement for user '" + strconv.Itoa(winner) + "'. Ignoring. Error: " + err.Error())
+				}
+
+				// Give achivement to loser
+				err = GiveUserAnAchivement(int(user.ID), 4, nextSunday)
+				if err != nil {
+					log.Println("Failed to give achivement for user '" + strconv.Itoa(int(user.ID)) + "'. Ignoring. Error: " + err.Error())
+				}
+
 			}
 
 		}
 	}
 
 	log.Println("Done logging debt. Returning.")
-	return nil
+	return lastWeek, nil
 
 }
 
@@ -409,6 +422,14 @@ func APIChooseWinnerForDebt(context *gin.Context) {
 		return
 	}
 
+	sundayDate, err := utilities.FindNextSunday(debtObject.Date.AddDate(0, 0, -7))
+	if err != nil {
+		log.Println("Failed to find next Sunday. Error: " + err.Error())
+		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to find next Sunday."})
+		context.Abort()
+		return
+	}
+
 	lastWeek := lastWeekArray[0]
 	winners := []models.UserWithTickets{}
 
@@ -452,13 +473,13 @@ func APIChooseWinnerForDebt(context *gin.Context) {
 	database.UpdateDebtWinner(debtIDInt, winnerID)
 
 	// Give achivement to winner
-	err = GiveUserAnAchivement(winnerID, 5)
+	err = GiveUserAnAchivement(winnerID, 5, sundayDate)
 	if err != nil {
 		log.Println("Failed to give achivement for user '" + strconv.Itoa(winnerID) + "'. Ignoring. Error: " + err.Error())
 	}
 
 	// Give achivement to loser
-	err = GiveUserAnAchivement(userID, 4)
+	err = GiveUserAnAchivement(userID, 4, sundayDate)
 	if err != nil {
 		log.Println("Failed to give achivement for user '" + strconv.Itoa(userID) + "'. Ignoring. Error: " + err.Error())
 	}
@@ -633,12 +654,17 @@ func APIGenerateDebtForWeek(context *gin.Context) {
 		return
 	}
 
-	err := GenerateDebtForWeek(debtCreationRequest.Date)
+	weekResults, err := GenerateDebtForWeek(debtCreationRequest.Date)
 	if err != nil {
 		log.Println("Failed to generate debt. Error: " + err.Error())
 		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to generate debt. Error: " + err.Error()})
 		context.Abort()
 		return
+	}
+
+	err = GenerateAchivementsForWeek(weekResults)
+	if err != nil {
+		log.Println("Returned error generating weeks achivements: " + err.Error())
 	}
 
 	context.JSON(http.StatusOK, gin.H{"message": "Debt generated."})

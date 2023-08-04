@@ -15,9 +15,10 @@ type Achievement struct {
 
 type AchievementDelegation struct {
 	gorm.Model
-	Enabled     bool `json:"enabled" gorm:"not null; default: true"`
-	User        int  `json:"user" gorm:"not null"`
-	Achievement int  `json:"achievement" gorm:"not null"`
+	Enabled     bool      `json:"enabled" gorm:"not null; default: true"`
+	User        int       `json:"user" gorm:"not null"`
+	Achievement int       `json:"achievement" gorm:"not null"`
+	GivenAt     time.Time `json:"given_at" gorm:"default:CURRENT_TIMESTAMP()"`
 }
 
 type AchievementObject struct {

@@ -1,8 +1,10 @@
 package utilities
 
 import (
+	"errors"
 	"fmt"
 	"regexp"
+	"time"
 )
 
 func PrintASCII() {
@@ -41,4 +43,58 @@ func ValidatePasswordFormat(password string) (bool, string, error) {
 	}
 
 	return true, requirements, nil
+}
+
+func FindNextSunday(poinInTime time.Time) (time.Time, error) {
+
+	sundayDate := time.Time{}
+
+	// Find sunday
+	if poinInTime.Weekday() == 0 {
+		sundayDate = poinInTime
+	} else {
+		nextDate := poinInTime
+
+		for i := 0; i < 8; i++ {
+			nextDate = nextDate.AddDate(0, 0, +1)
+			if nextDate.Weekday() == 0 {
+				sundayDate = nextDate
+				break
+			}
+		}
+
+	}
+
+	if sundayDate.Weekday() == 0 {
+		return sundayDate, nil
+	}
+
+	return time.Time{}, errors.New("Failed to find next sunday for date.")
+}
+
+func FindEarlierMonday(poinInTime time.Time) (time.Time, error) {
+
+	mondayDate := time.Time{}
+
+	// Find monday
+	if poinInTime.Weekday() == 1 {
+		mondayDate = poinInTime
+	} else {
+		previousDate := poinInTime
+
+		for i := 0; i < 8; i++ {
+			previousDate = previousDate.AddDate(0, 0, -1)
+			if previousDate.Weekday() == 1 {
+				mondayDate = previousDate
+				break
+			}
+		}
+
+	}
+
+	if mondayDate.Weekday() == 1 {
+		return mondayDate, nil
+	}
+
+	return time.Time{}, errors.New("Failed to find earlier monday for date.")
 }

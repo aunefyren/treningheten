@@ -21,7 +21,7 @@ import (
 )
 
 var profile_image_path, _ = filepath.Abs("./images/profiles")
-var achievements_image_path, _ = filepath.Abs("./images/achievements")
+var achievements_image_path, _ = filepath.Abs("./web/assets/achievements")
 var default_profile_image_path, _ = filepath.Abs("./web/assets/user.svg")
 var default_max_image_height = 1000
 var default_max_image_width = 1000

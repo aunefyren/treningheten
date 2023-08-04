@@ -98,7 +98,7 @@ func APIRegisterGoalToSeason(context *gin.Context) {
 	}
 
 	// Give achivement to user
-	err = GiveUserAnAchivement(userID, 1)
+	err = GiveUserAnAchivement(userID, 1, time.Now())
 	if err != nil {
 		log.Println("Failed to give achivement for user '" + strconv.Itoa(userID) + "'. Ignoring. Error: " + err.Error())
 	}

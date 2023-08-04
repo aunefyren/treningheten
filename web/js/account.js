@@ -828,7 +828,7 @@ function PlaceUserAhievements(achivementArray) {
 
         var html = `
 
-        <div class="achievement unselectable" title="${achivementArray[i].description}">
+        <div class="achievement" title="${achivementArray[i].description}" tabindex="1">
 
             <div class="achievement-image">
                 <img style="width: 100%; height: 100%;" class="achievement-img" id="achievement-img-${achivementArray[i].id}" src="/assets/images/barbell.gif">
@@ -836,6 +836,10 @@ function PlaceUserAhievements(achivementArray) {
 
             <div class="achievement-title">
                 ${achivementArray[i].name}
+            </div>
+
+            <div class="achievement-description">
+                ${achivementArray[i].description}
             </div>
 
             <div class="achievement-date">

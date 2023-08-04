@@ -95,7 +95,7 @@ func APIRegisterSickleave(context *gin.Context) {
 	}
 
 	// Give achivement to user
-	err = GiveUserAnAchivement(userID, 10)
+	err = GiveUserAnAchivement(userID, 10, now)
 	if err != nil {
 		log.Println("Failed to give achivement for user '" + strconv.Itoa(userID) + "'. Ignoring. Error: " + err.Error())
 	}

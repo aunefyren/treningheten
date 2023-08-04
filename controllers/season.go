@@ -432,6 +432,7 @@ func GetWeekResultForGoal(goal models.Goal, currentTime time.Time, userStreaks [
 	newResult.WeekCompletion = (float64(exerciseSum) / float64(goal.ExerciseInterval))
 	newResult.CurrentStreak = 0
 	newResult.Competing = goalObject.Competing
+	newResult.Goal = int(goalObject.ID)
 
 	// Check for debt for week
 	debt, debtFound, err := database.GetDebtForWeekForUser(currentTime, int(goalObject.User.ID))
