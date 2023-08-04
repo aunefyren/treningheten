@@ -30,6 +30,38 @@ func GenerateLastWeeksDebt() {
 		log.Println("Returned error generating weeks achivements: " + err.Error())
 	}
 
+	season, seasonFound, err := GetOngoingSeasonFromDB(lastWeek)
+	if err != nil {
+		log.Println("Returned error getting last weeks season: " + err.Error())
+	} else if seasonFound {
+		_, lastWeekWeek := lastWeek.ISOWeek()
+		_, seasonEndWeek := season.End.ISOWeek()
+
+		if lastWeekWeek == seasonEndWeek {
+
+			log.Println("Season over, checking for achivements.")
+
+			seasonObject, err := ConvertSeasonToSeasonObject(season)
+			if err != nil {
+				log.Println("Returned error converting season to season object: " + err.Error())
+			} else {
+
+				pastWeeks, err := RetrieveWeekResultsFromSeasonWithinTimeframe(seasonObject.Start, lastWeek, seasonObject)
+				if err != nil {
+					log.Println("Returned error getting season results: " + err.Error())
+				} else {
+
+					err = GenerateAchivementsForSeason(pastWeeks)
+					if err != nil {
+						log.Println("Returned error generating weeks achivements: " + err.Error())
+					}
+
+				}
+
+			}
+		}
+	}
+
 	return
 
 }
@@ -665,6 +697,38 @@ func APIGenerateDebtForWeek(context *gin.Context) {
 	err = GenerateAchivementsForWeek(weekResults)
 	if err != nil {
 		log.Println("Returned error generating weeks achivements: " + err.Error())
+	}
+
+	season, seasonFound, err := GetOngoingSeasonFromDB(debtCreationRequest.Date)
+	if err != nil {
+		log.Println("Returned error getting last weeks season: " + err.Error())
+	} else if seasonFound {
+		_, lastWeekWeek := debtCreationRequest.Date.ISOWeek()
+		_, seasonEndWeek := season.End.ISOWeek()
+
+		if lastWeekWeek == seasonEndWeek {
+
+			log.Println("Season over, checking for achivements.")
+
+			seasonObject, err := ConvertSeasonToSeasonObject(season)
+			if err != nil {
+				log.Println("Returned error converting season to season object: " + err.Error())
+			} else {
+
+				pastWeeks, err := RetrieveWeekResultsFromSeasonWithinTimeframe(seasonObject.Start, debtCreationRequest.Date, seasonObject)
+				if err != nil {
+					log.Println("Returned error getting season results: " + err.Error())
+				} else {
+
+					err = GenerateAchivementsForSeason(pastWeeks)
+					if err != nil {
+						log.Println("Returned error generating weeks achivements: " + err.Error())
+					}
+
+				}
+
+			}
+		}
 	}
 
 	context.JSON(http.StatusOK, gin.H{"message": "Debt generated."})

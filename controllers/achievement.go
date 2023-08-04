@@ -141,6 +141,42 @@ func CreateDefaultAchivements() error {
 	}
 	achievements = append(achievements, sickAchievement)
 
+	weekendAchievement := models.Achievement{
+		Name:        "I'll do it later",
+		Description: "Only exercise during the weekend.",
+	}
+	achievements = append(achievements, weekendAchievement)
+
+	easyAchievement := models.Achievement{
+		Name:        "Making it look easy",
+		Description: "Exercise more than seven times a week.",
+	}
+	achievements = append(achievements, easyAchievement)
+
+	threeAchievement := models.Achievement{
+		Name:        "Three weeks",
+		Description: "Get a three week streak.",
+	}
+	achievements = append(achievements, threeAchievement)
+
+	tenAchievement := models.Achievement{
+		Name:        "10 weeks",
+		Description: "Get a 10 week streak.",
+	}
+	achievements = append(achievements, tenAchievement)
+
+	fiteenAchievement := models.Achievement{
+		Name:        "15 weeks",
+		Description: "Get a 15 week streak.",
+	}
+	achievements = append(achievements, fiteenAchievement)
+
+	completeAchievement := models.Achievement{
+		Name:        "Fun run",
+		Description: "Complete every week in a season.",
+	}
+	achievements = append(achievements, completeAchievement)
+
 	for _, achievement := range achievements {
 
 		_, err := database.RegisterAchievementInDB(achievement)
@@ -248,6 +284,36 @@ func GenerateAchivementsForWeek(weekResults models.WeekResults) error {
 
 		}
 
+		if user.CurrentStreak >= 2 && user.WeekCompletion >= 1 {
+
+			// Give achivement to user
+			err := GiveUserAnAchivement(int(user.User.ID), 13, sundayDate)
+			if err != nil {
+				log.Println("Failed to give achivement for user '" + strconv.Itoa(int(user.User.ID)) + "'. Ignoring. Error: " + err.Error())
+			}
+
+		}
+
+		if user.CurrentStreak >= 9 && user.WeekCompletion >= 1 {
+
+			// Give achivement to user
+			err := GiveUserAnAchivement(int(user.User.ID), 14, sundayDate)
+			if err != nil {
+				log.Println("Failed to give achivement for user '" + strconv.Itoa(int(user.User.ID)) + "'. Ignoring. Error: " + err.Error())
+			}
+
+		}
+
+		if user.CurrentStreak >= 14 && user.WeekCompletion >= 1 {
+
+			// Give achivement to user
+			err := GiveUserAnAchivement(int(user.User.ID), 15, sundayDate)
+			if err != nil {
+				log.Println("Failed to give achivement for user '" + strconv.Itoa(int(user.User.ID)) + "'. Ignoring. Error: " + err.Error())
+			}
+
+		}
+
 		week, err := GetExercisesForWeekUsingGoal(weekResults.WeekDate, user.Goal)
 		if err != nil {
 			log.Println("Failed to get week exercises for user '" + strconv.Itoa(int(user.User.ID)) + "'. Returning. Error: " + err.Error())
@@ -255,6 +321,9 @@ func GenerateAchivementsForWeek(weekResults models.WeekResults) error {
 		}
 
 		everyday := true
+		weekday := false
+		weekend := false
+		exerciseSum := 0
 
 		for _, day := range week.Days {
 
@@ -305,6 +374,16 @@ func GenerateAchivementsForWeek(weekResults models.WeekResults) error {
 				everyday = false
 			}
 
+			if day.Date.Weekday() > 0 && day.Date.Weekday() < 6 && day.ExerciseInterval > 1 {
+				weekday = true
+			}
+
+			if (day.Date.Weekday() == 0 || day.Date.Weekday() == 6) && day.ExerciseInterval > 1 {
+				weekend = true
+			}
+
+			exerciseSum += day.ExerciseInterval
+
 		}
 
 		if everyday {
@@ -315,6 +394,83 @@ func GenerateAchivementsForWeek(weekResults models.WeekResults) error {
 				log.Println("Failed to give achivement for user '" + strconv.Itoa(int(user.User.ID)) + "'. Ignoring. Error: " + err.Error())
 			}
 
+		}
+
+		if !weekday && weekend {
+
+			// Give achivement to user
+			err := GiveUserAnAchivement(int(user.User.ID), 11, sundayDate)
+			if err != nil {
+				log.Println("Failed to give achivement for user '" + strconv.Itoa(int(user.User.ID)) + "'. Ignoring. Error: " + err.Error())
+			}
+
+		}
+
+		if exerciseSum > 7 {
+
+			// Give achivement to user
+			err := GiveUserAnAchivement(int(user.User.ID), 12, sundayDate)
+			if err != nil {
+				log.Println("Failed to give achivement for user '" + strconv.Itoa(int(user.User.ID)) + "'. Ignoring. Error: " + err.Error())
+			}
+
+		}
+
+	}
+
+	return nil
+
+}
+
+func GenerateAchivementsForSeason(seasonResults []models.WeekResults) error {
+
+	if len(seasonResults) == 0 {
+		return errors.New("Empty season, returning...")
+	}
+
+	winningUsers := []int{}
+
+	for _, weekResults := range seasonResults {
+
+		for _, weekResult := range weekResults.UserWeekResults {
+
+			if weekResult.WeekCompletion >= 1 {
+
+				found := false
+				for _, userID := range winningUsers {
+
+					if userID == int(weekResult.User.ID) {
+						found = true
+						break
+					}
+
+				}
+
+				if !found {
+					winningUsers = append(winningUsers, int(weekResult.User.ID))
+				}
+
+			} else {
+
+				winningUsers = utilities.RemoveIntFromArray(winningUsers, int(weekResult.User.ID))
+
+			}
+
+		}
+
+	}
+
+	seasonSunday, err := utilities.FindNextSunday(seasonResults[0].WeekDate)
+	if err != nil {
+		return errors.New("Failed to find Sunday for last week of the season.")
+	}
+
+	for _, userID := range winningUsers {
+
+		// Give achivement to user
+		err := GiveUserAnAchivement(userID, 16, seasonSunday)
+		if err != nil {
+			log.Println("Failed to give achivement for user '" + strconv.Itoa(userID) + "'. Ignoring. Error: " + err.Error())
 		}
 
 	}

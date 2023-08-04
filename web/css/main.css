@@ -1441,8 +1441,8 @@ input[type=checkbox]
 .achievement-image {
   border-radius: 10em;
   margin: 0;
-  width: 6em;
-  height: 6em;
+  width: 7em;
+  height: 7em;
   border: solid 0.2em var(--lightblue);
   background-color: var(--white);
 }

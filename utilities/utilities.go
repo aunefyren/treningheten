@@ -98,3 +98,17 @@ func FindEarlierMonday(poinInTime time.Time) (time.Time, error) {
 
 	return time.Time{}, errors.New("Failed to find earlier monday for date.")
 }
+
+func RemoveIntFromArray(originalArray []int, intToRemove int) []int {
+
+	newArray := []int{}
+
+	for _, intNumber := range originalArray {
+		if intNumber != intToRemove {
+			newArray = append(newArray, intNumber)
+		}
+	}
+
+	return newArray
+
+}
