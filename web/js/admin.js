@@ -119,7 +119,7 @@ function load_page(result) {
     `;
 
     document.getElementById('content').innerHTML = html;
-    document.getElementById('card-header').innerHTML = 'Ultimate power';
+    document.getElementById('card-header').innerHTML = 'Ultimate power.';
     clearResponse();
 
     if(result !== false) {

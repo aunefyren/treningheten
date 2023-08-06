@@ -111,7 +111,7 @@ function action_newpassword() {
     </div>
 
     <div class="text-body">
-        Great job, Kristine...
+        Maybe try to remember it this time?
     </div>
 
     <br>

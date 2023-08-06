@@ -177,6 +177,12 @@ func CreateDefaultAchivements() error {
 	}
 	achievements = append(achievements, completeAchievement)
 
+	comebackAchievement := models.Achievement{
+		Name:        "Comeback",
+		Description: "Complete a week after failing two in a row.",
+	}
+	achievements = append(achievements, comebackAchievement)
+
 	for _, achievement := range achievements {
 
 		_, err := database.RegisterAchievementInDB(achievement)
@@ -424,35 +430,144 @@ func GenerateAchivementsForWeek(weekResults models.WeekResults) error {
 
 func GenerateAchivementsForSeason(seasonResults []models.WeekResults) error {
 
+	type UserTally struct {
+		UserID     int
+		LoseAmount int
+		WinAmount  int
+		SickAmount int
+		LoseStreak int
+		WinStreak  int
+		SickStreak int
+	}
+
 	if len(seasonResults) == 0 {
 		return errors.New("Empty season, returning...")
 	}
 
-	winningUsers := []int{}
+	// First week is the last week
+	seasonSunday, err := utilities.FindNextSunday(seasonResults[0].WeekDate)
+	if err != nil {
+		return errors.New("Failed to find Sunday for last week of the season.")
+	}
+
+	// Reverse array
+	reversedArray := []models.WeekResults{}
+	for i := (len(seasonResults) - 1); i >= 0; i-- {
+		reversedArray = append(reversedArray, seasonResults[i])
+	}
+	seasonResults = reversedArray
+
+	// User array
+	userTally := []UserTally{}
 
 	for _, weekResults := range seasonResults {
 
 		for _, weekResult := range weekResults.UserWeekResults {
 
-			if weekResult.WeekCompletion >= 1 {
+			if weekResult.Sickleave {
 
 				found := false
-				for _, userID := range winningUsers {
+				foundIndex := 0
+				for index, user := range userTally {
 
-					if userID == int(weekResult.User.ID) {
+					if user.UserID == int(weekResult.User.ID) {
 						found = true
+						foundIndex = index
 						break
 					}
 
 				}
 
 				if !found {
-					winningUsers = append(winningUsers, int(weekResult.User.ID))
+					userTally = append(userTally, UserTally{
+						UserID:     int(weekResult.User.ID),
+						LoseAmount: 0,
+						LoseStreak: 0,
+						WinAmount:  0,
+						SickAmount: 1,
+						WinStreak:  0,
+						SickStreak: 1,
+					})
+				} else {
+					userTally[foundIndex].WinStreak = 0
+					userTally[foundIndex].LoseStreak = 0
+					userTally[foundIndex].SickStreak += 1
+					userTally[foundIndex].SickAmount += 1
+				}
+
+			} else if weekResult.WeekCompletion >= 1.0 {
+
+				found := false
+				foundIndex := 0
+				for index, user := range userTally {
+
+					if user.UserID == int(weekResult.User.ID) {
+						found = true
+						foundIndex = index
+						break
+					}
+
+				}
+
+				if !found {
+					userTally = append(userTally, UserTally{
+						UserID:     int(weekResult.User.ID),
+						LoseAmount: 0,
+						LoseStreak: 0,
+						WinAmount:  1,
+						SickAmount: 0,
+						WinStreak:  1,
+						SickStreak: 0,
+					})
+				} else {
+
+					// If week is won, and user has lost more than one week in a row
+					if userTally[foundIndex].LoseStreak > 1 {
+
+						// Give achivement to user
+						err := GiveUserAnAchivement(userTally[foundIndex].UserID, 17, seasonSunday)
+						if err != nil {
+							log.Println("Failed to give achivement for user '" + strconv.Itoa(userTally[foundIndex].UserID) + "'. Ignoring. Error: " + err.Error())
+						}
+
+					}
+
+					userTally[foundIndex].WinAmount += 1
+					userTally[foundIndex].WinStreak += 1
+					userTally[foundIndex].LoseStreak = 0
+					userTally[foundIndex].SickStreak = 0
 				}
 
 			} else {
 
-				winningUsers = utilities.RemoveIntFromArray(winningUsers, int(weekResult.User.ID))
+				found := false
+				foundIndex := 0
+				for index, user := range userTally {
+
+					if user.UserID == int(weekResult.User.ID) {
+						found = true
+						foundIndex = index
+						break
+					}
+
+				}
+
+				if !found {
+					userTally = append(userTally, UserTally{
+						UserID:     int(weekResult.User.ID),
+						LoseAmount: 1,
+						LoseStreak: 1,
+						WinAmount:  0,
+						SickAmount: 0,
+						WinStreak:  0,
+						SickStreak: 0,
+					})
+				} else {
+					userTally[foundIndex].LoseAmount += 1
+					userTally[foundIndex].LoseStreak += 1
+					userTally[foundIndex].WinStreak = 0
+					userTally[foundIndex].SickStreak = 0
+				}
 
 			}
 
@@ -460,17 +575,15 @@ func GenerateAchivementsForSeason(seasonResults []models.WeekResults) error {
 
 	}
 
-	seasonSunday, err := utilities.FindNextSunday(seasonResults[0].WeekDate)
-	if err != nil {
-		return errors.New("Failed to find Sunday for last week of the season.")
-	}
+	for _, user := range userTally {
 
-	for _, userID := range winningUsers {
-
-		// Give achivement to user
-		err := GiveUserAnAchivement(userID, 16, seasonSunday)
-		if err != nil {
-			log.Println("Failed to give achivement for user '" + strconv.Itoa(userID) + "'. Ignoring. Error: " + err.Error())
+		// If win amount is more than zero, and lose amount is zero
+		if user.LoseAmount == 0 && user.WinAmount > 0 {
+			// Give achivement to user
+			err := GiveUserAnAchivement(user.UserID, 16, seasonSunday)
+			if err != nil {
+				log.Println("Failed to give achivement for user '" + strconv.Itoa(user.UserID) + "'. Ignoring. Error: " + err.Error())
+			}
 		}
 
 	}

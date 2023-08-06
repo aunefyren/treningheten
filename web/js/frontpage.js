@@ -316,7 +316,7 @@ function load_page(result) {
     if(result !== false) {
         showLoggedInMenu();
         get_season(user_id);
-        document.getElementById('front-page-text').innerHTML = 'Remember to log your workouts, Anette.';
+        document.getElementById('front-page-text').innerHTML = 'Remember to log your workouts.';
     } else {
         showLoggedOutMenu();
         document.getElementById('front-page-text').innerHTML = 'Log in to use the platform.';

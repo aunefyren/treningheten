@@ -119,12 +119,12 @@ func GenerateDebtForWeek(givenTime time.Time) (models.WeekResults, error) {
 
 	if len(losers) == 0 {
 		log.Println("No losers this week. Returning.")
-		return models.WeekResults{}, errors.New("No losers this week.")
+		return lastWeek, nil
 	}
 
 	if len(winners) == 0 {
 		log.Println("No winners this week. Returning.")
-		return models.WeekResults{}, errors.New("No winners this week.")
+		return lastWeek, nil
 	} else if len(winners) == 1 {
 		winner = int(winners[0].ID)
 	}
