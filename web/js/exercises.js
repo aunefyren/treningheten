@@ -270,7 +270,7 @@ function get_exercises(goalID){
                 console.log(exercise)
 
                 console.log("Placing exercises: ")
-                place_exercises(exercise);
+                place_exercises(exercise, goalID);
                 
             }
 
@@ -287,9 +287,10 @@ function get_exercises(goalID){
 
 }
 
-function place_exercises(exercise_array) {
+function place_exercises(exercise_array, goalID) {
 
     clearResponse();
+    exerciseFound = false;
     
     for(var i = 0; i < exercise_array.length; i++) {
 
@@ -333,6 +334,16 @@ function place_exercises(exercise_array) {
 
         document.getElementById("goal-leaderboard-" + exercise_array[i].goal).innerHTML += html
 
+        exerciseFound = true;
+
+    }
+
+    if(!exerciseFound) {
+        document.getElementById("goal-leaderboard-" + goalID).innerHTML = `
+            <div style="margin: 1em;">
+                None...
+            </div>
+        `;
     }
 
     return
