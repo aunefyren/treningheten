@@ -60,15 +60,54 @@ function load_page(result) {
 
     if(result !== false) {
         showLoggedInMenu();
-        
-        get_goals();
+        get_seaons();
     } else {
         showLoggedOutMenu();
         invalid_session();
     }
 }
 
-function get_goals(){
+function get_seaons(){
+
+    var xhttp = new XMLHttpRequest();
+    xhttp.onreadystatechange = function() {
+        if (this.readyState == 4) {
+            
+            try {
+                result = JSON.parse(this.responseText);
+            } catch(e) {
+                console.log(e +' - Response: ' + this.responseText);
+                error("Could not reach API.");
+                return;
+            }
+            
+            if(result.error) {
+
+                error(result.error);
+
+            } else {
+
+                clearResponse();
+                seasons = result.seasons;
+
+                get_goals(seasons);
+
+            }
+
+        } else {
+            info("Loading goals...");
+        }
+    };
+    xhttp.withCredentials = true;
+    xhttp.open("post", api_url + "auth/season");
+    xhttp.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
+    xhttp.setRequestHeader("Authorization", jwt);
+    xhttp.send();
+    return false;
+
+}
+
+function get_goals(seasonsArray){
 
     var xhttp = new XMLHttpRequest();
     xhttp.onreadystatechange = function() {
@@ -94,7 +133,7 @@ function get_goals(){
                 console.log(goals);
 
                 console.log("Placing intial goals: ")
-                place_goals(goals);
+                place_goals(goals, seasonsArray);
 
             }
 
@@ -111,7 +150,7 @@ function get_goals(){
 
 }
 
-function place_goals(goals_array) {
+function place_goals(goals_array, seasonsArray) {
 
     if(goals_array.length == 0) {
         info("No goals found.");
@@ -124,6 +163,20 @@ function place_goals(goals_array) {
     var html = ''
 
     for(var i = 0; i < goals_array.length; i++) {
+
+        var seasonIndex = 0;
+        var seasonFound = false;
+        for(var j = 0; j < seasonsArray.length; j++) {
+            if(goals_array[i].season == seasonsArray[j].ID) {
+                seasonIndex = j;
+                seasonFound = true;
+                break
+            }
+        }
+
+        if(!seasonFound) {
+            continue;
+        }
 
         if(goals_array[i].exercise_interval) {
             var compete_string = "Yes"
@@ -144,7 +197,7 @@ function place_goals(goals_array) {
             html += '<div class="goal-object">'
             
                 html += '<div id="season-title" class="season-title">';
-                html += 'Season ID: ' + goals_array[i].season
+                html += seasonsArray[seasonIndex].name
                 html += '</div>';
 
                 html += '<div id="goal-exercise" class="goal-exercise">';
@@ -159,8 +212,8 @@ function place_goals(goals_array) {
                 html += '<img src="assets/calendar.svg" class="btn_logo"></img> Join date: ' + date_string
                 html += '</div>';
 
-                html += '<div id="goal-exercises" class="goal-exercises">';
-                html += 'Exercises: '
+                html += '<div id="goal-button-expand-' + goals_array[i].ID + '" class="goal-button minimized">';
+                    html += '<button type="submit" onclick="get_exercises(' + goals_array[i].ID + ');" id="goal_amount_button" style=""><p2 style="margin: 0 0 0 0.5em;">Expand</p2><img id="goal-button-image-' + goals_array[i].ID + '" src="assets/chevron-right.svg" class="btn_logo color-invert" style="padding: 0; margin: 0 0.5em 0 0;"></button>';
                 html += '</div>';
 
             html += '</div>'
@@ -175,11 +228,23 @@ function place_goals(goals_array) {
     goals_object = document.getElementById("goals-box")
     goals_object.innerHTML = html
 
-    get_exercises();
-
 }
 
-function get_exercises(){
+function get_exercises(goalID){
+
+    button = document.getElementById("goal-button-expand-" + goalID)
+
+    if(button.classList.contains("minimized")) {
+        button.classList.remove("minimized")
+        button.classList.add("expand")
+        document.getElementById("goal-button-image-" + goalID).src = "assets/chevron-down.svg"
+    } else {
+        button.classList.add("minimized")
+        button.classList.remove("expand")
+        document.getElementById("goal-leaderboard-" + goalID).innerHTML = ""
+        document.getElementById("goal-button-image-" + goalID).src = "assets/chevron-right.svg"
+        return
+    }
 
     var xhttp = new XMLHttpRequest();
     xhttp.onreadystatechange = function() {
@@ -210,11 +275,11 @@ function get_exercises(){
             }
 
         } else {
-            info("Loading exercises...");
+            //info("Loading exercises...");
         }
     };
     xhttp.withCredentials = true;
-    xhttp.open("post", api_url + "auth/exercise/");
+    xhttp.open("post", api_url + "auth/exercise/" + goalID);
     xhttp.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
     xhttp.setRequestHeader("Authorization", jwt);
     xhttp.send();

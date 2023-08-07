@@ -246,7 +246,7 @@ func APIRegisterWeek(context *gin.Context) {
 }
 
 // Get full workout calender for the week from the database, and return to user
-func APIRGetWeek(context *gin.Context) {
+func APIGetWeek(context *gin.Context) {
 
 	// Get user ID
 	userID, err := middlewares.GetAuthUsername(context.GetHeader("Authorization"))
@@ -377,7 +377,7 @@ func GetExercisesForWeekUsingGoal(timeReq time.Time, goalID int) (models.Week, e
 }
 
 // Get full workout calender for the week from the database, and return to user
-func APIRGetExercise(context *gin.Context) {
+func APIGetAllExercise(context *gin.Context) {
 
 	// Get user ID
 	userID, err := middlewares.GetAuthUsername(context.GetHeader("Authorization"))
@@ -390,6 +390,42 @@ func APIRGetExercise(context *gin.Context) {
 
 	// Get exercises from user
 	exercise, err := database.GetExercisesForUserUsingUserID(userID)
+	if err != nil {
+		log.Println("Failed to get exercise. Error: " + err.Error())
+		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get exercise."})
+		context.Abort()
+		return
+	}
+
+	context.JSON(http.StatusOK, gin.H{"message": "Exercise retrieved.", "exercise": exercise})
+
+}
+
+// Get full workout calender for the week from the database, and return to user
+func APIGetExercise(context *gin.Context) {
+
+	// Create user request
+	var goalID = context.Param("goal_id")
+
+	// Parse group id
+	goalIDInt, err := strconv.Atoi(goalID)
+	if err != nil {
+		context.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		context.Abort()
+		return
+	}
+
+	// Get user ID
+	userID, err := middlewares.GetAuthUsername(context.GetHeader("Authorization"))
+	if err != nil {
+		log.Println("Failed to verify user ID. Error: " + "Failed to verify user ID.")
+		context.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		context.Abort()
+		return
+	}
+
+	// Get exercises from user
+	exercise, err := database.GetExercisesForUserUsingUserIDAndGoalID(userID, goalIDInt)
 	if err != nil {
 		log.Println("Failed to get exercise. Error: " + err.Error())
 		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get exercise."})

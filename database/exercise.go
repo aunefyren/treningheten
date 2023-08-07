@@ -100,3 +100,18 @@ func GetExercisesForUserUsingUserID(userID int) ([]models.Exercise, error) {
 	return exercises, nil
 
 }
+
+func GetExercisesForUserUsingUserIDAndGoalID(userID int, goalID int) ([]models.Exercise, error) {
+
+	var exercises []models.Exercise
+
+	exerciserecord := Instance.Order("date desc").Where("`exercises`.enabled = ?", 1).Where("`exercises`.goal = ?", goalID).Joins("JOIN goals on `exercises`.goal = `goals`.ID").Where("`goals`.user = ?", userID).Where("`goals`.enabled = ?", 1).Find(&exercises)
+	if exerciserecord.Error != nil {
+		return []models.Exercise{}, exerciserecord.Error
+	} else if exerciserecord.RowsAffected == 0 {
+		return []models.Exercise{}, nil
+	}
+
+	return exercises, nil
+
+}

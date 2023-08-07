@@ -224,8 +224,9 @@ func initRouter() *gin.Engine {
 			auth.POST("/goal", controllers.APIGetGoals)
 
 			auth.POST("/exercise/update", controllers.APIRegisterWeek)
-			auth.POST("/exercise/get", controllers.APIRGetWeek)
-			auth.POST("/exercise/", controllers.APIRGetExercise)
+			auth.POST("/exercise/get", controllers.APIGetWeek)
+			auth.POST("/exercise", controllers.APIGetAllExercise)
+			auth.POST("/exercise/:goal_id", controllers.APIGetExercise)
 
 			auth.POST("/sickleave/register", controllers.APIRegisterSickleave)
 

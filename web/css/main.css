@@ -1195,7 +1195,7 @@ input[type=checkbox]
   text-decoration: underline;
 }
 
-.leaderboard-week-two, .exercise-object {
+.leaderboard-week-two {
   display: flex;
   flex-direction: row;
   flex-wrap: wrap;
@@ -1402,12 +1402,34 @@ input[type=checkbox]
 }
 
 .goal-leaderboard {
-  width: 100%;
-  width: -webkit-fill-available;
-  width: -moz-available;
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-content: center;
+  justify-content: center;
+  align-items: center;
+}
+
+.exercise-object {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-content: center;
+  justify-content: space-between;
+  align-items: center;
+  box-sizing: border-box;
+  width: 12em;
+  height: 15em;
+  padding: 0.5em;
+  border: solid 0.2em var(--lightblue);
+  border-radius: 0.5em;
+  margin: 0.5em;
+  overflow: hidden;
+  box-sizing: content-box;
 }
 
 .exercise-details {
+  overflow: hidden;
   width: 100%;
   width: -webkit-fill-available;
   width: -moz-available;
@@ -1417,13 +1439,16 @@ input[type=checkbox]
   align-content: center;
   justify-content: center;
   align-items: center;
-  box-sizing: border-box;
+  box-sizing: inherit;
   padding: 0 0.5em;
   margin-top: 1em;
+  height: 100%;
+  height: -webkit-fill-available;
+  height: -moz-available;
 }
 
 .exercise-date {
-  box-sizing: border-box;
+  box-sizing: inherit;
   width: 100%;
   width: -webkit-fill-available;
   width: -moz-available;
@@ -1435,8 +1460,24 @@ input[type=checkbox]
   align-items: center;
 }
 
-.exercise-exercise-number, .exercise-notes {
-  margin: 0.5em 1em;
+.exercise-exercise-number {
+  margin: 0.5em 0;
+  width: 100%;
+  width: -webkit-fill-available;
+  width: -moz-available;
+  text-align: center;
+  box-sizing: inherit;
+}
+
+.exercise-notes {
+  box-sizing: inherit;
+  margin: 0.5em 0;
+  width: 100%;
+  width: -webkit-fill-available;
+  width: -moz-available;
+  overflow-y: auto;
+  text-align: center;
+  max-height: 8em;
 }
 
 .achievement-image {
