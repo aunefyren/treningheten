@@ -1322,6 +1322,7 @@ input[type=checkbox]
   object-fit: cover;
   overflow: hidden;
   background-image: var(--white);
+  box-sizing: border-box;
 }
 
 .user-active-profile-photo {
@@ -1464,6 +1465,7 @@ input[type=checkbox]
   margin: 0.5em;
   width: 10em;
   max-height: 15em;
+  min-height: 12em;
   display: flex;
   flex-direction: column;
   flex-wrap: wrap;

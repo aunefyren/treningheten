@@ -183,6 +183,9 @@ function showLoggedInMenu() {
     document.getElementById('exercises-tab').classList.add('enabled');
     document.getElementById('exercises-tab').classList.remove('disabled');
 
+    document.getElementById('achievements-tab').classList.add('enabled');
+    document.getElementById('achievements-tab').classList.remove('disabled');
+
     document.getElementById('account').classList.add('enabled');
     document.getElementById('account').classList.remove('disabled');
 
@@ -206,6 +209,9 @@ function showLoggedOutMenu() {
 
     document.getElementById('exercises-tab').classList.add('disabled');
     document.getElementById('exercises-tab').classList.remove('enabled');
+
+    document.getElementById('achievements-tab').classList.add('disabled');
+    document.getElementById('achievements-tab').classList.remove('enabled');
 
     document.getElementById('account').classList.add('disabled');
     document.getElementById('account').classList.remove('enabled');

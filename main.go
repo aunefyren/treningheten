@@ -328,6 +328,11 @@ func initRouter() *gin.Engine {
 		c.HTML(http.StatusOK, "exercises.html", nil)
 	})
 
+	// Static endpoint for seeing achievements
+	router.GET("/achievements", func(c *gin.Context) {
+		c.HTML(http.StatusOK, "achievements.html", nil)
+	})
+
 	// Static endpoint for admin functions
 	router.GET("/admin", func(c *gin.Context) {
 		c.HTML(http.StatusOK, "admin.html", nil)
