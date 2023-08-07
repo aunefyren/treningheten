@@ -183,6 +183,12 @@ func CreateDefaultAchivements() error {
 	}
 	achievements = append(achievements, comebackAchievement)
 
+	deadAchievement := models.Achievement{
+		Name:        "Back from the dead",
+		Description: "Complete a week after using sick leave.",
+	}
+	achievements = append(achievements, deadAchievement)
+
 	for _, achievement := range achievements {
 
 		_, err := database.RegisterAchievementInDB(achievement)
@@ -526,6 +532,17 @@ func GenerateAchivementsForSeason(seasonResults []models.WeekResults) error {
 
 						// Give achivement to user
 						err := GiveUserAnAchivement(userTally[foundIndex].UserID, 17, seasonSunday)
+						if err != nil {
+							log.Println("Failed to give achivement for user '" + strconv.Itoa(userTally[foundIndex].UserID) + "'. Ignoring. Error: " + err.Error())
+						}
+
+					}
+
+					// If week is won, and user has been sick one week or more
+					if userTally[foundIndex].SickStreak > 0 {
+
+						// Give achivement to user
+						err := GiveUserAnAchivement(userTally[foundIndex].UserID, 18, seasonSunday)
 						if err != nil {
 							log.Println("Failed to give achivement for user '" + strconv.Itoa(userTally[foundIndex].UserID) + "'. Ignoring. Error: " + err.Error())
 						}
