@@ -254,21 +254,25 @@ function PlaceUserAhievements(achivementArray) {
 
         <div class="achievement" title="${achivementArray[i].description}" tabindex="1">
 
-            <div class="achievement-image">
-                <img style="width: 100%; height: 100%;" class="achievement-img" id="achievement-img-${achivementArray[i].id}" src="/assets/images/barbell.gif">
-            </div>
+            <div class="achievement-base">
 
-            <div class="achievement-title">
-                ${achivementArray[i].name}
-            </div>
+                <div class="achievement-image">
+                    <img style="width: 100%; height: 100%;" class="achievement-img" id="achievement-img-${achivementArray[i].id}" src="/assets/images/barbell.gif">
+                </div>
 
-            <div class="achievement-description">
-                ${achivementArray[i].description}
-            </div>
+                <div class="achievement-title">
+                    ${achivementArray[i].name}
+                </div>
 
-            <div class="achievement-date">
-                ${date_string}
+                <div class="achievement-date">
+                    ${date_string}
+                </div>     
+
             </div>     
+
+            <div class="overlay">
+                <div class="text">${achivementArray[i].description}</div>
+            </div>
 
         </div>
         `;
