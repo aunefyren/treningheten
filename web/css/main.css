@@ -1410,7 +1410,7 @@ input[type=checkbox]
   align-items: center;
 }
 
-.exercise-object {
+.exercise-base {
   display: flex;
   flex-direction: row;
   flex-wrap: wrap;
@@ -1418,8 +1418,8 @@ input[type=checkbox]
   justify-content: space-between;
   align-items: center;
   box-sizing: border-box;
-  width: 12em;
-  height: 15em;
+  width: 10em;
+  height: 10em;
   padding: 0.5em;
   border: solid 0.2em var(--lightblue);
   border-radius: 0.5em;
@@ -1441,13 +1441,13 @@ input[type=checkbox]
   align-items: center;
   box-sizing: inherit;
   padding: 0 0.5em;
-  margin-top: 1em;
+  margin: 0;
   height: 100%;
   height: -webkit-fill-available;
   height: -moz-available;
 }
 
-.exercise-date {
+.exercise-date, .exercise-week {
   box-sizing: inherit;
   width: 100%;
   width: -webkit-fill-available;
@@ -1471,13 +1471,12 @@ input[type=checkbox]
 
 .exercise-notes {
   box-sizing: inherit;
-  margin: 0.5em 0;
-  width: 100%;
-  width: -webkit-fill-available;
-  width: -moz-available;
+  margin: 0.5em;
+  padding: 0.25em 0.5em;
   overflow-y: auto;
   text-align: center;
-  max-height: 8em;
+  border: solid 0.2em var(--lightblue);
+  border-radius: 0.5em;
 }
 
 .achievement-image {
@@ -1519,7 +1518,15 @@ input[type=checkbox]
   position: relative;
 }
 
+.exercise-object {
+  position: relative;
+}
+
 .achievement:hover .overlay {
+  opacity: 1;
+}
+
+.exercise-object:hover .overlay {
   opacity: 1;
 }
 
@@ -1543,17 +1550,22 @@ input[type=checkbox]
   padding: 0.5em;
 }
 
-.text {
-  color: white;
+.text-achievement {
+  color: var(--white);
   font-size: 1em;
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  -webkit-transform: translate(-50%, -50%);
-  -ms-transform: translate(-50%, -50%);
-  transform: translate(-50%, -50%);
   text-align: center;
   box-sizing: content-box;
+  overflow-y: auto;
+  margin: auto;
+}
+
+.text-exercise {
+  color: var(--white);
+  font-size: 0.75em;
+  text-align: center;
+  box-sizing: content-box;
+  overflow-y: auto;
+  margin: auto;
 }
 
 .achievement-base {

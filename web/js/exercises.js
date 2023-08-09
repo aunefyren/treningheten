@@ -242,6 +242,7 @@ function get_exercises(goalID){
         button.classList.add("minimized")
         button.classList.remove("expand")
         document.getElementById("goal-leaderboard-" + goalID).innerHTML = ""
+        document.getElementById("goal-leaderboard-" + goalID).style.margin = "0"
         document.getElementById("goal-button-image-" + goalID).src = "assets/chevron-right.svg"
         return
     }
@@ -296,16 +297,27 @@ function place_exercises(exercise_array, goalID) {
 
         if(exercise_array[i].exercise_interval == 0 && exercise_array[i].note == "") {
             continue;
-        } else if (exercise_array[i].note == "") {
-            note = "None"
+        } else if (exercise_array[i].note != "") {
+            note_html = `
+                <div class="exercise-notes">
+                    Notes
+                </div>
+            `;
+            note_text = `
+            <div class="overlay">
+                <div class="text-exercise">${exercise_array[i].note}</div>
+            </div>
+            `;
         } else {
-            note = exercise_array[i].note
+            note_html = "";
+            note_text = "";
         }
 
         // parse date object
         try {
             var date = new Date(Date.parse(exercise_array[i].date));
             var date_string = GetDateString(date)
+            var week = date.getWeek();
         } catch {
             var date_string = "Error"
         }
@@ -314,25 +326,34 @@ function place_exercises(exercise_array, goalID) {
 
             <div class="exercise-object">
 
-                <div class="exercise-date">
-                    <img src="assets/calendar.svg" class="btn_logo"></img> ${date_string}
-                </div>
+                <div class="exercise-base">
 
-                <div class="exercise-details" id="">
-                    <div class="exercise-exercise-number">
-                        Exercise amount: ${exercise_array[i].exercise_interval}
+                    <div class="exercise-date">
+                        <img src="assets/calendar.svg" class="btn_logo"></img> ${date_string}
                     </div>
 
-                    <div class="exercise-notes">
-                        Notes: ${note}
+                    <div class="exercise-week">
+                        Week: ${week}
                     </div>
-                    
+
+                    <div class="exercise-details" id="">
+                        <div class="exercise-exercise-number">
+                            Exercise amount: ${exercise_array[i].exercise_interval}
+                        </div>
+
+                        ${note_html}
+                        
+                    </div>
+
                 </div>
+
+                ${note_text}
 
             </div>
         `;
 
         document.getElementById("goal-leaderboard-" + exercise_array[i].goal).innerHTML += html
+        document.getElementById("goal-leaderboard-" + exercise_array[i].goal).style.margin = "1em 0"
 
         exerciseFound = true;
 
@@ -340,7 +361,7 @@ function place_exercises(exercise_array, goalID) {
 
     if(!exerciseFound) {
         document.getElementById("goal-leaderboard-" + goalID).innerHTML = `
-            <div style="margin: 1em;">
+            <div style="margin: 1em 0">
                 None...
             </div>
         `;
