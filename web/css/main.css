@@ -629,7 +629,6 @@ hr {
   width: auto;
   max-width: 100%;
   margin: 1em;
-  border: solid 1px var(--blue);
   display: flex;
   flex-direction: column;
   flex-wrap: nowrap;
@@ -644,7 +643,7 @@ hr {
 }
 
 .week_info {
-  background-color: var(--blue);
+  background-color: var(--lightblue);
   width: -webkit-fill-available;
   text-align: center;
   border-radius: 0.5em 0.5em 0 0;
@@ -663,6 +662,7 @@ hr {
   width: 100%;
   width: -webkit-fill-available;
   width: -moz-available;
+  box-sizing: border-box;
 }
 
 .form-group {
@@ -673,8 +673,7 @@ hr {
   justify-content: space-between;
   align-items: center;
   padding: 0.5em 1em;
-  box-sizing: border-box;
-  border: solid 1px var(--blue); 
+  box-sizing: inherit;
   width: 100%;
   width: -webkit-fill-available;
   width: -moz-available;
@@ -694,10 +693,24 @@ hr {
 }
 
 .day-note {
+  width: auto;
+  box-sizing: inherit;
+  width: 12em;
+  overflow: auto;
+}
+
+.day-note-area{
+  box-sizing: inherit;
+  border-radius: 0.5em;
+  font-size: 1em;
   width: 100%;
   width: -webkit-fill-available;
   width: -moz-available;
-  max-width: 70%;
+  margin: 0.5em;
+  /*box-shadow: 0.1em 0.2em 0.5em rgba(0,0,0,.09);*/
+  border: solid 2px var(--lightblue); 
+  resize: vertical;
+  min-height: 2em;
 }
 
 .form-control{

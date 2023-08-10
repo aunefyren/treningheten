@@ -125,7 +125,8 @@ function load_page(result) {
                                             </div>
                                         </div>
                                         <div class="day-note">
-                                            <input type="text" class="form-control" placeholder="Notes" id="day_1_note">
+                                            <textarea class="day-note-area" id="day_1_note" name="day_1_note" rows="3" cols="33">
+                                            </textarea>
                                         </div>
                                         <input type="hidden" value="" id="day_1_date">
                                     </div>
@@ -144,7 +145,8 @@ function load_page(result) {
                                             </div>
                                         </div>
                                         <div class="day-note">
-                                            <input type="text" class="form-control" placeholder="Notes" id="day_2_note">
+                                            <textarea class="day-note-area" id="day_2_note" name="day_2_note" rows="3" cols="33">
+                                            </textarea>
                                         </div>
                                         <input type="hidden" value="" id="day_2_date">
                                     </div>
@@ -163,7 +165,8 @@ function load_page(result) {
                                             </div>
                                         </div>
                                         <div class="day-note">
-                                            <input type="text" class="form-control" placeholder="Notes" id="day_3_note">
+                                            <textarea class="day-note-area" id="day_3_note" name="day_3_note" rows="3" cols="33">
+                                            </textarea>
                                         </div>
                                         <input type="hidden" value="" id="day_3_date">
                                     </div>
@@ -182,7 +185,8 @@ function load_page(result) {
                                             </div>
                                         </div>
                                         <div class="day-note">
-                                            <input type="text" class="form-control" placeholder="Notes" id="day_4_note">
+                                            <textarea class="day-note-area" id="day_4_note" name="day_4_note" rows="3" cols="33">
+                                            </textarea>
                                         </div>
                                         <input type="hidden" value="" id="day_4_date">
                                     </div>
@@ -201,7 +205,8 @@ function load_page(result) {
                                             </div>
                                         </div>
                                         <div class="day-note">
-                                            <input type="text" class="form-control" placeholder="Notes" id="day_5_note">
+                                            <textarea class="day-note-area" id="day_5_note" name="day_5_note" rows="3" cols="33">
+                                            </textarea>
                                         </div>
                                         <input type="hidden" value="" id="day_5_date">
                                     </div>
@@ -220,7 +225,8 @@ function load_page(result) {
                                             </div>
                                         </div>
                                         <div class="day-note">
-                                            <input type="text" class="form-control" placeholder="Notes" id="day_6_note">
+                                            <textarea class="day-note-area" id="day_6_note" name="day_6_note" rows="3" cols="33">
+                                            </textarea>
                                         </div>
                                         <input type="hidden" value="" id="day_6_date">
                                     </div>
@@ -239,7 +245,8 @@ function load_page(result) {
                                             </div>
                                         </div>
                                         <div class="day-note">
-                                            <input type="text" class="form-control" placeholder="Notes" id="day_7_note">
+                                            <textarea class="day-note-area" id="day_7_note" name="day_7_note" rows="3" cols="33">
+                                            </textarea>
                                         </div>
                                         <input type="hidden" value="" id="day_7_date">
                                     </div>
