@@ -2,6 +2,7 @@
     --red: #d00000;
     --yellow: #ffd500;
     --green: #003e1f;
+    --lightgreen: #00A352;
     --eggshell: #e0e1dd;
     --lightblue: #778da9;
     --mediumblue: #415a77;
@@ -1603,4 +1604,32 @@ input[type=checkbox]
   background-color: rgba(119, 141, 169, 0.25);
   transition: 1s;
   cursor: pointer;
+}
+
+.progress-bar-wrapper {
+  width: 50em;
+  max-width: 100%;
+  max-width: -webkit-fill-available;
+  max-width: -moz-available;
+  border: solid 0.1em var(--lightblue);
+  border-radius: 0.5em;
+  box-sizing: content-box;
+  overflow: hidden;
+  background-color: var(--white);
+  box-shadow: 0.1em 0.2em 0.5em rgba(0,0,0,.09);
+  position: relative;
+}
+
+.progress-bar {
+  height: 2em;
+  width: 0;
+  background-color: var(--lightblue);
+  box-sizing: inherit;
+  overflow: hidden;
+  transition: 2s;
+}
+
+.blink {
+  transition: 1s;
+  background-color: var(--mediumblue);
 }

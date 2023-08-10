@@ -29,6 +29,14 @@ function load_page(result) {
 
                     </div>
 
+                    <div class="module">
+                        Progress:
+                        <div class="progress-bar-number" id="progress-bar-number" style="margin-top:0.5em;"></div>
+                        <div class="progress-bar-wrapper">
+                            <div id="progress-bar" class="progress-bar" style=""></div>
+                        </div>
+                    </div>
+
                     <div class="module" id="achievements-module" style="display: none;">
 
                         <div id="achievements-title" class="title" style="margin-bottom: 1em;">
@@ -142,7 +150,12 @@ function PlaceUserAhievements(achivementArrayPersonal, achivementArray, userID) 
         return;
     }
 
+    var achieved_sum = 0;
+    var achievement_sum = 0;
+
     for(var i = 0; i < achivementArray.length; i++) {
+
+        achievement_sum += 1
 
         var achieved = false;
         var achievedIndex = 0;
@@ -155,6 +168,9 @@ function PlaceUserAhievements(achivementArrayPersonal, achivementArray, userID) 
         }
 
         if(achieved) {
+
+            achieved_sum += 1
+
             // parse date object
             try {
                 var date = new Date(Date.parse(achivementArrayPersonal[achievedIndex].given_at));
@@ -205,6 +221,22 @@ function PlaceUserAhievements(achivementArrayPersonal, achivementArray, userID) 
             document.getElementById("achievement-img-" + achivementArray[i].ID).style.borderRadius  = "0"
         }
 
+    }
+
+    var ach_percentage = Math.floor((achieved_sum / achievement_sum) * 100)
+    console.log(ach_percentage)
+    document.getElementById("progress-bar").style.width  = ach_percentage + "%"
+    document.getElementById("progress-bar").title  = ach_percentage + "%"
+    document.getElementById("progress-bar-number").innerHTML  = ach_percentage + "%"
+
+    if(ach_percentage > 99) {
+        setTimeout(function() {
+            document.getElementById("progress-bar").classList.add("blink")
+        }, 1500);
+        setTimeout(function() {
+            document.getElementById("progress-bar").classList.remove('blink');
+            //document.getElementById("progress-bar").style.backgroundColor  = "var(--lightgreen)"
+        }, 2500);
     }
 
 }
