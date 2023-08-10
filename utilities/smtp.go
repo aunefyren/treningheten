@@ -2,8 +2,10 @@ package utilities
 
 import (
 	"aunefyren/treningheten/config"
+	"aunefyren/treningheten/database"
 	"aunefyren/treningheten/models"
 	"log"
+	"strconv"
 
 	"github.com/go-mail/mail"
 )
@@ -90,6 +92,50 @@ func SendSMTPSundayReminderEmail(user models.User) error {
 	err = d.DialAndSend(m)
 	if err != nil {
 		return err
+	}
+
+	return nil
+
+}
+
+func SendSMTPSeasonStartEmail(season models.SeasonObject) error {
+
+	// Get configuration
+	config, err := config.GetConfig()
+	if err != nil {
+		return err
+	}
+
+	for _, goal := range season.Goals {
+
+		email, emailFound, err := database.GetUserEmailByUserID(int(goal.User.ID))
+		if err != nil {
+			log.Println("Failed to get e-mail for user. Error: " + err.Error())
+			continue
+		} else if !emailFound {
+			log.Println("User e-mail not found. Error: " + err.Error())
+			continue
+		}
+
+		log.Println("Sending e-mail to: " + email + ".")
+
+		link := config.TreninghetenExternalURL
+
+		m := mail.NewMessage()
+		m.SetAddressHeader("From", config.SMTPFrom, config.TreninghetenName)
+		m.SetHeader("To", email)
+		m.SetHeader("Subject", "A new season has begun")
+		m.SetBody("text/html", "Hello <b>"+goal.User.FirstName+"</b>!<br><br>It's Monday and a new season of Treningheten has begun. You signed up for "+strconv.Itoa(goal.ExerciseInterval)+" exercise(s) a week, and there is no going back now.<br><br>To achieve your goal you must log all exercises at the Treningheten website. Go to Treningheten using <a href='"+link+"' target='_blank'>this link</a>.")
+
+		d := mail.NewDialer(config.SMTPHost, config.SMTPPort, config.SMTPUsername, config.SMTPPassword)
+
+		// Send the email
+		err = d.DialAndSend(m)
+		if err != nil {
+			log.Println("Failed to send e-mail. Error: " + err.Error())
+			continue
+		}
+
 	}
 
 	return nil

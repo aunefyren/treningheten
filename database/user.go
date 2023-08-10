@@ -312,3 +312,20 @@ func CensorUserObject(user models.User) models.User {
 
 	return user
 }
+
+// Get user email by UserID
+func GetUserEmailByUserID(userID int) (string, bool, error) {
+
+	var user models.User
+
+	userrecords := Instance.Where("`users`.id= ?", userID).Find(&user)
+	if userrecords.Error != nil {
+		return "", false, userrecords.Error
+	}
+
+	if userrecords.RowsAffected != 1 {
+		return "", false, errors.New("No user found.")
+	}
+
+	return user.Email, true, nil
+}

@@ -18,18 +18,22 @@ import (
 // Calcluates a time set one week in the past and generates the debt for that week.
 func GenerateLastWeeksDebt() {
 
+	// Get a date time in last week
 	lastWeek := time.Now().AddDate(0, 0, -7)
 
+	// Get results for last week
 	weekResults, err := GenerateDebtForWeek(lastWeek)
 	if err != nil {
 		log.Println("Returned error generating last weeks debt: " + err.Error())
 	}
 
+	// Generate week achivements for last week
 	err = GenerateAchivementsForWeek(weekResults)
 	if err != nil {
 		log.Println("Returned error generating weeks achivements: " + err.Error())
 	}
 
+	// Get ongoing season last week
 	season, seasonFound, err := GetOngoingSeasonFromDB(lastWeek)
 	if err != nil {
 		log.Println("Returned error getting last weeks season: " + err.Error())
@@ -59,6 +63,30 @@ func GenerateLastWeeksDebt() {
 				}
 
 			}
+		}
+	}
+
+	// Get current week and check for season
+	// Send reminder if season started this week
+	now := time.Now()
+	seasonNow, seasonNowFound, err := GetOngoingSeasonFromDB(now)
+	if err != nil {
+		log.Println("Returned error getting this weeks season: " + err.Error())
+	} else if seasonNowFound {
+		seasonNowYear, seasonNowWeek := seasonNow.Start.ISOWeek()
+		nowYear, nowWeek := now.ISOWeek()
+		if seasonNowYear == nowYear && seasonNowWeek == nowWeek {
+
+			seasonObject, err := ConvertSeasonToSeasonObject(season)
+			if err != nil {
+				log.Println("Returned error converting season to season object: " + err.Error())
+			} else {
+				err = utilities.SendSMTPSeasonStartEmail(seasonObject)
+				if err != nil {
+					log.Println("Returned error sending season start e-mail: " + err.Error())
+				}
+			}
+
 		}
 	}
 
