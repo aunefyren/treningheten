@@ -828,7 +828,7 @@ function PlaceUserAhievements(achivementArray) {
 
         var html = `
 
-        <div class="achievement" title="${achivementArray[i].description}" tabindex="1">
+        <div class="achievement unselectable" title="${achivementArray[i].description}" tabindex="1">
 
             <div class="achievement-base">
 

@@ -324,7 +324,7 @@ function place_exercises(exercise_array, goalID) {
 
         var html = `
 
-            <div class="exercise-object">
+            <div class="exercise-object unselectable">
 
                 <div class="exercise-base">
 

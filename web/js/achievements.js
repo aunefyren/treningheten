@@ -171,7 +171,7 @@ function PlaceUserAhievements(achivementArrayPersonal, achivementArray, userID) 
 
         var html = `
 
-        <div class="achievement" title="${achivementArray[i].description}" tabindex="1">
+        <div class="achievement unselectable" title="${achivementArray[i].description}" tabindex="1">
 
             <div class="achievement-base ${class_string_html}">
 
