@@ -209,7 +209,7 @@ function place_goals(goals_array, seasonsArray) {
                 html += '</div>';
 
                 html += '<div id="goal-join-date" class="goal-join-date">';
-                html += '<img src="assets/calendar.svg" class="btn_logo"></img> Join date: ' + date_string
+                html += '<img src="assets/calendar.svg" class="btn_logo"></img> Joined: ' + date_string
                 html += '</div>';
 
                 html += '<div id="goal-button-expand-' + goals_array[i].ID + '" class="goal-button minimized">';

@@ -20,10 +20,8 @@
     background-color: var(--white);
     /*background-image: url("../assets/pattern.png");*/
     background-repeat: repeat;
-    font-family: Arial;
     font-weight: normal;
     box-sizing: content-box;
-
     font-family: 'Roboto', sans-serif;
   }
   
@@ -1180,7 +1178,7 @@ input[type=checkbox]
   margin: 1em 0;
 }
 
-.season-title, .season-body, .season-date, .goal-exercise, .goal-compete, .goal-join-date, .goal-exercises {
+.season-title, .goals-title, .season-body, .season-date, .goal-exercise, .goal-compete, .goal-join-date, .goal-exercises {
   margin: 0.5em;
   display: flex;
   flex-direction: row;
@@ -1188,11 +1186,12 @@ input[type=checkbox]
   align-content: center;
   justify-content: space-evenly;
   align-items: center;
+  text-align: center;
 }
 
-.season-title {
+.season-title, .goals-title {
   font-size: 1.25em;
-  text-decoration: underline;
+  font-weight: bold;
 }
 
 .leaderboard-week-two {
@@ -1216,9 +1215,9 @@ input[type=checkbox]
   display: flex;
   flex-direction: column;
   flex-wrap: wrap;
-  align-content: flex-start;
-  justify-content: space-between;
-  align-items: flex-start;
+  align-content: center;
+  justify-content: center;
+  align-items: center;
   box-sizing: border-box;
   width: 100%;
   width: -webkit-fill-available;
@@ -1298,7 +1297,7 @@ input[type=checkbox]
 }
 
 .countdown_number {
-  font-family: 'Monaco';
+  font-family: 'Roboto', sans-serif;
 }
 
 .debt-form {
