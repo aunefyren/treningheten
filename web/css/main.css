@@ -328,6 +328,7 @@ input[type=text], input[type=password], input[type=email], input[type=date], inp
   box-shadow: 0.1em 0.2em 0.5em rgba(0,0,0,.09); 
   background: var(--white); 
   box-sizing: border-box;
+  font-family: Roboto,Noto,sans-serif;
 }
 
 select {
@@ -708,9 +709,11 @@ hr {
   width: -moz-available;
   margin: 0.5em;
   /*box-shadow: 0.1em 0.2em 0.5em rgba(0,0,0,.09);*/
-  border: solid 2px var(--lightblue); 
+  border: solid 2px var(--grey); 
   resize: vertical;
   min-height: 2em;
+  max-height: 25em;
+  font-family: Roboto,Noto,sans-serif;
 }
 
 .form-control{
