@@ -24,6 +24,7 @@ type SeasonCreationRequest struct {
 	End         time.Time `json:"end"`
 	Prize       int       `json:"prize"`
 	Sickleave   int       `json:"sickleave"`
+	TimeZone    string    `json:"timezone"`
 }
 
 type SeasonObject struct {

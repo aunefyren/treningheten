@@ -508,7 +508,8 @@ function add_season() {
         "name" : season_name,
         "description" : season_desc,
         "prize" : season_prize,
-        "sickleave" : season_sickleave
+        "sickleave" : season_sickleave,
+        "timezone" : Intl.DateTimeFormat().resolvedOptions().timeZone
     };
 
     var form_data = JSON.stringify(form_obj);

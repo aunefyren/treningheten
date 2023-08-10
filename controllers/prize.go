@@ -60,7 +60,7 @@ func APIRegisterPrize(context *gin.Context) {
 	}
 
 	prizeDB := models.Prize{
-		Name:      prize.Name,
+		Name:      strings.TrimSpace(prize.Name),
 		Quanitity: prize.Quanitity,
 	}
 

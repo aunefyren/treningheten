@@ -53,6 +53,14 @@ func APIRegisterWeek(context *gin.Context) {
 		return
 	}
 
+	requestLocation, err := time.LoadLocation(week.TimeZone)
+	if err != nil {
+		log.Println("Failed to parse time zone. Error: " + err.Error())
+		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to parse time zone."})
+		context.Abort()
+		return
+	}
+
 	// Current time
 	now := time.Now()
 	isoYear, isoWeek := now.ISOWeek()
@@ -142,7 +150,7 @@ func APIRegisterWeek(context *gin.Context) {
 			return
 		}
 
-		if len(day.Note) > 255 {
+		if len(strings.TrimSpace(day.Note)) > 255 {
 			context.JSON(http.StatusBadRequest, gin.H{"error": "The note is too long."})
 			context.Abort()
 			return
@@ -202,7 +210,7 @@ func APIRegisterWeek(context *gin.Context) {
 		} else {
 
 			exercise := models.Exercise{
-				Date:             day.Date,
+				Date:             time.Date(day.Date.Year(), day.Date.Month(), day.Date.Day(), 00, 00, 00, 00, requestLocation),
 				Note:             day.Note,
 				ExerciseInterval: day.ExerciseInterval,
 				Goal:             goalID,

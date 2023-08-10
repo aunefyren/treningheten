@@ -758,7 +758,8 @@ function update_exercises() {
                 "note": day_7_note,
                 "exercise_interval": Number(day_7_check)
             },
-        ]
+        ],
+        "timezone" : Intl.DateTimeFormat().resolvedOptions().timeZone
     };
 
     var form_data = JSON.stringify(form_obj);

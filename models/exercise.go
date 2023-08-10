@@ -26,7 +26,8 @@ type Week struct {
 }
 
 type WeekCreationRequest struct {
-	Days []ExerciseCreationRequest `json:"days"`
+	Days     []ExerciseCreationRequest `json:"days"`
+	TimeZone string                    `json:"timezone"`
 }
 
 type WeekFrequency struct {

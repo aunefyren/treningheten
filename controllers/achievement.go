@@ -149,7 +149,7 @@ func CreateDefaultAchivements() error {
 
 	easyAchievement := models.Achievement{
 		Name:        "Making it look easy",
-		Description: "Exercise more than seven times a week.",
+		Description: "Exercise more than seven times in a week.",
 	}
 	achievements = append(achievements, easyAchievement)
 
@@ -178,7 +178,7 @@ func CreateDefaultAchivements() error {
 	achievements = append(achievements, completeAchievement)
 
 	comebackAchievement := models.Achievement{
-		Name:        "Comeback",
+		Name:        "Underdog",
 		Description: "Complete a week after failing two in a row.",
 	}
 	achievements = append(achievements, comebackAchievement)

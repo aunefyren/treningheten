@@ -140,8 +140,18 @@ func APIRegisterSeason(context *gin.Context) {
 		return
 	}
 
+	seasonLocation, err := time.LoadLocation(season.TimeZone)
+	if err != nil {
+		log.Println("Failed to parse time zone. Error: " + err.Error())
+		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to parse time zone."})
+		context.Abort()
+		return
+	}
+
 	season.Name = strings.TrimSpace(season.Name)
 	season.Description = strings.TrimSpace(season.Description)
+	season.Start = time.Date(season.Start.Year(), season.Start.Month(), season.Start.Day(), 00, 00, 00, 00, seasonLocation)
+	season.End = time.Date(season.End.Year(), season.End.Month(), season.End.Day(), 23, 59, 59, 59, seasonLocation)
 
 	// Verify season name
 	if season.Name == "" || len(season.Name) < 5 {
