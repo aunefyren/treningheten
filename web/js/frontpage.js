@@ -259,9 +259,10 @@ function load_page(result) {
                                     <h3 id="season_title">Loading...</h3>
                                     <p id="season_desc" style="text-align: center;">...</p>
 
-                                    <p id="season_start_title" style="margin-top: 1em;">Season start: <b><a id="season_start">...</a></b></p>
-                                    <p id="season_end_title" style="">Season end: <b><a id="season_end">...</a></b></p>
-                                    <p id="week_goal_title" style="margin: 1em 0 0 0;">Week goal: <b><a id="week_goal">0</a></b></p>
+                                    <p id="season_start_title" style="margin-top: 1em;">Season start: <a id="season_start">...</a></p>
+                                    <p id="season_end_title" style="">Season end: <a id="season_end">...</a></p>
+
+                                    <p id="week_goal_title" style="margin: 1em 0 0 0;">Weekly goal: <b><a id="week_goal">0</a></b></p>
                                     <p id="goal_sickleave_title" style="">Sick leave left: <b><a id="goal_sickleave">0</a></b></p>
 
                                 </div>
