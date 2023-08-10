@@ -1208,6 +1208,9 @@ input[type=checkbox]
 .season-title, .goals-title {
   font-size: 1.25em;
   font-weight: bold;
+  width: 100%;
+  width: -webkit-fill-available;
+  width: -moz-available;
 }
 
 .leaderboard-week-two {
