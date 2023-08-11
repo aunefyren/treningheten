@@ -271,7 +271,14 @@ function PlaceUserAhievements(achivementArray) {
             </div>     
 
             <div class="overlay">
-                <div class="text-achievement">${achivementArray[i].description}</div>
+                <div class="text-achievement"> 
+                    <div style="margin-bottom: 0.5em;"> 
+                        ${achivementArray[i].name}
+                    </div>
+                    <div style="font-size: 0.9em;"> 
+                        ${achivementArray[i].description}
+                    </div>
+                </div>
             </div>
 
         </div>
