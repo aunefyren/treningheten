@@ -74,6 +74,13 @@ function load_page(result) {
                             <input style="" type="checkbox" id="compete" class="clickable" name="compete" value="compete" required>
                             <label for="compete" class="unselectable clickable" style="user-select: none; text-align: center;" title="If I fail to complete my goal, I must spin a wheel of fortune and provide a prize to the winner."> I want to compete with others to uphold my workout streak.</label><br>
 
+                            <p id="prize-title" style="margin-top: 1em;">Potential prize:</p>
+                            <div class="prize-wrapper">
+                                <div id="register-prize-text" class="prize-text">...</div>
+                            </div>
+
+                            <hr style="margin: 1em 0;">
+
                             <button type="submit" onclick="register_goal();" id="register_goal_button" style=""><img src="assets/done.svg" class="btn_logo color-invert"><p2>Join season</p2></button>
 
                         </div>
@@ -271,6 +278,11 @@ function load_page(result) {
 
                                     <p id="week_goal_title" style="margin: 1em 0 0 0;">Weekly goal: <b><a id="week_goal">0</a></b></p>
                                     <p id="goal_sickleave_title" style="">Sick leave left: <b><a id="goal_sickleave">0</a></b></p>
+
+                                    <p id="prize-title" style="margin-top: 1em;">Potential prize:</p>
+                                    <div class="prize-wrapper">
+                                        <div id="prize-text" class="prize-text">...</div>
+                                    </div>
 
                                 </div>
 
@@ -557,13 +569,14 @@ function registergoal_module(season_object) {
     document.getElementById("register_season_start").innerHTML = "Season start: " + GetDateString(date_start, true)
     document.getElementById("register_season_end").innerHTML = "Season end: " + GetDateString(date_end, true)
     document.getElementById("register_season_desc").innerHTML = season_object.description
-
+    document.getElementById("register-prize-text").innerHTML = season_object.prize.quantity + " " + season_object.prize.name
 }
 
 function place_season(season_object) {
 
     document.getElementById("season_title").innerHTML = season_object.name
     document.getElementById("season_desc").innerHTML = season_object.description
+    document.getElementById("prize-text").innerHTML = season_object.prize.quantity + " " + season_object.prize.name
 
 }
 

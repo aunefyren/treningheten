@@ -54,7 +54,7 @@ func GetOngoingSeasonFromDB(giventime time.Time) (models.Season, bool, error) {
 	}
 
 	if len(seasons) == 0 {
-		return models.Season{}, false, errors.New("Zero active or future seasons found.")
+		return models.Season{}, false, nil
 	}
 
 	for _, season := range seasons {

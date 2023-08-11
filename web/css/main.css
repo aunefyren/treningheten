@@ -1634,3 +1634,24 @@ input[type=checkbox]
   transition: 1s;
   background-color: var(--mediumblue);
 }
+
+.prize-wrapper {
+  text-align: center;
+  margin: 0.25em;
+  font-size: 1.25em;
+  background-color: var(--eggshell);
+  padding: 0.5em;
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-content: center;
+  justify-content: center;
+  align-items: center;
+  border-radius: 0.5em;
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  -khtml-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+}
