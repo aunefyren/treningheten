@@ -192,7 +192,7 @@ function PlaceUserAhievements(achivementArrayPersonal, achivementArray, userID) 
             <div class="achievement-base ${class_string_html}">
 
                 <div class="achievement-image">
-                    <img style="width: 100%; height: 100%;" class="achievement-img" id="achievement-img-${achivementArray[i].ID}" src="/assets/lock.svg">
+                    <img style="width: 100%; height: 100%; padding: 1.5em; border-radius: 0;" class="achievement-img" id="achievement-img-${achivementArray[i].ID}" src="/assets/images/barbell.gif">
                 </div>
 
                 <div class="achievement-title">
@@ -222,10 +222,11 @@ function PlaceUserAhievements(achivementArrayPersonal, achivementArray, userID) 
         document.getElementById("achievements-box").innerHTML += html
 
         if(achieved) {
+            document.getElementById("achievement-img-" + achivementArray[i].ID).style.padding  = "0"
+            document.getElementById("achievement-img-" + achivementArray[i].ID).style.borderRadius  = "10em"
             GetAchievementImage(achivementArray[i].ID)
         } else {
-            document.getElementById("achievement-img-" + achivementArray[i].ID).style.padding  = "1.5em"
-            document.getElementById("achievement-img-" + achivementArray[i].ID).style.borderRadius  = "0"
+            document.getElementById("achievement-img-" + achivementArray[i].ID).src  = "/assets/lock.svg"
         }
 
     }
@@ -234,7 +235,7 @@ function PlaceUserAhievements(achivementArrayPersonal, achivementArray, userID) 
     console.log(ach_percentage)
     document.getElementById("progress-bar").style.width  = ach_percentage + "%"
     document.getElementById("progress-bar").title  = ach_percentage + "%"
-    document.getElementById("progress-bar-number").innerHTML  = ach_percentage + "%"
+    document.getElementById("progress-bar-number").innerHTML  = achieved_sum + "/" + achievement_sum
 
     if(ach_percentage > 99) {
         setTimeout(function() {

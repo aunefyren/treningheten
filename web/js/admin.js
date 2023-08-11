@@ -219,11 +219,7 @@ function place_invites(invites_array) {
     var html = ``;
     
     if(invites_array.length == 0) {
-        html = `
-            <div id="" class="invitation-object">
-                <p id="" style="margin: 0.5em; text-align: center;">...</p>
-            </div>
-        `;
+        html = "";
     } else {
         for(var i = 0; i < invites_array.length; i++) {
             html += `
