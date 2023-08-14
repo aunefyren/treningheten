@@ -1,6 +1,7 @@
 package controllers
 
 import (
+	"aunefyren/treningheten/config"
 	"aunefyren/treningheten/database"
 	"aunefyren/treningheten/middlewares"
 	"aunefyren/treningheten/models"
@@ -37,8 +38,17 @@ func APIGetOngoingSeason(context *gin.Context) {
 		return
 	}
 
+	// Get configuration
+	config, err := config.GetConfig()
+	if err != nil {
+		log.Println("Failed to get config. Error: " + err.Error())
+		context.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		context.Abort()
+		return
+	}
+
 	// Return group with owner and success message
-	context.JSON(http.StatusOK, gin.H{"season": seasonObject, "message": "Season retrieved."})
+	context.JSON(http.StatusOK, gin.H{"season": seasonObject, "message": "Season retrieved.", "timezone": config.Timezone})
 
 }
 

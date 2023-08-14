@@ -325,6 +325,30 @@ func UpdateUser(context *gin.Context) {
 		return
 	}
 
+	// Get user ID
+	userID, err := middlewares.GetAuthUsername(context.GetHeader("Authorization"))
+	if err != nil {
+		context.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		context.Abort()
+		return
+	}
+
+	userObject, err := database.GetAllUserInformation(userID)
+	if err != nil {
+		log.Println("Failed to get user information. Error: " + err.Error())
+		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get user information."})
+		context.Abort()
+		return
+	}
+
+	credentialError := userObject.CheckPassword(userUpdateRequest.OldPassword)
+	if credentialError != nil {
+		log.Println("Invalid credentials. Error: " + credentialError.Error())
+		context.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid credentials."})
+		context.Abort()
+		return
+	}
+
 	// Make sure password match
 	if userUpdateRequest.Password != "" && userUpdateRequest.Password != userUpdateRequest.PasswordRepeat {
 		context.JSON(http.StatusBadRequest, gin.H{"error": "Passwords must match."})
@@ -341,14 +365,6 @@ func UpdateUser(context *gin.Context) {
 		return
 	} else if !valid && userUpdateRequest.Password != "" {
 		context.JSON(http.StatusBadRequest, gin.H{"error": requirements})
-		context.Abort()
-		return
-	}
-
-	// Get user ID
-	userID, err := middlewares.GetAuthUsername(context.GetHeader("Authorization"))
-	if err != nil {
-		context.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		context.Abort()
 		return
 	}

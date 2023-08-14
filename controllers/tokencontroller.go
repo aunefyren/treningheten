@@ -38,7 +38,7 @@ func GenerateToken(context *gin.Context) {
 
 	credentialError := user.CheckPassword(request.Password)
 	if credentialError != nil {
-		log.Println("Invalid credentials")
+		log.Println("Invalid credentials. Error: " + credentialError.Error())
 		context.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid credentials."})
 		context.Abort()
 		return

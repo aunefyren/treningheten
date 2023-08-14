@@ -37,6 +37,7 @@ type UserUpdateRequest struct {
 	PasswordRepeat string `json:"password_repeat"`
 	SundayAlert    bool   `json:"sunday_alert"`
 	ProfileImage   string `json:"profile_image"`
+	OldPassword    string `json:"password_old"`
 }
 
 type UserUpdatePasswordRequest struct {

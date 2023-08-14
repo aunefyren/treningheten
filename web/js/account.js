@@ -63,17 +63,6 @@ function load_page(result) {
                 <hr>
             </div>
 
-            <div class="module" id="achievements-module" style="display: none;">
-
-                <div id="achievements-title" class="title" style="margin-bottom: 1em;">
-                    Achievements:
-                </div>
-
-                <div id="achievements-box" class="achievements-box">
-                </div>
-
-            </div>
-
             <div class="module color-invert">
                 <hr>
             </div>
@@ -86,12 +75,12 @@ function load_page(result) {
                 <label id="form-input-icon" for="new_profile_image" style="margin-top: 2em;">Replace profile image:</label>
                 <input type="file" name="new_profile_image" id="new_profile_image" placeholder="" value="" accept="image/png, image/jpeg" />
 
-                <input onclick="change_password_toggle();" style="margin-top: 2em;" class="clickable" type="checkbox" id="password-toggle" name="confirm" value="confirm" >
-                <label for="password-toggle" class="unselectable clickable">Change my password.</label><br>
+                <input onclick="change_password_toggle();" style="margin-top: 3em;" class="clickable" type="checkbox" id="password-toggle" name="confirm" value="confirm" >
+                <label for="password-toggle" class="clickable">Change my password.</label><br>
 
                 <div id="change-password-box" style="display:none;">
 
-                    <label id="form-input-icon" for="password"></label>
+                    <label id="form-input-icon" style="" for="password"></label>
                     <input type="password" name="password" id="password" placeholder="New password" />
 
                     <label id="form-input-icon" for="password_repeat"></label>
@@ -99,8 +88,11 @@ function load_page(result) {
 
                 </div>
 
-                <input style="margin-top: 2em;" class="clickable" type="checkbox" id="reminder-toggle" name="reminder-toggle" value="reminder-toggle">
-                <label for="reminder-toggle" class="unselectable clickable">Send me logging reminders on Sundays.</label><br>
+                <input style="margin-top: 3em;" class="clickable" type="checkbox" id="reminder-toggle" name="reminder-toggle" value="reminder-toggle">
+                <label for="reminder-toggle" class="clickable">Send me logging reminders on Sundays.</label><br>
+
+                <label style="margin-top: 5em;" id="form-input-icon" for="password_old">Current password:</label>
+                <input type="password" name="password_old" id="password_old" placeholder="To save changes type your current password." required />
 
                 <button id="update-button" style="margin-top: 2em;" type="submit" href="/">Update account</button>
 
@@ -180,6 +172,7 @@ function send_update() {
     var email = document.getElementById("email").value;
     var password = document.getElementById("password").value;
     var password_repeat = document.getElementById("password_repeat").value;
+    var password_old = document.getElementById("password_old").value;
     var sunday_alert = document.getElementById("reminder-toggle").checked;
     var new_profile_image = document.getElementById('new_profile_image').files[0];
 
@@ -190,6 +183,7 @@ function send_update() {
             return;
         } else if(new_profile_image.size < 10000) {
             error("Image smaller than 0.01MB size requirement.")
+            document.getElementById("password_old").value = "";
             return;
         }
 
@@ -202,7 +196,8 @@ function send_update() {
                 "password" : password,
                 "password_repeat": password_repeat,
                 "sunday_alert": sunday_alert,
-                "profile_image": result
+                "profile_image": result,
+                "password_old": password_old
             };
 
             var form_data = JSON.stringify(form_obj);
@@ -219,7 +214,8 @@ function send_update() {
                             "password" : password,
                             "password_repeat": password_repeat,
                             "sunday_alert": sunday_alert,
-                            "profile_image": ""
+                            "profile_image": "",
+                            "password_old": password_old
                         };
 
         var form_data = JSON.stringify(form_obj);
@@ -239,12 +235,14 @@ function send_update_two(form_data) {
             } catch(e) {
                 console.log(e +' - Response: ' + this.responseText);
                 error("Could not reach API.");
+                document.getElementById("password_old").value = "";
                 return;
             }
             
             if(result.error) {
 
                 error(result.error);
+                document.getElementById("password_old").value = "";
 
             } else {
 
@@ -763,151 +761,5 @@ function PlaceUserData(user_object) {
     if(user_object.sunday_alert) {
         document.getElementById("reminder-toggle").checked = true;
     }
-
-    GetUserAhievements(user_object.ID);
-
-}
-
-
-function GetUserAhievements(userID) {
-
-    var xhttp = new XMLHttpRequest();
-    xhttp.onreadystatechange = function() {
-        if (this.readyState == 4) {
-            
-            try {
-                result = JSON.parse(this.responseText);
-            } catch(e) {
-                console.log(e +' - Response: ' + this.responseText);
-                error("Could not reach API.");
-                return;
-            }
-            
-            if(result.error) {
-
-                error(result.error);
-
-            } else {
-
-                PlaceUserAhievements(result.achivements)
-                
-            }
-
-        } else {
-            // info("Loading week...");
-        }
-    };
-    xhttp.withCredentials = true;
-    xhttp.open("post", api_url + "auth/achievement/" + userID);
-    xhttp.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
-    xhttp.setRequestHeader("Authorization", jwt);
-    xhttp.send();
-
-    return;
-
-}
-
-function PlaceUserAhievements(achivementArray) {
-
-    if(achivementArray.length > 0) {
-        document.getElementById("achievements-module").style.display = "flex"
-        document.getElementById("achievements-hr").style.display = "flex"
-    } else {
-        return;
-    }
-
-    for(var i = 0; i < achivementArray.length; i++) {
-
-        // parse date object
-        try {
-            var date = new Date(Date.parse(achivementArray[i].given_at));
-            var date_string = GetDateString(date, false)
-        } catch {
-            var date_string = "Error"
-        }
-
-        var html = `
-
-        <div class="achievement unselectable" title="${achivementArray[i].description}" tabindex="1">
-
-            <div class="achievement-base">
-
-                <div class="achievement-image">
-                    <img style="width: 100%; height: 100%;" class="achievement-img" id="achievement-img-${achivementArray[i].id}" src="/assets/images/barbell.gif">
-                </div>
-
-                <div class="achievement-title">
-                    ${achivementArray[i].name}
-                </div>
-
-                <div class="achievement-date">
-                    ${date_string}
-                </div>
-
-            </div>
-
-            <div class="overlay">
-                <div class="text-achievement"> 
-                    <div style="margin-bottom: 0.5em;"> 
-                        ${achivementArray[i].name}
-                    </div>
-                    <div style="font-size: 0.9em;"> 
-                        ${achivementArray[i].description}
-                    </div>
-                </div>
-            </div>
-
-        </div>
-        `;
-
-        document.getElementById("achievements-box").innerHTML += html
-
-        GetAchievementImage(achivementArray[i].id)
-
-    }
-
-}
-
-function GetAchievementImage(achievementID) {
-
-    var xhttp = new XMLHttpRequest();
-    xhttp.onreadystatechange = function() {
-        if (this.readyState == 4) {
-            
-            try {
-                result = JSON.parse(this.responseText);
-            } catch(e) {
-                console.log(e +' - Response: ' + this.responseText);
-                error("Could not reach API.");
-                return;
-            }
-            
-            if(result.error) {
-
-                error(result.error);
-
-            } else {
-
-                PlaceAchievementImage(result.image, achievementID)
-                
-            }
-
-        } else {
-            // info("Loading week...");
-        }
-    };
-    xhttp.withCredentials = true;
-    xhttp.open("post", api_url + "auth/achievement/get/" + achievementID + "/image");
-    xhttp.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
-    xhttp.setRequestHeader("Authorization", jwt);
-    xhttp.send();
-
-    return;
-
-}
-
-function PlaceAchievementImage(imageBase64, achievementID) {
-
-    document.getElementById("achievement-img-" + achievementID).src = imageBase64
 
 }

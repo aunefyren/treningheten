@@ -72,7 +72,7 @@ function load_page(result) {
                             <hr style="margin: 1em 0;">
 
                             <input style="" type="checkbox" id="compete" class="clickable" name="compete" value="compete" required>
-                            <label for="compete" class="unselectable clickable" style="user-select: none; text-align: center;" title="If I fail to complete my goal, I must spin a wheel of fortune and provide a prize to the winner."> I want to compete with others to uphold my workout streak.</label><br>
+                            <label for="compete" class="clickable" style="user-select: none; text-align: center;" title="If I fail to complete my goal, I must spin a wheel of fortune and provide a prize to the winner."> I want to compete with others to uphold my workout streak.</label><br>
 
                             <p id="prize-title" style="margin-top: 1em;">Potential prize:</p>
                             <div class="prize-wrapper">
@@ -132,7 +132,7 @@ function load_page(result) {
                                             </div>
                                         </div>
                                         <div class="day-note">
-                                            <textarea class="day-note-area" id="day_1_note" name="day_1_note" rows="3" cols="33">
+                                            <textarea class="day-note-area" id="day_1_note" name="day_1_note" rows="3" cols="33" placeholder="Notes">
                                             </textarea>
                                         </div>
                                         <input type="hidden" value="" id="day_1_date">
@@ -152,7 +152,7 @@ function load_page(result) {
                                             </div>
                                         </div>
                                         <div class="day-note">
-                                            <textarea class="day-note-area" id="day_2_note" name="day_2_note" rows="3" cols="33">
+                                            <textarea class="day-note-area" id="day_2_note" name="day_2_note" rows="3" cols="33" placeholder="Notes">
                                             </textarea>
                                         </div>
                                         <input type="hidden" value="" id="day_2_date">
@@ -172,7 +172,7 @@ function load_page(result) {
                                             </div>
                                         </div>
                                         <div class="day-note">
-                                            <textarea class="day-note-area" id="day_3_note" name="day_3_note" rows="3" cols="33">
+                                            <textarea class="day-note-area" id="day_3_note" name="day_3_note" rows="3" cols="33" placeholder="Notes">
                                             </textarea>
                                         </div>
                                         <input type="hidden" value="" id="day_3_date">
@@ -192,7 +192,7 @@ function load_page(result) {
                                             </div>
                                         </div>
                                         <div class="day-note">
-                                            <textarea class="day-note-area" id="day_4_note" name="day_4_note" rows="3" cols="33">
+                                            <textarea class="day-note-area" id="day_4_note" name="day_4_note" rows="3" cols="33" placeholder="Notes">
                                             </textarea>
                                         </div>
                                         <input type="hidden" value="" id="day_4_date">
@@ -212,7 +212,7 @@ function load_page(result) {
                                             </div>
                                         </div>
                                         <div class="day-note">
-                                            <textarea class="day-note-area" id="day_5_note" name="day_5_note" rows="3" cols="33">
+                                            <textarea class="day-note-area" id="day_5_note" name="day_5_note" rows="3" cols="33" placeholder="Notes">
                                             </textarea>
                                         </div>
                                         <input type="hidden" value="" id="day_5_date">
@@ -232,7 +232,7 @@ function load_page(result) {
                                             </div>
                                         </div>
                                         <div class="day-note">
-                                            <textarea class="day-note-area" id="day_6_note" name="day_6_note" rows="3" cols="33">
+                                            <textarea class="day-note-area" id="day_6_note" name="day_6_note" rows="3" cols="33" placeholder="Notes">
                                             </textarea>
                                         </div>
                                         <input type="hidden" value="" id="day_6_date">
@@ -252,7 +252,7 @@ function load_page(result) {
                                             </div>
                                         </div>
                                         <div class="day-note">
-                                            <textarea class="day-note-area" id="day_7_note" name="day_7_note" rows="3" cols="33">
+                                            <textarea class="day-note-area" id="day_7_note" name="day_7_note" rows="3" cols="33" placeholder="Notes">
                                             </textarea>
                                         </div>
                                         <input type="hidden" value="" id="day_7_date">
@@ -509,7 +509,7 @@ function get_season(user_id){
                 var now = Date.now();
 
                 if(user_found && now < date_start) {
-                    countdown_module(season, goal)
+                    countdown_module(season, goal, result.timezone)
                     get_debtoverview_prepare(false);
                 } else if(user_found) {
                     document.getElementById("ongoingseason").style.display = "flex"
@@ -537,7 +537,7 @@ function get_season(user_id){
 
 }
 
-function countdown_module(season_object, exercise_goal) {
+function countdown_module(season_object, exercise_goal, timezone) {
 
     var date_start = new Date(season_object.start);
     var date_end = new Date(season_object.end);
@@ -556,7 +556,7 @@ function countdown_module(season_object, exercise_goal) {
 
     document.getElementById("countdown_title").innerHTML = season_object.goals.length + " " + partici_string + ". Starting in: "
 
-    StartCountDown(date_start);
+    StartCountDown(date_start, timezone);
 }
 
 function registergoal_module(season_object) {
@@ -873,13 +873,11 @@ function StartCountDown(countdownDate){
     // Update the count down every 1 second
     var x = setInterval(function() {
 
-        // Get today's date and time in Oslo time zone
+        // Get today's date
         var now = new Date();
-        var difference_minutes = now.getTimezoneOffset();
-        var difference_miliseconds = Math.floor(difference_minutes * 60000)
-    
+
         // Find the distance between now and the count down date
-        var distance = Math.floor(countDownDate - now.getTime() + difference_miliseconds);
+        var distance = Math.floor(countDownDate - now.getTime());
     
         // Time calculations for days, hours, minutes and seconds
         var days = Math.floor(distance / (1000 * 60 * 60 * 24));
@@ -896,7 +894,11 @@ function StartCountDown(countdownDate){
         } else {
             clearInterval(x);
             document.getElementById("countdown_number").innerHTML = "...";
-            location.reload();
+
+            setTimeout(() => {
+                location.reload();
+            }, 5000);
+              
         }
         
     }, 1000);
@@ -949,8 +951,6 @@ function get_leaderboard(fireworks){
 function place_leaderboard(weeks_array) {
 
     var html = ``;
-    var members = ``;
-    var memberPhotoIDArray = [];
     
     if(weeks_array.length == 0) {
         html = `
@@ -999,27 +999,6 @@ function place_leaderboard(weeks_array) {
                 `;
                 results_html += result_html;
 
-                var userFound = false;
-                for(var l = 0; l < memberPhotoIDArray.length; l++) {
-                    if(memberPhotoIDArray[l] == weeks_array[i].users[j].user.ID) {
-                        userFound = true;
-                        break;
-                    }
-                }
-
-                if(!userFound) {
-                    var joined_image = `
-                    <div class="leaderboard-week-member" id="member-${weeks_array[i].users[j].user.ID}" title="${weeks_array[i].users[j].user.first_name} ${weeks_array[i].users[j].user.last_name}" onclick="location.href='./user/${weeks_array[i].users[j].user.ID}'">
-                        <div class="leaderboard-week-member-image">
-                            <img style="width: 100%; height: 100%;" class="leaderboard-week-member-image-img" id="member-img-${weeks_array[i].users[j].user.ID}" src="/assets/images/barbell.gif">
-                        </div>
-                        ${weeks_array[i].users[j].user.first_name}
-                    </div>
-                    `;
-                    members += joined_image
-                    memberPhotoIDArray.push(weeks_array[i].users[j].user.ID)
-                }
-
             }
 
             week_html += results_html + `</div></div>`;
@@ -1030,24 +1009,7 @@ function place_leaderboard(weeks_array) {
         
     }
 
-    if(members == "") {
-        members = "None."
-    }
-
-    var members_html = `
-    <div class="leaderboard-week-members-wrapper">
-        Participants:
-        <div class="leaderboard-week-members" id="">
-            ${members}
-        </div>
-    </div>
-    `;
-
-    document.getElementById("leaderboard-weeks").innerHTML = members_html + html
-
-    for(var i = 0; i < memberPhotoIDArray.length; i++) {
-        GetProfileImageForUserOnLeaderboard(memberPhotoIDArray[i])
-    }
+    document.getElementById("leaderboard-weeks").innerHTML = html
 
     return
 
