@@ -33,9 +33,7 @@ Treningheten is a web-based platform for tracking workouts. A workout season is 
 - Season-based workout periods
 - Weekly workout tracking
 - Dynamic leaderboard and season history
-
-## Planned features 
-
-- Compete to uphold streaks and win prices from other users
-- Sick days to be used when unable to work out
-- Admin interface for management
+- Compete to uphold streaks and win prices from other users by spinning a wheel of fortune
+- Admin interface for management (in progress)
+- Sick leave for when unable to work out
+- Achievements given when certain actions are done
