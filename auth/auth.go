@@ -1,6 +1,7 @@
 package auth
 
 import (
+	"aunefyren/treningheten/database"
 	"errors"
 	"time"
 
@@ -10,13 +11,8 @@ import (
 var jwtKey = []byte("supersecretkey")
 
 type JWTClaim struct {
-	Firstname   string `json:"first_name"`
-	Lastname    string `json:"last_name"`
-	Email       string `json:"email"`
-	Admin       bool   `json:"admin"`
-	Verified    bool   `json:"verified"`
-	UserID      int    `json:"id"`
-	SundayAlert bool   `json:"sunday_alert"`
+	UserID int  `json:"id"`
+	Admin  bool `json:"admin"`
 	jwt.RegisteredClaims
 }
 
@@ -29,16 +25,10 @@ func SetPrivateKey(PrivateKey string) error {
 	return nil
 }
 
-func GenerateJWT(firstname string, lastname string, email string, userid int, admin bool, verified bool, sundayAlert bool) (tokenString string, err error) {
+func GenerateJWT(userID int) (tokenString string, err error) {
 	expirationTime := time.Now().Add(1 * time.Hour * 24 * 7)
 	claims := &JWTClaim{
-		Firstname:   firstname,
-		Lastname:    lastname,
-		Email:       email,
-		Admin:       admin,
-		UserID:      userid,
-		Verified:    verified,
-		SundayAlert: sundayAlert,
+		UserID: userID,
 		RegisteredClaims: jwt.RegisteredClaims{
 			ExpiresAt: jwt.NewNumericDate(expirationTime),
 			NotBefore: jwt.NewNumericDate(time.Now()),
@@ -46,6 +36,12 @@ func GenerateJWT(firstname string, lastname string, email string, userid int, ad
 			Issuer:    "Treningheten",
 		},
 	}
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+	tokenString, err = token.SignedString(jwtKey)
+	return
+}
+
+func GenerateJWTFromClaims(claims *JWTClaim) (tokenString string, err error) {
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 	tokenString, err = token.SignedString(jwtKey)
 	return
@@ -79,14 +75,24 @@ func ValidateToken(signedToken string, admin bool) (err error) {
 		err = errors.New("Token not begun.")
 		return
 	}
-	if admin && !claims.Admin {
-		err = errors.New("Token not an admin session.")
-		return
+
+	if admin {
+
+		userObject, userErr := database.GetUserInformation(claims.UserID)
+		if userErr != nil {
+			err = errors.New("Failed to check admin status.")
+			return
+		} else if *userObject.Admin != true {
+			err = errors.New("Token not an admin session.")
+			return
+		}
 	}
+
 	return
 }
 
 func ParseToken(signedToken string) (*JWTClaim, error) {
+
 	token, err := jwt.ParseWithClaims(
 		signedToken,
 		&JWTClaim{},
@@ -115,4 +121,5 @@ func ParseToken(signedToken string) (*JWTClaim, error) {
 		return nil, err
 	}
 	return claims, nil
+
 }

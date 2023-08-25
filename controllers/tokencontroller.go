@@ -7,7 +7,6 @@ import (
 	"aunefyren/treningheten/models"
 	"log"
 	"net/http"
-	"strconv"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -46,7 +45,7 @@ func GenerateToken(context *gin.Context) {
 		return
 	}
 
-	tokenString, err := auth.GenerateJWT(user.FirstName, user.LastName, user.Email, int(user.ID), *user.Admin, user.Verified, user.SundayAlert)
+	tokenString, err := auth.GenerateJWT(int(user.ID))
 	if err != nil {
 		context.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		context.Abort()
@@ -59,9 +58,15 @@ func GenerateToken(context *gin.Context) {
 
 func ValidateToken(context *gin.Context) {
 
-	Claims, err := middlewares.GetTokenClaims(context.GetHeader("Authorization"))
+	now := time.Now()
+
+	claims, err := middlewares.GetTokenClaims(context.GetHeader("Authorization"))
 	if err != nil {
 		log.Println("Failed to validate session. Error: " + err.Error())
+		context.JSON(http.StatusBadRequest, gin.H{"error": "Invalid session. Please log in again."})
+		context.Abort()
+		return
+	} else if claims.ExpiresAt.Time.Before(now) {
 		context.JSON(http.StatusBadRequest, gin.H{"error": "Invalid session. Please log in again."})
 		context.Abort()
 		return
@@ -70,26 +75,35 @@ func ValidateToken(context *gin.Context) {
 	token := ""
 
 	// Refresh login if it is over 24 hours old
-	if Claims.IssuedAt != nil {
-		// Get user object by ID
-		now := time.Now()
-		difference := Claims.IssuedAt.Time.Sub(now)
+	if claims.IssuedAt != nil {
 
-		if int64(difference.Hours()/24/365) >= 24 && Claims.ExpiresAt.After(now) {
-			user, err := database.GetAllUserInformation(Claims.UserID)
+		// Get time difference between now and token issue time
+		difference := now.Sub(claims.IssuedAt.Time)
+
+		if float64(difference.Hours()/24/365) < 1.0 && claims.ExpiresAt.After(now) {
+
+			// Change expiration to now + seve ndays
+			claims.ExpiresAt.Time = now.Add(time.Hour * 24 * 7)
+
+			// Get user object by ID and check and update admin status
+			userObject, userErr := database.GetUserInformation(claims.UserID)
+			if userErr != nil {
+				log.Println("Failed to check admin status during token refresh.")
+				return
+			} else if *userObject.Admin != claims.Admin {
+				claims.Admin = *userObject.Admin
+			}
+
+			// Re-generate token with updated claims
+			token, err = auth.GenerateJWTFromClaims(claims)
 			if err != nil {
-				log.Println("Failed to get user object for user '" + strconv.Itoa(Claims.UserID) + "'. Not returning token. Error: " + err.Error())
-			} else {
-				// Generate new token to refresh expiration time
-				token, err = auth.GenerateJWT(user.FirstName, user.LastName, user.Email, int(user.ID), *user.Admin, user.Verified, user.SundayAlert)
-				if err != nil {
-					log.Println("Failed to create JWT token for user '" + strconv.Itoa(Claims.UserID) + "'. Not returning token. Error: " + err.Error())
-				}
+				log.Println("Failed to re-sign JWT from claims. Error: " + err.Error())
+				token = ""
 			}
 		}
 
 	}
 
-	context.JSON(http.StatusOK, gin.H{"message": "Valid session!", "data": Claims, "token": token})
+	context.JSON(http.StatusOK, gin.H{"message": "Valid session!", "data": claims, "token": token})
 
 }

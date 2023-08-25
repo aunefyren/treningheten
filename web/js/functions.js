@@ -76,6 +76,7 @@ function get_login(cookie) {
 
         if (this.readyState == 4) {
 
+            // Try to parse API response
             try {
                 result = JSON.parse(this.responseText);
             } catch(e) {
@@ -84,8 +85,16 @@ function get_login(cookie) {
                 return;
             }
             
+            // If the error is to verify, allow loading page anyways
             if(result.error === "You must verify your account.") {
 
+                // If not front-page, redirect
+                if(window.location.pathname !== "/") {
+                    location.href = './';
+                    return;
+                }
+
+                // Load page
                 load_page(this.responseText)
 
             } else if (result.error) {
@@ -96,12 +105,14 @@ function get_login(cookie) {
                 
             } else {
 
+                // If new token, save it
                 if(result.token != null && result.token != "") {
                     // store jwt to cookie
                     console.log("Refreshed login token.")
                     set_cookie("treningheten", result.token, 7);
                 }
 
+                // Load page
                 load_page(this.responseText)
                 
             }
