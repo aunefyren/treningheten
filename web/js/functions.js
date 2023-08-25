@@ -96,6 +96,12 @@ function get_login(cookie) {
                 
             } else {
 
+                if(result.token != null && result.token != "") {
+                    // store jwt to cookie
+                    console.log("Refreshed login token.")
+                    set_cookie("treningheten", result.token, 7);
+                }
+
                 load_page(this.responseText)
                 
             }

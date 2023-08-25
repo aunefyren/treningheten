@@ -120,6 +120,15 @@ function load_page(result) {
 
                                 <div class="week_days" id='calendar'>
 
+                                    <div class="calender_status unselectable" id="calender_status">
+                                        <a id="workout_this_week">.</a>
+                                        /
+                                        <a id="goal_this_week">.</a>
+                                        this week
+                                    </div>
+
+                                    <hr style="margin: 0.25em;">
+
                                     <div class="form-group" style="" id="day_1_group">
                                         <div class="day-check">
                                             <label for="day_1_check" title="Have you been working out?">Monday</label>
@@ -258,9 +267,9 @@ function load_page(result) {
                                         <input type="hidden" value="" id="day_7_date">
                                     </div>
 
-                                    <button type="submit" onclick="update_exercises();" id="goal_amount_button" style=""><img src="assets/done.svg" class="btn_logo color-invert"><p2>Save</p2></button>
+                                    <button type="submit" onclick="update_exercises();" id="goal_amount_button" style="margin-bottom: 0em;"><img src="assets/done.svg" class="btn_logo color-invert"><p2>Save</p2></button>
 
-                                    <a style="margin: 0 0 0.5em 0; font-size:0.75em;cursor:pointer;" onclick="use_sickleave();">Use sick leave</i></a>
+                                    <a style="margin: 0.5em; font-size:0.75em;cursor:pointer;" onclick="use_sickleave();">Use sick leave</i></a>
 
                                 </div>
 
@@ -708,6 +717,9 @@ function place_week(week, fireworks) {
     document.getElementById("day_7_note").value = week.days[6].note
     document.getElementById("day_7_date").value = week.days[6].date
 
+    // Place the exercise sum
+    document.getElementById("workout_this_week").innerHTML = fireworks_int;
+
     return
 
 }
@@ -819,11 +831,6 @@ function update_exercises() {
 
                 if (new_fireworks_int > fireworks_int) {
                     new_fireworks = true
-                }
-
-                if(result.token != null && result.token != "") {
-                    // store jwt to cookie
-                    set_cookie("treningheten", result.token, 7);
                 }
 
                 console.log("Placing intial week: ")
@@ -1073,6 +1080,7 @@ function place_season_details(goal, sickleave, seasonStart, SeasonEnd) {
     }
 
     document.getElementById("week_goal").innerHTML = goal
+    document.getElementById("goal_this_week").innerHTML = goal;
     document.getElementById("goal_sickleave").innerHTML = sickleave
     document.getElementById("season_start").innerHTML = date_start_string
     document.getElementById("season_end").innerHTML = date_end_string

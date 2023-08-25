@@ -42,6 +42,8 @@ func GenerateJWT(firstname string, lastname string, email string, userid int, ad
 		RegisteredClaims: jwt.RegisteredClaims{
 			ExpiresAt: jwt.NewNumericDate(expirationTime),
 			NotBefore: jwt.NewNumericDate(time.Now()),
+			IssuedAt:  jwt.NewNumericDate(time.Now()),
+			Issuer:    "Treningheten",
 		},
 	}
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)

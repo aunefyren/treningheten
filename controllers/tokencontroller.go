@@ -7,6 +7,8 @@ import (
 	"aunefyren/treningheten/models"
 	"log"
 	"net/http"
+	"strconv"
+	"time"
 
 	"github.com/gin-gonic/gin"
 )
@@ -59,11 +61,35 @@ func ValidateToken(context *gin.Context) {
 
 	Claims, err := middlewares.GetTokenClaims(context.GetHeader("Authorization"))
 	if err != nil {
-		context.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		log.Println("Failed to validate session. Error: " + err.Error())
+		context.JSON(http.StatusBadRequest, gin.H{"error": "Invalid session. Please log in again."})
 		context.Abort()
 		return
 	}
 
-	context.JSON(http.StatusOK, gin.H{"message": "Valid session!", "data": Claims})
+	token := ""
+
+	// Refresh login if it is over 24 hours old
+	if Claims.IssuedAt != nil {
+		// Get user object by ID
+		now := time.Now()
+		difference := Claims.IssuedAt.Time.Sub(now)
+
+		if int64(difference.Hours()/24/365) >= 24 && Claims.ExpiresAt.After(now) {
+			user, err := database.GetAllUserInformation(Claims.UserID)
+			if err != nil {
+				log.Println("Failed to get user object for user '" + strconv.Itoa(Claims.UserID) + "'. Not returning token. Error: " + err.Error())
+			} else {
+				// Generate new token to refresh expiration time
+				token, err = auth.GenerateJWT(user.FirstName, user.LastName, user.Email, int(user.ID), *user.Admin, user.Verified, user.SundayAlert)
+				if err != nil {
+					log.Println("Failed to create JWT token for user '" + strconv.Itoa(Claims.UserID) + "'. Not returning token. Error: " + err.Error())
+				}
+			}
+		}
+
+	}
+
+	context.JSON(http.StatusOK, gin.H{"message": "Valid session!", "data": Claims, "token": token})
 
 }

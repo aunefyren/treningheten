@@ -1,7 +1,6 @@
 package controllers
 
 import (
-	"aunefyren/treningheten/auth"
 	"aunefyren/treningheten/database"
 	"aunefyren/treningheten/middlewares"
 	"aunefyren/treningheten/models"
@@ -236,20 +235,7 @@ func APIRegisterWeek(context *gin.Context) {
 		return
 	}
 
-	// Get user object by ID
-	token := ""
-	user, err := database.GetAllUserInformation(userID)
-	if err != nil {
-		log.Println("Failed to get user object for user '" + strconv.Itoa(userID) + "'. Not returning token. Error: " + err.Error())
-	} else {
-		// Generate new token to refresh expiration time
-		token, err = auth.GenerateJWT(user.FirstName, user.LastName, user.Email, int(user.ID), *user.Admin, user.Verified, user.SundayAlert)
-		if err != nil {
-			log.Println("Failed to create JWT token for user '" + strconv.Itoa(userID) + "'. Not returning token. Error: " + err.Error())
-		}
-	}
-
-	context.JSON(http.StatusCreated, gin.H{"message": "Week saved.", "week": weekReturn, "token": token})
+	context.JSON(http.StatusCreated, gin.H{"message": "Week saved.", "week": weekReturn})
 
 }
 
