@@ -324,11 +324,15 @@ input[type=text], input[type=password], input[type=email], input[type=date], inp
   height: 3em;
   padding: 0.5em;
   margin: 1em;
-  border-radius: 0.5em;
-  border: solid 0.1em var(--eggshell); 
-  box-shadow: 0.1em 0.2em 0.5em rgba(0,0,0,.09); 
   background: var(--white); 
   box-sizing: border-box;
+  box-sizing: inherit;
+  border-radius: 0.5em;
+  font-size: 0.8 em;
+  border: solid 2px var(--grey); 
+  resize: vertical;
+  min-height: 2em;
+  max-height: 25em;
   font-family: Roboto,Noto,sans-serif;
 }
 
@@ -728,7 +732,7 @@ hr {
   width: 100%;
   width: -webkit-fill-available;
   width: -moz-available;
-  height: 4em !important;
+  height: 3em !important;
   padding: 0.5em !important;
 }
 
@@ -1665,4 +1669,25 @@ input[type=checkbox]
 
 .calender_status {
   margin-top: 0.25em;
+}
+
+.button-collection {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-content: center;
+  justify-content: center;
+  align-items: center;
+}
+
+.danger-button {
+  margin: 1em 2em;
+  padding: 0.5em 0.25em;
+  background-color: var(--red);
+  width: 10em;
+  font-size: 0.8em;
+}
+
+.danger-button:hover {
+  background-color: var(--black);
 }
