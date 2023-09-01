@@ -160,8 +160,8 @@ self.addEventListener('push', event => {
 
     const options = {
         body: jsonData.body,
-        icon: '/assets/logo.svg',
-        badge: '/assets/logos/logo-mono-512x512.png',
+        icon: '/assets/logos/logo-384x384.png',
+        badge: '/assets/logos/logo-mono-96x96.png',
         vibrate: [100, 50, 100],
         data: {
             dateOfArrival: Date.now(),

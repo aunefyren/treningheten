@@ -63,13 +63,13 @@
 		"src": "/assets/logos/logo-mono-512x512.png",
 		"sizes": "512x512",
 		"type": "image/png",
-    	"purpose": "monochrome"
+    	"purpose": "any monochrome"
 	},
 	{
 		"src": "/assets/logo_trans.svg",
 		"sizes": "any",
 		"type": "image/svg+xml",
-    	"purpose": "monochrome"
+    	"purpose": "any monochrome"
 	}
 ],
 	"splash_pages": null
