@@ -2,11 +2,12 @@ var api_url = window.location.origin + "/api/";
 
 // Load service worker
 if('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('/js/service-worker.js')
-.then((reg) => {
-    // registration worked
-    console.log('Registration succeeded. Scope is ' + reg.scope);
-})};
+    navigator.serviceWorker.register('service-worker.js')
+    .then((reg) => {
+        // registration worked
+        console.log('Registration succeeded. Scope is ' + reg.scope);
+    }
+)};
 
 // Make XHTTP requests
 function makeRequest (method, url, data) {
@@ -42,7 +43,7 @@ function set_cookie(cname, cvalue, exdays) {
     var d = new Date();
     d.setTime(d.getTime() + (exdays*24*60*60*1000));
     var expires = "expires="+ d.toUTCString();
-    document.cookie = cname + "=" + cvalue + ";" + expires + ";path=/;samesite=strict";
+    document.cookie = cname + "=" + cvalue + "; " + expires + "; path=/; samesite=strict; secure;";
 }
 
 // Get cookie from browser

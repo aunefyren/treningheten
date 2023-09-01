@@ -11,6 +11,7 @@ import (
 	"context"
 	"flag"
 	"fmt"
+	"io/ioutil"
 	"log"
 	"net/http"
 	"os"
@@ -249,6 +250,8 @@ func initRouter() *gin.Engine {
 			auth.POST("/achievement/", controllers.APIGetAchivements)
 			auth.POST("/achievement/:user_id", controllers.APIGetPersonalAchivements)
 			auth.POST("/achievement/get/:achievement_id/image", controllers.APIGetAchievementsImage)
+
+			auth.POST("/notification/subscribe", controllers.APISubscribeToNotification)
 		}
 
 		admin := api.Group("/admin").Use(middlewares.Auth(true))
@@ -268,6 +271,8 @@ func initRouter() *gin.Engine {
 
 			admin.POST("/prize", controllers.APIGetPrizes)
 			admin.POST("/prize/register", controllers.APIRegisterPrize)
+
+			admin.POST("/notification/push/all-devices", controllers.APIPushNotificationToAllDevicesForUser)
 		}
 
 	}
@@ -342,6 +347,33 @@ func initRouter() *gin.Engine {
 	// Static endpoint for wheel spinning
 	router.GET("/wheel", func(c *gin.Context) {
 		c.HTML(http.StatusOK, "wheel.html", nil)
+	})
+
+	// Static endpoint for service-worker
+	router.GET("/service-worker.js", func(c *gin.Context) {
+		JSfile, err := ioutil.ReadFile("./web/js/service-worker.js")
+		if err != nil {
+			fmt.Println("Reading service-worker threw error trying to open the file. Error: " + err.Error())
+		}
+		c.Data(http.StatusOK, "text/javascript", JSfile)
+	})
+
+	// Static endpoint for manifest
+	router.GET("/manifest.json", func(c *gin.Context) {
+		JSONfile, err := ioutil.ReadFile("./web/json/manifest.json")
+		if err != nil {
+			fmt.Println("Reading manifest threw error trying to open the file. Error: " + err.Error())
+		}
+		c.Data(http.StatusOK, "text/json", JSONfile)
+	})
+
+	// Static endpoint for robots.txt
+	router.GET("/robots.txt", func(c *gin.Context) {
+		TXTfile, err := ioutil.ReadFile("./web/txt/robots.txt")
+		if err != nil {
+			fmt.Println("Reading manifest threw error trying to open the file. Error: " + err.Error())
+		}
+		c.Data(http.StatusOK, "text/plain", TXTfile)
 	})
 
 	return router

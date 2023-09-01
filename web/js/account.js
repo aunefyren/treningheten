@@ -10,6 +10,7 @@ function load_page(result) {
             var sunday_alert = login_data.data.sunday_alert
             user_id = login_data.data.id
             admin = login_data.data.admin
+            vapid_public_key = login_data.vapid_public_key;
         } catch {
             var email = ""
             var first_name = ""
@@ -59,8 +60,20 @@ function load_page(result) {
             <p id="join_date" style=""></p>
             <p id="user_admin" style=""></p>
 
-            <div class="module color-invert" id="achievements-hr" style="display: none;">
+            <div class="module color-invert" id="" style="">
                 <hr>
+            </div>
+
+            <input style="margin-top: 3em;" class="clickable" type="checkbox" id="notification-reminder-toggle" name="notification-reminder-toggle" value="" checked>
+            <label for="notification-reminder-toggle" class="clickable">Send me logging reminders on Sundays.</label><br>
+
+            <input style="margin-top: 3em;" class="clickable" type="checkbox" id="notification-achievement-toggle" name="notification-achievement-toggle" value="" checked>
+            <label for="notification-achievement-toggle" class="clickable">Send me achievement notifications.</label><br>
+
+            <div id="notification_button_div" style="margin-top: 3em; display: flex; height: 3em; flex-direction: row; flex-wrap: nowrap; align-content: center; justify-content: center;align-items: center;">
+                <button type="submit" class="btn btn-primary" style="float: none !important;" id="" onclick="create_push('${vapid_public_key}'); return false;">
+                    Notify me on this device.
+                </button>
             </div>
 
             <div class="module color-invert">
@@ -364,4 +377,13 @@ function leave_season() {
 
 function delete_account() {
     alert("Doesn't work yet :(");
+}
+
+function create_push(vapid_public_key) {
+
+    var sunday_alert = document.getElementById("notification-reminder-toggle").checked;
+    var achievement_alert = document.getElementById("notification-achievement-toggle").checked;
+
+    register_push(jwt, vapid_public_key, sunday_alert, achievement_alert);
+
 }

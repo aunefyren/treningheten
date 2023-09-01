@@ -18,4 +18,13 @@ type ConfigStruct struct {
 	SMTPUsername            string `json:"smtp_username"`
 	SMTPPassword            string `json:"smtp_password"`
 	SMTPFrom                string `json:"smtp_from"`
+	VAPIDPublicKey          string `json:"vapid_publickey"`
+	VAPIDSecretKey          string `json:"vapid_secretkey"`
+	VAPIDContact            string `json:"vapid_contact"`
+}
+
+type VAPIDSettings struct {
+	VAPIDPublicKey string `json:"vapid_publickey"`
+	VAPIDSecretKey string `json:"vapid_secretkey"`
+	VAPIDContact   string `json:"vapid_contact"`
 }

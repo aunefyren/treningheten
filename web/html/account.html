@@ -11,9 +11,10 @@
 
         <!-- Custom CSS -->
         <link rel="stylesheet" type="text/css" href="/css/main.css">
-        <link rel="manifest" href="/json/manifest.json" />
-        <script src="/js/account.js"></script>
-        <script src="/js/functions.js"></script>
+        <link rel="manifest" href="manifest.json" />
+        <script src="/js/account.js" type="text/javascript"></script>
+        <script src="/js/functions.js" type="text/javascript"></script>
+        <script src="/js/notifications.js" type="text/javascript"></script>
 
         <!-- Fonts -->
         <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -118,6 +119,7 @@
             var groups;
             var user_id;
             var jwt;
+            var vapid_public_key = "";
             
             info('Loading...');
             showLoggedOutMenu();

@@ -8,6 +8,8 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+
+	"github.com/SherClockHolmes/webpush-go"
 )
 
 var treningheten_version_parameter = "v0.0.1"
@@ -61,6 +63,15 @@ func GetConfig() (*models.ConfigStruct, error) {
 		anythingChanged = true
 	}
 
+	if config.VAPIDPublicKey == "" || config.VAPIDSecretKey == "" {
+		config, err = AddVapidKeysToConfig(config)
+		if err != nil {
+			log.Println("Failed to add Vapid keys to config. Error: " + err.Error())
+			return &models.ConfigStruct{}, errors.New("Failed to add Vapid keys to config.")
+		}
+		anythingChanged = true
+	}
+
 	if anythingChanged {
 		// Save new version of config json
 		err = SaveConfig(&config)
@@ -87,7 +98,13 @@ func CreateConfigFile() error {
 	config.SMTPEnabled = true
 	config.TreninghetenVersion = treningheten_version_parameter
 
-	err := SaveConfig(&config)
+	config, err := AddVapidKeysToConfig(config)
+	if err != nil {
+		log.Println("Failed to add Vapid keys to config. Error: " + err.Error())
+		return errors.New("Failed to add Vapid keys to config.")
+	}
+
+	err = SaveConfig(&config)
 	if err != nil {
 		log.Println("Create config file threw error trying to save the file.")
 		fmt.Println("Create config file threw error trying to save the file.")
@@ -118,4 +135,19 @@ func SaveConfig(config *models.ConfigStruct) error {
 	}
 
 	return nil
+}
+
+func AddVapidKeysToConfig(config models.ConfigStruct) (models.ConfigStruct, error) {
+
+	privateKey, publicKey, err := webpush.GenerateVAPIDKeys()
+	if err != nil {
+		log.Println("Failed to create Vapid key pair. Error: " + err.Error())
+		return models.ConfigStruct{}, errors.New("Failed to create Vapid key pair.")
+	}
+
+	config.VAPIDPublicKey = publicKey
+	config.VAPIDSecretKey = privateKey
+
+	return config, nil
+
 }

@@ -104,6 +104,12 @@ func ValidateToken(context *gin.Context) {
 
 	}
 
-	context.JSON(http.StatusOK, gin.H{"message": "Valid session!", "data": claims, "token": token})
+	// Get public VAPID key
+	VAPIDSettings, err := GetVAPIDSettings()
+	if err != nil {
+		log.Println("Failed to get public VAPID key from config. Error: " + err.Error())
+	}
+
+	context.JSON(http.StatusOK, gin.H{"message": "Valid session!", "data": claims, "token": token, "vapid_public_key": VAPIDSettings.VAPIDPublicKey})
 
 }
