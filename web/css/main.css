@@ -1691,3 +1691,26 @@ input[type=checkbox]
 .danger-button:hover {
   background-color: var(--black);
 }
+
+.notification-options {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-content: center;
+  justify-content: center;
+  align-items: center;
+  width: 100%;
+  width: -webkit-fill-available;
+  width: -moz-available;
+}
+
+.notification-option {
+  display: flex;
+  flex-direction: column;
+  flex-wrap: wrap;
+  align-content: center;
+  justify-content: center;
+  align-items: center;
+  margin: 1em;
+  width: 10em;
+}

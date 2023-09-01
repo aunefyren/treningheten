@@ -12,6 +12,12 @@
 	"start_url": "/",
 	"icons": [
 	{
+		"src": "/assets/logo.svg",
+		"sizes": "any",
+		"type": "image/svg+xml",
+		"purpose": "any"
+	},
+	{
 		"src": "/assets/logos/logo-72x72.png",
 		"sizes": "72x72",
 		"type": "image/png",
@@ -52,6 +58,18 @@
 		"sizes": "1024x1024",
 		"type": "image/png",
     	"purpose": "maskable any"
+	},
+	{
+		"src": "/assets/logos/logo-mono-512x512.png",
+		"sizes": "512x512",
+		"type": "image/png",
+    	"purpose": "monochrome"
+	},
+	{
+		"src": "/assets/logo_trans.svg",
+		"sizes": "any",
+		"type": "image/svg+xml",
+    	"purpose": "monochrome"
 	}
 ],
 	"splash_pages": null

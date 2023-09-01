@@ -110,6 +110,7 @@ func APISubscribeToNotification(context *gin.Context) {
 	subscription.P256Dh = subscriptionRequest.Subscription.Keys.P256Dh
 	subscription.SundayAlert = subscriptionRequest.Settings.SundayAlert
 	subscription.AchievementAlert = subscriptionRequest.Settings.AchievementAlert
+	subscription.NewsAlert = subscriptionRequest.Settings.NewsAlert
 	subscription.User = userID
 
 	_, err = database.CreateSubscriptionInDB(subscription)
@@ -153,5 +154,75 @@ func APIPushNotificationToAllDevicesForUser(context *gin.Context) {
 	}
 
 	context.JSON(http.StatusCreated, gin.H{"message": "Notification(s) pushed.", "amount": pushedAmount})
+
+}
+
+func APIGetSubscriptionForEndpoint(context *gin.Context) {
+
+	// Create notification request
+	var subscriptionRequest models.SubscriptionGetRequest
+
+	if err := context.ShouldBindJSON(&subscriptionRequest); err != nil {
+		log.Println("Failed to parse request. Error: " + err.Error())
+		context.JSON(http.StatusBadRequest, gin.H{"error": "Failed to parse request."})
+		context.Abort()
+		return
+	}
+
+	// Get user ID
+	userID, err := middlewares.GetAuthUsername(context.GetHeader("Authorization"))
+	if err != nil {
+		log.Println("Failed to get User ID from token. Error: " + err.Error())
+		context.JSON(http.StatusBadRequest, gin.H{"error": "Failed to get User ID from token."})
+		context.Abort()
+		return
+	}
+
+	subscription, subFound, err := database.GetAllSubscriptionForUserByUserIDAndEndpoint(userID, subscriptionRequest.Endpoint)
+	if err != nil {
+		log.Println("Failed to get subscription from database. Error: " + err.Error())
+		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get subscription from database."})
+		context.Abort()
+		return
+	} else if !subFound {
+		context.JSON(http.StatusBadRequest, gin.H{"error": "No subscription found."})
+		context.Abort()
+		return
+	}
+
+	context.JSON(http.StatusCreated, gin.H{"message": "Subscription found.", "subscription": subscription})
+
+}
+
+func APIUpdateSubscriptionForEndpoint(context *gin.Context) {
+
+	// Create notification request
+	var subscriptionUpdateRequest models.SubscriptionUpdateRequest
+
+	if err := context.ShouldBindJSON(&subscriptionUpdateRequest); err != nil {
+		log.Println("Failed to parse request. Error: " + err.Error())
+		context.JSON(http.StatusBadRequest, gin.H{"error": "Failed to parse request."})
+		context.Abort()
+		return
+	}
+
+	// Get user ID
+	userID, err := middlewares.GetAuthUsername(context.GetHeader("Authorization"))
+	if err != nil {
+		log.Println("Failed to get User ID from token. Error: " + err.Error())
+		context.JSON(http.StatusBadRequest, gin.H{"error": "Failed to get User ID from token."})
+		context.Abort()
+		return
+	}
+
+	err = database.UpdateSubscriptionForUserByUserIDAndEndpoint(userID, subscriptionUpdateRequest.Endpoint, subscriptionUpdateRequest.SundayAlert, subscriptionUpdateRequest.AchievementAlert, subscriptionUpdateRequest.NewsAlert)
+	if err != nil {
+		log.Println("Failed to update subscription in database. Error: " + err.Error())
+		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update subscription in database."})
+		context.Abort()
+		return
+	}
+
+	context.JSON(http.StatusCreated, gin.H{"message": "Subscription updated."})
 
 }

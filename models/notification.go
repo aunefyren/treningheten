@@ -16,6 +16,7 @@ type Subscription struct {
 	Auth             string     `json:"auth" gorm:"not null"`
 	SundayAlert      bool       `json:"sunday_alert" gorm:"not null; default: false"`
 	AchievementAlert bool       `json:"achievement_alert" gorm:"not null; default: false"`
+	NewsAlert        bool       `json:"news_alert" gorm:"not null; default: false"`
 }
 
 type SubscriptionOriginal struct {
@@ -34,6 +35,7 @@ type SubscriptionCreationRequest struct {
 	Settings     struct {
 		SundayAlert      bool `json:"sunday_alert"`
 		AchievementAlert bool `json:"achievement_alert"`
+		NewsAlert        bool `json:"news_alert"`
 	}
 }
 
@@ -42,4 +44,15 @@ type NotificationCreationRequest struct {
 	Body     string `json:"body"`
 	UserID   int    `json:"user"`
 	Category string `json:"category"`
+}
+
+type SubscriptionGetRequest struct {
+	Endpoint string `json:"endpoint"`
+}
+
+type SubscriptionUpdateRequest struct {
+	Endpoint         string `json:"endpoint"`
+	SundayAlert      bool   `json:"sunday_alert"`
+	AchievementAlert bool   `json:"achievement_alert"`
+	NewsAlert        bool   `json:"news_alert"`
 }

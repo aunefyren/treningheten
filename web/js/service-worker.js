@@ -148,6 +148,9 @@ self.addEventListener('push', event => {
     if(jsonData.category == "achievement") {
         url = "/achievements"
         action = "Check out"
+    } else if(jsonData.category == "news") {
+        url = "/news"
+        action = "Read"
     } else {
         url = "/"
         action = "Visit"
@@ -158,7 +161,7 @@ self.addEventListener('push', event => {
     const options = {
         body: jsonData.body,
         icon: '/assets/logo.svg',
-        badge: '/assets/logo.svg',
+        badge: '/assets/logos/logo-mono-512x512.png',
         vibrate: [100, 50, 100],
         data: {
             dateOfArrival: Date.now(),

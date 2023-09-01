@@ -252,6 +252,8 @@ func initRouter() *gin.Engine {
 			auth.POST("/achievement/get/:achievement_id/image", controllers.APIGetAchievementsImage)
 
 			auth.POST("/notification/subscribe", controllers.APISubscribeToNotification)
+			auth.POST("/notification/subscription/get", controllers.APIGetSubscriptionForEndpoint)
+			auth.POST("/notification/subscription/update", controllers.APIUpdateSubscriptionForEndpoint)
 		}
 
 		admin := api.Group("/admin").Use(middlewares.Auth(true))

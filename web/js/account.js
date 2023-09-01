@@ -64,13 +64,30 @@ function load_page(result) {
                 <hr>
             </div>
 
-            <input style="margin-top: 3em;" class="clickable" type="checkbox" id="notification-reminder-toggle" name="notification-reminder-toggle" value="" checked>
-            <label for="notification-reminder-toggle" class="clickable">Logging reminders on Sundays.</label><br>
+            <div class="title" style="margin-bottom: 1em;">
+                Notifications
+            </div>
 
-            <input style="margin-top: 3em;" class="clickable" type="checkbox" id="notification-achievement-toggle" name="notification-achievement-toggle" value="" checked>
-            <label for="notification-achievement-toggle" class="clickable">Achievement notifications.</label><br>
+            <div class="notification-options" id="" style="">
 
-            <div id="notification_button_div" style="margin-top: 3em; display: flex; height: 3em; flex-direction: row; flex-wrap: nowrap; align-content: center; justify-content: center;align-items: center;">
+                <div class="notification-option" id="" style="">
+                    <input style="" class="clickable" type="checkbox" id="notification-reminder-toggle" name="notification-reminder-toggle" value="">
+                    <label for="notification-reminder-toggle" class="clickable">Logging reminders</label><br>
+                </div>
+
+                <div class="notification-option" id="" style="">
+                    <input style="" class="clickable" type="checkbox" id="notification-achievement-toggle" name="notification-achievement-toggle" value="">
+                    <label for="notification-achievement-toggle" class="clickable">Achievements</label><br>
+                </div>
+
+                <div class="notification-option" id="" style="">
+                    <input style="" class="clickable" type="checkbox" id="notification-news-toggle" name="notification-news-toggle" value="">
+                    <label for="notification-news-toggle" class="clickable">News</label><br>
+                </div>
+            
+            </div>
+
+            <div id="notification_button_div" style="margin-top: 2em; display: flex; height: 3em; flex-direction: row; flex-wrap: nowrap; align-content: center; justify-content: center;align-items: center;">
                 <button type="submit" class="btn btn-primary" style="float: none !important;" id="" onclick="create_push('${vapid_public_key}'); return false;">
                     Notify me on this device
                 </button>
@@ -78,6 +95,10 @@ function load_page(result) {
 
             <div class="module color-invert">
                 <hr>
+            </div>
+
+            <div class="title" style="margin-bottom: 1em;">
+                Account Settings
             </div>
 
             <form action="" onsubmit="event.preventDefault(); send_update();">
@@ -135,6 +156,7 @@ function load_page(result) {
         showLoggedInMenu();
         GetUserData(user_id);
         GetProfileImage(user_id);
+        CheckForSubscription();
     } else {
         showLoggedOutMenu();
         invalid_session();
@@ -385,11 +407,10 @@ function delete_account() {
     alert("Doesn't work yet :(");
 }
 
-function create_push(vapid_public_key) {
+function PlaceSubscriptionData(subscription) {
 
-    var sunday_alert = document.getElementById("notification-reminder-toggle").checked;
-    var achievement_alert = document.getElementById("notification-achievement-toggle").checked;
-
-    register_push(jwt, vapid_public_key, sunday_alert, achievement_alert);
+    document.getElementById("notification-reminder-toggle").checked = subscription.sunday_alert;
+    document.getElementById("notification-achievement-toggle").checked = subscription.achievement_alert;
+    document.getElementById("notification-news-toggle").checked = subscription.news_alert;
 
 }
