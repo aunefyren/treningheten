@@ -6,33 +6,33 @@ const OFFLINE_VERSION = 1;
 const CACHE_NAME = 'treningheten-cache';
 // Customize this with a different URL if needed.
 const urlsToCache = [
-  '/',
-	'/json/manifest.json',
-	'assets/favicons/favicon.ico'
+    '/',
+    '/json/manifest.json',
+    'assets/favicons/favicon.ico'
 ];
 
 self.addEventListener('install', (event) => {
-  event.waitUntil((async () => {
-    const cache = await caches.open(CACHE_NAME);
-    // Setting {cache: 'reload'} in the new request will ensure that the response
-    // isn't fulfilled from the HTTP cache; i.e., it will be from the network.
-    for(var i = 0; i < urlsToCache.length; i++) {
-        await cache.add(new Request(urlsToCache[i], {cache: 'reload'}));
-    }
-  })());
+    event.waitUntil((async () => {
+        const cache = await caches.open(CACHE_NAME);
+        // Setting {cache: 'reload'} in the new request will ensure that the response
+        // isn't fulfilled from the HTTP cache; i.e., it will be from the network.
+        for(var i = 0; i < urlsToCache.length; i++) {
+            await cache.add(new Request(urlsToCache[i], {cache: 'reload'}));
+        }
+    })());
 });
 
 self.addEventListener('activate', (event) => {
-  event.waitUntil((async () => {
-    // Enable navigation preload if it's supported.
-    // See https://developers.google.com/web/updates/2017/02/navigation-preload
-    if ('navigationPreload' in self.registration) {
-      await self.registration.navigationPreload.enable();
-    }
-  })());
+    event.waitUntil((async () => {
+        // Enable navigation preload if it's supported.
+        // See https://developers.google.com/web/updates/2017/02/navigation-preload
+        if ('navigationPreload' in self.registration) {
+            await self.registration.navigationPreload.enable();
+        }
+    })());
 
-  // Tell the active service worker to take control of the page immediately.
-  self.clients.claim();
+    // Tell the active service worker to take control of the page immediately.
+    self.clients.claim();
 });
 
 self.addEventListener('fetch', (event) => {
@@ -44,7 +44,7 @@ self.addEventListener('fetch', (event) => {
                 // First, try to use the navigation preload response if it's supported.
                 const preloadResponse = await event.preloadResponse;
                 if (preloadResponse) {
-                  return preloadResponse;
+                    return preloadResponse;
                 }
 
                 const networkResponse = await fetch(event.request);
@@ -94,7 +94,38 @@ self.addEventListener('notificationclick', event => {
 
 });
 
+/* This works
+self.addEventListener("push", (event) => {
+    if (!(self.Notification && self.Notification.permission === "granted")) {
+      return;
+    }
+  
+    const data = event.data?.json() ?? {};
+    const title = data.title || "Something Has Happened";
+    const message =
+      data.body || "Here's something you might want to check out.";
+    const icon = "images/new-notification.png";
+  
+    const notification = new self.Notification(title, {
+      body: message,
+      tag: "simple-push-demo-notification",
+      icon,
+    });
+  
+    notification.addEventListener("click", () => {
+      clients.openWindow(
+        "https://example.blog.com/2015/03/04/something-new.html",
+      );
+    });
+});
+*/
+
 self.addEventListener('push', event => {
+
+    if (!(self.Notification && self.Notification.permission === "granted")) {
+        console.log("Notification permission not given.")
+        return;
+    }
 
     console.log("Pushing notification.")
 
@@ -105,9 +136,9 @@ self.addEventListener('push', event => {
     } else {
         console.log("Failed to parse notification data to JSON.")
         jsonData = {
-          category: "general",
-          title: "Treningheten",
-          body: "Treningheten"
+            category: "general",
+            title: "Treningheten",
+            body: "Treningheten"
         }
     }
 
@@ -115,30 +146,32 @@ self.addEventListener('push', event => {
     let action;
 
     if(jsonData.category == "achievement") {
-      url = "/achievements"
-      action = "Check out"
+        url = "/achievements"
+        action = "Check out"
     } else {
-      url = "/"
-      action = "Visit"
+        url = "/"
+        action = "Visit"
     }
    
     console.log(event.data.json())
 
     const options = {
         body: jsonData.body,
-        icon: 'assets/logo/version4/logo_round_red.png',
-        badge: 'assets/logo/version4/logo_round_red_trans.png',
+        icon: '/assets/logo.svg',
+        badge: '/assets/logo.svg',
         vibrate: [100, 50, 100],
         data: {
-          dateOfArrival: Date.now(),
-          primaryKey: 1,
-          url: url
+            dateOfArrival: Date.now(),
+            primaryKey: 1,
+            url: url
         },
         actions: [
             {action: 'explore', title: action,
-              icon: 'images/checkmark.png'},
+                icon: '/assets/check.svg'
+            },
             {action: 'close', title: 'Close',
-              icon: 'images/xmark.png'},
+                icon: '/assets/x.svg'
+            },
         ],
         tag: 'Message'
     };

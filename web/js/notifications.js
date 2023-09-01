@@ -18,6 +18,8 @@ function register_push(jwtToken, appPubkey, sunday_alert, achievement_alert) {
         "achievement_alert": achievement_alert
     }
 
+    console.log("VAPID public key: " + appPubkey)
+
     navigator.serviceWorker.ready.then(function(registration) {
 
         return registration.pushManager.getSubscription()

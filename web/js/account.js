@@ -65,14 +65,14 @@ function load_page(result) {
             </div>
 
             <input style="margin-top: 3em;" class="clickable" type="checkbox" id="notification-reminder-toggle" name="notification-reminder-toggle" value="" checked>
-            <label for="notification-reminder-toggle" class="clickable">Send me logging reminders on Sundays.</label><br>
+            <label for="notification-reminder-toggle" class="clickable">Logging reminders on Sundays.</label><br>
 
             <input style="margin-top: 3em;" class="clickable" type="checkbox" id="notification-achievement-toggle" name="notification-achievement-toggle" value="" checked>
-            <label for="notification-achievement-toggle" class="clickable">Send me achievement notifications.</label><br>
+            <label for="notification-achievement-toggle" class="clickable">Achievement notifications.</label><br>
 
             <div id="notification_button_div" style="margin-top: 3em; display: flex; height: 3em; flex-direction: row; flex-wrap: nowrap; align-content: center; justify-content: center;align-items: center;">
                 <button type="submit" class="btn btn-primary" style="float: none !important;" id="" onclick="create_push('${vapid_public_key}'); return false;">
-                    Notify me on this device.
+                    Notify me on this device
                 </button>
             </div>
 
@@ -102,7 +102,7 @@ function load_page(result) {
                 </div>
 
                 <input style="margin-top: 3em;" class="clickable" type="checkbox" id="reminder-toggle" name="reminder-toggle" value="reminder-toggle">
-                <label for="reminder-toggle" class="clickable">Send me logging reminders on Sundays.</label><br>
+                <label for="reminder-toggle" class="clickable">Send me e-mail logging reminders on Sundays.</label><br>
 
                 <label style="margin-top: 5em;" id="form-input-icon" for="password_old">Current password:</label>
                 <input type="password" name="password_old" id="password_old" placeholder="To save your changes, type your current password." required />
@@ -156,9 +156,15 @@ function change_password_toggle() {
 
 function send_update() {
 
+    var password = ""
+    var password_repeat = ""
+    
+    if(document.getElementById("password-toggle").checked) {
+        password = document.getElementById("password").value;
+        password_repeat = document.getElementById("password_repeat").value;
+    }
+    
     var email = document.getElementById("email").value;
-    var password = document.getElementById("password").value;
-    var password_repeat = document.getElementById("password_repeat").value;
     var password_old = document.getElementById("password_old").value;
     var sunday_alert = document.getElementById("reminder-toggle").checked;
     var new_profile_image = document.getElementById('new_profile_image').files[0];

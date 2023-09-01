@@ -2,8 +2,6 @@ package database
 
 import (
 	"aunefyren/treningheten/models"
-	"log"
-	"time"
 )
 
 // Create new subscription for a user
@@ -19,11 +17,6 @@ func CreateSubscriptionInDB(subscription models.Subscription) (uint, error) {
 func GetAllSubscriptionsForUserByUserID(userID int) ([]models.Subscription, error) {
 
 	var subscriptionStruct []models.Subscription
-
-	now := time.Now()
-	nowString := now.Format("2006-01-02 15:04:05")
-
-	log.Println("String: " + nowString)
 
 	subscriptionRecord := Instance.Where("`subscriptions`.enabled = ?", 1).Where("`subscriptions`.user = ?", userID).Find(&subscriptionStruct)
 	if subscriptionRecord.Error != nil {

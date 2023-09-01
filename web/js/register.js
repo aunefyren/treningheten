@@ -45,8 +45,8 @@ function load_page(result) {
                                 <label id="form-input-icon" for="invitation_code"></label>
                                 <input type="text" name="invitation_code" id="invitation_code" placeholder="Invitation code" autocomplete="one-time-code" required/>
                                 
-                                <input style="margin-top: 2em;" type="checkbox" id="confirm" name="confirm" value="confirm" required>
-                                <label for="confirm"> I confirm that Treningheten can store relevant information about me and that I am atleast thirteen years of age.</label><br>
+                                <input style="margin-top: 2em;" class="clickable" type="checkbox" id="confirm" name="confirm" value="confirm" required>
+                                <label for="confirm" class="clickable"> I confirm that Treningheten can store relevant information about me and that I am atleast thirteen years of age.</label><br>
 
                                 <hr>
 

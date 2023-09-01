@@ -27,7 +27,7 @@ func PushNotification(notficationType string, notificationBody string, notficati
 		{
 			"title": "` + notficationTitle + `",
 			"body": "` + notificationBody + `",
-			"category": "` + notficationType + `",
+			"category": "` + notficationType + `"
 		}
 	`
 
@@ -42,16 +42,19 @@ func PushNotification(notficationType string, notificationBody string, notficati
 		s.Keys.P256dh = subscription.P256Dh
 
 		// Send Notification
-		_, err := webpush.SendNotification([]byte(notificationData), s, &webpush.Options{
+		response, err := webpush.SendNotification([]byte(notificationData), s, &webpush.Options{
 			Subscriber:      vapidSettings.VAPIDContact,
 			VAPIDPublicKey:  vapidSettings.VAPIDPublicKey,
 			VAPIDPrivateKey: vapidSettings.VAPIDSecretKey,
 			TTL:             30,
 		})
+
 		if err != nil {
 			log.Println("Failed to push notification. Error: " + err.Error())
 			return notificationSum, errors.New("Failed to push notification.")
 		}
+
+		log.Println("Pushed notification, got status code: " + string(response.Status))
 
 		notificationSum += 1
 
