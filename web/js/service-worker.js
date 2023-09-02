@@ -71,23 +71,39 @@ self.addEventListener('fetch', (event) => {
 });
 
 self.addEventListener('notificationclose', event => {
-    const notification = event.notification;
-    const primaryKey = notification.data.primaryKey;
 
-    console.log('Closed notification: ' + primaryKey);
+    try {
+
+        const notification = event.notification;
+        const primaryKey = notification.data.primaryKey;
+
+        console.log('Closed notification: ' + primaryKey);
+
+    } catch(e) {
+        console.log("Failed to click notfication. Error: " + e)
+    }
 });
 
 self.addEventListener('notificationclick', event => {
-    const notification = event.notification;
-    const primaryKey = notification.data.primaryKey;
-    const url = notification.data.url;
-    const action = event.action;
 
-    if (action === 'close') {
-        notification.close();
-    } else {
-        clients.openWindow(url);
-        notification.close();
+    try {
+        
+        const notification = event.notification;
+        const primaryKey = notification.data.primaryKey;
+        const url = notification.data.url;
+        const action = event.action;
+
+        if (action === 'close') {
+            notification.close();
+        } else {
+            clients.openWindow(url);
+            notification.close();
+        }
+
+        console.log('Clicked notification: ' + primaryKey);
+    
+    } catch(e) {
+        console.log("Failed to click notfication. Error: " + e)
     }
 
     // TODO 5.3 - close all notifications when one is clicked
@@ -120,7 +136,7 @@ self.addEventListener("push", (event) => {
 });
 */
 
-self.addEventListener('push', event => {
+self.addEventListener('push', function(event) {
 
     if (!(self.Notification && self.Notification.permission === "granted")) {
         console.log("Notification permission not given.")
