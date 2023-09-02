@@ -1131,7 +1131,7 @@ input[type=checkbox]
   justify-content: space-evenly;
   align-items: center;
   box-sizing: border-box;
-  width: auto;
+  min-width: 5em;
   height: auto;
   overflow-y: auto;
   border-radius: 0.5em;
@@ -1158,7 +1158,7 @@ input[type=checkbox]
 }
 
 .current-week-user-completion {
-  margin: 0.25em;
+  margin: 0.20em;
 }
 
 .number-box {
