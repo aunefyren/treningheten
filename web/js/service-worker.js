@@ -129,57 +129,57 @@ self.addEventListener('push', event => {
 
     console.log("Pushing notification.")
 
-    let jsonData;
+    try {
 
-    if (event.data) {
-        jsonData = event.data.json();
-    } else {
-        console.log("Failed to parse notification data to JSON.")
-        jsonData = {
+        let jsonData = event.data?.json() ?? {
             category: "general",
-            title: "Treningheten",
-            body: "Treningheten"
+            title: "Error",
+            body: "An error occured"
+        };
+
+        let url;
+        let action;
+
+        if(jsonData.category == "achievement") {
+            url = "/achievements"
+            action = "Check out"
+        } else if(jsonData.category == "news") {
+            url = "/news"
+            action = "Read"
+        } else {
+            url = "/"
+            action = "Visit"
         }
+    
+        console.log(event.data.json())
+
+        const options = {
+            body: jsonData.body,
+            icon: '/assets/logos/logo-384x384.png',
+            badge: '/assets/logos/logo-mono-96x96.png',
+            vibrate: [100, 50, 100],
+            data: {
+                dateOfArrival: Date.now(),
+                primaryKey: 1,
+                url: url
+            },
+            actions: [
+                {action: 'explore', title: action,
+                    icon: '/assets/check.svg'
+                },
+                {action: 'close', title: 'Close',
+                    icon: '/assets/x.svg'
+                },
+            ],
+            tag: 'Message'
+        };
+
+        event.waitUntil(
+            self.registration.showNotification(jsonData.title, options)
+        );
+
+    } catch(e) {
+        console.log("Failed to push notfication. Error: " + e)
     }
 
-    let url;
-    let action;
-
-    if(jsonData.category == "achievement") {
-        url = "/achievements"
-        action = "Check out"
-    } else if(jsonData.category == "news") {
-        url = "/news"
-        action = "Read"
-    } else {
-        url = "/"
-        action = "Visit"
-    }
-   
-    console.log(event.data.json())
-
-    const options = {
-        body: jsonData.body,
-        icon: '/assets/logos/logo-384x384.png',
-        badge: '/assets/logos/logo-mono-96x96.png',
-        vibrate: [100, 50, 100],
-        data: {
-            dateOfArrival: Date.now(),
-            primaryKey: 1,
-            url: url
-        },
-        actions: [
-            {action: 'explore', title: action,
-                icon: '/assets/check.svg'
-            },
-            {action: 'close', title: 'Close',
-                icon: '/assets/x.svg'
-            },
-        ],
-        tag: 'Message'
-    };
-
-    event.waitUntil(
-        self.registration.showNotification(jsonData.title, options)
-    );
 });
