@@ -137,6 +137,8 @@ self.addEventListener('push', event => {
             body: "An error occured"
         };
 
+        console.log("JSON: " + JSON.stringify(jsonData));
+
         let url;
         let action;
 
@@ -150,8 +152,6 @@ self.addEventListener('push', event => {
             url = "/"
             action = "Visit"
         }
-    
-        console.log(event.data.json())
 
         const options = {
             body: jsonData.body,

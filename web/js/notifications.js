@@ -29,6 +29,9 @@ function register_push(jwtToken, appPubkey, sunday_alert, achievement_alert, new
                   headers: {"Content-Type": "application/json", "Authorization": jwtToken},
                   body: JSON.stringify({"subscription": subscription, "settings": settings})
                 });
+            })
+            .then(function() {
+                success("Subscription created.")
             });
     });
 }
