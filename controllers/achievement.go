@@ -386,11 +386,11 @@ func GenerateAchivementsForWeek(weekResults models.WeekResults) error {
 				everyday = false
 			}
 
-			if day.Date.Weekday() > 0 && day.Date.Weekday() < 6 && day.ExerciseInterval > 1 {
+			if int(day.Date.Weekday()) > 0 && int(day.Date.Weekday()) < 6 && day.ExerciseInterval > 0 {
 				weekday = true
 			}
 
-			if (day.Date.Weekday() == 0 || day.Date.Weekday() == 6) && day.ExerciseInterval > 1 {
+			if (int(day.Date.Weekday()) == 0 || int(day.Date.Weekday()) == 6) && day.ExerciseInterval > 0 {
 				weekend = true
 			}
 
@@ -408,6 +408,7 @@ func GenerateAchivementsForWeek(weekResults models.WeekResults) error {
 
 		}
 
+		// If exercise occured on a weekend, and not a weekday
 		if !weekday && weekend {
 
 			// Give achivement to user
@@ -418,6 +419,7 @@ func GenerateAchivementsForWeek(weekResults models.WeekResults) error {
 
 		}
 
+		// Of the sum of exercise is more than 7
 		if exerciseSum > 7 {
 
 			// Give achivement to user
