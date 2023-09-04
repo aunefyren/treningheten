@@ -7,6 +7,7 @@ import (
 	"aunefyren/treningheten/middlewares"
 	"aunefyren/treningheten/models"
 	"aunefyren/treningheten/utilities"
+	"html"
 	"log"
 	"net/http"
 	"strconv"
@@ -51,10 +52,10 @@ func RegisterUser(context *gin.Context) {
 	}
 
 	// Move values from request to object
-	user.Email = strings.TrimSpace(usercreationrequest.Email)
+	user.Email = html.EscapeString(strings.TrimSpace(usercreationrequest.Email))
 	user.Password = usercreationrequest.Password
-	user.FirstName = strings.TrimSpace(usercreationrequest.FirstName)
-	user.LastName = strings.TrimSpace(usercreationrequest.LastName)
+	user.FirstName = html.EscapeString(strings.TrimSpace(usercreationrequest.FirstName))
+	user.LastName = html.EscapeString(strings.TrimSpace(usercreationrequest.LastName))
 	user.Enabled = true
 	user.ResetExpiration = time.Now()
 
@@ -379,7 +380,7 @@ func UpdateUser(context *gin.Context) {
 		return
 	}
 
-	userUpdateRequest.Email = strings.TrimSpace(userUpdateRequest.Email)
+	userUpdateRequest.Email = html.EscapeString(strings.TrimSpace(userUpdateRequest.Email))
 
 	if userOriginal.Email != userUpdateRequest.Email {
 
@@ -427,6 +428,12 @@ func UpdateUser(context *gin.Context) {
 			context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update profile image."})
 			context.Abort()
 			return
+		}
+
+		// Give achivement to user
+		err := GiveUserAnAchivement(int(userOriginal.ID), 20, time.Now())
+		if err != nil {
+			log.Println("Failed to give achivement for user '" + strconv.Itoa(int(userOriginal.ID)) + "'. Ignoring. Error: " + err.Error())
 		}
 	}
 

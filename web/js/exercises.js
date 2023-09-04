@@ -305,7 +305,7 @@ function place_exercises(exercise_array, goalID) {
             `;
             note_text = `
             <div class="overlay">
-                <div class="text-exercise">${exercise_array[i].note}</div>
+                <div class="text-exercise">${HTMLAddNewLines(exercise_array[i].note)}</div>
             </div>
             `;
         } else {

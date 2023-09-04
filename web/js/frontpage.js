@@ -121,9 +121,9 @@ function load_page(result) {
                                 <div class="week_days" id='calendar'>
 
                                     <div class="calender_status unselectable" id="calender_status">
-                                        <a id="workout_this_week">.</a>
+                                        <a id="workout_this_week">...</a>
                                         /
-                                        <a id="goal_this_week">.</a>
+                                        <a id="goal_this_week">...</a>
                                         this week
                                     </div>
 
@@ -690,31 +690,31 @@ function place_week(week, fireworks) {
     fireworks_int = week.days[0].exercise_interval + week.days[1].exercise_interval + week.days[2].exercise_interval + week.days[3].exercise_interval + week.days[4].exercise_interval + week.days[5].exercise_interval + week.days[6].exercise_interval
 
     document.getElementById("day_1_check").innerHTML = week.days[0].exercise_interval
-    document.getElementById("day_1_note").value = week.days[0].note
+    document.getElementById("day_1_note").value = HTMLDecode(week.days[0].note)
     document.getElementById("day_1_date").value = week.days[0].date
 
     document.getElementById("day_2_check").innerHTML = week.days[1].exercise_interval
-    document.getElementById("day_2_note").value = week.days[1].note
+    document.getElementById("day_2_note").value = HTMLDecode(week.days[1].note)
     document.getElementById("day_2_date").value = week.days[1].date
 
     document.getElementById("day_3_check").innerHTML = week.days[2].exercise_interval
-    document.getElementById("day_3_note").value = week.days[2].note
+    document.getElementById("day_3_note").value = HTMLDecode(week.days[2].note)
     document.getElementById("day_3_date").value = week.days[2].date
 
     document.getElementById("day_4_check").innerHTML = week.days[3].exercise_interval
-    document.getElementById("day_4_note").value = week.days[3].note
+    document.getElementById("day_4_note").value = HTMLDecode(week.days[3].note)
     document.getElementById("day_4_date").value = week.days[3].date
 
     document.getElementById("day_5_check").innerHTML = week.days[4].exercise_interval
-    document.getElementById("day_5_note").value = week.days[4].note
+    document.getElementById("day_5_note").value = HTMLDecode(week.days[4].note)
     document.getElementById("day_5_date").value = week.days[4].date
 
     document.getElementById("day_6_check").innerHTML = week.days[5].exercise_interval
-    document.getElementById("day_6_note").value = week.days[5].note
+    document.getElementById("day_6_note").value = HTMLDecode(week.days[5].note)
     document.getElementById("day_6_date").value = week.days[5].date
 
     document.getElementById("day_7_check").innerHTML = week.days[6].exercise_interval
-    document.getElementById("day_7_note").value = week.days[6].note
+    document.getElementById("day_7_note").value = HTMLDecode(week.days[6].note)
     document.getElementById("day_7_date").value = week.days[6].date
 
     // Place the exercise sum

@@ -6,6 +6,7 @@ import (
 	"aunefyren/treningheten/models"
 	"aunefyren/treningheten/utilities"
 	"errors"
+	"html"
 	"log"
 	"net/http"
 	"strconv"
@@ -196,7 +197,7 @@ func APIRegisterWeek(context *gin.Context) {
 		if exercise != nil {
 
 			exercise.ExerciseInterval = day.ExerciseInterval
-			exercise.Note = strings.TrimSpace(day.Note)
+			exercise.Note = html.EscapeString(strings.TrimSpace(day.Note))
 
 			err = database.UpdateExerciseInDatabase(*exercise)
 			if err != nil {

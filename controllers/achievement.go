@@ -189,6 +189,18 @@ func CreateDefaultAchivements() error {
 	}
 	achievements = append(achievements, deadAchievement)
 
+	fullAchievement := models.Achievement{
+		Name:        "The boyband",
+		Description: "Exercise three times in a day.",
+	}
+	achievements = append(achievements, fullAchievement)
+
+	photoAchievement := models.Achievement{
+		Name:        "Looking good",
+		Description: "Change your profile photo.",
+	}
+	achievements = append(achievements, photoAchievement)
+
 	for _, achievement := range achievements {
 
 		_, err := database.RegisterAchievementInDB(achievement)
@@ -376,6 +388,16 @@ func GenerateAchivementsForWeek(weekResults models.WeekResults) error {
 
 				// Give achivement to user
 				err := GiveUserAnAchivement(int(user.User.ID), 6, day.Date)
+				if err != nil {
+					log.Println("Failed to give achivement for user '" + strconv.Itoa(int(user.User.ID)) + "'. Ignoring. Error: " + err.Error())
+				}
+
+			}
+
+			if day.ExerciseInterval == 3 {
+
+				// Give achivement to user
+				err := GiveUserAnAchivement(int(user.User.ID), 19, day.Date)
 				if err != nil {
 					log.Println("Failed to give achivement for user '" + strconv.Itoa(int(user.User.ID)) + "'. Ignoring. Error: " + err.Error())
 				}

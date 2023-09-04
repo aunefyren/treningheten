@@ -466,3 +466,13 @@ Date.prototype.getWeek = function (dowOffset) {
         }
         return weeknum;
     };
+
+function HTMLDecode(text) {
+    var txt = document.createElement("textarea");
+    txt.innerHTML = text;
+    return txt.value
+}
+
+function HTMLAddNewLines(text) {
+    return text.replace('\n', "<br>")
+}
