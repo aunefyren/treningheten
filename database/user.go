@@ -145,7 +145,7 @@ func SetUserVerification(userID int, verified bool) error {
 }
 
 // Update user values
-func UpdateUserValuesByUserID(userID int, email string, password string, sundayAlert bool) error {
+func UpdateUserValuesByUserID(userID int, email string, password string, sundayAlert bool, birthDate *time.Time) error {
 
 	var user models.User
 
@@ -171,6 +171,14 @@ func UpdateUserValuesByUserID(userID int, email string, password string, sundayA
 	}
 	if userrecords.RowsAffected != 1 {
 		return errors.New("Sunday alert not changed in database.")
+	}
+
+	userrecords = Instance.Model(user).Where("`users`.enabled = ?", 1).Where("`users`.ID = ?", userID).Update("birth_date", birthDate)
+	if userrecords.Error != nil {
+		return userrecords.Error
+	}
+	if userrecords.RowsAffected != 1 {
+		return errors.New("Birth date not changed in database.")
 	}
 
 	return nil

@@ -437,8 +437,20 @@ func UpdateUser(context *gin.Context) {
 		}
 	}
 
+	// Validate birthdate
+	if userUpdateRequest.BirthDate != nil {
+		ThirteenYearsDuration := time.Hour * 24 * 365 * 13
+		if userUpdateRequest.BirthDate.After(time.Now().Add(-ThirteenYearsDuration)) {
+			context.JSON(http.StatusBadRequest, gin.H{"error": "Your birthdate must be more than thirteen years ago."})
+			context.Abort()
+			return
+		}
+	}
+
+	userOriginal.BirthDate = userUpdateRequest.BirthDate
+
 	// Update user in database
-	err = database.UpdateUserValuesByUserID(int(userOriginal.ID), userOriginal.Email, userOriginal.Password, userOriginal.SundayAlert)
+	err = database.UpdateUserValuesByUserID(int(userOriginal.ID), userOriginal.Email, userOriginal.Password, userOriginal.SundayAlert, userOriginal.BirthDate)
 	if err != nil {
 		log.Println("Failed to update database. Error: " + err.Error())
 		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update database."})
@@ -630,7 +642,7 @@ func APIChangePassword(context *gin.Context) {
 	}
 
 	// Save new password
-	err = database.UpdateUserValuesByUserID(int(user.ID), user.Email, user.Password, user.SundayAlert)
+	err = database.UpdateUserValuesByUserID(int(user.ID), user.Email, user.Password, user.SundayAlert, user.BirthDate)
 	if err != nil {
 		log.Println("Failed to update password. Error: " + err.Error())
 		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update password."})

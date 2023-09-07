@@ -432,6 +432,37 @@ function GetDateString(dateTime, giveWeekday) {
 
 }
 
+function GetShortDate(dateTime) {
+
+    try {
+
+        var month = "";
+        var day = "";
+        var year = "";
+
+        var monthInt = dateTime.getMonth()+1;
+        var dayInt = dateTime.getDate();
+        var yearInt = dateTime.getYear();
+
+        day = padNumber(dayInt, 2)
+        month = padNumber(monthInt, 2)
+
+        if(yearInt >= 100) {
+            year = yearInt + 1900
+        } else {
+            year = 1900 + yearInt
+        }
+
+        return year + "-" + month + "-" + day;
+
+
+    } catch(e) {
+        console.log("Failed to generate string for date time. Error: " + e)
+        return "Error"
+    }
+
+}
+
 /**
  * Returns the week number for this date.  dowOffset is the day of week the week
  * "starts" on for your locale - it can be from 0 to 6. If dowOffset is 1 (Monday),

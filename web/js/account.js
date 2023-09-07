@@ -106,6 +106,9 @@ function load_page(result) {
                 <label id="form-input-icon" for="email">Replace email:</label>
                 <input type="email" name="email" id="email" placeholder="Email" value="" required/>
 
+                <label id="form-input-icon" for="birth_date">Birth date:</label>
+                <input type="date" name="birth_date" id="birth_date" placeholder="dd-mm-yyyy" value="" />
+
                 <label id="form-input-icon" for="new_profile_image" style="margin-top: 2em;">Replace profile image:</label>
                 <input type="file" name="new_profile_image" id="new_profile_image" placeholder="" value="" accept="image/png, image/jpeg" />
 
@@ -190,6 +193,14 @@ function send_update() {
     var password_old = document.getElementById("password_old").value;
     var sunday_alert = document.getElementById("reminder-toggle").checked;
     var new_profile_image = document.getElementById('new_profile_image').files[0];
+    var birth_date = document.getElementById('birth_date').value;
+
+    try {
+        var birth_date_object = new Date(birth_date);
+        var birth_date_string = birth_date_object.toISOString()
+    } catch(e) {
+        var birth_date_string = null
+    }
 
     if(new_profile_image) {
 
@@ -212,7 +223,8 @@ function send_update() {
                 "password_repeat": password_repeat,
                 "sunday_alert": sunday_alert,
                 "profile_image": result,
-                "password_old": password_old
+                "password_old": password_old,
+                "birth_date": birth_date_string
             };
 
             var form_data = JSON.stringify(form_obj);
@@ -230,7 +242,8 @@ function send_update() {
                             "password_repeat": password_repeat,
                             "sunday_alert": sunday_alert,
                             "profile_image": "",
-                            "password_old": password_old
+                            "password_old": password_old,
+                            "birth_date": birth_date_string
                         };
 
         var form_data = JSON.stringify(form_obj);
@@ -374,6 +387,12 @@ function PlaceUserData(user_object) {
 
     document.getElementById("user_name").innerHTML = user_object.first_name + " " + user_object.last_name
     document.getElementById("email").value = user_object.email
+
+    if(user_object.birth_date != null) {
+        var birth_date_object = new Date(Date.parse(user_object.birth_date))
+        var birth_date = GetShortDate(birth_date_object)
+        document.getElementById("birth_date").value = birth_date
+    }
 
     // parse date object
     try {
