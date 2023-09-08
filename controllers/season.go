@@ -682,7 +682,7 @@ func APIGetSeasonWeeksPersonal(context *gin.Context) {
 				if err != nil {
 					log.Println("Failed to get exercise. Using empty week.")
 					week = models.Week{
-						Days: []models.Exercise{},
+						Days: []models.ExerciseDay{},
 					}
 				}
 

@@ -65,6 +65,7 @@ func Migrate() {
 	Instance.AutoMigrate(&models.Invite{})
 	Instance.AutoMigrate(&models.Season{})
 	Instance.AutoMigrate(&models.Goal{})
+	Instance.AutoMigrate(&models.ExerciseDay{})
 	Instance.AutoMigrate(&models.Exercise{})
 	Instance.AutoMigrate(&models.Sickleave{})
 	Instance.AutoMigrate(&models.News{})

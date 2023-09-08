@@ -6,7 +6,7 @@ import (
 	"gorm.io/gorm"
 )
 
-type Exercise struct {
+type ExerciseDay struct {
 	gorm.Model
 	Date             time.Time `json:"date" gorm:"not null"`
 	Note             string    `json:"note"`
@@ -15,19 +15,27 @@ type Exercise struct {
 	ExerciseInterval int       `json:"exercise_interval" gorm:"not null; default: 0"`
 }
 
-type ExerciseCreationRequest struct {
+type Exercise struct {
+	gorm.Model
+	Note        string `json:"note"`
+	Enabled     bool   `json:"enabled" gorm:"not null; default: true"`
+	On          bool   `json:"enabled" gorm:"not null; default: true"`
+	ExerciseDay int    `json:"goal" gorm:"not null"`
+}
+
+type ExerciseDayCreationRequest struct {
 	Date             time.Time `json:"date"`
 	Note             string    `json:"note"`
 	ExerciseInterval int       `json:"exercise_interval"`
 }
 
 type Week struct {
-	Days []Exercise `json:"days"`
+	Days []ExerciseDay `json:"days"`
 }
 
 type WeekCreationRequest struct {
-	Days     []ExerciseCreationRequest `json:"days"`
-	TimeZone string                    `json:"timezone"`
+	Days     []ExerciseDayCreationRequest `json:"days"`
+	TimeZone string                       `json:"timezone"`
 }
 
 type WeekFrequency struct {

@@ -290,6 +290,11 @@ func GiveUserAnAchivement(userID int, achivementID int, achivementTime time.Time
 		return errors.New("Failed to give achivement.")
 	}
 
+	err = PushNotificationsForAchivements(userID)
+	if err != nil {
+		log.Println("Failed to give achivement notification. Error: " + err.Error())
+	}
+
 	return nil
 
 }

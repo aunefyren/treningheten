@@ -950,6 +950,14 @@ hr {
   cursor: pointer;
 }
 
+.smaller-button-icon {
+  width: 1em;
+  height: 1em;
+  margin: 0;
+  padding: 0 0.12em;
+  cursor: pointer;
+}
+
 .two-buttons {
   display: flex;
   flex-direction: row;
@@ -987,7 +995,7 @@ input[type=checkbox]
   align-content: center;
 }
 
-.season, .current-week, .server-info, .invites, .debt-module, .prize-module, .add-season-module {
+.season, .current-week, .server-info, .invites, .debt-module, .prize-module, .add-season-module, .correlate-module {
   width: auto;
   max-width: 100%;
   margin: 1em;
@@ -1713,4 +1721,8 @@ input[type=checkbox]
   align-items: center;
   margin: 1em;
   width: 10em;
+}
+
+.edit-exercise-button {
+  display: none;
 }

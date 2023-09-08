@@ -103,6 +103,11 @@ func RegisterNewsPost(context *gin.Context) {
 		return
 	}
 
+	err = PushNotificationsForNews()
+	if err != nil {
+		log.Println("Failed to push notifications for news post.")
+	}
+
 	// Return a response indicating that the group was created, along with the updated list of groups
 	context.JSON(http.StatusCreated, gin.H{"message": "News post created.", "news": newsPosts})
 }
