@@ -9,7 +9,7 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/SherClockHolmes/webpush-go"
+	"github.com/aunefyren/webpush-go"
 )
 
 var treningheten_version_parameter = "v0.0.1"
