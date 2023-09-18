@@ -364,6 +364,7 @@ func GenerateAchivementsForWeek(weekResults models.WeekResults) error {
 
 			dayDate := day.Date.Day()
 			dayMonth := day.Date.Month()
+			dayWeekday := day.Date.Weekday()
 
 			if dayDate == 17 && dayMonth == 5 && day.ExerciseInterval > 0 {
 
@@ -429,11 +430,11 @@ func GenerateAchivementsForWeek(weekResults models.WeekResults) error {
 				everyday = false
 			}
 
-			if int(day.Date.Weekday()) > 0 && int(day.Date.Weekday()) < 6 && day.ExerciseInterval > 0 {
+			if dayWeekday > 0 && dayWeekday < 6 && day.ExerciseInterval > 0 {
 				weekday = true
 			}
 
-			if (int(day.Date.Weekday()) == 0 || int(day.Date.Weekday()) == 6) && day.ExerciseInterval > 0 {
+			if (dayWeekday == 0 || dayWeekday == 6) && day.ExerciseInterval > 0 {
 				weekend = true
 			}
 
