@@ -93,6 +93,55 @@ self.addEventListener('notificationclick', event => {
         const url = notification.data.url;
         const action = event.action;
 
+        event.waitUntil(clients.matchAll({
+            type: "window",
+            includeUncontrolled: true
+        }).then(function (clientList) {
+            if (url) {
+                let client = null;
+        
+                for (let i = 0; i < clientList.length; i++) {
+                    let item = clientList[i];
+        
+                    if (item.url) {
+                        client = item;
+                        break;
+                    }
+                }
+        
+                if (client && 'navigate' in client) {
+                    client.focus();
+                    event.notification.close();
+                    return client.navigate(url);
+                }
+                else {
+                    event.notification.close();
+                    // if client doesn't have navigate function, try to open a new browser window
+                    return clients.openWindow(url);
+                }
+            }
+        }));
+
+        console.log('Clicked notification: ' + primaryKey);
+    
+    } catch(e) {
+        console.log("Failed to click notfication. Error: " + e)
+    }
+
+    // TODO 5.3 - close all notifications when one is clicked
+
+});
+
+/* This works
+self.addEventListener('notificationclick', event => {
+
+    try {
+        
+        const notification = event.notification;
+        const primaryKey = notification.data.primaryKey;
+        const url = notification.data.url;
+        const action = event.action;
+
         if (action === 'close') {
             notification.close();
         } else {
@@ -109,6 +158,7 @@ self.addEventListener('notificationclick', event => {
     // TODO 5.3 - close all notifications when one is clicked
 
 });
+*/
 
 /* This works
 self.addEventListener("push", (event) => {
@@ -159,13 +209,13 @@ self.addEventListener('push', function(event) {
         let action;
 
         if(jsonData.category == "achievement") {
-            url = "/achievements"
+            url = "./achievements"
             action = "Check out"
         } else if(jsonData.category == "news") {
-            url = "/news"
+            url = "./news"
             action = "Read"
         } else {
-            url = "/"
+            url = "./"
             action = "Visit"
         }
 
