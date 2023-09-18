@@ -11,7 +11,7 @@ import (
 	"log"
 	"net/http"
 
-	"github.com/aunefyren/webpush-go"
+	"github.com/SherClockHolmes/webpush-go"
 	"github.com/gin-gonic/gin"
 )
 
@@ -39,8 +39,6 @@ func PushNotificationToSubscriptions(notficationType string, notificationBody st
 		return 0, errors.New("Failed to compact JSON data.")
 	}
 
-	webpush.MaxRecordSize = 3052
-
 	for _, subscription := range subscriptions {
 
 		// Decode subscription
@@ -57,6 +55,7 @@ func PushNotificationToSubscriptions(notficationType string, notificationBody st
 			VAPIDPublicKey:  vapidSettings.VAPIDPublicKey,
 			VAPIDPrivateKey: vapidSettings.VAPIDSecretKey,
 			TTL:             30,
+			RecordSize:      2048,
 		})
 
 		if err != nil {
