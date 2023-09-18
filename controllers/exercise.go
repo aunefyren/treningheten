@@ -156,7 +156,7 @@ func APIRegisterWeek(context *gin.Context) {
 			return
 		}
 
-		if day.Date.Truncate(24*time.Hour).After(now.Truncate(24*time.Hour)) && day.ExerciseInterval > 0 {
+		if day.Date.After(now) && day.ExerciseInterval > 0 {
 			context.JSON(http.StatusBadRequest, gin.H{"error": "You can't register exercises on days in the future."})
 			context.Abort()
 			return
@@ -183,10 +183,13 @@ func APIRegisterWeek(context *gin.Context) {
 
 	}
 
+	// Declare variable for later user
+	newExercise := models.Exercise{}
+
 	// Process each day for database
 	for _, day := range week.Days {
 
-		exercise, err := database.GetExerciseByGoalAndDate(goalID, day.Date)
+		exerciseDay, err := database.GetExerciseDayByGoalAndDate(goalID, day.Date)
 		if err != nil {
 			log.Println("Failed to verify exercise status. Error: " + err.Error())
 			context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to verify exercise status."})
@@ -194,34 +197,63 @@ func APIRegisterWeek(context *gin.Context) {
 			return
 		}
 
-		if exercise != nil {
+		// If exercise day exists in DB, update it
+		if exerciseDay != nil {
 
-			exercise.ExerciseInterval = day.ExerciseInterval
-			exercise.Note = html.EscapeString(strings.TrimSpace(day.Note))
+			// If no changes, don't update it
+			if exerciseDay.ExerciseInterval != day.ExerciseInterval || exerciseDay.Note != html.EscapeString(strings.TrimSpace(day.Note)) {
 
-			err = database.UpdateExerciseInDatabase(*exercise)
-			if err != nil {
-				log.Println("Failed to update exercise in database. Error: " + err.Error())
-				context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update exercise in database."})
-				context.Abort()
-				return
+				exerciseDay.ExerciseInterval = day.ExerciseInterval
+				exerciseDay.Note = html.EscapeString(strings.TrimSpace(day.Note))
+
+				err = database.UpdateExerciseDayInDatabase(*exerciseDay)
+				if err != nil {
+					log.Println("Failed to update exercise-day in database. Error: " + err.Error())
+					context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update exercise-day in database."})
+					context.Abort()
+					return
+				}
+
+				// If the exercise-interval has changed, correlate the exercise table
+				err = CorrelateExerciseWithExerciseDay(int(exerciseDay.ID), exerciseDay.ExerciseInterval)
+				if err != nil {
+					log.Println("Failed to update exercises for exercise-day. Error: " + err.Error())
+					context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update exercises for exercise-day."})
+					context.Abort()
+					return
+				}
+
 			}
 
 		} else {
 
-			exercise := models.Exercise{
+			// Create new exercise day
+			exerciseDay := models.ExerciseDay{
 				Date:             time.Date(day.Date.Year(), day.Date.Month(), day.Date.Day(), 00, 00, 00, 00, requestLocation),
 				Note:             day.Note,
 				ExerciseInterval: day.ExerciseInterval,
 				Goal:             goalID,
 			}
 
-			err = database.CreateExerciseForGoalInDatabase(exercise)
+			exerciseDayID, err := database.CreateExerciseDayForGoalInDatabase(exerciseDay)
 			if err != nil {
-				log.Println("Failed to save exercise in database. Error: " + err.Error())
-				context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to save exercise in database."})
+				log.Println("Failed to save exercise-day in database. Error: " + err.Error())
+				context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to save exercise-day in database."})
 				context.Abort()
 				return
+			}
+
+			for i := 0; i < exerciseDay.ExerciseInterval; i++ {
+				newExercise = models.Exercise{
+					ExerciseDay: int(exerciseDayID),
+				}
+				err = database.CreateExerciseForExerciseDayInDatabase(newExercise)
+				if err != nil {
+					log.Println("Failed to update exercise in database. Error: " + err.Error())
+					context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update exercise in database."})
+					context.Abort()
+					return
+				}
 			}
 
 		}
@@ -336,7 +368,7 @@ func GetExercisesForWeekUsingGoal(timeReq time.Time, goalID int) (models.Week, e
 		return models.Week{}, errors.New("Managed to find dates outside of chosen week.")
 	}
 
-	exercises, err := database.GetExercisesBetweenDatesUsingDates(goalID, startTime, endTime)
+	exercises, err := database.GetExerciseDaysBetweenDatesUsingDates(goalID, startTime, endTime)
 	if err != nil {
 		return models.Week{}, err
 	}
@@ -359,7 +391,7 @@ func GetExercisesForWeekUsingGoal(timeReq time.Time, goalID int) (models.Week, e
 		}
 
 		if !added {
-			newExercise := models.Exercise{
+			newExercise := models.ExerciseDay{
 				Date: currentDate.Truncate(24 * time.Hour),
 			}
 			week.Days = append(week.Days, newExercise)
@@ -384,7 +416,7 @@ func APIGetAllExercise(context *gin.Context) {
 	}
 
 	// Get exercises from user
-	exercise, err := database.GetExercisesForUserUsingUserID(userID)
+	exercise, err := database.GetExerciseDaysForUserUsingUserID(userID)
 	if err != nil {
 		log.Println("Failed to get exercise. Error: " + err.Error())
 		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get exercise."})
@@ -420,7 +452,7 @@ func APIGetExercise(context *gin.Context) {
 	}
 
 	// Get exercises from user
-	exercise, err := database.GetExercisesForUserUsingUserIDAndGoalID(userID, goalIDInt)
+	exercise, err := database.GetExerciseDaysForUserUsingUserIDAndGoalID(userID, goalIDInt)
 	if err != nil {
 		log.Println("Failed to get exercise. Error: " + err.Error())
 		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get exercise."})
@@ -429,5 +461,179 @@ func APIGetExercise(context *gin.Context) {
 	}
 
 	context.JSON(http.StatusOK, gin.H{"message": "Exercise retrieved.", "exercise": exercise})
+
+}
+
+func CorrelateExerciseWithExerciseDay(exerciseDayID int, exerciseDayExerciseInterval int) error {
+
+	exercises, err := database.GetExerciseByExerciseDayID(exerciseDayID)
+	if err != nil {
+		log.Println("Failed to get exercises for exercise-day. Error: " + err.Error())
+		return errors.New("Failed to get exercises for exercise-day.")
+	}
+
+	onExercisesSum := 0
+
+	for _, exercise := range exercises {
+		if exercise.On {
+			onExercisesSum += 1
+		}
+	}
+
+	if onExercisesSum == exerciseDayExerciseInterval {
+		return nil
+	} else if onExercisesSum > exerciseDayExerciseInterval {
+
+		differential := onExercisesSum - exerciseDayExerciseInterval
+		changed, err := TurnOffExercisesForExerciseDayByAmount(differential, exerciseDayID)
+		if err != nil {
+			log.Println("Failed to turn off exercises for exercise day. Error: " + err.Error())
+			return errors.New("Failed to turn off exercises for exercise day.")
+		}
+
+		newDifferential := differential - changed
+
+		if newDifferential == 0 {
+			return nil
+		} else {
+			return errors.New("Failed to turn off enough exercises for exercise-day. Differential: " + strconv.Itoa(newDifferential))
+		}
+
+	} else {
+
+		differential := exerciseDayExerciseInterval - onExercisesSum
+		changed, err := TurnOnExercisesForExerciseDayByAmount(differential, exerciseDayID)
+		if err != nil {
+			log.Println("Failed to turn off exercises for exercise day. Error: " + err.Error())
+			return errors.New("Failed to turn off exercises for exercise day.")
+		}
+
+		newDifferential := differential - changed
+
+		if newDifferential == 0 {
+			return nil
+		}
+
+		for i := 0; i < newDifferential; i++ {
+			newExercise := models.Exercise{
+				ExerciseDay: exerciseDayID,
+			}
+			err = database.CreateExerciseForExerciseDayInDatabase(newExercise)
+			if err != nil {
+				log.Println("Failed to create exercise in database. Error: " + err.Error())
+				return errors.New("Failed to create exercise in database.")
+			}
+		}
+
+	}
+
+	return nil
+
+}
+
+func TurnOnExercisesForExerciseDayByAmount(amount int, exerciseDayID int) (int, error) {
+
+	if amount == 0 {
+		return 0, errors.New("Amount must be more than 0.")
+	}
+
+	turnedOn := 0
+
+	exercises, err := database.GetExerciseByExerciseDayID(exerciseDayID)
+	if err != nil {
+		log.Println("Failed to get exercises for exercise-day. Error: " + err.Error())
+		return 0, errors.New("Failed to get exercises for exercise-day.")
+	}
+
+	for _, exercise := range exercises {
+
+		if !exercise.On {
+			err = database.UpdateExerciseByTurningOnByExerciseID(int(exercise.ID))
+			if err != nil {
+				log.Println("Failed to turn on exercise. Error: " + err.Error())
+				return 0, errors.New("Failed to turn on exercise.")
+			}
+
+			turnedOn += 1
+		}
+
+		if turnedOn >= amount {
+			break
+		}
+
+	}
+
+	return turnedOn, nil
+
+}
+
+func TurnOffExercisesForExerciseDayByAmount(amount int, exerciseDayID int) (int, error) {
+
+	if amount == 0 {
+		return 0, errors.New("Amount must be more than 0.")
+	}
+
+	turnedOff := 0
+
+	exercises, err := database.GetExerciseByExerciseDayID(exerciseDayID)
+	if err != nil {
+		log.Println("Failed to get exercises for exercise-day. Error: " + err.Error())
+		return 0, errors.New("Failed to get exercises for exercise-day.")
+	}
+
+	for _, exercise := range exercises {
+
+		if exercise.On {
+			err = database.UpdateExerciseByTurningOffByExerciseID(int(exercise.ID))
+			if err != nil {
+				log.Println("Failed to turn on exercise. Error: " + err.Error())
+				return 0, errors.New("Failed to turn on exercise.")
+			}
+
+			turnedOff += 1
+		}
+
+		if turnedOff >= amount {
+			break
+		}
+
+	}
+
+	return turnedOff, nil
+
+}
+
+func CorrelateAllExercises() error {
+
+	exerciseDays, err := database.GetAllEnabledExerciseDays()
+	if err != nil {
+		log.Println("Failed to get enabled exercises. Error: " + err.Error())
+		return errors.New("Failed to get enabled exercises.")
+	}
+
+	for _, exerciseDay := range exerciseDays {
+		err = CorrelateExerciseWithExerciseDay(int(exerciseDay.ID), exerciseDay.ExerciseInterval)
+		if err != nil {
+			log.Println("Failed to correlate exercise. Error: " + err.Error())
+			return errors.New("Failed to correlate exercise.")
+		}
+	}
+
+	return nil
+
+}
+
+//
+func APICorrelateAllExercises(context *gin.Context) {
+
+	err := CorrelateAllExercises()
+	if err != nil {
+		log.Println("Failed to correlate all exercises. Error: " + err.Error())
+		context.JSON(http.StatusBadRequest, gin.H{"error": "Failed to correlate all exercises."})
+		context.Abort()
+		return
+	}
+
+	context.JSON(http.StatusOK, gin.H{"message": "All exercise correlated."})
 
 }

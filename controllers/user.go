@@ -57,13 +57,14 @@ func RegisterUser(context *gin.Context) {
 	user.FirstName = html.EscapeString(strings.TrimSpace(usercreationrequest.FirstName))
 	user.LastName = html.EscapeString(strings.TrimSpace(usercreationrequest.LastName))
 	user.Enabled = true
-	user.ResetExpiration = time.Now()
 
 	randomString := randstr.String(8)
 	user.VerificationCode = strings.ToUpper(randomString)
+	user.VerificationCodeExpiration = time.Now().Add(time.Hour * 24 * 2)
 
 	randomString = randstr.String(8)
 	user.ResetCode = strings.ToUpper(randomString)
+	user.ResetExpiration = time.Now()
 
 	// Get configuration
 	config, err := config.GetConfig()
@@ -228,7 +229,7 @@ func VerifyUser(context *gin.Context) {
 	}
 
 	// Verify if code matches
-	match, err := database.VerifyUserVerfificationCodeMatches(userID, code)
+	match, expiration, err := database.VerifyUserVerfificationCodeMatches(userID, code)
 	if err != nil {
 		context.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		context.Abort()
@@ -238,6 +239,10 @@ func VerifyUser(context *gin.Context) {
 	// Check if code matches
 	if !match {
 		context.JSON(http.StatusBadRequest, gin.H{"error": "Verificaton code invalid."})
+		context.Abort()
+		return
+	} else if time.Now().After(expiration) {
+		context.JSON(http.StatusBadRequest, gin.H{"error": "Verificaton code has expired, request a new one."})
 		context.Abort()
 		return
 	}
@@ -441,7 +446,7 @@ func UpdateUser(context *gin.Context) {
 	if userUpdateRequest.BirthDate != nil {
 		ThirteenYearsDuration := time.Hour * 24 * 365 * 13
 		if userUpdateRequest.BirthDate.After(time.Now().Add(-ThirteenYearsDuration)) {
-			context.JSON(http.StatusBadRequest, gin.H{"error": "Your birthdate must be more than thirteen years ago."})
+			context.JSON(http.StatusBadRequest, gin.H{"error": "Your birth date must be more than thirteen years ago."})
 			context.Abort()
 			return
 		}
@@ -663,7 +668,7 @@ func APIChangePassword(context *gin.Context) {
 
 }
 
-func SendSundayEmailReminder() {
+func SendSundayReminders() {
 
 	now := time.Now()
 
@@ -703,6 +708,12 @@ func SendSundayEmailReminder() {
 
 	for _, user := range usersToAlert {
 		utilities.SendSMTPSundayReminderEmail(user)
+	}
+
+	// Send push notifications
+	err = PushNotificationsForSundayAlerts()
+	if err != nil {
+		log.Println("Failed to send push notifications for Sunday reminders.")
 	}
 
 }

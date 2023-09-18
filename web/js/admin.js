@@ -61,6 +61,18 @@ function load_page(result) {
 
                     </div>
 
+                    <div class="correlate-module" id="correlate-module">
+
+                        <div class="correlate-form" id="debt-form">
+
+                            <h3 id="correlate-module-title">Correlate all exercise:</h3>
+
+                            <button type="submit" onclick="correlate_exercises();" id="correlate-exercise-button" style=""><img src="assets/done.svg" class="btn_logo color-invert"><p2>Correlate</p2></button>
+
+                        </div>
+
+                    </div>
+
                     <div class="prize-module" id="prize-module">
 
                         <div class="prize-form" id="prize-form">
@@ -593,6 +605,41 @@ function add_prize() {
     xhttp.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
     xhttp.setRequestHeader("Authorization", jwt);
     xhttp.send(form_data);
+    return false;
+
+}
+
+function correlate_exercises() {
+
+    var xhttp = new XMLHttpRequest();
+    xhttp.onreadystatechange = function() {
+        if (this.readyState == 4) {
+            
+            try {
+                result = JSON.parse(this.responseText);
+            } catch(e) {
+                console.log(e +' - Response: ' + this.responseText);
+                error("Could not reach API.");
+                return;
+            }
+            
+            if(result.error) {
+
+                error(result.error);
+
+            } else {
+
+                success(result.message);
+                
+            }
+
+        }
+    };
+    xhttp.withCredentials = true;
+    xhttp.open("post", api_url + "admin/exercise/correlate");
+    xhttp.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
+    xhttp.setRequestHeader("Authorization", jwt);
+    xhttp.send();
     return false;
 
 }

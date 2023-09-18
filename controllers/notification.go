@@ -15,7 +15,7 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-func PushNotification(notficationType string, notificationBody string, notficationTitle string, subscriptions []models.Subscription) (int, error) {
+func PushNotificationToSubscriptions(notficationType string, notificationBody string, notficationTitle string, subscriptions []models.Subscription) (int, error) {
 
 	vapidSettings, err := GetVAPIDSettings()
 	if err != nil {
@@ -153,7 +153,7 @@ func APIPushNotificationToAllDevicesForUser(context *gin.Context) {
 		return
 	}
 
-	pushedAmount, err := PushNotification(notificationRequest.Category, notificationRequest.Body, notificationRequest.Title, subscriptions)
+	pushedAmount, err := PushNotificationToSubscriptions(notificationRequest.Category, notificationRequest.Body, notificationRequest.Title, subscriptions)
 	if err != nil {
 		log.Println("Failed to push notification. Error: " + err.Error())
 		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to push notification."})
@@ -232,5 +232,86 @@ func APIUpdateSubscriptionForEndpoint(context *gin.Context) {
 	}
 
 	context.JSON(http.StatusCreated, gin.H{"message": "Subscription updated."})
+
+}
+
+func PushNotificationsForAchivements(userID int) (err error) {
+
+	err = nil
+
+	subscriptions, subscriptionsFound, err := database.GetAllSubscriptionsForAchivementsForUserID(userID)
+	if err != nil {
+		log.Println("Failed to get subscriptions from database. Error: " + err.Error())
+		return errors.New("Failed to get subscriptions from database.")
+	} else if !subscriptionsFound {
+		log.Println("No subscriptions found for achievements.")
+		return nil
+	}
+
+	title := "Treningheten"
+	body := "You just got a new achievement 🏆"
+	category := "achievement"
+
+	_, err = PushNotificationToSubscriptions(category, body, title, subscriptions)
+	if err != nil {
+		log.Println("Failed to push notficiation(s). Error: " + err.Error())
+		return errors.New("Failed to push notficiation(s).")
+	}
+
+	return nil
+
+}
+
+func PushNotificationsForNews() (err error) {
+
+	err = nil
+
+	subscriptions, subscriptionsFound, err := database.GetAllSubscriptionsForNews()
+	if err != nil {
+		log.Println("Failed to get subscriptions from database. Error: " + err.Error())
+		return errors.New("Failed to get subscriptions from database.")
+	} else if !subscriptionsFound {
+		log.Println("No subscriptions found for achievements.")
+		return nil
+	}
+
+	title := "Treningheten"
+	body := "A news post was just published 📰"
+	category := "news"
+
+	_, err = PushNotificationToSubscriptions(category, body, title, subscriptions)
+	if err != nil {
+		log.Println("Failed to push notficiation(s). Error: " + err.Error())
+		return errors.New("Failed to push notficiation(s).")
+	}
+
+	return nil
+
+}
+
+func PushNotificationsForSundayAlerts() (err error) {
+
+	err = nil
+
+	subscriptions, subscriptionsFound, err := database.GetAllSubscriptionsForSundayAlerts()
+	if err != nil {
+		log.Println("Failed to get subscriptions from database. Error: " + err.Error())
+		return errors.New("Failed to get subscriptions from database.")
+	} else if !subscriptionsFound {
+		log.Println("No subscriptions found for achievements.")
+		return nil
+	}
+
+	title := "Treningheten"
+	body := "It's Sunday, remember to log your workouts 🔔"
+	category := "alert"
+
+	_, err = PushNotificationToSubscriptions(category, body, title, subscriptions)
+	if err != nil {
+		log.Println("Failed to push notficiation(s). Error: " + err.Error())
+		return errors.New("Failed to push notficiation(s).")
+	}
+
+	return nil
 
 }

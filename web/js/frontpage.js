@@ -139,12 +139,16 @@ function load_page(result) {
                                                 <img src="assets/minus.svg" class="small-button-icon" onclick="DecreaseNumberInput('day_1_check', 0, 3);">
                                                 <img src="assets/plus.svg" class="small-button-icon" onclick="IncreaseNumberInput('day_1_check', 0, 3);">
                                             </div>
+                                            <div class="edit-exercise-button" id="day_1_edit">
+                                                <img src="assets/tool.svg" class="smaller-button-icon" onclick="EditExercise(1);">
+                                            </div>
                                         </div>
                                         <div class="day-note">
                                             <textarea class="day-note-area" id="day_1_note" name="day_1_note" rows="3" cols="33" placeholder="Notes">
                                             </textarea>
                                         </div>
                                         <input type="hidden" value="" id="day_1_date">
+                                        <input type="hidden" value="" id="day_1_id">
                                     </div>
 
                                     <hr style="margin: 0.25em;">
@@ -159,12 +163,16 @@ function load_page(result) {
                                                 <img src="assets/minus.svg" class="small-button-icon" onclick="DecreaseNumberInput('day_2_check', 0, 3);">
                                                 <img src="assets/plus.svg" class="small-button-icon" onclick="IncreaseNumberInput('day_2_check', 0, 3);">
                                             </div>
+                                            <div class="edit-exercise-button" id="day_2_edit">
+                                                <img src="assets/tool.svg" class="smaller-button-icon" onclick="EditExercise(2);">
+                                            </div>
                                         </div>
                                         <div class="day-note">
                                             <textarea class="day-note-area" id="day_2_note" name="day_2_note" rows="3" cols="33" placeholder="Notes">
                                             </textarea>
                                         </div>
                                         <input type="hidden" value="" id="day_2_date">
+                                        <input type="hidden" value="" id="day_2_id">
                                     </div>
 
                                     <hr style="margin: 0.25em;">
@@ -179,12 +187,16 @@ function load_page(result) {
                                                 <img src="assets/minus.svg" class="small-button-icon" onclick="DecreaseNumberInput('day_3_check', 0, 3);">
                                                 <img src="assets/plus.svg" class="small-button-icon" onclick="IncreaseNumberInput('day_3_check', 0, 3);">
                                             </div>
+                                            <div class="edit-exercise-button" id="day_3_edit">
+                                                <img src="assets/tool.svg" class="smaller-button-icon" onclick="EditExercise(3);">
+                                            </div>
                                         </div>
                                         <div class="day-note">
                                             <textarea class="day-note-area" id="day_3_note" name="day_3_note" rows="3" cols="33" placeholder="Notes">
                                             </textarea>
                                         </div>
                                         <input type="hidden" value="" id="day_3_date">
+                                        <input type="hidden" value="" id="day_3_id">
                                     </div>
 
                                     <hr style="margin: 0.25em;">
@@ -199,12 +211,16 @@ function load_page(result) {
                                                 <img src="assets/minus.svg" class="small-button-icon" onclick="DecreaseNumberInput('day_4_check', 0, 3);">
                                                 <img src="assets/plus.svg" class="small-button-icon" onclick="IncreaseNumberInput('day_4_check', 0, 3);">
                                             </div>
+                                            <div class="edit-exercise-button" id="day_4_edit">
+                                                <img src="assets/tool.svg" class="smaller-button-icon" onclick="EditExercise(4);">
+                                            </div>
                                         </div>
                                         <div class="day-note">
                                             <textarea class="day-note-area" id="day_4_note" name="day_4_note" rows="3" cols="33" placeholder="Notes">
                                             </textarea>
                                         </div>
                                         <input type="hidden" value="" id="day_4_date">
+                                        <input type="hidden" value="" id="day_4_id">
                                     </div>
 
                                     <hr style="margin: 0.25em;">
@@ -219,12 +235,16 @@ function load_page(result) {
                                                 <img src="assets/minus.svg" class="small-button-icon" onclick="DecreaseNumberInput('day_5_check', 0, 3);">
                                                 <img src="assets/plus.svg" class="small-button-icon" onclick="IncreaseNumberInput('day_5_check', 0, 3);">
                                             </div>
+                                            <div class="edit-exercise-button" id="day_5_edit">
+                                                <img src="assets/tool.svg" class="smaller-button-icon" onclick="EditExercise(5);">
+                                            </div>
                                         </div>
                                         <div class="day-note">
                                             <textarea class="day-note-area" id="day_5_note" name="day_5_note" rows="3" cols="33" placeholder="Notes">
                                             </textarea>
                                         </div>
                                         <input type="hidden" value="" id="day_5_date">
+                                        <input type="hidden" value="" id="day_5_id">
                                     </div>
 
                                     <hr style="margin: 0.25em;">
@@ -239,12 +259,16 @@ function load_page(result) {
                                                 <img src="assets/minus.svg" class="small-button-icon" onclick="DecreaseNumberInput('day_6_check', 0, 3);">
                                                 <img src="assets/plus.svg" class="small-button-icon" onclick="IncreaseNumberInput('day_6_check', 0, 3);">
                                             </div>
+                                            <div class="edit-exercise-button" id="day_6_edit">
+                                                <img src="assets/tool.svg" class="smaller-button-icon" onclick="EditExercise(6);">
+                                            </div>
                                         </div>
                                         <div class="day-note">
                                             <textarea class="day-note-area" id="day_6_note" name="day_6_note" rows="3" cols="33" placeholder="Notes">
                                             </textarea>
                                         </div>
                                         <input type="hidden" value="" id="day_6_date">
+                                        <input type="hidden" value="" id="day_6_id">
                                     </div>
 
                                     <hr style="margin: 0.25em;">
@@ -259,15 +283,19 @@ function load_page(result) {
                                                 <img src="assets/minus.svg" class="small-button-icon" onclick="DecreaseNumberInput('day_7_check', 0, 3);">
                                                 <img src="assets/plus.svg" class="small-button-icon" onclick="IncreaseNumberInput('day_7_check', 0, 3);">
                                             </div>
+                                            <div class="edit-exercise-button" id="day_7_edit">
+                                                <img src="assets/tool.svg" class="smaller-button-icon" onclick="EditExercise(7);">
+                                            </div>
                                         </div>
                                         <div class="day-note">
                                             <textarea class="day-note-area" id="day_7_note" name="day_7_note" rows="3" cols="33" placeholder="Notes">
                                             </textarea>
                                         </div>
                                         <input type="hidden" value="" id="day_7_date">
+                                        <input type="hidden" value="" id="day_7_id">
                                     </div>
 
-                                    <button type="submit" onclick="update_exercises();" id="goal_amount_button" style="margin-bottom: 0em;"><img src="assets/done.svg" class="btn_logo color-invert"><p2>Save</p2></button>
+                                    <button type="submit" onclick="update_exercises(false, 0);" id="goal_amount_button" style="margin-bottom: 0em;"><img src="assets/done.svg" class="btn_logo color-invert"><p2>Save</p2></button>
 
                                     <a style="margin: 0.5em; font-size:0.75em;cursor:pointer;" onclick="use_sickleave();">Use sick leave</i></a>
 
@@ -687,35 +715,53 @@ function place_week(week, fireworks) {
         trigger_fireworks(1);
     }
 
+    // Sum of exercise to decide fireworks
     fireworks_int = week.days[0].exercise_interval + week.days[1].exercise_interval + week.days[2].exercise_interval + week.days[3].exercise_interval + week.days[4].exercise_interval + week.days[5].exercise_interval + week.days[6].exercise_interval
 
     document.getElementById("day_1_check").innerHTML = week.days[0].exercise_interval
     document.getElementById("day_1_note").value = HTMLDecode(week.days[0].note)
     document.getElementById("day_1_date").value = week.days[0].date
+    document.getElementById("day_1_id").value = week.days[0].ID
 
     document.getElementById("day_2_check").innerHTML = week.days[1].exercise_interval
     document.getElementById("day_2_note").value = HTMLDecode(week.days[1].note)
     document.getElementById("day_2_date").value = week.days[1].date
+    document.getElementById("day_2_id").value = week.days[1].ID
 
     document.getElementById("day_3_check").innerHTML = week.days[2].exercise_interval
     document.getElementById("day_3_note").value = HTMLDecode(week.days[2].note)
     document.getElementById("day_3_date").value = week.days[2].date
+    document.getElementById("day_3_id").value = week.days[2].ID
 
     document.getElementById("day_4_check").innerHTML = week.days[3].exercise_interval
     document.getElementById("day_4_note").value = HTMLDecode(week.days[3].note)
     document.getElementById("day_4_date").value = week.days[3].date
+    document.getElementById("day_4_id").value = week.days[3].ID
 
     document.getElementById("day_5_check").innerHTML = week.days[4].exercise_interval
     document.getElementById("day_5_note").value = HTMLDecode(week.days[4].note)
     document.getElementById("day_5_date").value = week.days[4].date
+    document.getElementById("day_5_id").value = week.days[4].ID
 
     document.getElementById("day_6_check").innerHTML = week.days[5].exercise_interval
     document.getElementById("day_6_note").value = HTMLDecode(week.days[5].note)
     document.getElementById("day_6_date").value = week.days[5].date
+    document.getElementById("day_6_id").value = week.days[5].ID
 
     document.getElementById("day_7_check").innerHTML = week.days[6].exercise_interval
     document.getElementById("day_7_note").value = HTMLDecode(week.days[6].note)
     document.getElementById("day_7_date").value = week.days[6].date
+    document.getElementById("day_7_id").value = week.days[6].ID
+
+    // Place editing icon
+    const now = new Date(Date.now());
+    var day = now.getDay();
+    if(day == 0) {
+        day = 7
+    }
+    for(var i = 1; i <= day; i++) {
+        // document.getElementById("day_" + i + "_edit").style.display = "flex" // Disabled because not ready
+    }
 
     // Place the exercise sum
     document.getElementById("workout_this_week").innerHTML = fireworks_int;
@@ -724,7 +770,7 @@ function place_week(week, fireworks) {
 
 }
 
-function update_exercises() {
+function update_exercises(go_to_exercise, weekDayInt) {
 
     var day_1_check = document.getElementById("day_1_check").innerHTML
     var day_1_note = document.getElementById("day_1_note").value
@@ -820,6 +866,10 @@ function update_exercises() {
 
                 clearResponse();
                 week = result.week;
+
+                if(go_to_exercise === true) {
+                    GoToExercise(week.days[weekDayInt-1].ID)
+                }
 
                 console.log(week);
 
@@ -1475,5 +1525,17 @@ function delete_goal() {
     xhttp.setRequestHeader("Authorization", jwt);
     xhttp.send();
     return false;
+
+}
+
+function EditExercise(weekdayInt) {
+
+    update_exercises(true, weekdayInt);
+
+}
+
+function GoToExercise(exerciseID) {
+
+    window.location = './exercise/' + exerciseID
 
 }

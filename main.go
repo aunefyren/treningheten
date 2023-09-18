@@ -168,7 +168,7 @@ func main() {
 
 	_, err = taskScheduler.ScheduleWithCron(func(ctx context.Context) {
 		log.Println("Sunday reminder task executing.")
-		controllers.SendSundayEmailReminder()
+		controllers.SendSundayReminders()
 	}, "0 0 18 * * 7")
 
 	if err != nil {
@@ -178,7 +178,7 @@ func main() {
 	_, err = taskScheduler.ScheduleWithCron(func(ctx context.Context) {
 		log.Println("Monday competition task executing.")
 		controllers.GenerateLastWeeksDebt()
-	}, "0 0 6 * * 1")
+	}, "0 0 8 * * 1")
 
 	if err != nil {
 		log.Println("Monday competition task was not scheduled successfully.")
@@ -205,9 +205,13 @@ func initRouter() *gin.Engine {
 		open := api.Group("/open")
 		{
 			open.POST("/token/register", controllers.GenerateToken)
+
 			open.POST("/user/register", controllers.RegisterUser)
 			open.POST("/user/reset", controllers.APIResetPassword)
 			open.POST("/user/password", controllers.APIChangePassword)
+
+			open.POST("/user/verify/:code", controllers.VerifyUser)
+			open.POST("/user/verification", controllers.SendUserVerificationCode)
 		}
 
 		auth := api.Group("/auth").Use(middlewares.Auth(false))
@@ -234,8 +238,6 @@ func initRouter() *gin.Engine {
 			auth.POST("/news/get", controllers.GetNews)
 			auth.POST("/news/get/:news_id", controllers.GetNewsPost)
 
-			open.POST("/user/verify/:code", controllers.VerifyUser)
-			open.POST("/user/verification", controllers.SendUserVerificationCode)
 			auth.POST("/user/get/:user_id", controllers.GetUser)
 			auth.POST("/user/get/:user_id/image", controllers.APIGetUserProfileImage)
 			auth.POST("/user/get", controllers.GetUsers)
@@ -275,6 +277,8 @@ func initRouter() *gin.Engine {
 			admin.POST("/prize/register", controllers.APIRegisterPrize)
 
 			admin.POST("/notification/push/all-devices", controllers.APIPushNotificationToAllDevicesForUser)
+
+			admin.POST("/exercise/correlate", controllers.APICorrelateAllExercises)
 		}
 
 	}
@@ -349,6 +353,11 @@ func initRouter() *gin.Engine {
 	// Static endpoint for wheel spinning
 	router.GET("/wheel", func(c *gin.Context) {
 		c.HTML(http.StatusOK, "wheel.html", nil)
+	})
+
+	// Static endpoint for other accounts
+	router.GET("/exercise/:exercise_id", func(c *gin.Context) {
+		c.HTML(http.StatusOK, "exercise.html", nil)
 	})
 
 	// Static endpoint for service-worker

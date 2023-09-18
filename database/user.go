@@ -28,6 +28,8 @@ func GenrateRandomVerificationCodeForuser(userID int) (string, error) {
 	randomString := randstr.String(8)
 	verificationCode := strings.ToUpper(randomString)
 
+	newTime := time.Now().Add(time.Hour * 24 * 2)
+
 	var user models.User
 	userrecord := Instance.Model(user).Where("`users`.enabled = ?", 1).Where("`users`.ID = ?", userID).Update("verification_code", verificationCode)
 	if userrecord.Error != nil {
@@ -35,6 +37,14 @@ func GenrateRandomVerificationCodeForuser(userID int) (string, error) {
 	}
 	if userrecord.RowsAffected != 1 {
 		return "", errors.New("Verification code not changed in database.")
+	}
+
+	userrecord = Instance.Model(user).Where("`users`.enabled = ?", 1).Where("`users`.ID = ?", userID).Update("verification_code_expiration", newTime)
+	if userrecord.Error != nil {
+		return "", userrecord.Error
+	}
+	if userrecord.RowsAffected != 1 {
+		return "", errors.New("Verification code reset time not changed in database.")
 	}
 
 	return verificationCode, nil
@@ -73,20 +83,20 @@ func VerifyUserHasVerfificationCode(userID int) (bool, error) {
 }
 
 // Verify if user has a verification code set
-func VerifyUserVerfificationCodeMatches(userID int, verificationCode string) (bool, error) {
+func VerifyUserVerfificationCodeMatches(userID int, verificationCode string) (bool, time.Time, error) {
 
 	var user models.User
 
 	userrecords := Instance.Where("`users`.enabled = ?", 1).Where("`users`.ID= ?", userID).Where("`users`.verification_code = ?", verificationCode).Find(&user)
 
 	if userrecords.Error != nil {
-		return false, userrecords.Error
+		return false, time.Now(), userrecords.Error
 	}
 
 	if userrecords.RowsAffected != 1 {
-		return false, nil
+		return false, time.Now(), nil
 	} else {
-		return true, nil
+		return true, time.Now(), nil
 	}
 
 }
@@ -145,7 +155,35 @@ func SetUserVerification(userID int, verified bool) error {
 }
 
 // Update user values
-func UpdateUserValuesByUserID(userID int, email string, password string, sundayAlert bool, birthDate *time.Time) error {
+func UpdateUserValuesByUserID(userID int, email string, password string, sundayAlert bool, birthDate *time.Time) (err error) {
+
+	err = nil
+
+	err = UpdateEmailValueByUserID(userID, email)
+	if err != nil {
+		return err
+	}
+
+	err = UpdatePasswordValueByUserID(userID, password)
+	if err != nil {
+		return err
+	}
+
+	err = UpdateSundayAlertValueByUserID(userID, sundayAlert)
+	if err != nil {
+		return err
+	}
+
+	err = UpdateBirthDateValueByUserID(userID, birthDate)
+	if err != nil {
+		return err
+	}
+
+	return nil
+
+}
+
+func UpdateEmailValueByUserID(userID int, email string) error {
 
 	var user models.User
 
@@ -157,7 +195,15 @@ func UpdateUserValuesByUserID(userID int, email string, password string, sundayA
 		return errors.New("Email not changed in database.")
 	}
 
-	userrecords = Instance.Model(user).Where("`users`.enabled = ?", 1).Where("`users`.ID = ?", userID).Update("password", password)
+	return nil
+
+}
+
+func UpdatePasswordValueByUserID(userID int, password string) error {
+
+	var user models.User
+
+	userrecords := Instance.Model(user).Where("`users`.enabled = ?", 1).Where("`users`.ID = ?", userID).Update("password", password)
 	if userrecords.Error != nil {
 		return userrecords.Error
 	}
@@ -165,7 +211,15 @@ func UpdateUserValuesByUserID(userID int, email string, password string, sundayA
 		return errors.New("Password not changed in database.")
 	}
 
-	userrecords = Instance.Model(user).Where("`users`.enabled = ?", 1).Where("`users`.ID = ?", userID).Update("sunday_alert", sundayAlert)
+	return nil
+
+}
+
+func UpdateSundayAlertValueByUserID(userID int, sundayAlert bool) error {
+
+	var user models.User
+
+	userrecords := Instance.Model(user).Where("`users`.enabled = ?", 1).Where("`users`.ID = ?", userID).Update("sunday_alert", sundayAlert)
 	if userrecords.Error != nil {
 		return userrecords.Error
 	}
@@ -173,7 +227,15 @@ func UpdateUserValuesByUserID(userID int, email string, password string, sundayA
 		return errors.New("Sunday alert not changed in database.")
 	}
 
-	userrecords = Instance.Model(user).Where("`users`.enabled = ?", 1).Where("`users`.ID = ?", userID).Update("birth_date", birthDate)
+	return nil
+
+}
+
+func UpdateBirthDateValueByUserID(userID int, birthDate *time.Time) error {
+
+	var user models.User
+
+	userrecords := Instance.Model(user).Where("`users`.enabled = ?", 1).Where("`users`.ID = ?", userID).Update("birth_date", &birthDate)
 	if userrecords.Error != nil {
 		return userrecords.Error
 	}
@@ -182,6 +244,7 @@ func UpdateUserValuesByUserID(userID int, email string, password string, sundayA
 	}
 
 	return nil
+
 }
 
 // Get user information by user ID (censored)
@@ -285,7 +348,7 @@ func GenrateRandomResetCodeForuser(userID int) (string, error) {
 	randomString := randstr.String(8)
 	resetCode := strings.ToUpper(randomString)
 
-	expirationDate := time.Now().AddDate(0, 0, 7)
+	expirationDate := time.Now().Add(time.Hour * 24 * 2)
 
 	var user models.User
 	userrecord := Instance.Model(user).Where("`users`.enabled = ?", 1).Where("`users`.ID = ?", userID).Update("reset_code", resetCode)
