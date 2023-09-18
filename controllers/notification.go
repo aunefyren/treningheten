@@ -25,11 +25,18 @@ func PushNotificationToSubscriptions(notficationType string, notificationBody st
 
 	notificationSum := 0
 
+	config, err := config.GetConfig()
+	if err != nil {
+		log.Println("Failed to get config. Error: " + err.Error())
+		return 0, errors.New("Failed to get config.")
+	}
+
 	notificationData := `
 		{
 			"title": "` + notficationTitle + `",
 			"body": "` + notificationBody + `",
-			"category": "` + notficationType + `"
+			"category": "` + notficationType + `",
+			"treningheten_external_url": "` + config.TreninghetenExternalURL + `"
 		}
 	`
 

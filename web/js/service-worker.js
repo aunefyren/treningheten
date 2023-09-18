@@ -159,13 +159,13 @@ self.addEventListener('push', function(event) {
         let action;
 
         if(jsonData.category == "achievement") {
-            url = "/achievements"
+            url = jsonData.treningheten_external_url + "/achievements"
             action = "Check out"
         } else if(jsonData.category == "news") {
-            url = "/news"
+            url = jsonData.treningheten_external_url + "/news"
             action = "Read"
         } else {
-            url = "/"
+            url = jsonData.treningheten_external_url
             action = "Visit"
         }
 
