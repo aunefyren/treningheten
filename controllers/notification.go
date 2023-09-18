@@ -5,6 +5,8 @@ import (
 	"aunefyren/treningheten/database"
 	"aunefyren/treningheten/middlewares"
 	"aunefyren/treningheten/models"
+	"bytes"
+	"encoding/json"
 	"errors"
 	"log"
 	"net/http"
@@ -31,6 +33,12 @@ func PushNotification(notficationType string, notificationBody string, notficati
 		}
 	`
 
+	dataBuffer := &bytes.Buffer{}
+	if err = json.Compact(dataBuffer, []byte(notificationData)); err != nil {
+		log.Println("Failed to compact JSON data. Error: " + err.Error())
+		return 0, errors.New("Failed to compact JSON data.")
+	}
+
 	for _, subscription := range subscriptions {
 
 		// Decode subscription
@@ -42,7 +50,7 @@ func PushNotification(notficationType string, notificationBody string, notficati
 		s.Keys.P256dh = subscription.P256Dh
 
 		// Send Notification
-		response, err := webpush.SendNotification([]byte(notificationData), s, &webpush.Options{
+		response, err := webpush.SendNotification(dataBuffer.Bytes(), s, &webpush.Options{
 			Subscriber:      vapidSettings.VAPIDContact,
 			VAPIDPublicKey:  vapidSettings.VAPIDPublicKey,
 			VAPIDPrivateKey: vapidSettings.VAPIDSecretKey,
