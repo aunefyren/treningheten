@@ -386,7 +386,7 @@ func GenerateAchivementsForWeek(weekResults models.WeekResults) error {
 
 			}
 
-			if dayDate == user.User.BirthDate.Day() && dayMonth == user.User.BirthDate.Month() && day.ExerciseInterval > 0 {
+			if user.User.BirthDate != nil && (dayDate == user.User.BirthDate.Day() && dayMonth == user.User.BirthDate.Month() && day.ExerciseInterval > 0) {
 
 				// Give achivement to user
 				err := GiveUserAnAchivement(int(user.User.ID), 21, day.Date)
