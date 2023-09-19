@@ -93,34 +93,10 @@ self.addEventListener('notificationclick', event => {
         const url = notification.data.url;
         const action = event.action;
 
-        event.waitUntil(clients.matchAll({
-            type: "window",
-            includeUncontrolled: true
-        }).then(function (clientList) {
-            if (url) {
-                let client = null;
-        
-                for (let i = 0; i < clientList.length; i++) {
-                    let item = clientList[i];
-        
-                    if (item.url) {
-                        client = item;
-                        break;
-                    }
-                }
-        
-                if (client && 'navigate' in client) {
-                    client.focus();
-                    event.notification.close();
-                    return client.navigate(url);
-                }
-                else {
-                    event.notification.close();
-                    // if client doesn't have navigate function, try to open a new browser window
-                    return clients.openWindow(url);
-                }
-            }
-        }));
+        // Write the code to open
+        if (clients.openWindow && event.notification.data.url) {
+            event.waitUntil(clients.openWindow(url));
+        }
 
         console.log('Clicked notification: ' + primaryKey);
     
@@ -209,13 +185,13 @@ self.addEventListener('push', function(event) {
         let action;
 
         if(jsonData.category == "achievement") {
-            url = "./achievements"
+            url = "/achievements"
             action = "Check out"
         } else if(jsonData.category == "news") {
-            url = "./news"
+            url = "/news"
             action = "Read"
         } else {
-            url = "./"
+            url = "/"
             action = "Visit"
         }
 
