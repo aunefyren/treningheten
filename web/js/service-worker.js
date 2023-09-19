@@ -93,35 +93,10 @@ self.addEventListener('notificationclick', event => {
         const url = notification.data.url;
         const action = event.action;
 
-        // Write the code to open
-        if (clients.openWindow && event.notification.data.url) {
-            event.waitUntil(clients.openWindow(url));
-        }
-
-        console.log('Clicked notification: ' + primaryKey);
-    
-    } catch(e) {
-        console.log("Failed to click notfication. Error: " + e)
-    }
-
-    // TODO 5.3 - close all notifications when one is clicked
-
-});
-
-/* This works
-self.addEventListener('notificationclick', event => {
-
-    try {
-        
-        const notification = event.notification;
-        const primaryKey = notification.data.primaryKey;
-        const url = notification.data.url;
-        const action = event.action;
-
         if (action === 'close') {
             notification.close();
         } else {
-            clients.openWindow(url);
+            event.waitUntil(clients.openWindow(self.location.origin + url));
             notification.close();
         }
 
@@ -134,7 +109,7 @@ self.addEventListener('notificationclick', event => {
     // TODO 5.3 - close all notifications when one is clicked
 
 });
-*/
+
 
 /* This works
 self.addEventListener("push", (event) => {
