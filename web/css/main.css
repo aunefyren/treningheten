@@ -1677,6 +1677,12 @@ input[type=checkbox]
 
 .calender_status {
   margin-top: 0.25em;
+  position: absolute;
+  left: 0; 
+  right: 0; 
+  margin-left: auto; 
+  margin-right: auto; 
+  width: 100%; /* Need a specific value to work */
 }
 
 .button-collection {
@@ -1802,4 +1808,27 @@ input[type=checkbox]
   transition: all 2s;
   transform: rotate(-45deg);
   animation: shine 6s infinite forwards;
+}
+
+.season-progress-bar-wrapper, .week-progress-bar-wrapper {
+  width: 100%;
+  width: -webkit-fill-available;
+  width: -moz-available;
+  /*border: solid 0.1em var(--lightblue);*/
+  border-radius: 0.5em;
+  box-sizing: content-box;
+  overflow: hidden;
+  background-color: var(--white);
+  /*box-shadow: 0.1em 0.2em 0.5em rgba(0,0,0,.09);*/
+  position: relative;
+}
+
+.season-progress-bar, .week-progress-bar {
+  height: 2em;
+  width: 0;
+  background-color: var(--lightblue);
+  box-sizing: inherit;
+  overflow: hidden;
+  transition: 2s;
+  text-align: center;
 }

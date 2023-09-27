@@ -518,3 +518,110 @@ function HTMLDecode(text) {
 function HTMLAddNewLines(text) {
     return text.replace('\n', "<br>")
 }
+
+function IncreaseNumberInput(input_id, min, max) {
+    var input_element = document.getElementById(input_id)
+    var old_number = Number(input_element.innerHTML)
+    var new_number = old_number + 1
+    if(new_number <= max && new_number >= min) {
+        input_element.innerHTML = new_number
+    }
+}
+
+function DecreaseNumberInput(input_id, min, max) {
+    var input_element = document.getElementById(input_id)
+    var old_number = Number(input_element.innerHTML)
+    var new_number = old_number - 1
+    if(new_number <= max && new_number >= min) {
+        input_element.innerHTML = new_number
+    }
+}
+
+function getDebtOverview() {
+
+    var xhttp = new XMLHttpRequest();
+    xhttp.onreadystatechange = function() {
+        if (this.readyState == 4) {
+            
+            try {
+                result = JSON.parse(this.responseText);
+            } catch(e) {
+                console.log(e +' - Response: ' + this.responseText);
+                error("Could not reach API.");
+                return;
+            }
+            
+            if(result.error) {
+
+                error(result.error);
+
+            } else {
+
+                if(result.overview.debt_lost.length > 0) {
+
+                    placeDebtSpin(result.overview);
+
+                } else if(result.overview.debt_unviewed.length > 0 || result.overview.debt_won.length > 0 || result.overview.debt_unpaid.length > 0) {
+
+                    placeDebtOverview(result.overview);
+
+                } else {
+
+                    document.getElementById("debt-module").style.display = "none";
+
+                }
+
+            }
+
+        }
+    };
+    xhttp.withCredentials = true;
+    xhttp.open("post", api_url + "auth/debt");
+    xhttp.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
+    xhttp.setRequestHeader("Authorization", jwt);
+    xhttp.send();
+    return false;
+
+}
+
+function setPrizeReceived(debt_id) {
+
+    if(!confirm("Are you sure?")) {
+        return;
+    }
+
+    var xhttp = new XMLHttpRequest();
+    xhttp.onreadystatechange = function() {
+        if (this.readyState == 4) {
+            
+            try {
+                result = JSON.parse(this.responseText);
+            } catch(e) {
+                console.log(e +' - Response: ' + this.responseText);
+                error("Could not reach API.");
+                return;
+            }
+            
+            if(result.error) {
+
+                error(result.error);
+
+            } else {
+
+                getDebtOverview();
+
+            }
+
+        }
+    };
+    xhttp.withCredentials = true;
+    xhttp.open("post", api_url + "auth/debt/" + debt_id + "/received");
+    xhttp.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
+    xhttp.setRequestHeader("Authorization", jwt);
+    xhttp.send();
+    return false;
+}
+
+function weeksBetween(d1, d2) {
+    return Math.round((d2 - d1) / (7 * 24 * 60 * 60 * 1000));
+}

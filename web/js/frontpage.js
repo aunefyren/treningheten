@@ -49,69 +49,6 @@ function load_page(result) {
 
                     </div>
 
-                    <div class="module" id="registergoal" style="display: none;">
-
-                        <div id="season" class="season">
-
-                            <h3 id="register_season_title" style="margin: 0 0 0.5em 0;">Loading...</h3>
-                            <p id="register_season_start">...</p>
-                            <p id="register_season_end">...</p>
-                            <p style="margin-top: 1em; text-align: center;" id="register_season_desc">...</p>
-
-                            <hr style="margin: 1em 0;">
-
-                            <label for="commitment" title="How many days a week are you going to work out?">Weekly exercise goal</label>
-                            <div class="number-box" id="commitment">
-                                0
-                            </div>
-                            <div class="two-buttons">
-                                <img src="assets/minus.svg" class="small-button-icon" onclick="DecreaseNumberInput('commitment', 1, 21);">
-                                <img src="assets/plus.svg" class="small-button-icon" onclick="IncreaseNumberInput('commitment', 1, 21);">
-                            </div>
-
-                            <hr style="margin: 1em 0;">
-
-                            <input style="" type="checkbox" id="compete" class="clickable" name="compete" value="compete" required>
-                            <label for="compete" class="clickable" style="user-select: none; text-align: center;" title="If I fail to complete my goal, I must spin a wheel of fortune and provide a prize to the winner."> I want to compete with others to uphold my workout streak.</label><br>
-
-                            <p id="prize-title" style="margin-top: 1em;">Potential prize:</p>
-                            <div class="prize-wrapper">
-                                <div id="register-prize-text" class="prize-text">...</div>
-                            </div>
-
-                            <hr style="margin: 1em 0;">
-
-                            <button type="submit" onclick="register_goal();" id="register_goal_button" style=""><img src="assets/done.svg" class="btn_logo color-invert"><p2>Join season</p2></button>
-
-                        </div>
-
-                    </div>
-
-                    <div class="module" id="countdownseason" style="display: none;">
-
-                        <div id="season" class="season">
-
-                            <h3 id="countdown_season_title" style="margin: 0 0 0.5em 0;">Loading...</h3>
-                            <p id="countdown_season_start">...</p>
-                            <p id="countdown_season_end">...</p>
-                            <p style="margin-top: 1em; text-align: center;" id="countdown_season_desc">...</p>
-
-                            <hr style="margin: 1em 0;">
-
-                            <p style="text-align: center;" id="countdown_goal">...</p>
-
-                            <hr style="margin: 1em 0;">
-
-                            <p id="countdown_title">Starting in:</p>
-                            
-                            <p style="font-size: 2em; text-align: center;" id="countdown_number" class="countdown_number">00d 00h 00m 00s</p>
-
-                            <a style="margin: 1em 0 0 0; font-size:0.75em; cursor: pointer;" onclick="delete_goal();">I changed my mind!</i></a>
-
-                        </div>
-
-                    </div>
-
                     <div class="module" id="ongoingseason" style="display: none;">
 
                         <div class="modules">
@@ -120,14 +57,18 @@ function load_page(result) {
 
                                 <div class="week_days" id='calendar'>
 
-                                    <div class="calender_status unselectable" id="calender_status">
-                                        <a id="workout_this_week">...</a>
-                                        /
-                                        <a id="goal_this_week">...</a>
-                                        this week
+                                    <div class="week-progress-bar-wrapper" style="width: 20em;">
+                                        <div id="week-progress-bar" class="week-progress-bar transparent" style="">
+                                            <div class="calender_status unselectable" id="calender_status">
+                                                <a id="workout_this_week">...</a>
+                                                /
+                                                <a id="goal_this_week">...</a>
+                                                this week
+                                            </div>
+                                        </div>
                                     </div>
 
-                                    <hr style="margin: 0.25em;">
+                                    <hr style="margin: 0 0.25em 0.25em 0.25em">
 
                                     <div class="form-group" style="" id="day_1_group">
                                         <div class="day-check">
@@ -305,7 +246,20 @@ function load_page(result) {
 
                             <div class="module-two">
 
-                                <div id="season-module" class="season">
+                                <div id="season-module" class="season" style="padding: 0 1em 1em 1em;">
+
+                                    <div class="season-progress-bar-wrapper" style="width: 20em;">
+                                        <div id="season-progress-bar" class="season-progress-bar transparent" style="">
+                                            <div class="calender_status unselectable" id="season_status">
+                                                <a id="weeks_so_far">...</a>
+                                                /
+                                                <a id="weeks_total">...</a>
+                                                weeks
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <hr style="margin: 0 0.25em 0.25em 0.25em">
 
                                     <h3 id="season_title">Loading...</h3>
                                     <p id="season_desc" style="text-align: center;">...</p>
@@ -521,7 +475,7 @@ function get_season(user_id){
                 info(result.error);
                 document.getElementById('front-page-text').innerHTML = 'An administrator must plan a new season.';
 
-                get_debtoverview_prepare(true);
+                getDebtOverview();
 
             } else if(result.error) {
 
@@ -546,17 +500,15 @@ function get_season(user_id){
                 var now = Date.now();
 
                 if(user_found && now < date_start) {
-                    countdown_module(season, goal, result.timezone)
-                    get_debtoverview_prepare(false);
+                    countdownRedirect()
                 } else if(user_found) {
                     document.getElementById("ongoingseason").style.display = "flex"
                     get_calendar(false);
                     place_season(season);
                     get_leaderboard();
-                    get_debtoverview();
+                    getDebtOverview();
                 } else {
-                    registergoal_module(season)
-                    get_debtoverview_prepare(false);
+                    registerGoalRedirect();
                 }
 
             }
@@ -574,39 +526,16 @@ function get_season(user_id){
 
 }
 
-function countdown_module(season_object, exercise_goal, timezone) {
+function countdownRedirect() {
 
-    var date_start = new Date(season_object.start);
-    var date_end = new Date(season_object.end);
-
-    document.getElementById("countdownseason").style.display = "flex"
-    document.getElementById("countdown_season_title").innerHTML = season_object.name
-    document.getElementById("countdown_season_start").innerHTML = "Season start: " + GetDateString(date_start, true)
-    document.getElementById("countdown_season_end").innerHTML = "Season end: " + GetDateString(date_end, true)
-    document.getElementById("countdown_season_desc").innerHTML = season_object.description
-    document.getElementById("countdown_goal").innerHTML = "You are signed up for " + exercise_goal + " exercises a week."
-
-    var partici_string = "participants"
-    if(season_object.goals.length == 1) {
-        partici_string = "participant"
-    }
-
-    document.getElementById("countdown_title").innerHTML = season_object.goals.length + " " + partici_string + ". Starting in: "
-
-    StartCountDown(date_start, timezone);
+    window.location = '/countdown'
+    
 }
 
-function registergoal_module(season_object) {
+function registerGoalRedirect() {
 
-    var date_start = new Date(season_object.start);
-    var date_end = new Date(season_object.end);
-
-    document.getElementById("registergoal").style.display = "flex"
-    document.getElementById("register_season_title").innerHTML = season_object.name
-    document.getElementById("register_season_start").innerHTML = "Season start: " + GetDateString(date_start, true)
-    document.getElementById("register_season_end").innerHTML = "Season end: " + GetDateString(date_end, true)
-    document.getElementById("register_season_desc").innerHTML = season_object.description
-    document.getElementById("register-prize-text").innerHTML = season_object.prize.quantity + " " + season_object.prize.name
+    window.location = '/registergoal'
+    
 }
 
 function place_season(season_object) {
@@ -614,54 +543,6 @@ function place_season(season_object) {
     document.getElementById("season_title").innerHTML = season_object.name
     document.getElementById("season_desc").innerHTML = season_object.description
     document.getElementById("prize-text").innerHTML = season_object.prize.quantity + " " + season_object.prize.name
-
-}
-
-function register_goal() {
-
-    var exercise_goal = Number(document.getElementById("commitment").innerHTML);
-    var goal_compete = document.getElementById("compete").checked
-
-    var form_obj = {
-        "exercise_interval": exercise_goal,
-        "competing": goal_compete
-
-    };
-
-    var form_data = JSON.stringify(form_obj);
-
-    var xhttp = new XMLHttpRequest();
-    xhttp.onreadystatechange = function() {
-        if (this.readyState == 4) {
-            
-            try {
-                result = JSON.parse(this.responseText);
-            } catch(e) {
-                console.log(e +' - Response: ' + this.responseText);
-                error("Could not reach API.");
-                return;
-            }
-            
-            if(result.error) {
-
-                error(result.error);
-
-            } else {
-
-                location.reload()
-
-            }
-
-        } else {
-            info("Saving goal...");
-        }
-    };
-    xhttp.withCredentials = true;
-    xhttp.open("post", api_url + "auth/goal/register");
-    xhttp.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
-    xhttp.setRequestHeader("Authorization", jwt);
-    xhttp.send(form_data);
-    return false;
 
 }
 
@@ -686,7 +567,7 @@ function get_calendar(fireworks){
             } else {
 
                 clearResponse();
-                week = result.week;
+                var week = result.week;
 
                 console.log(week);
 
@@ -763,8 +644,7 @@ function place_week(week, fireworks) {
         // document.getElementById("day_" + i + "_edit").style.display = "flex" // Disabled because not ready
     }
 
-    // Place the exercise sum
-    document.getElementById("workout_this_week").innerHTML = fireworks_int;
+    document.getElementById("workout_this_week").innerText  = fireworks_int
 
     return
 
@@ -843,6 +723,8 @@ function update_exercises(go_to_exercise, weekDayInt) {
 
     var form_data = JSON.stringify(form_obj);
 
+    document.getElementById("week-progress-bar").classList.add('transparent');
+
     console.log("Saving new week: ")
     console.log(form_data)
 
@@ -902,63 +784,6 @@ function update_exercises(go_to_exercise, weekDayInt) {
     xhttp.send(form_data);
     return false;
 
-}
-
-function IncreaseNumberInput(input_id, min, max) {
-    var input_element = document.getElementById(input_id)
-    var old_number = Number(input_element.innerHTML)
-    var new_number = old_number + 1
-    if(new_number <= max && new_number >= min) {
-        input_element.innerHTML = new_number
-    }
-}
-
-function DecreaseNumberInput(input_id, min, max) {
-    var input_element = document.getElementById(input_id)
-    var old_number = Number(input_element.innerHTML)
-    var new_number = old_number - 1
-    if(new_number <= max && new_number >= min) {
-        input_element.innerHTML = new_number
-    }
-}
-
-function StartCountDown(countdownDate){
-
-    // Set the date we're counting down to
-    var countDownDate = countdownDate.getTime();
-
-    // Update the count down every 1 second
-    var x = setInterval(function() {
-
-        // Get today's date
-        var now = new Date();
-
-        // Find the distance between now and the count down date
-        var distance = Math.floor(countDownDate - now.getTime());
-    
-        // Time calculations for days, hours, minutes and seconds
-        var days = Math.floor(distance / (1000 * 60 * 60 * 24));
-        var hours = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-        var minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
-        var seconds = Math.floor((distance % (1000 * 60)) / 1000);
-
-        if (distance > 0) {
-            // Display the result in the element with id="demo"
-            document.getElementById("countdown_number").innerHTML = padNumber(days, 2) + "d " + padNumber(hours, 2) + "h "
-            + padNumber(minutes, 2) + "m " + padNumber(seconds, 2) + "s ";
-        
-            // If the count down is finished, write some text
-        } else {
-            clearInterval(x);
-            document.getElementById("countdown_number").innerHTML = "...";
-
-            setTimeout(() => {
-                location.reload();
-            }, 5000);
-              
-        }
-        
-    }, 1000);
 }
 
 function get_leaderboard(fireworks){
@@ -1130,10 +955,13 @@ function place_season_details(goal, sickleave, seasonStart, SeasonEnd) {
     }
 
     document.getElementById("week_goal").innerHTML = goal
-    document.getElementById("goal_this_week").innerHTML = goal;
+    document.getElementById("goal_this_week").innerText  = goal
     document.getElementById("goal_sickleave").innerHTML = sickleave
     document.getElementById("season_start").innerHTML = date_start_string
     document.getElementById("season_end").innerHTML = date_end_string
+
+    placeSeasonProgress(date_start, date_end);
+     
 }
 
 function place_current_week(week_array) {
@@ -1163,6 +991,10 @@ function place_current_week(week_array) {
             var current_streak = week_array.users[i].current_streak + "🔥"
         } else {
             var current_streak = week_array.users[i].current_streak + "💀"
+        }
+
+        if(week_array.users[i].user.ID == user_id) {
+            placeWeekProgress(completion)
         }
 
         var week_html = `
@@ -1293,73 +1125,7 @@ function use_sickleave() {
 
 }
 
-function get_debtoverview() {
-
-    var xhttp = new XMLHttpRequest();
-    xhttp.onreadystatechange = function() {
-        if (this.readyState == 4) {
-            
-            try {
-                result = JSON.parse(this.responseText);
-            } catch(e) {
-                console.log(e +' - Response: ' + this.responseText);
-                error("Could not reach API.");
-                return;
-            }
-            
-            if(result.error) {
-
-                error(result.error);
-
-            } else {
-
-                if(result.overview.debt_lost.length > 0) {
-
-                    var date_str = ""
-                    try {
-                        var date = new Date(result.overview.debt_lost[0].date);
-                        var date_week = date.GetWeek();
-                        var date_year = date.getFullYear();
-                        var date_str = date_week + " (" + date_year + ")"
-                    } catch {
-                        date_str = "Error"
-                    }
-    
-                    document.getElementById("ongoingseason").style.display = "none";
-                    document.getElementById("unspun-wheel").style.display = "flex";
-                    document.getElementById("unspun-wheel").innerHTML = `
-                        You failed to reach your goal for week ${date_str} and must spin the wheel.
-                        <div id="canvas-buttons" class="canvas-buttons">
-                            <button id="go-to-wheel" onclick="location.replace('./wheel?debt_id=${result.overview.debt_lost[0].ID}');">Take me there</button>
-                        </div>
-                        `;
-
-                    return;
-
-                } else if(result.overview.debt_unviewed.length > 0 || result.overview.debt_won.length > 0 || result.overview.debt_unpaid.length > 0) {
-
-                    place_debtoverview(result.overview);
-
-                } else {
-
-                    document.getElementById("debt-module").style.display = "none";
-
-                }
-
-            }
-
-        }
-    };
-    xhttp.withCredentials = true;
-    xhttp.open("post", api_url + "auth/debt");
-    xhttp.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
-    xhttp.setRequestHeader("Authorization", jwt);
-    xhttp.send();
-    return false;
-
-}
-
-function place_debtoverview(overviewArray) {
+function placeDebtOverview(overviewArray) {
 
     var html = "";
 
@@ -1379,7 +1145,7 @@ function place_debtoverview(overviewArray) {
 
         html += `
             <div class="debt-module-notification-view" id="">
-                ${overviewArray.debt_unviewed[i].debt.loser.first_name} spun the wheel for week ${date_str}.<br>See if you won!<br>
+                ${overviewArray.debt_unviewed[i].debt.loser.first_name} ${overviewArray.debt_unviewed[i].debt.loser.last_name} spun the wheel for week ${date_str}.<br>See if you won!<br>
                 <img src="assets/arrow-right.svg" class="small-button-icon" onclick="location.replace('./wheel?debt_id=${overviewArray.debt_unviewed[i].debt.ID}'); ">
             </div>
             `;
@@ -1401,8 +1167,8 @@ function place_debtoverview(overviewArray) {
 
         html += `
             <div class="debt-module-notification-prize" id="">
-                ${overviewArray.debt_won[i].loser.first_name} spun the wheel for week ${date_str} and you won <b>${overviewArray.debt_won[i].season.prize.quantity} ${overviewArray.debt_won[i].season.prize.name}</b>!<br>Have you received it?<br>
-                <img src="assets/done.svg" class="small-button-icon" onclick="set_prizereceived(${overviewArray.debt_won[i].ID});">
+                ${overviewArray.debt_won[i].loser.first_name} ${overviewArray.debt_won[i].loser.last_name} spun the wheel for week ${date_str} and you won <b>${overviewArray.debt_won[i].season.prize.quantity} ${overviewArray.debt_won[i].season.prize.name}</b>!<br>Have you received it?<br>
+                <img src="assets/done.svg" class="small-button-icon" onclick="setPrizeReceived(${overviewArray.debt_won[i].ID});">
             </div>
             `;
     }
@@ -1423,7 +1189,7 @@ function place_debtoverview(overviewArray) {
 
         html += `
             <div class="debt-module-notification-debt" id="">
-                You spun the wheel for week ${date_str} and ${overviewArray.debt_unpaid[i].winner.first_name} won ${overviewArray.debt_unpaid[i].season.prize.quantity} ${overviewArray.debt_unpaid[i].season.prize.name}!<br>Provide the prize as soon as possible!<br>
+                You spun the wheel for week ${date_str} and ${overviewArray.debt_unpaid[i].winner.first_name} ${overviewArray.debt_unpaid[i].winner.last_name} won ${overviewArray.debt_unpaid[i].season.prize.quantity} ${overviewArray.debt_unpaid[i].season.prize.name}!<br>Provide the prize as soon as possible!<br>
             </div>
             `;
     }
@@ -1432,100 +1198,27 @@ function place_debtoverview(overviewArray) {
 
 }
 
-function set_prizereceived(debt_id) {
-
-    if(!confirm("Are you sure?")) {
-        return;
+function placeDebtSpin(overview) {
+    
+    var date_str = ""
+    try {
+        var date = new Date(overview.debt_lost[0].date);
+        var date_week = date.GetWeek();
+        var date_year = date.getFullYear();
+        var date_str = date_week + " (" + date_year + ")"
+    } catch {
+        date_str = "Error"
     }
-
-    var xhttp = new XMLHttpRequest();
-    xhttp.onreadystatechange = function() {
-        if (this.readyState == 4) {
-            
-            try {
-                result = JSON.parse(this.responseText);
-            } catch(e) {
-                console.log(e +' - Response: ' + this.responseText);
-                error("Could not reach API.");
-                return;
-            }
-            
-            if(result.error) {
-
-                error(result.error);
-
-            } else {
-
-                get_debtoverview();
-
-            }
-
-        }
-    };
-    xhttp.withCredentials = true;
-    xhttp.open("post", api_url + "auth/debt/" + debt_id + "/received");
-    xhttp.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
-    xhttp.setRequestHeader("Authorization", jwt);
-    xhttp.send();
-    return false;
-}
-
-function get_debtoverview_prepare(show_barbell) {
-
-    document.getElementById("exercises").style.display = "none";
-    document.getElementById("leaderboard").style.display = "none";
-    document.getElementById("season-module").style.display = "none";
-    document.getElementById("current-week").style.display = "none";
-
-    document.getElementById("ongoingseason").style.display = "flex";
-
-    if(show_barbell) {
-        document.getElementById("barbell-gif").style.display = "flex";
-    }
-
-    get_debtoverview();
-
-}
-
-function delete_goal() {
-
-    if(!confirm("Are you sure you want to delete your goal? You are free to create another one afterward as long as the season has not started.")) {
-        return
-    }
-
-    var xhttp = new XMLHttpRequest();
-    xhttp.onreadystatechange = function() {
-        if (this.readyState == 4) {
-            
-            try {
-                result = JSON.parse(this.responseText);
-            } catch(e) {
-                console.log(e +' - Response: ' + this.responseText);
-                error("Could not reach API.");
-                return;
-            }
-            
-            if(result.error) {
-
-                error(result.error);
-
-            } else {
-
-                location.reload();
-                
-            }
-
-        } else {
-            // info("Loading week...");
-        }
-    };
-    xhttp.withCredentials = true;
-    xhttp.open("post", api_url + "auth/goal/delete");
-    xhttp.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
-    xhttp.setRequestHeader("Authorization", jwt);
-    xhttp.send();
-    return false;
-
+    
+    document.getElementById("ongoingseason").style.display = "none";
+    document.getElementById("unspun-wheel").style.display = "flex";
+    document.getElementById("unspun-wheel").innerHTML = `
+        You failed to reach your goal for week ${date_str} and must spin the wheel.
+        <div id="canvas-buttons" class="canvas-buttons">
+            <button id="go-to-wheel" onclick="location.replace('./wheel?debt_id=${overview.debt_lost[0].ID}');">Take me there</button>
+        </div>
+    `;
+    return;
 }
 
 function EditExercise(weekdayInt) {
@@ -1537,5 +1230,51 @@ function EditExercise(weekdayInt) {
 function GoToExercise(exerciseID) {
 
     window.location = './exercise/' + exerciseID
+
+}
+
+function placeSeasonProgress(seasonStartObject, seasonEndObject) {
+
+    // Subtract 7 days
+    seasonStartObject.setDate(seasonStartObject.getDate() - 7);
+    seasonEndObject.setDate(seasonEndObject.getDate() - 7);
+
+    weekSum = weeksBetween(seasonStartObject, seasonEndObject)
+
+    now = new Date();
+    weekAmount = weeksBetween(seasonStartObject, now)
+
+    document.getElementById("weeks_so_far").innerHTML = weekAmount
+    document.getElementById("weeks_total").innerHTML = weekSum
+
+    var ach_percentage = Math.floor((weekAmount / weekSum) * 100)
+    console.log(ach_percentage)
+    document.getElementById("season-progress-bar").style.width  = ach_percentage + "%"
+
+    if(ach_percentage > 99) {
+        document.getElementById("season-progress-bar").classList.remove('transparent');
+        setTimeout(function() {
+            document.getElementById("season-progress-bar").classList.add("blink")
+        }, 1500);
+        setTimeout(function() {
+            document.getElementById("season-progress-bar").classList.remove('blink');
+        }, 2500);
+    }
+}
+
+function placeWeekProgress(percentage, exercise, exerciseGoal) {
+
+    console.log("Week progress: " + percentage)
+    document.getElementById("week-progress-bar").style.width  = percentage + "%"
+
+    if(percentage > 99) {
+        document.getElementById("week-progress-bar").classList.remove('transparent');
+        setTimeout(function() {
+            document.getElementById("week-progress-bar").classList.add("blink")
+        }, 1500);
+        setTimeout(function() {
+            document.getElementById("week-progress-bar").classList.remove('blink');
+        }, 2500);
+    }
 
 }

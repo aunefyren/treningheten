@@ -26,7 +26,7 @@ func SetPrivateKey(PrivateKey string) error {
 }
 
 func GenerateJWT(userID int) (tokenString string, err error) {
-	expirationTime := time.Now().Add(1 * time.Hour * 24 * 7)
+	expirationTime := time.Now().Add(time.Hour * 24 * 7)
 	claims := &JWTClaim{
 		UserID: userID,
 		RegisteredClaims: jwt.RegisteredClaims{
@@ -38,6 +38,9 @@ func GenerateJWT(userID int) (tokenString string, err error) {
 	}
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 	tokenString, err = token.SignedString(jwtKey)
+	if err != nil {
+		return "", err
+	}
 	return
 }
 
@@ -68,11 +71,11 @@ func ValidateToken(signedToken string, admin bool) (err error) {
 	}
 	now := time.Now()
 	if claims.ExpiresAt.Time.Before(now) {
-		err = errors.New("Token expired.")
+		err = errors.New("Token has expired.")
 		return
 	}
 	if claims.NotBefore.Time.After(now) {
-		err = errors.New("Token not begun.")
+		err = errors.New("Token has not begun.")
 		return
 	}
 
@@ -83,7 +86,7 @@ func ValidateToken(signedToken string, admin bool) (err error) {
 			err = errors.New("Failed to check admin status.")
 			return
 		} else if *userObject.Admin != true {
-			err = errors.New("Token not an admin session.")
+			err = errors.New("Token is not an admin session.")
 			return
 		}
 	}
@@ -105,7 +108,7 @@ func ParseToken(signedToken string) (*JWTClaim, error) {
 	}
 	claims, ok := token.Claims.(*JWTClaim)
 	if !ok {
-		err = errors.New("couldn't parse claims")
+		err = errors.New("Couldn't parse claims")
 		return nil, err
 	} else if claims.ExpiresAt == nil || claims.NotBefore == nil {
 		err = errors.New("Claims not present.")
@@ -113,11 +116,11 @@ func ParseToken(signedToken string) (*JWTClaim, error) {
 	}
 	now := time.Now()
 	if claims.ExpiresAt.Time.Before(now) {
-		err = errors.New("Token expired.")
+		err = errors.New("Token has expired.")
 		return nil, err
 	}
 	if claims.NotBefore.Time.After(now) {
-		err = errors.New("Token not begun.")
+		err = errors.New("Token has not begun.")
 		return nil, err
 	}
 	return claims, nil

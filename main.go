@@ -355,7 +355,17 @@ func initRouter() *gin.Engine {
 		c.HTML(http.StatusOK, "wheel.html", nil)
 	})
 
-	// Static endpoint for other accounts
+	// Static endpoint for season countdown
+	router.GET("/countdown", func(c *gin.Context) {
+		c.HTML(http.StatusOK, "countdown.html", nil)
+	})
+
+	// Static endpoint for season sign up
+	router.GET("/registergoal", func(c *gin.Context) {
+		c.HTML(http.StatusOK, "registergoal.html", nil)
+	})
+
+	// Static endpoint for editing exercise log
 	router.GET("/exercise/:exercise_id", func(c *gin.Context) {
 		c.HTML(http.StatusOK, "exercise.html", nil)
 	})

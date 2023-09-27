@@ -148,7 +148,7 @@ function get_debt(debt_id) {
                     date_str = "Error"
                 }
 
-                document.getElementById('spinner-info').innerHTML = result.debt.loser.first_name + " is spinning for week " + date_str + "!";
+                document.getElementById('spinner-info').innerHTML = result.debt.loser.first_name + " " + result.debt.loser.last_name + " is spinning for week " + date_str + "!";
 
                 loser = result.debt.loser;
                 prize = result.debt.season.prize;
@@ -330,7 +330,7 @@ function spinFinished() {
     if(winner.ID == user_id) {
         info("You won " + prize.quantity + " " + prize.name + " from " + loser.first_name + ".")
     } else {
-        info(winner.first_name + " won " + prize.quantity + " " + prize.name + " from " + loser.first_name + ".")
+        info(winner.first_name + " " + winner.last_name + " won " + prize.quantity + " " + prize.name + " from " + loser.first_name + ".")
     }
 
     trigger_fireworks(2);
