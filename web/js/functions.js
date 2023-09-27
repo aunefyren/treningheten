@@ -131,7 +131,18 @@ function get_login(cookie) {
 // Called when login session was rejected, showing no content and an error
 function invalid_session() {
     showLoggedOutMenu();
-    document.getElementById('content').innerHTML = '';
+    document.getElementById('content').innerHTML = `
+    <div class="" id="front-page">
+        <div class="module">
+            <div class="text-body" id="front-page-text" style="text-align: center;">
+                Log in to use the platform.
+            </div>
+            <div id="log-in-button" style="margin-top: 2em; display: flex; width: 10em;">
+                <button id="update-button" type="submit" href="#" onclick="window.location = '/login';">Log in</button>
+            </div>
+        </div>
+    </div>
+    `;
     document.getElementById('card-header').innerHTML = 'Log in...';
     error('No access.');
 }

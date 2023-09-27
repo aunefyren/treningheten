@@ -40,7 +40,7 @@ function load_page(result) {
                         </div>
 
                         <div id="log-in-button" style="margin-top: 2em; display: none; width: 10em;">
-                            <button id="update-button" type="submit" href="#" onclick="window.location = './login';">Log in</button>
+                            <button id="update-button" type="submit" href="#" onclick="window.location = '/login';">Log in</button>
                         </div>
 
                         <div class="module" id="barbell-gif" style="display: none;">
