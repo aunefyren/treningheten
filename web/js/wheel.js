@@ -51,12 +51,12 @@ function load_page(result) {
                     
         <div class="module" id="wheel-module" style="display: none;">
 
-            <div style="display: none;" id="spinner-winner-image-wrapper" class="spinner-winner-image-wrapper">
+            <div style="" id="spinner-winner-image-wrapper" class="spinner-winner-image-wrapper">
                 <div class="title">
                     Winner!
                 </div>
-                <div class="spinner-winner-image-div">
-                    <img src="/assets/user.svg" id="spinner-winner-image" class="shiny-image"></img>
+                <div class="spinner-winner-image-div" id="spinner-winner-image-div">
+                    <img src="/assets/images/barbell.gif" id="spinner-winner-image" class="shiny-image"></img>
                 </div>
             </div>
 
@@ -322,7 +322,10 @@ function spinFinished() {
 
     GetProfileImage(winner.ID);
     document.getElementById('spinner-winner-image').onclick = function(){location.href=`./user/${winner.ID}`};
-    document.getElementById('spinner-winner-image-wrapper').style.display = "flex";
+    document.getElementById('spinner-winner-image-wrapper').style.animation = "slide 0.25s ease 0.5s forwards";
+    setTimeout(function () {
+        document.getElementById('spinner-winner-image-wrapper').style.animation = "slide 0.25s ease 0.5s forwards, smooth-appear 0.5s ease forwards";
+    }, 1000);
     
     if(winner.ID == user_id) {
         info("You won " + prize.quantity + " " + prize.name + " from " + loser.first_name + ".")
@@ -412,9 +415,17 @@ function PlaceProfileImage(imageBase64) {
 
     document.getElementById("spinner-winner-image").src = imageBase64
 
+    setInterval(function () {
+        document.getElementById('spinner-winner-image-div').classList.add('shine')
+        setTimeout(function () {
+            document.getElementById('spinner-winner-image-div').classList.remove('shine')
+        }, 2000);
+    }, 3000);
+
 }
 
 function resetPage() {
-    document.getElementById('spinner-winner-image-wrapper').style.display = "none";
-    document.getElementById("spinner-winner-image").src = "/assets/user.svg"
+    document.getElementById("spinner-winner-image").src = "/assets/images/barbell.gif"
+    document.getElementById('spinner-winner-image-wrapper').style.animation = "";
+    document.getElementById('spinner-winner-image-wrapper').style.height = "0";
 }
