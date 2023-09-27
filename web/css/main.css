@@ -1744,7 +1744,7 @@ input[type=checkbox]
 
 .shiny-image {
   --a: 8deg; /* control the angle of rotation (the smaller, the better) */
-  box-sizing: content-box;
+  box-sizing: border-box;
   width: 20em;
   height: 20em;
   max-width: 100%;
@@ -1759,6 +1759,8 @@ input[type=checkbox]
   border-radius: 10%;
   border: solid 0.2em var(--lightblue);
   background-color: var(--white);
+  object-fit: cover;
+  overflow: hidden;
 }
 .shiny-image:hover {
   --i: -1;
