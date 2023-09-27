@@ -51,6 +51,15 @@ function load_page(result) {
                     
         <div class="module" id="wheel-module" style="display: none;">
 
+            <div style="display: none;" id="spinner-winner-image-wrapper" class="spinner-winner-image-wrapper">
+                <div class="title">
+                    Winner!
+                </div>
+                <div class="spinner-winner-image-div">
+                    <img src="/assets/user.svg" id="spinner-winner-image" class="shiny-image"></img>
+                </div>
+            </div>
+
             <div id="spinner-info" class="spinner-info">
             </div>
 
@@ -63,7 +72,7 @@ function load_page(result) {
             <div id="canvas-buttons" class="canvas-buttons">
 
                 <button id="bigButton" class="bigButton" onclick="calculatePrize(); this.disabled=true;">Spin the Wheel</button>
-                <a href="javascript:void(0);" id="reset-button" style="display: none;" onclick="theWheel.stopAnimation(false); theWheel.rotationAngle=0; theWheel.draw(); drawTriangle(); bigButton.disabled=false; clearResponse();">Reset</a>
+                <a href="javascript:void(0);" id="reset-button" style="display: none;" onclick="theWheel.stopAnimation(false); theWheel.rotationAngle=0; theWheel.draw(); drawTriangle(); bigButton.disabled=false; clearResponse(); resetPage();">Reset</a>
                 <a href="javascript:void(0);" id="reload-button" style="display: none;" onclick="location.reload();">Replay</a>
             </div>
         </div>
@@ -310,14 +319,19 @@ function drawTriangle()
 }
 
 function spinFinished() {
-    
 
+    GetProfileImage(winner.ID);
+    document.getElementById('spinner-winner-image').onclick = function(){location.href=`./user/${winner.ID}`};
+    document.getElementById('spinner-winner-image-wrapper').style.display = "flex";
+    
     if(winner.ID == user_id) {
         info("You won " + prize.quantity + " " + prize.name + " from " + loser.first_name + ".")
-        trigger_fireworks(1);
     } else {
         info(winner.first_name + " won " + prize.quantity + " " + prize.name + " from " + loser.first_name + ".")
     }
+
+    trigger_fireworks(2);
+
 }
 
 async function choose_winner(resolve, debt_id) {
@@ -354,4 +368,53 @@ async function choose_winner(resolve, debt_id) {
     xhttp.setRequestHeader("Authorization", jwt);
     xhttp.send();
     return false;
+}
+
+function GetProfileImage(userID) {
+
+    var xhttp = new XMLHttpRequest();
+    xhttp.onreadystatechange = function() {
+        if (this.readyState == 4) {
+            
+            try {
+                result = JSON.parse(this.responseText);
+            } catch(e) {
+                console.log(e +' - Response: ' + this.responseText);
+                error("Could not reach API.");
+                return;
+            }
+            
+            if(result.error) {
+
+                error(result.error);
+
+            } else {
+
+                PlaceProfileImage(result.image)
+                
+            }
+
+        } else {
+            // info("Loading week...");
+        }
+    };
+    xhttp.withCredentials = true;
+    xhttp.open("post", api_url + "auth/user/get/" + userID + "/image");
+    xhttp.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
+    xhttp.setRequestHeader("Authorization", jwt);
+    xhttp.send();
+
+    return;
+
+}
+
+function PlaceProfileImage(imageBase64) {
+
+    document.getElementById("spinner-winner-image").src = imageBase64
+
+}
+
+function resetPage() {
+    document.getElementById('spinner-winner-image-wrapper').style.display = "none";
+    document.getElementById("spinner-winner-image").src = "/assets/user.svg"
 }
