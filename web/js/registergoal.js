@@ -161,13 +161,13 @@ function getSeason(userID){
 
 function countdownRedirect() {
 
-    window.location = '../countdown'
+    window.location = '/countdown'
 
 }
 
 function frontPageRedirect() {
 
-    window.location = '../'
+    window.location = '/'
 
 }
 
@@ -254,7 +254,7 @@ function placeDebtOverview(overviewArray) {
         html += `
             <div class="debt-module-notification-view" id="">
                 ${overviewArray.debt_unviewed[i].debt.loser.first_name} ${overviewArray.debt_unviewed[i].debt.loser.last_name} spun the wheel for week ${date_str}.<br>See if you won!<br>
-                <img src="assets/arrow-right.svg" class="small-button-icon" onclick="location.replace('./wheel?debt_id=${overviewArray.debt_unviewed[i].debt.ID}'); ">
+                <img src="assets/arrow-right.svg" class="small-button-icon" onclick="location.replace('/wheel?debt_id=${overviewArray.debt_unviewed[i].debt.ID}'); ">
             </div>
             `;
     }
@@ -322,7 +322,7 @@ function placeDebtSpin(overview) {
     document.getElementById("unspun-wheel").innerHTML = `
         You failed to reach your goal for week ${date_str} and must spin the wheel.
         <div id="canvas-buttons" class="canvas-buttons">
-            <button id="go-to-wheel" onclick="location.replace('./wheel?debt_id=${overview.debt_lost[0].ID}');">Take me there</button>
+            <button id="go-to-wheel" onclick="location.replace('/wheel?debt_id=${overview.debt_lost[0].ID}');">Take me there</button>
         </div>
     `;
     return;

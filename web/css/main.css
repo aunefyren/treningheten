@@ -1815,12 +1815,14 @@ input[type=checkbox]
   width: -webkit-fill-available;
   width: -moz-available;
   /*border: solid 0.1em var(--lightblue);*/
-  border-radius: 0.5em;
+  border-radius: 0.5em 0.5em 0 0;
   box-sizing: content-box;
   overflow: hidden;
   background-color: var(--white);
   /*box-shadow: 0.1em 0.2em 0.5em rgba(0,0,0,.09);*/
   position: relative;
+  box-sizing: border-box;
+  border-bottom: solid 0.1em var(--eggshell);
 }
 
 .season-progress-bar, .week-progress-bar {

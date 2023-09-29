@@ -61,7 +61,7 @@ function load_page(result) {
                     <div>
 
                         <div class="module" id="loading-dumbell" style="display: none;">
-                            <img src="./assets/images/barbell.gif">
+                            <img src="/assets/images/barbell.gif">
                         </div>
 
                         <div id="season-statistics-element-wrapper-div" class="season-statistics-element-wrapper-div">
@@ -293,14 +293,14 @@ function place_leaderboard(weeks_array, season_id) {
                 var onclick_command_str = "return;"
                 var clickable_str = ""
                 if(weeks_array[i].users[j].debt !== null && weeks_array[i].users[j].debt.winner.ID !== 0) {
-                    onclick_command_str = "location.replace('./wheel?debt_id=" + weeks_array[i].users[j].debt.ID + "'); "
+                    onclick_command_str = "location.replace('/wheel?debt_id=" + weeks_array[i].users[j].debt.ID + "'); "
                     clickable_str = "clickable"
                     completion += "🎡"
                 }
 
                 var result_html = `
                 <div class="leaderboard-week-result" id="">
-                    <div class="leaderboard-week-result-user" style="cursor: pointer;" onclick="location.href='./user/${weeks_array[i].users[j].user.ID}'">
+                    <div class="leaderboard-week-result-user" style="cursor: pointer;" onclick="location.href='/users/${weeks_array[i].users[j].user.ID}'">
                         ` + weeks_array[i].users[j].user.first_name + `
                     </div>
                     <div class="leaderboard-week-result-exercise ` + clickable_str  + `" onclick="` + onclick_command_str  + `">
@@ -320,7 +320,7 @@ function place_leaderboard(weeks_array, season_id) {
 
                 if(!userFound) {
                     var joined_image = `
-                    <div class="leaderboard-week-member" id="member-${season_id}-${weeks_array[i].users[j].user.ID}" title="${weeks_array[i].users[j].user.first_name} ${weeks_array[i].users[j].user.last_name}" onclick="location.href='./user/${weeks_array[i].users[j].user.ID}'">
+                    <div class="leaderboard-week-member" id="member-${season_id}-${weeks_array[i].users[j].user.ID}" title="${weeks_array[i].users[j].user.first_name} ${weeks_array[i].users[j].user.last_name}" onclick="location.href='/users/${weeks_array[i].users[j].user.ID}'">
                         <div class="leaderboard-week-member-image">
                             <img style="width: 100%; height: 100%;" class="leaderboard-week-member-image-img" id="member-img-${season_id}-${weeks_array[i].users[j].user.ID}" src="/assets/images/barbell.gif">
                         </div>

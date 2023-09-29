@@ -44,7 +44,7 @@ function load_page(result) {
                         </div>
 
                         <div class="module" id="barbell-gif" style="display: none;">
-                            <img src="./assets/images/barbell.gif">
+                            <img src="/assets/images/barbell.gif">
                         </div>
 
                     </div>
@@ -57,8 +57,8 @@ function load_page(result) {
 
                                 <div class="week_days" id='calendar'>
 
-                                    <div class="week-progress-bar-wrapper" style="width: 20em;">
-                                        <div id="week-progress-bar" class="week-progress-bar transparent" style="">
+                                    <div id="week-progress-bar-wrapper" class="week-progress-bar-wrapper transparent" style="width: 20em;">
+                                        <div id="week-progress-bar" class="week-progress-bar" style="">
                                             <div class="calender_status unselectable" id="calender_status">
                                                 <a id="workout_this_week">...</a>
                                                 /
@@ -67,8 +67,6 @@ function load_page(result) {
                                             </div>
                                         </div>
                                     </div>
-
-                                    <hr style="margin: 0 0.25em 0.25em 0.25em">
 
                                     <div class="form-group" style="" id="day_1_group">
                                         <div class="day-check">
@@ -248,8 +246,8 @@ function load_page(result) {
 
                                 <div id="season-module" class="season" style="padding: 0 1em 1em 1em;">
 
-                                    <div class="season-progress-bar-wrapper" style="width: 20em;">
-                                        <div id="season-progress-bar" class="season-progress-bar transparent" style="">
+                                    <div id="season-progress-bar-wrapper" class="season-progress-bar-wrapper transparent" style="width: 20em;">
+                                        <div id="season-progress-bar" class="season-progress-bar" style="">
                                             <div class="calender_status unselectable" id="season_status">
                                                 <a id="weeks_so_far">...</a>
                                                 /
@@ -258,8 +256,6 @@ function load_page(result) {
                                             </div>
                                         </div>
                                     </div>
-
-                                    <hr style="margin: 0 0.25em 0.25em 0.25em">
 
                                     <h3 id="season_title">Loading...</h3>
                                     <p id="season_desc" style="text-align: center;">...</p>
@@ -333,127 +329,6 @@ function load_page(result) {
         document.getElementById('front-page-text').innerHTML = 'Log in to use the platform.';
         document.getElementById('log-in-button').style.display = 'inline-block';
     }
-}
-
-function load_verify_account() {
-
-    var html = `
-                <div class="" id="front-page">
-                    
-                    <div class="module">
-                    
-                        <div class="title">
-                            Treningheten
-                        </div>
-
-                        <div class="text-body" style="text-align: center;">
-                            You must verify your account by giving us the access code we e-mailed you.
-                        </div>
-
-                    </div>
-
-                    <div class="module">
-
-                        <form action="" onsubmit="event.preventDefault(); verify_account();">
-                            <label for="email_code">Code:</label><br>
-                            <input type="text" name="email_code" id="email_code" placeholder="Code" autocomplete="one-time-code" required />
-                            <button id="verify-button" type="submit" href="/">Verify</button>
-                        </form>
-
-                    </div>
-
-                    <div class="module">
-                        <a style="font-size:0.75em;cursor:pointer;" onclick="new_code();">Send me a new code!</i>
-                    </div>
-
-                </div>
-
-    `;
-
-    document.getElementById('content').innerHTML = html;
-    document.getElementById('card-header').innerHTML = 'Robot or human?';
-    clearResponse();
-    showLoggedInMenu();
-    document.getElementById('navbar').style.display = 'none';
-
-}
-
-function verify_account(){
-
-    var email_code = document.getElementById("email_code").value;
-
-    var xhttp = new XMLHttpRequest();
-    xhttp.onreadystatechange = function() {
-        if (this.readyState == 4) {
-            
-            try {
-                result = JSON.parse(this.responseText);
-            } catch(e) {
-                console.log(e +' - Response: ' + this.responseText);
-                error("Could not reach API.");
-                return;
-            }
-            
-            if(result.error) {
-
-                error(result.error);
-
-            } else {
-
-                // store jwt to cookie
-                set_cookie("treningheten", result.token, 7);
-                location.reload();
-
-            }
-
-        } else {
-            info("Verifying account...");
-        }
-    };
-    xhttp.withCredentials = true;
-    xhttp.open("post", api_url + "open/user/verify/" + email_code);
-    xhttp.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
-    xhttp.setRequestHeader("Authorization", jwt);
-    xhttp.send();
-    return false;
-    
-}
-
-function new_code(){
-
-    var xhttp = new XMLHttpRequest();
-    xhttp.onreadystatechange = function() {
-        if (this.readyState == 4) {
-            
-            try {
-                result = JSON.parse(this.responseText);
-            } catch(e) {
-                console.log(e +' - Response: ' + this.responseText);
-                error("Could not reach API.");
-                return;
-            }
-            
-            if(result.error) {
-
-                error(result.error);
-
-            } else {
-
-                success(result.message)
-
-            }
-
-        } else {
-            info("Sending new code...");
-        }
-    };
-    xhttp.withCredentials = true;
-    xhttp.open("post", api_url + "open/user/verification");
-    xhttp.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
-    xhttp.setRequestHeader("Authorization", jwt);
-    xhttp.send();
-    return false;
-    
 }
 
 function get_season(user_id){
@@ -723,7 +598,7 @@ function update_exercises(go_to_exercise, weekDayInt) {
 
     var form_data = JSON.stringify(form_obj);
 
-    document.getElementById("week-progress-bar").classList.add('transparent');
+    document.getElementById("week-progress-bar-wrapper").classList.add('transparent');
 
     console.log("Saving new week: ")
     console.log(form_data)
@@ -863,7 +738,7 @@ function place_leaderboard(weeks_array) {
                 var onclick_command_str = "return;"
                 var clickable_str = ""
                 if(weeks_array[i].users[j].debt !== null && weeks_array[i].users[j].debt.winner.ID !== 0) {
-                    onclick_command_str = "location.replace('./wheel?debt_id=" + weeks_array[i].users[j].debt.ID + "'); "
+                    onclick_command_str = "location.replace('/wheel?debt_id=" + weeks_array[i].users[j].debt.ID + "'); "
                     clickable_str = "clickable"
                     completion += "🎡"
                 }
@@ -871,7 +746,7 @@ function place_leaderboard(weeks_array) {
 
                 var result_html = `
                 <div class="leaderboard-week-result" id="">
-                    <div class="leaderboard-week-result-user" style="cursor: pointer;" onclick="location.href='./user/${weeks_array[i].users[j].user.ID}'">
+                    <div class="leaderboard-week-result-user" style="cursor: pointer;" onclick="location.href='/users/${weeks_array[i].users[j].user.ID}'">
                         ` + weeks_array[i].users[j].user.first_name + `
                     </div>
                     <div class="leaderboard-week-result-exercise ` + clickable_str  + `" onclick="` + onclick_command_str  + `">
@@ -1000,7 +875,7 @@ function place_current_week(week_array) {
         var week_html = `
             <div class="current-week-user unselectable" id="">
 
-                <div style="cursor: pointer;" onclick="location.href='./user/${week_array.users[i].user.ID}'">
+                <div style="cursor: pointer;" onclick="location.href='/users/${week_array.users[i].user.ID}'">
                     ${week_array.users[i].user.first_name}
 
                     <div class="current-week-user-photo" title="` + week_array.users[i].user.first_name + ` ` + week_array.users[i].user.last_name + `">
@@ -1146,7 +1021,7 @@ function placeDebtOverview(overviewArray) {
         html += `
             <div class="debt-module-notification-view" id="">
                 ${overviewArray.debt_unviewed[i].debt.loser.first_name} ${overviewArray.debt_unviewed[i].debt.loser.last_name} spun the wheel for week ${date_str}.<br>See if you won!<br>
-                <img src="assets/arrow-right.svg" class="small-button-icon" onclick="location.replace('./wheel?debt_id=${overviewArray.debt_unviewed[i].debt.ID}'); ">
+                <img src="assets/arrow-right.svg" class="small-button-icon" onclick="location.replace('/wheel?debt_id=${overviewArray.debt_unviewed[i].debt.ID}'); ">
             </div>
             `;
     }
@@ -1215,7 +1090,7 @@ function placeDebtSpin(overview) {
     document.getElementById("unspun-wheel").innerHTML = `
         You failed to reach your goal for week ${date_str} and must spin the wheel.
         <div id="canvas-buttons" class="canvas-buttons">
-            <button id="go-to-wheel" onclick="location.replace('./wheel?debt_id=${overview.debt_lost[0].ID}');">Take me there</button>
+            <button id="go-to-wheel" onclick="location.replace('/wheel?debt_id=${overview.debt_lost[0].ID}');">Take me there</button>
         </div>
     `;
     return;
@@ -1229,7 +1104,7 @@ function EditExercise(weekdayInt) {
 
 function GoToExercise(exerciseID) {
 
-    window.location = './exercise/' + exerciseID
+    window.location = '/exercise/' + exerciseID
 
 }
 
@@ -1248,11 +1123,15 @@ function placeSeasonProgress(seasonStartObject, seasonEndObject) {
     document.getElementById("weeks_total").innerHTML = weekSum
 
     var ach_percentage = Math.floor((weekAmount / weekSum) * 100)
-    console.log(ach_percentage)
+    
+    if(ach_percentage > 100) {
+        ach_percentage = 100;
+    }
+
     document.getElementById("season-progress-bar").style.width  = ach_percentage + "%"
 
     if(ach_percentage > 99) {
-        document.getElementById("season-progress-bar").classList.remove('transparent');
+        document.getElementById("season-progress-bar-wrapper").classList.remove('transparent');
         setTimeout(function() {
             document.getElementById("season-progress-bar").classList.add("blink")
         }, 1500);
@@ -1265,10 +1144,15 @@ function placeSeasonProgress(seasonStartObject, seasonEndObject) {
 function placeWeekProgress(percentage, exercise, exerciseGoal) {
 
     console.log("Week progress: " + percentage)
+
+    if(percentage > 100) {
+        percentage = 100;
+    }
+
     document.getElementById("week-progress-bar").style.width  = percentage + "%"
 
     if(percentage > 99) {
-        document.getElementById("week-progress-bar").classList.remove('transparent');
+        document.getElementById("week-progress-bar-wrapper").classList.remove('transparent');
         setTimeout(function() {
             document.getElementById("week-progress-bar").classList.add("blink")
         }, 1500);
@@ -1276,5 +1160,11 @@ function placeWeekProgress(percentage, exercise, exerciseGoal) {
             document.getElementById("week-progress-bar").classList.remove('blink');
         }, 2500);
     }
+
+}
+
+function frontPageRedirect() {
+
+    window.location = '/verify'
 
 }

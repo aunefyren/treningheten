@@ -90,8 +90,8 @@ function get_login(cookie) {
             if(result.error === "You must verify your account.") {
 
                 // If not front-page, redirect
-                if(window.location.pathname !== "/") {
-                    location.href = './';
+                if(window.location.pathname !== "/verify") {
+                    location.href = '/verify';
                     return;
                 }
 
@@ -318,7 +318,7 @@ function error(message) {
 // When log out button is pressed, remove cookie and redirect to home page
 function logout() {
     set_cookie("treningheten", "", 1);
-    window.location.href = '../../';
+    window.location.href = '/';
 }
 
 // Return GET parameters in a given URL
@@ -360,7 +360,7 @@ function error_splash_image() {
     try {
         var html = `
             <div class="module">
-                <img src="./assets/images/barbell.gif">
+                <img src="/assets/images/barbell.gif">
             </div>
         `;
 

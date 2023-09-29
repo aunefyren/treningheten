@@ -321,7 +321,7 @@ func initRouter() *gin.Engine {
 	})
 
 	// Static endpoint for other accounts
-	router.GET("/user/:user_id", func(c *gin.Context) {
+	router.GET("/users/:user_id", func(c *gin.Context) {
 		c.HTML(http.StatusOK, "user.html", nil)
 	})
 
@@ -358,6 +358,11 @@ func initRouter() *gin.Engine {
 	// Static endpoint for season countdown
 	router.GET("/countdown", func(c *gin.Context) {
 		c.HTML(http.StatusOK, "countdown.html", nil)
+	})
+
+	// Static endpoint for account verification
+	router.GET("/verify", func(c *gin.Context) {
+		c.HTML(http.StatusOK, "verify.html", nil)
 	})
 
 	// Static endpoint for season sign up

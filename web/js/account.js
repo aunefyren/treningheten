@@ -282,7 +282,7 @@ function send_update_two(form_data) {
                 if(result.verified) {
                     location.reload();
                 } else {
-                    location.href = './';
+                    location.href = '/';
                 }
                 
             }
