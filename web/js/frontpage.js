@@ -1111,13 +1111,15 @@ function GoToExercise(exerciseID) {
 function placeSeasonProgress(seasonStartObject, seasonEndObject) {
 
     // Subtract 7 days
-    seasonStartObject.setDate(seasonStartObject.getDate() - 7);
-    seasonEndObject.setDate(seasonEndObject.getDate() - 7);
+    //seasonStartObject.setDate(seasonStartObject.getDate() - 7);
+    //seasonEndObject.setDate(seasonEndObject.getDate() - 7);
 
     weekSum = weeksBetween(seasonStartObject, seasonEndObject)
-
+    
     now = new Date();
     weekAmount = weeksBetween(seasonStartObject, now)
+
+    console.log("Current weeK: " + weekAmount)
 
     document.getElementById("weeks_so_far").innerHTML = weekAmount
     document.getElementById("weeks_total").innerHTML = weekSum
@@ -1143,7 +1145,7 @@ function placeSeasonProgress(seasonStartObject, seasonEndObject) {
 
 function placeWeekProgress(percentage, exercise, exerciseGoal) {
 
-    console.log("Week progress: " + percentage)
+    console.log("This weeks progress: " + percentage)
 
     if(percentage > 100) {
         percentage = 100;

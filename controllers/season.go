@@ -352,6 +352,7 @@ func RetrieveWeekResultsFromSeasonWithinTimeframe(firstPointInTime time.Time, la
 
 	// Season has not started, return zero weeks
 	if lastPointInTime.Before(firstPointInTime) {
+		log.Println("lastPointInTime is before firstPointInTime. Returning nothing.")
 		return []models.WeekResults{}, nil
 	}
 

@@ -622,6 +622,8 @@ function setPrizeReceived(debt_id) {
     return false;
 }
 
-function weeksBetween(d1, d2) {
-    return Math.round((d2 - d1) / (7 * 24 * 60 * 60 * 1000));
+function weeksBetween(dt2, dt1) {
+    var diff =(dt2.getTime() - dt1.getTime()) / 1000;
+    diff /= (60 * 60 * 24 * 7);
+    return Math.abs(Math.round(diff));
 }

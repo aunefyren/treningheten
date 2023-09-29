@@ -368,22 +368,44 @@ func APIGetDebt(context *gin.Context) {
 		return
 	}
 
-	lastWeekArray, err := RetrieveWeekResultsFromSeasonWithinTimeframe(debtObject.Date.AddDate(0, 0, -7), debtObject.Date, debtObject.Season)
+	debtDateMonday, err := utilities.FindEarlierMonday(debtObject.Date)
 	if err != nil {
-		log.Println("Failed to retrieve last week for season. Returning. Error: " + err.Error())
+		log.Println("Failed to find earlier Monday. Error: " + err.Error())
+		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to find earlier Monday."})
+		context.Abort()
+		return
+	}
+
+	debtDateFriday, err := utilities.FindNextSunday(debtObject.Date)
+	if err != nil {
+		log.Println("Failed to find next Sunday. Error: " + err.Error())
+		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to find next Sunday."})
+		context.Abort()
+		return
+	}
+
+	lastWeekArray, err := RetrieveWeekResultsFromSeasonWithinTimeframe(debtDateMonday.AddDate(0, 0, -7), debtDateFriday, debtObject.Season)
+	if err != nil {
+		log.Println("Failed to retrieve week for debt. Error: " + err.Error())
+		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to retrieve week for debt."})
+		context.Abort()
 		return
 	} else if len(lastWeekArray) != 1 {
-		log.Println("Failed to retrieve ONE week for season. Returning. Error: " + err.Error())
+		log.Println("Failed to retrieve ONE week for debt. Got: '" + strconv.Itoa(len(lastWeekArray)) + "'.")
+		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to retrieve ONE week for debt."})
+		context.Abort()
 		return
 	}
 
 	lastWeek := lastWeekArray[0]
 
+	log.Println("Week result for debt have the date: " + lastWeek.WeekDate.String())
+
 	winners := []models.UserWithTickets{}
 
 	for _, user := range lastWeek.UserWeekResults {
 
-		if user.Competing && user.WeekCompletion >= 1 && !user.Sickleave {
+		if user.Competing && user.WeekCompletion >= 1.0 && !user.Sickleave {
 			userWithTickets := models.UserWithTickets{
 				User:    user.User,
 				Tickets: user.CurrentStreak + 1,
