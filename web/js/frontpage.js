@@ -739,14 +739,14 @@ function place_leaderboard(weeks_array) {
                 var clickable_str = ""
                 if(weeks_array[i].users[j].debt !== null && weeks_array[i].users[j].debt.winner.ID !== 0) {
                     onclick_command_str = "location.replace('/wheel?debt_id=" + weeks_array[i].users[j].debt.ID + "'); "
-                    clickable_str = "clickable"
+                    clickable_str = "clickable grey-underline"
                     completion += "🎡"
                 }
 
 
                 var result_html = `
                 <div class="leaderboard-week-result" id="">
-                    <div class="leaderboard-week-result-user" style="cursor: pointer;" onclick="location.href='/users/${weeks_array[i].users[j].user.ID}'">
+                    <div class="leaderboard-week-result-user clickable" style="cursor: pointer;" onclick="location.href='/users/${weeks_array[i].users[j].user.ID}'">
                         ` + weeks_array[i].users[j].user.first_name + `
                     </div>
                     <div class="leaderboard-week-result-exercise ` + clickable_str  + `" onclick="` + onclick_command_str  + `">
@@ -868,6 +868,10 @@ function place_current_week(week_array) {
             var current_streak = week_array.users[i].current_streak + "💀"
         }
 
+        if(completion >= 100) {
+            transparent += " bold-font "
+        }
+
         if(week_array.users[i].user.ID == user_id) {
             placeWeekProgress(completion)
         }
@@ -875,10 +879,13 @@ function place_current_week(week_array) {
         var week_html = `
             <div class="current-week-user unselectable" id="">
 
-                <div style="cursor: pointer;" onclick="location.href='/users/${week_array.users[i].user.ID}'">
-                    ${week_array.users[i].user.first_name}
+                <div style="" class="">
+                    
+                    <div class="" style="font-size: 0.8em;">
+                        <b>${week_array.users[i].user.first_name}</b>
+                    </div>
 
-                    <div class="current-week-user-photo" title="` + week_array.users[i].user.first_name + ` ` + week_array.users[i].user.last_name + `">
+                    <div class="current-week-user-photo" title="` + week_array.users[i].user.first_name + ` ` + week_array.users[i].user.last_name + `" onclick="location.href='/users/${week_array.users[i].user.ID}'">
                         <img style="width: 100%; height: 100%;" class="current-week-user-photo-img" id="current-week-user-photo-` + week_array.users[i].user.ID + `-` + i + `" src="/assets/images/barbell.gif">
                     </div>
                 </div>
@@ -894,9 +901,6 @@ function place_current_week(week_array) {
                     </div>
 
                 </div>
-
-                
-
 
             </div>
         `;
