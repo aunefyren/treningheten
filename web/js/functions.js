@@ -443,6 +443,23 @@ function GetDateString(dateTime, giveWeekday) {
 
 }
 
+function GetDayOfTheWeek(dateTime) {
+
+    try {
+
+        var weekDayArray = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"]
+        var weekDayInt = dateTime.getDay();
+        weekDay = weekDayArray[weekDayInt]
+
+        return weekDay
+
+    } catch(e) {
+        console.log("Failed to generate string for date time. Error: " + e)
+        return "Error"
+    }
+
+}
+
 function GetShortDate(dateTime) {
 
     try {

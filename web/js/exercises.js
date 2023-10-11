@@ -292,8 +292,11 @@ function place_exercises(exercise_array, goalID) {
 
     clearResponse();
     exerciseFound = false;
+    let lastWeek = 0;
     
     for(var i = 0; i < exercise_array.length; i++) {
+
+        let newLine = '';
 
         if(exercise_array[i].exercise_interval == 0 && exercise_array[i].note == "") {
             continue;
@@ -316,29 +319,39 @@ function place_exercises(exercise_array, goalID) {
         // parse date object
         try {
             var date = new Date(Date.parse(exercise_array[i].date));
-            var date_string = GetDateString(date)
+            var date_string = GetDayOfTheWeek(date)
+            var dateStringDetailed = GetDateString(date, false)
             var week = date.getWeek();
         } catch {
             var date_string = "Error"
         }
 
+        if(lastWeek !== week || lastWeek == 0) {
+            newLine = 
+                    ` 
+                        <hr style="margin: 0.25em;">
+                        <div class="exercise-week">
+                            <b>Week: ${week}</b>
+                        </div>
+                    `;
+        }
+
         var html = `
 
-            <div class="exercise-object unselectable">
+            ${newLine}
+
+            <div class="exercise-object unselectable" title="${dateStringDetailed}">
 
                 <div class="exercise-base">
 
                     <div class="exercise-date">
-                        <img src="assets/calendar.svg" class="btn_logo"></img> ${date_string}
-                    </div>
-
-                    <div class="exercise-week">
-                        Week: ${week}
+                        <img style="width: 100%;" src="assets/calendar.svg" class="btn_logo"></img>
+                        ${date_string}
                     </div>
 
                     <div class="exercise-details" id="">
                         <div class="exercise-exercise-number">
-                            Exercise amount: ${exercise_array[i].exercise_interval}
+                            Exercise amount: <b>${exercise_array[i].exercise_interval}</b>
                         </div>
 
                         ${note_html}
@@ -356,6 +369,7 @@ function place_exercises(exercise_array, goalID) {
         document.getElementById("goal-leaderboard-" + exercise_array[i].goal).style.margin = "1em 0"
 
         exerciseFound = true;
+        lastWeek = week;
 
     }
 

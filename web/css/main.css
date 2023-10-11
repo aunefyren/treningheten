@@ -1119,7 +1119,7 @@ input[type=checkbox]
   justify-content: space-between;
   align-items: center;
   box-sizing: border-box;
-  padding: 0 0.25em;
+  padding: 0.25em 0.25em;
   width: 4.5em;
   overflow: hidden;
 }
@@ -1470,8 +1470,8 @@ input[type=checkbox]
   justify-content: space-evenly;
   align-items: center;
   box-sizing: border-box;
-  width: 10em;
-  height: 10em;
+  width: 8em;
+  height: 8em;
   padding: 0.5em;
   border: solid 0.2em var(--lightblue);
   border-radius: 0.5em;
@@ -1499,7 +1499,7 @@ input[type=checkbox]
   height: -moz-available;
 }
 
-.exercise-date, .exercise-week {
+.exercise-date {
   box-sizing: inherit;
   width: 100%;
   width: -webkit-fill-available;
@@ -1510,10 +1510,22 @@ input[type=checkbox]
   align-content: center;
   justify-content: center;
   align-items: center;
+  text-align: center;
+  font-size: 0.8em;
+}
+
+.exercise-week {
+  font-size: 1em;
+  margin: 0.5em 1em;
+  width: 100%;
+  width: -webkit-fill-available;
+  width: -moz-available;
+  text-align: left;
 }
 
 .exercise-exercise-number {
-  margin: 0.5em 0;
+  font-size: 0.8em;
+  margin: 0.25em 0;
   width: 100%;
   width: -webkit-fill-available;
   width: -moz-available;
@@ -1523,12 +1535,13 @@ input[type=checkbox]
 
 .exercise-notes {
   box-sizing: inherit;
-  margin: 0.5em;
+  margin: 0.25em;
   padding: 0.25em 0.5em;
   overflow-y: auto;
   text-align: center;
   border: solid 0.2em var(--lightblue);
   border-radius: 0.5em;
+  font-size: 0.75em;
 }
 
 .achievement-image {
@@ -1572,6 +1585,8 @@ input[type=checkbox]
 
 .exercise-object {
   position: relative;
+  overflow: hidden;
+  box-sizing: content-box;
 }
 
 .achievement:hover .overlay {
