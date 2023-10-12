@@ -57,7 +57,7 @@ function load_page(result) {
 
                                 <div class="week_days" id='calendar'>
 
-                                    <div id="week-progress-bar-wrapper" class="week-progress-bar-wrapper transparent" style="width: 20em;">
+                                    <div id="week-progress-bar-wrapper" class="week-progress-bar-wrapper" style="width: 20em;">
                                         <div id="week-progress-bar" class="week-progress-bar" style="">
                                             <div class="calender_status unselectable" id="calender_status">
                                                 <a id="workout_this_week">...</a>
@@ -246,7 +246,7 @@ function load_page(result) {
 
                                 <div id="season-module" class="season" style="padding: 0 1em 1em 1em;">
 
-                                    <div id="season-progress-bar-wrapper" class="season-progress-bar-wrapper transparent" style="width: 20em;">
+                                    <div id="season-progress-bar-wrapper" class="season-progress-bar-wrapper" style="width: 20em;">
                                         <div id="season-progress-bar" class="season-progress-bar" style="">
                                             <div class="calender_status unselectable" id="season_status">
                                                 <a id="weeks_so_far">...</a>

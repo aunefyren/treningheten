@@ -236,7 +236,7 @@ function PlaceUserAhievements(achivementArrayPersonal, achivementArray, userID) 
     document.getElementById("progress-bar").style.width  = ach_percentage + "%"
     document.getElementById("progress-bar").title  = ach_percentage + "%"
     document.getElementById("progress-bar-number").innerHTML  = achieved_sum + "/" + achievement_sum
-
+    
     if(ach_percentage > 99) {
         setTimeout(function() {
             document.getElementById("progress-bar").classList.add("blink")

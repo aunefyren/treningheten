@@ -1681,7 +1681,7 @@ input[type=checkbox]
 
 .blink {
   transition: 1s;
-  background-color: var(--mediumblue);
+  background-color: var(--lightgreen) !important;
 }
 
 .prize-wrapper {
@@ -1862,7 +1862,7 @@ input[type=checkbox]
 .season-progress-bar, .week-progress-bar {
   height: 2em;
   width: 0;
-  background-color: var(--lightblue);
+  background-color: var(--trans-lightblue);
   box-sizing: inherit;
   overflow: hidden;
   transition: 2s;
