@@ -5,6 +5,7 @@
     --lightgreen: #00A352;
     --eggshell: #e0e1dd;
     --lightblue: #778da9;
+    --trans-lightblue: #778da980;
     --mediumblue: #415a77;
     --darkblue: #0d1b2a;
     --black: #181818;
@@ -1866,4 +1867,8 @@ input[type=checkbox]
   overflow: hidden;
   transition: 2s;
   text-align: center;
+}
+
+.active-day {
+  background-color: var(--trans-lightblue);
 }

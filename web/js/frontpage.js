@@ -509,9 +509,14 @@ function place_week(week, fireworks) {
     document.getElementById("day_7_date").value = week.days[6].date
     document.getElementById("day_7_id").value = week.days[6].ID
 
-    // Place editing icon
+    // Find day int
     const now = new Date(Date.now());
     var day = now.getDay();
+
+    // Add class to current day
+    document.getElementById("day_" + day + "_check").classList.add("active-day") 
+
+    // Place editing icon for exercise
     if(day == 0) {
         day = 7
     }
@@ -1114,16 +1119,10 @@ function GoToExercise(exerciseID) {
 
 function placeSeasonProgress(seasonStartObject, seasonEndObject) {
 
-    // Subtract 7 days
-    //seasonStartObject.setDate(seasonStartObject.getDate() - 7);
-    //seasonEndObject.setDate(seasonEndObject.getDate() - 7);
+    const weekSum = weeksBetween(seasonStartObject, seasonEndObject)
 
-    weekSum = weeksBetween(seasonStartObject, seasonEndObject)
-    
-    now = new Date();
-    weekAmount = weeksBetween(seasonStartObject, now)
-
-    console.log("Current weeK: " + weekAmount)
+    const now = new Date();
+    const weekAmount = weeksBetween(seasonStartObject, now) - 1
 
     document.getElementById("weeks_so_far").innerHTML = weekAmount
     document.getElementById("weeks_total").innerHTML = weekSum
