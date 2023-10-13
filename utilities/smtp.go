@@ -141,3 +141,123 @@ func SendSMTPSeasonStartEmail(season models.SeasonObject) error {
 	return nil
 
 }
+
+func SendSMTPForWeekLost(user models.User) error {
+
+	// Get configuration
+	config, err := config.GetConfig()
+	if err != nil {
+		return err
+	}
+
+	log.Println("Sending e-mail to: " + user.Email + ".")
+
+	link := config.TreninghetenExternalURL
+
+	m := mail.NewMessage()
+	m.SetAddressHeader("From", config.SMTPFrom, config.TreninghetenName)
+	m.SetHeader("To", user.Email)
+	m.SetHeader("Subject", "Your week didn't go as planned")
+	m.SetBody("text/html", "Hello <b>"+user.FirstName+"</b>!<br><br>You didn't hit your goal this week. 😢<br><br>If you haven't already, head to Treningheten using <a href='"+link+"' target='_blank'>this link</a> and check who won.")
+
+	d := mail.NewDialer(config.SMTPHost, config.SMTPPort, config.SMTPUsername, config.SMTPPassword)
+
+	// Send the email
+	err = d.DialAndSend(m)
+	if err != nil {
+		return err
+	}
+
+	return nil
+
+}
+
+func SendSMTPForWheelSpin(user models.User) error {
+
+	// Get configuration
+	config, err := config.GetConfig()
+	if err != nil {
+		return err
+	}
+
+	log.Println("Sending e-mail to: " + user.Email + ".")
+
+	link := config.TreninghetenExternalURL
+
+	m := mail.NewMessage()
+	m.SetAddressHeader("From", config.SMTPFrom, config.TreninghetenName)
+	m.SetHeader("To", user.Email)
+	m.SetHeader("Subject", "You have a wheel to spin")
+	m.SetBody("text/html", "Hello <b>"+user.FirstName+"</b>!<br><br>You didn't hit your goal this week. 😢<br><br>If you haven't already, head to Treningheten using <a href='"+link+"' target='_blank'>this link</a> and spin the wheel.")
+
+	d := mail.NewDialer(config.SMTPHost, config.SMTPPort, config.SMTPUsername, config.SMTPPassword)
+
+	// Send the email
+	err = d.DialAndSend(m)
+	if err != nil {
+		return err
+	}
+
+	return nil
+
+}
+
+func SendSMTPForWheelSpinCheck(user models.User) error {
+
+	// Get configuration
+	config, err := config.GetConfig()
+	if err != nil {
+		return err
+	}
+
+	log.Println("Sending e-mail to: " + user.Email + ".")
+
+	link := config.TreninghetenExternalURL
+
+	m := mail.NewMessage()
+	m.SetAddressHeader("From", config.SMTPFrom, config.TreninghetenName)
+	m.SetHeader("To", user.Email)
+	m.SetHeader("Subject", "Someone spun the wheel")
+	m.SetBody("text/html", "Hello <b>"+user.FirstName+"</b>!<br><br>Someone spun the wheel, check if you won. 🏆<br><br>If you haven't already, head to Treningheten using <a href='"+link+"' target='_blank'>this link</a> and check out the wheel spin.")
+
+	d := mail.NewDialer(config.SMTPHost, config.SMTPPort, config.SMTPUsername, config.SMTPPassword)
+
+	// Send the email
+	err = d.DialAndSend(m)
+	if err != nil {
+		return err
+	}
+
+	return nil
+
+}
+
+func SendSMTPForWheelSpinWin(user models.User) error {
+
+	// Get configuration
+	config, err := config.GetConfig()
+	if err != nil {
+		return err
+	}
+
+	log.Println("Sending e-mail to: " + user.Email + ".")
+
+	link := config.TreninghetenExternalURL
+
+	m := mail.NewMessage()
+	m.SetAddressHeader("From", config.SMTPFrom, config.TreninghetenName)
+	m.SetHeader("To", user.Email)
+	m.SetHeader("Subject", "Someone just paid their dues")
+	m.SetBody("text/html", "Hello <b>"+user.FirstName+"</b>!<br><br>Someone failed to hit their goal, and you won. 🏆<br><br>If you haven't already, head to Treningheten using <a href='"+link+"' target='_blank'>this link</a> and check out your prize.")
+
+	d := mail.NewDialer(config.SMTPHost, config.SMTPPort, config.SMTPUsername, config.SMTPPassword)
+
+	// Send the email
+	err = d.DialAndSend(m)
+	if err != nil {
+		return err
+	}
+
+	return nil
+
+}

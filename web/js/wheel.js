@@ -261,6 +261,7 @@ async function calculatePrize()
 
     if(!replay) {
         try {
+            info("Preparing spin...");
             await new Promise((resolve) => {
                 choose_winner(resolve, debt_id);
             });
@@ -353,10 +354,12 @@ async function choose_winner(resolve, debt_id) {
             
             if(result.error) {
 
+                clearResponse();
                 error(result.error);
 
             } else {
 
+                clearResponse();
                 winner = result.winner;
                 
             }

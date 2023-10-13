@@ -603,8 +603,6 @@ function update_exercises(go_to_exercise, weekDayInt) {
 
     var form_data = JSON.stringify(form_obj);
 
-    document.getElementById("week-progress-bar-wrapper").classList.add('transparent');
-
     console.log("Saving new week: ")
     console.log(form_data)
 

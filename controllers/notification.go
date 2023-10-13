@@ -316,3 +316,111 @@ func PushNotificationsForSundayAlerts() (err error) {
 	return nil
 
 }
+
+func PushNotificationsForWeekLost(userId int) (err error) {
+
+	err = nil
+
+	subscriptions, err := database.GetAllSubscriptionsForUserByUserID(userId)
+	if err != nil {
+		log.Println("Failed to get subscriptions from database. Error: " + err.Error())
+		return errors.New("Failed to get subscriptions from database.")
+	} else if len(subscriptions) == 0 {
+		log.Println("No subscriptions found for user.")
+		return nil
+	}
+
+	title := "Treningheten"
+	body := "You didn't hit your goal this week 😢"
+	category := "alert"
+
+	_, err = PushNotificationToSubscriptions(category, body, title, subscriptions)
+	if err != nil {
+		log.Println("Failed to push notficiation(s). Error: " + err.Error())
+		return errors.New("Failed to push notficiation(s).")
+	}
+
+	return nil
+
+}
+
+func PushNotificationsForWheelSpin(userId int) (err error) {
+
+	err = nil
+
+	subscriptions, err := database.GetAllSubscriptionsForUserByUserID(userId)
+	if err != nil {
+		log.Println("Failed to get subscriptions from database. Error: " + err.Error())
+		return errors.New("Failed to get subscriptions from database.")
+	} else if len(subscriptions) == 0 {
+		log.Println("No subscriptions found for user.")
+		return nil
+	}
+
+	title := "Treningheten"
+	body := "You have a wheel to spin 🎡"
+	category := "alert"
+
+	_, err = PushNotificationToSubscriptions(category, body, title, subscriptions)
+	if err != nil {
+		log.Println("Failed to push notficiation(s). Error: " + err.Error())
+		return errors.New("Failed to push notficiation(s).")
+	}
+
+	return nil
+
+}
+
+func PushNotificationsForWheelSpinCheck(userId int) (err error) {
+
+	err = nil
+
+	subscriptions, err := database.GetAllSubscriptionsForUserByUserID(userId)
+	if err != nil {
+		log.Println("Failed to get subscriptions from database. Error: " + err.Error())
+		return errors.New("Failed to get subscriptions from database.")
+	} else if len(subscriptions) == 0 {
+		log.Println("No subscriptions found for user.")
+		return nil
+	}
+
+	title := "Treningheten"
+	body := "Someone spun the wheel, check if you won 🏆"
+	category := "alert"
+
+	_, err = PushNotificationToSubscriptions(category, body, title, subscriptions)
+	if err != nil {
+		log.Println("Failed to push notficiation(s). Error: " + err.Error())
+		return errors.New("Failed to push notficiation(s).")
+	}
+
+	return nil
+
+}
+
+func PushNotificationsForWheelSpinWin(userId int) (err error) {
+
+	err = nil
+
+	subscriptions, err := database.GetAllSubscriptionsForUserByUserID(userId)
+	if err != nil {
+		log.Println("Failed to get subscriptions from database. Error: " + err.Error())
+		return errors.New("Failed to get subscriptions from database.")
+	} else if len(subscriptions) == 0 {
+		log.Println("No subscriptions found for user.")
+		return nil
+	}
+
+	title := "Treningheten"
+	body := "Someone didn't hit their goal, and you won 🏆"
+	category := "alert"
+
+	_, err = PushNotificationToSubscriptions(category, body, title, subscriptions)
+	if err != nil {
+		log.Println("Failed to push notficiation(s). Error: " + err.Error())
+		return errors.New("Failed to push notficiation(s).")
+	}
+
+	return nil
+
+}

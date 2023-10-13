@@ -201,6 +201,68 @@ func GenerateDebtForWeek(givenTime time.Time) (models.WeekResults, error) {
 					log.Println("Failed to give achivement for user '" + strconv.Itoa(int(user.ID)) + "'. Ignoring. Error: " + err.Error())
 				}
 
+				// Get loser object
+				loserObject, err := database.GetAllUserInformation(int(user.ID))
+				if err != nil {
+					log.Println("Failed to get object for user '" + strconv.Itoa(int(user.ID)) + "'. Ignoring. Error: " + err.Error())
+				} else {
+
+					// Notify loser by e-mail
+					err = utilities.SendSMTPForWeekLost(loserObject)
+					if err != nil {
+						log.Println("Failed to notify user '" + strconv.Itoa(int(user.ID)) + "' by e-mail. Ignoring. Error: " + err.Error())
+					}
+
+				}
+
+				// Notify loser by push
+				err = PushNotificationsForWeekLost(int(user.ID))
+				if err != nil {
+					log.Println("Failed to notify user '" + strconv.Itoa(int(user.ID)) + "' by push. Ignoring. Error: " + err.Error())
+				}
+
+				// Get winner object
+				winnerObject, err := database.GetAllUserInformation(winner)
+				if err != nil {
+					log.Println("Failed to get object for user '" + strconv.Itoa(int(user.ID)) + "'. Ignoring. Error: " + err.Error())
+				} else {
+
+					// Notify winner by e-mail
+					err = utilities.SendSMTPForWheelSpinWin(winnerObject)
+					if err != nil {
+						log.Println("Failed to notify user '" + strconv.Itoa(int(user.ID)) + "' by e-mail. Ignoring. Error: " + err.Error())
+					}
+
+				}
+
+				// Notify winner by push
+				err = PushNotificationsForWheelSpinWin(winner)
+				if err != nil {
+					log.Println("Failed to notify user '" + strconv.Itoa(int(user.ID)) + "' by push. Ignoring. Error: " + err.Error())
+				}
+
+			}
+
+		} else {
+
+			// Get loser object
+			loserObject, err := database.GetAllUserInformation(int(user.ID))
+			if err != nil {
+				log.Println("Failed to get object for user '" + strconv.Itoa(int(user.ID)) + "'. Ignoring. Error: " + err.Error())
+			} else {
+
+				// Notify loser by e-mail
+				err = utilities.SendSMTPForWheelSpin(loserObject)
+				if err != nil {
+					log.Println("Failed to notify user '" + strconv.Itoa(int(user.ID)) + "' by e-mail. Ignoring. Error: " + err.Error())
+				}
+
+			}
+
+			// Notify loser by push
+			err = PushNotificationsForWheelSpin(int(user.ID))
+			if err != nil {
+				log.Println("Failed to notify user '" + strconv.Itoa(int(user.ID)) + "' by push. Ignoring. Error: " + err.Error())
 			}
 
 		}
@@ -580,8 +642,29 @@ func APIChooseWinnerForDebt(context *gin.Context) {
 		if err != nil {
 			log.Println("Create wheelview for user '" + strconv.Itoa(int(user.User.ID)) + "'. Error: " + err.Error())
 		}
+
+		// Notify winner by e-mail
+		winnerObject, err := database.GetAllUserInformation(int(user.User.ID))
+		if err != nil {
+			log.Println("Failed to get object for user '" + strconv.Itoa(int(user.User.ID)) + "'. Ignoring. Error: " + err.Error())
+		} else {
+
+			// Notify winner by e-mail
+			err = utilities.SendSMTPForWheelSpinCheck(winnerObject)
+			if err != nil {
+				log.Println("Failed to notify user '" + strconv.Itoa(int(user.User.ID)) + "' by e-mail. Ignoring. Error: " + err.Error())
+			}
+
+		}
+
+		// Notify winner by push
+		err = PushNotificationsForWheelSpinCheck(int(user.User.ID))
+		if err != nil {
+			log.Println("Failed to notify user '" + strconv.Itoa(int(user.User.ID)) + "' by push. Ignoring. Error: " + err.Error())
+		}
 	}
 
+	// Respond to API response
 	context.JSON(http.StatusOK, gin.H{"message": "Winner chosen.", "debt": debtObject, "winner": winnerUser})
 
 }
