@@ -321,7 +321,7 @@ function place_exercises(exercise_array, goalID) {
             var date = new Date(Date.parse(exercise_array[i].date));
             var date_string = GetDayOfTheWeek(date)
             var dateStringDetailed = GetDateString(date, false)
-            var week = date.getWeek();
+            var week = date.getWeek(1);
         } catch {
             var date_string = "Error"
         }
