@@ -294,9 +294,52 @@ function place_exercises(exercise_array, goalID) {
     exerciseFound = false;
     let lastWeek = 0;
     
+    // Place weeks
     for(var i = 0; i < exercise_array.length; i++) {
 
         let newLine = '';
+
+        // parse date object
+        try {
+            var date = new Date(Date.parse(exercise_array[i].date));
+            var date_string = GetDayOfTheWeek(date)
+            var dateStringDetailed = GetDateString(date, false)
+            var week = date.getWeek(1);
+            var year = date.getFullYear()
+        } catch {
+            var date_string = "Error"
+            var dateStringDetailed = "Error"
+            var week = "Error"
+            var year = "Error"
+        }
+
+        if(lastWeek !== week || lastWeek == 0) {
+            newLine = 
+                    ` 
+                        <hr style="margin: 0.25em;">
+                        <div class="exercise-week">
+                            <b>Week: ${week}</b>
+                        </div>
+                        <div id="exercises-${exercise_array[i].goal}-${week}-${year}" class="exercises-group">
+                        </div>
+                    `;
+        }
+
+        var html = `
+
+            ${newLine}
+
+        `;
+
+        document.getElementById("goal-leaderboard-" + exercise_array[i].goal).innerHTML += html
+        document.getElementById("goal-leaderboard-" + exercise_array[i].goal).style.margin = "1em 0"
+
+        lastWeek = week;
+
+    }
+
+    // Place exercises in weeks
+    for(var i = 0; i < exercise_array.length; i++) {
 
         if(exercise_array[i].exercise_interval == 0 && exercise_array[i].note == "") {
             continue;
@@ -322,23 +365,15 @@ function place_exercises(exercise_array, goalID) {
             var date_string = GetDayOfTheWeek(date)
             var dateStringDetailed = GetDateString(date, false)
             var week = date.getWeek(1);
+            var year = date.getFullYear()
         } catch {
             var date_string = "Error"
-        }
-
-        if(lastWeek !== week || lastWeek == 0) {
-            newLine = 
-                    ` 
-                        <hr style="margin: 0.25em;">
-                        <div class="exercise-week">
-                            <b>Week: ${week}</b>
-                        </div>
-                    `;
+            var dateStringDetailed = "Error"
+            var week = "Error"
+            var year = "Error"
         }
 
         var html = `
-
-            ${newLine}
 
             <div class="exercise-object unselectable" title="${dateStringDetailed}">
 
@@ -365,11 +400,10 @@ function place_exercises(exercise_array, goalID) {
             </div>
         `;
 
-        document.getElementById("goal-leaderboard-" + exercise_array[i].goal).innerHTML += html
-        document.getElementById("goal-leaderboard-" + exercise_array[i].goal).style.margin = "1em 0"
+        var oldHTML = document.getElementById(`exercises-${exercise_array[i].goal}-${week}-${year}`).innerHTML
+        document.getElementById(`exercises-${exercise_array[i].goal}-${week}-${year}`).innerHTML = html + oldHTML
 
         exerciseFound = true;
-        lastWeek = week;
 
     }
 

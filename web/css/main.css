@@ -1872,3 +1872,15 @@ input[type=checkbox]
 .active-day {
   background-color: var(--trans-lightblue);
 }
+
+.exercises-group {
+  width: 100%;
+  width: -webkit-fill-available;
+  width: -moz-available;
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-content: center;
+  justify-content: center;
+  align-items: center;
+}
