@@ -141,7 +141,7 @@ function get_debt(debt_id) {
                 var date_str = ""
                 try {
                     var date = new Date(result.debt.date);
-                    var date_week = date.GetWeek();
+                    var date_week = date.getWeek(1);
                     var date_year = date.getFullYear();
                     date_str = date_week + " (" + date_year + ")"
                 } catch {

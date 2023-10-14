@@ -244,7 +244,7 @@ function placeDebtOverview(overviewArray) {
         var date_str = ""
         try {
             var date = new Date(overviewArray.debt_unviewed[i].debt.date);
-            var date_week = date.GetWeek();
+            var date_week = date.getWeek(1);
             var date_year = date.getFullYear();
             var date_str = date_week + " (" + date_year + ")"
         } catch {
@@ -264,7 +264,7 @@ function placeDebtOverview(overviewArray) {
         var date_str = ""
         try {
             var date = new Date(overviewArray.debt_won[i].date);
-            var date_week = date.GetWeek();
+            var date_week = date.getWeek(1);
             var date_year = date.getFullYear();
             var date_str = date_week + " (" + date_year + ")"
         } catch {
@@ -286,7 +286,7 @@ function placeDebtOverview(overviewArray) {
         var date_str = ""
         try {
             var date = new Date(overviewArray.debt_unpaid[i].date);
-            var date_week = date.GetWeek();
+            var date_week = date.getWeek(1);
             var date_year = date.getFullYear();
             var date_str = date_week + " (" + date_year + ")"
         } catch {
@@ -310,7 +310,7 @@ function placeDebtSpin(overview) {
     var date_str = ""
     try {
         var date = new Date(overview.debt_lost[0].date);
-        var date_week = date.GetWeek();
+        var date_week = date.getWeek(1);
         var date_year = date.getFullYear();
         var date_str = date_week + " (" + date_year + ")"
     } catch {
