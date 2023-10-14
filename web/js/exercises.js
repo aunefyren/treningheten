@@ -299,6 +299,10 @@ function place_exercises(exercise_array, goalID) {
 
         let newLine = '';
 
+        if(exercise_array[i].exercise_interval == 0 && exercise_array[i].note == "") {
+            continue;
+        } 
+
         // parse date object
         try {
             var date = new Date(Date.parse(exercise_array[i].date));
