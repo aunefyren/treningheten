@@ -512,14 +512,14 @@ function place_week(week, fireworks) {
     // Find day int
     const now = new Date(Date.now());
     var day = now.getDay();
+    if(day == 0) {
+        day = 7
+    }
 
     // Add class to current day
     document.getElementById("day_" + day + "_check").classList.add("active-day") 
 
     // Place editing icon for exercise
-    if(day == 0) {
-        day = 7
-    }
     for(var i = 1; i <= day; i++) {
         // document.getElementById("day_" + i + "_edit").style.display = "flex" // Disabled because not ready
     }

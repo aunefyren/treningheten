@@ -463,7 +463,7 @@ func GenerateAchivementsForWeek(weekResults models.WeekResults) error {
 
 		}
 
-		// Of the sum of exercise is more than 7
+		// If the sum of exercise is more than 7
 		if exerciseSum > 7 {
 
 			// Give achivement to user
