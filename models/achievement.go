@@ -19,6 +19,7 @@ type AchievementDelegation struct {
 	User        int       `json:"user" gorm:"not null"`
 	Achievement int       `json:"achievement" gorm:"not null"`
 	GivenAt     time.Time `json:"given_at" gorm:"default:CURRENT_TIMESTAMP()"`
+	Seen        bool      `json:"seen" gorm:"not null; default: false"`
 }
 
 type AchievementObject struct {
@@ -28,4 +29,5 @@ type AchievementObject struct {
 	GivenAt     time.Time `json:"given_at"`
 	GivenTo     User      `json:"user"`
 	ID          uint      `json:"id"`
+	Seen        bool      `json:"seen"`
 }

@@ -108,3 +108,16 @@ func GetAchievementDelegationByAchivementIDAndUserID(userID int, achievementID i
 	return achivementStruct, true, nil
 
 }
+
+func SetAchievementsToSeenForUser(userID int) (updates int64, err error) {
+	var achivementStruct models.AchievementDelegation
+	err = nil
+	updates = 0
+
+	achivementRecord := Instance.Model(achivementStruct).Where("`achievement_delegations`.enabled = ?", 1).Where("`achievement_delegations`.user = ?", userID).Where("`achievement_delegations`.seen = ?", false).Update("seen", true)
+	if achivementRecord.Error != nil {
+		return updates, achivementRecord.Error
+	}
+
+	return achivementRecord.RowsAffected, err
+}

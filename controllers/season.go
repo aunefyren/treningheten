@@ -728,24 +728,24 @@ func APIGetSeasonWeeksPersonal(context *gin.Context) {
 	wheelSpins := 0
 	wheelsWon := 0
 
-	_, debtFound, err := database.GetDebtInSeasonLostByUserID(seasonIDInt, userID)
+	debts, _, err := database.GetDebtInSeasonLostByUserID(seasonIDInt, userID)
 	if err != nil {
 		log.Println("Failed process wheel spins. Error: " + err.Error())
 		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed process wheel spins."})
 		context.Abort()
 		return
-	} else if debtFound {
-		wheelSpins += 1
+	} else {
+		wheelSpins = len(debts)
 	}
 
-	_, debtFound, err = database.GetDebtInSeasonWonByUserID(seasonIDInt, userID)
+	wins, _, err := database.GetDebtInSeasonWonByUserID(seasonIDInt, userID)
 	if err != nil {
 		log.Println("Failed process wheel spin wins. Error: " + err.Error())
 		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed process wheel spin wins."})
 		context.Abort()
 		return
-	} else if debtFound {
-		wheelsWon += 1
+	} else {
+		wheelsWon = len(wins)
 	}
 
 	type wheelStatistics struct {

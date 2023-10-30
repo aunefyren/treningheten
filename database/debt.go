@@ -225,8 +225,7 @@ func UpdateDebtPaidStatus(debtID int, userID int) error {
 
 // Get all the debt for a season where the prize is received for a user ID
 func GetDebtInSeasonWonByUserID(seasonID int, userID int) ([]models.Debt, bool, error) {
-
-	var debtStruct []models.Debt
+	var debtStruct = []models.Debt{}
 
 	debtRecord := Instance.Where("`debts`.enabled = ?", 1).Where("`debts`.season = ?", seasonID).Where("`debts`.winner = ?", userID).Find(&debtStruct)
 	if debtRecord.Error != nil {
@@ -241,8 +240,7 @@ func GetDebtInSeasonWonByUserID(seasonID int, userID int) ([]models.Debt, bool, 
 
 // Get all the debt for a season where the prize is lost by a user ID
 func GetDebtInSeasonLostByUserID(seasonID int, userID int) ([]models.Debt, bool, error) {
-
-	var debtStruct []models.Debt
+	var debtStruct = []models.Debt{}
 
 	debtRecord := Instance.Where("`debts`.enabled = ?", 1).Where("`debts`.season = ?", seasonID).Where("`debts`.loser = ?", userID).Find(&debtStruct)
 	if debtRecord.Error != nil {

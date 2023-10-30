@@ -2,6 +2,7 @@ package controllers
 
 import (
 	"aunefyren/treningheten/database"
+	"aunefyren/treningheten/middlewares"
 	"aunefyren/treningheten/models"
 	"aunefyren/treningheten/utilities"
 	"errors"
@@ -29,6 +30,14 @@ func APIGetAchivements(context *gin.Context) {
 }
 
 func APIGetPersonalAchivements(context *gin.Context) {
+	// Get user ID
+	userID, err := middlewares.GetAuthUsername(context.GetHeader("Authorization"))
+	if err != nil {
+		log.Println("Failed to verify user ID. Error: " + "Failed to verify user ID.")
+		context.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		context.Abort()
+		return
+	}
 
 	// Get user ID from URL
 	var userIDRequested = context.Param("user_id")
@@ -70,6 +79,13 @@ func APIGetPersonalAchivements(context *gin.Context) {
 
 	context.JSON(http.StatusOK, gin.H{"message": "Achivements for user found.", "achivements": achivementObjectsArray})
 
+	// Mark all achivements as seen
+	if userID == userIDRequestedInt {
+		_, err = database.SetAchievementsToSeenForUser(userID)
+		if err != nil {
+			log.Println("Failed to set achivements to seen for user. Error: " + err.Error())
+		}
+	}
 }
 
 func CheckIfAchivementsExist() (bool, error) {
@@ -242,6 +258,7 @@ func ConvertAchivementDelegationToAchivementObject(achievementDelegation models.
 		Enabled:     achievement.Enabled,
 		GivenAt:     achievementDelegation.GivenAt,
 		GivenTo:     user,
+		Seen:        achievementDelegation.Seen,
 	}
 
 	return achivementObject, nil

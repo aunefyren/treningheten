@@ -250,11 +250,16 @@ function PlaceUserAhievements(achivementArray) {
             var date_string = "Error"
         }
 
+        var classString = ""
+        if(!achivementArray[i].seen && achivementArray[i].user.ID == user_id) {
+            classString += " new-achievement"
+        }
+
         var html = `
 
         <div class="achievement unselectable" title="${achivementArray[i].description}" tabindex="1">
 
-            <div class="achievement-base">
+            <div class="achievement-base ${classString}">
 
                 <div class="achievement-image">
                     <img style="width: 100%; height: 100%;" class="achievement-img" id="achievement-img-${achivementArray[i].id}" src="/assets/images/barbell.gif">

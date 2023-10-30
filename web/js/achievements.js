@@ -180,6 +180,10 @@ function PlaceUserAhievements(achivementArrayPersonal, achivementArray, userID) 
             }
             var date_string_html = date_string
             var class_string_html = ""
+
+            if(!achivementArrayPersonal[achievedIndex].seen){
+                class_string_html += " new-achievement"
+            }
         } else {
             var date_string_html = "Locked";
             var class_string_html = "transparent"
