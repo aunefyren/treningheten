@@ -1120,7 +1120,7 @@ function placeSeasonProgress(seasonStartObject, seasonEndObject) {
     const weekSum = weeksBetween(seasonStartObject, seasonEndObject)
 
     const now = new Date();
-    const weekAmount = weeksBetween(seasonStartObject, now) - 1
+    const weekAmount = weeksBetween(seasonStartObject, now)
 
     document.getElementById("weeks_so_far").innerHTML = weekAmount
     document.getElementById("weeks_total").innerHTML = weekSum

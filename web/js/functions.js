@@ -518,7 +518,7 @@ Date.prototype.getWeek = function (dowOffset) {
     else {
         weeknum = Math.floor((daynum+day-1)/7);
     }
-        return weeknum;
+    return weeknum;
 };
 
 Date.prototype.addDays = function(days) {
@@ -640,19 +640,12 @@ function setPrizeReceived(debt_id) {
     return false;
 }
 
-function getWeekNumber(currentDate) {
-    const startDate = new Date(currentDate.getFullYear(), 0, 1);
-    const days = Math.floor((currentDate - startDate) / (24 * 60 * 60 * 1000));
- 
-    return Math.ceil(days / 7);
-}
-
 function weeksBetween(dt2, dt1) {
 
     var startYear = dt2.getFullYear()
-    var startWeek = getWeekNumber(dt2)
+    var startWeek = dt2.getWeek(1)
     const endYear = dt1.getFullYear()
-    const endWeek = getWeekNumber(dt1)
+    const endWeek = dt1.getWeek(1)
 
     let weeksBetween = 1;
 
@@ -660,7 +653,7 @@ function weeksBetween(dt2, dt1) {
         dt2 = dt2.addDays(7);
 
         startYear = dt2.getFullYear()
-        startWeek = getWeekNumber(dt2)
+        startWeek = dt2.getWeek(1)
 
         weeksBetween += 1;
     }
