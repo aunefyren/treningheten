@@ -348,7 +348,35 @@ function get_season(user_id){
             if(result.error == "No active or future seasons found.") {
 
                 info(result.error);
-                document.getElementById('front-page-text').innerHTML = 'An administrator must plan a new season.';
+                document.getElementById('front-page').innerHTML = `
+                <div class="module">
+                    <div class="title">
+                        Treningheten
+                    </div>
+
+                    <div class="picture-box" style="height: 12em; width: 12em; margin: 1em 0;">
+                        <img class="max-size" src="/assets/images/bored.svg">
+                    </div>
+                
+
+                    <div class="text-body" id="front-page-text" style="text-align: center;">
+                        <b>There currently is no season of Treningheten planned or ongoing.</b>
+                        <br><br>
+                        Contact your local Treningheten administrator to plan a new season.
+                        <br><br>
+                        Meanwhile, feel free to check out the <a href="/seasons">past seasons and your statistics</a>.
+                        <br><br>
+                        Or perhaps check out <a href="/seasons">your own achievements</a>?
+                    </div>
+
+                    <div id="debt-module" class="debt-module" style="display: none; margin-top: 5em;">
+                        <h3 id="debt-module-title">Prizes</h3>
+                        <div id="debt-module-notifications" class="debt-module-notifications">
+                        </div>
+                    </div>
+
+                </div>
+                `;
 
                 getDebtOverview();
 

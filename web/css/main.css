@@ -1,7 +1,11 @@
 :root {
     --red: #d00000;
+    --red-error: #f8d7da;
+    --red-error-border: #f5c6cb;
     --yellow: #ffd500;
     --green: #003e1f;
+    --green-success:#d4edda;
+    --green-success-border: #c3e6cb;
     --lightgreen: #00A352;
     --eggshell: #e0e1dd;
     --lightblue: #778da9;
@@ -186,9 +190,9 @@
   .form-control:disabled,.form-control[readonly]{background-color:#e9ecef;opacity:1;box-sizing: border-box;}
   
   .alert{position:relative;padding:.75rem 1.25rem;margin-bottom:1rem;border:1px solid transparent;border-radius:0.5em}
-  .alert-success{color:var(--green);background-color:#d4edda;border-color:#c3e6cb}
-  .alert-info{color:var(--black);background-color:var(--lightblue);border-color:var(--mediumblue)}
-  .alert-danger{color:var(--red);background-color:#f8d7da;border-color:#f5c6cb}
+  .alert-success{color:var(--green);background-color:var(--green-success);border-color:var(--green-success-border)}
+  .alert-info{color:var(--black);background-color:var(--trans-lightblue);border-color:var(--lightblue)}
+  .alert-danger{color:var(--red);background-color:var(--red-error);border-color:var(--red-error-border)}
   
   .navbar {
     background-color: var(--eggshell);
@@ -1889,4 +1893,30 @@ input[type=checkbox]
   border: solid  0.2em var(--lightblue);
   /* background-color: var(--white) !important; */
   box-shadow: 0 2px 4px 0 rgba(0, 0, 0, 0.2), 0 3px 10px 0 rgba(0, 0, 0, 0.19);
+}
+
+.max-size {
+  max-width:100%;
+  max-height:100%;
+  margin: auto;
+}
+
+.picture-box {
+  width: 100%;
+  width: -webkit-fill-available;
+  width: -moz-available;
+  box-sizing: border-box;
+  height: auto;
+  margin: auto;
+  padding: 0;
+  overflow: hidden;
+  background-color: var(--white);
+  border-radius: 10%;
+  display: flex;
+  flex-direction: column;
+  flex-wrap: wrap;
+  align-content: center;
+  justify-content: center;
+  align-items: center;
+  position: relative;
 }
