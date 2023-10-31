@@ -130,9 +130,11 @@ function place_news(news_array) {
         document.getElementById("news-title").style.display = "inline-block"
     }
 
-    var html = ''
+    news_object = document.getElementById("news-box")
+    news_object.innerHTML = "";
 
     for(var i = 0; i < news_array.length; i++) {
+        var html = '';
 
         // parse date object
         try {
@@ -164,11 +166,10 @@ function place_news(news_array) {
 
         html += '</div>'
 
+        news_object.innerHTML += html
     }
 
-    news_object = document.getElementById("news-box")
-    news_object.innerHTML = html
-
+    return
 }
 
 function create_news() {

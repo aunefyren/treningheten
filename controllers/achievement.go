@@ -251,6 +251,13 @@ func CreateDefaultAchivements() error {
 	}
 	achievements = append(achievements, shameAchievement)
 
+	immuneAchievement := models.Achievement{
+		Name:        "Superior immune system",
+		Description: "Don't use any sick leave throughout a season.",
+		SeasonBased: true,
+	}
+	achievements = append(achievements, immuneAchievement)
+
 	for _, achievement := range achievements {
 
 		_, err := database.RegisterAchievementInDB(achievement)
@@ -262,7 +269,6 @@ func CreateDefaultAchivements() error {
 	}
 
 	return nil
-
 }
 
 func ConvertAchivementDelegationToAchivementObject(achievementDelegation models.AchievementDelegation) (models.AchievementObject, error) {
@@ -527,7 +533,6 @@ func GenerateAchivementsForWeek(weekResults models.WeekResults) error {
 }
 
 func GenerateAchivementsForSeason(seasonResults []models.WeekResults) error {
-
 	type UserTally struct {
 		UserID     int
 		LoseAmount int
@@ -690,6 +695,15 @@ func GenerateAchivementsForSeason(seasonResults []models.WeekResults) error {
 		if user.LoseAmount == 0 && user.WinAmount > 0 {
 			// Give achivement to user
 			err := GiveUserAnAchivement(user.UserID, 16, seasonSunday)
+			if err != nil {
+				log.Println("Failed to give achivement for user '" + strconv.Itoa(user.UserID) + "'. Ignoring. Error: " + err.Error())
+			}
+		}
+
+		// If sick leave amount is zero
+		if user.SickAmount == 0 {
+			// Give achivement to user
+			err := GiveUserAnAchivement(user.UserID, 23, seasonSunday)
 			if err != nil {
 				log.Println("Failed to give achivement for user '" + strconv.Itoa(user.UserID) + "'. Ignoring. Error: " + err.Error())
 			}
