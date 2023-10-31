@@ -143,6 +143,12 @@ function place_news(news_array) {
         }
 
         html += '<div class="news-post">'
+
+        if(admin) {
+            html += `<div id="news-delete" class="text-date clickable">`;
+            html += `<img src="assets/trash-2.svg" style="height: 1.5em; width: 1.5em;" onclick="deleteNews(${news_array[i].ID})" class="btn_logo clickable">`
+            html += '</div>';
+        }
         
         html += '<div id="news-title" class="title">';
         html += news_array[i].title
@@ -152,7 +158,7 @@ function place_news(news_array) {
         html += news_array[i].body
         html += '</div>';
 
-        html += '<div id="news-body" class="text-date">';
+        html += '<div id="news-date" class="text-date">';
         html += date_string
         html += '</div>';
 
@@ -226,4 +232,41 @@ function create_news() {
     xhttp.send(form_data);
     return false;
 
+}
+
+function deleteNews(newsID) {
+    if(!confirm("Are you sure you want to delete this post?")) {
+        return;
+    }
+
+    var xhttp = new XMLHttpRequest();
+    xhttp.onreadystatechange = function() {
+        if (this.readyState == 4) {
+            
+            try {
+                result = JSON.parse(this.responseText);
+            } catch(e) {
+                console.log(e +' - Response: ' + this.responseText);
+                error("Could not reach API.");
+                return;
+            }
+            
+            if(result.error) {
+                error(result.error);
+            } else {
+                success(result.message);
+                news = result.news;
+                place_news(news);
+            }
+
+        } else {
+            info("Deleting news...");
+        }
+    };
+    xhttp.withCredentials = true;
+    xhttp.open("post", api_url + "admin/news/" + newsID + "/delete");
+    xhttp.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
+    xhttp.setRequestHeader("Authorization", jwt);
+    xhttp.send();
+    return;
 }

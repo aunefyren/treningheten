@@ -322,7 +322,7 @@ function drawTriangle()
 function spinFinished() {
 
     GetProfileImage(winner.ID);
-    document.getElementById('spinner-winner-image').onclick = function(){location.href=`/users/${winner.ID}`};
+    document.getElementById('spinner-winner-image-div').onclick = function(){location.href=`/users/${winner.ID}`};
     document.getElementById('spinner-winner-image-wrapper').style.animation = "slide 0.25s ease 0.5s forwards";
     setTimeout(function () {
         document.getElementById('spinner-winner-image-wrapper').style.animation = "slide 0.25s ease 0.5s forwards, smooth-appear 0.5s ease forwards";

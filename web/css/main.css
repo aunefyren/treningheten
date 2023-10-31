@@ -1076,7 +1076,6 @@ input[type=checkbox]
   height: auto;
   max-height: 58em;
   overflow-y: auto;
-  margin-bottom: 1em;
 }
 
 .leaderboard-week {

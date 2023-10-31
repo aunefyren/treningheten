@@ -287,6 +287,7 @@ function load_page(result) {
                                     <h3 id="current-week-title">Current week</h3>
 
                                     <div id="current-week-users" class="current-week-users">
+                                        ...
                                     </div>
 
 
@@ -300,6 +301,7 @@ function load_page(result) {
                                 <h3 style="margin: 0.5em;">Past weeks</h3>
 
                                 <div id="leaderboard-weeks" class="leaderboard-weeks">
+                                    ...
                                 </div>
 
                             </div>
@@ -738,15 +740,19 @@ function get_leaderboard(fireworks){
 
 function place_leaderboard(weeks_array) {
 
+    var leaderboardWeeks = document.getElementById("leaderboard-weeks")
     var html = ``;
-    
+
     if(weeks_array.length == 0) {
         html = `
             <div id="" class="leaderboard-weeks">
                 <p id="" style="margin: 0.5em; text-align: center;">No past weeks.</p>
             </div>
         `;
+        leaderboardWeeks.innerHTML = html
     } else {
+        leaderboardWeeks.innerHTML = ""
+
         for(var i = 0; i < weeks_array.length; i++) {
             var week_html = `
                 <div class="leaderboard-week" id="">
@@ -791,16 +797,12 @@ function place_leaderboard(weeks_array) {
 
             week_html += results_html + `</div></div>`;
 
-            html += week_html
-
+            leaderboardWeeks.innerHTML += week_html
         }
         
     }
 
-    document.getElementById("leaderboard-weeks").innerHTML = html
-
     return
-
 }
 
 function GetProfileImageForUserOnLeaderboard(userID) {
@@ -871,10 +873,13 @@ function place_season_details(goal, sickleave, seasonStart, SeasonEnd) {
 }
 
 function place_current_week(week_array) {
+    var currentWeekUsers = document.getElementById("current-week-users")
 
+    // Sort users
     week_array.users = week_array.users.sort((a,b) => b.week_completion - a.week_completion);
     
-    var html = ``;
+    // Remove intial data
+    currentWeekUsers.innerHTML = ""
 
     for(var i = 0; i < week_array.users.length; i++) {
 
@@ -936,18 +941,11 @@ function place_current_week(week_array) {
             </div>
         `;
 
-        html += week_html
-
-    }
-
-    document.getElementById("current-week-users").innerHTML = html
-
-    for(var i = 0; i < week_array.users.length; i++) {
+        currentWeekUsers.innerHTML += week_html
         GetProfileImagesForCurrentWeek(week_array.users[i].user.ID, i)
     }
 
     return
-
 }
 
 function GetProfileImagesForCurrentWeek(userID, index) {
