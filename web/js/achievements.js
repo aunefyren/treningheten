@@ -167,6 +167,17 @@ function PlaceUserAhievements(achivementArrayPersonal, achivementArray, userID) 
             }
         }
 
+        var seasonBased = "";
+        var seasonBasedText = "";
+        if(achivementArray[i].season_based) {
+            seasonBased = `achievement-season`;
+            seasonBasedText = `
+            <div style="font-size: 0.65em; margin-bottom: 1em;"> 
+                Season achievement
+            </div>
+            `;
+        }
+
         if(achieved) {
 
             achieved_sum += 1
@@ -195,7 +206,7 @@ function PlaceUserAhievements(achivementArrayPersonal, achivementArray, userID) 
 
             <div class="achievement-base ${class_string_html}">
 
-                <div class="achievement-image">
+                <div class="achievement-image ${seasonBased}">
                     <img style="width: 100%; height: 100%; padding: 1.5em; border-radius: 0;" class="achievement-img" id="achievement-img-${achivementArray[i].ID}" src="/assets/images/barbell.gif">
                 </div>
 
@@ -211,6 +222,7 @@ function PlaceUserAhievements(achivementArrayPersonal, achivementArray, userID) 
 
             <div class="overlay">
                 <div class="text-achievement"> 
+                    ${seasonBasedText}
                     <div style="margin-bottom: 0.5em;"> 
                         ${achivementArray[i].name}
                     </div>

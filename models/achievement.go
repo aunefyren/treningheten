@@ -11,6 +11,7 @@ type Achievement struct {
 	Enabled     bool   `json:"enabled" gorm:"not null; default: true"`
 	Name        string `json:"name" gorm:"not null"`
 	Description string `json:"description" gorm:"not null"`
+	SeasonBased bool   `json:"season_based" gorm:"not null; default: false"`
 }
 
 type AchievementDelegation struct {
@@ -30,4 +31,5 @@ type AchievementObject struct {
 	GivenTo     User      `json:"user"`
 	ID          uint      `json:"id"`
 	Seen        bool      `json:"seen"`
+	SeasonBased bool      `json:"season_based"`
 }

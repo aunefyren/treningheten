@@ -255,13 +255,24 @@ function PlaceUserAhievements(achivementArray) {
             classString += " new-achievement"
         }
 
+        var seasonBased = "";
+        var seasonBasedText = "";
+        if(achivementArray[i].season_based) {
+            seasonBased = `achievement-season`;
+            seasonBasedText = `
+            <div style="font-size: 0.65em; margin-bottom: 1em;"> 
+                Season achievement
+            </div>
+            `;
+        }
+
         var html = `
 
         <div class="achievement unselectable" title="${achivementArray[i].description}" tabindex="1">
 
             <div class="achievement-base ${classString}">
 
-                <div class="achievement-image">
+                <div class="achievement-image ${seasonBased}">
                     <img style="width: 100%; height: 100%;" class="achievement-img" id="achievement-img-${achivementArray[i].id}" src="/assets/images/barbell.gif">
                 </div>
 
@@ -277,6 +288,7 @@ function PlaceUserAhievements(achivementArray) {
 
             <div class="overlay">
                 <div class="text-achievement"> 
+                    ${seasonBasedText}
                     <div style="margin-bottom: 0.5em;"> 
                         ${achivementArray[i].name}
                     </div>

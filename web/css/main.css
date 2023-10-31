@@ -3,6 +3,7 @@
     --red-error: #f8d7da;
     --red-error-border: #f5c6cb;
     --yellow: #ffd500;
+    --yellow-light: #FFEB85;
     --green: #003e1f;
     --green-success:#d4edda;
     --green-success-border: #c3e6cb;
@@ -1556,6 +1557,10 @@ input[type=checkbox]
   height: 6em;
   border: solid 0.2em var(--lightblue);
   background-color: var(--white);
+}
+
+.achievement-season {
+  border: solid 0.2em var(--yellow-light);
 }
 
 .achievements-box {

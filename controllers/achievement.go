@@ -100,128 +100,156 @@ func CreateDefaultAchivements() error {
 	leapAchievement := models.Achievement{
 		Name:        "One of us",
 		Description: "Join a season by creating a goal.",
+		SeasonBased: false,
 	}
 	achievements = append(achievements, leapAchievement)
 
 	weekAchievement := models.Achievement{
 		Name:        "It's everyday, bro",
 		Description: "Exercise everyday for a week.",
+		SeasonBased: false,
 	}
 	achievements = append(achievements, weekAchievement)
 
 	noteAchievement := models.Achievement{
 		Name:        "Dear diary...",
 		Description: "Write a long workout note.",
+		SeasonBased: false,
 	}
 	achievements = append(achievements, noteAchievement)
 
 	deserveAchievement := models.Achievement{
 		Name:        "What you deserve",
 		Description: "Spin the wheel after failing a week.",
+		SeasonBased: false,
 	}
 	achievements = append(achievements, deserveAchievement)
 
 	winAchievement := models.Achievement{
 		Name:        "Lucky bastard",
 		Description: "Have someone else spin the wheel and win.",
+		SeasonBased: false,
 	}
 	achievements = append(achievements, winAchievement)
 
 	anotherAchievement := models.Achievement{
 		Name:        "Another one",
 		Description: "Exercise more than once in a day.",
+		SeasonBased: false,
 	}
 	achievements = append(achievements, anotherAchievement)
 
 	overAchievement := models.Achievement{
 		Name:        "Overachiever",
 		Description: "Exercise more than required in a week.",
+		SeasonBased: false,
 	}
 	achievements = append(achievements, overAchievement)
 
 	mayAchievement := models.Achievement{
 		Name:        "Norwegian heritage",
 		Description: "Exercise on the 17th of May.",
+		SeasonBased: false,
 	}
 	achievements = append(achievements, mayAchievement)
 
 	christmasAchievement := models.Achievement{
 		Name:        "The gift of lifting",
 		Description: "Exercise on the 24th of December.",
+		SeasonBased: false,
 	}
 	achievements = append(achievements, christmasAchievement)
 
 	sickAchievement := models.Achievement{
 		Name:        "Your week off",
 		Description: "Use a week of sick leave.",
+		SeasonBased: false,
 	}
 	achievements = append(achievements, sickAchievement)
 
 	weekendAchievement := models.Achievement{
 		Name:        "I'll do it later",
 		Description: "Only exercise during the weekend.",
+		SeasonBased: false,
 	}
 	achievements = append(achievements, weekendAchievement)
 
 	easyAchievement := models.Achievement{
 		Name:        "Making it look easy",
 		Description: "Exercise more than seven times in a week.",
+		SeasonBased: false,
 	}
 	achievements = append(achievements, easyAchievement)
 
 	threeAchievement := models.Achievement{
 		Name:        "Three weeks",
 		Description: "Get a three week streak.",
+		SeasonBased: false,
 	}
 	achievements = append(achievements, threeAchievement)
 
 	tenAchievement := models.Achievement{
 		Name:        "10 weeks",
 		Description: "Get a 10 week streak.",
+		SeasonBased: false,
 	}
 	achievements = append(achievements, tenAchievement)
 
 	fiteenAchievement := models.Achievement{
 		Name:        "15 weeks",
 		Description: "Get a 15 week streak.",
+		SeasonBased: false,
 	}
 	achievements = append(achievements, fiteenAchievement)
 
 	completeAchievement := models.Achievement{
 		Name:        "Fun run",
 		Description: "Complete every week in a season.",
+		SeasonBased: true,
 	}
 	achievements = append(achievements, completeAchievement)
 
 	comebackAchievement := models.Achievement{
 		Name:        "Underdog",
 		Description: "Complete a week after failing two in a row.",
+		SeasonBased: true,
 	}
 	achievements = append(achievements, comebackAchievement)
 
 	deadAchievement := models.Achievement{
 		Name:        "Back from the dead",
 		Description: "Complete a week after using sick leave.",
+		SeasonBased: true,
 	}
 	achievements = append(achievements, deadAchievement)
 
 	fullAchievement := models.Achievement{
 		Name:        "The boyband",
 		Description: "Exercise three times in a day.",
+		SeasonBased: false,
 	}
 	achievements = append(achievements, fullAchievement)
 
 	photoAchievement := models.Achievement{
 		Name:        "Looking good",
 		Description: "Change your profile photo.",
+		SeasonBased: false,
 	}
 	achievements = append(achievements, photoAchievement)
 
 	treatyoselfAchievement := models.Achievement{
 		Name:        "Treat yo self",
 		Description: "Exercise on your birthday.",
+		SeasonBased: false,
 	}
 	achievements = append(achievements, treatyoselfAchievement)
+
+	shameAchievement := models.Achievement{
+		Name:        "Badge of shame",
+		Description: "Forget to log your workouts and have it fixed later.",
+		SeasonBased: false,
+	}
+	achievements = append(achievements, shameAchievement)
 
 	for _, achievement := range achievements {
 
@@ -259,6 +287,7 @@ func ConvertAchivementDelegationToAchivementObject(achievementDelegation models.
 		GivenAt:     achievementDelegation.GivenAt,
 		GivenTo:     user,
 		Seen:        achievementDelegation.Seen,
+		SeasonBased: achievement.SeasonBased,
 	}
 
 	return achivementObject, nil
