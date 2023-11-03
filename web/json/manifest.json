@@ -1,80 +1,83 @@
 {
-	"lang": "en",
-	"dir": "ltr",
-	"name": "Treningheten",
-	"short_name": "Treningheten",
-	"description": "Track workouts.",
-	"theme_color": "#e0e1dd",
-	"background_color": "#ffffff",
-	"display": "standalone",
-	"orientation": "portrait",
-	"scope": "/",
-	"start_url": "/",
-	"id": "/",
-	"client_mode": "navigate-existing",
-	"categories": ["workout", "health", "compete"],
-	"prefer_related_applications": false,
-	"icons": [
-	{
-		"src": "/assets/logo.svg",
-		"sizes": "any",
-		"type": "image/svg+xml",
-		"purpose": "any"
-	},
-	{
-		"src": "/assets/logos/logo-72x72.png",
-		"sizes": "72x72",
-		"type": "image/png",
-		"purpose": "maskable any"
-	},
-	{
-		"src": "/assets/logos/logo-96x96.png",
-		"sizes": "96x96",
-		"type": "image/png",
-		"purpose": "maskable any"
-	},
-	{
-		"src": "/assets/logos/logo-128x128.png",
-		"sizes": "128x128",
-		"type": "image/png",
-		"purpose": "maskable any"
-	},
-	{
-		"src": "/assets/logos/logo-192x192.png",
-		"sizes": "192x192",
-		"type": "image/png",
-		"purpose": "maskable any"
-	},
-	{
-		"src": "/assets/logos/logo-384x384.png",
-		"sizes": "384x384",
-		"type": "image/png",
-		"purpose": "maskable any"
-	},
-	{
-		"src": "/assets/logos/logo-512x512.png",
-		"sizes": "512x512",
-		"type": "image/png",
-    	"purpose": "maskable any"
-	},
-	{
-		"src": "/assets/logos/logo-1024x1024.png",
-		"sizes": "1024x1024",
-		"type": "image/png",
-    	"purpose": "maskable any"
-	},
-	{
-		"src": "/assets/logos/logo-mono-512x512.png",
-		"sizes": "512x512",
-		"type": "image/png",
-    	"purpose": "any monochrome"
-	},
-	{
-		"src": "/assets/logo_trans.svg",
-		"sizes": "any",
-		"type": "image/svg+xml",
-    	"purpose": "any monochrome"
-	}
-],
-	"splash_pages": null
+  "lang": "en",
+  "dir": "ltr",
+  "name": "Treningheten",
+  "short_name": "Trening",
+  "description": "Track workouts.",
+  "theme_color": "#e0e1dd",
+  "background_color": "#ffffff",
+  "display": "standalone",
+  "orientation": "portrait",
+  "scope": "/",
+  "start_url": "/",
+  "prefer_related_applications": false,
+  "icons": [
+    {
+      "src": "/assets/logo.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "/assets/logos/logo-72x72.png",
+      "sizes": "72x72",
+      "type": "image/png",
+      "purpose": "maskable any"
+    },
+    {
+      "src": "/assets/logos/logo-96x96.png",
+      "sizes": "96x96",
+      "type": "image/png",
+      "purpose": "maskable any"
+    },
+    {
+      "src": "/assets/logos/logo-128x128.png",
+      "sizes": "128x128",
+      "type": "image/png",
+      "purpose": "maskable any"
+    },
+    {
+      "src": "/assets/logos/logo-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable any"
+    },
+    {
+      "src": "/assets/logos/logo-384x384.png",
+      "sizes": "384x384",
+      "type": "image/png",
+      "purpose": "maskable any"
+    },
+    {
+      "src": "/assets/logos/logo-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable any"
+    },
+    {
+      "src": "/assets/logos/logo-1024x1024.png",
+      "sizes": "1024x1024",
+      "type": "image/png",
+      "purpose": "maskable any"
+    },
+    {
+      "src": "/assets/logos/logo-mono-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any monochrome"
+    },
+    {
+      "src": "/assets/logo_trans.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any monochrome"
+    }
+  ],
+  "splash_pages": null,
+  "id": "ace9ed4b-ee4f-418a-b003-43b52c1039c2",
+  "categories": [
+    "fitness",
+    "games",
+    "lifestyle"
+  ]
 }
