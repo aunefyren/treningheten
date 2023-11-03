@@ -9,7 +9,10 @@
 	"display": "standalone",
 	"orientation": "portrait",
 	"scope": "/",
-	"start_url": "./",
+	"start_url": "/",
+	"id": "/",
+	"client_mode": "navigate-existing",
+	"categories": ["workout", "health", "compete"],
 	"prefer_related_applications": false,
 	"icons": [
 	{
