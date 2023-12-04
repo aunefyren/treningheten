@@ -23,7 +23,8 @@ func Auth(admin bool) gin.HandlerFunc {
 
 		err := auth.ValidateToken(tokenString, admin)
 		if err != nil {
-			context.JSON(401, gin.H{"error": err.Error()})
+			log.Println("Failed to validate token. Error: " + err.Error())
+			context.JSON(401, gin.H{"error": "Failed to validate token."})
 			context.Abort()
 			return
 		}
@@ -31,7 +32,8 @@ func Auth(admin bool) gin.HandlerFunc {
 		// Get configuration
 		config, err := config.GetConfig()
 		if err != nil {
-			context.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			log.Println("Failed to get config. Error: " + err.Error())
+			context.JSON(401, gin.H{"error": "Failed to validate token."})
 			context.Abort()
 			return
 		}
@@ -39,7 +41,7 @@ func Auth(admin bool) gin.HandlerFunc {
 		// Get userID from header
 		userID, err := GetAuthUsername(context.GetHeader("Authorization"))
 		if err != nil {
-			context.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			context.JSON(401, gin.H{"error": "Failed to validate token."})
 			context.Abort()
 			return
 		}
@@ -77,7 +79,7 @@ func Auth(admin bool) gin.HandlerFunc {
 				// Verify user has verification code
 				hasVerficationCode, err := database.VerifyUserHasVerfificationCode(userID)
 				if err != nil {
-					context.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+					context.JSON(401, gin.H{"error": "Failed to validate token."})
 					context.Abort()
 					return
 				}
@@ -86,7 +88,7 @@ func Auth(admin bool) gin.HandlerFunc {
 				if !hasVerficationCode {
 					_, err := database.GenrateRandomVerificationCodeForuser(userID)
 					if err != nil {
-						context.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+						context.JSON(401, gin.H{"error": "Failed to validate token."})
 						context.Abort()
 						return
 					}

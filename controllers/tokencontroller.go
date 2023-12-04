@@ -23,7 +23,8 @@ func GenerateToken(context *gin.Context) {
 
 	var user models.User
 	if err := context.ShouldBindJSON(&request); err != nil {
-		context.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		log.Println("Failed to parse request. Error: " + err.Error())
+		context.JSON(http.StatusBadRequest, gin.H{"error": "Invalid credentials."})
 		context.Abort()
 		return
 	}
@@ -89,6 +90,8 @@ func ValidateToken(context *gin.Context) {
 			userObject, userErr := database.GetUserInformation(claims.UserID)
 			if userErr != nil {
 				log.Println("Failed to check admin status during token refresh.")
+				context.JSON(http.StatusBadRequest, gin.H{"error": "Invalid session. Please log in again."})
+				context.Abort()
 				return
 			} else if *userObject.Admin != claims.Admin {
 				claims.Admin = *userObject.Admin
