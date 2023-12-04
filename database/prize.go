@@ -1,9 +1,13 @@
 package database
 
-import "aunefyren/treningheten/models"
+import (
+	"aunefyren/treningheten/models"
+
+	"github.com/google/uuid"
+)
 
 // Retrieve prize by ID
-func GetPrizeByID(prizeID int) (models.Prize, bool, error) {
+func GetPrizeByID(prizeID uuid.UUID) (models.Prize, bool, error) {
 
 	var prizeStruct models.Prize
 

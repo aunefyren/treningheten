@@ -368,7 +368,7 @@ function get_season(user_id){
                         <br><br>
                         Meanwhile, feel free to check out the <a href="/seasons">past seasons and your statistics</a>.
                         <br><br>
-                        Or perhaps check out <a href="/seasons">your own achievements</a>?
+                        Or perhaps check out <a href="/achievements">your own achievements</a>?
                     </div>
 
                     <div id="debt-module" class="debt-module" style="display: none; margin-top: 5em;">
@@ -394,7 +394,7 @@ function get_season(user_id){
 
                 user_found = false;
                 for(var i = 0; i < season.goals.length; i++) {
-                    if(season.goals[i].user.ID == user_id) {
+                    if(season.goals[i].user.id == user_id) {
                         user_found = true
                         var goal = season.goals[i].exercise_interval
                         break
@@ -423,24 +423,12 @@ function get_season(user_id){
         }
     };
     xhttp.withCredentials = true;
-    xhttp.open("post", api_url + "auth/season/getongoing");
+    xhttp.open("get", api_url + "auth/seasons/getongoing");
     xhttp.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
     xhttp.setRequestHeader("Authorization", jwt);
     xhttp.send();
     return false;
 
-}
-
-function countdownRedirect() {
-
-    window.location = '/countdown'
-    
-}
-
-function registerGoalRedirect() {
-
-    window.location = '/registergoal'
-    
 }
 
 function place_season(season_object) {
@@ -486,7 +474,7 @@ function get_calendar(fireworks){
         }
     };
     xhttp.withCredentials = true;
-    xhttp.open("post", api_url + "auth/exercise/get");
+    xhttp.open("get", api_url + "auth/exercises/week");
     xhttp.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
     xhttp.setRequestHeader("Authorization", jwt);
     xhttp.send();
@@ -507,37 +495,37 @@ function place_week(week, fireworks) {
     document.getElementById("day_1_check").innerHTML = week.days[0].exercise_interval
     document.getElementById("day_1_note").value = HTMLDecode(week.days[0].note)
     document.getElementById("day_1_date").value = week.days[0].date
-    document.getElementById("day_1_id").value = week.days[0].ID
+    document.getElementById("day_1_id").value = week.days[0].id
 
     document.getElementById("day_2_check").innerHTML = week.days[1].exercise_interval
     document.getElementById("day_2_note").value = HTMLDecode(week.days[1].note)
     document.getElementById("day_2_date").value = week.days[1].date
-    document.getElementById("day_2_id").value = week.days[1].ID
+    document.getElementById("day_2_id").value = week.days[1].id
 
     document.getElementById("day_3_check").innerHTML = week.days[2].exercise_interval
     document.getElementById("day_3_note").value = HTMLDecode(week.days[2].note)
     document.getElementById("day_3_date").value = week.days[2].date
-    document.getElementById("day_3_id").value = week.days[2].ID
+    document.getElementById("day_3_id").value = week.days[2].id
 
     document.getElementById("day_4_check").innerHTML = week.days[3].exercise_interval
     document.getElementById("day_4_note").value = HTMLDecode(week.days[3].note)
     document.getElementById("day_4_date").value = week.days[3].date
-    document.getElementById("day_4_id").value = week.days[3].ID
+    document.getElementById("day_4_id").value = week.days[3].id
 
     document.getElementById("day_5_check").innerHTML = week.days[4].exercise_interval
     document.getElementById("day_5_note").value = HTMLDecode(week.days[4].note)
     document.getElementById("day_5_date").value = week.days[4].date
-    document.getElementById("day_5_id").value = week.days[4].ID
+    document.getElementById("day_5_id").value = week.days[4].id
 
     document.getElementById("day_6_check").innerHTML = week.days[5].exercise_interval
     document.getElementById("day_6_note").value = HTMLDecode(week.days[5].note)
     document.getElementById("day_6_date").value = week.days[5].date
-    document.getElementById("day_6_id").value = week.days[5].ID
+    document.getElementById("day_6_id").value = week.days[5].id
 
     document.getElementById("day_7_check").innerHTML = week.days[6].exercise_interval
     document.getElementById("day_7_note").value = HTMLDecode(week.days[6].note)
     document.getElementById("day_7_date").value = week.days[6].date
-    document.getElementById("day_7_id").value = week.days[6].ID
+    document.getElementById("day_7_id").value = week.days[6].id
 
     // Find day int
     const now = new Date(Date.now());
@@ -658,7 +646,7 @@ function update_exercises(go_to_exercise, weekDayInt) {
                 week = result.week;
 
                 if(go_to_exercise === true) {
-                    GoToExercise(week.days[weekDayInt-1].ID)
+                    GoToExercise(week.days[weekDayInt-1].id)
                 }
 
                 console.log(week);
@@ -686,7 +674,7 @@ function update_exercises(go_to_exercise, weekDayInt) {
         }
     };
     xhttp.withCredentials = true;
-    xhttp.open("post", api_url + "auth/exercise/update");
+    xhttp.open("post", api_url + "auth/exercises/week");
     xhttp.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
     xhttp.setRequestHeader("Authorization", jwt);
     xhttp.send(form_data);
@@ -730,7 +718,7 @@ function get_leaderboard(fireworks){
         }
     };
     xhttp.withCredentials = true;
-    xhttp.open("post", api_url + "auth/season/leaderboard");
+    xhttp.open("get", api_url + "auth/seasons/leaderboard");
     xhttp.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
     xhttp.setRequestHeader("Authorization", jwt);
     xhttp.send();
@@ -774,8 +762,8 @@ function place_leaderboard(weeks_array) {
 
                 var onclick_command_str = "return;"
                 var clickable_str = ""
-                if(weeks_array[i].users[j].debt !== null && weeks_array[i].users[j].debt.winner.ID !== 0) {
-                    onclick_command_str = "location.replace('/wheel?debt_id=" + weeks_array[i].users[j].debt.ID + "'); "
+                if(weeks_array[i].users[j].debt !== null && weeks_array[i].users[j].debt.winner !== null) {
+                    onclick_command_str = "location.replace('/wheel?debt_id=" + weeks_array[i].users[j].debt.id + "'); "
                     clickable_str = "clickable grey-underline"
                     completion += "🎡"
                 }
@@ -783,7 +771,7 @@ function place_leaderboard(weeks_array) {
 
                 var result_html = `
                 <div class="leaderboard-week-result" id="">
-                    <div class="leaderboard-week-result-user clickable" style="cursor: pointer;" onclick="location.href='/users/${weeks_array[i].users[j].user.ID}'">
+                    <div class="leaderboard-week-result-user clickable" style="cursor: pointer;" onclick="location.href='/users/${weeks_array[i].users[j].user.id}'">
                         ` + weeks_array[i].users[j].user.first_name + `
                     </div>
                     <div class="leaderboard-week-result-exercise ` + clickable_str  + `" onclick="` + onclick_command_str  + `">
@@ -834,7 +822,7 @@ function GetProfileImageForUserOnLeaderboard(userID) {
         }
     };
     xhttp.withCredentials = true;
-    xhttp.open("post", api_url + "auth/user/get/" + userID + "/image?thumbnail=true");
+    xhttp.open("get", api_url + "auth/users/" + userID + "/image?thumbnail=true");
     xhttp.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
     xhttp.setRequestHeader("Authorization", jwt);
     xhttp.send();
@@ -890,7 +878,7 @@ function place_current_week(week_array) {
             var current_streak = week_array.users[i].current_streak + "🤢"
             transparent = "transparent"
 
-            if(week_array.users[i].user.ID == user_id){
+            if(week_array.users[i].user.id == user_id){
                 document.getElementById("calendar").classList.add("transparent")
                 document.getElementById("calendar").classList.add("unselectable")
                 document.getElementById("calendar").classList.add("noninteractive")
@@ -908,7 +896,7 @@ function place_current_week(week_array) {
             transparent += " bold-font "
         }
 
-        if(week_array.users[i].user.ID == user_id) {
+        if(week_array.users[i].user.id == user_id) {
             placeWeekProgress(completion)
         }
 
@@ -921,8 +909,8 @@ function place_current_week(week_array) {
                         <b>${week_array.users[i].user.first_name}</b>
                     </div>
 
-                    <div class="current-week-user-photo" title="` + week_array.users[i].user.first_name + ` ` + week_array.users[i].user.last_name + `" onclick="location.href='/users/${week_array.users[i].user.ID}'">
-                        <img style="width: 100%; height: 100%;" class="current-week-user-photo-img" id="current-week-user-photo-` + week_array.users[i].user.ID + `-` + i + `" src="/assets/images/barbell.gif">
+                    <div class="current-week-user-photo" title="` + week_array.users[i].user.first_name + ` ` + week_array.users[i].user.last_name + `" onclick="location.href='/users/${week_array.users[i].user.id}'">
+                        <img style="width: 100%; height: 100%;" class="current-week-user-photo-img" id="current-week-user-photo-` + week_array.users[i].user.id + `-` + i + `" src="/assets/images/barbell.gif">
                     </div>
                 </div>
 
@@ -942,7 +930,7 @@ function place_current_week(week_array) {
         `;
 
         currentWeekUsers.innerHTML += week_html
-        GetProfileImagesForCurrentWeek(week_array.users[i].user.ID, i)
+        GetProfileImagesForCurrentWeek(week_array.users[i].user.id, i)
     }
 
     return
@@ -977,7 +965,7 @@ function GetProfileImagesForCurrentWeek(userID, index) {
         }
     };
     xhttp.withCredentials = true;
-    xhttp.open("post", api_url + "auth/user/get/" + userID + "/image?thumbnail=true");
+    xhttp.open("get", api_url + "auth/users/" + userID + "/image?thumbnail=true");
     xhttp.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
     xhttp.setRequestHeader("Authorization", jwt);
     xhttp.send();
@@ -1025,7 +1013,7 @@ function use_sickleave() {
         }
     };
     xhttp.withCredentials = true;
-    xhttp.open("post", api_url + "auth/sickleave/register");
+    xhttp.open("post", api_url + "auth/sickleave");
     xhttp.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
     xhttp.setRequestHeader("Authorization", jwt);
     xhttp.send();
@@ -1054,7 +1042,7 @@ function placeDebtOverview(overviewArray) {
         html += `
             <div class="debt-module-notification-view" id="">
                 ${overviewArray.debt_unviewed[i].debt.loser.first_name} ${overviewArray.debt_unviewed[i].debt.loser.last_name} spun the wheel for week ${date_str}.<br>See if you won!<br>
-                <img src="assets/arrow-right.svg" class="small-button-icon" onclick="location.replace('/wheel?debt_id=${overviewArray.debt_unviewed[i].debt.ID}'); ">
+                <img src="assets/arrow-right.svg" class="small-button-icon" onclick="location.replace('/wheel?debt_id=${overviewArray.debt_unviewed[i].debt.id}'); ">
             </div>
             `;
     }
@@ -1076,7 +1064,7 @@ function placeDebtOverview(overviewArray) {
         html += `
             <div class="debt-module-notification-prize" id="">
                 ${overviewArray.debt_won[i].loser.first_name} ${overviewArray.debt_won[i].loser.last_name} spun the wheel for week ${date_str} and you won <b>${overviewArray.debt_won[i].season.prize.quantity} ${overviewArray.debt_won[i].season.prize.name}</b>!<br>Have you received it?<br>
-                <img src="assets/done.svg" class="small-button-icon" onclick="setPrizeReceived(${overviewArray.debt_won[i].ID});">
+                <img src="assets/done.svg" class="small-button-icon" onclick="setPrizeReceived('${overviewArray.debt_won[i].id}');">
             </div>
             `;
     }
@@ -1123,7 +1111,7 @@ function placeDebtSpin(overview) {
     document.getElementById("unspun-wheel").innerHTML = `
         You failed to reach your goal for week ${date_str} and must spin the wheel.
         <div id="canvas-buttons" class="canvas-buttons">
-            <button id="go-to-wheel" onclick="location.replace('/wheel?debt_id=${overview.debt_lost[0].ID}');">Take me there</button>
+            <button id="go-to-wheel" onclick="location.replace('/wheel?debt_id=${overview.debt_lost[0].id}');">Take me there</button>
         </div>
     `;
     return;
@@ -1196,4 +1184,16 @@ function frontPageRedirect() {
 
     window.location = '/verify'
 
+}
+
+function countdownRedirect() {
+
+    window.location = '/countdown'
+    
+}
+
+function registerGoalRedirect() {
+
+    window.location = '/registergoal'
+    
 }

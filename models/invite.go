@@ -1,21 +1,22 @@
 package models
 
 import (
-	"gorm.io/gorm"
+	"github.com/google/uuid"
 )
 
 type Invite struct {
-	gorm.Model
-	InviteCode      string `json:"invite_code" gorm:"unique;not null"`
-	InviteUsed      bool   `json:"invite_used" gorm:"not null;default: false"`
-	InviteRecipient int    `json:"invite_recipient" gorm:"default: null"`
-	InviteEnabled   *bool  `json:"invite_enabled" gorm:"not null;default: true"`
+	GormModel
+	Code        string     `json:"code" gorm:"unique;not null"`
+	Used        bool       `json:"used" gorm:"not null;default: false"`
+	RecipientID *uuid.UUID `json:"" gorm:"type:varchar(100);"`
+	Recipient   *User      `json:"recipient" gorm:"default: null"`
+	Enabled     bool       `json:"enabled" gorm:"not null;default: true"`
 }
 
 type InviteObject struct {
-	gorm.Model
-	InviteCode    string `json:"invite_code"`
-	InviteUsed    bool   `json:"invite_used"`
-	User          User   `json:"user"`
-	InviteEnabled *bool  `json:"invite_enabled"`
+	GormModel
+	Code      string `json:"code"`
+	Used      bool   `json:"used"`
+	Recipient *User  `json:"recipient"`
+	Enabled   *bool  `json:"enabled"`
 }

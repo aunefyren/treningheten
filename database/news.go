@@ -3,6 +3,8 @@ package database
 import (
 	"aunefyren/treningheten/models"
 	"errors"
+
+	"github.com/google/uuid"
 )
 
 func GetNewsPosts() ([]models.News, error) {
@@ -25,7 +27,7 @@ func GetNewsPosts() ([]models.News, error) {
 
 }
 
-func GetNewsPostByNewsID(newsID int) (models.News, error) {
+func GetNewsPostByNewsID(newsID uuid.UUID) (models.News, error) {
 
 	var newsPost models.News
 
@@ -42,7 +44,7 @@ func GetNewsPostByNewsID(newsID int) (models.News, error) {
 }
 
 // Set news post to disabled
-func DeleteNewsPost(newsID int) error {
+func DeleteNewsPost(newsID uuid.UUID) error {
 	var news models.News
 	newsRecords := Instance.Model(news).Where("`news`.ID= ?", newsID).Update("enabled", 0)
 	if newsRecords.Error != nil {

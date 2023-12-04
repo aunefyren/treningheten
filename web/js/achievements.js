@@ -24,7 +24,7 @@ function load_page(result) {
                     <div class="module">
                     
                         <div class="text-body" style="text-align: center;">
-                            These are the achievements you can win.
+                            These are the achievements you can win. Most achievements are given the week after, season-based are given when the season is over.
                         </div>
 
                     </div>
@@ -95,7 +95,7 @@ function GetAllAchievements(userID) {
         }
     };
     xhttp.withCredentials = true;
-    xhttp.open("post", api_url + "auth/achievement/");
+    xhttp.open("get", api_url + "auth/achievements");
     xhttp.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
     xhttp.setRequestHeader("Authorization", jwt);
     xhttp.send();
@@ -133,7 +133,7 @@ function GetUserAhievements(achivementArray, userID) {
         }
     };
     xhttp.withCredentials = true;
-    xhttp.open("post", api_url + "auth/achievement/" + userID);
+    xhttp.open("get", api_url + "auth/achievements?user=" + userID);
     xhttp.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
     xhttp.setRequestHeader("Authorization", jwt);
     xhttp.send();
@@ -160,20 +160,19 @@ function PlaceUserAhievements(achivementArrayPersonal, achivementArray, userID) 
         var achieved = false;
         var achievedIndex = 0;
         for(var j = 0; j < achivementArrayPersonal.length; j++) {
-            if(achivementArrayPersonal[j].id == achivementArray[i].ID) {
+            if(achivementArrayPersonal[j].id == achivementArray[i].id) {
                 achieved = true;
                 achievedIndex = j;
                 break;
             }
         }
 
-        var seasonBased = "";
-        var seasonBasedText = "";
-        if(achivementArray[i].season_based) {
-            seasonBased = `achievement-season`;
-            seasonBasedText = `
-            <div style="font-size: 0.65em; margin-bottom: 1em;"> 
-                Season achievement
+        var categoryColor = `var(--${achivementArray[i].category_color})`;
+        var categoryText = ""
+        if(achivementArray[i].category !== "Default") {
+            categoryText = `
+            <div style="font-size: 0.70em; margin-bottom: 1em;"> 
+                ${achivementArray[i].category}
             </div>
             `;
         }
@@ -184,7 +183,7 @@ function PlaceUserAhievements(achivementArrayPersonal, achivementArray, userID) 
 
             // parse date object
             try {
-                var date = new Date(Date.parse(achivementArrayPersonal[achievedIndex].given_at));
+                var date = new Date(Date.parse(achivementArrayPersonal[achievedIndex].achievement_delegation.given_at));
                 var date_string = GetDateString(date, false)
             } catch {
                 var date_string = "Error"
@@ -192,7 +191,7 @@ function PlaceUserAhievements(achivementArrayPersonal, achivementArray, userID) 
             var date_string_html = date_string
             var class_string_html = ""
 
-            if(!achivementArrayPersonal[achievedIndex].seen){
+            if(!achivementArrayPersonal[achievedIndex].achievement_delegation.seen){
                 class_string_html += " new-achievement"
             }
         } else {
@@ -206,8 +205,8 @@ function PlaceUserAhievements(achivementArrayPersonal, achivementArray, userID) 
 
             <div class="achievement-base ${class_string_html}">
 
-                <div class="achievement-image ${seasonBased}">
-                    <img style="width: 100%; height: 100%; padding: 1.5em; border-radius: 0;" class="achievement-img" id="achievement-img-${achivementArray[i].ID}" src="/assets/images/barbell.gif">
+                <div class="achievement-image" style="border: solid 0.2em ${categoryColor};">
+                    <img style="width: 100%; height: 100%; padding: 1.5em; border-radius: 0;" class="achievement-img" id="achievement-img-${achivementArray[i].id}" src="/assets/images/barbell.gif">
                 </div>
 
                 <div class="achievement-title">
@@ -222,11 +221,11 @@ function PlaceUserAhievements(achivementArrayPersonal, achivementArray, userID) 
 
             <div class="overlay">
                 <div class="text-achievement"> 
-                    ${seasonBasedText}
+                    ${categoryText}
                     <div style="margin-bottom: 0.5em;"> 
                         ${achivementArray[i].name}
                     </div>
-                    <div style="font-size: 0.9em;"> 
+                    <div style="" class="achievement-description"> 
                         ${achivementArray[i].description}
                     </div>
                 </div>
@@ -238,11 +237,11 @@ function PlaceUserAhievements(achivementArrayPersonal, achivementArray, userID) 
         document.getElementById("achievements-box").innerHTML += html
 
         if(achieved) {
-            document.getElementById("achievement-img-" + achivementArray[i].ID).style.padding  = "0"
-            document.getElementById("achievement-img-" + achivementArray[i].ID).style.borderRadius  = "10em"
-            GetAchievementImage(achivementArray[i].ID)
+            document.getElementById("achievement-img-" + achivementArray[i].id).style.padding  = "0"
+            document.getElementById("achievement-img-" + achivementArray[i].id).style.borderRadius  = "10em"
+            GetAchievementImage(achivementArray[i].id)
         } else {
-            document.getElementById("achievement-img-" + achivementArray[i].ID).src  = "/assets/lock.svg"
+            document.getElementById("achievement-img-" + achivementArray[i].id).src  = "/assets/lock.svg"
         }
 
     }
@@ -294,7 +293,7 @@ function GetAchievementImage(achievementID) {
         }
     };
     xhttp.withCredentials = true;
-    xhttp.open("post", api_url + "auth/achievement/get/" + achievementID + "/image");
+    xhttp.open("get", api_url + "auth/achievements/" + achievementID + "/image");
     xhttp.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
     xhttp.setRequestHeader("Authorization", jwt);
     xhttp.send();

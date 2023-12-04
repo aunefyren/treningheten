@@ -1,16 +1,18 @@
 package models
 
 import (
-	"gorm.io/gorm"
+	"github.com/google/uuid"
 )
 
 type Goal struct {
-	gorm.Model
-	Season           int  `json:"season" gorm:"not null"`
-	ExerciseInterval int  `json:"exercise_interval" gorm:"not null; default: 3"`
-	Competing        bool `json:"competing" gorm:"not null; default: true"`
-	User             int  `json:"user" gorm:"not null"`
-	Enabled          bool `json:"enabled" gorm:"not null; default: true"`
+	GormModel
+	SeasonID         uuid.UUID `json:"" gorm:"type:varchar(100);"`
+	Season           Season    `json:"season" gorm:"not null"`
+	ExerciseInterval int       `json:"exercise_interval" gorm:"not null; default: 3"`
+	Competing        bool      `json:"competing" gorm:"not null; default: true"`
+	UserID           uuid.UUID `json:"" gorm:"type:varchar(100);"`
+	User             User      `json:"user" gorm:"not null"`
+	Enabled          bool      `json:"enabled" gorm:"not null; default: true"`
 }
 
 type GoalCreationRequest struct {
@@ -19,11 +21,11 @@ type GoalCreationRequest struct {
 }
 
 type GoalObject struct {
-	gorm.Model
-	Season           int  `json:"season"`
-	ExerciseInterval int  `json:"exercise_interval"`
-	Competing        bool `json:"competing"`
-	User             User `json:"user"`
-	Enabled          bool `json:"enabled"`
-	SickleaveLeft    int  `json:"sickleave_left"`
+	GormModel
+	SeasonID         uuid.UUID `json:"season"`
+	ExerciseInterval int       `json:"exercise_interval"`
+	Competing        bool      `json:"competing"`
+	User             User      `json:"user"`
+	Enabled          bool      `json:"enabled"`
+	SickleaveLeft    int       `json:"sickleave_left"`
 }

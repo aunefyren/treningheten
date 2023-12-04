@@ -6,10 +6,10 @@ import (
 	"aunefyren/treningheten/models"
 	"log"
 	"net/http"
-	"strconv"
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 )
 
 func APIRegisterGoalToSeason(context *gin.Context) {
@@ -54,14 +54,14 @@ func APIRegisterGoalToSeason(context *gin.Context) {
 	}
 
 	// Verify goal doesn't exist within season
-	goalStatus, _, err := database.VerifyUserGoalInSeason(userID, int(season.ID))
+	goalStatus, _, err := database.VerifyUserGoalInSeason(userID, season.ID)
 	if err != nil {
 		log.Println("Failed to verify goal status. Error: " + err.Error())
 		context.JSON(http.StatusBadRequest, gin.H{"error": "Failed to verify goal status."})
 		context.Abort()
 		return
 	} else if goalStatus {
-		log.Println("User already has a goal for season: " + strconv.Itoa(int(season.ID)))
+		log.Println("User already has a goal for season: " + season.ID.String())
 		context.JSON(http.StatusBadRequest, gin.H{"error": "You already have a goal this season."})
 		context.Abort()
 		return
@@ -77,13 +77,14 @@ func APIRegisterGoalToSeason(context *gin.Context) {
 	// Finalize goal object
 	goalDB.Competing = goal.Competing
 	goalDB.ExerciseInterval = goal.ExerciseInterval
-	goalDB.Season = int(season.ID)
-	goalDB.User = userID
+	goalDB.SeasonID = season.ID
+	goalDB.UserID = userID
+	goalDB.ID = uuid.New()
 
 	// Create goal in DB
 	goalID, err := database.CreateGoalInDB(goalDB)
 	if err != nil {
-		log.Println("Failed to create goal for season. Error: " + strconv.Itoa(int(season.ID)))
+		log.Println("Failed to create goal for season. Error: " + season.ID.String())
 		context.JSON(http.StatusBadRequest, gin.H{"error": "Failed to create goal for season."})
 		context.Abort()
 		return
@@ -92,15 +93,16 @@ func APIRegisterGoalToSeason(context *gin.Context) {
 	// Create unused sickleave for goal
 	for i := 0; i < season.Sickleave; i++ {
 		sickleave := models.Sickleave{
-			Goal: int(goalID),
+			GoalID: goalID,
 		}
+		sickleave.ID = uuid.New()
 		database.CreateSickleave(sickleave)
 	}
 
 	// Give achivement to user
-	err = GiveUserAnAchivement(userID, 1, time.Now())
+	err = GiveUserAnAchivement(userID, uuid.MustParse("7f2d49ad-d056-415e-aa80-0ada6db7cc00"), time.Now())
 	if err != nil {
-		log.Println("Failed to give achivement for user '" + strconv.Itoa(userID) + "'. Ignoring. Error: " + err.Error())
+		log.Println("Failed to give achivement for user '" + userID.String() + "'. Ignoring. Error: " + err.Error())
 	}
 
 	context.JSON(http.StatusCreated, gin.H{"message": "Goal created."})
@@ -111,15 +113,15 @@ func ConvertGoalToGoalObject(goal models.Goal) (models.GoalObject, error) {
 
 	var goalObject models.GoalObject
 
-	user, err := database.GetUserInformation(goal.User)
+	user, err := database.GetUserInformation(goal.UserID)
 	if err != nil {
-		log.Println("Failed to get information for user '" + strconv.Itoa(goal.User) + "'. Returning. Error: " + err.Error())
+		log.Println("Failed to get information for user '" + goal.User.ID.String() + "'. Returning. Error: " + err.Error())
 		return models.GoalObject{}, err
 	}
 
 	goalObject.User = user
 
-	sickleaveArray, sickleaveFound, err := database.GetUnusedSickleaveForGoalWithinWeek(int(goal.ID))
+	sickleaveArray, sickleaveFound, err := database.GetUnusedSickleaveForGoalWithinWeek(goal.ID)
 	if err != nil {
 		log.Println("Failed to process sickleave. Setting to 0.")
 		goalObject.SickleaveLeft = 0
@@ -135,8 +137,7 @@ func ConvertGoalToGoalObject(goal models.Goal) (models.GoalObject, error) {
 	goalObject.Enabled = goal.Enabled
 	goalObject.ExerciseInterval = goal.ExerciseInterval
 	goalObject.ID = goal.ID
-	goalObject.Model = goal.Model
-	goalObject.Season = goal.Season
+	goalObject.SeasonID = goal.SeasonID
 	goalObject.UpdatedAt = goal.UpdatedAt
 
 	return goalObject, nil
@@ -195,14 +196,14 @@ func APIDeleteGoalToSeason(context *gin.Context) {
 	}
 
 	// Verify goal exists within season
-	goalStatus, goalID, err := database.VerifyUserGoalInSeason(userID, int(season.ID))
+	goalStatus, goalID, err := database.VerifyUserGoalInSeason(userID, season.ID)
 	if err != nil {
 		log.Println("Failed to verify goal status. Error: " + err.Error())
 		context.JSON(http.StatusBadRequest, gin.H{"error": "Failed to verify goal status."})
 		context.Abort()
 		return
 	} else if !goalStatus {
-		log.Println("User does not have a goal for season: " + strconv.Itoa(int(season.ID)))
+		log.Println("User does not have a goal for season: " + season.ID.String())
 		context.JSON(http.StatusBadRequest, gin.H{"error": "You don't have a goal this season."})
 		context.Abort()
 		return

@@ -121,7 +121,7 @@ function get_login(cookie) {
         }
     };
     xhttp.withCredentials = true;
-    xhttp.open("post", api_url + "auth/token/validate");
+    xhttp.open("post", api_url + "auth/tokens/validate");
     xhttp.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
     xhttp.setRequestHeader("Authorization", cookie);
     xhttp.send();
@@ -594,7 +594,7 @@ function getDebtOverview() {
         }
     };
     xhttp.withCredentials = true;
-    xhttp.open("post", api_url + "auth/debt");
+    xhttp.open("get", api_url + "auth/debts");
     xhttp.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
     xhttp.setRequestHeader("Authorization", jwt);
     xhttp.send();
@@ -633,7 +633,7 @@ function setPrizeReceived(debt_id) {
         }
     };
     xhttp.withCredentials = true;
-    xhttp.open("post", api_url + "auth/debt/" + debt_id + "/received");
+    xhttp.open("post", api_url + "auth/debts/" + debt_id + "/received");
     xhttp.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
     xhttp.setRequestHeader("Authorization", jwt);
     xhttp.send();

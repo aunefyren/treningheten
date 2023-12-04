@@ -108,7 +108,7 @@ func SendSMTPSeasonStartEmail(season models.SeasonObject) error {
 
 	for _, goal := range season.Goals {
 
-		email, emailFound, err := database.GetUserEmailByUserID(int(goal.User.ID))
+		email, emailFound, err := database.GetUserEmailByUserID(goal.User.ID)
 		if err != nil {
 			log.Println("Failed to get e-mail for user. Error: " + err.Error())
 			continue

@@ -3,35 +3,37 @@ package database
 import (
 	"aunefyren/treningheten/models"
 	"errors"
+
+	"github.com/google/uuid"
 )
 
 // Create new goal within a season
-func CreateGoalInDB(goal models.Goal) (uint, error) {
+func CreateGoalInDB(goal models.Goal) (uuid.UUID, error) {
 	record := Instance.Create(&goal)
 	if record.Error != nil {
-		return 0, record.Error
+		return uuid.UUID{}, record.Error
 	}
 	return goal.ID, nil
 }
 
 // Verify if a user has a goal within a season
-func VerifyUserGoalInSeason(userID int, seasonID int) (bool, int, error) {
+func VerifyUserGoalInSeason(userID uuid.UUID, seasonID uuid.UUID) (bool, uuid.UUID, error) {
 	var goal models.Goal
-	goalrecord := Instance.Where("`goals`.enabled = ?", 1).Where("`goals`.user = ?", userID).Where("`goals`.season = ?", seasonID).Find(&goal)
+	goalrecord := Instance.Where("`goals`.enabled = ?", 1).Where("`goals`.user_id = ?", userID).Where("`goals`.season_id = ?", seasonID).Find(&goal)
 	if goalrecord.Error != nil {
-		return false, 0, goalrecord.Error
+		return false, uuid.UUID{}, goalrecord.Error
 	} else if goalrecord.RowsAffected == 1 {
-		return true, int(goal.ID), nil
+		return true, goal.ID, nil
 	}
-	return false, 0, nil
+	return false, uuid.UUID{}, nil
 }
 
 // Get goals from within season
-func GetGoalsFromWithinSeason(seasonID int) ([]models.Goal, error) {
+func GetGoalsFromWithinSeason(seasonID uuid.UUID) ([]models.Goal, error) {
 
 	var goal []models.Goal
 
-	goalrecord := Instance.Where("`goals`.enabled = ?", 1).Where("`goals`.season = ?", seasonID).Find(&goal)
+	goalrecord := Instance.Where("`goals`.enabled = ?", 1).Where("`goals`.season_id = ?", seasonID).Find(&goal)
 
 	if goalrecord.Error != nil {
 		return []models.Goal{}, goalrecord.Error
@@ -43,9 +45,9 @@ func GetGoalsFromWithinSeason(seasonID int) ([]models.Goal, error) {
 }
 
 // Get goal from user within season
-func GetGoalFromUserWithinSeason(seasonID int, userID int) (models.Goal, error) {
+func GetGoalFromUserWithinSeason(seasonID uuid.UUID, userID uuid.UUID) (models.Goal, error) {
 	var goal models.Goal
-	goalrecord := Instance.Where("`goals`.enabled = ?", 1).Where("`goals`.season = ?", seasonID).Where("`goals`.user = ?", userID).Find(&goal)
+	goalrecord := Instance.Where("`goals`.enabled = ?", 1).Where("`goals`.season_id = ?", seasonID).Where("`goals`.user_id = ?", userID).Find(&goal)
 	if goalrecord.Error != nil {
 		return models.Goal{}, goalrecord.Error
 	} else if goalrecord.RowsAffected == 0 {
@@ -55,7 +57,7 @@ func GetGoalFromUserWithinSeason(seasonID int, userID int) (models.Goal, error) 
 }
 
 // Set goal to disabled in DB using goal ID
-func DisableGoalInDBUsingGoalID(goalID int) error {
+func DisableGoalInDBUsingGoalID(goalID uuid.UUID) error {
 
 	var goal models.Goal
 	goalRecord := Instance.Model(goal).Where("`goals`.ID = ?", goalID).Update("enabled", 0)
@@ -70,11 +72,11 @@ func DisableGoalInDBUsingGoalID(goalID int) error {
 
 }
 
-func GetGoalsForUserUsingUserID(userID int) ([]models.Goal, error) {
+func GetGoalsForUserUsingUserID(userID uuid.UUID) ([]models.Goal, error) {
 
 	var goals []models.Goal
 
-	goalRecord := Instance.Order("created_at desc").Where("`goals`.enabled = ?", 1).Where("`goals`.user = ?", userID).Find(&goals)
+	goalRecord := Instance.Order("created_at desc").Where("`goals`.enabled = ?", 1).Where("`goals`.user_id = ?", userID).Find(&goals)
 	if goalRecord.Error != nil {
 		return []models.Goal{}, goalRecord.Error
 	} else if goalRecord.RowsAffected == 0 {
@@ -83,4 +85,19 @@ func GetGoalsForUserUsingUserID(userID int) ([]models.Goal, error) {
 
 	return goals, nil
 
+}
+
+// Get goal with goal ID
+func GetGoalUsingGoalID(goalID uuid.UUID) (models.Goal, error) {
+	var goal models.Goal
+
+	goalrecord := Instance.Where("`goals`.enabled = ?", 1).Where("`goals`.id = ?", goalID).Find(&goal)
+
+	if goalrecord.Error != nil {
+		return models.Goal{}, goalrecord.Error
+	} else if goalrecord.RowsAffected != 1 {
+		return models.Goal{}, errors.New("Failed to find goal.")
+	}
+
+	return goal, nil
 }

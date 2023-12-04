@@ -8,11 +8,11 @@ import (
 	"errors"
 	"log"
 	"net/http"
-	"strconv"
 	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 )
 
 // GetOngoingSeason retrieves the currently active season, or the next upcoming.
@@ -96,8 +96,9 @@ func ConvertSeasonToSeasonObject(season models.Season) (models.SeasonObject, err
 		Goals: []models.GoalObject{},
 	}
 
-	goals, err := database.GetGoalsFromWithinSeason(int(season.ID))
+	goals, err := database.GetGoalsFromWithinSeason(season.ID)
 	if err != nil {
+		log.Println("Failed to get goals within season. Ignoring.")
 		return models.SeasonObject{}, err
 	}
 
@@ -113,7 +114,7 @@ func ConvertSeasonToSeasonObject(season models.Season) (models.SeasonObject, err
 
 	}
 
-	prize, _, err := database.GetPrizeByID(season.Prize)
+	prize, _, err := database.GetPrizeByID(season.PrizeID)
 	if err != nil {
 		log.Println("Failed to find prize by ID. Error: " + err.Error() + ". Returning.")
 		return models.SeasonObject{}, errors.New("Failed to find prize by ID.")
@@ -127,7 +128,6 @@ func ConvertSeasonToSeasonObject(season models.Season) (models.SeasonObject, err
 	seasonObject.Enabled = season.Enabled
 	seasonObject.End = season.End
 	seasonObject.ID = season.ID
-	seasonObject.Model = season.Model
 	seasonObject.Name = season.Name
 	seasonObject.Start = season.Start
 	seasonObject.UpdatedAt = season.UpdatedAt
@@ -242,8 +242,9 @@ func APIRegisterSeason(context *gin.Context) {
 	seasonDB.Name = season.Name
 	seasonDB.Start = season.Start
 	seasonDB.End = season.End
-	seasonDB.Prize = season.Prize
+	seasonDB.PrizeID = season.Prize
 	seasonDB.Sickleave = season.Sickleave
+	seasonDB.ID = uuid.New()
 
 	// Register season in DB
 	err = database.CreateSeasonInDB(seasonDB)
@@ -296,7 +297,7 @@ func APIGetCurrentSeasonLeaderboard(context *gin.Context) {
 	}
 
 	// Verify goal exists within season
-	goal, err := database.GetGoalFromUserWithinSeason(int(season.ID), userID)
+	goal, err := database.GetGoalFromUserWithinSeason(season.ID, userID)
 	if err != nil {
 		log.Println("Failed to verify goal status. Error: " + err.Error())
 		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to verify goal status."})
@@ -356,7 +357,7 @@ func RetrieveWeekResultsFromSeasonWithinTimeframe(firstPointInTime time.Time, la
 		return []models.WeekResults{}, nil
 	}
 
-	goals, err := database.GetGoalsFromWithinSeason(int(season.ID))
+	goals, err := database.GetGoalsFromWithinSeason(season.ID)
 	if err != nil {
 		return []models.WeekResults{}, err
 	}
@@ -381,7 +382,7 @@ func RetrieveWeekResultsFromSeasonWithinTimeframe(firstPointInTime time.Time, la
 			// Get Week result for goal
 			weekResultForGoal, newUserStreaks, err := GetWeekResultForGoal(goal, currentTime, userStreaks)
 			if err != nil {
-				log.Println("Failed to get week results for user. Goal: " + strconv.Itoa(int(goal.ID)) + ". Error: " + err.Error() + ". Creating blank user.")
+				log.Println("Failed to get week results for user. Goal: " + goal.ID.String() + ". Error: " + err.Error() + ". Creating blank user.")
 				continue
 			}
 
@@ -427,7 +428,7 @@ func GetWeekResultForGoal(goal models.Goal, currentTime time.Time, userStreaks [
 	newResult := models.UserWeekResults{}
 
 	// Get the exercises from the week
-	week, err := GetExercisesForWeekUsingGoal(currentTime, int(goal.ID))
+	week, err := GetExercisesForWeekUsingGoal(currentTime, goal.ID)
 	if err != nil {
 		return models.UserWeekResults{}, userStreaks, err
 	}
@@ -453,16 +454,16 @@ func GetWeekResultForGoal(goal models.Goal, currentTime time.Time, userStreaks [
 	newResult.WeekCompletion = (float64(exerciseSum) / float64(goal.ExerciseInterval))
 	newResult.CurrentStreak = 0
 	newResult.Competing = goalObject.Competing
-	newResult.Goal = int(goalObject.ID)
+	newResult.Goal = goalObject.ID
 
 	// Check for debt for week
-	debt, debtFound, err := database.GetDebtForWeekForUser(currentTime, int(goalObject.User.ID))
+	debt, debtFound, err := database.GetDebtForWeekForUser(currentTime, goalObject.User.ID)
 	if err != nil {
-		log.Println("Failed to check for debt for user '" + strconv.Itoa(int(goalObject.User.ID)) + "'. Debt will be null.")
+		log.Println("Failed to check for debt for user '" + goalObject.User.ID.String() + "'. Debt will be null.")
 	} else if debtFound {
 		debtObject, err := ConvertDebtToDebtObject(debt)
 		if err != nil {
-			log.Println("Failed to convert debt to debt object for user '" + strconv.Itoa(int(goalObject.User.ID)) + "'. Debt will be null.")
+			log.Println("Failed to convert debt to debt object for user '" + goalObject.User.ID.String() + "'. Debt will be null.")
 		} else {
 			newResult.Debt = &debtObject
 		}
@@ -472,7 +473,7 @@ func GetWeekResultForGoal(goal models.Goal, currentTime time.Time, userStreaks [
 	userFound := false
 	userIndex := 0
 	for index, userStreak := range userStreaks {
-		if userStreak.UserID == int(goalObject.User.ID) {
+		if userStreak.UserID == goalObject.User.ID {
 			userFound = true
 			userIndex = index
 			break
@@ -483,7 +484,7 @@ func GetWeekResultForGoal(goal models.Goal, currentTime time.Time, userStreaks [
 		// Not found in dict, current streak is 0
 		newResult.CurrentStreak = 0
 		userStreak := models.UserStreak{
-			UserID: int(goalObject.User.ID),
+			UserID: goalObject.User.ID,
 			Streak: 0,
 		}
 		userStreaks = append(userStreaks, userStreak)
@@ -491,7 +492,7 @@ func GetWeekResultForGoal(goal models.Goal, currentTime time.Time, userStreaks [
 		userFound = false
 		userIndex = 0
 		for index, userStreak := range userStreaks {
-			if userStreak.UserID == int(goalObject.User.ID) {
+			if userStreak.UserID == goalObject.User.ID {
 				userFound = true
 				userIndex = index
 				break
@@ -503,14 +504,14 @@ func GetWeekResultForGoal(goal models.Goal, currentTime time.Time, userStreaks [
 		return models.UserWeekResults{}, userStreaks, errors.New("Failed to process streak.")
 	}
 
-	sickleave, sickleaveFound, err := database.GetUsedSickleaveForGoalWithinWeek(currentTime, int(goal.ID))
+	sickleave, sickleaveFound, err := database.GetUsedSickleaveForGoalWithinWeek(currentTime, goal.ID)
 	if err != nil {
 		log.Println("Failed to process sickleave. Returning.")
 		return models.UserWeekResults{}, userStreaks, errors.New("Failed to process sickleave.")
 	}
 
 	// Found in streak, retrieve current streak
-	if sickleaveFound && sickleave.SickleaveUsed {
+	if sickleaveFound && sickleave.Used {
 		newResult.CurrentStreak = userStreaks[userIndex].Streak
 		newResult.Sickleave = true
 	} else if newResult.WeekCompletion >= 1 {
@@ -568,7 +569,7 @@ func APIGetSeasonWeeks(context *gin.Context) {
 	var seasonID = context.Param("season_id")
 
 	// Parse group id
-	seasonIDInt, err := strconv.Atoi(seasonID)
+	seasonIDInt, err := uuid.Parse(seasonID)
 	if err != nil {
 		context.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		context.Abort()
@@ -607,7 +608,7 @@ func APIGetSeasonWeeksPersonal(context *gin.Context) {
 	var seasonID = context.Param("season_id")
 
 	// Parse group id
-	seasonIDInt, err := strconv.Atoi(seasonID)
+	seasonIDInt, err := uuid.Parse(seasonID)
 	if err != nil {
 		context.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		context.Abort()
@@ -624,7 +625,7 @@ func APIGetSeasonWeeksPersonal(context *gin.Context) {
 	}
 
 	// Verify goal exists within season
-	goal, err := database.GetGoalFromUserWithinSeason(int(seasonIDInt), userID)
+	goal, err := database.GetGoalFromUserWithinSeason(seasonIDInt, userID)
 	if err != nil {
 		log.Println("Failed to verify goal status. Error: " + err.Error())
 		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to verify goal status."})
@@ -666,7 +667,7 @@ func APIGetSeasonWeeksPersonal(context *gin.Context) {
 
 		for _, result := range weekResult.UserWeekResults {
 
-			if int(result.User.ID) == userID {
+			if result.User.ID == userID {
 				userWeekResultPersonal := models.UserWeekResultPersonal{
 					CurrentStreak: result.CurrentStreak,
 					User:          result.User,
@@ -679,7 +680,7 @@ func APIGetSeasonWeeksPersonal(context *gin.Context) {
 				userWeekResultPersonal.WeekCompletionInterval = int(float64(result.WeekCompletion) * float64(goal.ExerciseInterval))
 
 				// Get the exercises from the week
-				week, err := GetExercisesForWeekUsingGoal(weekResult.WeekDate, int(goal.ID))
+				week, err := GetExercisesForWeekUsingGoal(weekResult.WeekDate, goal.ID)
 				if err != nil {
 					log.Println("Failed to get exercise. Using empty week.")
 					week = models.Week{

@@ -76,13 +76,13 @@ function send_registration(){
     var invitation_code = document.getElementById("invitation_code").value;
 
     var form_obj = { 
-                                    "email" : user_email,
-                                    "password" : user_password,
-                                    "password_repeat": user_password_repeat,
-                                    "first_name": user_first_name,
-                                    "last_name": user_last_name,
-                                    "invite_code": invitation_code
-                                };
+        "email" : user_email,
+        "password" : user_password,
+        "password_repeat": user_password_repeat,
+        "first_name": user_first_name,
+        "last_name": user_last_name,
+        "invite_code": invitation_code
+    };
 
     var form_data = JSON.stringify(form_obj);
 
@@ -117,7 +117,7 @@ function send_registration(){
         }
     };
     xhttp.withCredentials = true;
-    xhttp.open("post", api_url + "open/user/register");
+    xhttp.open("post", api_url + "open/users");
     xhttp.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
     xhttp.send(form_data);
     return false;

@@ -89,7 +89,7 @@ function load_page(result) {
     parameters = get_url_parameters(query_string)
     console.log(parameters)
     if(parameters != false && "debt_id" in parameters) {
-        debt_id = Number(decodeURI(parameters.debt_id))
+        debt_id = decodeURI(parameters.debt_id)
     } else {
         console.log("Debt ID not found in parameters.")
     }
@@ -126,13 +126,13 @@ function get_debt(debt_id) {
 
                 clearResponse();
 
-                if(result.debt.winner.ID != 0) {
+                if(result.debt.winner.id != null) {
                     winner = result.debt.winner
                     replay = true;
                     document.getElementById('bigButton').innerHTML = "See the result";
                     document.getElementById('reset-button').style.display = "inline-block";
                 } else {
-                    if(result.debt.loser.ID != user_id) {
+                    if(result.debt.loser.id != user_id) {
                         error("This wheel has not been spun yet.")
                         return;
                     }
@@ -162,7 +162,7 @@ function get_debt(debt_id) {
         }
     };
     xhttp.withCredentials = true;
-    xhttp.open("post", api_url + "auth/debt/" + debt_id);
+    xhttp.open("get", api_url + "auth/debts/" + debt_id);
     xhttp.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
     xhttp.setRequestHeader("Authorization", jwt);
     xhttp.send();
@@ -220,7 +220,7 @@ function placeWheel(canidateArray) {
     // Add tickets to wheel dict
     for(var i = 0; i < canidateArray.length; i++) {
         for(var j = 0; j < canidateArray[i].tickets; j++) {
-            placementArray.push({'fillStyle' : canidateArray[i].color, 'textStrokeStyle' : '#000000', 'text' : canidateArray[i].user.first_name, 'user_id' : canidateArray[i].user.ID})
+            placementArray.push({'fillStyle' : canidateArray[i].color, 'textStrokeStyle' : '#000000', 'text' : canidateArray[i].user.first_name, 'user_id' : canidateArray[i].user.id})
         }
     }
 
@@ -274,7 +274,7 @@ async function calculatePrize()
 
     if(winner != false) {
         for(var i = 0; i < placementArray.length; i++) {
-            if(placementArray[i].user_id == winner.ID) {
+            if(placementArray[i].user_id == winner.id) {
                 segment = i+1;
             }
         }
@@ -321,14 +321,14 @@ function drawTriangle()
 
 function spinFinished() {
 
-    GetProfileImage(winner.ID);
-    document.getElementById('spinner-winner-image-div').onclick = function(){location.href=`/users/${winner.ID}`};
+    GetProfileImage(winner.id);
+    document.getElementById('spinner-winner-image-div').onclick = function(){location.href=`/users/${winner.id}`};
     document.getElementById('spinner-winner-image-wrapper').style.animation = "slide 0.25s ease 0.5s forwards";
     setTimeout(function () {
         document.getElementById('spinner-winner-image-wrapper').style.animation = "slide 0.25s ease 0.5s forwards, smooth-appear 0.5s ease forwards";
     }, 1000);
     
-    if(winner.ID == user_id) {
+    if(winner.id == user_id) {
         info("You won " + prize.quantity + " " + prize.name + " from " + loser.first_name + ".")
     } else {
         info(winner.first_name + " " + winner.last_name + " won " + prize.quantity + " " + prize.name + " from " + loser.first_name + ".")
@@ -369,7 +369,7 @@ async function choose_winner(resolve, debt_id) {
         }
     };
     xhttp.withCredentials = true;
-    xhttp.open("post", api_url + "auth/debt/" + debt_id + "/choose");
+    xhttp.open("post", api_url + "auth/debts/" + debt_id + "/choose");
     xhttp.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
     xhttp.setRequestHeader("Authorization", jwt);
     xhttp.send();
@@ -405,7 +405,7 @@ function GetProfileImage(userID) {
         }
     };
     xhttp.withCredentials = true;
-    xhttp.open("post", api_url + "auth/user/get/" + userID + "/image");
+    xhttp.open("get", api_url + "auth/users/" + userID + "/image");
     xhttp.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
     xhttp.setRequestHeader("Authorization", jwt);
     xhttp.send();

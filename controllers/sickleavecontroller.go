@@ -5,10 +5,10 @@ import (
 	"aunefyren/treningheten/middlewares"
 	"log"
 	"net/http"
-	"strconv"
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 )
 
 // Get full workout calender for the week from the user, sanitize and update database
@@ -47,21 +47,21 @@ func APIRegisterSickleave(context *gin.Context) {
 	}
 
 	// Verify goal doesn't exist within season
-	goalStatus, goalID, err := database.VerifyUserGoalInSeason(userID, int(season.ID))
+	goalStatus, goalID, err := database.VerifyUserGoalInSeason(userID, season.ID)
 	if err != nil {
 		log.Println("Failed to verify goal status. Error: " + err.Error())
 		context.JSON(http.StatusBadRequest, gin.H{"error": "Failed to verify goal status."})
 		context.Abort()
 		return
 	} else if !goalStatus {
-		log.Println("User does not have a goal for season: " + strconv.Itoa(int(season.ID)))
+		log.Println("User does not have a goal for season: " + season.ID.String())
 		context.JSON(http.StatusBadRequest, gin.H{"error": "You don't have a goal set for this season."})
 		context.Abort()
 		return
 	}
 
 	// Check for sickleave left
-	sickleaveArray, sickleaveFound, err := database.GetUnusedSickleaveForGoalWithinWeek(int(goalID))
+	sickleaveArray, sickleaveFound, err := database.GetUnusedSickleaveForGoalWithinWeek(goalID)
 	if err != nil {
 		log.Println("Failed to verify sick leave. Error: " + err.Error())
 		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to verify sick leave."})
@@ -74,19 +74,19 @@ func APIRegisterSickleave(context *gin.Context) {
 	}
 
 	// Check if week is already sickleave
-	sickleave, sickleaveFound, err := database.GetUsedSickleaveForGoalWithinWeek(now, int(goalID))
+	sickleave, sickleaveFound, err := database.GetUsedSickleaveForGoalWithinWeek(now, goalID)
 	if err != nil {
 		log.Println("Failed to verify sick leave. Error: " + err.Error())
 		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to verify sick leave."})
 		context.Abort()
 		return
-	} else if sickleaveFound && sickleave.SickleaveUsed {
+	} else if sickleaveFound && sickleave.Used {
 		context.JSON(http.StatusBadRequest, gin.H{"error": "This week is already marked as sick leave."})
 		context.Abort()
 		return
 	}
 
-	err = database.SetSickleaveToUsedByID(int(sickleaveArray[0].ID))
+	err = database.SetSickleaveToUsedByID(sickleaveArray[0].ID)
 	if err != nil {
 		log.Println("Failed to update sick leave. Error: " + err.Error())
 		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update sick leave."})
@@ -95,9 +95,9 @@ func APIRegisterSickleave(context *gin.Context) {
 	}
 
 	// Give achivement to user
-	err = GiveUserAnAchivement(userID, 10, now)
+	err = GiveUserAnAchivement(userID, uuid.MustParse("420b020c-2cad-4898-bb94-d86dc0031203"), now)
 	if err != nil {
-		log.Println("Failed to give achivement for user '" + strconv.Itoa(userID) + "'. Ignoring. Error: " + err.Error())
+		log.Println("Failed to give achivement for user '" + userID.String() + "'. Ignoring. Error: " + err.Error())
 	}
 
 	context.JSON(http.StatusOK, gin.H{"message": "Sick leave used."})

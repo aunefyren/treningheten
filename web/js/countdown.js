@@ -107,7 +107,7 @@ function getSeason(userID){
                 // Check if user has a goal
                 user_found = false;
                 for(var i = 0; i < season.goals.length; i++) {
-                    if(season.goals[i].user.ID == userID) {
+                    if(season.goals[i].user.id == userID) {
                         user_found = true
                         var goal = season.goals[i].exercise_interval
                         break
@@ -133,7 +133,7 @@ function getSeason(userID){
         }
     };
     xhttp.withCredentials = true;
-    xhttp.open("post", api_url + "auth/season/getongoing");
+    xhttp.open("get", api_url + "auth/seasons/getongoing");
     xhttp.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
     xhttp.setRequestHeader("Authorization", jwt);
     xhttp.send();
@@ -235,7 +235,7 @@ function deleteGoal() {
         }
     };
     xhttp.withCredentials = true;
-    xhttp.open("post", api_url + "auth/goal/delete");
+    xhttp.open("delete", api_url + "auth/goal");
     xhttp.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
     xhttp.setRequestHeader("Authorization", jwt);
     xhttp.send();
@@ -276,7 +276,7 @@ function placeDebtOverview(overviewArray) {
         html += `
             <div class="debt-module-notification-view" id="">
                 ${overviewArray.debt_unviewed[i].debt.loser.first_name} ${overviewArray.debt_unviewed[i].debt.loser.last_name} spun the wheel for week ${date_str}.<br>See if you won!<br>
-                <img src="assets/arrow-right.svg" class="small-button-icon" onclick="location.replace('/wheel?debt_id=${overviewArray.debt_unviewed[i].debt.ID}'); ">
+                <img src="assets/arrow-right.svg" class="small-button-icon" onclick="location.replace('/wheel?debt_id=${overviewArray.debt_unviewed[i].debt.id}'); ">
             </div>
             `;
     }
@@ -298,7 +298,7 @@ function placeDebtOverview(overviewArray) {
         html += `
             <div class="debt-module-notification-prize" id="">
                 ${overviewArray.debt_won[i].loser.first_name} ${overviewArray.debt_won[i].loser.last_name} spun the wheel for week ${date_str} and you won <b>${overviewArray.debt_won[i].season.prize.quantity} ${overviewArray.debt_won[i].season.prize.name}</b>!<br>Have you received it?<br>
-                <img src="assets/done.svg" class="small-button-icon" onclick="setPrizeReceived(${overviewArray.debt_won[i].ID});">
+                <img src="assets/done.svg" class="small-button-icon" onclick="setPrizeReceived(${overviewArray.debt_won[i].id});">
             </div>
             `;
     }

@@ -24,7 +24,7 @@ function register_push(jwtToken, appPubkey, sunday_alert, achievement_alert, new
             .then(function(subscription) {
                 //console.log(JSON.stringify({ subscription: subscription }));
                 //document.getElementById('notification_button_div').style.display = 'none';
-                return fetch(api_url + "auth/notification/subscribe", {
+                return fetch(api_url + "auth/notifications/subscribe", {
                   method: "POST",
                   headers: {"Content-Type": "application/json", "Authorization": jwtToken},
                   body: JSON.stringify({"subscription": subscription, "settings": settings})
@@ -121,7 +121,7 @@ function update_subscription(vapid_public_key, subscription) {
     };
     
     xhttp.withCredentials = true;
-    xhttp.open("post", api_url + "auth/notification/subscription/update");
+    xhttp.open("post", api_url + "auth/notifications/subscription/update");
     xhttp.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
     xhttp.setRequestHeader("Authorization", jwt);
     xhttp.send(form_data);
@@ -183,7 +183,7 @@ function GetSubscriptionSettings(enpoint) {
     };
 
     xhttp.withCredentials = true;
-    xhttp.open("post", api_url + "auth/notification/subscription/get");
+    xhttp.open("post", api_url + "auth/notifications/subscription");
     xhttp.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
     xhttp.setRequestHeader("Authorization", jwt);
     xhttp.send(form_data);

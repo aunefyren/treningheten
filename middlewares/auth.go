@@ -9,6 +9,7 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 )
 
 func Auth(admin bool) gin.HandlerFunc {
@@ -103,14 +104,14 @@ func Auth(admin bool) gin.HandlerFunc {
 	}
 }
 
-func GetAuthUsername(tokenString string) (int, error) {
+func GetAuthUsername(tokenString string) (uuid.UUID, error) {
 
 	if tokenString == "" {
-		return 0, errors.New("No Auhtorization header given.")
+		return uuid.UUID{}, errors.New("No Auhtorization header given.")
 	}
 	claims, err := auth.ParseToken(tokenString)
 	if err != nil {
-		return 0, err
+		return uuid.UUID{}, err
 	}
 	return claims.UserID, nil
 }

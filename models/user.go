@@ -4,11 +4,10 @@ import (
 	"time"
 
 	"golang.org/x/crypto/bcrypt"
-	"gorm.io/gorm"
 )
 
 type User struct {
-	gorm.Model
+	GormModel
 	FirstName                  string     `json:"first_name" gorm:"not null"`
 	LastName                   string     `json:"last_name" gorm:"not null"`
 	Email                      string     `json:"email" gorm:"unique; not null"`

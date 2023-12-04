@@ -4,10 +4,12 @@ import (
 	"aunefyren/treningheten/models"
 	"errors"
 	"time"
+
+	"github.com/google/uuid"
 )
 
 // Retrieves a sickleave for a chosen week for a chosen goal
-func GetUsedSickleaveForGoalWithinWeek(time time.Time, goalID int) (models.Sickleave, bool, error) {
+func GetUsedSickleaveForGoalWithinWeek(time time.Time, goalID uuid.UUID) (models.Sickleave, bool, error) {
 
 	var sickleavestruct models.Sickleave
 
@@ -49,7 +51,7 @@ func GetUsedSickleaveForGoalWithinWeek(time time.Time, goalID int) (models.Sickl
 		}
 	}
 
-	sickleaverecord := Instance.Where("`sickleaves`.enabled = ?", 1).Where("`sickleaves`.Goal = ?", goalID).Where("`sickleaves`.Date >= ?", startDayString).Where("`sickleaves`.Date <= ?", endDayString).Find(&sickleavestruct)
+	sickleaverecord := Instance.Where("`sickleaves`.enabled = ?", 1).Where("`sickleaves`.goal_id = ?", goalID).Where("`sickleaves`.date >= ?", startDayString).Where("`sickleaves`.date <= ?", endDayString).Find(&sickleavestruct)
 	if sickleaverecord.Error != nil {
 		return models.Sickleave{}, false, sickleaverecord.Error
 	} else if sickleaverecord.RowsAffected != 1 {
@@ -61,11 +63,11 @@ func GetUsedSickleaveForGoalWithinWeek(time time.Time, goalID int) (models.Sickl
 }
 
 // Retrieve a unused sickleave for chosen goal
-func GetUnusedSickleaveForGoalWithinWeek(goalID int) ([]models.Sickleave, bool, error) {
+func GetUnusedSickleaveForGoalWithinWeek(goalID uuid.UUID) ([]models.Sickleave, bool, error) {
 
 	var sickleavestruct []models.Sickleave
 
-	sickleaverecord := Instance.Where("`sickleaves`.enabled = ?", 1).Where("`sickleaves`.Goal = ?", goalID).Where("`sickleaves`.sickleave_used = ?", 0).Find(&sickleavestruct)
+	sickleaverecord := Instance.Where("`sickleaves`.enabled = ?", 1).Where("`sickleaves`.goal_id = ?", goalID).Where("`sickleaves`.used = ?", 0).Find(&sickleavestruct)
 	if sickleaverecord.Error != nil {
 		return []models.Sickleave{}, false, sickleaverecord.Error
 	} else if sickleaverecord.RowsAffected == 0 {
@@ -77,14 +79,14 @@ func GetUnusedSickleaveForGoalWithinWeek(goalID int) ([]models.Sickleave, bool, 
 }
 
 // Update sickleave in database to used and date to now by sickleave ID
-func SetSickleaveToUsedByID(sickleaveID int) error {
+func SetSickleaveToUsedByID(sickleaveID uuid.UUID) error {
 
 	var sickleavestruct models.Sickleave
 
 	now := time.Now()
 	Date := now.Format("2006-01-02") + " 00:00:00.000"
 
-	sickleaverecord := Instance.Model(sickleavestruct).Where("`sickleaves`.enabled = ?", 1).Where("`sickleaves`.ID = ?", sickleaveID).Update("sickleave_used", 1)
+	sickleaverecord := Instance.Model(sickleavestruct).Where("`sickleaves`.enabled = ?", 1).Where("`sickleaves`.ID = ?", sickleaveID).Update("used", 1)
 	if sickleaverecord.Error != nil {
 		return sickleaverecord.Error
 	} else if sickleaverecord.RowsAffected != 1 {

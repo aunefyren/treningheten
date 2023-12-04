@@ -3,6 +3,8 @@ package database
 import (
 	"aunefyren/treningheten/models"
 	"errors"
+
+	"github.com/google/uuid"
 )
 
 // Register wheelview in database
@@ -15,11 +17,11 @@ func CreateWheelview(wheelview models.Wheelview) error {
 }
 
 // Get wheel view for debt and user
-func GetUnviewedWheelviewByDebtIDAndUserID(userID int, debtID int) (models.Wheelview, bool, error) {
+func GetUnviewedWheelviewByDebtIDAndUserID(userID uuid.UUID, debtID uuid.UUID) (models.Wheelview, bool, error) {
 
 	var wheelStruct models.Wheelview
 
-	wheelviewRecord := Instance.Where("`wheelviews`.enabled = ?", 1).Where("`wheelviews`.debt = ?", debtID).Where("`wheelviews`.user = ?", userID).Where("`wheelviews`.viewed = ?", 0).Find(&wheelStruct)
+	wheelviewRecord := Instance.Where("`wheelviews`.enabled = ?", 1).Where("`wheelviews`.debt_id = ?", debtID).Where("`wheelviews`.user_id = ?", userID).Where("`wheelviews`.viewed = ?", 0).Find(&wheelStruct)
 	if wheelviewRecord.Error != nil {
 		return models.Wheelview{}, false, wheelviewRecord.Error
 	} else if wheelviewRecord.RowsAffected != 1 {
@@ -31,11 +33,11 @@ func GetUnviewedWheelviewByDebtIDAndUserID(userID int, debtID int) (models.Wheel
 }
 
 // Get wheel view for debt and user
-func GetUnviewedWheelviewByUserID(userID int) ([]models.Wheelview, bool, error) {
+func GetUnviewedWheelviewByUserID(userID uuid.UUID) ([]models.Wheelview, bool, error) {
 
 	var wheelStruct []models.Wheelview
 
-	wheelviewRecord := Instance.Where("`wheelviews`.enabled = ?", 1).Where("`wheelviews`.user = ?", userID).Where("`wheelviews`.viewed = ?", 0).Find(&wheelStruct)
+	wheelviewRecord := Instance.Where("`wheelviews`.enabled = ?", 1).Where("`wheelviews`.user_id = ?", userID).Where("`wheelviews`.viewed = ?", 0).Find(&wheelStruct)
 	if wheelviewRecord.Error != nil {
 		return []models.Wheelview{}, false, wheelviewRecord.Error
 	} else if wheelviewRecord.RowsAffected == 0 {
@@ -47,7 +49,7 @@ func GetUnviewedWheelviewByUserID(userID int) ([]models.Wheelview, bool, error) 
 }
 
 // Set wheelview to viewed by ID
-func SetWheelviewToViewedByID(wheelviewID int) error {
+func SetWheelviewToViewedByID(wheelviewID uuid.UUID) error {
 
 	var wheelview models.Wheelview
 
@@ -63,11 +65,11 @@ func SetWheelviewToViewedByID(wheelviewID int) error {
 }
 
 // Get wheel view for debt and user
-func GetWheelviewByDebtIDAndUserID(userID int, debtID int) (models.Wheelview, bool, error) {
+func GetWheelviewByDebtIDAndUserID(userID uuid.UUID, debtID uuid.UUID) (models.Wheelview, bool, error) {
 
 	var wheelStruct models.Wheelview
 
-	wheelviewRecord := Instance.Where("`wheelviews`.enabled = ?", 1).Where("`wheelviews`.debt = ?", debtID).Where("`wheelviews`.user = ?", userID).Find(&wheelStruct)
+	wheelviewRecord := Instance.Where("`wheelviews`.enabled = ?", 1).Where("`wheelviews`.debt_id = ?", debtID).Where("`wheelviews`.user_id = ?", userID).Find(&wheelStruct)
 	if wheelviewRecord.Error != nil {
 		return models.Wheelview{}, false, wheelviewRecord.Error
 	} else if wheelviewRecord.RowsAffected != 1 {

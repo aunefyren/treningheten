@@ -101,7 +101,7 @@ function load_page(result) {
                 Account Settings
             </div>
 
-            <form action="" onsubmit="event.preventDefault(); send_update();">
+            <form action="" onsubmit="event.preventDefault(); send_update(${user_id});">
 
                 <label id="form-input-icon" for="email">Replace email:</label>
                 <input type="email" name="email" id="email" placeholder="Email" value="" required/>
@@ -179,7 +179,7 @@ function change_password_toggle() {
 
 }
 
-function send_update() {
+function send_update(user_id) {
 
     var password = ""
     var password_repeat = ""
@@ -231,28 +231,28 @@ function send_update() {
 
             document.getElementById("user-active-profile-photo-img").src = 'assets/images/barbell.gif';
 
-            send_update_two(form_data);
+            send_update_two(form_data, user_id);
         
         });
 
     } else {
         var form_obj = { 
-                            "email" : email,
-                            "password" : password,
-                            "password_repeat": password_repeat,
-                            "sunday_alert": sunday_alert,
-                            "profile_image": "",
-                            "password_old": password_old,
-                            "birth_date": birth_date_string
-                        };
+            "email" : email,
+            "password" : password,
+            "password_repeat": password_repeat,
+            "sunday_alert": sunday_alert,
+            "profile_image": "",
+            "password_old": password_old,
+            "birth_date": birth_date_string
+        };
 
         var form_data = JSON.stringify(form_obj);
         
-        send_update_two(form_data);
+        send_update_two(form_data, user_id);
     }
 }
 
-function send_update_two(form_data) {
+function send_update_two(form_data, user_id) {
 
     var xhttp = new XMLHttpRequest();
     xhttp.onreadystatechange = function() {
@@ -292,7 +292,7 @@ function send_update_two(form_data) {
         }
     };
     xhttp.withCredentials = true;
-    xhttp.open("post", api_url + "auth/user/update");
+    xhttp.open("post", api_url + "auth/user/" + user_id);
     xhttp.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
     xhttp.setRequestHeader("Authorization", jwt);
     xhttp.send(form_data);
@@ -330,7 +330,7 @@ function GetProfileImage(userID) {
         }
     };
     xhttp.withCredentials = true;
-    xhttp.open("post", api_url + "auth/user/get/" + user_id + "/image");
+    xhttp.open("get", api_url + "auth/users/" + user_id + "/image");
     xhttp.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
     xhttp.setRequestHeader("Authorization", jwt);
     xhttp.send();
@@ -374,7 +374,7 @@ function GetUserData(userID) {
         }
     };
     xhttp.withCredentials = true;
-    xhttp.open("post", api_url + "auth/user/get/" + userID);
+    xhttp.open("get", api_url + "auth/users/" + userID);
     xhttp.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
     xhttp.setRequestHeader("Authorization", jwt);
     xhttp.send();
@@ -396,7 +396,7 @@ function PlaceUserData(user_object) {
 
     // parse date object
     try {
-        var date = new Date(Date.parse(user_object.CreatedAt));
+        var date = new Date(Date.parse(user_object.created_at));
         var date_string = GetDateString(date)
     } catch {
         var date_string = "Error"

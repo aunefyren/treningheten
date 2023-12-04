@@ -3,24 +3,35 @@ package models
 import (
 	"time"
 
-	"gorm.io/gorm"
+	"github.com/google/uuid"
 )
 
 type ExerciseDay struct {
-	gorm.Model
+	GormModel
 	Date             time.Time `json:"date" gorm:"not null"`
 	Note             string    `json:"note"`
 	Enabled          bool      `json:"enabled" gorm:"not null; default: true"`
-	Goal             int       `json:"goal" gorm:"not null"`
+	GoalID           uuid.UUID `json:"goal_id" gorm:"type:varchar(100);"`
+	Goal             Goal      `json:"goal" gorm:"not null"`
 	ExerciseInterval int       `json:"exercise_interval" gorm:"not null; default: 0"`
 }
 
+type ExerciseDayObject struct {
+	GormModel
+	Date             time.Time  `json:"date"`
+	Note             string     `json:"note"`
+	Enabled          bool       `json:"enabled"`
+	Goal             GoalObject `json:"goal"`
+	ExerciseInterval int        `json:"exercise_interval"`
+}
+
 type Exercise struct {
-	gorm.Model
-	Note        string `json:"note"`
-	Enabled     bool   `json:"enabled" gorm:"not null; default: true"`
-	On          bool   `json:"enabled" gorm:"not null; default: true"`
-	ExerciseDay int    `json:"goal" gorm:"not null"`
+	GormModel
+	Note          string      `json:"note"`
+	Enabled       bool        `json:"enabled" gorm:"not null; default: true"`
+	On            bool        `json:"on" gorm:"not null; default: true"`
+	ExerciseDayID uuid.UUID   `json:"" gorm:"type:varchar(100);"`
+	ExerciseDay   ExerciseDay `json:"goal" gorm:"not null"`
 }
 
 type ExerciseDayCreationRequest struct {

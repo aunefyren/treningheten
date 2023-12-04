@@ -1554,7 +1554,6 @@ input[type=checkbox]
   margin: 0;
   width: 6em;
   height: 6em;
-  border: solid 0.2em var(--lightblue);
   background-color: var(--white);
 }
 
@@ -1577,7 +1576,7 @@ input[type=checkbox]
 
 .achievement-title {
   margin: 0.25em;
-  font-size: 0.80em;
+  font-size: 0.8em;
   text-align: center;
 }
 
@@ -1628,11 +1627,15 @@ input[type=checkbox]
 
 .text-achievement {
   color: var(--white);
-  font-size: 1em;
+  font-size: 0.9em;
   text-align: center;
   box-sizing: content-box;
   overflow-y: auto;
   margin: auto;
+}
+
+.achievement-description {
+  font-size: 0.8em;
 }
 
 .text-exercise {

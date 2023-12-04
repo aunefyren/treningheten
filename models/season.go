@@ -3,16 +3,17 @@ package models
 import (
 	"time"
 
-	"gorm.io/gorm"
+	"github.com/google/uuid"
 )
 
 type Season struct {
-	gorm.Model
+	GormModel
 	Name        string    `json:"name" gorm:"not null"`
 	Description string    `json:"description"`
 	Start       time.Time `json:"start" gorm:"not null"`
 	End         time.Time `json:"end" gorm:"not null"`
-	Prize       int       `json:"prize"`
+	PrizeID     uuid.UUID `json:"" gorm:"type:varchar(100);"`
+	Prize       Prize     `json:"prize"`
 	Sickleave   int       `json:"sickleave"`
 	Enabled     bool      `json:"enabled" gorm:"not null;default: true"`
 }
@@ -22,13 +23,13 @@ type SeasonCreationRequest struct {
 	Description string    `json:"description"`
 	Start       time.Time `json:"start"`
 	End         time.Time `json:"end"`
-	Prize       int       `json:"prize"`
+	Prize       uuid.UUID `json:"prize_id"`
 	Sickleave   int       `json:"sickleave"`
 	TimeZone    string    `json:"timezone"`
 }
 
 type SeasonObject struct {
-	gorm.Model
+	GormModel
 	Name        string       `json:"name"`
 	Description string       `json:"description"`
 	Start       time.Time    `json:"start"`
@@ -67,7 +68,7 @@ type UserWeekResults struct {
 	Sickleave      bool        `json:"sickleave"`
 	Competing      bool        `json:"competing"`
 	Debt           *DebtObject `json:"debt"`
-	Goal           int         `json:"goal"`
+	Goal           uuid.UUID   `json:"goal"`
 }
 
 type UserWeekResultPersonal struct {
@@ -81,6 +82,6 @@ type UserWeekResultPersonal struct {
 }
 
 type UserStreak struct {
-	UserID int `json:"user_id"`
-	Streak int `json:"streak"`
+	UserID uuid.UUID `json:"user_id"`
+	Streak int       `json:"streak"`
 }

@@ -114,7 +114,7 @@ function GetProfileImage(userID) {
         }
     };
     xhttp.withCredentials = true;
-    xhttp.open("post", api_url + "auth/user/get/" + userID + "/image");
+    xhttp.open("get", api_url + "auth/users/" + userID + "/image");
     xhttp.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
     xhttp.setRequestHeader("Authorization", jwt);
     xhttp.send();
@@ -158,7 +158,7 @@ function GetUserData(userID) {
         }
     };
     xhttp.withCredentials = true;
-    xhttp.open("post", api_url + "auth/user/get/" + userID);
+    xhttp.open("get", api_url + "auth/users/" + userID);
     xhttp.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
     xhttp.setRequestHeader("Authorization", jwt);
     xhttp.send();
@@ -173,7 +173,7 @@ function PlaceUserData(user_object) {
 
     // parse date object
     try {
-        var date = new Date(Date.parse(user_object.CreatedAt));
+        var date = new Date(Date.parse(user_object.created_at));
         var date_string = GetDateString(date)
     } catch {
         var date_string = "Error"
@@ -189,7 +189,7 @@ function PlaceUserData(user_object) {
 
     document.getElementById("user_admin").innerHTML = "Administrator: " + admin_string
 
-    GetUserAhievements(user_object.ID);
+    GetUserAhievements(user_object.id);
 
 }
 
@@ -222,7 +222,7 @@ function GetUserAhievements(userID) {
         }
     };
     xhttp.withCredentials = true;
-    xhttp.open("post", api_url + "auth/achievement/" + userID);
+    xhttp.open("get", api_url + "auth/achievements?user=" + userID);
     xhttp.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
     xhttp.setRequestHeader("Authorization", jwt);
     xhttp.send();
@@ -244,24 +244,23 @@ function PlaceUserAhievements(achivementArray) {
 
         // parse date object
         try {
-            var date = new Date(Date.parse(achivementArray[i].given_at));
+            var date = new Date(Date.parse(achivementArray[i].achievement_delegation.given_at));
             var date_string = GetDateString(date, false)
         } catch {
             var date_string = "Error"
         }
 
         var classString = ""
-        if(!achivementArray[i].seen && achivementArray[i].user.ID == user_id) {
+        if(!achivementArray[i].achievement_delegation.seen && achivementArray[i].achievement_delegation.user.id == user_id) {
             classString += " new-achievement"
         }
 
-        var seasonBased = "";
-        var seasonBasedText = "";
-        if(achivementArray[i].season_based) {
-            seasonBased = `achievement-season`;
-            seasonBasedText = `
-            <div style="font-size: 0.65em; margin-bottom: 1em;"> 
-                Season achievement
+        var categoryColor = `var(--${achivementArray[i].category_color})`;
+        var categoryText = ""
+        if(achivementArray[i].category !== "Default") {
+            categoryText = `
+            <div style="font-size: 0.70em; margin-bottom: 1em;"> 
+                ${achivementArray[i].category}
             </div>
             `;
         }
@@ -272,7 +271,7 @@ function PlaceUserAhievements(achivementArray) {
 
             <div class="achievement-base ${classString}">
 
-                <div class="achievement-image ${seasonBased}">
+                <div class="achievement-image" style="border: solid 0.2em ${categoryColor};">
                     <img style="width: 100%; height: 100%;" class="achievement-img" id="achievement-img-${achivementArray[i].id}" src="/assets/images/barbell.gif">
                 </div>
 
@@ -288,11 +287,11 @@ function PlaceUserAhievements(achivementArray) {
 
             <div class="overlay">
                 <div class="text-achievement"> 
-                    ${seasonBasedText}
+                    ${categoryText}
                     <div style="margin-bottom: 0.5em;"> 
                         ${achivementArray[i].name}
                     </div>
-                    <div style="font-size: 0.9em;"> 
+                    <div style="" class="achievement-description"> 
                         ${achivementArray[i].description}
                     </div>
                 </div>
@@ -338,7 +337,7 @@ function GetAchievementImage(achievementID) {
         }
     };
     xhttp.withCredentials = true;
-    xhttp.open("post", api_url + "auth/achievement/get/" + achievementID + "/image");
+    xhttp.open("get", api_url + "auth/achievements/" + achievementID + "/image");
     xhttp.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
     xhttp.setRequestHeader("Authorization", jwt);
     xhttp.send();

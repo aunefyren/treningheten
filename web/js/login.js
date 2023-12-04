@@ -238,7 +238,7 @@ function send_log_in(){
         }
     };
     xhttp.withCredentials = true;
-    xhttp.open("post", api_url + "open/token/register");
+    xhttp.open("post", api_url + "open/tokens/register");
     xhttp.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
     xhttp.send(form_data);
     return false;
@@ -254,7 +254,7 @@ function clear_data() {
     try {
         document.getElementById("password_repeat").value = "";
     } catch(e) {
-        console.log(e)
+        console.log("Error: " + e)
     }
     
     try {
@@ -308,7 +308,7 @@ function reset_password_request(){
         }
     };
     xhttp.withCredentials = true;
-    xhttp.open("post", api_url + "open/user/reset");
+    xhttp.open("post", api_url + "open/users/reset");
     xhttp.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
     xhttp.send(form_data);
     return false;
@@ -321,10 +321,10 @@ function reset_password(){
     var reset_code = document.getElementById("reset_code").value;
 
     var form_obj = { 
-                        "reset_code": reset_code,
-                        "password" : password,
-                        "password_repeat" : password_repeat
-                    };
+        "reset_code": reset_code,
+        "password" : password,
+        "password_repeat" : password_repeat
+    };
 
     var form_data = JSON.stringify(form_obj);
 
@@ -360,7 +360,7 @@ function reset_password(){
         }
     };
     xhttp.withCredentials = true;
-    xhttp.open("post", api_url + "open/user/password");
+    xhttp.open("post", api_url + "open/users/password");
     xhttp.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
     xhttp.send(form_data);
     return false;

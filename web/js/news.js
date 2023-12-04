@@ -113,7 +113,7 @@ function get_news(){
         }
     };
     xhttp.withCredentials = true;
-    xhttp.open("post", api_url + "auth/news/get");
+    xhttp.open("get", api_url + "auth/news");
     xhttp.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
     xhttp.setRequestHeader("Authorization", jwt);
     xhttp.send();
@@ -147,8 +147,8 @@ function place_news(news_array) {
         html += '<div class="news-post">'
 
         if(admin) {
-            html += `<div id="news-delete" class="text-date clickable">`;
-            html += `<img src="assets/trash-2.svg" style="height: 1.5em; width: 1.5em;" onclick="deleteNews(${news_array[i].ID})" class="btn_logo clickable">`
+            html += `<div id="news-delete" class="text-date">`;
+            html += `<img src="assets/trash-2.svg" style="height: 1.5em; width: 1.5em;" onclick="deleteNews(${news_array[i].id})" class="btn_logo clickable">`
             html += '</div>';
         }
         
@@ -227,7 +227,7 @@ function create_news() {
         }
     };
     xhttp.withCredentials = true;
-    xhttp.open("post", api_url + "admin/news/register");
+    xhttp.open("post", api_url + "admin/news");
     xhttp.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
     xhttp.setRequestHeader("Authorization", jwt);
     xhttp.send(form_data);
@@ -265,7 +265,7 @@ function deleteNews(newsID) {
         }
     };
     xhttp.withCredentials = true;
-    xhttp.open("post", api_url + "admin/news/" + newsID + "/delete");
+    xhttp.open("delete", api_url + "admin/news/" + newsID + "/delete");
     xhttp.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
     xhttp.setRequestHeader("Authorization", jwt);
     xhttp.send();

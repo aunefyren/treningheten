@@ -10,11 +10,11 @@ import (
 	"html"
 	"log"
 	"net/http"
-	"strconv"
 	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 	"github.com/thanhpk/randstr"
 )
 
@@ -57,6 +57,7 @@ func RegisterUser(context *gin.Context) {
 	user.FirstName = html.EscapeString(strings.TrimSpace(usercreationrequest.FirstName))
 	user.LastName = html.EscapeString(strings.TrimSpace(usercreationrequest.LastName))
 	user.Enabled = true
+	user.ID = uuid.New()
 
 	randomString := randstr.String(8)
 	user.VerificationCode = strings.ToUpper(randomString)
@@ -122,7 +123,7 @@ func RegisterUser(context *gin.Context) {
 	}
 
 	// Set code to used
-	err = database.SetUsedUserInviteCode(strings.TrimSpace(usercreationrequest.InviteCode), int(user.ID))
+	err = database.SetUsedUserInviteCode(strings.TrimSpace(usercreationrequest.InviteCode), user.ID)
 	if err != nil {
 		context.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		context.Abort()
@@ -153,7 +154,7 @@ func GetUser(context *gin.Context) {
 	var user = context.Param("user_id")
 
 	// Parse requested user id
-	user_id_int, err := strconv.Atoi(user)
+	user_id_int, err := uuid.Parse(user)
 	if err != nil {
 		context.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		context.Abort()
@@ -266,7 +267,7 @@ func VerifyUser(context *gin.Context) {
 	}
 
 	// Generate new JWT token
-	tokenString, err := auth.GenerateJWT(int(user.ID))
+	tokenString, err := auth.GenerateJWT(user.ID)
 	if err != nil {
 		context.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		context.Abort()
@@ -427,7 +428,7 @@ func UpdateUser(context *gin.Context) {
 
 	// Update profile image
 	if userUpdateRequest.ProfileImage != "" {
-		err = UpdateUserProfileImage(int(userOriginal.ID), userUpdateRequest.ProfileImage)
+		err = UpdateUserProfileImage(userOriginal.ID, userUpdateRequest.ProfileImage)
 		if err != nil {
 			log.Println("Failed to update profile image. Error: " + err.Error())
 			context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update profile image."})
@@ -435,10 +436,10 @@ func UpdateUser(context *gin.Context) {
 			return
 		}
 
-		// Give achivement to user
-		err := GiveUserAnAchivement(int(userOriginal.ID), 20, time.Now())
+		// Give achivement to user for changing profile photo
+		err := GiveUserAnAchivement(userOriginal.ID, uuid.MustParse("05a3579f-aa8d-4814-b28f-5824a2d904ec"), time.Now())
 		if err != nil {
-			log.Println("Failed to give achivement for user '" + strconv.Itoa(int(userOriginal.ID)) + "'. Ignoring. Error: " + err.Error())
+			log.Println("Failed to give achivement for user '" + userOriginal.ID.String() + "'. Ignoring. Error: " + err.Error())
 		}
 	}
 
@@ -455,7 +456,7 @@ func UpdateUser(context *gin.Context) {
 	userOriginal.BirthDate = userUpdateRequest.BirthDate
 
 	// Update user in database
-	err = database.UpdateUserValuesByUserID(int(userOriginal.ID), userOriginal.Email, userOriginal.Password, userOriginal.SundayAlert, userOriginal.BirthDate)
+	err = database.UpdateUserValuesByUserID(userOriginal.ID, userOriginal.Email, userOriginal.Password, userOriginal.SundayAlert, userOriginal.BirthDate)
 	if err != nil {
 		log.Println("Failed to update database. Error: " + err.Error())
 		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update database."})
@@ -474,7 +475,7 @@ func UpdateUser(context *gin.Context) {
 	}
 
 	// Generate new JWT token
-	tokenString, err := auth.GenerateJWT(int(user.ID))
+	tokenString, err := auth.GenerateJWT(user.ID)
 	if err != nil {
 		context.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		context.Abort()
@@ -559,7 +560,7 @@ func APIResetPassword(context *gin.Context) {
 		return
 	}
 
-	_, err = database.GenrateRandomResetCodeForuser(int(user.ID))
+	_, err = database.GenrateRandomResetCodeForuser(user.ID)
 	if err != nil {
 		log.Println("Failed to generate reset code for user during password reset. Error: " + err.Error())
 		context.JSON(http.StatusInternalServerError, gin.H{"message": "Error."})
@@ -567,7 +568,7 @@ func APIResetPassword(context *gin.Context) {
 		return
 	}
 
-	user, err = database.GetAllUserInformation(int(user.ID))
+	user, err = database.GetAllUserInformation(user.ID)
 	if err != nil {
 		log.Println("Failed to retrieve data for user during password reset. Error: " + err.Error())
 		context.JSON(http.StatusInternalServerError, gin.H{"message": "Error."})
@@ -647,7 +648,7 @@ func APIChangePassword(context *gin.Context) {
 	}
 
 	// Save new password
-	err = database.UpdateUserValuesByUserID(int(user.ID), user.Email, user.Password, user.SundayAlert, user.BirthDate)
+	err = database.UpdateUserValuesByUserID(user.ID, user.Email, user.Password, user.SundayAlert, user.BirthDate)
 	if err != nil {
 		log.Println("Failed to update password. Error: " + err.Error())
 		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update password."})
@@ -656,7 +657,7 @@ func APIChangePassword(context *gin.Context) {
 	}
 
 	// Change the reset code
-	_, err = database.GenrateRandomResetCodeForuser(int(user.ID))
+	_, err = database.GenrateRandomResetCodeForuser(user.ID)
 	if err != nil {
 		log.Println("Failed to generate reset code for user during password reset. Error: " + err.Error())
 		context.JSON(http.StatusInternalServerError, gin.H{"message": "Error."})
@@ -697,9 +698,9 @@ func SendSundayReminders() {
 
 	for _, user := range usersWithAlerts {
 
-		goalStatus, _, err := database.VerifyUserGoalInSeason(int(user.ID), int(season.ID))
+		goalStatus, _, err := database.VerifyUserGoalInSeason(user.ID, season.ID)
 		if err != nil {
-			log.Println("Failed to verify user '" + strconv.Itoa(int(user.ID)) + "'. Skipping.")
+			log.Println("Failed to verify user '" + user.ID.String() + "'. Skipping.")
 		} else if goalStatus {
 			usersToAlert = append(usersToAlert, user)
 		}

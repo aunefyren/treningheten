@@ -5,11 +5,11 @@ import (
 	"aunefyren/treningheten/models"
 	"log"
 	"net/http"
-	"strconv"
 	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 )
 
 func GetNews(context *gin.Context) {
@@ -31,7 +31,7 @@ func GetNewsPost(context *gin.Context) {
 
 	var newsID = context.Param("news_id")
 
-	newsIDInt, err := strconv.Atoi(newsID)
+	newsIDInt, err := uuid.Parse(newsID)
 	if err != nil {
 		context.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		context.Abort()
@@ -85,6 +85,7 @@ func RegisterNewsPost(context *gin.Context) {
 	}
 
 	news.Date = time.Now()
+	news.ID = uuid.New()
 
 	// Create the news post in the database
 	newsRecord := database.Instance.Create(&news)
@@ -118,7 +119,7 @@ func DeleteNewsPost(context *gin.Context) {
 	newsID := context.Param("news_id")
 
 	// Parse news ID as integer
-	newsIDInt, err := strconv.Atoi(newsID)
+	newsIDInt, err := uuid.Parse(newsID)
 	if err != nil {
 		context.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		context.Abort()

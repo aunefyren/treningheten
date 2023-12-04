@@ -52,8 +52,6 @@ function load_page(result) {
 
     if(result !== false) {
         showLoggedInMenu();
-        get_season(user_id);
-        document.getElementById('front-page-text').innerHTML = 'Remember to log your workouts.';
     } else {
         showLoggedOutMenu();
         document.getElementById('front-page-text').innerHTML = 'Log in to use the platform.';
@@ -94,7 +92,7 @@ function verifyAccount(){
         }
     };
     xhttp.withCredentials = true;
-    xhttp.open("post", api_url + "open/user/verify/" + email_code);
+    xhttp.open("post", api_url + "open/users/verify/" + email_code);
     xhttp.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
     xhttp.setRequestHeader("Authorization", jwt);
     xhttp.send();
@@ -131,7 +129,7 @@ function newCode(){
         }
     };
     xhttp.withCredentials = true;
-    xhttp.open("post", api_url + "open/user/verification");
+    xhttp.open("post", api_url + "open/users/verification");
     xhttp.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
     xhttp.setRequestHeader("Authorization", jwt);
     xhttp.send();

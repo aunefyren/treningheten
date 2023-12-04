@@ -6,6 +6,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/thanhpk/randstr"
 )
 
@@ -23,7 +24,7 @@ func RegisterUserInDB(user models.User) (models.User, error) {
 }
 
 // Genrate a random verification code an return ut
-func GenrateRandomVerificationCodeForuser(userID int) (string, error) {
+func GenrateRandomVerificationCodeForuser(userID uuid.UUID) (string, error) {
 
 	randomString := randstr.String(8)
 	verificationCode := strings.ToUpper(randomString)
@@ -65,9 +66,9 @@ func VerifyUniqueUserEmail(providedEmail string) (bool, error) {
 }
 
 // Verify if user has a verification code set
-func VerifyUserHasVerfificationCode(userID int) (bool, error) {
+func VerifyUserHasVerfificationCode(userID uuid.UUID) (bool, error) {
 	var user models.User
-	userrecords := Instance.Where("`users`.enabled = ?", 1).Where("`users`.ID= ?", userID).Find(&user)
+	userrecords := Instance.Where("`users`.enabled = ?", 1).Where("`users`.ID = ?", userID).Find(&user)
 	if userrecords.Error != nil {
 		return false, userrecords.Error
 	}
@@ -83,11 +84,11 @@ func VerifyUserHasVerfificationCode(userID int) (bool, error) {
 }
 
 // Verify if user has a verification code set
-func VerifyUserVerfificationCodeMatches(userID int, verificationCode string) (bool, time.Time, error) {
+func VerifyUserVerfificationCodeMatches(userID uuid.UUID, verificationCode string) (bool, time.Time, error) {
 
 	var user models.User
 
-	userrecords := Instance.Where("`users`.enabled = ?", 1).Where("`users`.ID= ?", userID).Where("`users`.verification_code = ?", verificationCode).Find(&user)
+	userrecords := Instance.Where("`users`.enabled = ?", 1).Where("`users`.ID = ?", userID).Where("`users`.verification_code = ?", verificationCode).Find(&user)
 
 	if userrecords.Error != nil {
 		return false, time.Now(), userrecords.Error
@@ -102,10 +103,10 @@ func VerifyUserVerfificationCodeMatches(userID int, verificationCode string) (bo
 }
 
 // Verify if user is verified
-func VerifyUserIsVerified(userID int) (bool, error) {
+func VerifyUserIsVerified(userID uuid.UUID) (bool, error) {
 
 	var user models.User
-	userrecords := Instance.Where("`users`.id= ?", userID).Find(&user)
+	userrecords := Instance.Where("`users`.id = ?", userID).Find(&user)
 	if userrecords.Error != nil {
 		return false, userrecords.Error
 	}
@@ -117,10 +118,10 @@ func VerifyUserIsVerified(userID int) (bool, error) {
 }
 
 // Verify if user is enabled
-func VerifyUserIsEnabled(userID int) (bool, error) {
+func VerifyUserIsEnabled(userID uuid.UUID) (bool, error) {
 
 	var user models.User
-	userrecords := Instance.Where("`users`.id= ?", userID).Find(&user)
+	userrecords := Instance.Where("`users`.id = ?", userID).Find(&user)
 	if userrecords.Error != nil {
 		return false, userrecords.Error
 	}
@@ -132,7 +133,7 @@ func VerifyUserIsEnabled(userID int) (bool, error) {
 }
 
 // Set user to verified
-func SetUserVerification(userID int, verified bool) error {
+func SetUserVerification(userID uuid.UUID, verified bool) error {
 
 	var user models.User
 	var verInt int
@@ -155,7 +156,7 @@ func SetUserVerification(userID int, verified bool) error {
 }
 
 // Update user values
-func UpdateUserValuesByUserID(userID int, email string, password string, sundayAlert bool, birthDate *time.Time) (err error) {
+func UpdateUserValuesByUserID(userID uuid.UUID, email string, password string, sundayAlert bool, birthDate *time.Time) (err error) {
 
 	err = nil
 
@@ -183,7 +184,7 @@ func UpdateUserValuesByUserID(userID int, email string, password string, sundayA
 
 }
 
-func UpdateEmailValueByUserID(userID int, email string) error {
+func UpdateEmailValueByUserID(userID uuid.UUID, email string) error {
 
 	var user models.User
 
@@ -199,7 +200,7 @@ func UpdateEmailValueByUserID(userID int, email string) error {
 
 }
 
-func UpdatePasswordValueByUserID(userID int, password string) error {
+func UpdatePasswordValueByUserID(userID uuid.UUID, password string) error {
 
 	var user models.User
 
@@ -215,7 +216,7 @@ func UpdatePasswordValueByUserID(userID int, password string) error {
 
 }
 
-func UpdateSundayAlertValueByUserID(userID int, sundayAlert bool) error {
+func UpdateSundayAlertValueByUserID(userID uuid.UUID, sundayAlert bool) error {
 
 	var user models.User
 
@@ -231,7 +232,7 @@ func UpdateSundayAlertValueByUserID(userID int, sundayAlert bool) error {
 
 }
 
-func UpdateBirthDateValueByUserID(userID int, birthDate *time.Time) error {
+func UpdateBirthDateValueByUserID(userID uuid.UUID, birthDate *time.Time) error {
 
 	var user models.User
 
@@ -248,7 +249,7 @@ func UpdateBirthDateValueByUserID(userID int, birthDate *time.Time) error {
 }
 
 // Get user information by user ID (censored)
-func GetUserInformation(UserID int) (models.User, error) {
+func GetUserInformation(UserID uuid.UUID) (models.User, error) {
 	var user models.User
 	userrecord := Instance.Where("`users`.enabled = ?", 1).Where("`users`.id = ?", UserID).Find(&user)
 	if userrecord.Error != nil {
@@ -298,7 +299,7 @@ func GetUserInformationByEmail(email string) (models.User, error) {
 }
 
 // Get ALL user information by user ID (uncensored)
-func GetAllUserInformation(UserID int) (models.User, error) {
+func GetAllUserInformation(UserID uuid.UUID) (models.User, error) {
 	var user models.User
 	userrecord := Instance.Where("`users`.enabled = ?", 1).Where("`users`.id = ?", UserID).Find(&user)
 	if userrecord.Error != nil {
@@ -343,7 +344,7 @@ func GetAllUserInformationByResetCode(resetCode string) (models.User, error) {
 }
 
 // Genrate a random reset code and return it
-func GenrateRandomResetCodeForuser(userID int) (string, error) {
+func GenrateRandomResetCodeForuser(userID uuid.UUID) (string, error) {
 
 	randomString := randstr.String(8)
 	resetCode := strings.ToUpper(randomString)
@@ -385,7 +386,7 @@ func CensorUserObject(user models.User) models.User {
 }
 
 // Get user email by UserID
-func GetUserEmailByUserID(userID int) (string, bool, error) {
+func GetUserEmailByUserID(userID uuid.UUID) (string, bool, error) {
 
 	var user models.User
 

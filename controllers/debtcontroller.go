@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 	"github.com/mroth/weightedrand/v2"
 )
 
@@ -143,7 +144,7 @@ func GenerateDebtForWeek(givenTime time.Time) (models.WeekResults, error) {
 
 	}
 
-	winner := 0
+	winner := uuid.UUID{}
 
 	if len(losers) == 0 {
 		log.Println("No losers this week. Returning.")
@@ -154,31 +155,32 @@ func GenerateDebtForWeek(givenTime time.Time) (models.WeekResults, error) {
 		log.Println("No winners this week. Returning.")
 		return lastWeek, nil
 	} else if len(winners) == 1 {
-		winner = int(winners[0].ID)
+		winner = winners[0].ID
 	}
 
 	for _, user := range losers {
 
-		_, debtFound, err := database.GetDebtForWeekForUserInSeasonID(givenTime, int(user.ID), int(seasonObject.ID))
+		_, debtFound, err := database.GetDebtForWeekForUserInSeasonID(givenTime, user.ID, seasonObject.ID)
 		if err != nil {
-			log.Println("Failed check for debt for '" + strconv.Itoa(int(user.ID)) + "'. Skipping.")
+			log.Println("Failed check for debt for '" + user.ID.String() + "'. Skipping.")
 			continue
 		} else if debtFound {
-			log.Println("Debt found for '" + strconv.Itoa(int(user.ID)) + "'. Skipping.")
+			log.Println("Debt found for '" + user.ID.String() + "'. Skipping.")
 			continue
 		}
 
 		debt := models.Debt{}
 		debt.Date = givenTime.Truncate(24 * time.Hour)
-		debt.Loser = int(user.ID)
-		debt.Winner = winner
-		debt.Season = int(season.ID)
+		debt.LoserID = user.ID
+		debt.WinnerID = &winner
+		debt.SeasonID = season.ID
+		debt.ID = uuid.New()
 
-		log.Println("Creating debt for '" + strconv.Itoa(int(user.ID)) + "'.")
+		log.Println("Creating debt for '" + user.ID.String() + "'.")
 
 		err = database.RegisterDebtInDB(debt)
 		if err != nil {
-			log.Println("Failed to log debt for '" + strconv.Itoa(int(user.ID)) + "'. Skipping.")
+			log.Println("Failed to log debt for '" + user.ID.String() + "'. Skipping.")
 			continue
 		}
 
@@ -189,48 +191,48 @@ func GenerateDebtForWeek(givenTime time.Time) (models.WeekResults, error) {
 				log.Println("Failed to find next Sunday for date. Skipping.")
 			} else {
 
-				// Give achivement to winner
-				err = GiveUserAnAchivement(winner, 5, nextSunday)
+				// Give achivement to winner for winning
+				err = GiveUserAnAchivement(winner, uuid.MustParse("bb964360-6413-47c2-8400-ee87b40365a7"), nextSunday)
 				if err != nil {
-					log.Println("Failed to give achivement for user '" + strconv.Itoa(winner) + "'. Ignoring. Error: " + err.Error())
+					log.Println("Failed to give achivement for user '" + winner.String() + "'. Ignoring. Error: " + err.Error())
 				}
 
-				// Give achivement to loser
-				err = GiveUserAnAchivement(int(user.ID), 4, nextSunday)
+				// Give achivement to loser for spinning wheel
+				err = GiveUserAnAchivement(user.ID, uuid.MustParse("d415fffc-ea99-4b27-8929-aeb02ae44da3"), nextSunday)
 				if err != nil {
-					log.Println("Failed to give achivement for user '" + strconv.Itoa(int(user.ID)) + "'. Ignoring. Error: " + err.Error())
+					log.Println("Failed to give achivement for user '" + user.ID.String() + "'. Ignoring. Error: " + err.Error())
 				}
 
 				// Get loser object
-				loserObject, err := database.GetAllUserInformation(int(user.ID))
+				loserObject, err := database.GetAllUserInformation(user.ID)
 				if err != nil {
-					log.Println("Failed to get object for user '" + strconv.Itoa(int(user.ID)) + "'. Ignoring. Error: " + err.Error())
+					log.Println("Failed to get object for user '" + user.ID.String() + "'. Ignoring. Error: " + err.Error())
 				} else {
 
 					// Notify loser by e-mail
 					err = utilities.SendSMTPForWeekLost(loserObject)
 					if err != nil {
-						log.Println("Failed to notify user '" + strconv.Itoa(int(user.ID)) + "' by e-mail. Ignoring. Error: " + err.Error())
+						log.Println("Failed to notify user '" + user.ID.String() + "' by e-mail. Ignoring. Error: " + err.Error())
 					}
 
 				}
 
 				// Notify loser by push
-				err = PushNotificationsForWeekLost(int(user.ID))
+				err = PushNotificationsForWeekLost(user.ID)
 				if err != nil {
-					log.Println("Failed to notify user '" + strconv.Itoa(int(user.ID)) + "' by push. Ignoring. Error: " + err.Error())
+					log.Println("Failed to notify user '" + user.ID.String() + "' by push. Ignoring. Error: " + err.Error())
 				}
 
 				// Get winner object
 				winnerObject, err := database.GetAllUserInformation(winner)
 				if err != nil {
-					log.Println("Failed to get object for user '" + strconv.Itoa(int(user.ID)) + "'. Ignoring. Error: " + err.Error())
+					log.Println("Failed to get object for user '" + user.ID.String() + "'. Ignoring. Error: " + err.Error())
 				} else {
 
 					// Notify winner by e-mail
 					err = utilities.SendSMTPForWheelSpinWin(winnerObject)
 					if err != nil {
-						log.Println("Failed to notify user '" + strconv.Itoa(int(user.ID)) + "' by e-mail. Ignoring. Error: " + err.Error())
+						log.Println("Failed to notify user '" + user.ID.String() + "' by e-mail. Ignoring. Error: " + err.Error())
 					}
 
 				}
@@ -238,7 +240,7 @@ func GenerateDebtForWeek(givenTime time.Time) (models.WeekResults, error) {
 				// Notify winner by push
 				err = PushNotificationsForWheelSpinWin(winner)
 				if err != nil {
-					log.Println("Failed to notify user '" + strconv.Itoa(int(user.ID)) + "' by push. Ignoring. Error: " + err.Error())
+					log.Println("Failed to notify user '" + user.ID.String() + "' by push. Ignoring. Error: " + err.Error())
 				}
 
 			}
@@ -246,23 +248,23 @@ func GenerateDebtForWeek(givenTime time.Time) (models.WeekResults, error) {
 		} else {
 
 			// Get loser object
-			loserObject, err := database.GetAllUserInformation(int(user.ID))
+			loserObject, err := database.GetAllUserInformation(user.ID)
 			if err != nil {
-				log.Println("Failed to get object for user '" + strconv.Itoa(int(user.ID)) + "'. Ignoring. Error: " + err.Error())
+				log.Println("Failed to get object for user '" + user.ID.String() + "'. Ignoring. Error: " + err.Error())
 			} else {
 
 				// Notify loser by e-mail
 				err = utilities.SendSMTPForWheelSpin(loserObject)
 				if err != nil {
-					log.Println("Failed to notify user '" + strconv.Itoa(int(user.ID)) + "' by e-mail. Ignoring. Error: " + err.Error())
+					log.Println("Failed to notify user '" + user.ID.String() + "' by e-mail. Ignoring. Error: " + err.Error())
 				}
 
 			}
 
 			// Notify loser by push
-			err = PushNotificationsForWheelSpin(int(user.ID))
+			err = PushNotificationsForWheelSpin(user.ID)
 			if err != nil {
-				log.Println("Failed to notify user '" + strconv.Itoa(int(user.ID)) + "' by push. Ignoring. Error: " + err.Error())
+				log.Println("Failed to notify user '" + user.ID.String() + "' by push. Ignoring. Error: " + err.Error())
 			}
 
 		}
@@ -313,10 +315,10 @@ func ConvertDebtToDebtObject(debt models.Debt) (models.DebtObject, error) {
 
 	var debtObject models.DebtObject
 
-	if debt.Winner != 0 {
-		user, err := database.GetUserInformation(debt.Winner)
+	if debt.WinnerID != nil {
+		user, err := database.GetUserInformation(*debt.WinnerID)
 		if err != nil {
-			log.Println("Failed to get user information for user '" + strconv.Itoa(debt.Winner) + "'. Creating blank user. Error: " + err.Error())
+			log.Println("Failed to get user information for user '" + debt.Winner.ID.String() + "'. Creating blank user. Error: " + err.Error())
 			user = models.User{
 				FirstName: "Deleted",
 				LastName:  "Deleted",
@@ -324,35 +326,31 @@ func ConvertDebtToDebtObject(debt models.Debt) (models.DebtObject, error) {
 			}
 		}
 
-		debtObject.Winner = user
+		debtObject.Winner = &user
 	} else {
-		debtObject.Winner = models.User{}
+		debtObject.Winner = nil
 	}
 
-	if debt.Loser != 0 {
-		user, err := database.GetUserInformation(debt.Loser)
-		if err != nil {
-			log.Println("Failed to get user information for user '" + strconv.Itoa(debt.Loser) + "'. Creating blank user. Error: " + err.Error())
-			user = models.User{
-				FirstName: "Deleted",
-				LastName:  "Deleted",
-				Email:     "Deleted",
-			}
-		}
-
-		debtObject.Loser = user
-	} else {
-		debtObject.Loser = models.User{}
-	}
-
-	season, err := database.GetSeasonByID(int(debt.Season))
+	user, err := database.GetUserInformation(debt.LoserID)
 	if err != nil {
-		log.Println("Failed to get season '" + strconv.Itoa(debt.Season) + "' in database. Returning. Error: " + err.Error())
+		log.Println("Failed to get user information for user '" + debt.Loser.ID.String() + "'. Creating blank user. Error: " + err.Error())
+		user = models.User{
+			FirstName: "Deleted",
+			LastName:  "Deleted",
+			Email:     "Deleted",
+		}
+	}
+
+	debtObject.Loser = user
+
+	season, err := database.GetSeasonByID(debt.SeasonID)
+	if err != nil {
+		log.Println("Failed to get season '" + debt.Season.ID.String() + "' in database. Returning. Error: " + err.Error())
 		return models.DebtObject{}, err
 	}
 	seasonObject, err := ConvertSeasonToSeasonObject(season)
 	if err != nil {
-		log.Println("Failed to convert season '" + strconv.Itoa(debt.Season) + "' to season object. Returning. Error: " + err.Error())
+		log.Println("Failed to convert season '" + debt.Season.ID.String() + "' to season object. Returning. Error: " + err.Error())
 		return models.DebtObject{}, err
 	}
 	debtObject.Season = seasonObject
@@ -362,7 +360,6 @@ func ConvertDebtToDebtObject(debt models.Debt) (models.DebtObject, error) {
 	debtObject.DeletedAt = debt.DeletedAt
 	debtObject.Enabled = debt.Enabled
 	debtObject.ID = debt.ID
-	debtObject.Model = debt.Model
 	debtObject.Paid = debt.Paid
 	debtObject.UpdatedAt = debt.UpdatedAt
 
@@ -393,7 +390,7 @@ func APIGetDebt(context *gin.Context) {
 	var debtID = context.Param("debt_id")
 
 	// Parse group id
-	debtIDInt, err := strconv.Atoi(debtID)
+	debtIDInt, err := uuid.Parse(debtID)
 	if err != nil {
 		log.Println("Failed to parse debt ID. Error: " + err.Error())
 		context.JSON(http.StatusBadRequest, gin.H{"error": "Failed to parse Debt ID."})
@@ -478,19 +475,19 @@ func APIGetDebt(context *gin.Context) {
 	}
 
 	// Check for wheelviews and mark them as viewed if matching
-	if debtObject.Winner.ID != 0 {
+	if debtObject.Winner != nil {
 
-		log.Println("Checking for debt views for user '" + strconv.Itoa(userID) + "'.")
+		log.Println("Checking for debt views for user '" + userID.String() + "'.")
 
-		wheelview, wheelviewFound, err := database.GetUnviewedWheelviewByDebtIDAndUserID(userID, int(debtObject.ID))
+		wheelview, wheelviewFound, err := database.GetUnviewedWheelviewByDebtIDAndUserID(userID, debtObject.ID)
 		if err != nil {
-			log.Println("Failed to retrieve wheelview for user '" + strconv.Itoa(userID) + "'. Continuing. Error: " + err.Error())
+			log.Println("Failed to retrieve wheelview for user '" + userID.String() + "'. Continuing. Error: " + err.Error())
 		} else if wheelviewFound {
-			err = database.SetWheelviewToViewedByID(int(wheelview.ID))
+			err = database.SetWheelviewToViewedByID(wheelview.ID)
 			if err != nil {
-				log.Println("Failed to update wheelview for user '" + strconv.Itoa(userID) + "'. Continuing. Error: " + err.Error())
+				log.Println("Failed to update wheelview for user '" + userID.String() + "'. Continuing. Error: " + err.Error())
 			}
-			log.Println("Debt marked as viewed for user '" + strconv.Itoa(userID) + "'.")
+			log.Println("Debt marked as viewed for user '" + userID.String() + "'.")
 		}
 	}
 
@@ -504,7 +501,7 @@ func APIChooseWinnerForDebt(context *gin.Context) {
 	var debtID = context.Param("debt_id")
 
 	// Parse group id
-	debtIDInt, err := strconv.Atoi(debtID)
+	debtIDInt, err := uuid.Parse(debtID)
 	if err != nil {
 		log.Println("Failed to parse debt ID. Error: " + err.Error())
 		context.JSON(http.StatusBadRequest, gin.H{"error": "Failed to parse Debt ID."})
@@ -531,13 +528,13 @@ func APIChooseWinnerForDebt(context *gin.Context) {
 		context.JSON(http.StatusBadRequest, gin.H{"error": "Debt not found."})
 		context.Abort()
 		return
-	} else if debt.Loser != userID {
+	} else if debt.Loser.ID != userID {
 		context.JSON(http.StatusUnauthorized, gin.H{"error": "No access."})
 		context.Abort()
 		return
 	}
 
-	if debt.Winner != 0 {
+	if debt.Winner != nil {
 		context.JSON(http.StatusBadRequest, gin.H{"error": "Winner has already been chosen."})
 		context.Abort()
 		return
@@ -592,10 +589,10 @@ func APIChooseWinnerForDebt(context *gin.Context) {
 	}
 
 	// Add winners as choices
-	choices := []weightedrand.Choice[int, int]{}
+	choices := []weightedrand.Choice[uuid.UUID, int]{}
 	for _, user := range winners {
-		choice := weightedrand.Choice[int, int]{
-			Item:   int(user.User.ID),
+		choice := weightedrand.Choice[uuid.UUID, int]{
+			Item:   user.User.ID,
 			Weight: user.Tickets,
 		}
 		choices = append(choices, choice)
@@ -616,16 +613,16 @@ func APIChooseWinnerForDebt(context *gin.Context) {
 	// Update winner in DB
 	database.UpdateDebtWinner(debtIDInt, winnerID)
 
-	// Give achivement to winner
-	err = GiveUserAnAchivement(winnerID, 5, sundayDate)
+	// Give achivement to winner for winning
+	err = GiveUserAnAchivement(winnerID, uuid.MustParse("bb964360-6413-47c2-8400-ee87b40365a7"), sundayDate)
 	if err != nil {
-		log.Println("Failed to give achivement for user '" + strconv.Itoa(winnerID) + "'. Ignoring. Error: " + err.Error())
+		log.Println("Failed to give achivement for user '" + winnerID.String() + "'. Ignoring. Error: " + err.Error())
 	}
 
-	// Give achivement to loser
-	err = GiveUserAnAchivement(userID, 4, sundayDate)
+	// Give achivement to loser for losing
+	err = GiveUserAnAchivement(userID, uuid.MustParse("d415fffc-ea99-4b27-8929-aeb02ae44da3"), sundayDate)
 	if err != nil {
-		log.Println("Failed to give achivement for user '" + strconv.Itoa(userID) + "'. Ignoring. Error: " + err.Error())
+		log.Println("Failed to give achivement for user '" + userID.String() + "'. Ignoring. Error: " + err.Error())
 	}
 
 	// Get user object
@@ -634,33 +631,33 @@ func APIChooseWinnerForDebt(context *gin.Context) {
 	// Create wheel views
 	for _, user := range winners {
 		wheelview := models.Wheelview{
-			User:   int(user.User.ID),
-			Debt:   debtIDInt,
+			User:   user.User,
+			DebtID: debtIDInt,
 			Viewed: false,
 		}
 		err = database.CreateWheelview(wheelview)
 		if err != nil {
-			log.Println("Create wheelview for user '" + strconv.Itoa(int(user.User.ID)) + "'. Error: " + err.Error())
+			log.Println("Create wheelview for user '" + user.User.ID.String() + "'. Error: " + err.Error())
 		}
 
 		// Notify winner by e-mail
-		winnerObject, err := database.GetAllUserInformation(int(user.User.ID))
+		winnerObject, err := database.GetAllUserInformation(user.User.ID)
 		if err != nil {
-			log.Println("Failed to get object for user '" + strconv.Itoa(int(user.User.ID)) + "'. Ignoring. Error: " + err.Error())
+			log.Println("Failed to get object for user '" + user.User.ID.String() + "'. Ignoring. Error: " + err.Error())
 		} else {
 
 			// Notify winner by e-mail
 			err = utilities.SendSMTPForWheelSpinCheck(winnerObject)
 			if err != nil {
-				log.Println("Failed to notify user '" + strconv.Itoa(int(user.User.ID)) + "' by e-mail. Ignoring. Error: " + err.Error())
+				log.Println("Failed to notify user '" + user.User.ID.String() + "' by e-mail. Ignoring. Error: " + err.Error())
 			}
 
 		}
 
 		// Notify winner by push
-		err = PushNotificationsForWheelSpinCheck(int(user.User.ID))
+		err = PushNotificationsForWheelSpinCheck(user.User.ID)
 		if err != nil {
-			log.Println("Failed to notify user '" + strconv.Itoa(int(user.User.ID)) + "' by push. Ignoring. Error: " + err.Error())
+			log.Println("Failed to notify user '" + user.User.ID.String() + "' by push. Ignoring. Error: " + err.Error())
 		}
 	}
 
@@ -721,7 +718,7 @@ func APIGetDebtOverview(context *gin.Context) {
 
 		// Check if viewed by reciever
 		for _, debt := range debtObjects {
-			wheelview, wheelviewFound, err := database.GetWheelviewByDebtIDAndUserID(userID, int(debt.ID))
+			wheelview, wheelviewFound, err := database.GetWheelviewByDebtIDAndUserID(userID, debt.ID)
 			if err != nil {
 				log.Println("Failed to get wheelview for debt. Error: " + err.Error())
 				context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get wheelview for debt."})
@@ -777,7 +774,7 @@ func APISetPrizeReceived(context *gin.Context) {
 	var debtID = context.Param("debt_id")
 
 	// Parse group id
-	debtIDInt, err := strconv.Atoi(debtID)
+	debtIDInt, err := uuid.Parse(debtID)
 	if err != nil {
 		log.Println("Failed to parse debt ID. Error: " + err.Error())
 		context.JSON(http.StatusBadRequest, gin.H{"error": "Failed to parse Debt ID."})

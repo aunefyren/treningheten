@@ -3,6 +3,8 @@ package database
 import (
 	"aunefyren/treningheten/models"
 	"errors"
+
+	"github.com/google/uuid"
 )
 
 // Create new exercise
@@ -15,11 +17,11 @@ func CreateExerciseForExerciseDayInDatabase(exercise models.Exercise) error {
 }
 
 // Get all exercise for exercise-day
-func GetExerciseByExerciseDayID(exerciseDayID int) ([]models.Exercise, error) {
+func GetExerciseByExerciseDayID(exerciseDayID uuid.UUID) ([]models.Exercise, error) {
 
 	var exercises []models.Exercise
 
-	exerciseRecord := Instance.Where("`exercises`.enabled = ?", 1).Where("`exercises`.exercise_day = ?", exerciseDayID).Find(&exercises)
+	exerciseRecord := Instance.Where("`exercises`.enabled = ?", 1).Where("`exercises`.exercise_day_id = ?", exerciseDayID).Find(&exercises)
 	if exerciseRecord.Error != nil {
 		return []models.Exercise{}, exerciseRecord.Error
 	}
@@ -29,7 +31,7 @@ func GetExerciseByExerciseDayID(exerciseDayID int) ([]models.Exercise, error) {
 }
 
 // Turn on exercise in dastabase
-func UpdateExerciseByTurningOnByExerciseID(exerciseID int) error {
+func UpdateExerciseByTurningOnByExerciseID(exerciseID uuid.UUID) error {
 
 	var exercise models.Exercise
 
@@ -45,7 +47,7 @@ func UpdateExerciseByTurningOnByExerciseID(exerciseID int) error {
 }
 
 // Turn off exercise in dastabase
-func UpdateExerciseByTurningOffByExerciseID(exerciseID int) error {
+func UpdateExerciseByTurningOffByExerciseID(exerciseID uuid.UUID) error {
 
 	var exercise models.Exercise
 

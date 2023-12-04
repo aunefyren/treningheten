@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 )
 
 func APIGetPrizes(context *gin.Context) {
@@ -63,6 +64,7 @@ func APIRegisterPrize(context *gin.Context) {
 		Name:      strings.TrimSpace(prize.Name),
 		Quanitity: prize.Quanitity,
 	}
+	prizeDB.ID = uuid.New()
 
 	// Create prize in DB
 	err = database.CreatePrizeInDB(prizeDB)

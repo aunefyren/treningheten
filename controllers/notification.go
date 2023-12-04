@@ -13,6 +13,7 @@ import (
 
 	"github.com/SherClockHolmes/webpush-go"
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 )
 
 func PushNotificationToSubscriptions(notficationType string, notificationBody string, notficationTitle string, subscriptions []models.Subscription) (int, error) {
@@ -120,7 +121,8 @@ func APISubscribeToNotification(context *gin.Context) {
 	subscription.SundayAlert = subscriptionRequest.Settings.SundayAlert
 	subscription.AchievementAlert = subscriptionRequest.Settings.AchievementAlert
 	subscription.NewsAlert = subscriptionRequest.Settings.NewsAlert
-	subscription.User = userID
+	subscription.UserID = userID
+	subscription.ID = uuid.New()
 
 	_, err = database.CreateSubscriptionInDB(subscription)
 	if err != nil {
@@ -146,7 +148,7 @@ func APIPushNotificationToAllDevicesForUser(context *gin.Context) {
 		return
 	}
 
-	subscriptions, err := database.GetAllSubscriptionsForUserByUserID(int(notificationRequest.UserID))
+	subscriptions, err := database.GetAllSubscriptionsForUserByUserID(notificationRequest.UserID)
 	if err != nil {
 		log.Println("Failed to get subscriptions for user. Error: " + err.Error())
 		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get subscriptions for user."})
@@ -236,7 +238,7 @@ func APIUpdateSubscriptionForEndpoint(context *gin.Context) {
 
 }
 
-func PushNotificationsForAchivements(userID int) (err error) {
+func PushNotificationsForAchivements(userID uuid.UUID) (err error) {
 
 	err = nil
 
@@ -317,7 +319,7 @@ func PushNotificationsForSundayAlerts() (err error) {
 
 }
 
-func PushNotificationsForWeekLost(userId int) (err error) {
+func PushNotificationsForWeekLost(userId uuid.UUID) (err error) {
 
 	err = nil
 
@@ -344,7 +346,7 @@ func PushNotificationsForWeekLost(userId int) (err error) {
 
 }
 
-func PushNotificationsForWheelSpin(userId int) (err error) {
+func PushNotificationsForWheelSpin(userId uuid.UUID) (err error) {
 
 	err = nil
 
@@ -371,7 +373,7 @@ func PushNotificationsForWheelSpin(userId int) (err error) {
 
 }
 
-func PushNotificationsForWheelSpinCheck(userId int) (err error) {
+func PushNotificationsForWheelSpinCheck(userId uuid.UUID) (err error) {
 
 	err = nil
 
@@ -398,7 +400,7 @@ func PushNotificationsForWheelSpinCheck(userId int) (err error) {
 
 }
 
-func PushNotificationsForWheelSpinWin(userId int) (err error) {
+func PushNotificationsForWheelSpinWin(userId uuid.UUID) (err error) {
 
 	err = nil
 

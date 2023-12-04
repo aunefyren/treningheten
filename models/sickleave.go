@@ -3,13 +3,14 @@ package models
 import (
 	"time"
 
-	"gorm.io/gorm"
+	"github.com/google/uuid"
 )
 
 type Sickleave struct {
-	gorm.Model
-	Enabled       bool      `json:"enabled" gorm:"not null; default: true"`
-	Goal          int       `json:"goal" gorm:"not null"`
-	SickleaveUsed bool      `json:"used" gorm:"not null;default: false"`
-	Date          time.Time `json:"date" gorm:"default: null"`
+	GormModel
+	Enabled bool      `json:"enabled" gorm:"not null; default: true"`
+	GoalID  uuid.UUID `json:"" gorm:"type:varchar(100);"`
+	Goal    Goal      `json:"goal" gorm:"not null"`
+	Used    bool      `json:"used" gorm:"not null;default: false"`
+	Date    time.Time `json:"date" gorm:"default: null"`
 }

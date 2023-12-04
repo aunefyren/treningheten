@@ -99,6 +99,33 @@ func FindEarlierMonday(poinInTime time.Time) (time.Time, error) {
 	return time.Time{}, errors.New("Failed to find earlier monday for date.")
 }
 
+func FindEarlierSunday(poinInTime time.Time) (time.Time, error) {
+
+	sundayDate := time.Time{}
+
+	// Find monday
+	if poinInTime.Weekday() == 0 {
+		sundayDate = poinInTime
+	} else {
+		previousDate := poinInTime
+
+		for i := 0; i < 8; i++ {
+			previousDate = previousDate.AddDate(0, 0, -1)
+			if previousDate.Weekday() == 0 {
+				sundayDate = previousDate
+				break
+			}
+		}
+
+	}
+
+	if sundayDate.Weekday() == 0 {
+		return sundayDate, nil
+	}
+
+	return time.Time{}, errors.New("Failed to find earlier Sunday for date.")
+}
+
 func RemoveIntFromArray(originalArray []int, intToRemove int) []int {
 
 	newArray := []int{}

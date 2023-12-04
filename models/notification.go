@@ -3,13 +3,14 @@ package models
 import (
 	"time"
 
-	"gorm.io/gorm"
+	"github.com/google/uuid"
 )
 
 type Subscription struct {
-	gorm.Model
+	GormModel
 	Enabled          bool       `json:"enabled" gorm:"not null; default: true"`
-	User             int        `json:"user" gorm:"not null"`
+	UserID           uuid.UUID  `json:"" gorm:"type:varchar(100);"`
+	User             User       `json:"user" gorm:"not null"`
 	Endpoint         string     `json:"endpoint" gorm:"not null"`
 	ExpirationTime   *time.Time `json:"expiration_time"`
 	P256Dh           string     `json:"p256dh" gorm:"not null"`
@@ -40,10 +41,10 @@ type SubscriptionCreationRequest struct {
 }
 
 type NotificationCreationRequest struct {
-	Title    string `json:"title"`
-	Body     string `json:"body"`
-	UserID   int    `json:"user"`
-	Category string `json:"category"`
+	Title    string    `json:"title"`
+	Body     string    `json:"body"`
+	UserID   uuid.UUID `json:"user"`
+	Category string    `json:"category"`
 }
 
 type SubscriptionGetRequest struct {

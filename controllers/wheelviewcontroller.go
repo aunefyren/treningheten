@@ -4,33 +4,32 @@ import (
 	"aunefyren/treningheten/database"
 	"aunefyren/treningheten/models"
 	"log"
-	"strconv"
 )
 
 func ConvertWheelviewToWheelviewObject(wheelview models.Wheelview) (models.WheelviewObject, error) {
 
 	wheelviewObject := models.WheelviewObject{}
 
-	user, err := database.GetUserInformation(wheelview.User)
+	user, err := database.GetUserInformation(wheelview.User.ID)
 	if err != nil {
-		log.Println("Failed to get user information for user '" + strconv.Itoa(wheelview.User) + "'. Returning. Error: " + err.Error())
+		log.Println("Failed to get user information for user '" + wheelview.User.ID.String() + "'. Returning. Error: " + err.Error())
 		return models.WheelviewObject{}, err
 	}
 
 	wheelviewObject.User = user
 
-	debt, debtFound, err := database.GetDebtByDebtID(wheelview.Debt)
+	debt, debtFound, err := database.GetDebtByDebtID(wheelview.Debt.ID)
 	if err != nil {
-		log.Println("Failed to get debt for debt '" + strconv.Itoa(wheelview.Debt) + "'. Returning. Error: " + err.Error())
+		log.Println("Failed to get debt for debt '" + wheelview.Debt.ID.String() + "'. Returning. Error: " + err.Error())
 		return models.WheelviewObject{}, err
 	} else if !debtFound {
-		log.Println("Failed to find debt for debt '" + strconv.Itoa(wheelview.Debt) + "'. Returning. Error: " + err.Error())
+		log.Println("Failed to find debt for debt '" + wheelview.Debt.ID.String() + "'. Returning. Error: " + err.Error())
 		return models.WheelviewObject{}, err
 	}
 
 	debtObject, err := ConvertDebtToDebtObject(debt)
 	if err != nil {
-		log.Println("Failed to convert debt to debt onbject for debt '" + strconv.Itoa(wheelview.Debt) + "'. Returning. Error: " + err.Error())
+		log.Println("Failed to convert debt to debt onbject for debt '" + wheelview.Debt.ID.String() + "'. Returning. Error: " + err.Error())
 		return models.WheelviewObject{}, err
 	}
 
@@ -40,7 +39,6 @@ func ConvertWheelviewToWheelviewObject(wheelview models.Wheelview) (models.Wheel
 	wheelviewObject.DeletedAt = wheelview.DeletedAt
 	wheelviewObject.Enabled = wheelview.Enabled
 	wheelviewObject.ID = wheelview.ID
-	wheelviewObject.Model = wheelview.Model
 	wheelviewObject.UpdatedAt = wheelview.UpdatedAt
 	wheelviewObject.Viewed = wheelview.Viewed
 
@@ -55,7 +53,7 @@ func ConvertWheelviewsToWheelviewObjects(wheelviews []models.Wheelview) ([]model
 	for _, wheelview := range wheelviews {
 		wheelviewObject, err := ConvertWheelviewToWheelviewObject(wheelview)
 		if err != nil {
-			log.Println("Failed to convert debt to debt onbject for debt '" + strconv.Itoa(wheelview.Debt) + "'. Returning. Error: " + err.Error())
+			log.Println("Failed to convert debt to debt onbject for debt '" + wheelview.Debt.ID.String() + "'. Returning. Error: " + err.Error())
 			return []models.WheelviewObject{}, err
 		}
 		wheelviewObjects = append(wheelviewObjects, wheelviewObject)

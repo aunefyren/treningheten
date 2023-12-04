@@ -9,27 +9,17 @@ import (
 	"log"
 	"net/http"
 	"sort"
-	"strconv"
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 )
 
 func APIGetAchivements(context *gin.Context) {
+	var achivementObjectsArray = []models.AchievementUserObject{}
+	var requestedUser *uuid.UUID
+	requestedUser = nil
 
-	achivementsArray, err := database.GetAllEnabledAchievements()
-	if err != nil {
-		log.Println("Failed to get achivements. Error: " + err.Error())
-		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get achivements."})
-		context.Abort()
-		return
-	}
-
-	context.JSON(http.StatusOK, gin.H{"message": "Achivements found.", "achivements": achivementsArray})
-
-}
-
-func APIGetPersonalAchivements(context *gin.Context) {
 	// Get user ID
 	userID, err := middlewares.GetAuthUsername(context.GetHeader("Authorization"))
 	if err != nil {
@@ -39,48 +29,58 @@ func APIGetPersonalAchivements(context *gin.Context) {
 		return
 	}
 
-	// Get user ID from URL
-	var userIDRequested = context.Param("user_id")
+	user, okay := context.GetQuery("user")
+	if !okay {
+		achivementsArray, err := database.GetAllEnabledAchievements()
+		if err != nil {
+			log.Println("Failed to get achivements. Error: " + err.Error())
+			context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get achivements."})
+			context.Abort()
+			return
+		}
 
-	// Check if the string is empty
-	if userIDRequested == "" {
-		context.JSON(http.StatusBadRequest, gin.H{"error": "No user ID found."})
-		context.Abort()
-		return
+		achivementObjectsArray, err = ConvertAchivementsToAchivementUserObjects(achivementsArray)
+		if err != nil {
+			log.Println("Failed to convert to achivement objects. Error: " + err.Error())
+			context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to convert to achivement objects."})
+			context.Abort()
+			return
+		}
+	} else {
+		requestedUserNew, err := uuid.Parse(user)
+		if err != nil {
+			log.Println("Failed to parse user ID. Error: " + err.Error())
+			context.JSON(http.StatusBadRequest, gin.H{"error": "Failed to parse user ID."})
+			context.Abort()
+			return
+		}
+		requestedUser = &requestedUserNew
+
+		achivementsArray, _, err := database.GetDelegatedAchievementsByUserID(*requestedUser)
+		if err != nil {
+			log.Println("Failed to get achivements. Error: " + err.Error())
+			context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get achivements."})
+			context.Abort()
+			return
+		}
+
+		achivementObjectsArray, err = ConvertAchivementDelegationsToAchivementUserObjects(achivementsArray)
+		if err != nil {
+			log.Println("Failed to convert to achivement objects. Error: " + err.Error())
+			context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to convert to achivement objects."})
+			context.Abort()
+			return
+		}
+
+		sort.Slice(achivementObjectsArray, func(i, j int) bool {
+			return achivementObjectsArray[i].AchievementDelegation.GivenAt.After(achivementObjectsArray[j].AchievementDelegation.GivenAt)
+		})
 	}
 
-	userIDRequestedInt, err := strconv.Atoi(userIDRequested)
-	if err != nil {
-		log.Println("Invalid user ID. Error: " + err.Error())
-		context.JSON(http.StatusInternalServerError, gin.H{"error": "Invalid user ID."})
-		context.Abort()
-		return
-	}
-
-	achivementsArray, _, err := database.GetDelegatedAchievementsByUserID(int(userIDRequestedInt))
-	if err != nil {
-		log.Println("Failed to get achivements. Error: " + err.Error())
-		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get achivements."})
-		context.Abort()
-		return
-	}
-
-	achivementObjectsArray, err := ConvertAchivementDelegationsToAchivementObjects(achivementsArray)
-	if err != nil {
-		log.Println("Failed to convert to achivement objects. Error: " + err.Error())
-		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to convert to achivement objects."})
-		context.Abort()
-		return
-	}
-
-	sort.Slice(achivementObjectsArray, func(i, j int) bool {
-		return achivementObjectsArray[i].GivenAt.After(achivementObjectsArray[j].GivenAt)
-	})
-
-	context.JSON(http.StatusOK, gin.H{"message": "Achivements for user found.", "achivements": achivementObjectsArray})
+	context.JSON(http.StatusOK, gin.H{"message": "Achivements found.", "achivements": achivementObjectsArray})
 
 	// Mark all achivements as seen
-	if userID == userIDRequestedInt {
+	if requestedUser != nil && userID == *requestedUser {
 		_, err = database.SetAchievementsToSeenForUser(userID)
 		if err != nil {
 			log.Println("Failed to set achivements to seen for user. Error: " + err.Error())
@@ -98,165 +98,247 @@ func CreateDefaultAchivements() error {
 	achievements := []models.Achievement{}
 
 	leapAchievement := models.Achievement{
-		Name:        "One of us",
-		Description: "Join a season by creating a goal.",
-		SeasonBased: false,
+		Name:          "One of us",
+		Description:   "Join a season by creating a goal.",
+		Category:      "Default",
+		CategoryColor: "lightblue",
 	}
+	leapAchievement.ID = uuid.MustParse("7f2d49ad-d056-415e-aa80-0ada6db7cc00")
 	achievements = append(achievements, leapAchievement)
 
 	weekAchievement := models.Achievement{
-		Name:        "It's everyday, bro",
-		Description: "Exercise everyday for a week.",
-		SeasonBased: false,
+		Name:          "It's everyday, bro",
+		Description:   "Exercise everyday for a week.",
+		Category:      "Default",
+		CategoryColor: "lightblue",
 	}
+	weekAchievement.ID = uuid.MustParse("a8c62293-6090-4b16-a070-ad65404836ae")
 	achievements = append(achievements, weekAchievement)
 
 	noteAchievement := models.Achievement{
-		Name:        "Dear diary...",
-		Description: "Write a long workout note.",
-		SeasonBased: false,
+		Name:          "Dear diary...",
+		Description:   "Write a long workout note.",
+		Category:      "Default",
+		CategoryColor: "lightblue",
 	}
+	noteAchievement.ID = uuid.MustParse("ae27d8bf-dfc8-4be1-b7a9-01183b375ebf")
 	achievements = append(achievements, noteAchievement)
 
 	deserveAchievement := models.Achievement{
-		Name:        "What you deserve",
-		Description: "Spin the wheel after failing a week.",
-		SeasonBased: false,
+		Name:          "What you deserve",
+		Description:   "Spin the wheel after failing a week.",
+		Category:      "Default",
+		CategoryColor: "lightblue",
 	}
+	deserveAchievement.ID = uuid.MustParse("d415fffc-ea99-4b27-8929-aeb02ae44da3")
 	achievements = append(achievements, deserveAchievement)
 
 	winAchievement := models.Achievement{
-		Name:        "Lucky bastard",
-		Description: "Have someone else spin the wheel and win.",
-		SeasonBased: false,
+		Name:          "Lucky bastard",
+		Description:   "Have someone else spin the wheel and win.",
+		Category:      "Default",
+		CategoryColor: "lightblue",
 	}
+	winAchievement.ID = uuid.MustParse("bb964360-6413-47c2-8400-ee87b40365a7")
 	achievements = append(achievements, winAchievement)
 
 	anotherAchievement := models.Achievement{
-		Name:        "Another one",
-		Description: "Exercise more than once in a day.",
-		SeasonBased: false,
+		Name:          "Another one",
+		Description:   "Exercise more than once in a day.",
+		Category:      "Default",
+		CategoryColor: "lightblue",
 	}
+	anotherAchievement.ID = uuid.MustParse("51c48b42-4429-4b82-8fb2-d2bb2bfe907a")
 	achievements = append(achievements, anotherAchievement)
 
 	overAchievement := models.Achievement{
-		Name:        "Overachiever",
-		Description: "Exercise more than required in a week.",
-		SeasonBased: false,
+		Name:          "Overachiever",
+		Description:   "Exercise more than required in a week.",
+		Category:      "Default",
+		CategoryColor: "lightblue",
 	}
+	overAchievement.ID = uuid.MustParse("f7fad558-3e59-4812-9b13-4c30a91c04b9")
 	achievements = append(achievements, overAchievement)
 
 	mayAchievement := models.Achievement{
-		Name:        "Norwegian heritage",
-		Description: "Exercise on the 17th of May.",
-		SeasonBased: false,
+		Name:          "Norwegian heritage",
+		Description:   "Exercise on the 17th of May.",
+		Category:      "Default",
+		CategoryColor: "lightblue",
 	}
+	mayAchievement.ID = uuid.MustParse("ab0b1bf0-c57b-469f-a6ba-5d195f1b896d")
 	achievements = append(achievements, mayAchievement)
 
 	christmasAchievement := models.Achievement{
-		Name:        "The gift of lifting",
-		Description: "Exercise on the 24th of December.",
-		SeasonBased: false,
+		Name:          "The gift of lifting",
+		Description:   "Exercise on the 24th of December.",
+		Category:      "Christmas",
+		CategoryColor: "lightgreen",
 	}
+	christmasAchievement.ID = uuid.MustParse("c4a131a6-2aa6-49fb-98e5-fa797152a9a4")
 	achievements = append(achievements, christmasAchievement)
 
 	sickAchievement := models.Achievement{
-		Name:        "Your week off",
-		Description: "Use a week of sick leave.",
-		SeasonBased: false,
+		Name:          "Your week off",
+		Description:   "Use a week of sick leave.",
+		Category:      "Default",
+		CategoryColor: "lightblue",
 	}
+	sickAchievement.ID = uuid.MustParse("420b020c-2cad-4898-bb94-d86dc0031203")
 	achievements = append(achievements, sickAchievement)
 
 	weekendAchievement := models.Achievement{
-		Name:        "I'll do it later",
-		Description: "Only exercise during the weekend.",
-		SeasonBased: false,
+		Name:          "I'll do it later",
+		Description:   "Only exercise during the weekend.",
+		Category:      "Default",
+		CategoryColor: "lightblue",
 	}
+	weekendAchievement.ID = uuid.MustParse("31fa2681-eec7-43e4-bc69-35dee352eaee")
 	achievements = append(achievements, weekendAchievement)
 
 	easyAchievement := models.Achievement{
-		Name:        "Making it look easy",
-		Description: "Exercise more than seven times in a week.",
-		SeasonBased: false,
+		Name:          "Making it look easy",
+		Description:   "Exercise more than seven times in a week.",
+		Category:      "Default",
+		CategoryColor: "lightblue",
 	}
+	easyAchievement.ID = uuid.MustParse("e7ee36d4-f39e-40a3-af92-2f7e1f707d07")
 	achievements = append(achievements, easyAchievement)
 
 	threeAchievement := models.Achievement{
-		Name:        "Three weeks",
-		Description: "Get a three week streak.",
-		SeasonBased: false,
+		Name:          "Three weeks",
+		Description:   "Get a three week streak.",
+		Category:      "Default",
+		CategoryColor: "lightblue",
 	}
+	threeAchievement.ID = uuid.MustParse("8875597e-d8f5-4514-b96f-c51ecce4eb1f")
 	achievements = append(achievements, threeAchievement)
 
 	tenAchievement := models.Achievement{
-		Name:        "10 weeks",
-		Description: "Get a 10 week streak.",
-		SeasonBased: false,
+		Name:          "10 weeks",
+		Description:   "Get a 10 week streak.",
+		Category:      "Default",
+		CategoryColor: "lightblue",
 	}
+	tenAchievement.ID = uuid.MustParse("ca6a4692-153b-47a7-8444-457b906d0666")
 	achievements = append(achievements, tenAchievement)
 
 	fiteenAchievement := models.Achievement{
-		Name:        "15 weeks",
-		Description: "Get a 15 week streak.",
-		SeasonBased: false,
+		Name:          "15 weeks",
+		Description:   "Get a 15 week streak.",
+		Category:      "Default",
+		CategoryColor: "lightblue",
 	}
+	fiteenAchievement.ID = uuid.MustParse("2a84df89-9976-443b-a093-19f8d73b5eff")
 	achievements = append(achievements, fiteenAchievement)
 
 	completeAchievement := models.Achievement{
-		Name:        "Fun run",
-		Description: "Complete every week in a season.",
-		SeasonBased: true,
+		Name:          "Fun run",
+		Description:   "Complete every week in a season.",
+		Category:      "Season",
+		CategoryColor: "yellow-light",
 	}
+	completeAchievement.ID = uuid.MustParse("01dc9c4b-cf65-4d3c-9596-1417b67bd86f")
 	achievements = append(achievements, completeAchievement)
 
 	comebackAchievement := models.Achievement{
-		Name:        "Underdog",
-		Description: "Complete a week after failing two in a row.",
-		SeasonBased: true,
+		Name:          "Underdog",
+		Description:   "Complete a week after failing two in a row.",
+		Category:      "Season",
+		CategoryColor: "yellow-light",
 	}
+	comebackAchievement.ID = uuid.MustParse("38524a0a-f0b6-4cbf-b221-05ebfa0797f7")
 	achievements = append(achievements, comebackAchievement)
 
 	deadAchievement := models.Achievement{
-		Name:        "Back from the dead",
-		Description: "Complete a week after using sick leave.",
-		SeasonBased: true,
+		Name:          "Back from the dead",
+		Description:   "Complete a week after using sick leave.",
+		Category:      "Season",
+		CategoryColor: "yellow-light",
 	}
+	deadAchievement.ID = uuid.MustParse("b342cd1b-1812-4384-967f-51d2be772eab")
 	achievements = append(achievements, deadAchievement)
 
 	fullAchievement := models.Achievement{
-		Name:        "The boyband",
-		Description: "Exercise three times in a day.",
-		SeasonBased: false,
+		Name:          "The boyband",
+		Description:   "Exercise three times in a day.",
+		Category:      "Default",
+		CategoryColor: "lightblue",
 	}
+	fullAchievement.ID = uuid.MustParse("c92178b4-753a-4624-a7f6-ae5afd0a9ca3")
 	achievements = append(achievements, fullAchievement)
 
 	photoAchievement := models.Achievement{
-		Name:        "Looking good",
-		Description: "Change your profile photo.",
-		SeasonBased: false,
+		Name:          "Looking good",
+		Description:   "Change your profile photo.",
+		Category:      "Default",
+		CategoryColor: "lightblue",
 	}
+	photoAchievement.ID = uuid.MustParse("05a3579f-aa8d-4814-b28f-5824a2d904ec")
 	achievements = append(achievements, photoAchievement)
 
 	treatyoselfAchievement := models.Achievement{
-		Name:        "Treat yo self",
-		Description: "Exercise on your birthday.",
-		SeasonBased: false,
+		Name:          "Treat yo self",
+		Description:   "Exercise on your birthday.",
+		Category:      "Default",
+		CategoryColor: "lightblue",
 	}
+	treatyoselfAchievement.ID = uuid.MustParse("5e0f5605-b3e5-4350-a408-1c9f5b5a99a4")
 	achievements = append(achievements, treatyoselfAchievement)
 
 	shameAchievement := models.Achievement{
-		Name:        "Badge of shame",
-		Description: "Forget to log your workouts and have it fixed later.",
-		SeasonBased: false,
+		Name:          "Badge of shame",
+		Description:   "Forget to log your workouts and have it fixed later.",
+		Category:      "Default",
+		CategoryColor: "lightblue",
 	}
+	shameAchievement.ID = uuid.MustParse("96cf246b-5d16-4fc8-8887-d95815a89683")
 	achievements = append(achievements, shameAchievement)
 
 	immuneAchievement := models.Achievement{
-		Name:        "Superior immune system",
-		Description: "Don't use any sick leave throughout a season.",
-		SeasonBased: true,
+		Name:          "Superior immune system",
+		Description:   "Don't use any sick leave throughout a season.",
+		Category:      "Season",
+		CategoryColor: "yellow-light",
 	}
+	immuneAchievement.ID = uuid.MustParse("b566e486-d476-40f1-a9f2-28035bb43f37")
 	achievements = append(achievements, immuneAchievement)
+
+	firstAdventAchievement := models.Achievement{
+		Name:          "Advent (1)",
+		Description:   "Exercise on the first Sunday in Advent.",
+		Category:      "Christmas",
+		CategoryColor: "lightgreen",
+	}
+	firstAdventAchievement.ID = uuid.MustParse("5276382c-fdae-410b-a298-5107a3ff3089")
+	achievements = append(achievements, firstAdventAchievement)
+
+	secondAdventAchievement := models.Achievement{
+		Name:          "Advent (2)",
+		Description:   "Exercise on the second Sunday in Advent.",
+		Category:      "Christmas",
+		CategoryColor: "lightgreen",
+	}
+	secondAdventAchievement.ID = uuid.MustParse("6c991ba6-d0ae-4022-9410-6558e376ec5e")
+	achievements = append(achievements, secondAdventAchievement)
+
+	thirdAdventAchievement := models.Achievement{
+		Name:          "Advent (3)",
+		Description:   "Exercise on the third Sunday in Advent.",
+		Category:      "Christmas",
+		CategoryColor: "lightgreen",
+	}
+	thirdAdventAchievement.ID = uuid.MustParse("7ef923b5-21aa-4478-a658-68078f499620")
+	achievements = append(achievements, thirdAdventAchievement)
+
+	fourthAdventAchievement := models.Achievement{
+		Name:          "Advent (4)",
+		Description:   "Exercise on the last Sunday in Advent.",
+		Category:      "Christmas",
+		CategoryColor: "lightgreen",
+	}
+	fourthAdventAchievement.ID = uuid.MustParse("720b036c-7d24-418f-88e6-a0e84147efda")
+	achievements = append(achievements, fourthAdventAchievement)
 
 	for _, achievement := range achievements {
 
@@ -271,42 +353,43 @@ func CreateDefaultAchivements() error {
 	return nil
 }
 
-func ConvertAchivementDelegationToAchivementObject(achievementDelegation models.AchievementDelegation) (models.AchievementObject, error) {
+func ConvertAchivementDelegationToAchivementUserObject(achievementDelegation models.AchievementDelegation) (models.AchievementUserObject, error) {
 
-	achievement, err := database.GetAchievementByID(achievementDelegation.Achievement)
+	achievement, err := database.GetAchievementByID(achievementDelegation.AchievementID)
 	if err != nil {
 		log.Println("Failed to get achivement. Error: " + err.Error())
-		return models.AchievementObject{}, errors.New("Failed to get achivement. Returning...")
+		return models.AchievementUserObject{}, errors.New("Failed to get achivement. Returning...")
 	}
 
-	user, err := database.GetUserInformation(achievementDelegation.User)
+	user, err := database.GetUserInformation(achievementDelegation.UserID)
 	if err != nil {
 		log.Println("Failed to get user. Error: " + err.Error())
-		return models.AchievementObject{}, errors.New("Failed to get user. Returning...")
+		return models.AchievementUserObject{}, errors.New("Failed to get user. Returning...")
 	}
 
-	achivementObject := models.AchievementObject{
-		Name:        achievement.Name,
-		Description: achievement.Description,
-		ID:          achievement.ID,
-		Enabled:     achievement.Enabled,
-		GivenAt:     achievementDelegation.GivenAt,
-		GivenTo:     user,
-		Seen:        achievementDelegation.Seen,
-		SeasonBased: achievement.SeasonBased,
+	achievementDelegation.User = user
+
+	achivementObject := models.AchievementUserObject{
+		Name:                  achievement.Name,
+		Description:           achievement.Description,
+		Enabled:               achievement.Enabled,
+		Category:              achievement.Category,
+		CategoryColor:         achievement.CategoryColor,
+		AchievementDelegation: &achievementDelegation,
 	}
+	achivementObject.ID = achievement.ID
 
 	return achivementObject, nil
 
 }
 
-func ConvertAchivementDelegationsToAchivementObjects(achievementDelegations []models.AchievementDelegation) ([]models.AchievementObject, error) {
+func ConvertAchivementDelegationsToAchivementUserObjects(achievementDelegations []models.AchievementDelegation) ([]models.AchievementUserObject, error) {
 
-	achievementObjects := []models.AchievementObject{}
+	achievementObjects := []models.AchievementUserObject{}
 
 	for _, achievementDelegation := range achievementDelegations {
 
-		achievementObject, err := ConvertAchivementDelegationToAchivementObject(achievementDelegation)
+		achievementObject, err := ConvertAchivementDelegationToAchivementUserObject(achievementDelegation)
 		if err != nil {
 			log.Println("Failed to convert achievement delegation to achievement object. Skipping...")
 			continue
@@ -320,7 +403,40 @@ func ConvertAchivementDelegationsToAchivementObjects(achievementDelegations []mo
 
 }
 
-func GiveUserAnAchivement(userID int, achivementID int, achivementTime time.Time) error {
+func ConvertAchivementToAchivementUserObject(achievement models.Achievement) (models.AchievementUserObject, error) {
+
+	achivementObject := models.AchievementUserObject{
+		Name:                  achievement.Name,
+		Description:           achievement.Description,
+		Enabled:               achievement.Enabled,
+		Category:              achievement.Category,
+		CategoryColor:         achievement.CategoryColor,
+		AchievementDelegation: nil,
+	}
+	achivementObject.ID = achievement.ID
+
+	return achivementObject, nil
+}
+
+func ConvertAchivementsToAchivementUserObjects(achievements []models.Achievement) ([]models.AchievementUserObject, error) {
+	achievementObjects := []models.AchievementUserObject{}
+
+	for _, achievement := range achievements {
+
+		achievementObject, err := ConvertAchivementToAchivementUserObject(achievement)
+		if err != nil {
+			log.Println("Failed to convert achievement delegation to achievement object. Skipping...")
+			continue
+		}
+
+		achievementObjects = append(achievementObjects, achievementObject)
+
+	}
+
+	return achievementObjects, nil
+}
+
+func GiveUserAnAchivement(userID uuid.UUID, achivementID uuid.UUID, achivementTime time.Time) error {
 
 	_, found, err := database.GetAchievementDelegationByAchivementIDAndUserID(userID, achivementID)
 	if err != nil {
@@ -331,10 +447,11 @@ func GiveUserAnAchivement(userID int, achivementID int, achivementTime time.Time
 	}
 
 	delegation := models.AchievementDelegation{
-		User:        userID,
-		Achievement: achivementID,
-		GivenAt:     achivementTime,
+		UserID:        userID,
+		AchievementID: achivementID,
+		GivenAt:       achivementTime,
 	}
+	delegation.ID = uuid.New()
 
 	_, err = database.RegisterAchievementDelegationInDB(delegation)
 	if err != nil {
@@ -352,7 +469,6 @@ func GiveUserAnAchivement(userID int, achivementID int, achivementTime time.Time
 }
 
 func GenerateAchivementsForWeek(weekResults models.WeekResults) error {
-
 	sundayDate, err := utilities.FindNextSunday(weekResults.WeekDate)
 	if err != nil {
 		log.Println("Failed to find next Sunday. Error: " + err.Error())
@@ -364,9 +480,9 @@ func GenerateAchivementsForWeek(weekResults models.WeekResults) error {
 		if user.WeekCompletion > 1.0 {
 
 			// Give achivement to user
-			err := GiveUserAnAchivement(int(user.User.ID), 7, sundayDate)
+			err := GiveUserAnAchivement(user.User.ID, uuid.MustParse("f7fad558-3e59-4812-9b13-4c30a91c04b9"), sundayDate)
 			if err != nil {
-				log.Println("Failed to give achivement for user '" + strconv.Itoa(int(user.User.ID)) + "'. Ignoring. Error: " + err.Error())
+				log.Println("Failed to give achivement for user '" + user.User.ID.String() + "'. Ignoring. Error: " + err.Error())
 			}
 
 		}
@@ -374,9 +490,9 @@ func GenerateAchivementsForWeek(weekResults models.WeekResults) error {
 		if user.CurrentStreak >= 2 && user.WeekCompletion >= 1 {
 
 			// Give achivement to user
-			err := GiveUserAnAchivement(int(user.User.ID), 13, sundayDate)
+			err := GiveUserAnAchivement(user.User.ID, uuid.MustParse("8875597e-d8f5-4514-b96f-c51ecce4eb1f"), sundayDate)
 			if err != nil {
-				log.Println("Failed to give achivement for user '" + strconv.Itoa(int(user.User.ID)) + "'. Ignoring. Error: " + err.Error())
+				log.Println("Failed to give achivement for user '" + user.User.ID.String() + "'. Ignoring. Error: " + err.Error())
 			}
 
 		}
@@ -384,9 +500,9 @@ func GenerateAchivementsForWeek(weekResults models.WeekResults) error {
 		if user.CurrentStreak >= 9 && user.WeekCompletion >= 1 {
 
 			// Give achivement to user
-			err := GiveUserAnAchivement(int(user.User.ID), 14, sundayDate)
+			err := GiveUserAnAchivement(user.User.ID, uuid.MustParse("ca6a4692-153b-47a7-8444-457b906d0666"), sundayDate)
 			if err != nil {
-				log.Println("Failed to give achivement for user '" + strconv.Itoa(int(user.User.ID)) + "'. Ignoring. Error: " + err.Error())
+				log.Println("Failed to give achivement for user '" + user.User.ID.String() + "'. Ignoring. Error: " + err.Error())
 			}
 
 		}
@@ -394,16 +510,16 @@ func GenerateAchivementsForWeek(weekResults models.WeekResults) error {
 		if user.CurrentStreak >= 14 && user.WeekCompletion >= 1 {
 
 			// Give achivement to user
-			err := GiveUserAnAchivement(int(user.User.ID), 15, sundayDate)
+			err := GiveUserAnAchivement(user.User.ID, uuid.MustParse("2a84df89-9976-443b-a093-19f8d73b5eff"), sundayDate)
 			if err != nil {
-				log.Println("Failed to give achivement for user '" + strconv.Itoa(int(user.User.ID)) + "'. Ignoring. Error: " + err.Error())
+				log.Println("Failed to give achivement for user '" + user.User.ID.String() + "'. Ignoring. Error: " + err.Error())
 			}
 
 		}
 
 		week, err := GetExercisesForWeekUsingGoal(weekResults.WeekDate, user.Goal)
 		if err != nil {
-			log.Println("Failed to get week exercises for user '" + strconv.Itoa(int(user.User.ID)) + "'. Returning. Error: " + err.Error())
+			log.Println("Failed to get week exercises for user '" + user.User.ID.String() + "'. Returning. Error: " + err.Error())
 			return errors.New("Failed to get week exercises for user.")
 		}
 
@@ -411,6 +527,7 @@ func GenerateAchivementsForWeek(weekResults models.WeekResults) error {
 		weekday := false
 		weekend := false
 		exerciseSum := 0
+		now := time.Now()
 
 		for _, day := range week.Days {
 
@@ -418,22 +535,72 @@ func GenerateAchivementsForWeek(weekResults models.WeekResults) error {
 			dayMonth := day.Date.Month()
 			dayWeekday := day.Date.Weekday()
 
+			christmasDate := time.Date(now.Year(), 12, 24, 0, 0, 0, 0, time.Local)
+			dayLastSundayAdvent, err := utilities.FindEarlierSunday(christmasDate)
+			if err != nil {
+				log.Println("Failed to get previous sunday for date. Error: " + err.Error())
+				return errors.New("Failed to get previous sunday for date.")
+			}
+			dayThirdSundayAdvent := dayLastSundayAdvent.AddDate(0, 0, -7)
+			daySecondSundayAdvent := dayLastSundayAdvent.AddDate(0, 0, -14)
+			dayFirstSundayAdvent := dayLastSundayAdvent.AddDate(0, 0, -21)
+
 			if dayDate == 17 && dayMonth == 5 && day.ExerciseInterval > 0 {
 
-				// Give achivement to user
-				err := GiveUserAnAchivement(int(user.User.ID), 8, day.Date)
+				// Give achivement to user for 17. of may
+				err := GiveUserAnAchivement(user.User.ID, uuid.MustParse("ab0b1bf0-c57b-469f-a6ba-5d195f1b896d"), day.Date)
 				if err != nil {
-					log.Println("Failed to give achivement for user '" + strconv.Itoa(int(user.User.ID)) + "'. Ignoring. Error: " + err.Error())
+					log.Println("Failed to give achivement for user '" + user.User.ID.String() + "'. Ignoring. Error: " + err.Error())
+				}
+
+			}
+
+			if day.Date == dayFirstSundayAdvent && day.ExerciseInterval > 0 {
+
+				// Give achivement to user for first advent
+				err := GiveUserAnAchivement(user.User.ID, uuid.MustParse("5276382c-fdae-410b-a298-5107a3ff3089"), day.Date)
+				if err != nil {
+					log.Println("Failed to give achivement for user '" + user.User.ID.String() + "'. Ignoring. Error: " + err.Error())
+				}
+
+			}
+
+			if day.Date == daySecondSundayAdvent && day.ExerciseInterval > 0 {
+
+				// Give achivement to user for second advent
+				err := GiveUserAnAchivement(user.User.ID, uuid.MustParse("6c991ba6-d0ae-4022-9410-6558e376ec5e"), day.Date)
+				if err != nil {
+					log.Println("Failed to give achivement for user '" + user.User.ID.String() + "'. Ignoring. Error: " + err.Error())
+				}
+
+			}
+
+			if day.Date == dayThirdSundayAdvent && day.ExerciseInterval > 0 {
+
+				// Give achivement to user for third advent
+				err := GiveUserAnAchivement(user.User.ID, uuid.MustParse("7ef923b5-21aa-4478-a658-68078f499620"), day.Date)
+				if err != nil {
+					log.Println("Failed to give achivement for user '" + user.User.ID.String() + "'. Ignoring. Error: " + err.Error())
+				}
+
+			}
+
+			if day.Date == dayLastSundayAdvent && day.ExerciseInterval > 0 {
+
+				// Give achivement to user for last advent
+				err := GiveUserAnAchivement(user.User.ID, uuid.MustParse("720b036c-7d24-418f-88e6-a0e84147efda"), day.Date)
+				if err != nil {
+					log.Println("Failed to give achivement for user '" + user.User.ID.String() + "'. Ignoring. Error: " + err.Error())
 				}
 
 			}
 
 			if dayDate == 24 && dayMonth == 12 && day.ExerciseInterval > 0 {
 
-				// Give achivement to user
-				err := GiveUserAnAchivement(int(user.User.ID), 9, day.Date)
+				// Give achivement to user for 24 dec
+				err := GiveUserAnAchivement(user.User.ID, uuid.MustParse("c4a131a6-2aa6-49fb-98e5-fa797152a9a4"), day.Date)
 				if err != nil {
-					log.Println("Failed to give achivement for user '" + strconv.Itoa(int(user.User.ID)) + "'. Ignoring. Error: " + err.Error())
+					log.Println("Failed to give achivement for user '" + user.User.ID.String() + "'. Ignoring. Error: " + err.Error())
 				}
 
 			}
@@ -441,19 +608,19 @@ func GenerateAchivementsForWeek(weekResults models.WeekResults) error {
 			if user.User.BirthDate != nil && (dayDate == user.User.BirthDate.Day() && dayMonth == user.User.BirthDate.Month() && day.ExerciseInterval > 0) {
 
 				// Give achivement to user
-				err := GiveUserAnAchivement(int(user.User.ID), 21, day.Date)
+				err := GiveUserAnAchivement(user.User.ID, uuid.MustParse("5e0f5605-b3e5-4350-a408-1c9f5b5a99a4"), day.Date)
 				if err != nil {
-					log.Println("Failed to give achivement for user '" + strconv.Itoa(int(user.User.ID)) + "'. Ignoring. Error: " + err.Error())
+					log.Println("Failed to give achivement for user '" + user.User.ID.String() + "'. Ignoring. Error: " + err.Error())
 				}
 
 			}
 
 			if len(day.Note) > 59 {
 
-				// Give achivement to user
-				err := GiveUserAnAchivement(int(user.User.ID), 3, day.Date)
+				// Give achivement to user for long note
+				err := GiveUserAnAchivement(user.User.ID, uuid.MustParse("ae27d8bf-dfc8-4be1-b7a9-01183b375ebf"), day.Date)
 				if err != nil {
-					log.Println("Failed to give achivement for user '" + strconv.Itoa(int(user.User.ID)) + "'. Ignoring. Error: " + err.Error())
+					log.Println("Failed to give achivement for user '" + user.User.ID.String() + "'. Ignoring. Error: " + err.Error())
 				}
 
 			}
@@ -461,9 +628,9 @@ func GenerateAchivementsForWeek(weekResults models.WeekResults) error {
 			if day.ExerciseInterval > 1 {
 
 				// Give achivement to user
-				err := GiveUserAnAchivement(int(user.User.ID), 6, day.Date)
+				err := GiveUserAnAchivement(user.User.ID, uuid.MustParse("51c48b42-4429-4b82-8fb2-d2bb2bfe907a"), day.Date)
 				if err != nil {
-					log.Println("Failed to give achivement for user '" + strconv.Itoa(int(user.User.ID)) + "'. Ignoring. Error: " + err.Error())
+					log.Println("Failed to give achivement for user '" + user.User.ID.String() + "'. Ignoring. Error: " + err.Error())
 				}
 
 			}
@@ -471,9 +638,9 @@ func GenerateAchivementsForWeek(weekResults models.WeekResults) error {
 			if day.ExerciseInterval == 3 {
 
 				// Give achivement to user
-				err := GiveUserAnAchivement(int(user.User.ID), 19, day.Date)
+				err := GiveUserAnAchivement(user.User.ID, uuid.MustParse("c92178b4-753a-4624-a7f6-ae5afd0a9ca3"), day.Date)
 				if err != nil {
-					log.Println("Failed to give achivement for user '" + strconv.Itoa(int(user.User.ID)) + "'. Ignoring. Error: " + err.Error())
+					log.Println("Failed to give achivement for user '" + user.User.ID.String() + "'. Ignoring. Error: " + err.Error())
 				}
 
 			}
@@ -496,10 +663,10 @@ func GenerateAchivementsForWeek(weekResults models.WeekResults) error {
 
 		if everyday {
 
-			// Give achivement to user
-			err := GiveUserAnAchivement(int(user.User.ID), 2, sundayDate)
+			// Give achivement to user for exercising everyday
+			err := GiveUserAnAchivement(user.User.ID, uuid.MustParse("a8c62293-6090-4b16-a070-ad65404836ae"), sundayDate)
 			if err != nil {
-				log.Println("Failed to give achivement for user '" + strconv.Itoa(int(user.User.ID)) + "'. Ignoring. Error: " + err.Error())
+				log.Println("Failed to give achivement for user '" + user.User.ID.String() + "'. Ignoring. Error: " + err.Error())
 			}
 
 		}
@@ -507,10 +674,10 @@ func GenerateAchivementsForWeek(weekResults models.WeekResults) error {
 		// If exercise occured on a weekend, and not a weekday
 		if !weekday && weekend {
 
-			// Give achivement to user
-			err := GiveUserAnAchivement(int(user.User.ID), 11, sundayDate)
+			// Give achivement to user for only exercising on the weekend
+			err := GiveUserAnAchivement(user.User.ID, uuid.MustParse("31fa2681-eec7-43e4-bc69-35dee352eaee"), sundayDate)
 			if err != nil {
-				log.Println("Failed to give achivement for user '" + strconv.Itoa(int(user.User.ID)) + "'. Ignoring. Error: " + err.Error())
+				log.Println("Failed to give achivement for user '" + user.User.ID.String() + "'. Ignoring. Error: " + err.Error())
 			}
 
 		}
@@ -519,9 +686,9 @@ func GenerateAchivementsForWeek(weekResults models.WeekResults) error {
 		if exerciseSum > 7 {
 
 			// Give achivement to user
-			err := GiveUserAnAchivement(int(user.User.ID), 12, sundayDate)
+			err := GiveUserAnAchivement(user.User.ID, uuid.MustParse("e7ee36d4-f39e-40a3-af92-2f7e1f707d07"), sundayDate)
 			if err != nil {
-				log.Println("Failed to give achivement for user '" + strconv.Itoa(int(user.User.ID)) + "'. Ignoring. Error: " + err.Error())
+				log.Println("Failed to give achivement for user '" + user.User.ID.String() + "'. Ignoring. Error: " + err.Error())
 			}
 
 		}
@@ -534,7 +701,7 @@ func GenerateAchivementsForWeek(weekResults models.WeekResults) error {
 
 func GenerateAchivementsForSeason(seasonResults []models.WeekResults) error {
 	type UserTally struct {
-		UserID     int
+		UserID     uuid.UUID
 		LoseAmount int
 		WinAmount  int
 		SickAmount int
@@ -573,7 +740,7 @@ func GenerateAchivementsForSeason(seasonResults []models.WeekResults) error {
 				foundIndex := 0
 				for index, user := range userTally {
 
-					if user.UserID == int(weekResult.User.ID) {
+					if user.UserID == weekResult.User.ID {
 						found = true
 						foundIndex = index
 						break
@@ -583,7 +750,7 @@ func GenerateAchivementsForSeason(seasonResults []models.WeekResults) error {
 
 				if !found {
 					userTally = append(userTally, UserTally{
-						UserID:     int(weekResult.User.ID),
+						UserID:     weekResult.User.ID,
 						LoseAmount: 0,
 						LoseStreak: 0,
 						WinAmount:  0,
@@ -604,7 +771,7 @@ func GenerateAchivementsForSeason(seasonResults []models.WeekResults) error {
 				foundIndex := 0
 				for index, user := range userTally {
 
-					if user.UserID == int(weekResult.User.ID) {
+					if user.UserID == weekResult.User.ID {
 						found = true
 						foundIndex = index
 						break
@@ -614,7 +781,7 @@ func GenerateAchivementsForSeason(seasonResults []models.WeekResults) error {
 
 				if !found {
 					userTally = append(userTally, UserTally{
-						UserID:     int(weekResult.User.ID),
+						UserID:     weekResult.User.ID,
 						LoseAmount: 0,
 						LoseStreak: 0,
 						WinAmount:  1,
@@ -628,9 +795,9 @@ func GenerateAchivementsForSeason(seasonResults []models.WeekResults) error {
 					if userTally[foundIndex].LoseStreak > 1 {
 
 						// Give achivement to user
-						err := GiveUserAnAchivement(userTally[foundIndex].UserID, 17, seasonSunday)
+						err := GiveUserAnAchivement(userTally[foundIndex].UserID, uuid.MustParse("38524a0a-f0b6-4cbf-b221-05ebfa0797f7"), seasonSunday)
 						if err != nil {
-							log.Println("Failed to give achivement for user '" + strconv.Itoa(userTally[foundIndex].UserID) + "'. Ignoring. Error: " + err.Error())
+							log.Println("Failed to give achivement for user '" + userTally[foundIndex].UserID.String() + "'. Ignoring. Error: " + err.Error())
 						}
 
 					}
@@ -639,9 +806,9 @@ func GenerateAchivementsForSeason(seasonResults []models.WeekResults) error {
 					if userTally[foundIndex].SickStreak > 0 {
 
 						// Give achivement to user
-						err := GiveUserAnAchivement(userTally[foundIndex].UserID, 18, seasonSunday)
+						err := GiveUserAnAchivement(userTally[foundIndex].UserID, uuid.MustParse("b342cd1b-1812-4384-967f-51d2be772eab"), seasonSunday)
 						if err != nil {
-							log.Println("Failed to give achivement for user '" + strconv.Itoa(userTally[foundIndex].UserID) + "'. Ignoring. Error: " + err.Error())
+							log.Println("Failed to give achivement for user '" + userTally[foundIndex].UserID.String() + "'. Ignoring. Error: " + err.Error())
 						}
 
 					}
@@ -658,7 +825,7 @@ func GenerateAchivementsForSeason(seasonResults []models.WeekResults) error {
 				foundIndex := 0
 				for index, user := range userTally {
 
-					if user.UserID == int(weekResult.User.ID) {
+					if user.UserID == weekResult.User.ID {
 						found = true
 						foundIndex = index
 						break
@@ -668,7 +835,7 @@ func GenerateAchivementsForSeason(seasonResults []models.WeekResults) error {
 
 				if !found {
 					userTally = append(userTally, UserTally{
-						UserID:     int(weekResult.User.ID),
+						UserID:     weekResult.User.ID,
 						LoseAmount: 1,
 						LoseStreak: 1,
 						WinAmount:  0,
@@ -694,18 +861,18 @@ func GenerateAchivementsForSeason(seasonResults []models.WeekResults) error {
 		// If win amount is more than zero, and lose amount is zero
 		if user.LoseAmount == 0 && user.WinAmount > 0 {
 			// Give achivement to user
-			err := GiveUserAnAchivement(user.UserID, 16, seasonSunday)
+			err := GiveUserAnAchivement(user.UserID, uuid.MustParse("01dc9c4b-cf65-4d3c-9596-1417b67bd86f"), seasonSunday)
 			if err != nil {
-				log.Println("Failed to give achivement for user '" + strconv.Itoa(user.UserID) + "'. Ignoring. Error: " + err.Error())
+				log.Println("Failed to give achivement for user '" + user.UserID.String() + "'. Ignoring. Error: " + err.Error())
 			}
 		}
 
 		// If sick leave amount is zero
 		if user.SickAmount == 0 {
 			// Give achivement to user
-			err := GiveUserAnAchivement(user.UserID, 23, seasonSunday)
+			err := GiveUserAnAchivement(user.UserID, uuid.MustParse("b566e486-d476-40f1-a9f2-28035bb43f37"), seasonSunday)
 			if err != nil {
-				log.Println("Failed to give achivement for user '" + strconv.Itoa(user.UserID) + "'. Ignoring. Error: " + err.Error())
+				log.Println("Failed to give achivement for user '" + user.UserID.String() + "'. Ignoring. Error: " + err.Error())
 			}
 		}
 

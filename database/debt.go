@@ -4,6 +4,8 @@ import (
 	"aunefyren/treningheten/models"
 	"errors"
 	"time"
+
+	"github.com/google/uuid"
 )
 
 // receive a user strcut and save it in the database
@@ -20,7 +22,7 @@ func RegisterDebtInDB(debt models.Debt) error {
 }
 
 // Retrieve debt for user for a week
-func GetDebtForWeekForUser(time time.Time, userID int) (models.Debt, bool, error) {
+func GetDebtForWeekForUser(time time.Time, userID uuid.UUID) (models.Debt, bool, error) {
 
 	var debtStruct models.Debt
 
@@ -62,7 +64,7 @@ func GetDebtForWeekForUser(time time.Time, userID int) (models.Debt, bool, error
 		}
 	}
 
-	debtRecord := Instance.Where("`debts`.enabled = ?", 1).Where("`debts`.Loser = ?", userID).Where("`debts`.Date >= ?", startDayString).Where("`debts`.Date <= ?", endDayString).Find(&debtStruct)
+	debtRecord := Instance.Where("`debts`.enabled = ?", 1).Where("`debts`.loser_id = ?", userID).Where("`debts`.Date >= ?", startDayString).Where("`debts`.Date <= ?", endDayString).Find(&debtStruct)
 	if debtRecord.Error != nil {
 		return models.Debt{}, false, debtRecord.Error
 	} else if debtRecord.RowsAffected != 1 {
@@ -74,7 +76,7 @@ func GetDebtForWeekForUser(time time.Time, userID int) (models.Debt, bool, error
 }
 
 // Retrieve debt for user for a week in a season
-func GetDebtForWeekForUserInSeasonID(time time.Time, userID int, seasonID int) (models.Debt, bool, error) {
+func GetDebtForWeekForUserInSeasonID(time time.Time, userID uuid.UUID, seasonID uuid.UUID) (models.Debt, bool, error) {
 
 	var debtStruct models.Debt
 
@@ -116,7 +118,7 @@ func GetDebtForWeekForUserInSeasonID(time time.Time, userID int, seasonID int) (
 		}
 	}
 
-	debtRecord := Instance.Where("`debts`.enabled = ?", 1).Where("`debts`.Loser = ?", userID).Where("`debts`.season = ?", seasonID).Where("`debts`.Date >= ?", startDayString).Where("`debts`.Date <= ?", endDayString).Find(&debtStruct)
+	debtRecord := Instance.Where("`debts`.enabled = ?", 1).Where("`debts`.loser_id = ?", userID).Where("`debts`.season_id = ?", seasonID).Where("`debts`.Date >= ?", startDayString).Where("`debts`.Date <= ?", endDayString).Find(&debtStruct)
 	if debtRecord.Error != nil {
 		return models.Debt{}, false, debtRecord.Error
 	} else if debtRecord.RowsAffected != 1 {
@@ -128,11 +130,11 @@ func GetDebtForWeekForUserInSeasonID(time time.Time, userID int, seasonID int) (
 }
 
 // Get all the debt for a user using user ID where a winner isn't chosen
-func GetUnchosenDebtForUserByUserID(userID int) ([]models.Debt, bool, error) {
+func GetUnchosenDebtForUserByUserID(userID uuid.UUID) ([]models.Debt, bool, error) {
 
 	var debtStruct []models.Debt
 
-	debtRecord := Instance.Where("`debts`.enabled = ?", 1).Where("`debts`.loser = ?", userID).Where("`debts`.winner IS NULL").Find(&debtStruct)
+	debtRecord := Instance.Where("`debts`.enabled = ?", 1).Where("`debts`.loser_id = ?", userID).Where("`debts`.winner_id IS NULL").Find(&debtStruct)
 	if debtRecord.Error != nil {
 		return []models.Debt{}, false, debtRecord.Error
 	} else if debtRecord.RowsAffected == 0 {
@@ -144,7 +146,7 @@ func GetUnchosenDebtForUserByUserID(userID int) ([]models.Debt, bool, error) {
 }
 
 // Get debt by debt ID
-func GetDebtByDebtID(debtID int) (models.Debt, bool, error) {
+func GetDebtByDebtID(debtID uuid.UUID) (models.Debt, bool, error) {
 
 	var debtStruct models.Debt
 
@@ -160,7 +162,7 @@ func GetDebtByDebtID(debtID int) (models.Debt, bool, error) {
 }
 
 // Update debt winner
-func UpdateDebtWinner(debtID int, winnerID int) error {
+func UpdateDebtWinner(debtID uuid.UUID, winnerID uuid.UUID) error {
 
 	var debt models.Debt
 
@@ -176,11 +178,11 @@ func UpdateDebtWinner(debtID int, winnerID int) error {
 }
 
 // Get all the debt for a user where the prize is not received
-func GetUnreceivedDebtByUserID(userID int) ([]models.Debt, bool, error) {
+func GetUnreceivedDebtByUserID(userID uuid.UUID) ([]models.Debt, bool, error) {
 
 	var debtStruct []models.Debt
 
-	debtRecord := Instance.Where("`debts`.enabled = ?", 1).Where("`debts`.Winner = ?", userID).Where("`debts`.Paid = ?", 0).Find(&debtStruct)
+	debtRecord := Instance.Where("`debts`.enabled = ?", 1).Where("`debts`.winner_id = ?", userID).Where("`debts`.Paid = ?", 0).Find(&debtStruct)
 	if debtRecord.Error != nil {
 		return []models.Debt{}, false, debtRecord.Error
 	} else if debtRecord.RowsAffected == 0 {
@@ -192,11 +194,11 @@ func GetUnreceivedDebtByUserID(userID int) ([]models.Debt, bool, error) {
 }
 
 // Get all the debt for a user where the prize is not received and not unviewed
-func GetUnpaidDebtForUser(userID int) ([]models.Debt, bool, error) {
+func GetUnpaidDebtForUser(userID uuid.UUID) ([]models.Debt, bool, error) {
 
 	var debtStruct []models.Debt
 
-	debtRecord := Instance.Where("`debts`.enabled = ?", 1).Where("`debts`.Loser = ?", userID).Where("`debts`.Paid = ?", 0).Find(&debtStruct)
+	debtRecord := Instance.Where("`debts`.enabled = ?", 1).Where("`debts`.loser_id = ?", userID).Where("`debts`.Paid = ?", 0).Find(&debtStruct)
 	if debtRecord.Error != nil {
 		return []models.Debt{}, false, debtRecord.Error
 	} else if debtRecord.RowsAffected == 0 {
@@ -208,11 +210,11 @@ func GetUnpaidDebtForUser(userID int) ([]models.Debt, bool, error) {
 }
 
 // Update debt paid status
-func UpdateDebtPaidStatus(debtID int, userID int) error {
+func UpdateDebtPaidStatus(debtID uuid.UUID, userID uuid.UUID) error {
 
 	var debt models.Debt
 
-	debtRecords := Instance.Model(debt).Where("`debts`.enabled = ?", 1).Where("`debts`.ID = ?", debtID).Where("`debts`.winner = ?", userID).Update("paid", 1)
+	debtRecords := Instance.Model(debt).Where("`debts`.enabled = ?", 1).Where("`debts`.ID = ?", debtID).Where("`debts`.winner_id = ?", userID).Update("paid", 1)
 	if debtRecords.Error != nil {
 		return debtRecords.Error
 	}
@@ -224,10 +226,10 @@ func UpdateDebtPaidStatus(debtID int, userID int) error {
 }
 
 // Get all the debt for a season where the prize is received for a user ID
-func GetDebtInSeasonWonByUserID(seasonID int, userID int) ([]models.Debt, bool, error) {
+func GetDebtInSeasonWonByUserID(seasonID uuid.UUID, userID uuid.UUID) ([]models.Debt, bool, error) {
 	var debtStruct = []models.Debt{}
 
-	debtRecord := Instance.Where("`debts`.enabled = ?", 1).Where("`debts`.season = ?", seasonID).Where("`debts`.winner = ?", userID).Find(&debtStruct)
+	debtRecord := Instance.Where("`debts`.enabled = ?", 1).Where("`debts`.season_id = ?", seasonID).Where("`debts`.winner_id = ?", userID).Find(&debtStruct)
 	if debtRecord.Error != nil {
 		return []models.Debt{}, false, debtRecord.Error
 	} else if debtRecord.RowsAffected == 0 {
@@ -239,10 +241,10 @@ func GetDebtInSeasonWonByUserID(seasonID int, userID int) ([]models.Debt, bool, 
 }
 
 // Get all the debt for a season where the prize is lost by a user ID
-func GetDebtInSeasonLostByUserID(seasonID int, userID int) ([]models.Debt, bool, error) {
+func GetDebtInSeasonLostByUserID(seasonID uuid.UUID, userID uuid.UUID) ([]models.Debt, bool, error) {
 	var debtStruct = []models.Debt{}
 
-	debtRecord := Instance.Where("`debts`.enabled = ?", 1).Where("`debts`.season = ?", seasonID).Where("`debts`.loser = ?", userID).Find(&debtStruct)
+	debtRecord := Instance.Where("`debts`.enabled = ?", 1).Where("`debts`.season_id = ?", seasonID).Where("`debts`.loser_id = ?", userID).Find(&debtStruct)
 	if debtRecord.Error != nil {
 		return []models.Debt{}, false, debtRecord.Error
 	} else if debtRecord.RowsAffected == 0 {

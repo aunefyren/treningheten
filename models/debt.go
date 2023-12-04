@@ -3,25 +3,28 @@ package models
 import (
 	"time"
 
-	"gorm.io/gorm"
+	"github.com/google/uuid"
 )
 
 type Debt struct {
-	gorm.Model
-	Date    time.Time `json:"date" gorm:"not null"`
-	Season  int       `json:"season" gorm:"not null"`
-	Loser   int       `json:"loser" gorm:"not null"`
-	Winner  int       `json:"winner" gorm:"default: null"`
-	Paid    bool      `json:"paid" gorm:"not null"`
-	Enabled bool      `json:"enabled" gorm:"not null;default: true"`
+	GormModel
+	Date     time.Time  `json:"date" gorm:"not null"`
+	SeasonID uuid.UUID  `json:"" gorm:"type:varchar(100);"`
+	Season   Season     `json:"season" gorm:"not null"`
+	LoserID  uuid.UUID  `json:"" gorm:"type:varchar(100);"`
+	Loser    User       `json:"loser" gorm:"not null"`
+	WinnerID *uuid.UUID `json:"" gorm:"type:varchar(100);"`
+	Winner   *User      `json:"winner" gorm:"default: null"`
+	Paid     bool       `json:"paid" gorm:"not null"`
+	Enabled  bool       `json:"enabled" gorm:"not null;default: true"`
 }
 
 type DebtObject struct {
-	gorm.Model
+	GormModel
 	Date    time.Time    `json:"date"`
 	Season  SeasonObject `json:"season"`
 	Loser   User         `json:"loser"`
-	Winner  User         `json:"winner"`
+	Winner  *User        `json:"winner"`
 	Paid    bool         `json:"paid"`
 	Enabled bool         `json:"enabled"`
 }

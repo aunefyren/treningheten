@@ -179,7 +179,7 @@ function get_server_info() {
         }
     };
     xhttp.withCredentials = true;
-    xhttp.open("post", api_url + "admin/server-info");
+    xhttp.open("get", api_url + "admin/server-info");
     xhttp.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
     xhttp.setRequestHeader("Authorization", jwt);
     xhttp.send();
@@ -219,7 +219,7 @@ function get_invites() {
         }
     };
     xhttp.withCredentials = true;
-    xhttp.open("post", api_url + "admin/invite/get");
+    xhttp.open("get", api_url + "admin/invites");
     xhttp.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
     xhttp.setRequestHeader("Authorization", jwt);
     xhttp.send();
@@ -237,14 +237,14 @@ function place_invites(invites_array) {
             html += `
                 <div id="" class="invitation-object">
                     <div class="leaderboard-object-code">
-                        Code: ` + invites_array[i].invite_code + `
+                        Code: ` + invites_array[i].code + `
                     </div>
             `;
 
-            if(invites_array[i].invite_used) {
+            if(invites_array[i].used) {
                 html += `
                         <div class="leaderboard-object-user">
-                            Used by: ` + invites_array[i].user.first_name + ` ` + invites_array[i].user.last_name + `
+                            Used by: ` + invites_array[i].recipient.first_name + ` ` + invites_array[i].recipient.last_name + `
                         </div>
                     `;
             } else {
@@ -252,7 +252,7 @@ function place_invites(invites_array) {
                         <div class="leaderboard-object-user">
                             Not used
                         </div>
-                        <img class="icon-img clickable" onclick="delete_invite(` + invites_array[i].ID + `)" src="/assets/trash-2.svg"></img>
+                        <img class="icon-img clickable" onclick="delete_invite(` + invites_array[i].id + `)" src="/assets/trash-2.svg"></img>
                     `;
             }
 
@@ -295,7 +295,7 @@ function generate_invite() {
         }
     };
     xhttp.withCredentials = true;
-    xhttp.open("post", api_url + "admin/invite/register");
+    xhttp.open("post", api_url + "admin/invites");
     xhttp.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
     xhttp.setRequestHeader("Authorization", jwt);
     xhttp.send();
@@ -335,7 +335,7 @@ function delete_invite(invide_id) {
         }
     };
     xhttp.withCredentials = true;
-    xhttp.open("post", api_url + "admin/invite/" + invide_id + "/delete");
+    xhttp.open("post", api_url + "admin/invites/" + invide_id);
     xhttp.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
     xhttp.setRequestHeader("Authorization", jwt);
     xhttp.send();
@@ -392,7 +392,7 @@ function generate_debt() {
         }
     };
     xhttp.withCredentials = true;
-    xhttp.open("post", api_url + "admin/debt/generate");
+    xhttp.open("post", api_url + "admin/debts");
     xhttp.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
     xhttp.setRequestHeader("Authorization", jwt);
     xhttp.send(form_data);
@@ -427,7 +427,7 @@ function get_prizes() {
         }
     };
     xhttp.withCredentials = true;
-    xhttp.open("post", api_url + "admin/prize");
+    xhttp.open("get", api_url + "admin/prizes");
     xhttp.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
     xhttp.setRequestHeader("Authorization", jwt);
     xhttp.send();
@@ -446,7 +446,7 @@ function place_prizes(prizesArray) {
     for(var i = 0; i < prizesArray.length; i++) {
         var option = document.createElement("option");
         option.text = prizesArray[i].quantity + " " + prizesArray[i].name;
-        option.value = prizesArray[i].ID;
+        option.value = prizesArray[i].id;
         selectObject.add(option); 
     }
 
@@ -465,7 +465,7 @@ function add_season() {
 
     try {
         var season_prize_select = document.getElementById("season-prize");
-        var season_prize = parseInt(season_prize_select[season_prize_select.selectedIndex].value);
+        var season_prize = season_prize_select[season_prize_select.selectedIndex].value;
     } catch(e) {
         console.log("Failed to parse prize. Error: " + e)
         error("Failed to parse prize.")
@@ -515,7 +515,7 @@ function add_season() {
         "end" : season_end_string,
         "name" : season_name,
         "description" : season_desc,
-        "prize" : season_prize,
+        "prize_id" : season_prize,
         "sickleave" : season_sickleave,
         "timezone" : Intl.DateTimeFormat().resolvedOptions().timeZone
     };
@@ -551,7 +551,7 @@ function add_season() {
         }
     };
     xhttp.withCredentials = true;
-    xhttp.open("post", api_url + "admin/season/register");
+    xhttp.open("post", api_url + "admin/seasons");
     xhttp.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
     xhttp.setRequestHeader("Authorization", jwt);
     xhttp.send(form_data);
@@ -601,7 +601,7 @@ function add_prize() {
         }
     };
     xhttp.withCredentials = true;
-    xhttp.open("post", api_url + "admin/prize/register");
+    xhttp.open("post", api_url + "admin/prizes");
     xhttp.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
     xhttp.setRequestHeader("Authorization", jwt);
     xhttp.send(form_data);
@@ -636,7 +636,7 @@ function correlate_exercises() {
         }
     };
     xhttp.withCredentials = true;
-    xhttp.open("post", api_url + "admin/exercise/correlate");
+    xhttp.open("post", api_url + "admin/exercises/correlate");
     xhttp.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
     xhttp.setRequestHeader("Authorization", jwt);
     xhttp.send();

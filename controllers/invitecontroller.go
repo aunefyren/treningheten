@@ -5,9 +5,9 @@ import (
 	"aunefyren/treningheten/models"
 	"log"
 	"net/http"
-	"strconv"
 
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 )
 
 func RegisterInvite(context *gin.Context) {
@@ -45,7 +45,7 @@ func APIDeleteInvite(context *gin.Context) {
 	var inviteID = context.Param("invite_id")
 
 	// Parse group id
-	inviteIDInt, err := strconv.Atoi(inviteID)
+	inviteIDInt, err := uuid.Parse(inviteID)
 	if err != nil {
 		context.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		context.Abort()
@@ -60,7 +60,7 @@ func APIDeleteInvite(context *gin.Context) {
 		return
 	}
 
-	if invite.InviteUsed {
+	if invite.Used {
 		context.JSON(http.StatusInternalServerError, gin.H{"error": "Invite already used."})
 		context.Abort()
 		return
@@ -118,24 +118,24 @@ func ConvertInviteToInviteObject(invite models.Invite) (models.InviteObject, err
 
 	inviteObject := models.InviteObject{}
 
-	if invite.InviteRecipient == 0 {
-		inviteObject.User = models.User{}
+	if invite.RecipientID == nil {
+		inviteObject.Recipient = nil
 	} else {
-		user, err := database.GetUserInformation(invite.InviteRecipient)
+		user, err := database.GetUserInformation(*invite.RecipientID)
 		if err != nil {
-			log.Println("Failed to get user information for user '" + strconv.Itoa(int(invite.InviteRecipient)) + "'. Returning. Error: " + err.Error())
+			log.Println("Failed to get user information for user '" + invite.Recipient.ID.String() + "'. Returning. Error: " + err.Error())
 			return models.InviteObject{}, err
 		}
-		inviteObject.User = user
+		inviteObject.Recipient = &user
 	}
 
 	inviteObject.ID = invite.ID
 	inviteObject.CreatedAt = invite.CreatedAt
 	inviteObject.DeletedAt = invite.DeletedAt
 	inviteObject.UpdatedAt = invite.UpdatedAt
-	inviteObject.InviteCode = invite.InviteCode
-	inviteObject.InviteUsed = invite.InviteUsed
-	inviteObject.InviteEnabled = invite.InviteEnabled
+	inviteObject.Code = invite.Code
+	inviteObject.Used = invite.Used
+	inviteObject.Enabled = &invite.Enabled
 
 	return inviteObject, nil
 
@@ -148,7 +148,7 @@ func ConvertInvitesToInviteObjects(invites []models.Invite) ([]models.InviteObje
 	for _, invite := range invites {
 		inviteObject, err := ConvertInviteToInviteObject(invite)
 		if err != nil {
-			log.Println("Failed convert invite '" + strconv.Itoa(int(invite.ID)) + "' to season object. Returning. Error: " + err.Error())
+			log.Println("Failed convert invite '" + invite.ID.String() + "' to season object. Returning. Error: " + err.Error())
 			return []models.InviteObject{}, err
 		}
 		inviteObjects = append(inviteObjects, inviteObject)

@@ -99,7 +99,7 @@ function get_seaons(){
         }
     };
     xhttp.withCredentials = true;
-    xhttp.open("post", api_url + "auth/season");
+    xhttp.open("get", api_url + "auth/seasons");
     xhttp.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
     xhttp.setRequestHeader("Authorization", jwt);
     xhttp.send();
@@ -142,7 +142,7 @@ function get_goals(seasonsArray){
         }
     };
     xhttp.withCredentials = true;
-    xhttp.open("post", api_url + "auth/goal");
+    xhttp.open("get", api_url + "auth/goals");
     xhttp.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
     xhttp.setRequestHeader("Authorization", jwt);
     xhttp.send();
@@ -167,7 +167,7 @@ function place_goals(goals_array, seasonsArray) {
         var seasonIndex = 0;
         var seasonFound = false;
         for(var j = 0; j < seasonsArray.length; j++) {
-            if(goals_array[i].season == seasonsArray[j].ID) {
+            if(goals_array[i].season == seasonsArray[j].id) {
                 seasonIndex = j;
                 seasonFound = true;
                 break
@@ -186,7 +186,7 @@ function place_goals(goals_array, seasonsArray) {
 
         // parse date object
         try {
-            var date = new Date(Date.parse(goals_array[i].CreatedAt));
+            var date = new Date(Date.parse(goals_array[i].created_at));
             var date_string = GetDateString(date)
         } catch {
             var date_string = "Error"
@@ -212,13 +212,13 @@ function place_goals(goals_array, seasonsArray) {
                 html += '<img src="assets/calendar.svg" class="btn_logo"></img> Joined: ' + date_string
                 html += '</div>';
 
-                html += '<div id="goal-button-expand-' + goals_array[i].ID + '" class="goal-button minimized">';
-                    html += '<button type="submit" onclick="get_exercises(' + goals_array[i].ID + ');" id="goal_amount_button" style=""><p2 style="margin: 0 0 0 0.5em;">Expand</p2><img id="goal-button-image-' + goals_array[i].ID + '" src="assets/chevron-right.svg" class="btn_logo color-invert" style="padding: 0; margin: 0 0.5em 0 0;"></button>';
+                html += '<div id="goal-button-expand-' + goals_array[i].id + '" class="goal-button minimized">';
+                    html += `<button type="submit" onclick="get_exercises('${goals_array[i].id}');" id="goal_amount_button" style=""><p2 style="margin: 0 0 0 0.5em;">Expand</p2><img id="goal-button-image-${goals_array[i].id}" src="assets/chevron-right.svg" class="btn_logo color-invert" style="padding: 0; margin: 0 0.5em 0 0;"></button>`;
                 html += '</div>';
 
             html += '</div>'
 
-            html += '<div class="goal-leaderboard" id="goal-leaderboard-' + goals_array[i].ID + '">'
+            html += '<div class="goal-leaderboard" id="goal-leaderboard-' + goals_array[i].id + '">'
             html += '</div>'
 
         html += '</div>'
@@ -280,7 +280,7 @@ function get_exercises(goalID){
         }
     };
     xhttp.withCredentials = true;
-    xhttp.open("post", api_url + "auth/exercise/" + goalID);
+    xhttp.open("get", api_url + "auth/exercises?goal=" + goalID);
     xhttp.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
     xhttp.setRequestHeader("Authorization", jwt);
     xhttp.send();
@@ -319,14 +319,14 @@ function place_exercises(exercise_array, goalID) {
 
         if(lastWeek !== week || lastWeek == 0) {
             newLine = 
-                    ` 
-                        <hr style="margin: 0.25em;">
-                        <div class="exercise-week">
-                            <b>Week: ${week}</b>
-                        </div>
-                        <div id="exercises-${exercise_array[i].goal}-${week}-${year}" class="exercises-group">
-                        </div>
-                    `;
+                ` 
+                    <hr style="margin: 0.25em;">
+                    <div class="exercise-week">
+                        <b>Week: ${week}</b>
+                    </div>
+                    <div id="exercises-${exercise_array[i].goal}-${week}-${year}" class="exercises-group">
+                    </div>
+                `;
         }
 
         var html = `
@@ -335,8 +335,8 @@ function place_exercises(exercise_array, goalID) {
 
         `;
 
-        document.getElementById("goal-leaderboard-" + exercise_array[i].goal).innerHTML += html
-        document.getElementById("goal-leaderboard-" + exercise_array[i].goal).style.margin = "1em 0"
+        document.getElementById("goal-leaderboard-" + exercise_array[i].goal_id).innerHTML += html
+        document.getElementById("goal-leaderboard-" + exercise_array[i].goal_id).style.margin = "1em 0"
 
         lastWeek = week;
 
@@ -452,7 +452,7 @@ function GetProfileImageForUserOnLeaderboard(userID, seasonID) {
         }
     };
     xhttp.withCredentials = true;
-    xhttp.open("post", api_url + "auth/user/get/" + userID + "/image?thumbnail=true");
+    xhttp.open("get", api_url + "auth/users/" + userID + "/image?thumbnail=true");
     xhttp.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
     xhttp.setRequestHeader("Authorization", jwt);
     xhttp.send();

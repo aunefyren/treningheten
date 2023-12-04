@@ -130,7 +130,7 @@ function get_seasons(){
         }
     };
     xhttp.withCredentials = true;
-    xhttp.open("post", api_url + "auth/season");
+    xhttp.open("get", api_url + "auth/seasons");
     xhttp.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
     xhttp.setRequestHeader("Authorization", jwt);
     xhttp.send();
@@ -186,13 +186,13 @@ function place_seasons(seasons_array) {
                 html += date_string2
                 html += '</div>';
 
-                html += '<div id="season-button-expand-' + seasons_array[i].ID + '" class="season-button minimized">';
-                    html += '<button type="submit" onclick="get_leaderboard(' + seasons_array[i].ID + ');" id="goal_amount_button" style=""><p2 style="margin: 0 0 0 0.5em;">Expand</p2><img id="season-button-image-' + seasons_array[i].ID + '" src="assets/chevron-right.svg" class="btn_logo color-invert" style="padding: 0; margin: 0 0.5em 0 0;"></button>';
+                html += '<div id="season-button-expand-' + seasons_array[i].id + '" class="season-button minimized">';
+                    html += `<button type="submit" onclick="get_leaderboard('${seasons_array[i].id}');" id="goal_amount_button" style=""><p2 style="margin: 0 0 0 0.5em;">Expand</p2><img id="season-button-image-${seasons_array[i].id}" src="assets/chevron-right.svg" class="btn_logo color-invert" style="padding: 0; margin: 0 0.5em 0 0;"></button>`;
                 html += '</div>';
 
             html += '</div>'
 
-            html += '<div class="season-leaderboard" id="season-leaderboard-' + seasons_array[i].ID + '">'
+            html += '<div class="season-leaderboard" id="season-leaderboard-' + seasons_array[i].id + '">'
             html += '</div>'
 
         html += '</div>'
@@ -251,7 +251,7 @@ function get_leaderboard(season_id){
         }
     };
     xhttp.withCredentials = true;
-    xhttp.open("post", api_url + "auth/season/" + season_id + "/leaderboard");
+    xhttp.open("get", api_url + "auth/seasons/" + season_id + "/leaderboard");
     xhttp.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
     xhttp.setRequestHeader("Authorization", jwt);
     xhttp.send();
@@ -292,15 +292,15 @@ function place_leaderboard(weeks_array, season_id) {
 
                 var onclick_command_str = "return;"
                 var clickable_str = ""
-                if(weeks_array[i].users[j].debt !== null && weeks_array[i].users[j].debt.winner.ID !== 0) {
-                    onclick_command_str = "location.replace('/wheel?debt_id=" + weeks_array[i].users[j].debt.ID + "'); "
+                if(weeks_array[i].users[j].debt !== null && weeks_array[i].users[j].debt.winner !== null) {
+                    onclick_command_str = "location.replace('/wheel?debt_id=" + weeks_array[i].users[j].debt.id + "'); "
                     clickable_str = "clickable grey-underline"
                     completion += "🎡"
                 }
 
                 var result_html = `
                 <div class="leaderboard-week-result" id="">
-                    <div class="leaderboard-week-result-user clickable grey-underline" style="" onclick="location.href='/users/${weeks_array[i].users[j].user.ID}'">
+                    <div class="leaderboard-week-result-user clickable grey-underline" style="" onclick="location.href='/users/${weeks_array[i].users[j].user.id}'">
                         ` + weeks_array[i].users[j].user.first_name + `
                     </div>
                     <div class="leaderboard-week-result-exercise ` + clickable_str  + `" onclick="` + onclick_command_str  + `">
@@ -312,7 +312,7 @@ function place_leaderboard(weeks_array, season_id) {
 
                 var userFound = false;
                 for(var l = 0; l < memberPhotoIDArray.length; l++) {
-                    if(memberPhotoIDArray[l] == weeks_array[i].users[j].user.ID) {
+                    if(memberPhotoIDArray[l] == weeks_array[i].users[j].user.id) {
                         userFound = true;
                         break;
                     }
@@ -320,15 +320,15 @@ function place_leaderboard(weeks_array, season_id) {
 
                 if(!userFound) {
                     var joined_image = `
-                    <div class="leaderboard-week-member" style="cursor:hover;" id="member-${season_id}-${weeks_array[i].users[j].user.ID}" title="${weeks_array[i].users[j].user.first_name} ${weeks_array[i].users[j].user.last_name}" onclick="location.href='/users/${weeks_array[i].users[j].user.ID}'">
+                    <div class="leaderboard-week-member" style="cursor:hover;" id="member-${season_id}-${weeks_array[i].users[j].user.id}" title="${weeks_array[i].users[j].user.first_name} ${weeks_array[i].users[j].user.last_name}" onclick="location.href='/users/${weeks_array[i].users[j].user.id}'">
                         <div class="leaderboard-week-member-image">
-                            <img style="width: 100%; height: 100%;" class="leaderboard-week-member-image-img" id="member-img-${season_id}-${weeks_array[i].users[j].user.ID}" src="/assets/images/barbell.gif">
+                            <img style="width: 100%; height: 100%;" class="leaderboard-week-member-image-img" id="member-img-${season_id}-${weeks_array[i].users[j].user.id}" src="/assets/images/barbell.gif">
                         </div>
                         ${weeks_array[i].users[j].user.first_name}
                     </div>
                     `;
                     members += joined_image
-                    memberPhotoIDArray.push(weeks_array[i].users[j].user.ID)
+                    memberPhotoIDArray.push(weeks_array[i].users[j].user.id)
                 }
 
             }
@@ -393,7 +393,7 @@ function GetProfileImageForUserOnLeaderboard(userID, seasonID) {
         }
     };
     xhttp.withCredentials = true;
-    xhttp.open("post", api_url + "auth/user/get/" + userID + "/image?thumbnail=true");
+    xhttp.open("get", api_url + "auth/users/" + userID + "/image?thumbnail=true");
     xhttp.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
     xhttp.setRequestHeader("Authorization", jwt);
     xhttp.send();
@@ -417,7 +417,7 @@ function place_seasons_input(seasons_array) {
     for(var i = 0; i < seasons_array.length; i++) {
         var user_found = false;
         for(var j = 0; j < seasons_array[i].goals.length; j++) {
-            if(seasons_array[i].goals[j].user.ID == user_id) {
+            if(seasons_array[i].goals[j].user.id == user_id) {
                 user_found = true;
                 break
             }
@@ -442,7 +442,7 @@ function place_seasons_input(seasons_array) {
         
         var option = document.createElement("option");
         option.text = seasons[i].name
-        option.value = seasons[i].ID
+        option.value = seasons[i].id
         select_season.add(option); 
 
     }
@@ -512,7 +512,7 @@ function get_season_leaderboard(seasonID){
         }
     };
     xhttp.withCredentials = true;
-    xhttp.open("post", api_url + "auth/season/" + seasonID + "/leaderboard-personal");
+    xhttp.open("get", api_url + "auth/seasons/" + seasonID + "/leaderboard-personal");
     xhttp.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
     xhttp.setRequestHeader("Authorization", jwt);
     xhttp.send();

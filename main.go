@@ -11,6 +11,7 @@ import (
 	"context"
 	"flag"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"log"
 	"net/http"
@@ -44,7 +45,7 @@ func main() {
 	fmt.Println("Directory 'files' valid.")
 
 	// Create and define file for logging
-	Log, err := os.OpenFile("files/treningheten.log", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0666)
+	logFile, err := os.OpenFile("files/treningheten.log", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0666)
 	if err != nil {
 		fmt.Println("Failed to load log file. Error: " + err.Error())
 
@@ -52,9 +53,23 @@ func main() {
 	}
 
 	// Set log file as log destination
-	log.SetOutput(Log)
+	log.SetOutput(logFile)
 	log.Println("Log file set.")
-	fmt.Println("Log file set.")
+
+	var mw io.Writer
+
+	out := os.Stdout
+	mw = io.MultiWriter(out, logFile)
+
+	// Get pipe reader and writer | writes to pipe writer come out pipe reader
+	_, w, _ := os.Pipe()
+
+	// Replace stdout,stderr with pipe writer | all writes to stdout, stderr will go through pipe instead (log.print, log)
+	os.Stdout = w
+	os.Stderr = w
+
+	// writes with log.Print should also write to mw
+	log.SetOutput(mw)
 
 	// Load config file
 	Config, err := config.GetConfig()
@@ -68,7 +83,7 @@ func main() {
 	fmt.Println("Configuration file loaded.")
 
 	// Change the config to respect flags
-	Config, generateInvite, err := parseFlags(Config)
+	Config, generateInvite, upgradeToV2, err := parseFlags(Config)
 	if err != nil {
 		log.Println("Failed to parse input flags. Error: " + err.Error())
 		fmt.Println("Failed to parse input flags. Error: " + err.Error())
@@ -77,6 +92,11 @@ func main() {
 	}
 	log.Println("Flags parsed.")
 	fmt.Println("Flags parsed.")
+
+	if upgradeToV2 {
+		utilities.MigrateDBToV2()
+		os.Exit(1)
+	}
 
 	// Set time zone from config if it is not empty
 	if Config.Timezone != "" {
@@ -204,81 +224,79 @@ func initRouter() *gin.Engine {
 	{
 		open := api.Group("/open")
 		{
-			open.POST("/token/register", controllers.GenerateToken)
+			open.POST("/tokens/register", controllers.GenerateToken)
 
-			open.POST("/user/register", controllers.RegisterUser)
-			open.POST("/user/reset", controllers.APIResetPassword)
-			open.POST("/user/password", controllers.APIChangePassword)
+			open.POST("/users", controllers.RegisterUser)
+			open.POST("/users/reset", controllers.APIResetPassword)
+			open.POST("/users/password", controllers.APIChangePassword)
 
-			open.POST("/user/verify/:code", controllers.VerifyUser)
-			open.POST("/user/verification", controllers.SendUserVerificationCode)
+			open.POST("/users/verify/:code", controllers.VerifyUser)
+			open.POST("/users/verification", controllers.SendUserVerificationCode)
 		}
 
 		auth := api.Group("/auth").Use(middlewares.Auth(false))
 		{
-			auth.POST("/token/validate", controllers.ValidateToken)
+			auth.POST("/tokens/validate", controllers.ValidateToken)
 
-			auth.POST("/season", controllers.APIGetSeasons)
-			auth.POST("/season/:season_id/leaderboard/", controllers.APIGetSeasonWeeks)
-			auth.POST("/season/:season_id/leaderboard-personal", controllers.APIGetSeasonWeeksPersonal)
-			auth.POST("/season/getongoing", controllers.APIGetOngoingSeason)
-			auth.POST("/season/leaderboard", controllers.APIGetCurrentSeasonLeaderboard)
+			auth.GET("/seasons", controllers.APIGetSeasons)
+			auth.GET("/seasons/:season_id/leaderboard/", controllers.APIGetSeasonWeeks)
+			auth.GET("/seasons/:season_id/leaderboard-personal", controllers.APIGetSeasonWeeksPersonal)
+			auth.GET("/seasons/getongoing", controllers.APIGetOngoingSeason)
+			auth.GET("/seasons/leaderboard", controllers.APIGetCurrentSeasonLeaderboard)
 
-			auth.POST("/goal/register", controllers.APIRegisterGoalToSeason)
-			auth.POST("/goal/delete", controllers.APIDeleteGoalToSeason)
-			auth.POST("/goal", controllers.APIGetGoals)
+			auth.POST("/goals", controllers.APIRegisterGoalToSeason)
+			auth.DELETE("/goals", controllers.APIDeleteGoalToSeason)
+			auth.GET("/goals", controllers.APIGetGoals)
 
-			auth.POST("/exercise/update", controllers.APIRegisterWeek)
-			auth.POST("/exercise/get", controllers.APIGetWeek)
-			auth.POST("/exercise", controllers.APIGetAllExercise)
-			auth.POST("/exercise/:goal_id", controllers.APIGetExercise)
+			auth.POST("/exercises/week", controllers.APIRegisterWeek)
+			auth.GET("/exercises/week", controllers.APIGetWeek)
+			auth.GET("/exercises", controllers.APIGetExercises)
 
-			auth.POST("/sickleave/register", controllers.APIRegisterSickleave)
+			auth.POST("/sickleave", controllers.APIRegisterSickleave)
 
-			auth.POST("/news/get", controllers.GetNews)
-			auth.POST("/news/get/:news_id", controllers.GetNewsPost)
+			auth.GET("/news", controllers.GetNews)
+			auth.GET("/news/:news_id", controllers.GetNewsPost)
 
-			auth.POST("/user/get/:user_id", controllers.GetUser)
-			auth.POST("/user/get/:user_id/image", controllers.APIGetUserProfileImage)
-			auth.POST("/user/get", controllers.GetUsers)
-			auth.POST("/user/update", controllers.UpdateUser)
+			auth.GET("/users/:user_id", controllers.GetUser)
+			auth.GET("/users/:user_id/image", controllers.APIGetUserProfileImage)
+			auth.GET("/users", controllers.GetUsers)
+			auth.POST("/users/:user_id", controllers.UpdateUser)
 
-			auth.POST("/debt/unchosen", controllers.APIGetUnchosenDebt)
-			auth.POST("/debt/:debt_id", controllers.APIGetDebt)
-			auth.POST("/debt/:debt_id/choose", controllers.APIChooseWinnerForDebt)
-			auth.POST("/debt", controllers.APIGetDebtOverview)
-			auth.POST("/debt/:debt_id/received", controllers.APISetPrizeReceived)
+			auth.GET("/debts/unchosen", controllers.APIGetUnchosenDebt)
+			auth.GET("/debts/:debt_id", controllers.APIGetDebt)
+			auth.POST("/debts/:debt_id/choose", controllers.APIChooseWinnerForDebt)
+			auth.GET("/debts", controllers.APIGetDebtOverview)
+			auth.POST("/debts/:debt_id/received", controllers.APISetPrizeReceived)
 
-			auth.POST("/achievement/", controllers.APIGetAchivements)
-			auth.POST("/achievement/:user_id", controllers.APIGetPersonalAchivements)
-			auth.POST("/achievement/get/:achievement_id/image", controllers.APIGetAchievementsImage)
+			auth.GET("/achievements/", controllers.APIGetAchivements)
+			auth.GET("/achievements/:achievement_id/image", controllers.APIGetAchievementsImage)
 
-			auth.POST("/notification/subscribe", controllers.APISubscribeToNotification)
-			auth.POST("/notification/subscription/get", controllers.APIGetSubscriptionForEndpoint)
-			auth.POST("/notification/subscription/update", controllers.APIUpdateSubscriptionForEndpoint)
+			auth.POST("/notifications/subscribe", controllers.APISubscribeToNotification)
+			auth.POST("/notifications/subscription", controllers.APIGetSubscriptionForEndpoint)
+			auth.POST("/notifications/subscription/update", controllers.APIUpdateSubscriptionForEndpoint)
 		}
 
 		admin := api.Group("/admin").Use(middlewares.Auth(true))
 		{
-			admin.POST("/invite/register", controllers.RegisterInvite)
-			admin.POST("/invite/get", controllers.APIGetAllInvites)
-			admin.POST("/invite/:invite_id/delete", controllers.APIDeleteInvite)
+			admin.POST("/invites", controllers.RegisterInvite)
+			admin.GET("/invites", controllers.APIGetAllInvites)
+			admin.DELETE("/invites/:invite_id", controllers.APIDeleteInvite)
 
-			admin.POST("/season/register", controllers.APIRegisterSeason)
+			admin.POST("/seasons", controllers.APIRegisterSeason)
 
-			admin.POST("/news/register", controllers.RegisterNewsPost)
-			admin.POST("/news/:news_id/delete", controllers.DeleteNewsPost)
+			admin.POST("/news", controllers.RegisterNewsPost)
+			admin.DELETE("/news/:news_id", controllers.DeleteNewsPost)
 
-			admin.POST("/server-info", controllers.APIGetServerInfo)
+			admin.GET("/server-info", controllers.APIGetServerInfo)
 
-			admin.POST("/debt/generate", controllers.APIGenerateDebtForWeek)
+			admin.POST("/debts", controllers.APIGenerateDebtForWeek)
 
-			admin.POST("/prize", controllers.APIGetPrizes)
-			admin.POST("/prize/register", controllers.APIRegisterPrize)
+			admin.GET("/prizes", controllers.APIGetPrizes)
+			admin.POST("/prizes", controllers.APIRegisterPrize)
 
-			admin.POST("/notification/push/all-devices", controllers.APIPushNotificationToAllDevicesForUser)
+			admin.POST("/notifications/push/all-devices", controllers.APIPushNotificationToAllDevicesForUser)
 
-			admin.POST("/exercise/correlate", controllers.APICorrelateAllExercises)
+			admin.POST("/exercises/correlate", controllers.APICorrelateAllExercises)
 		}
 
 	}
@@ -405,7 +423,7 @@ func initRouter() *gin.Engine {
 	return router
 }
 
-func parseFlags(Config *models.ConfigStruct) (*models.ConfigStruct, bool, error) {
+func parseFlags(Config *models.ConfigStruct) (*models.ConfigStruct, bool, bool, error) {
 
 	// Define flag variables with the configuration file as default values
 	var port int
@@ -453,6 +471,10 @@ func parseFlags(Config *models.ConfigStruct) (*models.ConfigStruct, bool, error)
 	var generateInvite string
 	var generateInviteBool bool
 	flag.StringVar(&generateInvite, "generateinvite", "false", "If an invite code should be automatically generate on startup.")
+
+	var upgradeToV2 string
+	var upgradeToV2Bool bool
+	flag.StringVar(&upgradeToV2, "upgradetov2", "false", "If have placed your old pre-V2 database .json in the files folder as 'db.json' we will attempt to migrate the data.")
 
 	// Parse the flags from input
 	flag.Parse()
@@ -539,12 +561,19 @@ func parseFlags(Config *models.ConfigStruct) (*models.ConfigStruct, bool, error)
 		Config.TreninghetenPort = 8080
 	}
 
+	// Respect the flag if string is true
+	if strings.ToLower(upgradeToV2) == "true" {
+		upgradeToV2Bool = true
+	} else {
+		upgradeToV2Bool = false
+	}
+
 	// Save the new config
 	err := config.SaveConfig(Config)
 	if err != nil {
-		return &models.ConfigStruct{}, false, err
+		return &models.ConfigStruct{}, false, false, err
 	}
 
-	return Config, generateInviteBool, nil
+	return Config, generateInviteBool, upgradeToV2Bool, nil
 
 }

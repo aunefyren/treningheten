@@ -13,10 +13,10 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
-	"strconv"
 	"strings"
 
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 	"github.com/nfnt/resize"
 )
 
@@ -45,7 +45,7 @@ func APIGetUserProfileImage(context *gin.Context) {
 	}
 
 	// Parse user id
-	userID, err := strconv.Atoi(userIDString)
+	userID, err := uuid.Parse(userIDString)
 	if err != nil {
 		log.Println("Failed to parse user ID. Error: " + err.Error())
 		context.JSON(http.StatusBadRequest, gin.H{"error": "Failed to parse user ID."})
@@ -229,7 +229,7 @@ func ResizeImage(maxWidth uint, maxHeight uint, imageBytes []byte) ([]byte, erro
 	return resizedImageBytes, nil
 }
 
-func UpdateUserProfileImage(userID int, base64String string) error {
+func UpdateUserProfileImage(userID uuid.UUID, base64String string) error {
 
 	imageBytes, mimeType, err := Base64ToImageBytes(base64String)
 	if err != nil {
@@ -264,7 +264,7 @@ func UpdateUserProfileImage(userID int, base64String string) error {
 		return errors.New("Invalid image type.")
 	}
 
-	userIDString := strconv.Itoa(userID)
+	userIDString := userID.String()
 
 	err = SaveImageFile(profile_image_path, userIDString+".jpg", imageObject)
 	if err != nil {
@@ -293,7 +293,7 @@ func APIGetAchievementsImage(context *gin.Context) {
 	}
 
 	// Parse achievement id
-	achievementID, err := strconv.Atoi(achievementIDString)
+	achievementID, err := uuid.Parse(achievementIDString)
 	if err != nil {
 		log.Println("Failed to parse achievement ID. Error: " + err.Error())
 		context.JSON(http.StatusBadRequest, gin.H{"error": "Failed to parse achievement ID."})

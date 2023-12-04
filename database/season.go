@@ -3,6 +3,8 @@ package database
 import (
 	"aunefyren/treningheten/models"
 	"errors"
+
+	"github.com/google/uuid"
 )
 
 // Verify if season with name exists
@@ -29,7 +31,7 @@ func GetAllEnabledSeasons() ([]models.Season, error) {
 }
 
 // Get season by ID
-func GetSeasonByID(seasonID int) (models.Season, error) {
+func GetSeasonByID(seasonID uuid.UUID) (models.Season, error) {
 	var season models.Season
 	seasonrecord := Instance.Where("`seasons`.enabled = ?", 1).Where("`seasons`.ID = ?", seasonID).Find(&season)
 	if seasonrecord.Error != nil {
