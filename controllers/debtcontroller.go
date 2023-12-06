@@ -528,7 +528,7 @@ func APIChooseWinnerForDebt(context *gin.Context) {
 		context.JSON(http.StatusBadRequest, gin.H{"error": "Debt not found."})
 		context.Abort()
 		return
-	} else if debt.Loser.ID != userID {
+	} else if debt.LoserID != userID {
 		context.JSON(http.StatusUnauthorized, gin.H{"error": "No access."})
 		context.Abort()
 		return

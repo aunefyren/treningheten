@@ -126,7 +126,7 @@ function get_debt(debt_id) {
 
                 clearResponse();
 
-                if(result.debt.winner.id != null) {
+                if(result.debt.winner != null) {
                     winner = result.debt.winner
                     replay = true;
                     document.getElementById('bigButton').innerHTML = "See the result";
