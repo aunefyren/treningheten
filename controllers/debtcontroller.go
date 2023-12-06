@@ -635,6 +635,7 @@ func APIChooseWinnerForDebt(context *gin.Context) {
 			DebtID: debtIDInt,
 			Viewed: false,
 		}
+		wheelview.ID = uuid.New()
 		err = database.CreateWheelview(wheelview)
 		if err != nil {
 			log.Println("Create wheelview for user '" + user.User.ID.String() + "'. Error: " + err.Error())
