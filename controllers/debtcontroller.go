@@ -631,7 +631,7 @@ func APIChooseWinnerForDebt(context *gin.Context) {
 	// Create wheel views
 	for _, user := range winners {
 		wheelview := models.Wheelview{
-			User:   user.User,
+			UserID: user.User.ID,
 			DebtID: debtIDInt,
 			Viewed: false,
 		}

@@ -166,7 +166,7 @@ func UpdateDebtWinner(debtID uuid.UUID, winnerID uuid.UUID) error {
 
 	var debt models.Debt
 
-	debtRecords := Instance.Model(debt).Where("`debts`.enabled = ?", 1).Where("`debts`.ID = ?", debtID).Update("winner", winnerID)
+	debtRecords := Instance.Model(debt).Where("`debts`.enabled = ?", 1).Where("`debts`.ID = ?", debtID).Update("winner_id", winnerID)
 	if debtRecords.Error != nil {
 		return debtRecords.Error
 	}
@@ -182,7 +182,7 @@ func GetUnreceivedDebtByUserID(userID uuid.UUID) ([]models.Debt, bool, error) {
 
 	var debtStruct []models.Debt
 
-	debtRecord := Instance.Where("`debts`.enabled = ?", 1).Where("`debts`.winner_id = ?", userID).Where("`debts`.Paid = ?", 0).Find(&debtStruct)
+	debtRecord := Instance.Where("`debts`.enabled = ?", 1).Where("`debts`.winner_id = ?", userID).Where("`debts`.paid = ?", 0).Find(&debtStruct)
 	if debtRecord.Error != nil {
 		return []models.Debt{}, false, debtRecord.Error
 	} else if debtRecord.RowsAffected == 0 {
