@@ -10,26 +10,26 @@ func ConvertWheelviewToWheelviewObject(wheelview models.Wheelview) (models.Wheel
 
 	wheelviewObject := models.WheelviewObject{}
 
-	user, err := database.GetUserInformation(wheelview.User.ID)
+	user, err := database.GetUserInformation(wheelview.UserID)
 	if err != nil {
-		log.Println("Failed to get user information for user '" + wheelview.User.ID.String() + "'. Returning. Error: " + err.Error())
+		log.Println("Failed to get user information for user '" + wheelview.UserID.String() + "'. Returning. Error: " + err.Error())
 		return models.WheelviewObject{}, err
 	}
 
 	wheelviewObject.User = user
 
-	debt, debtFound, err := database.GetDebtByDebtID(wheelview.Debt.ID)
+	debt, debtFound, err := database.GetDebtByDebtID(wheelview.DebtID)
 	if err != nil {
-		log.Println("Failed to get debt for debt '" + wheelview.Debt.ID.String() + "'. Returning. Error: " + err.Error())
+		log.Println("Failed to get debt for debt '" + wheelview.DebtID.String() + "'. Returning. Error: " + err.Error())
 		return models.WheelviewObject{}, err
 	} else if !debtFound {
-		log.Println("Failed to find debt for debt '" + wheelview.Debt.ID.String() + "'. Returning. Error: " + err.Error())
+		log.Println("Failed to find debt for debt '" + wheelview.DebtID.String() + "'. Returning. Error: " + err.Error())
 		return models.WheelviewObject{}, err
 	}
 
 	debtObject, err := ConvertDebtToDebtObject(debt)
 	if err != nil {
-		log.Println("Failed to convert debt to debt onbject for debt '" + wheelview.Debt.ID.String() + "'. Returning. Error: " + err.Error())
+		log.Println("Failed to convert debt to debt onbject for debt '" + wheelview.DebtID.String() + "'. Returning. Error: " + err.Error())
 		return models.WheelviewObject{}, err
 	}
 
