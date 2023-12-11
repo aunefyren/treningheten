@@ -144,7 +144,8 @@ func GenerateDebtForWeek(givenTime time.Time) (models.WeekResults, error) {
 
 	}
 
-	winner := uuid.UUID{}
+	winner := &uuid.UUID{}
+	winner = nil
 
 	if len(losers) == 0 {
 		log.Println("No losers this week. Returning.")
@@ -155,7 +156,7 @@ func GenerateDebtForWeek(givenTime time.Time) (models.WeekResults, error) {
 		log.Println("No winners this week. Returning.")
 		return lastWeek, nil
 	} else if len(winners) == 1 {
-		winner = winners[0].ID
+		winner = &winners[0].ID
 	}
 
 	for _, user := range losers {
@@ -172,7 +173,7 @@ func GenerateDebtForWeek(givenTime time.Time) (models.WeekResults, error) {
 		debt := models.Debt{}
 		debt.Date = givenTime.Truncate(24 * time.Hour)
 		debt.LoserID = user.ID
-		debt.WinnerID = &winner
+		debt.WinnerID = winner
 		debt.SeasonID = season.ID
 		debt.ID = uuid.New()
 
@@ -192,7 +193,7 @@ func GenerateDebtForWeek(givenTime time.Time) (models.WeekResults, error) {
 			} else {
 
 				// Give achivement to winner for winning
-				err = GiveUserAnAchivement(winner, uuid.MustParse("bb964360-6413-47c2-8400-ee87b40365a7"), nextSunday)
+				err = GiveUserAnAchivement(*winner, uuid.MustParse("bb964360-6413-47c2-8400-ee87b40365a7"), nextSunday)
 				if err != nil {
 					log.Println("Failed to give achivement for user '" + winner.String() + "'. Ignoring. Error: " + err.Error())
 				}
@@ -224,7 +225,7 @@ func GenerateDebtForWeek(givenTime time.Time) (models.WeekResults, error) {
 				}
 
 				// Get winner object
-				winnerObject, err := database.GetAllUserInformation(winner)
+				winnerObject, err := database.GetAllUserInformation(*winner)
 				if err != nil {
 					log.Println("Failed to get object for user '" + user.ID.String() + "'. Ignoring. Error: " + err.Error())
 				} else {
@@ -238,7 +239,7 @@ func GenerateDebtForWeek(givenTime time.Time) (models.WeekResults, error) {
 				}
 
 				// Notify winner by push
-				err = PushNotificationsForWheelSpinWin(winner)
+				err = PushNotificationsForWheelSpinWin(*winner)
 				if err != nil {
 					log.Println("Failed to notify user '" + user.ID.String() + "' by push. Ignoring. Error: " + err.Error())
 				}
