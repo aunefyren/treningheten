@@ -27,6 +27,8 @@ ENV smtpport=25
 ENV smtpusername=mycoolusernameformysmtpserver@justanexample.org
 ENV smtppassword=password123
 
+WORKDIR /app
+
 COPY --from=builder /app .
 
 ENTRYPOINT /app/treningheten -port ${port} -timezone ${timezone} -generateinvite ${generateinvite} -dbip ${dbip} -dbport ${dbport} -dbname ${dbname} -dbusername ${dbusername} -dbpassword ${dbpassword} -disablesmtp ${disablesmtp} -smtphost ${smtphost} -smtpport ${smtpport} -smtpusername ${smtpusername} -smtppassword ${smtppassword}
