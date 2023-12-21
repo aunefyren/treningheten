@@ -12,7 +12,7 @@ import (
 	"github.com/SherClockHolmes/webpush-go"
 )
 
-var treningheten_version_parameter = "v0.0.1"
+var treningheten_version_parameter = "{{RELEASE_TAG}}"
 var config_path, _ = filepath.Abs("./files/config.json")
 
 func GetConfig() (*models.ConfigStruct, error) {
