@@ -29,7 +29,7 @@ function load_page(result) {
     var html = `
                 <div class="" id="front-page">
                     
-                    <div class="module">
+                    <div class="module" id="top-module">
                     
                         <div class="title">
                             Treningheten
@@ -350,7 +350,7 @@ function get_season(user_id){
             if(result.error == "No active or future seasons found.") {
 
                 info(result.error);
-                document.getElementById('front-page').innerHTML = `
+                document.getElementById('top-module').innerHTML = `
                 <div class="module">
                     <div class="title">
                         Treningheten
@@ -1104,9 +1104,20 @@ function placeDebtSpin(overview) {
         var date_str = date_week + " (" + date_year + ")"
     } catch {
         date_str = "Error"
-    }
+    }   
     
-    document.getElementById("ongoingseason").style.display = "none";
+    try {
+        document.getElementById("ongoingseason").style.display = "none";
+    } catch (e) {
+        console.log("Failed to hide ongoing season. Error: " + e)
+    }  
+
+    try {
+        document.getElementById("top-module").style.display = "none";
+    } catch (e) {
+        console.log("Failed to hide top module. Error: " + e)
+    }  
+    
     document.getElementById("unspun-wheel").style.display = "flex";
     document.getElementById("unspun-wheel").innerHTML = `
         You failed to reach your goal for week ${date_str} and must spin the wheel.

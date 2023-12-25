@@ -101,7 +101,7 @@ function load_page(result) {
                 Account Settings
             </div>
 
-            <form action="" onsubmit="event.preventDefault(); send_update(${user_id});">
+            <form action="" onsubmit="event.preventDefault(); send_update('${user_id}');">
 
                 <label id="form-input-icon" for="email">Replace email:</label>
                 <input type="email" name="email" id="email" placeholder="Email" value="" required/>
@@ -292,7 +292,7 @@ function send_update_two(form_data, user_id) {
         }
     };
     xhttp.withCredentials = true;
-    xhttp.open("post", api_url + "auth/user/" + user_id);
+    xhttp.open("post", api_url + "auth/users/" + user_id);
     xhttp.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
     xhttp.setRequestHeader("Authorization", jwt);
     xhttp.send(form_data);
