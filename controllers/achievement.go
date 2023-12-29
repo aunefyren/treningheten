@@ -232,6 +232,15 @@ func CreateDefaultAchivements() error {
 	fiteenAchievement.ID = uuid.MustParse("2a84df89-9976-443b-a093-19f8d73b5eff")
 	achievements = append(achievements, fiteenAchievement)
 
+	twentyAchievement := models.Achievement{
+		Name:          "20 weeks",
+		Description:   "Get a 20 week streak.",
+		Category:      "Default",
+		CategoryColor: "lightblue",
+	}
+	twentyAchievement.ID = uuid.MustParse("09da2ab1-393d-4c43-a1d0-daa45520b49f")
+	achievements = append(achievements, twentyAchievement)
+
 	completeAchievement := models.Achievement{
 		Name:          "Fun run",
 		Description:   "Complete every week in a season.",
@@ -511,6 +520,16 @@ func GenerateAchivementsForWeek(weekResults models.WeekResults) error {
 
 			// Give achivement to user
 			err := GiveUserAnAchivement(user.User.ID, uuid.MustParse("2a84df89-9976-443b-a093-19f8d73b5eff"), sundayDate)
+			if err != nil {
+				log.Println("Failed to give achivement for user '" + user.User.ID.String() + "'. Ignoring. Error: " + err.Error())
+			}
+
+		}
+
+		if user.CurrentStreak >= 19 && user.WeekCompletion >= 1 {
+
+			// Give achivement to user
+			err := GiveUserAnAchivement(user.User.ID, uuid.MustParse("09da2ab1-393d-4c43-a1d0-daa45520b49f"), sundayDate)
 			if err != nil {
 				log.Println("Failed to give achivement for user '" + user.User.ID.String() + "'. Ignoring. Error: " + err.Error())
 			}
