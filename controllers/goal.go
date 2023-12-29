@@ -47,7 +47,7 @@ func APIRegisterGoalToSeason(context *gin.Context) {
 		return
 	}
 
-	if season.Start.Before(time.Now()) {
+	if season.Start.Before(time.Now()) && !*season.JoinAnytime {
 		context.JSON(http.StatusBadRequest, gin.H{"error": "Season has already started."})
 		context.Abort()
 		return

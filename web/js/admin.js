@@ -119,6 +119,9 @@ function load_page(result) {
                                 <select style="" class="form-control" id="season-prize" name="season-prize" value="" required>
                                 </select>
 
+                                <input style="" type="checkbox" id="join_anytime" class="clickable" name="join_anytime" value="join_anytime">
+                                <label for="join_anytime" class="clickable" style="user-select: none; text-align: center;" title="Should people be able to join after season start?">Let users join the season at any point.</label><br>
+
                                 <button type="submit" onclick="" id="add-season-button" style=""><img src="assets/done.svg" class="btn_logo color-invert"><p2>Add season</p2></button>
 
                             </form>
@@ -462,6 +465,7 @@ function add_season() {
     var season_end = document.getElementById("season-end").value;
     var season_start_string = "";
     var season_end_string = "";
+    var season_join_anytime = document.getElementById("join_anytime").checked;
 
     try {
         var season_prize_select = document.getElementById("season-prize");
@@ -517,7 +521,8 @@ function add_season() {
         "description" : season_desc,
         "prize_id" : season_prize,
         "sickleave" : season_sickleave,
-        "timezone" : Intl.DateTimeFormat().resolvedOptions().timeZone
+        "timezone" : Intl.DateTimeFormat().resolvedOptions().timeZone,
+        "join_anytime": season_join_anytime
     };
 
     var form_data = JSON.stringify(form_obj);

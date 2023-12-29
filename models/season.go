@@ -15,7 +15,8 @@ type Season struct {
 	PrizeID     uuid.UUID `json:"" gorm:"type:varchar(100);"`
 	Prize       Prize     `json:"prize"`
 	Sickleave   int       `json:"sickleave"`
-	Enabled     bool      `json:"enabled" gorm:"not null;default: true"`
+	JoinAnytime *bool     `json:"join_anytime" gorm:"not null; default: false"`
+	Enabled     bool      `json:"enabled" gorm:"not null; default: true"`
 }
 
 type SeasonCreationRequest struct {
@@ -26,6 +27,7 @@ type SeasonCreationRequest struct {
 	Prize       uuid.UUID `json:"prize_id"`
 	Sickleave   int       `json:"sickleave"`
 	TimeZone    string    `json:"timezone"`
+	JoinAnytime bool      `json:"join_anytime"`
 }
 
 type SeasonObject struct {
@@ -38,6 +40,7 @@ type SeasonObject struct {
 	Goals       []GoalObject `json:"goals"`
 	Prize       Prize        `json:"prize"`
 	Sickleave   int          `json:"sickleave"`
+	JoinAnytime *bool        `json:"join_anytime"`
 }
 
 type SeasonLeaderboard struct {

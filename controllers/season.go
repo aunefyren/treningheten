@@ -132,6 +132,7 @@ func ConvertSeasonToSeasonObject(season models.Season) (models.SeasonObject, err
 	seasonObject.Start = season.Start
 	seasonObject.UpdatedAt = season.UpdatedAt
 	seasonObject.Sickleave = season.Sickleave
+	seasonObject.JoinAnytime = season.JoinAnytime
 
 	return seasonObject, nil
 
@@ -242,6 +243,7 @@ func APIRegisterSeason(context *gin.Context) {
 	seasonDB.Name = season.Name
 	seasonDB.Start = season.Start
 	seasonDB.End = season.End
+	seasonDB.JoinAnytime = &season.JoinAnytime
 	seasonDB.PrizeID = season.Prize
 	seasonDB.Sickleave = season.Sickleave
 	seasonDB.ID = uuid.New()

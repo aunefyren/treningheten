@@ -19,62 +19,64 @@ function load_page(result) {
     }
 
     var html = `
-                <div class="" id="front-page">
-                    
-                    <div class="module" id="registergoal" style="display: none;">
+        <div class="" id="front-page">
+            
+            <div class="module" id="registergoal" style="display: none;">
 
-                        <div id="season" class="season">
+                <div id="season" class="season">
 
-                            <h3 id="register_season_title" style="margin: 0 0 0.5em 0;">Loading...</h3>
-                            <p id="register_season_start">...</p>
-                            <p id="register_season_end">...</p>
-                            <p style="margin-top: 1em; text-align: center;" id="register_season_desc">...</p>
+                    <h3 id="register_season_title" style="margin: 0 0 0.5em 0;">Loading...</h3>
+                    <p id="register_season_start">...</p>
+                    <p id="register_season_end">...</p>
+                    <p style="margin-top: 1em; text-align: center;" id="register_season_desc">...</p>
 
-                            <hr style="margin: 1em 0;">
+                    <p style="margin-top: 1em; text-align: center;" id="register_season_jointext">...</p>
 
-                            <label for="commitment" title="How many days a week are you going to work out?">Weekly exercise goal</label>
-                            <div class="number-box" id="commitment">
-                                0
-                            </div>
-                            <div class="two-buttons">
-                                <img src="assets/minus.svg" class="small-button-icon" onclick="DecreaseNumberInput('commitment', 1, 21);">
-                                <img src="assets/plus.svg" class="small-button-icon" onclick="IncreaseNumberInput('commitment', 1, 21);">
-                            </div>
+                    <hr style="margin: 1em 0;">
 
-                            <hr style="margin: 1em 0;">
-
-                            <input style="" type="checkbox" id="compete" class="clickable" name="compete" value="compete" required>
-                            <label for="compete" class="clickable" style="user-select: none; text-align: center;" title="If I fail to complete my goal, I must spin a wheel of fortune and provide a prize to the winner."> I want to compete with others to uphold my workout streak.</label><br>
-
-                            <p id="prize-title" style="margin-top: 1em;">Potential prize:</p>
-                            <div class="prize-wrapper">
-                                <div id="register-prize-text" class="prize-text">...</div>
-                            </div>
-
-                            <hr style="margin: 1em 0;">
-
-                            <button type="submit" onclick="registerGoal();" id="register_goal_button" style=""><img src="assets/done.svg" class="btn_logo color-invert"><p2>Join season</p2></button>
-
-                        </div>
-
+                    <label for="commitment" title="How many days a week are you going to work out?">Weekly exercise goal</label>
+                    <div class="number-box" id="commitment">
+                        0
+                    </div>
+                    <div class="two-buttons">
+                        <img src="assets/minus.svg" class="small-button-icon" onclick="DecreaseNumberInput('commitment', 1, 21);">
+                        <img src="assets/plus.svg" class="small-button-icon" onclick="IncreaseNumberInput('commitment', 1, 21);">
                     </div>
 
-                    <div class="module" id="unspun-wheel" style="display: none;">
+                    <hr style="margin: 1em 0;">
 
+                    <input style="" type="checkbox" id="compete" class="clickable" name="compete" value="compete">
+                    <label for="compete" class="clickable" style="user-select: none; text-align: center;" title="If I fail to complete my goal, I must spin a wheel of fortune and provide a prize to the winner."> I want to compete with others to uphold my workout streak.</label><br>
+
+                    <p id="prize-title" style="margin-top: 1em;">Potential prize:</p>
+                    <div class="prize-wrapper">
+                        <div id="register-prize-text" class="prize-text">...</div>
                     </div>
 
-                    <div class="module">
-                        <div id="debt-module" class="debt-module" style="display: none;">
+                    <hr style="margin: 1em 0;">
 
-                            <h3 id="debt-module-title">Prizes</h3>
+                    <button type="submit" onclick="registerGoal();" id="register_goal_button" style=""><img src="assets/done.svg" class="btn_logo color-invert"><p2>Join season</p2></button>
 
-                            <div id="debt-module-notifications" class="debt-module-notifications">
-                            </div>
+                </div>
 
-                        </div>
+            </div>
+
+            <div class="module" id="unspun-wheel" style="display: none;">
+
+            </div>
+
+            <div class="module">
+                <div id="debt-module" class="debt-module" style="display: none;">
+
+                    <h3 id="debt-module-title">Prizes</h3>
+
+                    <div id="debt-module-notifications" class="debt-module-notifications">
                     </div>
 
                 </div>
+            </div>
+
+        </div>
     `;
 
     document.getElementById('content').innerHTML = html;
@@ -134,7 +136,7 @@ function getSeason(userID){
                 var date_start = new Date(season.start);
                 var now = Date.now();
 
-                if(user_found && now < date_start) {
+                if(user_found && now < date_start && !season.join_anytime) {
                     countdownRedirect();
                 } else if(user_found) {
                     frontPageRedirect();
@@ -176,11 +178,19 @@ function registerGoalModule(season_object) {
     var date_start = new Date(season_object.start);
     var date_end = new Date(season_object.end);
 
+    var joinText = "..."
+    if(season_object.join_anytime) {
+        joinText = "<b>You can join at any point in the season.</b>"
+    } else {
+        joinText = "<b>You must join before the start date.</b>"
+    }
+
     document.getElementById("registergoal").style.display = "flex"
     document.getElementById("register_season_title").innerHTML = season_object.name
     document.getElementById("register_season_start").innerHTML = "Season start: " + GetDateString(date_start, true)
     document.getElementById("register_season_end").innerHTML = "Season end: " + GetDateString(date_end, true)
     document.getElementById("register_season_desc").innerHTML = season_object.description
+    document.getElementById("register_season_jointext").innerHTML = joinText;
     document.getElementById("register-prize-text").innerHTML = season_object.prize.quantity + " " + season_object.prize.name
 }
 

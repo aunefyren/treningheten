@@ -19,45 +19,47 @@ function load_page(result) {
     }
 
     var html = `
-                <div class="" id="front-page">
+        <div class="" id="front-page">
+            
+            <div class="module" id="countdownseason" style="display: none;">
+
+                <div id="season" class="season">
+
+                    <h3 id="countdown_season_title" style="margin: 0 0 0.5em 0;">Loading...</h3>
+                    <p id="countdown_season_start">...</p>
+                    <p id="countdown_season_end">...</p>
+                    <p style="margin-top: 1em; text-align: center;" id="countdown_season_desc">...</p>
+
+                    <p style="margin-top: 1em; text-align: center;" id="register_season_jointext">...</p>
+
+                    <hr style="margin: 1em 0;">
+
+                    <p style="text-align: center;" id="countdown_goal">...</p>
+
+                    <hr style="margin: 1em 0;">
+
+                    <p id="countdown_title">Starting in:</p>
                     
-                    <div class="module" id="countdownseason" style="display: none;">
+                    <p style="font-size: 2em; text-align: center;" id="countdown_number" class="countdown_number">00d 00h 00m 00s</p>
 
-                        <div id="season" class="season">
+                    <a style="margin: 1em 0 0 0; font-size:0.75em; cursor: pointer;" onclick="deleteGoal();">I changed my mind!</i></a>
 
-                            <h3 id="countdown_season_title" style="margin: 0 0 0.5em 0;">Loading...</h3>
-                            <p id="countdown_season_start">...</p>
-                            <p id="countdown_season_end">...</p>
-                            <p style="margin-top: 1em; text-align: center;" id="countdown_season_desc">...</p>
+                </div>
 
-                            <hr style="margin: 1em 0;">
+            </div>
 
-                            <p style="text-align: center;" id="countdown_goal">...</p>
+            <div class="module">
+                <div id="debt-module" class="debt-module" style="display: none;">
 
-                            <hr style="margin: 1em 0;">
+                    <h3 id="debt-module-title">Prizes</h3>
 
-                            <p id="countdown_title">Starting in:</p>
-                            
-                            <p style="font-size: 2em; text-align: center;" id="countdown_number" class="countdown_number">00d 00h 00m 00s</p>
-
-                            <a style="margin: 1em 0 0 0; font-size:0.75em; cursor: pointer;" onclick="deleteGoal();">I changed my mind!</i></a>
-
-                        </div>
-
-                    </div>
-
-                    <div class="module">
-                        <div id="debt-module" class="debt-module" style="display: none;">
-
-                            <h3 id="debt-module-title">Prizes</h3>
-
-                            <div id="debt-module-notifications" class="debt-module-notifications">
-                            </div>
-
-                        </div>
+                    <div id="debt-module-notifications" class="debt-module-notifications">
                     </div>
 
                 </div>
+            </div>
+
+        </div>
     `;
 
     document.getElementById('content').innerHTML = html;
@@ -146,11 +148,19 @@ function countdownModule(season_object, exercise_goal, timezone) {
     var date_start = new Date(season_object.start);
     var date_end = new Date(season_object.end);
 
+    var joinText = "..."
+    if(season_object.join_anytime) {
+        joinText = "<b>You can join at any point in the season.</b>"
+    } else {
+        joinText = "<b>You must join before the start date.</b>"
+    }
+
     document.getElementById("countdownseason").style.display = "flex"
     document.getElementById("countdown_season_title").innerHTML = season_object.name
     document.getElementById("countdown_season_start").innerHTML = "Season start: " + GetDateString(date_start, true)
     document.getElementById("countdown_season_end").innerHTML = "Season end: " + GetDateString(date_end, true)
     document.getElementById("countdown_season_desc").innerHTML = season_object.description
+    document.getElementById("register_season_jointext").innerHTML = joinText;
     document.getElementById("countdown_goal").innerHTML = "You are signed up for " + exercise_goal + " exercises a week."
 
     var partici_string = "participants"
