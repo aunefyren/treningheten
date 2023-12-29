@@ -69,6 +69,7 @@ type UserWeekResults struct {
 	Competing      bool        `json:"competing"`
 	Debt           *DebtObject `json:"debt"`
 	Goal           uuid.UUID   `json:"goal"`
+	GoalJoinDate   time.Time   `json:"goal_join_date"`
 }
 
 type UserWeekResultPersonal struct {

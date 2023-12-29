@@ -6,6 +6,7 @@ import (
 	"aunefyren/treningheten/models"
 	"log"
 	"strconv"
+	"strings"
 
 	"github.com/go-mail/mail"
 )
@@ -16,6 +17,10 @@ func SendSMTPVerificationEmail(user models.User) error {
 	config, err := config.GetConfig()
 	if err != nil {
 		return err
+	}
+
+	if strings.ToLower(config.TreninghetenEnvironment) == "test" {
+		user.Email = config.TreninghetenTestEmail
 	}
 
 	log.Println("Sending e-mail to: " + user.Email + ".")
@@ -46,6 +51,10 @@ func SendSMTPResetEmail(user models.User) error {
 		return err
 	}
 
+	if strings.ToLower(config.TreninghetenEnvironment) == "test" {
+		user.Email = config.TreninghetenTestEmail
+	}
+
 	log.Println("Sending e-mail to: " + user.Email + ".")
 
 	link := config.TreninghetenExternalURL + "/login?reset_code=" + user.ResetCode
@@ -74,6 +83,10 @@ func SendSMTPSundayReminderEmail(user models.User) error {
 	config, err := config.GetConfig()
 	if err != nil {
 		return err
+	}
+
+	if strings.ToLower(config.TreninghetenEnvironment) == "test" {
+		user.Email = config.TreninghetenTestEmail
 	}
 
 	log.Println("Sending e-mail to: " + user.Email + ".")
@@ -117,6 +130,10 @@ func SendSMTPSeasonStartEmail(season models.SeasonObject) error {
 			continue
 		}
 
+		if strings.ToLower(config.TreninghetenEnvironment) == "test" {
+			email = config.TreninghetenTestEmail
+		}
+
 		log.Println("Sending e-mail to: " + email + ".")
 
 		link := config.TreninghetenExternalURL
@@ -150,6 +167,10 @@ func SendSMTPForWeekLost(user models.User) error {
 		return err
 	}
 
+	if strings.ToLower(config.TreninghetenEnvironment) == "test" {
+		user.Email = config.TreninghetenTestEmail
+	}
+
 	log.Println("Sending e-mail to: " + user.Email + ".")
 
 	link := config.TreninghetenExternalURL
@@ -178,6 +199,10 @@ func SendSMTPForWheelSpin(user models.User) error {
 	config, err := config.GetConfig()
 	if err != nil {
 		return err
+	}
+
+	if strings.ToLower(config.TreninghetenEnvironment) == "test" {
+		user.Email = config.TreninghetenTestEmail
 	}
 
 	log.Println("Sending e-mail to: " + user.Email + ".")
@@ -210,6 +235,10 @@ func SendSMTPForWheelSpinCheck(user models.User) error {
 		return err
 	}
 
+	if strings.ToLower(config.TreninghetenEnvironment) == "test" {
+		user.Email = config.TreninghetenTestEmail
+	}
+
 	log.Println("Sending e-mail to: " + user.Email + ".")
 
 	link := config.TreninghetenExternalURL
@@ -238,6 +267,10 @@ func SendSMTPForWheelSpinWin(user models.User) error {
 	config, err := config.GetConfig()
 	if err != nil {
 		return err
+	}
+
+	if strings.ToLower(config.TreninghetenEnvironment) == "test" {
+		user.Email = config.TreninghetenTestEmail
 	}
 
 	log.Println("Sending e-mail to: " + user.Email + ".")

@@ -47,7 +47,13 @@ func GetConfig() (*models.ConfigStruct, error) {
 
 	if config.TreninghetenName == "" {
 		// Set new value
-		config.TreninghetenName = "Pønskelisten"
+		config.TreninghetenName = "Treningheten"
+		anythingChanged = true
+	}
+
+	if config.TreninghetenEnvironment == "" {
+		// Set new value
+		config.TreninghetenEnvironment = "prod"
 		anythingChanged = true
 	}
 
@@ -94,6 +100,7 @@ func CreateConfigFile() error {
 
 	config.TreninghetenPort = 8080
 	config.TreninghetenName = "Treningheten"
+	config.TreninghetenEnvironment = "prod"
 	config.DBPort = 3306
 	config.SMTPEnabled = true
 	config.TreninghetenVersion = treningheten_version_parameter

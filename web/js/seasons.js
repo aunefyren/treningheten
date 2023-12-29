@@ -282,9 +282,26 @@ function place_leaderboard(weeks_array, season_id) {
             `;
 
             var results_html = "";
+
+            try {
+                var weekDate = new Date(Date.parse(weeks_array[i].week_date));
+            } catch(e) {
+                error("Failed to process API date response.")
+                return;
+            }
+
             for(var j = 0; j < weeks_array[i].users.length; j++) {
+                try {
+                    var resultDate = new Date(Date.parse(weeks_array[i].users[j].goal_join_date));
+                } catch(e) {
+                    error("Failed to process API date response.")
+                    return;
+                }
+
                 var completion = "❌"
-                if(weeks_array[i].users[j].sickleave) {
+                if(resultDate > weekDate) {
+                    completion = "🕙"
+                } else if(weeks_array[i].users[j].sickleave) {
                     completion = "🤢"
                 } else if(weeks_array[i].users[j].week_completion >= 1) {
                     completion = "✅"

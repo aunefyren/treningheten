@@ -455,6 +455,7 @@ func GetWeekResultForGoal(goal models.Goal, currentTime time.Time, userStreaks [
 	newResult.CurrentStreak = 0
 	newResult.Competing = goalObject.Competing
 	newResult.Goal = goalObject.ID
+	newResult.GoalJoinDate = goal.CreatedAt
 
 	// Check for debt for week
 	debt, debtFound, err := database.GetDebtForWeekForUser(currentTime, goalObject.User.ID)
@@ -511,7 +512,10 @@ func GetWeekResultForGoal(goal models.Goal, currentTime time.Time, userStreaks [
 	}
 
 	// Found in streak, retrieve current streak
-	if sickleaveFound && sickleave.Used {
+	if currentTime.Before(newResult.GoalJoinDate) {
+		newResult.CurrentStreak = userStreaks[userIndex].Streak
+		userStreaks[userIndex].Streak = 0
+	} else if sickleaveFound && sickleave.Used {
 		newResult.CurrentStreak = userStreaks[userIndex].Streak
 		newResult.Sickleave = true
 	} else if newResult.WeekCompletion >= 1 {

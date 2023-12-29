@@ -10,6 +10,7 @@ import (
 	"errors"
 	"log"
 	"net/http"
+	"strings"
 
 	"github.com/SherClockHolmes/webpush-go"
 	"github.com/gin-gonic/gin"
@@ -239,8 +240,18 @@ func APIUpdateSubscriptionForEndpoint(context *gin.Context) {
 }
 
 func PushNotificationsForAchivements(userID uuid.UUID) (err error) {
-
 	err = nil
+
+	// Get configuration
+	config, err := config.GetConfig()
+	if err != nil {
+		return err
+	}
+
+	// Return if in test environment
+	if strings.ToLower(config.TreninghetenEnvironment) == "test" {
+		return nil
+	}
 
 	subscriptions, subscriptionsFound, err := database.GetAllSubscriptionsForAchivementsForUserID(userID)
 	if err != nil {
@@ -266,8 +277,18 @@ func PushNotificationsForAchivements(userID uuid.UUID) (err error) {
 }
 
 func PushNotificationsForNews() (err error) {
-
 	err = nil
+
+	// Get configuration
+	config, err := config.GetConfig()
+	if err != nil {
+		return err
+	}
+
+	// Return if in test environment
+	if strings.ToLower(config.TreninghetenEnvironment) == "test" {
+		return nil
+	}
 
 	subscriptions, subscriptionsFound, err := database.GetAllSubscriptionsForNews()
 	if err != nil {
@@ -293,8 +314,18 @@ func PushNotificationsForNews() (err error) {
 }
 
 func PushNotificationsForSundayAlerts() (err error) {
-
 	err = nil
+
+	// Get configuration
+	config, err := config.GetConfig()
+	if err != nil {
+		return err
+	}
+
+	// Return if in test environment
+	if strings.ToLower(config.TreninghetenEnvironment) == "test" {
+		return nil
+	}
 
 	subscriptions, subscriptionsFound, err := database.GetAllSubscriptionsForSundayAlerts()
 	if err != nil {
@@ -320,8 +351,18 @@ func PushNotificationsForSundayAlerts() (err error) {
 }
 
 func PushNotificationsForWeekLost(userId uuid.UUID) (err error) {
-
 	err = nil
+
+	// Get configuration
+	config, err := config.GetConfig()
+	if err != nil {
+		return err
+	}
+
+	// Return if in test environment
+	if strings.ToLower(config.TreninghetenEnvironment) == "test" {
+		return nil
+	}
 
 	subscriptions, err := database.GetAllSubscriptionsForUserByUserID(userId)
 	if err != nil {
@@ -347,8 +388,18 @@ func PushNotificationsForWeekLost(userId uuid.UUID) (err error) {
 }
 
 func PushNotificationsForWheelSpin(userId uuid.UUID) (err error) {
-
 	err = nil
+
+	// Get configuration
+	config, err := config.GetConfig()
+	if err != nil {
+		return err
+	}
+
+	// Return if in test environment
+	if strings.ToLower(config.TreninghetenEnvironment) == "test" {
+		return nil
+	}
 
 	subscriptions, err := database.GetAllSubscriptionsForUserByUserID(userId)
 	if err != nil {
@@ -374,8 +425,18 @@ func PushNotificationsForWheelSpin(userId uuid.UUID) (err error) {
 }
 
 func PushNotificationsForWheelSpinCheck(userId uuid.UUID) (err error) {
-
 	err = nil
+
+	// Get configuration
+	config, err := config.GetConfig()
+	if err != nil {
+		return err
+	}
+
+	// Return if in test environment
+	if strings.ToLower(config.TreninghetenEnvironment) == "test" {
+		return nil
+	}
 
 	subscriptions, err := database.GetAllSubscriptionsForUserByUserID(userId)
 	if err != nil {
@@ -401,8 +462,18 @@ func PushNotificationsForWheelSpinCheck(userId uuid.UUID) (err error) {
 }
 
 func PushNotificationsForWheelSpinWin(userId uuid.UUID) (err error) {
-
 	err = nil
+
+	// Get configuration
+	config, err := config.GetConfig()
+	if err != nil {
+		return err
+	}
+
+	// Return if in test environment
+	if strings.ToLower(config.TreninghetenEnvironment) == "test" {
+		return nil
+	}
 
 	subscriptions, err := database.GetAllSubscriptionsForUserByUserID(userId)
 	if err != nil {

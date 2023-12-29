@@ -751,10 +751,26 @@ function place_leaderboard(weeks_array) {
             `;
 
             var results_html = "";
+
+            try {
+                var weekDate = new Date(Date.parse(weeks_array[i].week_date));
+            } catch(e) {
+                error("Failed to process API date response.")
+                return;
+            }
+
             for(var j = 0; j < weeks_array[i].users.length; j++) {
+                try {
+                    var resultDate = new Date(Date.parse(weeks_array[i].users[j].goal_join_date));
+                } catch(e) {
+                    error("Failed to process API date response.")
+                    return;
+                }
 
                 var completion = "❌"
-                if(weeks_array[i].users[j].sickleave) {
+                if(resultDate > weekDate) {
+                    completion = "🕙"
+                } else if(weeks_array[i].users[j].sickleave) {
                     completion = "🤢"
                 } else if(weeks_array[i].users[j].week_completion >= 1) {
                     completion = "✅"
@@ -869,12 +885,28 @@ function place_current_week(week_array) {
     // Remove intial data
     currentWeekUsers.innerHTML = ""
 
+    try {
+        var weekDate = new Date(Date.parse(week_array.week_date));
+    } catch(e) {
+        error("Failed to process API date response.")
+        return;
+    }
+
     for(var i = 0; i < week_array.users.length; i++) {
 
         var completion = Math.trunc((week_array.users[i].week_completion * 100))
         var transparent = ""
 
-        if(week_array.users[i].sickleave) {
+        try {
+            var resultDate = new Date(Date.parse(week_array.users[i].goal_join_date));
+        } catch(e) {
+            error("Failed to process API date response.")
+            return;
+        }
+
+        if(resultDate > weekDate) {
+            var current_streak = week_array.users[i].current_streak + "🕙"
+        } else if(week_array.users[i].sickleave) {
             var current_streak = week_array.users[i].current_streak + "🤢"
             transparent = "transparent"
 
