@@ -9,8 +9,8 @@ import (
 	"github.com/thanhpk/randstr"
 )
 
-// Genrate a random invite code an return ut
-func GenrateRandomInvite() (string, error) {
+// Generate a random invite code an return ut
+func GenerateRandomInvite() (string, error) {
 	var invite models.Invite
 
 	randomString := randstr.String(16)
@@ -25,7 +25,7 @@ func GenrateRandomInvite() (string, error) {
 	return invite.Code, nil
 }
 
-// Verify unsued invite code exists
+// Verify unused invite code exists
 func VerifyUnusedUserInviteCode(providedCode string) (bool, error) {
 	var invitestruct models.Invite
 	inviterecords := Instance.Where("`invites`.enabled = ?", 1).Where("`invites`.used = ?", 0).Where("`invites`.code = ?", providedCode).Find(&invitestruct)

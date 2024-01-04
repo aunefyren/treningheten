@@ -83,7 +83,7 @@ func ValidateToken(context *gin.Context) {
 
 		if float64(difference.Hours()/24/365) < 1.0 && claims.ExpiresAt.After(now) {
 
-			// Change expiration to now + seve ndays
+			// Change expiration to now + seven days
 			claims.ExpiresAt.Time = now.Add(time.Hour * 24 * 7)
 
 			// Get user object by ID and check and update admin status

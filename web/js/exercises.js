@@ -60,14 +60,14 @@ function load_page(result) {
 
     if(result !== false) {
         showLoggedInMenu();
-        get_seaons();
+        get_seasons();
     } else {
         showLoggedOutMenu();
         invalid_session();
     }
 }
 
-function get_seaons(){
+function get_seasons(){
 
     var xhttp = new XMLHttpRequest();
     xhttp.onreadystatechange = function() {
@@ -132,7 +132,7 @@ function get_goals(seasonsArray){
 
                 console.log(goals);
 
-                console.log("Placing intial goals: ")
+                console.log("Placing initial goals: ")
                 place_goals(goals, seasonsArray);
 
             }

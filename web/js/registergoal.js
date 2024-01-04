@@ -111,7 +111,7 @@ function getSeason(userID){
                 info(result.error);
                 document.getElementById('front-page-text').innerHTML = 'An administrator must plan a new season.';
 
-                getDebtoverview();
+                getDebtOverview();
 
             } else if(result.error) {
 

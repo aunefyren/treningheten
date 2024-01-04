@@ -661,7 +661,7 @@ function update_exercises(go_to_exercise, weekDayInt) {
                     new_fireworks = true
                 }
 
-                console.log("Placing intial week: ")
+                console.log("Placing initial week: ")
                 place_week(week, new_fireworks);
                 get_leaderboard();
 
@@ -882,7 +882,7 @@ function place_current_week(week_array) {
     // Sort users
     week_array.users = week_array.users.sort((a,b) => b.week_completion - a.week_completion);
     
-    // Remove intial data
+    // Remove initial data
     currentWeekUsers.innerHTML = ""
 
     try {
@@ -1014,7 +1014,7 @@ function PlaceProfileImagesForCurrentWeek(imageBase64, userID, index) {
 
 function use_sickleave() {
 
-    if(!confirm("Are you sure you want to use sick leave? The week will be marked as sick leave, no workouts can be logged, the current streak will be perserved.")) {
+    if(!confirm("Are you sure you want to use sick leave? The week will be marked as sick leave, no workouts can be logged, the current streak will be preserved.")) {
         return
     }
 

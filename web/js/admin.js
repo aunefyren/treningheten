@@ -306,7 +306,7 @@ function generate_invite() {
 
 }
 
-function delete_invite(invide_id) {
+function delete_invite(invite_id) {
 
     if(!confirm("Are you sure you want to delete this invite?")) {
         return
@@ -338,7 +338,7 @@ function delete_invite(invide_id) {
         }
     };
     xhttp.withCredentials = true;
-    xhttp.open("post", api_url + "admin/invites/" + invide_id);
+    xhttp.open("post", api_url + "admin/invites/" + invite_id);
     xhttp.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
     xhttp.setRequestHeader("Authorization", jwt);
     xhttp.send();

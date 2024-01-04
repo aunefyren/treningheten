@@ -60,7 +60,7 @@ function load_page(result) {
 
                     <div>
 
-                        <div class="module" id="loading-dumbell" style="display: none;">
+                        <div class="module" id="loading-dumbbell" style="display: none;">
                             <img src="/assets/images/barbell.gif">
                         </div>
 
@@ -119,7 +119,7 @@ function get_seasons(){
 
                 console.log(seasons);
 
-                console.log("Placing intial seasons: ")
+                console.log("Placing initial seasons: ")
                 place_seasons(seasons);
                 place_seasons_input(seasons);
 
@@ -471,7 +471,7 @@ function choose_season() {
     var select_season = document.getElementById("select_season");
 
     // Show loading gif
-    document.getElementById("loading-dumbell").style.display = "inline-block";
+    document.getElementById("loading-dumbbell").style.display = "inline-block";
 
     // Purge data
     canvas_div = document.getElementById("chart-canvas-div");
@@ -487,7 +487,7 @@ function choose_season() {
     if(select_season.value == null || select_season.value == 0 || select_season.value == "null") {
 
         // Show loading gif
-        document.getElementById("loading-dumbell").style.display = "none";
+        document.getElementById("loading-dumbbell").style.display = "none";
 
         var myChartElement = document.getElementById("myChart");
         myChartElement.style.display = "none"
@@ -765,6 +765,6 @@ function place_statistics(leaderboard_array, weekday_array, wheel_statistics) {
     }
     
     // Remove loading gif
-    document.getElementById("loading-dumbell").style.display = "none";
+    document.getElementById("loading-dumbbell").style.display = "none";
 
 }

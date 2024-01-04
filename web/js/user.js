@@ -189,11 +189,11 @@ function PlaceUserData(user_object) {
 
     document.getElementById("user_admin").innerHTML = "Administrator: " + admin_string
 
-    GetUserAhievements(user_object.id);
+    GetUserAchievements(user_object.id);
 
 }
 
-function GetUserAhievements(userID) {
+function GetUserAchievements(userID) {
 
     var xhttp = new XMLHttpRequest();
     xhttp.onreadystatechange = function() {
@@ -213,7 +213,7 @@ function GetUserAhievements(userID) {
 
             } else {
 
-                PlaceUserAhievements(result.achivements)
+                PlaceUserAchievements(result.achievements)
                 
             }
 
@@ -231,52 +231,52 @@ function GetUserAhievements(userID) {
 
 }
 
-function PlaceUserAhievements(achivementArray) {
+function PlaceUserAchievements(achievementArray) {
 
-    if(achivementArray.length > 0) {
+    if(achievementArray.length > 0) {
         document.getElementById("achievements-module").style.display = "flex"
         document.getElementById("achievements-hr").style.display = "flex"
     } else {
         return;
     }
 
-    for(var i = 0; i < achivementArray.length; i++) {
+    for(var i = 0; i < achievementArray.length; i++) {
 
         // parse date object
         try {
-            var date = new Date(Date.parse(achivementArray[i].achievement_delegation.given_at));
+            var date = new Date(Date.parse(achievementArray[i].achievement_delegation.given_at));
             var date_string = GetDateString(date, false)
         } catch {
             var date_string = "Error"
         }
 
         var classString = ""
-        if(!achivementArray[i].achievement_delegation.seen && achivementArray[i].achievement_delegation.user.id == user_id) {
+        if(!achievementArray[i].achievement_delegation.seen && achievementArray[i].achievement_delegation.user.id == user_id) {
             classString += " new-achievement"
         }
 
-        var categoryColor = `var(--${achivementArray[i].category_color})`;
+        var categoryColor = `var(--${achievementArray[i].category_color})`;
         var categoryText = ""
-        if(achivementArray[i].category !== "Default") {
+        if(achievementArray[i].category !== "Default") {
             categoryText = `
             <div style="font-size: 0.70em; margin-bottom: 1em;"> 
-                ${achivementArray[i].category}
+                ${achievementArray[i].category}
             </div>
             `;
         }
 
         var html = `
 
-        <div class="achievement unselectable" title="${achivementArray[i].description}" tabindex="1">
+        <div class="achievement unselectable" title="${achievementArray[i].description}" tabindex="1">
 
             <div class="achievement-base ${classString}">
 
                 <div class="achievement-image" style="border: solid 0.2em ${categoryColor};">
-                    <img style="width: 100%; height: 100%;" class="achievement-img" id="achievement-img-${achivementArray[i].id}" src="/assets/images/barbell.gif">
+                    <img style="width: 100%; height: 100%;" class="achievement-img" id="achievement-img-${achievementArray[i].id}" src="/assets/images/barbell.gif">
                 </div>
 
                 <div class="achievement-title">
-                    ${achivementArray[i].name}
+                    ${achievementArray[i].name}
                 </div>
 
                 <div class="achievement-date">
@@ -289,10 +289,10 @@ function PlaceUserAhievements(achivementArray) {
                 <div class="text-achievement"> 
                     ${categoryText}
                     <div style="margin-bottom: 0.5em;"> 
-                        ${achivementArray[i].name}
+                        ${achievementArray[i].name}
                     </div>
                     <div style="" class="achievement-description"> 
-                        ${achivementArray[i].description}
+                        ${achievementArray[i].description}
                     </div>
                 </div>
             </div>
@@ -302,7 +302,7 @@ function PlaceUserAhievements(achivementArray) {
 
         document.getElementById("achievements-box").innerHTML += html
 
-        GetAchievementImage(achivementArray[i].id)
+        GetAchievementImage(achievementArray[i].id)
 
     }
 

@@ -52,9 +52,9 @@ func APIGetOngoingSeason(context *gin.Context) {
 
 }
 
-func GetOngoingSeasonFromDB(giventime time.Time) (models.Season, bool, error) {
+func GetOngoingSeasonFromDB(givenTime time.Time) (models.Season, bool, error) {
 
-	current_time := giventime
+	current_time := givenTime
 	chosen_season := models.Season{}
 	change := false
 
@@ -181,8 +181,8 @@ func APIRegisterSeason(context *gin.Context) {
 	}
 
 	// Verify season end
-	weekdaytwo := int(season.End.Weekday())
-	if season.End.Before(season.Start) || weekdaytwo != 0 {
+	weekdayTwo := int(season.End.Weekday())
+	if season.End.Before(season.Start) || weekdayTwo != 0 {
 		context.JSON(http.StatusBadRequest, gin.H{"error": "Your season must end after the start and end on a sunday."})
 		context.Abort()
 		return
@@ -374,7 +374,7 @@ func RetrieveWeekResultsFromSeasonWithinTimeframe(firstPointInTime time.Time, la
 			UserWeekResults: []models.UserWeekResults{},
 		}
 
-		// Add weel details
+		// Add week details
 		weekResult.WeekYear, weekResult.WeekNumber = currentTime.ISOWeek()
 		weekResult.WeekDate = currentTime
 
@@ -426,7 +426,7 @@ func RetrieveWeekResultsFromSeasonWithinTimeframe(firstPointInTime time.Time, la
 
 func GetWeekResultForGoal(goal models.Goal, currentTime time.Time, userStreaks []models.UserStreak) (models.UserWeekResults, []models.UserStreak, error) {
 
-	// Weel result for goal
+	// Week result for goal
 	newResult := models.UserWeekResults{}
 
 	// Get the exercises from the week

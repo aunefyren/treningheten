@@ -23,8 +23,8 @@ func RegisterUserInDB(user models.User) (models.User, error) {
 	return user, nil
 }
 
-// Genrate a random verification code an return ut
-func GenrateRandomVerificationCodeForuser(userID uuid.UUID) (string, error) {
+// Generate a random verification code an return ut
+func GenerateRandomVerificationCodeForUser(userID uuid.UUID) (string, error) {
 
 	randomString := randstr.String(8)
 	verificationCode := strings.ToUpper(randomString)
@@ -66,7 +66,7 @@ func VerifyUniqueUserEmail(providedEmail string) (bool, error) {
 }
 
 // Verify if user has a verification code set
-func VerifyUserHasVerfificationCode(userID uuid.UUID) (bool, error) {
+func VerifyUserHasVerificationCode(userID uuid.UUID) (bool, error) {
 	var user models.User
 	userrecords := Instance.Where("`users`.enabled = ?", 1).Where("`users`.ID = ?", userID).Find(&user)
 	if userrecords.Error != nil {
@@ -84,7 +84,7 @@ func VerifyUserHasVerfificationCode(userID uuid.UUID) (bool, error) {
 }
 
 // Verify if user has a verification code set
-func VerifyUserVerfificationCodeMatches(userID uuid.UUID, verificationCode string) (bool, time.Time, error) {
+func VerifyUserVerificationCodeMatches(userID uuid.UUID, verificationCode string) (bool, time.Time, error) {
 
 	var user models.User
 
@@ -343,8 +343,8 @@ func GetAllUserInformationByResetCode(resetCode string) (models.User, error) {
 	return user, nil
 }
 
-// Genrate a random reset code and return it
-func GenrateRandomResetCodeForuser(userID uuid.UUID) (string, error) {
+// Generate a random reset code and return it
+func GenerateRandomResetCodeForUser(userID uuid.UUID) (string, error) {
 
 	randomString := randstr.String(8)
 	resetCode := strings.ToUpper(randomString)

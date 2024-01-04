@@ -103,7 +103,7 @@ function get_news(){
 
                 console.log(news);
 
-                console.log("Placing intial news: ")
+                console.log("Placing initial news: ")
                 place_news(news);
 
             }

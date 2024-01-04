@@ -38,7 +38,7 @@ func GetNewsPost(context *gin.Context) {
 		return
 	}
 
-	// Get the newspost by id
+	// Get the news post by id
 	newsPost, err := database.GetNewsPostByNewsID(newsIDInt)
 	if err != nil {
 		// If there is an error getting the news, return an internal server error

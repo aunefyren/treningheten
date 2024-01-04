@@ -35,8 +35,8 @@ func main() {
 	utilities.PrintASCII()
 
 	// Create files directory
-	newpath := filepath.Join(".", "files")
-	err := os.MkdirAll(newpath, os.ModePerm)
+	newPath := filepath.Join(".", "files")
+	err := os.MkdirAll(newPath, os.ModePerm)
 	if err != nil {
 		fmt.Println("Failed to create 'files' directory. Error: " + err.Error())
 
@@ -158,13 +158,13 @@ func main() {
 	log.Println("Database connected.")
 	fmt.Println("Database connected.")
 
-	achivementsFound, err := controllers.CheckIfAchivementsExist()
+	achievementsFound, err := controllers.CheckIfAchievementsExist()
 	if err != nil {
 		log.Println("Failed to check achievements. Error: " + err.Error())
 		return
-	} else if !achivementsFound {
+	} else if !achievementsFound {
 		log.Println("No achievements, creating default.")
-		err = controllers.CreateDefaultAchivements()
+		err = controllers.CreateDefaultAchievements()
 		if err != nil {
 			log.Println("Failed to create achievements. Error: " + err.Error())
 			return
@@ -172,7 +172,7 @@ func main() {
 	}
 
 	if generateInvite {
-		invite, err := database.GenrateRandomInvite()
+		invite, err := database.GenerateRandomInvite()
 		if err != nil {
 			fmt.Println("Failed to generate random invitation code. Error: " + err.Error())
 			log.Println("Failed to generate random invitation code. Error: " + err.Error())
@@ -268,7 +268,7 @@ func initRouter() *gin.Engine {
 			auth.GET("/debts", controllers.APIGetDebtOverview)
 			auth.POST("/debts/:debt_id/received", controllers.APISetPrizeReceived)
 
-			auth.GET("/achievements/", controllers.APIGetAchivements)
+			auth.GET("/achievements/", controllers.APIGetAchievements)
 			auth.GET("/achievements/:achievement_id/image", controllers.APIGetAchievementsImage)
 
 			auth.POST("/notifications/subscribe", controllers.APISubscribeToNotification)

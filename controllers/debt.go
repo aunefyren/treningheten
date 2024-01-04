@@ -28,10 +28,10 @@ func GenerateLastWeeksDebt() {
 		log.Println("Returned error generating last weeks debt: " + err.Error())
 	}
 
-	// Generate week achivements for last week
-	err = GenerateAchivementsForWeek(weekResults)
+	// Generate week achievements for last week
+	err = GenerateAchievementsForWeek(weekResults)
 	if err != nil {
-		log.Println("Returned error generating weeks achivements: " + err.Error())
+		log.Println("Returned error generating weeks achievements: " + err.Error())
 	}
 
 	// Get ongoing season last week
@@ -44,7 +44,7 @@ func GenerateLastWeeksDebt() {
 
 		if lastWeekWeek == seasonEndWeek {
 
-			log.Println("Season over, checking for achivements.")
+			log.Println("Season over, checking for achievements.")
 
 			seasonObject, err := ConvertSeasonToSeasonObject(season)
 			if err != nil {
@@ -56,9 +56,9 @@ func GenerateLastWeeksDebt() {
 					log.Println("Returned error getting season results: " + err.Error())
 				} else {
 
-					err = GenerateAchivementsForSeason(pastWeeks)
+					err = GenerateAchievementsForSeason(pastWeeks)
 					if err != nil {
-						log.Println("Returned error generating weeks achivements: " + err.Error())
+						log.Println("Returned error generating weeks achievements: " + err.Error())
 					}
 
 				}
@@ -192,16 +192,16 @@ func GenerateDebtForWeek(givenTime time.Time) (models.WeekResults, error) {
 				log.Println("Failed to find next Sunday for date. Skipping.")
 			} else {
 
-				// Give achivement to winner for winning
-				err = GiveUserAnAchivement(*winner, uuid.MustParse("bb964360-6413-47c2-8400-ee87b40365a7"), nextSunday)
+				// Give achievement to winner for winning
+				err = GiveUserAnAchievement(*winner, uuid.MustParse("bb964360-6413-47c2-8400-ee87b40365a7"), nextSunday)
 				if err != nil {
-					log.Println("Failed to give achivement for user '" + winner.String() + "'. Ignoring. Error: " + err.Error())
+					log.Println("Failed to give achievement for user '" + winner.String() + "'. Ignoring. Error: " + err.Error())
 				}
 
-				// Give achivement to loser for spinning wheel
-				err = GiveUserAnAchivement(user.ID, uuid.MustParse("d415fffc-ea99-4b27-8929-aeb02ae44da3"), nextSunday)
+				// Give achievement to loser for spinning wheel
+				err = GiveUserAnAchievement(user.ID, uuid.MustParse("d415fffc-ea99-4b27-8929-aeb02ae44da3"), nextSunday)
 				if err != nil {
-					log.Println("Failed to give achivement for user '" + user.ID.String() + "'. Ignoring. Error: " + err.Error())
+					log.Println("Failed to give achievement for user '" + user.ID.String() + "'. Ignoring. Error: " + err.Error())
 				}
 
 				// Get loser object
@@ -614,16 +614,16 @@ func APIChooseWinnerForDebt(context *gin.Context) {
 	// Update winner in DB
 	database.UpdateDebtWinner(debtIDInt, winnerID)
 
-	// Give achivement to winner for winning
-	err = GiveUserAnAchivement(winnerID, uuid.MustParse("bb964360-6413-47c2-8400-ee87b40365a7"), sundayDate)
+	// Give achievement to winner for winning
+	err = GiveUserAnAchievement(winnerID, uuid.MustParse("bb964360-6413-47c2-8400-ee87b40365a7"), sundayDate)
 	if err != nil {
-		log.Println("Failed to give achivement for user '" + winnerID.String() + "'. Ignoring. Error: " + err.Error())
+		log.Println("Failed to give achievement for user '" + winnerID.String() + "'. Ignoring. Error: " + err.Error())
 	}
 
-	// Give achivement to loser for losing
-	err = GiveUserAnAchivement(userID, uuid.MustParse("d415fffc-ea99-4b27-8929-aeb02ae44da3"), sundayDate)
+	// Give achievement to loser for losing
+	err = GiveUserAnAchievement(userID, uuid.MustParse("d415fffc-ea99-4b27-8929-aeb02ae44da3"), sundayDate)
 	if err != nil {
-		log.Println("Failed to give achivement for user '" + userID.String() + "'. Ignoring. Error: " + err.Error())
+		log.Println("Failed to give achievement for user '" + userID.String() + "'. Ignoring. Error: " + err.Error())
 	}
 
 	// Get user object
@@ -826,9 +826,9 @@ func APIGenerateDebtForWeek(context *gin.Context) {
 		return
 	}
 
-	err = GenerateAchivementsForWeek(weekResults)
+	err = GenerateAchievementsForWeek(weekResults)
 	if err != nil {
-		log.Println("Returned error generating weeks achivements: " + err.Error())
+		log.Println("Returned error generating weeks achievements: " + err.Error())
 	}
 
 	season, seasonFound, err := GetOngoingSeasonFromDB(debtCreationRequest.Date)
@@ -840,7 +840,7 @@ func APIGenerateDebtForWeek(context *gin.Context) {
 
 		if lastWeekWeek == seasonEndWeek {
 
-			log.Println("Season over, checking for achivements.")
+			log.Println("Season over, checking for achievements.")
 
 			seasonObject, err := ConvertSeasonToSeasonObject(season)
 			if err != nil {
@@ -852,9 +852,9 @@ func APIGenerateDebtForWeek(context *gin.Context) {
 					log.Println("Returned error getting season results: " + err.Error())
 				} else {
 
-					err = GenerateAchivementsForSeason(pastWeeks)
+					err = GenerateAchievementsForSeason(pastWeeks)
 					if err != nil {
-						log.Println("Returned error generating weeks achivements: " + err.Error())
+						log.Println("Returned error generating weeks achievements: " + err.Error())
 					}
 
 				}

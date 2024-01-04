@@ -143,10 +143,10 @@ function CheckForSubscription() {
 
 }
 
-function GetSubscriptionSettings(enpoint) {
+function GetSubscriptionSettings(endpoint) {
 
     var form_obj = { 
-        "endpoint" : enpoint
+        "endpoint" : endpoint
     };
 
     var form_data = JSON.stringify(form_obj);

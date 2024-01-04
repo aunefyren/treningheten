@@ -49,7 +49,7 @@ func GetAllSubscriptionForUserByUserIDAndEndpoint(userID uuid.UUID, endpoint str
 }
 
 // Get subscription for achievements by user ID
-func GetAllSubscriptionsForAchivementsForUserID(userID uuid.UUID) ([]models.Subscription, bool, error) {
+func GetAllSubscriptionsForAchievementsForUserID(userID uuid.UUID) ([]models.Subscription, bool, error) {
 
 	var subscriptionStruct []models.Subscription
 

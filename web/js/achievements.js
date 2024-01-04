@@ -86,7 +86,7 @@ function GetAllAchievements(userID) {
 
             } else {
 
-                GetUserAhievements(result.achivements, userID)
+                GetUserAchievements(result.achievements, userID)
                 
             }
 
@@ -104,7 +104,7 @@ function GetAllAchievements(userID) {
 
 }
 
-function GetUserAhievements(achivementArray, userID) {
+function GetUserAchievements(achievementArray, userID) {
 
     var xhttp = new XMLHttpRequest();
     xhttp.onreadystatechange = function() {
@@ -124,7 +124,7 @@ function GetUserAhievements(achivementArray, userID) {
 
             } else {
 
-                PlaceUserAhievements(result.achivements, achivementArray, userID)
+                PlaceUserAchievements(result.achievements, achievementArray, userID)
                 
             }
 
@@ -142,9 +142,9 @@ function GetUserAhievements(achivementArray, userID) {
 
 }
 
-function PlaceUserAhievements(achivementArrayPersonal, achivementArray, userID) {
+function PlaceUserAchievements(achievementArrayPersonal, achievementArray, userID) {
 
-    if(achivementArray.length > 0) {
+    if(achievementArray.length > 0) {
         document.getElementById("achievements-module").style.display = "flex"
     } else {
         return;
@@ -153,26 +153,26 @@ function PlaceUserAhievements(achivementArrayPersonal, achivementArray, userID) 
     var achieved_sum = 0;
     var achievement_sum = 0;
 
-    for(var i = 0; i < achivementArray.length; i++) {
+    for(var i = 0; i < achievementArray.length; i++) {
 
         achievement_sum += 1
 
         var achieved = false;
         var achievedIndex = 0;
-        for(var j = 0; j < achivementArrayPersonal.length; j++) {
-            if(achivementArrayPersonal[j].id == achivementArray[i].id) {
+        for(var j = 0; j < achievementArrayPersonal.length; j++) {
+            if(achievementArrayPersonal[j].id == achievementArray[i].id) {
                 achieved = true;
                 achievedIndex = j;
                 break;
             }
         }
 
-        var categoryColor = `var(--${achivementArray[i].category_color})`;
+        var categoryColor = `var(--${achievementArray[i].category_color})`;
         var categoryText = ""
-        if(achivementArray[i].category !== "Default") {
+        if(achievementArray[i].category !== "Default") {
             categoryText = `
             <div style="font-size: 0.70em; margin-bottom: 1em;"> 
-                ${achivementArray[i].category}
+                ${achievementArray[i].category}
             </div>
             `;
         }
@@ -183,7 +183,7 @@ function PlaceUserAhievements(achivementArrayPersonal, achivementArray, userID) 
 
             // parse date object
             try {
-                var date = new Date(Date.parse(achivementArrayPersonal[achievedIndex].achievement_delegation.given_at));
+                var date = new Date(Date.parse(achievementArrayPersonal[achievedIndex].achievement_delegation.given_at));
                 var date_string = GetDateString(date, false)
             } catch {
                 var date_string = "Error"
@@ -191,7 +191,7 @@ function PlaceUserAhievements(achivementArrayPersonal, achivementArray, userID) 
             var date_string_html = date_string
             var class_string_html = ""
 
-            if(!achivementArrayPersonal[achievedIndex].achievement_delegation.seen){
+            if(!achievementArrayPersonal[achievedIndex].achievement_delegation.seen){
                 class_string_html += " new-achievement"
             }
         } else {
@@ -201,16 +201,16 @@ function PlaceUserAhievements(achivementArrayPersonal, achivementArray, userID) 
 
         var html = `
 
-        <div class="achievement unselectable" title="${achivementArray[i].description}" tabindex="1">
+        <div class="achievement unselectable" title="${achievementArray[i].description}" tabindex="1">
 
             <div class="achievement-base ${class_string_html}">
 
                 <div class="achievement-image" style="border: solid 0.2em ${categoryColor};">
-                    <img style="width: 100%; height: 100%; padding: 1.5em; border-radius: 0;" class="achievement-img" id="achievement-img-${achivementArray[i].id}" src="/assets/images/barbell.gif">
+                    <img style="width: 100%; height: 100%; padding: 1.5em; border-radius: 0;" class="achievement-img" id="achievement-img-${achievementArray[i].id}" src="/assets/images/barbell.gif">
                 </div>
 
                 <div class="achievement-title">
-                    ${achivementArray[i].name}
+                    ${achievementArray[i].name}
                 </div>
 
                 <div class="achievement-date">
@@ -223,10 +223,10 @@ function PlaceUserAhievements(achivementArrayPersonal, achivementArray, userID) 
                 <div class="text-achievement"> 
                     ${categoryText}
                     <div style="margin-bottom: 0.5em;"> 
-                        ${achivementArray[i].name}
+                        ${achievementArray[i].name}
                     </div>
                     <div style="" class="achievement-description"> 
-                        ${achivementArray[i].description}
+                        ${achievementArray[i].description}
                     </div>
                 </div>
             </div>
@@ -237,11 +237,11 @@ function PlaceUserAhievements(achivementArrayPersonal, achivementArray, userID) 
         document.getElementById("achievements-box").innerHTML += html
 
         if(achieved) {
-            document.getElementById("achievement-img-" + achivementArray[i].id).style.padding  = "0"
-            document.getElementById("achievement-img-" + achivementArray[i].id).style.borderRadius  = "10em"
-            GetAchievementImage(achivementArray[i].id)
+            document.getElementById("achievement-img-" + achievementArray[i].id).style.padding  = "0"
+            document.getElementById("achievement-img-" + achievementArray[i].id).style.borderRadius  = "10em"
+            GetAchievementImage(achievementArray[i].id)
         } else {
-            document.getElementById("achievement-img-" + achivementArray[i].id).src  = "/assets/lock.svg"
+            document.getElementById("achievement-img-" + achievementArray[i].id).src  = "/assets/lock.svg"
         }
 
     }

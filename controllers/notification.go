@@ -17,7 +17,7 @@ import (
 	"github.com/google/uuid"
 )
 
-func PushNotificationToSubscriptions(notficationType string, notificationBody string, notficationTitle string, subscriptions []models.Subscription) (int, error) {
+func PushNotificationToSubscriptions(notificationType string, notificationBody string, notificationTitle string, subscriptions []models.Subscription) (int, error) {
 
 	vapidSettings, err := GetVAPIDSettings()
 	if err != nil {
@@ -29,9 +29,9 @@ func PushNotificationToSubscriptions(notficationType string, notificationBody st
 
 	notificationData := `
 		{
-			"title": "` + notficationTitle + `",
+			"title": "` + notificationTitle + `",
 			"body": "` + notificationBody + `",
-			"category": "` + notficationType + `"
+			"category": "` + notificationType + `"
 		}
 	`
 
@@ -239,7 +239,7 @@ func APIUpdateSubscriptionForEndpoint(context *gin.Context) {
 
 }
 
-func PushNotificationsForAchivements(userID uuid.UUID) (err error) {
+func PushNotificationsForAchievements(userID uuid.UUID) (err error) {
 	err = nil
 
 	// Get configuration
@@ -253,7 +253,7 @@ func PushNotificationsForAchivements(userID uuid.UUID) (err error) {
 		return nil
 	}
 
-	subscriptions, subscriptionsFound, err := database.GetAllSubscriptionsForAchivementsForUserID(userID)
+	subscriptions, subscriptionsFound, err := database.GetAllSubscriptionsForAchievementsForUserID(userID)
 	if err != nil {
 		log.Println("Failed to get subscriptions from database. Error: " + err.Error())
 		return errors.New("Failed to get subscriptions from database.")
@@ -268,8 +268,8 @@ func PushNotificationsForAchivements(userID uuid.UUID) (err error) {
 
 	_, err = PushNotificationToSubscriptions(category, body, title, subscriptions)
 	if err != nil {
-		log.Println("Failed to push notficiation(s). Error: " + err.Error())
-		return errors.New("Failed to push notficiation(s).")
+		log.Println("Failed to push notification(s). Error: " + err.Error())
+		return errors.New("Failed to push notification(s).")
 	}
 
 	return nil
@@ -305,8 +305,8 @@ func PushNotificationsForNews() (err error) {
 
 	_, err = PushNotificationToSubscriptions(category, body, title, subscriptions)
 	if err != nil {
-		log.Println("Failed to push notficiation(s). Error: " + err.Error())
-		return errors.New("Failed to push notficiation(s).")
+		log.Println("Failed to push notification(s). Error: " + err.Error())
+		return errors.New("Failed to push notification(s).")
 	}
 
 	return nil
@@ -342,8 +342,8 @@ func PushNotificationsForSundayAlerts() (err error) {
 
 	_, err = PushNotificationToSubscriptions(category, body, title, subscriptions)
 	if err != nil {
-		log.Println("Failed to push notficiation(s). Error: " + err.Error())
-		return errors.New("Failed to push notficiation(s).")
+		log.Println("Failed to push notification(s). Error: " + err.Error())
+		return errors.New("Failed to push notification(s).")
 	}
 
 	return nil
@@ -379,8 +379,8 @@ func PushNotificationsForWeekLost(userId uuid.UUID) (err error) {
 
 	_, err = PushNotificationToSubscriptions(category, body, title, subscriptions)
 	if err != nil {
-		log.Println("Failed to push notficiation(s). Error: " + err.Error())
-		return errors.New("Failed to push notficiation(s).")
+		log.Println("Failed to push notification(s). Error: " + err.Error())
+		return errors.New("Failed to push notification(s).")
 	}
 
 	return nil
@@ -416,8 +416,8 @@ func PushNotificationsForWheelSpin(userId uuid.UUID) (err error) {
 
 	_, err = PushNotificationToSubscriptions(category, body, title, subscriptions)
 	if err != nil {
-		log.Println("Failed to push notficiation(s). Error: " + err.Error())
-		return errors.New("Failed to push notficiation(s).")
+		log.Println("Failed to push notification(s). Error: " + err.Error())
+		return errors.New("Failed to push notification(s).")
 	}
 
 	return nil
@@ -453,8 +453,8 @@ func PushNotificationsForWheelSpinCheck(userId uuid.UUID) (err error) {
 
 	_, err = PushNotificationToSubscriptions(category, body, title, subscriptions)
 	if err != nil {
-		log.Println("Failed to push notficiation(s). Error: " + err.Error())
-		return errors.New("Failed to push notficiation(s).")
+		log.Println("Failed to push notification(s). Error: " + err.Error())
+		return errors.New("Failed to push notification(s).")
 	}
 
 	return nil
@@ -490,8 +490,8 @@ func PushNotificationsForWheelSpinWin(userId uuid.UUID) (err error) {
 
 	_, err = PushNotificationToSubscriptions(category, body, title, subscriptions)
 	if err != nil {
-		log.Println("Failed to push notficiation(s). Error: " + err.Error())
-		return errors.New("Failed to push notficiation(s).")
+		log.Println("Failed to push notification(s). Error: " + err.Error())
+		return errors.New("Failed to push notification(s).")
 	}
 
 	return nil

@@ -99,10 +99,10 @@ func APIRegisterGoalToSeason(context *gin.Context) {
 		database.CreateSickleave(sickleave)
 	}
 
-	// Give achivement to user
-	err = GiveUserAnAchivement(userID, uuid.MustParse("7f2d49ad-d056-415e-aa80-0ada6db7cc00"), time.Now())
+	// Give achievement to user
+	err = GiveUserAnAchievement(userID, uuid.MustParse("7f2d49ad-d056-415e-aa80-0ada6db7cc00"), time.Now())
 	if err != nil {
-		log.Println("Failed to give achivement for user '" + userID.String() + "'. Ignoring. Error: " + err.Error())
+		log.Println("Failed to give achievement for user '" + userID.String() + "'. Ignoring. Error: " + err.Error())
 	}
 
 	context.JSON(http.StatusCreated, gin.H{"message": "Goal created."})

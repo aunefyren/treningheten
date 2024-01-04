@@ -48,7 +48,7 @@ func APIRegisterPrize(context *gin.Context) {
 	}
 
 	// Verify unique prize name and quantity
-	_, prizeFound, err := database.GetPrizeByNameAndQuantity(prize.Name, prize.Quanitity)
+	_, prizeFound, err := database.GetPrizeByNameAndQuantity(prize.Name, prize.Quantity)
 	if err != nil {
 		log.Println("Failed to check prizes. Error: " + err.Error())
 		context.JSON(http.StatusBadRequest, gin.H{"error": "Failed to check prizes."})
@@ -61,8 +61,8 @@ func APIRegisterPrize(context *gin.Context) {
 	}
 
 	prizeDB := models.Prize{
-		Name:      strings.TrimSpace(prize.Name),
-		Quanitity: prize.Quanitity,
+		Name:     strings.TrimSpace(prize.Name),
+		Quantity: prize.Quantity,
 	}
 	prizeDB.ID = uuid.New()
 

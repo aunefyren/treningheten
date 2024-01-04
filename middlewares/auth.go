@@ -77,7 +77,7 @@ func Auth(admin bool) gin.HandlerFunc {
 			} else if !verified {
 
 				// Verify user has verification code
-				hasVerficationCode, err := database.VerifyUserHasVerfificationCode(userID)
+				hasVerificationCode, err := database.VerifyUserHasVerificationCode(userID)
 				if err != nil {
 					context.JSON(401, gin.H{"error": "Failed to validate token."})
 					context.Abort()
@@ -85,8 +85,8 @@ func Auth(admin bool) gin.HandlerFunc {
 				}
 
 				// If the user doesn't have a code, set one
-				if !hasVerficationCode {
-					_, err := database.GenrateRandomVerificationCodeForuser(userID)
+				if !hasVerificationCode {
+					_, err := database.GenerateRandomVerificationCodeForUser(userID)
 					if err != nil {
 						context.JSON(401, gin.H{"error": "Failed to validate token."})
 						context.Abort()
@@ -109,7 +109,7 @@ func Auth(admin bool) gin.HandlerFunc {
 func GetAuthUsername(tokenString string) (uuid.UUID, error) {
 
 	if tokenString == "" {
-		return uuid.UUID{}, errors.New("No Auhtorization header given.")
+		return uuid.UUID{}, errors.New("No Authorization header given.")
 	}
 	claims, err := auth.ParseToken(tokenString)
 	if err != nil {
@@ -121,7 +121,7 @@ func GetAuthUsername(tokenString string) (uuid.UUID, error) {
 func GetTokenClaims(tokenString string) (*auth.JWTClaim, error) {
 
 	if tokenString == "" {
-		return &auth.JWTClaim{}, errors.New("No Auhtorization header given.")
+		return &auth.JWTClaim{}, errors.New("No Authorization header given.")
 	}
 	claims, err := auth.ParseToken(tokenString)
 	if err != nil {

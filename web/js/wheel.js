@@ -169,7 +169,7 @@ function get_debt(debt_id) {
     return false;
 }
 
-function placeWheel(canidateArray) {
+function placeWheel(candidateArray) {
 
     var colors = [
         "#800000", "#9A6324", "#808000", "#469990", "#e6194B", "#f58231", "#ffe119", "#bfef45", "#3cb44b", "#42d4f4", "#4363d8", "#911eb4", "#f032e6", "#a9a9a9", "#fabed4", "#ffd8b1", "#fffac8", "#aaffc3", "#dcbeff", "#ffffff"
@@ -179,12 +179,12 @@ function placeWheel(canidateArray) {
 
     var ticketAmount = 0;
 
-    for(var i = 0; i < canidateArray.length; i++) {
-        ticketAmount += canidateArray[i].tickets;
+    for(var i = 0; i < candidateArray.length; i++) {
+        ticketAmount += candidateArray[i].tickets;
 
         if(colors.length > 0) {
             var index = Math.floor(Math.random()*colors.length)
-            canidateArray[i].color = colors[index]
+            candidateArray[i].color = colors[index]
             var colors2 = []
             for(var j = 0; j < colors.length; j++) {
                 if(j != index) {
@@ -193,7 +193,7 @@ function placeWheel(canidateArray) {
             }
             colors = colors2;
         } else {
-            canidateArray[i].color = "#" + Math.floor(Math.random()*16777215).toString(16);
+            candidateArray[i].color = "#" + Math.floor(Math.random()*16777215).toString(16);
         }
     }
 
@@ -201,8 +201,8 @@ function placeWheel(canidateArray) {
 
     // Establish all the different integers of tickets for users
     var ticketAmounts = []
-    for(var i = 0; i < canidateArray.length; i++) {
-        ticketAmounts.push(canidateArray[i].tickets)
+    for(var i = 0; i < candidateArray.length; i++) {
+        ticketAmounts.push(candidateArray[i].tickets)
     }
 
     // Calculate Greatest Common Divisor
@@ -212,15 +212,15 @@ function placeWheel(canidateArray) {
     // Divide all tickets by GCD
     if(GCD > 1) {
         console.log("Dividing tickets by GCD.");
-        for(var i = 0; i < canidateArray.length; i++) {
-            canidateArray[i].tickets = Math.floor(canidateArray[i].tickets / GCD)
+        for(var i = 0; i < candidateArray.length; i++) {
+            candidateArray[i].tickets = Math.floor(candidateArray[i].tickets / GCD)
         }
     }
 
     // Add tickets to wheel dict
-    for(var i = 0; i < canidateArray.length; i++) {
-        for(var j = 0; j < canidateArray[i].tickets; j++) {
-            placementArray.push({'fillStyle' : canidateArray[i].color, 'textStrokeStyle' : '#000000', 'text' : canidateArray[i].user.first_name, 'user_id' : canidateArray[i].user.id})
+    for(var i = 0; i < candidateArray.length; i++) {
+        for(var j = 0; j < candidateArray[i].tickets; j++) {
+            placementArray.push({'fillStyle' : candidateArray[i].color, 'textStrokeStyle' : '#000000', 'text' : candidateArray[i].user.first_name, 'user_id' : candidateArray[i].user.id})
         }
     }
 
@@ -307,8 +307,8 @@ function drawTriangle()
     // Get the canvas context the wheel uses.
     let ctx = theWheel.ctx;
 
-    ctx.strokeStyle = 'navy';     // Set line colour.
-    ctx.fillStyle   = 'aqua';     // Set fill colour.
+    ctx.strokeStyle = 'navy';     // Set line color.
+    ctx.fillStyle   = 'aqua';     // Set fill color.
     ctx.lineWidth   = 2;
     ctx.beginPath();              // Begin path.
     ctx.moveTo(460, 5);           // Move to initial position.

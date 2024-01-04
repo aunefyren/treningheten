@@ -22,24 +22,24 @@ func RegisterUser(context *gin.Context) {
 
 	// Initialize variables
 	var user models.User
-	var usercreationrequest models.UserCreationRequest
+	var userCreationRequest models.UserCreationRequest
 
 	// Parse creation request
-	if err := context.ShouldBindJSON(&usercreationrequest); err != nil {
+	if err := context.ShouldBindJSON(&userCreationRequest); err != nil {
 		context.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		context.Abort()
 		return
 	}
 
 	// Make sure password match
-	if usercreationrequest.Password != usercreationrequest.PasswordRepeat {
+	if userCreationRequest.Password != userCreationRequest.PasswordRepeat {
 		context.JSON(http.StatusBadRequest, gin.H{"error": "Passwords must match."})
 		context.Abort()
 		return
 	}
 
 	// Make password is strong enough
-	valid, requirements, err := utilities.ValidatePasswordFormat(usercreationrequest.Password)
+	valid, requirements, err := utilities.ValidatePasswordFormat(userCreationRequest.Password)
 	if err != nil {
 		log.Println("Failed to verify password quality. Error: " + err.Error())
 		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to verify password quality."})
@@ -52,10 +52,10 @@ func RegisterUser(context *gin.Context) {
 	}
 
 	// Move values from request to object
-	user.Email = html.EscapeString(strings.TrimSpace(usercreationrequest.Email))
-	user.Password = usercreationrequest.Password
-	user.FirstName = html.EscapeString(strings.TrimSpace(usercreationrequest.FirstName))
-	user.LastName = html.EscapeString(strings.TrimSpace(usercreationrequest.LastName))
+	user.Email = html.EscapeString(strings.TrimSpace(userCreationRequest.Email))
+	user.Password = userCreationRequest.Password
+	user.FirstName = html.EscapeString(strings.TrimSpace(userCreationRequest.FirstName))
+	user.LastName = html.EscapeString(strings.TrimSpace(userCreationRequest.LastName))
 	user.Enabled = true
 	user.ID = uuid.New()
 
@@ -89,14 +89,14 @@ func RegisterUser(context *gin.Context) {
 		return
 	}
 
-	// Verify unsued invite code exists
-	unique_invitecode, err := database.VerifyUnusedUserInviteCode(strings.TrimSpace(usercreationrequest.InviteCode))
+	// Verify unused invite code exists
+	uniqueInviteCode, err := database.VerifyUnusedUserInviteCode(strings.TrimSpace(userCreationRequest.InviteCode))
 	if err != nil {
 		context.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		context.Abort()
 		return
-	} else if !unique_invitecode {
-		context.JSON(http.StatusBadRequest, gin.H{"error": "Invitiation code is not valid."})
+	} else if !uniqueInviteCode {
+		context.JSON(http.StatusBadRequest, gin.H{"error": "Initiation code is not valid."})
 		context.Abort()
 		return
 	}
@@ -123,7 +123,7 @@ func RegisterUser(context *gin.Context) {
 	}
 
 	// Set code to used
-	err = database.SetUsedUserInviteCode(strings.TrimSpace(usercreationrequest.InviteCode), user.ID)
+	err = database.SetUsedUserInviteCode(strings.TrimSpace(userCreationRequest.InviteCode), user.ID)
 	if err != nil {
 		context.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		context.Abort()
@@ -230,7 +230,7 @@ func VerifyUser(context *gin.Context) {
 	}
 
 	// Verify if code matches
-	match, expiration, err := database.VerifyUserVerfificationCodeMatches(userID, code)
+	match, expiration, err := database.VerifyUserVerificationCodeMatches(userID, code)
 	if err != nil {
 		context.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		context.Abort()
@@ -239,11 +239,11 @@ func VerifyUser(context *gin.Context) {
 
 	// Check if code matches
 	if !match {
-		context.JSON(http.StatusBadRequest, gin.H{"error": "Verificaton code invalid."})
+		context.JSON(http.StatusBadRequest, gin.H{"error": "Verification code invalid."})
 		context.Abort()
 		return
 	} else if time.Now().After(expiration) {
-		context.JSON(http.StatusBadRequest, gin.H{"error": "Verificaton code has expired, request a new one."})
+		context.JSON(http.StatusBadRequest, gin.H{"error": "Verification code has expired, request a new one."})
 		context.Abort()
 		return
 	}
@@ -290,7 +290,7 @@ func SendUserVerificationCode(context *gin.Context) {
 	}
 
 	// Create a new code
-	_, err = database.GenrateRandomVerificationCodeForuser(userID)
+	_, err = database.GenerateRandomVerificationCodeForUser(userID)
 	if err != nil {
 		context.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		context.Abort()
@@ -436,14 +436,14 @@ func UpdateUser(context *gin.Context) {
 			return
 		}
 
-		// Give achivement to user for changing profile photo
-		err := GiveUserAnAchivement(userOriginal.ID, uuid.MustParse("05a3579f-aa8d-4814-b28f-5824a2d904ec"), time.Now())
+		// Give achievement to user for changing profile photo
+		err := GiveUserAnAchievement(userOriginal.ID, uuid.MustParse("05a3579f-aa8d-4814-b28f-5824a2d904ec"), time.Now())
 		if err != nil {
-			log.Println("Failed to give achivement for user '" + userOriginal.ID.String() + "'. Ignoring. Error: " + err.Error())
+			log.Println("Failed to give achievement for user '" + userOriginal.ID.String() + "'. Ignoring. Error: " + err.Error())
 		}
 	}
 
-	// Validate birthdate
+	// Validate birth date
 	if userUpdateRequest.BirthDate != nil {
 		ThirteenYearsDuration := time.Hour * 24 * 365 * 13
 		if userUpdateRequest.BirthDate.After(time.Now().Add(-ThirteenYearsDuration)) {
@@ -493,7 +493,7 @@ func UpdateUser(context *gin.Context) {
 	// If user is not verified and SMTP is enabled, send verification e-mail
 	if config.SMTPEnabled && !user.Verified {
 
-		verificationCode, err := database.GenrateRandomVerificationCodeForuser(userID)
+		verificationCode, err := database.GenerateRandomVerificationCodeForUser(userID)
 		if err != nil {
 			context.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 			context.Abort()
@@ -560,7 +560,7 @@ func APIResetPassword(context *gin.Context) {
 		return
 	}
 
-	_, err = database.GenrateRandomResetCodeForuser(user.ID)
+	_, err = database.GenerateRandomResetCodeForUser(user.ID)
 	if err != nil {
 		log.Println("Failed to generate reset code for user during password reset. Error: " + err.Error())
 		context.JSON(http.StatusInternalServerError, gin.H{"message": "Error."})
@@ -657,7 +657,7 @@ func APIChangePassword(context *gin.Context) {
 	}
 
 	// Change the reset code
-	_, err = database.GenrateRandomResetCodeForuser(user.ID)
+	_, err = database.GenerateRandomResetCodeForUser(user.ID)
 	if err != nil {
 		log.Println("Failed to generate reset code for user during password reset. Error: " + err.Error())
 		context.JSON(http.StatusInternalServerError, gin.H{"message": "Error."})

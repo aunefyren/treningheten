@@ -80,7 +80,7 @@ self.addEventListener('notificationclose', event => {
         console.log('Closed notification: ' + primaryKey);
 
     } catch(e) {
-        console.log("Failed to click notfication. Error: " + e)
+        console.log("Failed to click notification. Error: " + e)
     }
 });
 
@@ -103,7 +103,7 @@ self.addEventListener('notificationclick', event => {
         console.log('Clicked notification: ' + primaryKey);
     
     } catch(e) {
-        console.log("Failed to click notfication. Error: " + e)
+        console.log("Failed to click notification. Error: " + e)
     }
 
     // TODO 5.3 - close all notifications when one is clicked
@@ -151,7 +151,7 @@ self.addEventListener('push', function(event) {
         let jsonData = event.data?.json() ?? {
             category: "general",
             title: "Error",
-            body: "An error occured"
+            body: "An error occurred"
         };
 
         console.log("JSON: " + JSON.stringify(jsonData));
@@ -196,7 +196,7 @@ self.addEventListener('push', function(event) {
         );
 
     } catch(e) {
-        console.log("Failed to push notfication. Error: " + e)
+        console.log("Failed to push notification. Error: " + e)
     }
 
 });
