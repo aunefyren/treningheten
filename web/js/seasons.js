@@ -299,7 +299,7 @@ function place_leaderboard(weeks_array, season_id) {
                 }
 
                 var completion = "❌"
-                if(resultDate > weekDate) {
+                if(resultDate > weekDate && weeks_array[i].users[j].week_completion < 1) {
                     completion = "🕙"
                 } else if(weeks_array[i].users[j].sickleave) {
                     completion = "🤢"

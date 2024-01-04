@@ -136,9 +136,7 @@ func GenerateDebtForWeek(givenTime time.Time) (models.WeekResults, error) {
 
 	for _, user := range lastWeek.UserWeekResults {
 
-		if user.GoalJoinDate.After(givenTime) {
-			continue
-		} else if user.Competing && user.WeekCompletion < 1 && !user.Sickleave {
+		if user.Competing && user.WeekCompletion < 1 && !user.Sickleave && user.GoalJoinDate.After(givenTime) {
 			losers = append(losers, user.User)
 		} else if user.Competing && user.WeekCompletion >= 1 && !user.Sickleave {
 			winners = append(winners, user.User)
@@ -580,7 +578,7 @@ func APIChooseWinnerForDebt(context *gin.Context) {
 	// Find weeks winners
 	for _, user := range lastWeek.UserWeekResults {
 
-		if user.Competing && user.WeekCompletion >= 1 && !user.Sickleave && user.GoalJoinDate.Before(debtObject.Date) {
+		if user.Competing && user.WeekCompletion >= 1 && !user.Sickleave {
 			userWithTickets := models.UserWithTickets{
 				User:    user.User,
 				Tickets: user.CurrentStreak + 1,
