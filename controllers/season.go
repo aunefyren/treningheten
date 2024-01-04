@@ -514,7 +514,7 @@ func GetWeekResultForGoal(goal models.Goal, currentTime time.Time, userStreaks [
 	}
 
 	// Found in streak, retrieve current streak
-	if currentTime.Before(newResult.GoalJoinDate) {
+	if currentTime.Before(newResult.GoalJoinDate) && newResult.WeekCompletion < 1 {
 		newResult.CurrentStreak = userStreaks[userIndex].Streak
 		userStreaks[userIndex].Streak = 0
 	} else if sickleaveFound && sickleave.Used {
