@@ -188,6 +188,12 @@ func GetUser(context *gin.Context) {
 		}
 		user_object.Email = complete_user.Email
 		user_object.SundayAlert = complete_user.SundayAlert
+	} else {
+		// Give achievement for visiting another user's profile
+		err := GiveUserAnAchievement(requesterUserID, uuid.MustParse("cbd81cd0-4caf-438b-989b-b5ca7e76605d"), time.Now())
+		if err != nil {
+			log.Println("Failed to give achievement for user '" + requesterUserID.String() + "'. Ignoring. Error: " + err.Error())
+		}
 	}
 
 	// Reply

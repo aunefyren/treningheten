@@ -223,14 +223,14 @@ func CreateDefaultAchievements() error {
 	tenAchievement.ID = uuid.MustParse("ca6a4692-153b-47a7-8444-457b906d0666")
 	achievements = append(achievements, tenAchievement)
 
-	fiteenAchievement := models.Achievement{
+	fifteenAchievement := models.Achievement{
 		Name:          "15 weeks",
 		Description:   "Get a 15 week streak.",
 		Category:      "Default",
 		CategoryColor: "lightblue",
 	}
-	fiteenAchievement.ID = uuid.MustParse("2a84df89-9976-443b-a093-19f8d73b5eff")
-	achievements = append(achievements, fiteenAchievement)
+	fifteenAchievement.ID = uuid.MustParse("2a84df89-9976-443b-a093-19f8d73b5eff")
+	achievements = append(achievements, fifteenAchievement)
 
 	twentyAchievement := models.Achievement{
 		Name:          "20 weeks",
@@ -348,6 +348,33 @@ func CreateDefaultAchievements() error {
 	}
 	fourthAdventAchievement.ID = uuid.MustParse("720b036c-7d24-418f-88e6-a0e84147efda")
 	achievements = append(achievements, fourthAdventAchievement)
+
+	mondaysAchievement := models.Achievement{
+		Name:          "I hate Mondays",
+		Description:   "Exercise on a Monday.",
+		Category:      "Default",
+		CategoryColor: "lightblue",
+	}
+	mondaysAchievement.ID = uuid.MustParse("47f04b1f-4e19-40fe-ace3-3afa18378751")
+	achievements = append(achievements, mondaysAchievement)
+
+	drewBloodAchievement := models.Achievement{
+		Name:          "They drew first blood",
+		Description:   "Be the only victor in a week.",
+		Category:      "Default",
+		CategoryColor: "lightblue",
+	}
+	drewBloodAchievement.ID = uuid.MustParse("6cc0f1b0-c894-4b12-a9ed-569cdfde3b16")
+	achievements = append(achievements, drewBloodAchievement)
+
+	creeperAchievement := models.Achievement{
+		Name:          "Creeper",
+		Description:   "Visit another user's profile.",
+		Category:      "Default",
+		CategoryColor: "lightblue",
+	}
+	creeperAchievement.ID = uuid.MustParse("cbd81cd0-4caf-438b-989b-b5ca7e76605d")
+	achievements = append(achievements, creeperAchievement)
 
 	for _, achievement := range achievements {
 
@@ -484,7 +511,17 @@ func GenerateAchievementsForWeek(weekResults models.WeekResults) error {
 		return errors.New("Failed to find next Sunday.")
 	}
 
+	winnerUserIDs := []uuid.UUID{}
+	loserUserIDs := []uuid.UUID{}
+
 	for _, user := range weekResults.UserWeekResults {
+
+		// If a winner for the week
+		if user.WeekCompletion >= 1.0 && !user.Sickleave {
+			winnerUserIDs = append(winnerUserIDs, user.User.ID)
+		} else if user.WeekCompletion < 1.0 && !user.Sickleave {
+			loserUserIDs = append(loserUserIDs, user.User.ID)
+		}
 
 		if user.WeekCompletion > 1.0 {
 
@@ -664,6 +701,15 @@ func GenerateAchievementsForWeek(weekResults models.WeekResults) error {
 
 			}
 
+			// If Monday, give Monday achievement
+			if dayWeekday == 1 {
+				// Give achievement to user
+				err := GiveUserAnAchievement(user.User.ID, uuid.MustParse("47f04b1f-4e19-40fe-ace3-3afa18378751"), day.Date)
+				if err != nil {
+					log.Println("Failed to give achievement for user '" + user.User.ID.String() + "'. Ignoring. Error: " + err.Error())
+				}
+			}
+
 			if day.ExerciseInterval == 0 {
 				everyday = false
 			}
@@ -690,7 +736,7 @@ func GenerateAchievementsForWeek(weekResults models.WeekResults) error {
 
 		}
 
-		// If exercise occured on a weekend, and not a weekday
+		// If exercise occurred on a weekend, and not a weekday
 		if !weekday && weekend {
 
 			// Give achievement to user for only exercising on the weekend
@@ -712,6 +758,15 @@ func GenerateAchievementsForWeek(weekResults models.WeekResults) error {
 
 		}
 
+	}
+
+	// If there is one winner, give achievement
+	if len(winnerUserIDs) == 1 && len(loserUserIDs) > 0 {
+		// Give achievement to user
+		err := GiveUserAnAchievement(winnerUserIDs[0], uuid.MustParse("6cc0f1b0-c894-4b12-a9ed-569cdfde3b16"), sundayDate)
+		if err != nil {
+			log.Println("Failed to give achievement for user '" + winnerUserIDs[0].String() + "'. Ignoring. Error: " + err.Error())
+		}
 	}
 
 	return nil
