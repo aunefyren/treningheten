@@ -702,7 +702,7 @@ func GenerateAchievementsForWeek(weekResults models.WeekResults) error {
 			}
 
 			// If Monday, give Monday achievement
-			if dayWeekday == 1 {
+			if dayWeekday == 1 && day.ExerciseInterval >= 1 {
 				// Give achievement to user
 				err := GiveUserAnAchievement(user.User.ID, uuid.MustParse("47f04b1f-4e19-40fe-ace3-3afa18378751"), day.Date)
 				if err != nil {
