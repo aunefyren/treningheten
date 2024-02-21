@@ -147,8 +147,16 @@ func GenerateDebtForWeek(givenTime time.Time) (models.WeekResults, error) {
 		givenTimeWeekStart = givenTimeWeekStart.Round(0)
 	}
 
+	// Debug line
+	log.Println("Timeframe week start: ")
+	log.Println(givenTimeWeekStart)
+
 	// Find losers and winners
 	for _, user := range lastWeek.UserWeekResults {
+		// Debug log message
+		log.Println("Potential winner/loser: ")
+		log.Println(user)
+
 		if user.Competing && user.WeekCompletion < 1 && !user.Sickleave && givenTimeWeekStart.After(user.GoalJoinDate) {
 			losers = append(losers, user.User)
 		} else if user.Competing && user.WeekCompletion >= 1 && !user.Sickleave {
