@@ -134,14 +134,26 @@ func GenerateDebtForWeek(givenTime time.Time) (models.WeekResults, error) {
 	winners := []models.User{}
 	losers := []models.User{}
 
-	for _, user := range lastWeek.UserWeekResults {
+	// Find week start
+	givenTimeWeekStart, err := utilities.FindEarlierMonday(givenTime)
+	if err != nil {
+		log.Println("Failed to find earliest point in given time. Error: " + err.Error())
+		return models.WeekResults{}, errors.New("Failed to find earliest point in given time.")
+	}
 
-		if user.Competing && user.WeekCompletion < 1 && !user.Sickleave && user.GoalJoinDate.After(givenTime) {
+	// Clean away time
+	hours, minutes, seconds := givenTimeWeekStart.Clock()
+	if hours != 0 || minutes != 0 || seconds != 0 {
+		givenTimeWeekStart = givenTimeWeekStart.Round(0)
+	}
+
+	// Find losers and winners
+	for _, user := range lastWeek.UserWeekResults {
+		if user.Competing && user.WeekCompletion < 1 && !user.Sickleave && user.GoalJoinDate.Before(givenTimeWeekStart) {
 			losers = append(losers, user.User)
 		} else if user.Competing && user.WeekCompletion >= 1 && !user.Sickleave {
 			winners = append(winners, user.User)
 		}
-
 	}
 
 	winner := &uuid.UUID{}

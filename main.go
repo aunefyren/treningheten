@@ -12,7 +12,6 @@ import (
 	"flag"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"log"
 	"net/http"
 	"os"
@@ -75,23 +74,19 @@ func main() {
 	Config, err := config.GetConfig()
 	if err != nil {
 		log.Println("Failed to load configuration file. Error: " + err.Error())
-		fmt.Println("Failed to load configuration file. Error: " + err.Error())
 
 		os.Exit(1)
 	}
 	log.Println("Configuration file loaded.")
-	fmt.Println("Configuration file loaded.")
 
 	// Change the config to respect flags
 	Config, generateInvite, upgradeToV2, err := parseFlags(Config)
 	if err != nil {
 		log.Println("Failed to parse input flags. Error: " + err.Error())
-		fmt.Println("Failed to parse input flags. Error: " + err.Error())
 
 		os.Exit(1)
 	}
 	log.Println("Flags parsed.")
-	fmt.Println("Flags parsed.")
 
 	if upgradeToV2 {
 		utilities.MigrateDBToV2()
@@ -102,16 +97,12 @@ func main() {
 	if Config.Timezone != "" {
 		loc, err := time.LoadLocation(Config.Timezone)
 		if err != nil {
-			fmt.Println("Failed to set time zone from config. Error: " + err.Error())
-			fmt.Println("Removing value...")
-
 			log.Println("Failed to set time zone from config. Error: " + err.Error())
 			log.Println("Removing value...")
 
 			Config.Timezone = ""
 			err = config.SaveConfig(Config)
 			if err != nil {
-				fmt.Println("Failed to set new time zone in the config. Error: " + err.Error())
 				log.Println("Failed to set new time zone in the config. Error: " + err.Error())
 
 				os.Exit(1)
@@ -122,10 +113,8 @@ func main() {
 		}
 	}
 	log.Println("Timezone set.")
-	fmt.Println("Timezone set.")
 
 	if Config.PrivateKey == "" || len(Config.PrivateKey) < 16 {
-		fmt.Println("Creating new private key.")
 		log.Println("Creating new private key.")
 
 		Config.PrivateKey = randstr.Hex(32)
@@ -134,21 +123,17 @@ func main() {
 
 	err = auth.SetPrivateKey(Config.PrivateKey)
 	if Config.PrivateKey == "" || len(Config.PrivateKey) < 16 {
-		fmt.Println("Failed to set private key. Error: " + err.Error())
 		log.Println("Failed to set private key. Error: " + err.Error())
 
 		os.Exit(1)
 	}
 	log.Println("Private key set.")
-	fmt.Println("Private key set.")
 
 	// Initialize Database
-	fmt.Println("Connecting to database...")
 	log.Println("Connecting to database...")
 
 	err = database.Connect(Config.DBUsername, Config.DBPassword, Config.DBIP, Config.DBPort, Config.DBName)
 	if err != nil {
-		fmt.Println("Failed to connect to database. Error: " + err.Error())
 		log.Println("Failed to connect to database. Error: " + err.Error())
 
 		os.Exit(1)
@@ -156,7 +141,6 @@ func main() {
 	database.Migrate()
 
 	log.Println("Database connected.")
-	fmt.Println("Database connected.")
 
 	achievementsFound, err := controllers.CheckIfAchievementsExist()
 	if err != nil {
@@ -174,12 +158,10 @@ func main() {
 	if generateInvite {
 		invite, err := database.GenerateRandomInvite()
 		if err != nil {
-			fmt.Println("Failed to generate random invitation code. Error: " + err.Error())
 			log.Println("Failed to generate random invitation code. Error: " + err.Error())
 
 			os.Exit(1)
 		}
-		fmt.Println("Generated new invite code. Code: " + invite)
 		log.Println("Generated new invite code. Code: " + invite)
 	}
 
@@ -208,7 +190,6 @@ func main() {
 	router := initRouter()
 
 	log.Println("Router initialized.")
-	fmt.Println("Router initialized.")
 
 	log.Fatal(router.Run(":" + strconv.Itoa(Config.TreninghetenPort)))
 
@@ -395,27 +376,27 @@ func initRouter() *gin.Engine {
 
 	// Static endpoint for service-worker
 	router.GET("/service-worker.js", func(c *gin.Context) {
-		JSfile, err := ioutil.ReadFile("./web/js/service-worker.js")
+		JSfile, err := os.ReadFile("./web/js/service-worker.js")
 		if err != nil {
-			fmt.Println("Reading service-worker threw error trying to open the file. Error: " + err.Error())
+			log.Println("Reading service-worker threw error trying to open the file. Error: " + err.Error())
 		}
 		c.Data(http.StatusOK, "text/javascript", JSfile)
 	})
 
 	// Static endpoint for manifest
 	router.GET("/manifest.json", func(c *gin.Context) {
-		JSONfile, err := ioutil.ReadFile("./web/json/manifest.json")
+		JSONfile, err := os.ReadFile("./web/json/manifest.json")
 		if err != nil {
-			fmt.Println("Reading manifest threw error trying to open the file. Error: " + err.Error())
+			log.Println("Reading manifest threw error trying to open the file. Error: " + err.Error())
 		}
 		c.Data(http.StatusOK, "text/json", JSONfile)
 	})
 
 	// Static endpoint for robots.txt
 	router.GET("/robots.txt", func(c *gin.Context) {
-		TXTfile, err := ioutil.ReadFile("./web/txt/robots.txt")
+		TXTfile, err := os.ReadFile("./web/txt/robots.txt")
 		if err != nil {
-			fmt.Println("Reading manifest threw error trying to open the file. Error: " + err.Error())
+			log.Println("Reading manifest threw error trying to open the file. Error: " + err.Error())
 		}
 		c.Data(http.StatusOK, "text/plain", TXTfile)
 	})
