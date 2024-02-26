@@ -8,11 +8,12 @@ import (
 
 type Achievement struct {
 	GormModel
-	Enabled       bool   `json:"enabled" gorm:"not null; default: true"`
-	Name          string `json:"name" gorm:"not null"`
-	Description   string `json:"description" gorm:"not null"`
-	Category      string `json:"category" gorm:"default: Default;"`
-	CategoryColor string `json:"category_color" gorm:"default: #778da9;"`
+	Enabled          bool   `json:"enabled" gorm:"not null; default: true"`
+	Name             string `json:"name" gorm:"not null"`
+	Description      string `json:"description" gorm:"not null"`
+	Category         string `json:"category" gorm:"default: Default;"`
+	CategoryColor    string `json:"category_color" gorm:"default: #778da9;"`
+	AchievementOrder int    `json:"achievement_order" gorm:"default: 1;"`
 }
 
 type AchievementDelegation struct {
@@ -33,5 +34,6 @@ type AchievementUserObject struct {
 	Description           string                 `json:"description"`
 	Category              string                 `json:"category"`
 	CategoryColor         string                 `json:"category_color"`
+	AchievementOrder      int                    `json:"achievement_order"`
 	AchievementDelegation *AchievementDelegation `json:"achievement_delegation"`
 }

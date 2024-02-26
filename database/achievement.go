@@ -12,7 +12,7 @@ func GetAllEnabledAchievements() ([]models.Achievement, error) {
 
 	var achievementStruct []models.Achievement
 
-	achievementRecord := Instance.Order("category DESC, name ASC").Where("`achievements`.enabled = ?", 1).Find(&achievementStruct)
+	achievementRecord := Instance.Order("category DESC, achievement_order ASC").Where("`achievements`.enabled = ?", 1).Find(&achievementStruct)
 	if achievementRecord.Error != nil {
 		return []models.Achievement{}, achievementRecord.Error
 	} else if achievementRecord.RowsAffected == 0 {

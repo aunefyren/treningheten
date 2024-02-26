@@ -143,10 +143,11 @@ func CreateDefaultAchievements() error {
 	achievements = append(achievements, winAchievement)
 
 	anotherAchievement := models.Achievement{
-		Name:          "Another one",
-		Description:   "Exercise more than once in a day.",
-		Category:      "Default",
-		CategoryColor: "lightblue",
+		Name:             "Another one",
+		Description:      "Exercise more than once in a day.",
+		Category:         "Default",
+		CategoryColor:    "lightblue",
+		AchievementOrder: 11,
 	}
 	anotherAchievement.ID = uuid.MustParse("51c48b42-4429-4b82-8fb2-d2bb2bfe907a")
 	achievements = append(achievements, anotherAchievement)
@@ -170,10 +171,11 @@ func CreateDefaultAchievements() error {
 	achievements = append(achievements, mayAchievement)
 
 	christmasAchievement := models.Achievement{
-		Name:          "The gift of lifting",
-		Description:   "Exercise on the 24th of December.",
-		Category:      "Christmas",
-		CategoryColor: "lightgreen",
+		Name:             "The gift of lifting",
+		Description:      "Exercise on the 24th of December.",
+		Category:         "Christmas",
+		CategoryColor:    "lightgreen",
+		AchievementOrder: 5,
 	}
 	christmasAchievement.ID = uuid.MustParse("c4a131a6-2aa6-49fb-98e5-fa797152a9a4")
 	achievements = append(achievements, christmasAchievement)
@@ -206,46 +208,51 @@ func CreateDefaultAchievements() error {
 	achievements = append(achievements, easyAchievement)
 
 	threeAchievement := models.Achievement{
-		Name:          "Three weeks",
-		Description:   "Get a three week streak.",
-		Category:      "Default",
-		CategoryColor: "lightblue",
+		Name:             "Three weeks",
+		Description:      "Get a three week streak.",
+		Category:         "Default",
+		CategoryColor:    "lightblue",
+		AchievementOrder: 5,
 	}
 	threeAchievement.ID = uuid.MustParse("8875597e-d8f5-4514-b96f-c51ecce4eb1f")
 	achievements = append(achievements, threeAchievement)
 
 	tenAchievement := models.Achievement{
-		Name:          "10 weeks",
-		Description:   "Get a 10 week streak.",
-		Category:      "Default",
-		CategoryColor: "lightblue",
+		Name:             "10 weeks",
+		Description:      "Get a 10 week streak.",
+		Category:         "Default",
+		CategoryColor:    "lightblue",
+		AchievementOrder: 6,
 	}
 	tenAchievement.ID = uuid.MustParse("ca6a4692-153b-47a7-8444-457b906d0666")
 	achievements = append(achievements, tenAchievement)
 
 	fifteenAchievement := models.Achievement{
-		Name:          "15 weeks",
-		Description:   "Get a 15 week streak.",
-		Category:      "Default",
-		CategoryColor: "lightblue",
+		Name:             "15 weeks",
+		Description:      "Get a 15 week streak.",
+		Category:         "Default",
+		CategoryColor:    "lightblue",
+		AchievementOrder: 7,
 	}
 	fifteenAchievement.ID = uuid.MustParse("2a84df89-9976-443b-a093-19f8d73b5eff")
 	achievements = append(achievements, fifteenAchievement)
 
 	twentyAchievement := models.Achievement{
-		Name:          "20 weeks",
-		Description:   "Get a 20 week streak.",
-		Category:      "Default",
-		CategoryColor: "lightblue",
+		Name:             "20 weeks",
+		Description:      "Get a 20 week streak.",
+		Category:         "Default",
+		CategoryColor:    "lightblue",
+		AchievementOrder: 8,
 	}
 	twentyAchievement.ID = uuid.MustParse("09da2ab1-393d-4c43-a1d0-daa45520b49f")
 	achievements = append(achievements, twentyAchievement)
 
 	completeAchievement := models.Achievement{
-		Name:          "Fun run",
-		Description:   "Complete every week in a season.",
-		Category:      "Season",
-		CategoryColor: "yellow-light",
+		Name:             "Fun run",
+		Description:      "Complete every week in a season.",
+		Category:         "Season",
+		CategoryColor:    "yellow-light",
+		AchievementOrder: 9,
 	}
 	completeAchievement.ID = uuid.MustParse("01dc9c4b-cf65-4d3c-9596-1417b67bd86f")
 	achievements = append(achievements, completeAchievement)
@@ -269,10 +276,11 @@ func CreateDefaultAchievements() error {
 	achievements = append(achievements, deadAchievement)
 
 	fullAchievement := models.Achievement{
-		Name:          "The boyband",
-		Description:   "Exercise three times in a day.",
-		Category:      "Default",
-		CategoryColor: "lightblue",
+		Name:             "The boyband",
+		Description:      "Exercise three times in a day.",
+		Category:         "Default",
+		CategoryColor:    "lightblue",
+		AchievementOrder: 12,
 	}
 	fullAchievement.ID = uuid.MustParse("c92178b4-753a-4624-a7f6-ae5afd0a9ca3")
 	achievements = append(achievements, fullAchievement)
@@ -305,46 +313,51 @@ func CreateDefaultAchievements() error {
 	achievements = append(achievements, shameAchievement)
 
 	immuneAchievement := models.Achievement{
-		Name:          "Superior immune system",
-		Description:   "Don't use any sick leave throughout a season.",
-		Category:      "Season",
-		CategoryColor: "yellow-light",
+		Name:             "Superior immune system",
+		Description:      "Don't use any sick leave throughout a season.",
+		Category:         "Season",
+		CategoryColor:    "yellow-light",
+		AchievementOrder: 10,
 	}
 	immuneAchievement.ID = uuid.MustParse("b566e486-d476-40f1-a9f2-28035bb43f37")
 	achievements = append(achievements, immuneAchievement)
 
 	firstAdventAchievement := models.Achievement{
-		Name:          "Advent (1)",
-		Description:   "Exercise on the first Sunday in Advent.",
-		Category:      "Christmas",
-		CategoryColor: "lightgreen",
+		Name:             "Advent (1)",
+		Description:      "Exercise on the first Sunday in Advent.",
+		Category:         "Christmas",
+		CategoryColor:    "lightgreen",
+		AchievementOrder: 1,
 	}
 	firstAdventAchievement.ID = uuid.MustParse("5276382c-fdae-410b-a298-5107a3ff3089")
 	achievements = append(achievements, firstAdventAchievement)
 
 	secondAdventAchievement := models.Achievement{
-		Name:          "Advent (2)",
-		Description:   "Exercise on the second Sunday in Advent.",
-		Category:      "Christmas",
-		CategoryColor: "lightgreen",
+		Name:             "Advent (2)",
+		Description:      "Exercise on the second Sunday in Advent.",
+		Category:         "Christmas",
+		CategoryColor:    "lightgreen",
+		AchievementOrder: 2,
 	}
 	secondAdventAchievement.ID = uuid.MustParse("6c991ba6-d0ae-4022-9410-6558e376ec5e")
 	achievements = append(achievements, secondAdventAchievement)
 
 	thirdAdventAchievement := models.Achievement{
-		Name:          "Advent (3)",
-		Description:   "Exercise on the third Sunday in Advent.",
-		Category:      "Christmas",
-		CategoryColor: "lightgreen",
+		Name:             "Advent (3)",
+		Description:      "Exercise on the third Sunday in Advent.",
+		Category:         "Christmas",
+		CategoryColor:    "lightgreen",
+		AchievementOrder: 3,
 	}
 	thirdAdventAchievement.ID = uuid.MustParse("7ef923b5-21aa-4478-a658-68078f499620")
 	achievements = append(achievements, thirdAdventAchievement)
 
 	fourthAdventAchievement := models.Achievement{
-		Name:          "Advent (4)",
-		Description:   "Exercise on the last Sunday in Advent.",
-		Category:      "Christmas",
-		CategoryColor: "lightgreen",
+		Name:             "Advent (4)",
+		Description:      "Exercise on the last Sunday in Advent.",
+		Category:         "Christmas",
+		CategoryColor:    "lightgreen",
+		AchievementOrder: 4,
 	}
 	fourthAdventAchievement.ID = uuid.MustParse("720b036c-7d24-418f-88e6-a0e84147efda")
 	achievements = append(achievements, fourthAdventAchievement)
@@ -411,6 +424,7 @@ func ConvertAchievementDelegationToAchievementUserObject(achievementDelegation m
 		Enabled:               achievement.Enabled,
 		Category:              achievement.Category,
 		CategoryColor:         achievement.CategoryColor,
+		AchievementOrder:      achievement.AchievementOrder,
 		AchievementDelegation: &achievementDelegation,
 	}
 	achievementObject.ID = achievement.ID
