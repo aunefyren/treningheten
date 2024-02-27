@@ -28,6 +28,7 @@ type ExerciseDayObject struct {
 
 type ExerciseDayUpdateRequest struct {
 	Note string `json:"note"`
+
 }
 
 type Exercise struct {
