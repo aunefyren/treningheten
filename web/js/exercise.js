@@ -35,11 +35,14 @@ function load_page(result) {
                             <div class="exerciseDayWrapper" id="exerciseDayWrapper">
                                 <p id="exercise-day-date" style="text-align: center;">...</p>
                                 <p id="exercise-day-exercise-goal" style="text-align: center;">...</p>
-                                <p id="exercise-day-note" style="text-align: center;"></p>
+
+                                <textarea class="day-note-area" id="exercise-day-note" name="exercise-day-exercise-note" rows="3" cols="33" placeholder="Notes" style="margin-top: 1em;"></textarea>
+                            
+                                <button type="submit" onclick="updateExerciseDay('${exerciseDayID}');" id="updateExerciseDayButton" style="margin-bottom: 0em;"><img src="/assets/done.svg" class="btn_logo color-invert"><p2>Save</p2></button>
                             </div>
                         </div>
 
-                        <hr class="invert" style="border: 0.025em solid var(--white); margin: 2em 0;">
+                        <hr class="invert" style="border: 0.025em solid var(--white); margin: 4em 0;">
 
                         <div class="exercisesWrapper" id="exercisesWrapper"></div>
 
@@ -95,7 +98,7 @@ function getExerciseDay(exerciseDayID) {
         }
     };
     xhttp.withCredentials = true;
-    xhttp.open("get", api_url + "auth/exercises/" + exerciseDayID);
+    xhttp.open("get", api_url + "auth/exercise-days/" + exerciseDayID);
     xhttp.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
     xhttp.setRequestHeader("Authorization", jwt);
     xhttp.send();
@@ -111,12 +114,9 @@ function placeExerciseDay(exerciseDay) {
         console.log("Error: " + e)
     }
 
-    document.getElementById('exercise-day-date').innerHTML = "Date: " + dateString;
+    document.getElementById('exercise-day-date').innerHTML = "<b>Date: " + dateString + "</b>";
     document.getElementById('exercise-day-exercise-goal').innerHTML = "Exercise goal for week: " + exerciseDay.goal.exercise_interval;
-
-    if(exerciseDay.note) {
-        document.getElementById('exercise-day-note').innerHTML = "Note: " + exerciseDay.note;
-    }
+    document.getElementById('exercise-day-note').innerHTML = exerciseDay.note;
 
     placeExercises(exerciseDay.exercises);
 }
@@ -150,11 +150,15 @@ function placeExercises(exercises) {
         var exerciseHTML = `
             ${restoreHTML}
             <div class="exerciseWrapper ${onHTML}" id="exercise-${exercise.id}">
-                <h2>Session ${counter}</h2>
-                ${noteHTML}
+                <h2 style="">Session ${counter}</h2>
+
+                <textarea class="day-note-area" id="exercise-note-${exercise.id}" name="exercise-exercise-note" rows="3" cols="33" placeholder="Notes" style="margin-top: 1em; width: 20em;"></textarea>
+
                 <div class="operationsWrapper" id="operationsWrapper">${operationsHTML}</div>
+
+                <button type="submit" onclick="updateExercise('${exercise.id}');" id="updateExerciseButton" style="margin-bottom: 0em; margin-top: 2em; width: 8em;"><img src="/assets/done.svg" class="btn_logo color-invert"><p2>Save</p2></button>
             </div>
-            <hr class="invert" style="border: 0.025em solid var(--white); margin: 2em 0;">
+            <hr class="invert" style="border: 0.025em solid var(--white); margin: 4em 0;">
         `;
         exercisesHTML += exerciseHTML;
         counter += 1;
@@ -189,8 +193,6 @@ function generateOperationsHTML(operations, exerciseID) {
 function generateOperationSetsHTML(operationSets, operationID) {
     operationSetsHTML = ""; 
 
-    console.log(operationSets)
-
     operationSets.forEach(operationSet => {
         operationSetHTML = `
             <div class="operationSetWrapper" id="operation-set-${operationSet.id}">
@@ -209,4 +211,46 @@ function generateOperationSetsHTML(operationSets, operationID) {
     `;
 
     return operationSetsHTML;
+}
+
+function updateExerciseDay(exerciseDayID) {
+    var exerciseDayNote = document.getElementById("exercise-day-note").value;
+
+    console.log(exerciseDayNote)
+
+    var form_obj = {
+        "note": exerciseDayNote
+    };
+
+    var form_data = JSON.stringify(form_obj);
+
+    var xhttp = new XMLHttpRequest();
+    xhttp.onreadystatechange = function() {
+        if (this.readyState == 4) {
+            
+            try {
+                result = JSON.parse(this.responseText);
+            } catch(e) {
+                console.log(e +' - Response: ' + this.responseText);
+                error("Could not reach API.");
+                return;
+            }
+            
+            if(result.error) {
+                error(result.error);
+            } else {
+                document.getElementById('exercise-day-note').innerHTML = result.exercise_day.note;
+                success("Saved.")
+            }
+
+        } else {
+            info("Updating...");
+        }
+    };
+    xhttp.withCredentials = true;
+    xhttp.open("post", api_url + "auth/exercise-days/" + exerciseDayID);
+    xhttp.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
+    xhttp.setRequestHeader("Authorization", jwt);
+    xhttp.send(form_data);
+    return false;
 }

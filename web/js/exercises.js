@@ -280,7 +280,7 @@ function get_exercises(goalID){
         }
     };
     xhttp.withCredentials = true;
-    xhttp.open("get", api_url + "auth/exercises?goal=" + goalID);
+    xhttp.open("get", api_url + "auth/exercise-days?goal=" + goalID);
     xhttp.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
     xhttp.setRequestHeader("Authorization", jwt);
     xhttp.send();

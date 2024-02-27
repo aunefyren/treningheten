@@ -1958,10 +1958,10 @@ input[type=checkbox]
   width: -webkit-fill-available;
   width: -moz-available;
   display: flex;
-  flex-direction: row;
+  flex-direction: column;
   flex-wrap: wrap;
   align-content: center;
-  justify-content: start;
+  justify-content: center;
   align-items: center;
 }
 
@@ -1977,7 +1977,7 @@ input[type=checkbox]
   align-items: center;
   margin: 1em;
   overflow-x: scroll;
-  box-sizing: content-box;
+  box-sizing: border-box;
 }
 
 .operationWrapper {
@@ -1986,6 +1986,13 @@ input[type=checkbox]
   background-color: var(--white);
   border-radius: 10%;
   margin: 1em;
+  display: flex;
+  flex-direction: column;
+  flex-wrap: wrap;
+  align-content: center;
+  justify-content: start;
+  align-items: center;
+  box-sizing: inherit;
 }
 
 .addOperationWrapper{
@@ -2003,17 +2010,16 @@ input[type=checkbox]
 }
 
 .operationSetWrapper {
-  width: 100%;
-  width: -webkit-fill-available;
-  width: -moz-available;
+  width: 15em;
+  padding: 0 0.5em;
   display: flex;
   flex-direction: row;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   align-content: center;
   justify-content: space-between;
   align-items: center;
   margin: 1em;
-  box-sizing: content-box;
+  box-sizing: inherit;
 }
 
 .operation-set {
@@ -2034,7 +2040,7 @@ input[type=checkbox]
   align-content: center;
   justify-content: center;
   align-items: center;
-  margin: auto;
+  margin: 0 auto;
 }
 
 .restoreExerciseWrapper {

@@ -26,6 +26,10 @@ type ExerciseDayObject struct {
 	Exercises        []ExerciseObject `json:"exercises"`
 }
 
+type ExerciseDayUpdateRequest struct {
+	Note string `json:"note"`
+}
+
 type Exercise struct {
 	GormModel
 	Note          string      `json:"note"`
