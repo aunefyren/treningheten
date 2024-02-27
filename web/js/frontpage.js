@@ -539,7 +539,7 @@ function place_week(week, fireworks) {
 
     // Place editing icon for exercise
     for(var i = 1; i <= day; i++) {
-        // document.getElementById("day_" + i + "_edit").style.display = "flex" // Disabled because not ready
+        document.getElementById("day_" + i + "_edit").style.display = "flex" // Disabled because not ready
     }
 
     document.getElementById("workout_this_week").innerText  = fireworks_int
@@ -1168,7 +1168,7 @@ function EditExercise(weekdayInt) {
 
 function GoToExercise(exerciseID) {
 
-    window.location = '/exercise/' + exerciseID
+    window.location = '/exercises/' + exerciseID
 
 }
 

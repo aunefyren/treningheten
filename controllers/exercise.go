@@ -645,6 +645,20 @@ func ConvertExerciseDayToExerciseDayObject(exerciseDay models.ExerciseDay) (exer
 
 	exerciseDayObject.Goal = goalObject
 
+	exercises, err := database.GetExerciseByExerciseDayID(exerciseDay.ID)
+	if err != nil {
+		log.Println("Failed to get exercises for day. Error: " + err.Error())
+		return exerciseDayObject, errors.New("Failed to get exercises for day.")
+	}
+
+	exerciseObjects, err := ConvertExercisesToExerciseObjects(exercises)
+	if err != nil {
+		log.Println("Failed to convert exercises to exercise objects. Error: " + err.Error())
+		return exerciseDayObject, errors.New("Failed to convert exercises to exercise objects.")
+	}
+
+	exerciseDayObject.Exercises = exerciseObjects
+
 	exerciseDayObject.CreatedAt = exerciseDay.CreatedAt
 	exerciseDayObject.Date = exerciseDay.CreatedAt
 	exerciseDayObject.DeletedAt = exerciseDay.DeletedAt
@@ -671,4 +685,80 @@ func ConvertExerciseDaysToExerciseDayObjects(exerciseDays []models.ExerciseDay) 
 	}
 
 	return
+}
+
+func ConvertExerciseToExerciseObject(exercise models.Exercise) (exerciseObject models.ExerciseObject, err error) {
+	exerciseObject = models.ExerciseObject{}
+	err = nil
+
+	operations, err := database.GetOperationsByExerciseID(exercise.ID)
+	if err != nil {
+		log.Println("Failed to get operations using exercise ID. Error: " + err.Error())
+		return exerciseObject, errors.New("Failed to get operations using exercise ID.")
+	}
+
+	operationObjects, err := ConvertOperationsToOperationObjects(operations)
+	if err != nil {
+		log.Println("Failed to convert operations to operation objects. Error: " + err.Error())
+		return exerciseObject, errors.New("Failed to convert operations to operation objects.")
+	}
+
+	exerciseObject.Operations = operationObjects
+
+	exerciseObject.CreatedAt = exercise.CreatedAt
+	exerciseObject.DeletedAt = exercise.DeletedAt
+	exerciseObject.Enabled = exercise.Enabled
+	exerciseObject.ExerciseDay = exercise.ExerciseDayID
+	exerciseObject.ID = exercise.ID
+	exerciseObject.Note = exercise.Note
+	exerciseObject.On = exercise.On
+	exerciseObject.UpdatedAt = exercise.UpdatedAt
+
+	return
+}
+
+func ConvertExercisesToExerciseObjects(exercises []models.Exercise) (exerciseObjects []models.ExerciseObject, err error) {
+	exerciseObjects = []models.ExerciseObject{}
+	err = nil
+
+	for _, exercise := range exercises {
+		exerciseObject, err := ConvertExerciseToExerciseObject(exercise)
+		if err != nil {
+			log.Println("Failed to convert exercise to exercise object. Ignoring... Error: " + err.Error())
+			continue
+		}
+		exerciseObjects = append(exerciseObjects, exerciseObject)
+	}
+
+	return
+}
+
+func APIGetExercise(context *gin.Context) {
+	var exerciseID = context.Param("exercise_id")
+
+	exerciseIDUUIID, err := uuid.Parse(exerciseID)
+	if err != nil {
+		context.JSON(http.StatusBadRequest, gin.H{"error": "Failed to parse ID."})
+		context.Abort()
+		return
+	}
+
+	exerciseDay, err := database.GetExerciseDayByID(exerciseIDUUIID)
+	if err != nil {
+		log.Println("Failed to get exercise day. Error: " + err.Error())
+		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get exercise day."})
+		context.Abort()
+		return
+	}
+
+	exerciseDayObject, err := ConvertExerciseDayToExerciseDayObject(exerciseDay)
+	if err != nil {
+		log.Println("Failed to get convert exercise day to exercise day object. Error: " + err.Error())
+		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get convert exercise day to exercise day object."})
+		context.Abort()
+		return
+	}
+
+	// Return a response with all news posts
+	context.JSON(http.StatusCreated, gin.H{"message": "Exercise day retrieved.", "exercise_day": exerciseDayObject})
 }

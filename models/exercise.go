@@ -11,18 +11,19 @@ type ExerciseDay struct {
 	Date             time.Time `json:"date" gorm:"not null"`
 	Note             string    `json:"note"`
 	Enabled          bool      `json:"enabled" gorm:"not null; default: true"`
-	GoalID           uuid.UUID `json:"goal_id" gorm:"type:varchar(100);"`
+	GoalID           uuid.UUID `json:"" gorm:"type:varchar(100);"`
 	Goal             Goal      `json:"goal" gorm:"not null"`
 	ExerciseInterval int       `json:"exercise_interval" gorm:"not null; default: 0"`
 }
 
 type ExerciseDayObject struct {
 	GormModel
-	Date             time.Time  `json:"date"`
-	Note             string     `json:"note"`
-	Enabled          bool       `json:"enabled"`
-	Goal             GoalObject `json:"goal"`
-	ExerciseInterval int        `json:"exercise_interval"`
+	Date             time.Time        `json:"date"`
+	Note             string           `json:"note"`
+	Enabled          bool             `json:"enabled"`
+	Goal             GoalObject       `json:"goal"`
+	ExerciseInterval int              `json:"exercise_interval"`
+	Exercises        []ExerciseObject `json:"exercises"`
 }
 
 type Exercise struct {
@@ -31,7 +32,16 @@ type Exercise struct {
 	Enabled       bool        `json:"enabled" gorm:"not null; default: true"`
 	On            bool        `json:"on" gorm:"not null; default: true"`
 	ExerciseDayID uuid.UUID   `json:"" gorm:"type:varchar(100);"`
-	ExerciseDay   ExerciseDay `json:"goal" gorm:"not null"`
+	ExerciseDay   ExerciseDay `json:"exercise_day" gorm:"not null"`
+}
+
+type ExerciseObject struct {
+	GormModel
+	Note        string            `json:"note"`
+	Enabled     bool              `json:"enabled"`
+	On          bool              `json:"on"`
+	ExerciseDay uuid.UUID         `json:"exercise_day"`
+	Operations  []OperationObject `json:"operations"`
 }
 
 type ExerciseDayCreationRequest struct {
