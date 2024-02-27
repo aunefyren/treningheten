@@ -408,7 +408,7 @@ func GetExercisesForWeekUsingGoal(timeReq time.Time, goalID uuid.UUID) (models.W
 }
 
 // Get full workout calender for the week from the database, and return to user
-func APIGetExercises(context *gin.Context) {
+func APIGetExerciseDays(context *gin.Context) {
 
 	// Get user ID
 	userID, err := middlewares.GetAuthUsername(context.GetHeader("Authorization"))
@@ -733,8 +733,9 @@ func ConvertExercisesToExerciseObjects(exercises []models.Exercise) (exerciseObj
 	return
 }
 
-func APIGetExercise(context *gin.Context) {
-	var exerciseID = context.Param("exercise_id")
+func APIGetExerciseDay(context *gin.Context) {
+	var exerciseID = context.Param("exercise_day_id")
+
 
 	exerciseIDUUIID, err := uuid.Parse(exerciseID)
 	if err != nil {
@@ -761,4 +762,68 @@ func APIGetExercise(context *gin.Context) {
 
 	// Return a response with all news posts
 	context.JSON(http.StatusCreated, gin.H{"message": "Exercise day retrieved.", "exercise_day": exerciseDayObject})
+}
+
+func APIUpdateExerciseDay(context *gin.Context) {
+	// Initialize variables
+	var exerciseDayUpdateRequest models.ExerciseDayUpdateRequest
+	var exerciseDay models.ExerciseDay
+	var exerciseDayID = context.Param("exercise_day_id")
+
+	// Parse creation request
+	if err := context.ShouldBindJSON(&exerciseDayUpdateRequest); err != nil {
+		log.Println("Failed to parse update request. Error: " + err.Error())
+		context.JSON(http.StatusBadRequest, gin.H{"error": "Failed to parse update request."})
+		context.Abort()
+		return
+	}
+
+	if len(strings.TrimSpace(exerciseDayUpdateRequest.Note)) > 255 {
+		context.JSON(http.StatusBadRequest, gin.H{"error": "The note is too long."})
+		context.Abort()
+		return
+	}
+
+	exerciseDayIDUUID, err := uuid.Parse(exerciseDayID)
+	if err != nil {
+		context.JSON(http.StatusBadRequest, gin.H{"error": "Failed to parse ID."})
+		context.Abort()
+		return
+	}
+
+	exerciseDay, err = database.GetExerciseDayByID(exerciseDayIDUUID)
+	if err != nil {
+		log.Println("Failed to get exercise day. Error: " + err.Error())
+		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get exercise day."})
+		context.Abort()
+		return
+	}
+
+	exerciseDay.Note = strings.TrimSpace(exerciseDayUpdateRequest.Note)
+
+	err = database.UpdateExerciseDayInDatabase(exerciseDay)
+	if err != nil {
+		log.Println("Failed to update exercise day. Error: " + err.Error())
+		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update exercise day."})
+		context.Abort()
+		return
+	}
+
+	exerciseDay, err = database.GetExerciseDayByID(exerciseDayIDUUID)
+	if err != nil {
+		log.Println("Failed to get exercise day. Error: " + err.Error())
+		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get exercise day."})
+		context.Abort()
+		return
+	}
+
+	exerciseDayObject, err := ConvertExerciseDayToExerciseDayObject(exerciseDay)
+	if err != nil {
+		log.Println("Failed to convert exercise day to exercise day object. Error: " + err.Error())
+		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to convert exercise day to exercise day object."})
+		context.Abort()
+		return
+	}
+
+	context.JSON(http.StatusCreated, gin.H{"message": "Exercise day update.", "exercise_day": exerciseDayObject})
 }
