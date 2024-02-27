@@ -1927,3 +1927,124 @@ input[type=checkbox]
   align-items: center;
   position: relative;
 }
+
+.addExerciseWrapper {
+  width: 6em;
+  height: 6em;
+  background-color: var(--trans-lightblue);
+  border-radius: 10%;
+  display: flex;
+  flex-direction: column;
+  flex-wrap: wrap;
+  align-content: center;
+  justify-content: center;
+  align-items: center;
+}
+
+.exercisesWrapper {
+  width: 100%;
+  width: -webkit-fill-available;
+  width: -moz-available;
+  display: flex;
+  flex-direction: column;
+  flex-wrap: wrap;
+  align-content: center;
+  justify-content: center;
+  align-items: center;
+}
+
+.exerciseWrapper {
+  width: 100%;
+  width: -webkit-fill-available;
+  width: -moz-available;
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-content: center;
+  justify-content: start;
+  align-items: center;
+}
+
+.operationsWrapper {
+  width: 100%;
+  width: -webkit-fill-available;
+  width: -moz-available;
+  display: flex;
+  flex-direction: row;
+  flex-wrap: nowrap;
+  align-content: center;
+  justify-content: start;
+  align-items: center;
+  margin: 1em;
+  overflow-x: scroll;
+  box-sizing: content-box;
+}
+
+.operationWrapper {
+  width: 15em;
+  height: 15em;
+  background-color: var(--white);
+  border-radius: 10%;
+  margin: 1em;
+}
+
+.addOperationWrapper{
+  width: 15em;
+  height: 15em;
+  background-color: var(--trans-lightblue);
+  border-radius: 10%;
+  display: flex;
+  flex-direction: column;
+  flex-wrap: wrap;
+  align-content: center;
+  justify-content: center;
+  align-items: center;
+  margin: 1em;
+}
+
+.operationSetWrapper {
+  width: 100%;
+  width: -webkit-fill-available;
+  width: -moz-available;
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-content: center;
+  justify-content: space-between;
+  align-items: center;
+  margin: 1em;
+  box-sizing: content-box;
+}
+
+.operation-set {
+  background-color: var(--eggshell);
+  padding: 0.25em 0.5em;
+  margin: 0.12em;
+  border-radius: 1em;
+}
+
+.addOperationSetWrapper {
+  width: 2em;
+  height: 2em;
+  background-color: var(--trans-lightblue);
+  border-radius: 10%;
+  display: flex;
+  flex-direction: column;
+  flex-wrap: wrap;
+  align-content: center;
+  justify-content: center;
+  align-items: center;
+  margin: auto;
+}
+
+.restoreExerciseWrapper {
+  width: 100%;
+  width: -webkit-fill-available;
+  width: -moz-available;
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-content: center;
+  justify-content: center;
+  align-items: center;
+}

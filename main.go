@@ -79,6 +79,11 @@ func main() {
 	}
 	log.Println("Configuration file loaded.")
 
+	// Set GIN mode
+	if Config.TreninghetenEnvironment != "test" {
+		gin.SetMode(gin.ReleaseMode)
+	}
+
 	// Change the config to respect flags
 	Config, generateInvite, upgradeToV2, err := parseFlags(Config)
 	if err != nil {
@@ -232,6 +237,7 @@ func initRouter() *gin.Engine {
 			auth.POST("/exercises/week", controllers.APIRegisterWeek)
 			auth.GET("/exercises/week", controllers.APIGetWeek)
 			auth.GET("/exercises", controllers.APIGetExercises)
+			auth.GET("/exercises/:exercise_id", controllers.APIGetExercise)
 
 			auth.POST("/sickleave", controllers.APIRegisterSickleave)
 
@@ -370,7 +376,7 @@ func initRouter() *gin.Engine {
 	})
 
 	// Static endpoint for editing exercise log
-	router.GET("/exercise/:exercise_id", func(c *gin.Context) {
+	router.GET("/exercises/:exercise_id", func(c *gin.Context) {
 		c.HTML(http.StatusOK, "exercise.html", nil)
 	})
 
