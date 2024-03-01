@@ -61,3 +61,26 @@ func UpdateExerciseByTurningOffByExerciseID(exerciseID uuid.UUID) error {
 	return nil
 
 }
+
+func GetExerciseByIDAndUserID(exerciseDayID uuid.UUID, userID uuid.UUID) (models.Exercise, error) {
+	var exercise models.Exercise
+
+	record := Instance.Where("`exercise_days`.enabled = ?", 1).
+		Where("`exercise_days`.id = ?", exerciseDayID).
+		Joins("JOIN `exercise_days` on `exercises`.exercise_day_id = `exercise_days`.id").
+		Where("`exercise_days`.enabled = ?", 1).
+		Joins("JOIN `goals` on `exercise_days`.goal_id = `goals`.id").
+		Where("`goals`.enabled = ?", 1).
+		Joins("JOIN `users` on `goals`.user_id = `users`.id").
+		Where("`users`.enabled = ?", 1).
+		Where("`users`.id = ?", userID).
+		Find(&exercise)
+
+	if record.Error != nil {
+		return models.Exercise{}, record.Error
+	} else if record.RowsAffected == 0 {
+		return models.Exercise{}, nil
+	}
+
+	return exercise, nil
+}

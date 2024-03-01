@@ -736,7 +736,6 @@ func ConvertExercisesToExerciseObjects(exercises []models.Exercise) (exerciseObj
 func APIGetExerciseDay(context *gin.Context) {
 	var exerciseID = context.Param("exercise_day_id")
 
-
 	exerciseIDUUIID, err := uuid.Parse(exerciseID)
 	if err != nil {
 		context.JSON(http.StatusBadRequest, gin.H{"error": "Failed to parse ID."})

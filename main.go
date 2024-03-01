@@ -240,6 +240,13 @@ func initRouter() *gin.Engine {
 			auth.GET("/exercise-days/:exercise_day_id", controllers.APIGetExerciseDay)
 			auth.POST("/exercise-days/:exercise_day_id", controllers.APIUpdateExerciseDay)
 
+			auth.GET("/operations", controllers.APIGetOperationsForUser)
+			auth.POST("/operations", controllers.APICreateOperationForUser)
+			auth.GET("/operations/:operation_id", controllers.APIGetOperation)
+
+			auth.GET("/operation-sets", controllers.APIGetOperationSets)
+			auth.POST("/operation-sets", controllers.APICreateOperationSetForUser)
+
 			auth.POST("/sickleave", controllers.APIRegisterSickleave)
 
 			auth.GET("/news", controllers.GetNews)
