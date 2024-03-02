@@ -234,18 +234,22 @@ func initRouter() *gin.Engine {
 			auth.DELETE("/goals", controllers.APIDeleteGoalToSeason)
 			auth.GET("/goals", controllers.APIGetGoals)
 
-			auth.POST("/exercises/week", controllers.APIRegisterWeek)
-			auth.GET("/exercises/week", controllers.APIGetWeek)
 			auth.GET("/exercise-days", controllers.APIGetExerciseDays)
 			auth.GET("/exercise-days/:exercise_day_id", controllers.APIGetExerciseDay)
 			auth.POST("/exercise-days/:exercise_day_id", controllers.APIUpdateExerciseDay)
 
+			auth.POST("/exercises/week", controllers.APIRegisterWeek)
+			auth.GET("/exercises/week", controllers.APIGetWeek)
+			auth.PUT("/exercises/:exercise_id", controllers.APIUpdateExercise)
+
 			auth.GET("/operations", controllers.APIGetOperationsForUser)
 			auth.POST("/operations", controllers.APICreateOperationForUser)
 			auth.GET("/operations/:operation_id", controllers.APIGetOperation)
+			auth.PUT("/operations/:operation_id", controllers.APIUpdateOperation)
 
 			auth.GET("/operation-sets", controllers.APIGetOperationSets)
 			auth.POST("/operation-sets", controllers.APICreateOperationSetForUser)
+			auth.PUT("/operation-sets/:operation_set_id", controllers.APIUpdateOperationSet)
 
 			auth.POST("/sickleave", controllers.APIRegisterSickleave)
 

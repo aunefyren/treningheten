@@ -2034,7 +2034,7 @@ input[type=checkbox]
   align-content: center;
   justify-content: space-between;
   align-items: center;
-  margin: 0;
+  margin: 0 0.5em;
   box-sizing: inherit;
 }
 
@@ -2049,7 +2049,7 @@ input[type=checkbox]
   align-content: center;
   justify-content: space-between;
   align-items: center;
-  margin: 0 0.5em;
+  margin: 0;
   box-sizing: inherit;
 }
 
@@ -2120,7 +2120,7 @@ input[type=checkbox]
   box-sizing: inherit;
 }
 
-.operation-set-rep-input, .operation-set-weight-input {
+.operation-set-rep-input, .operation-set-weight-input, .operation-set-time-input, .operation-set-distance-input {
   width: 100%;
   width: -webkit-fill-available;
   width: -moz-available;
@@ -2134,6 +2134,10 @@ input[type=checkbox]
   border: none !important;
 }
 
+.operation-set-input-wide {
+  width: 5em !important;
+}
+
 .operation-set-input {
   width: 4em;
 }
@@ -2144,4 +2148,8 @@ input[type=checkbox]
   margin: 0 0.5em;
   font-size: 0.75em;
   font-weight: 200;
+}
+
+.operation-type-input-lifting {
+  background-image: url("/assets/logo.svg");
 }

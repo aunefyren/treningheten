@@ -152,11 +152,9 @@ function placeExercises(exercises) {
             <div class="exerciseWrapper ${onHTML}" id="exercise-${exercise.id}">
                 <h2 style="">Session ${counter}</h2>
 
-                <textarea class="day-note-area" id="exercise-note-${exercise.id}" name="exercise-exercise-note" rows="3" cols="33" placeholder="Notes" style="margin-top: 1em; width: 20em;"></textarea>
+                <textarea class="day-note-area" id="exercise-note-${exercise.id}" name="exercise-exercise-note" rows="3" cols="33" placeholder="Notes" style="margin-top: 1em; width: 20em;" onchange="updateExercise('${exercise.id}')">${exercise.note}</textarea>
 
                 <div class="operationsWrapper" id="operationsWrapper-${exercise.id}">${operationsHTML}</div>
-
-                <button type="submit" onclick="addExercise('${exercise.id}');" id="updateExerciseButton" style="margin-bottom: 0em; margin-top: 2em; width: 8em;"><img src="/assets/done.svg" class="btn_logo color-invert"><p2>Save</p2></button>
             </div>
             <hr class="invert" style="border: 0.025em solid var(--white); margin: 4em 0;">
         `;
@@ -172,7 +170,11 @@ function generateOperationsHTML(operations, exerciseID) {
 
     operations.forEach(operation => {
         operationHTML = generateOperationHTML(operation, exerciseID)
-        operationsHTML += operationHTML;
+        operationsHTML += `
+            <div class="operationWrapper" id="operation-${operation.id}">
+                ${operationHTML}
+            </div>
+        `;
     });
 
     operationsHTML += `</div>`
@@ -191,57 +193,94 @@ function generateOperationAddButtonHTML(operations, exerciseID) {
     `;
 }
 
-function generateOperationHTML(operation, exerciseID) {
-    operationSetsHTML = generateOperationSetsHTML(operation.operation_sets, operation.id, operation.weight_unit)
+function generateOperationHTML(operation) {
+    liftingHTML = ''
+    timingHTML = ''
+    movingHTML = ''
+    if(operation.type == 'lifting') {
+        liftingHTML = 'selected'
+    } else if(operation.type == 'timing') {
+        timingHTML = 'selected'
+    } else if(operation.type == 'moving') {
+        movingHTML = 'selected'
+    }
 
     var operationHTML = `
-        <div class="operationWrapper" id="operation-${operation.id}">
-
-            <div class="operation-selectors">
-                <div class="operationType" id="operation-type-${operation.id}">
-                    <input style="" class="operation-type-input" type="text" id="operation-type-text" name="operation-type-text" value="${operation.type}">
-                </div>
-                <div class="operationAction" id="operation--action-${operation.id}">
-                    <input style="" class="operation-action-input" type="text" id="operation-action-text" name="operation-action-text" value="${operation.action}">
-                </div>
+        <div class="operation-selectors">
+            <div class="operationType" id="operation-type-${operation.id}">
+                <select class="operation-type-input" type="text" id="operation-type-text-${operation.id}" name="operation-type-text" onchange="updateOperation('${operation.id}')">
+                    <option value="lifting" ${liftingHTML}>💪</option>
+                    <option value="moving" ${movingHTML}>🏃‍♂️</option>
+                    <option value="timing" ${timingHTML}>⏱️</option>
+                </select>  
             </div>
-
-            ${operationSetsHTML}
+            <div class="operationAction" id="operation-action-${operation.id}">
+                <input style="" class="operation-action-input" type="text" id="operation-action-text-${operation.id}" name="operation-action-text" placeholder="exercise" value="${operation.action}" onchange="updateOperation('${operation.id}')">
+            </div>
+            <input type="hidden" id="operation-distance-unit-${operation.id}" value="${operation.distance_unit}">
+            <input type="hidden" id="operation-weight-unit-${operation.id}" value="${operation.weight_unit}">
         </div>
+
+        ${generateOperationSetsHTML(operation.operation_sets, operation)}
     `;
 
     return operationHTML;
 }
 
-function generateOperationSetsHTML(operationSets, operationID, weightUnit) {
+function generateOperationSetsHTML(operationSets, operation) {
     operationSetsHTML = ""; 
+
+    repsHTML = 'block'
+    distanceHTML = 'block'
+    timingHTML = 'block'
+    weightHTML = 'block'
+    if(operation.type == 'lifting') {
+        distanceHTML = 'none'
+        timingHTML = 'none'
+    } else if(operation.type == 'timing') {
+        repsHTML = 'none'
+        distanceHTML = 'none'
+        weightHTML = 'none'
+    } else if(operation.type == 'moving') {
+        repsHTML = 'none'
+        weightHTML = 'none'
+    }
 
     operationSetsHTML += `
         <div class="operationSetWrapper" id="operation-set-titles" style="justify-content:space-between;">
             <div class="operation-set-title">
                 sets
             </div>
-            <div class="operation-set-title">
+            <div class="operation-set-title" style="display: ${repsHTML};">
                 reps
             </div>
-            <div class="operation-set-title">
-                ${weightUnit}
+            <div class="operation-set-title" style="display: ${weightHTML};">
+                ${operation.weight_unit}
+            </div>
+            <div class="operation-set-title" style="display: ${timingHTML};">
+                time
+            </div>
+            <div class="operation-set-title" style="display: ${distanceHTML};">
+                ${operation.distance_unit}
             </div>
         </div>
 
-        <div class="operationSetWrapperSub" id="operation-set-wrapper-sub-${operationID}">
+        <div class="operationSetWrapperSub" id="operation-set-wrapper-sub-${operation.id}">
     `;
 
     setCounter = 1;
     operationSets.forEach(operationSet => {
-        operationSetHTML = generateOperationSetHTML(operationSet, weightUnit, setCounter)
-        operationSetsHTML += operationSetHTML;
+        operationSetsHTML += `
+            <div class="operationSetWrapper" id="operation-set-${operationSet.id}">
+                ${generateOperationSetHTML(operationSet, operation, setCounter)}
+            </div>
+        `;
         setCounter += 1;
     });
 
     operationSetsHTML += `
         </div>
-        <div class="addOperationSetWrapper clickable hover" id="addOperationSetWrapper-${operationID}" title="Add set" onclick="addOperationSet('${operationID}', '${weightUnit}');" style="margin: 0.5em 0;">
+        <div class="addOperationSetWrapper clickable hover" id="addOperationSetWrapper-${operation.id}" title="Add set" onclick="addOperationSet('${operation.id}');" style="margin: 0.5em 0;">
             <img src="/assets/plus.svg" class="button-icon" style="height: 100%; margin: 0.25em;">
         </div>
     `;
@@ -249,26 +288,71 @@ function generateOperationSetsHTML(operationSets, operationID, weightUnit) {
     return operationSetsHTML;
 }
 
-function generateOperationSetHTML(operationSet, weightUnit, setCounter) {
+function generateOperationSetHTML(operationSet, operation, setCounter) {
+    repsHTML = 'block'
+    distanceHTML = 'block'
+    timingHTML = 'block'
+    weightHTML = 'block'
+    if(operation.type == 'lifting') {
+        distanceHTML = 'none'
+        timingHTML = 'none'
+    } else if(operation.type == 'timing') {
+        repsHTML = 'none'
+        distanceHTML = 'none'
+        weightHTML = 'none'
+    } else if(operation.type == 'moving') {
+        repsHTML = 'none'
+        weightHTML = 'none'
+    }
+
+    var reps = ""
+    if(operationSet.repetitions) {
+        reps = operationSet.repetitions
+    }
+    var weight = ""
+    if(operationSet.weight) {
+        weight = operationSet.weight
+    }
+    var time = ""
+    if(operationSet.time) {
+        var hourString = '';
+        var minutes = operationSet.time
+        var hours = Math.floor(operationSet.time / 3600)
+        if(hours != 0) {
+            hourString = padNumber(hours, 2) + ":"
+            minutes = operationSet.time % 3600
+        }
+
+        var minutesString = padNumber(Math.floor(minutes / 60), 2)
+        var secondsString = padNumber((operationSet.time % 60), 2)
+        time = hourString + minutesString + ':' + secondsString
+    }
+    var distance = ""
+    if(operationSet.distance != null) {
+        distance = operationSet.distance
+    }
+
     return `
-        <div class="operationSetWrapper" id="operation-set-${operationSet.id}">
-            <div class="operation-set unselectable">
-                Set ${setCounter}
-            </div>
-            <div class="operation-set-input">
-                <input style="" class="operation-set-rep-input" type="number" id="operation-set-rep-input" name="operation-set-rep-input" placeholder="reps" value="${operationSet.repetitions}">
-            </div>
-            <div class="operation-set-input">
-                <input style="" class="operation-set-weight-input" type="number" id="operation-set-weight-input" name="operation-set-weight-input" placeholder="${weightUnit}" value="${operationSet.weight}">
-            </div>
+        <div class="operation-set unselectable" id="operation-set-counter-${operationSet.id}">
+            Set ${setCounter}
+        </div>
+        <div class="operation-set-input" id="operation-set-rep-${operationSet.id}" style="display: ${repsHTML};">
+            <input style="" min="0" class="operation-set-rep-input" type="number" id="operation-set-rep-input-${operationSet.id}" name="operation-set-rep-input" placeholder="reps" value="${reps}" onchange="updateOperationSet('${operationSet.id}', '${setCounter}')">
+        </div>
+        <div class="operation-set-input" id="operation-set-weight-${operationSet.id}" style="display: ${weightHTML};">
+            <input style="" min="0" class="operation-set-weight-input" type="number" id="operation-set-weight-input-${operationSet.id}" name="operation-set-weight-input" placeholder="${operation.weight_unit}" value="${weight}" onchange="updateOperationSet('${operationSet.id}', '${setCounter}')">
+        </div>
+        <div class="operation-set-input operation-set-input-wide" id="operation-set-time-${operationSet.id}" style="display: ${timingHTML};">
+            <input style="" class="operation-set-time-input" type="text" id="operation-set-time-input-${operationSet.id}" name="operation-set-time-input" placeholder="00:00" value="${time}" onchange="updateOperationSet('${operationSet.id}', '${setCounter}')">
+        </div>
+        <div class="operation-set-input" id="operation-set-distance-${operationSet.id}" style="display: ${distanceHTML};">
+            <input style="" min="0" class="operation-set-distance-input" type="number" id="operation-set-distance-input-${operationSet.id}" name="operation-set-distance-input" placeholder="${operation.distance_unit}" value="${distance}" onchange="updateOperationSet('${operationSet.id}', '${setCounter}')">
         </div>
     `;
 }
 
 function updateExerciseDay(exerciseDayID) {
     var exerciseDayNote = document.getElementById("exercise-day-note").value;
-
-    console.log(exerciseDayNote)
 
     var form_obj = {
         "note": exerciseDayNote
@@ -390,7 +474,7 @@ function addOperation(exerciseID) {
             if(result.error) {
                 error(result.error);
             } else {
-                placeOperation(result.operation, exerciseID)
+                placeNewOperation(result.operation, exerciseID)
             }
 
         }
@@ -403,11 +487,15 @@ function addOperation(exerciseID) {
     return false;
 }
 
-function placeOperation(operation, exerciseID) {
-    document.getElementById('operationsWrapper-sub-' + exerciseID).innerHTML += generateOperationHTML(operation, exerciseID)
+function placeNewOperation(operation) {
+    document.getElementById('operationsWrapper-sub-' + operation.exercise).innerHTML += `
+        <div class="operationWrapper" id="operation-${operation.id}">
+            ${generateOperationHTML(operation, operation.exercise)}
+        </div>
+    `;
 }
 
-function addOperationSet(operationID, weightUnit) {
+function addOperationSet(operationID) {
     var form_obj = {
         "operation_id": operationID,
     };
@@ -429,7 +517,7 @@ function addOperationSet(operationID, weightUnit) {
             if(result.error) {
                 error(result.error);
             } else {
-                placeOperationSet(result.operation_set, operationID, weightUnit)
+                placeOperationNewSet(result.operation_set, operationID, result.operation)
             }
 
         }
@@ -442,7 +530,174 @@ function addOperationSet(operationID, weightUnit) {
     return false;
 }
 
-function placeOperationSet(operationSet, operationID, weightUnit) {
-    count = document.getElementById('operation-set-wrapper-sub-' + operationID).children.length
-    document.getElementById('operation-set-wrapper-sub-' + operationID).innerHTML += generateOperationSetHTML(operationSet, weightUnit, count + 1)
+function placeOperationNewSet(operationSet, operationID, operation) {
+    element = document.getElementById('operation-set-wrapper-sub-' + operationID)
+    count = element.children.length
+    operationSetHTML = `
+        <div class="operationSetWrapper" id="operation-set-${operationSet.id}">
+            ${generateOperationSetHTML(operationSet, operation, count + 1)}
+        </div>
+    `;
+    element.insertAdjacentHTML("beforeend", operationSetHTML)
+}
+
+function updateOperation(operationID) {
+    var type = document.getElementById('operation-type-text-' + operationID).value
+    var action = document.getElementById('operation-action-text-' + operationID).value
+    var weight_unit = document.getElementById('operation-weight-unit-' + operationID).value
+    var distance_unit = document.getElementById('operation-distance-unit-' + operationID).value
+
+    var form_obj = {
+        "type": type,
+        "action": action,
+        "weight_unit": weight_unit,
+        "distance_unit": distance_unit,
+    };
+
+    var form_data = JSON.stringify(form_obj);
+
+    var xhttp = new XMLHttpRequest();
+    xhttp.onreadystatechange = function() {
+        if (this.readyState == 4) {
+            
+            try {
+                result = JSON.parse(this.responseText);
+            } catch(e) {
+                console.log(e +' - Response: ' + this.responseText);
+                error("Could not reach API.");
+                return;
+            }
+            
+            if(result.error) {
+                error(result.error);
+            } else {
+                placeOperation(result.operation)
+            }
+
+        }
+    };
+    xhttp.withCredentials = true;
+    xhttp.open("put", api_url + "auth/operations/" + operationID);
+    xhttp.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
+    xhttp.setRequestHeader("Authorization", jwt);
+    xhttp.send(form_data);
+    return false;
+}
+
+function placeOperation(operation) {
+    operationHTML = generateOperationHTML(operation)
+    document.getElementById('operation-' + operation.id).innerHTML = operationHTML
+}
+
+function updateOperationSet(operationSetID, setCount) {
+    var repetitions = parseFloat(document.getElementById('operation-set-rep-input-' + operationSetID).value)
+    var weight = parseFloat(document.getElementById('operation-set-weight-input-' + operationSetID).value)
+    var time = document.getElementById('operation-set-time-input-' + operationSetID).value
+    var distance = parseFloat(document.getElementById('operation-set-distance-input-' + operationSetID).value)
+
+    var timeFinal = null;
+    try {
+        if(time.includes(':')) {
+            timeArray = time.split(':')
+            
+            if(timeArray.length == 2) {
+                var minutes = parseFloat(timeArray[0])
+                var seconds = parseFloat(timeArray[1])
+                timeFinal = (minutes * 60) + seconds
+            } else if (timeArray.length == 3){
+                var hours = parseFloat(timeArray[0])
+                var minutes = parseFloat(timeArray[1])
+                var seconds = parseFloat(timeArray[2])
+                timeFinal = (hours * 3600) + (minutes * 60) + seconds
+            }
+
+        } else if(time != ''){
+            timeFinal = parseFloat(time)
+        }
+    } catch (e) {
+        console.log("Failed to parse time. Error: " + e)
+    }
+
+    var form_obj = {
+        "repetitions": repetitions,
+        "weight": weight,
+        "time": timeFinal,
+        "distance": distance,
+    };
+
+    var form_data = JSON.stringify(form_obj);
+
+    var xhttp = new XMLHttpRequest();
+    xhttp.onreadystatechange = function() {
+        if (this.readyState == 4) {
+            
+            try {
+                result = JSON.parse(this.responseText);
+            } catch(e) {
+                console.log(e +' - Response: ' + this.responseText);
+                error("Could not reach API.");
+                return;
+            }
+            
+            if(result.error) {
+                error(result.error);
+            } else {
+                placeOperationSet(result.operation_set, result.operation, setCount)
+            }
+
+        }
+    };
+    xhttp.withCredentials = true;
+    xhttp.open("put", api_url + "auth/operation-sets/" + operationSetID);
+    xhttp.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
+    xhttp.setRequestHeader("Authorization", jwt);
+    xhttp.send(form_data);
+    return false;
+}
+
+function placeOperationSet(operationSet, operation, setCount) {
+    operationSetHTML = generateOperationSetHTML(operationSet, operation, setCount)
+    document.getElementById('operation-set-' + operationSet.id).innerHTML = operationSetHTML
+}
+
+function updateExercise(exerciseID) {
+    var note = document.getElementById('exercise-note-' + exerciseID).value
+
+    var form_obj = {
+        "note": note,
+        "on": true,
+    };
+
+    var form_data = JSON.stringify(form_obj);
+
+    var xhttp = new XMLHttpRequest();
+    xhttp.onreadystatechange = function() {
+        if (this.readyState == 4) {
+            
+            try {
+                result = JSON.parse(this.responseText);
+            } catch(e) {
+                console.log(e +' - Response: ' + this.responseText);
+                error("Could not reach API.");
+                return;
+            }
+            
+            if(result.error) {
+                error(result.error);
+            } else {
+                placeExercise(result.exercise)
+            }
+
+        }
+    };
+    xhttp.withCredentials = true;
+    xhttp.open("put", api_url + "auth/exercises/" + exerciseID);
+    xhttp.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
+    xhttp.setRequestHeader("Authorization", jwt);
+    xhttp.send(form_data);
+    return false;
+}
+
+function placeExercise(exercise) {
+    document.getElementById('exercise-note-' + exercise.id).value = exercise.note
 }

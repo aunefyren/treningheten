@@ -309,7 +309,7 @@ func APICreateOperationSetForUser(context *gin.Context) {
 		return
 	}
 
-	_, err = database.GetOperationByIDAndUserID(operationSetCreationRequest.OperationID, userID)
+	operation, err := database.GetOperationByIDAndUserID(operationSetCreationRequest.OperationID, userID)
 	if err != nil {
 		log.Println("Failed to verify operation. Error: " + err.Error())
 		context.JSON(http.StatusBadRequest, gin.H{"error": "Failed to verify operation."})
@@ -340,5 +340,175 @@ func APICreateOperationSetForUser(context *gin.Context) {
 		return
 	}
 
-	context.JSON(http.StatusCreated, gin.H{"message": "Operation set created.", "operation_set": operationSetObject})
+	operationObject, err := ConvertOperationToOperationObject(operation)
+	if err != nil {
+		log.Println("Failed to get convert operation to operation object. Error: " + err.Error())
+		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get convert operation to operation object."})
+		context.Abort()
+		return
+	}
+
+	operationObject.OperationSets = append(operationObject.OperationSets, operationSetObject)
+
+	context.JSON(http.StatusCreated, gin.H{"message": "Operation set created.", "operation_set": operationSetObject, "operation": operationObject})
+}
+
+func APIUpdateOperation(context *gin.Context) {
+	// Initialize variables
+	var operationUpdateRequest models.OperationUpdateRequest
+	var operation models.Operation
+
+	// Get user ID
+	userID, err := middlewares.GetAuthUsername(context.GetHeader("Authorization"))
+	if err != nil {
+		log.Println("Failed to verify user ID. Error: " + err.Error())
+		context.JSON(http.StatusBadRequest, gin.H{"error": "Failed to verify user ID."})
+		context.Abort()
+		return
+	}
+
+	var operationID = context.Param("operation_id")
+	operationIDUUID, err := uuid.Parse(operationID)
+	if err != nil {
+		log.Println("Failed to verify operation ID. Error: " + err.Error())
+		context.JSON(http.StatusBadRequest, gin.H{"error": "Failed to verify operation ID."})
+		context.Abort()
+		return
+	}
+
+	// Parse update request
+	if err := context.ShouldBindJSON(&operationUpdateRequest); err != nil {
+		log.Println("Failed to parse update request. Error: " + err.Error())
+		context.JSON(http.StatusBadRequest, gin.H{"error": "Failed to parse update request."})
+		context.Abort()
+		return
+	}
+
+	operation, err = database.GetOperationByIDAndUserID(operationIDUUID, userID)
+	if err != nil {
+		log.Println("Failed to get operation. Error: " + err.Error())
+		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get operation."})
+		context.Abort()
+		return
+	}
+
+	operation.Action = strings.TrimSpace(operationUpdateRequest.Action)
+	operation.DistanceUnit = strings.TrimSpace(operationUpdateRequest.DistanceUnit)
+	operation.Type = strings.TrimSpace(operationUpdateRequest.Type)
+	operation.WeightUnit = strings.TrimSpace(operationUpdateRequest.WeightUnit)
+
+	if operation.Type != "lifting" && operation.Type != "moving" && operation.Type != "timing" {
+		context.JSON(http.StatusBadRequest, gin.H{"error": "Invalid operation type."})
+		context.Abort()
+		return
+	}
+
+	if operation.DistanceUnit != "km" && operation.DistanceUnit != "miles" {
+		context.JSON(http.StatusBadRequest, gin.H{"error": "Invalid operation distance unit."})
+		context.Abort()
+		return
+	}
+
+	if operation.WeightUnit != "kg" && operation.WeightUnit != "lb" {
+		context.JSON(http.StatusBadRequest, gin.H{"error": "Invalid operation weight unit."})
+		context.Abort()
+		return
+	}
+
+	operation, err = database.UpdateOperationInDB(operation)
+	if err != nil {
+		log.Println("Failed to update operation. Error: " + err.Error())
+		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update operation."})
+		context.Abort()
+		return
+	}
+
+	operationObject, err := ConvertOperationToOperationObject(operation)
+	if err != nil {
+		log.Println("Failed to get convert operation to operation object. Error: " + err.Error())
+		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get convert operation to operation object."})
+		context.Abort()
+		return
+	}
+
+	context.JSON(http.StatusOK, gin.H{"message": "Operation updated.", "operation": operationObject})
+}
+
+func APIUpdateOperationSet(context *gin.Context) {
+	// Initialize variables
+	var operationSetUpdateRequest models.OperationSetUpdateRequest
+	var operationSet models.OperationSet
+
+	// Get user ID
+	userID, err := middlewares.GetAuthUsername(context.GetHeader("Authorization"))
+	if err != nil {
+		log.Println("Failed to verify user ID. Error: " + err.Error())
+		context.JSON(http.StatusBadRequest, gin.H{"error": "Failed to verify user ID."})
+		context.Abort()
+		return
+	}
+
+	var operationSetID = context.Param("operation_set_id")
+	operationSetIDUUID, err := uuid.Parse(operationSetID)
+	if err != nil {
+		log.Println("Failed to verify operation set ID. Error: " + err.Error())
+		context.JSON(http.StatusBadRequest, gin.H{"error": "Failed to verify operation set ID."})
+		context.Abort()
+		return
+	}
+
+	// Parse update request
+	if err := context.ShouldBindJSON(&operationSetUpdateRequest); err != nil {
+		log.Println("Failed to parse update request. Error: " + err.Error())
+		context.JSON(http.StatusBadRequest, gin.H{"error": "Failed to parse update request."})
+		context.Abort()
+		return
+	}
+
+	operationSet, err = database.GetOperationSetByIDAndUserID(operationSetIDUUID, userID)
+	if err != nil {
+		log.Println("Failed to get operation set. Error: " + err.Error())
+		context.JSON(http.StatusBadRequest, gin.H{"error": "Failed to get operation set."})
+		context.Abort()
+		return
+	}
+
+	operationSet.Distance = operationSetUpdateRequest.Distance
+	operationSet.Repetitions = operationSetUpdateRequest.Repetitions
+	operationSet.Time = operationSetUpdateRequest.Time
+	operationSet.Weight = operationSetUpdateRequest.Weight
+
+	operationSet, err = database.UpdateOperationSetInDB(operationSet)
+	if err != nil {
+		log.Println("Failed to update operation set. Error: " + err.Error())
+		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update operation set."})
+		context.Abort()
+		return
+	}
+
+	operationSetObject, err := ConvertOperationSetToOperationSetObject(operationSet)
+	if err != nil {
+		log.Println("Failed to get convert operation set to operation set object. Error: " + err.Error())
+		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get convert operation set to operation set object."})
+		context.Abort()
+		return
+	}
+
+	operation, err := database.GetOperationByIDAndUserID(operationSet.OperationID, userID)
+	if err != nil {
+		log.Println("Failed to get operation. Error: " + err.Error())
+		context.JSON(http.StatusBadRequest, gin.H{"error": "Failed to get operation."})
+		context.Abort()
+		return
+	}
+
+	operationObject, err := ConvertOperationToOperationObject(operation)
+	if err != nil {
+		log.Println("Failed to get convert operation to operation object. Error: " + err.Error())
+		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get convert operation to operation object."})
+		context.Abort()
+		return
+	}
+
+	context.JSON(http.StatusOK, gin.H{"message": "Operation set updated.", "operation_set": operationSetObject, "operation": operationObject})
 }

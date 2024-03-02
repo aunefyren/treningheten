@@ -28,7 +28,6 @@ type ExerciseDayObject struct {
 
 type ExerciseDayUpdateRequest struct {
 	Note string `json:"note"`
-
 }
 
 type Exercise struct {
@@ -38,6 +37,11 @@ type Exercise struct {
 	On            bool        `json:"on" gorm:"not null; default: true"`
 	ExerciseDayID uuid.UUID   `json:"" gorm:"type:varchar(100);"`
 	ExerciseDay   ExerciseDay `json:"exercise_day" gorm:"not null"`
+}
+
+type ExerciseUpdateRequest struct {
+	Note string `json:"note"`
+	On   bool   `json:"on"`
 }
 
 type ExerciseObject struct {

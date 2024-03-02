@@ -62,11 +62,11 @@ func UpdateExerciseByTurningOffByExerciseID(exerciseID uuid.UUID) error {
 
 }
 
-func GetExerciseByIDAndUserID(exerciseDayID uuid.UUID, userID uuid.UUID) (models.Exercise, error) {
+func GetExerciseByIDAndUserID(exerciseID uuid.UUID, userID uuid.UUID) (models.Exercise, error) {
 	var exercise models.Exercise
 
-	record := Instance.Where("`exercise_days`.enabled = ?", 1).
-		Where("`exercise_days`.id = ?", exerciseDayID).
+	record := Instance.Where("`exercises`.enabled = ?", 1).
+		Where("`exercises`.id = ?", exerciseID).
 		Joins("JOIN `exercise_days` on `exercises`.exercise_day_id = `exercise_days`.id").
 		Where("`exercise_days`.enabled = ?", 1).
 		Joins("JOIN `goals` on `exercise_days`.goal_id = `goals`.id").
@@ -78,9 +78,17 @@ func GetExerciseByIDAndUserID(exerciseDayID uuid.UUID, userID uuid.UUID) (models
 
 	if record.Error != nil {
 		return models.Exercise{}, record.Error
-	} else if record.RowsAffected == 0 {
-		return models.Exercise{}, nil
+	} else if record.RowsAffected != 1 {
+		return models.Exercise{}, errors.New("No exercise found.")
 	}
 
+	return exercise, nil
+}
+
+func UpdateExerciseInDB(exercise models.Exercise) (models.Exercise, error) {
+	record := Instance.Save(&exercise)
+	if record.Error != nil {
+		return exercise, record.Error
+	}
 	return exercise, nil
 }
