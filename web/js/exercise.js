@@ -61,6 +61,7 @@ function load_page(result) {
 
     if(result !== false) {
         showLoggedInMenu();
+        loadExerciseList()
         getExerciseDay(exerciseDayID);
     } else {
         showLoggedOutMenu();
@@ -215,7 +216,10 @@ function generateOperationHTML(operation) {
                 </select>  
             </div>
             <div class="operationAction" id="operation-action-${operation.id}">
-                <input style="" class="operation-action-input" type="text" id="operation-action-text-${operation.id}" name="operation-action-text" placeholder="exercise" value="${operation.action}" onchange="updateOperation('${operation.id}')">
+                <input style="" class="operation-action-input" type="text" list="operation-action-text-list-${operation.id}" id="operation-action-text-${operation.id}" name="operation-action-text" placeholder="exercise" value="${operation.action}" onchange="updateOperation('${operation.id}')">
+                <datalist id="operation-action-text-list-${operation.id}">
+                    ${exerciseListHTML}
+                </datalist>
             </div>
             <input type="hidden" id="operation-distance-unit-${operation.id}" value="${operation.distance_unit}">
             <input type="hidden" id="operation-weight-unit-${operation.id}" value="${operation.weight_unit}">
@@ -700,4 +704,42 @@ function updateExercise(exerciseID) {
 
 function placeExercise(exercise) {
     document.getElementById('exercise-note-' + exercise.id).value = exercise.note
+}
+
+function loadExerciseList() {
+    var xhttp = new XMLHttpRequest();
+    xhttp.onreadystatechange = function() {
+        if (this.readyState == 4) {
+            
+            try {
+                result = JSON.parse(this.responseText);
+            } catch(e) {
+                console.log(e +' - Response: ' + this.responseText);
+                error("Could not reach API.");
+                return;
+            }
+            
+            if(result.error) {
+                error(result.error);
+            } else {
+                processExerciseList(result)
+            }
+
+        }
+    };
+
+    xhttp.open("get", "/json/exercises.json");
+    xhttp.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
+    xhttp.send();
+    return false;
+}
+
+function processExerciseList(exercisesArray) {
+    exercisesArray.forEach(function(item){
+        exerciseListHTML += `
+            <option value="${item.title}">
+                ${item.title}
+            </option>
+        `
+    });
 }
