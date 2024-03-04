@@ -92,3 +92,11 @@ func UpdateExerciseInDB(exercise models.Exercise) (models.Exercise, error) {
 	}
 	return exercise, nil
 }
+
+func CreateExerciseInDB(exercise models.Exercise) (models.Exercise, error) {
+	record := Instance.Create(&exercise)
+	if record.Error != nil {
+		return exercise, record.Error
+	}
+	return exercise, nil
+}

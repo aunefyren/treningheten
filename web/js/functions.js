@@ -660,3 +660,45 @@ function weeksBetween(dt2, dt1) {
 
     return weeksBetween;
 }
+
+function secondsToDurationString(originalSeconds) {
+    var hourString = '';
+    var minutes = originalSeconds
+    var hours = Math.floor(originalSeconds / 3600)
+    if(hours != 0) {
+        hourString = padNumber(hours, 2) + ":"
+        minutes = originalSeconds % 3600
+    }
+
+    var minutesString = padNumber(Math.floor(minutes / 60), 2)
+    var secondsString = padNumber((originalSeconds % 60), 2)
+    var time = hourString + minutesString + ':' + secondsString
+
+    return time
+}
+
+function parseDurationStringToSeconds(duration) {
+    timeFinal = null
+    try {
+        if(duration.includes(':')) {
+            timeArray = duration.split(':')
+            
+            if(timeArray.length == 2) {
+                var minutes = parseFloat(timeArray[0])
+                var seconds = parseFloat(timeArray[1])
+                timeFinal = (minutes * 60) + seconds
+            } else if (timeArray.length == 3){
+                var hours = parseFloat(timeArray[0])
+                var minutes = parseFloat(timeArray[1])
+                var seconds = parseFloat(timeArray[2])
+                timeFinal = (hours * 3600) + (minutes * 60) + seconds
+            }
+
+        } else if(duration != ''){
+            timeFinal = parseFloat(duration)
+        }
+    } catch (e) {
+        console.log("Failed to parse time. Error: " + e)
+    }
+    return timeFinal
+}

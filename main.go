@@ -240,16 +240,19 @@ func initRouter() *gin.Engine {
 
 			auth.POST("/exercises/week", controllers.APIRegisterWeek)
 			auth.GET("/exercises/week", controllers.APIGetWeek)
+			auth.POST("/exercises", controllers.APICreateExercise)
 			auth.PUT("/exercises/:exercise_id", controllers.APIUpdateExercise)
 
 			auth.GET("/operations", controllers.APIGetOperationsForUser)
 			auth.POST("/operations", controllers.APICreateOperationForUser)
 			auth.GET("/operations/:operation_id", controllers.APIGetOperation)
 			auth.PUT("/operations/:operation_id", controllers.APIUpdateOperation)
+			auth.DELETE("/operations/:operation_id", controllers.APIDeleteOperation)
 
 			auth.GET("/operation-sets", controllers.APIGetOperationSets)
 			auth.POST("/operation-sets", controllers.APICreateOperationSetForUser)
 			auth.PUT("/operation-sets/:operation_set_id", controllers.APIUpdateOperationSet)
+			auth.DELETE("/operation-sets/:operation_set_id", controllers.APIDeleteOperationSet)
 
 			auth.POST("/sickleave", controllers.APIRegisterSickleave)
 
@@ -574,5 +577,4 @@ func parseFlags(Config *models.ConfigStruct) (*models.ConfigStruct, bool, bool, 
 	}
 
 	return Config, generateInviteBool, upgradeToV2Bool, nil
-
 }

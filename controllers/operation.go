@@ -512,3 +512,113 @@ func APIUpdateOperationSet(context *gin.Context) {
 
 	context.JSON(http.StatusOK, gin.H{"message": "Operation set updated.", "operation_set": operationSetObject, "operation": operationObject})
 }
+
+func APIDeleteOperation(context *gin.Context) {
+	var operationID = context.Param("operation_id")
+
+	operationIDUUID, err := uuid.Parse(operationID)
+	if err != nil {
+		context.JSON(http.StatusBadRequest, gin.H{"error": "Failed to parse ID."})
+		context.Abort()
+		return
+	}
+
+	// Get user ID
+	userID, err := middlewares.GetAuthUsername(context.GetHeader("Authorization"))
+	if err != nil {
+		log.Println("Failed to verify user ID. Error: " + "Failed to verify user ID.")
+		context.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		context.Abort()
+		return
+	}
+
+	operation, err := database.GetOperationByIDAndUserID(operationIDUUID, userID)
+	if err != nil {
+		log.Println("Failed to get operation. Error: " + err.Error())
+		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get operation."})
+		context.Abort()
+		return
+	}
+
+	operation.Enabled = false
+	operation, err = database.UpdateOperationInDB(operation)
+	if err != nil {
+		log.Println("Failed to update operation in the database. Error: " + err.Error())
+		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update operation in the database."})
+		context.Abort()
+		return
+	}
+
+	operationObject, err := ConvertOperationToOperationObject(operation)
+	if err != nil {
+		log.Println("Failed to get convert operation to operation object. Error: " + err.Error())
+		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get convert operation to operation object."})
+		context.Abort()
+		return
+	}
+
+	context.JSON(http.StatusOK, gin.H{"message": "Operation deleted.", "operation": operationObject})
+}
+
+func APIDeleteOperationSet(context *gin.Context) {
+	var operationSetID = context.Param("operation_set_id")
+
+	operationSetIDUUID, err := uuid.Parse(operationSetID)
+	if err != nil {
+		context.JSON(http.StatusBadRequest, gin.H{"error": "Failed to parse ID."})
+		context.Abort()
+		return
+	}
+
+	// Get user ID
+	userID, err := middlewares.GetAuthUsername(context.GetHeader("Authorization"))
+	if err != nil {
+		log.Println("Failed to verify user ID. Error: " + "Failed to verify user ID.")
+		context.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		context.Abort()
+		return
+	}
+
+	operationSet, err := database.GetOperationSetByIDAndUserID(operationSetIDUUID, userID)
+	if err != nil {
+		log.Println("Failed to get operation set. Error: " + err.Error())
+		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get operation set."})
+		context.Abort()
+		return
+	}
+
+	operationSet.Enabled = false
+	operationSet, err = database.UpdateOperationSetInDB(operationSet)
+	if err != nil {
+		log.Println("Failed to update operation in the database. Error: " + err.Error())
+		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update operation in the database."})
+		context.Abort()
+		return
+	}
+
+	operationSetObject, err := ConvertOperationSetToOperationSetObject(operationSet)
+	if err != nil {
+		log.Println("Failed to get convert operation set to operation set object. Error: " + err.Error())
+		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get convert operation set to operation set object."})
+		context.Abort()
+		return
+	}
+
+	operation, err := database.GetOperationByIDAndUserID(operationSet.OperationID, userID)
+	if err != nil {
+		log.Println("Failed to get operation from the database. Error: " + err.Error())
+		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get operation from the database."})
+		context.Abort()
+		return
+	}
+
+	operationObject, err := ConvertOperationToOperationObject(operation)
+	if err != nil {
+		log.Println("Failed to get convert operation to operation object. Error: " + err.Error())
+		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get convert operation to operation object."})
+		context.Abort()
+		return
+	}
+
+	context.JSON(http.StatusOK, gin.H{"message": "Operation set deleted.", "operation_set": operationSetObject, "operation": operationObject})
+}

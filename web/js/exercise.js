@@ -36,9 +36,7 @@ function load_page(result) {
                                 <p id="exercise-day-date" style="text-align: center;">...</p>
                                 <p id="exercise-day-exercise-goal" style="text-align: center;">...</p>
 
-                                <textarea class="day-note-area" id="exercise-day-note" name="exercise-day-exercise-note" rows="3" cols="33" placeholder="Notes" style="margin-top: 1em;"></textarea>
-                            
-                                <button type="submit" onclick="updateExerciseDay('${exerciseDayID}');" id="updateExerciseDayButton" style="margin-bottom: 0em;"><img src="/assets/done.svg" class="btn_logo color-invert"><p2>Save</p2></button>
+                                <textarea onchange="updateExerciseDay('${exerciseDayID}')" class="day-note-area" id="exercise-day-note" name="exercise-day-exercise-note" rows="3" cols="33" placeholder="Notes" style="margin-top: 1em;"></textarea>
                             </div>
                         </div>
 
@@ -46,7 +44,7 @@ function load_page(result) {
 
                         <div class="exercisesWrapper" id="exercisesWrapper"></div>
 
-                        <div class="addExerciseWrapper clickable hover" id="addExerciseWrapper" title="Add session" onclick="addExercise();">
+                        <div class="addExerciseWrapper clickable hover" id="addExerciseWrapper" title="Add session" onclick="addExercise('${exerciseDayID}');">
                             <img src="/assets/plus.svg" class="button-icon" style="height: 100%; margin: 1em;">
                         </div>
 
@@ -67,8 +65,6 @@ function load_page(result) {
         showLoggedOutMenu();
         invalid_session();
     }
-
-    alert("This page is not fully functional yet. Coming soon.");
 }
 
 function getExerciseDay(exerciseDayID) {
@@ -127,43 +123,67 @@ function placeExercises(exercises) {
     counter = 1; 
 
     exercises.forEach(exercise => {
-        operationsHTML = generateOperationsHTML(exercise.operations, exercise.id)
-
-        onHTML = ""
-        restoreHTML = ""
-        if(!exercise.on) {
-            onHTML = "transparent";
-            restoreHTML = `
-                <div class="restoreExerciseWrapper" id="exercise-restore-${exercise.id}">
-                    <button type="submit" onclick="restoreExercise('${exercise.id}');" id="" style="margin-bottom: 0em; width: 12em; margin: 0.5em;"><img src="/assets/done.svg" class="btn_logo color-invert"><p2>Restore session</p2></button>
-                    <button type="submit" onclick="restoreExercise('${exercise.id}');" id="" style="margin-bottom: 0em; width: 12em; margin: 0.5em;"><img src="/assets/done.svg" class="btn_logo color-invert"><p2>Erase session</p2></button>
-                </div>
-            `;
-        }
-
-        noteHTML = "";
-        if(exercise.note) {
-            noteHTML = `
-                <p>${exercise.note}</p>
-            `;
-        }
-
+        var exerciseGenerated = generateExerciseHTML(exercise, counter)
         var exerciseHTML = `
-            ${restoreHTML}
-            <div class="exerciseWrapper ${onHTML}" id="exercise-${exercise.id}">
-                <h2 style="">Session ${counter}</h2>
-
-                <textarea class="day-note-area" id="exercise-note-${exercise.id}" name="exercise-exercise-note" rows="3" cols="33" placeholder="Notes" style="margin-top: 1em; width: 20em;" onchange="updateExercise('${exercise.id}')">${exercise.note}</textarea>
-
-                <div class="operationsWrapper" id="operationsWrapper-${exercise.id}">${operationsHTML}</div>
+            <div class="exerciseWrapper" id="exercise-${exercise.id}">
+                ${exerciseGenerated}
             </div>
-            <hr class="invert" style="border: 0.025em solid var(--white); margin: 4em 0;">
         `;
-        exercisesHTML += exerciseHTML;
-        counter += 1;
+
+        if(exerciseGenerated != null) {
+            exercisesHTML += exerciseHTML;
+            counter += 1;
+        }
     });
 
     document.getElementById('exercisesWrapper').innerHTML = exercisesHTML;
+}
+
+function generateExerciseHTML(exercise, count) {
+    var exerciseHTML = null;
+
+    if(exercise.on) {
+        exerciseHTML = `
+            <div class="top-row">
+                <img src="/assets/trash-2.svg" style="height: 1em; width: 1em; padding: 1em;" onclick="updateExercise('${exercise.id}', false, ${count})" class="btn_logo clickable">
+            </div>
+
+            <div class="exerciseSubWrapper" id="exercise-sub-${exercise.id}">
+                <h2 style="">Session ${count}</h2>
+                
+                <div class="exercise-input" id="exercise-time-${exercise.id}">
+                    <input style="" class="exercise-time-input" type="text" id="exercise-time-input-${exercise.id}" name="exercise-time-input" pattern="[0-9:]{0,}" placeholder="hh:mm:ss" value="${secondsToDurationString(exercise.duration)}" onchange="updateExercise('${exercise.id}', true, ${count})">
+                </div>
+
+                <textarea class="day-note-area" id="exercise-note-${exercise.id}" name="exercise-exercise-note" rows="3" cols="33" placeholder="Notes" style="margin-top: 1em; width: 20em;" onchange="updateExercise('${exercise.id}', true, ${count})">${exercise.note}</textarea>
+
+                <div class="operationsWrapper" id="operationsWrapper-${exercise.id}">
+                    ${generateOperationsHTML(exercise.operations, exercise.id)}
+                </div>
+
+                <hr class="invert" style="border: 0.025em solid var(--white); margin: 4em 0;">
+            </div>
+        `;
+    } else if (exercise.operations.length > 0){
+        exerciseHTML = `
+            <div class="exerciseSubWrapper" id="exercise-sub-${exercise.id}">
+                <h2 style="">Deleted session</h2>
+                
+                <p>
+                    Contains ${exercise.operations.length} exercise(s).
+                </p>
+
+                <input style="" class="exercise-time-input" type="hidden" id="exercise-time-input-${exercise.id}" name="exercise-time-input" pattern="[0-9:]{0,}" placeholder="hh:mm:ss" value="${secondsToDurationString(exercise.duration)}">
+                <textarea class="day-note-area" id="exercise-note-${exercise.id}" name="exercise-exercise-note" rows="3" cols="33" placeholder="Notes" style="margin-top: 1em; width: 20em; display: none;">${exercise.note}</textarea>
+
+                <button type="submit" onclick="updateExercise('${exercise.id}', true, ${count});" id="restore-exercise-button-${exercise.id}" style="margin-bottom: 0em; width: 8em;"><img src="/assets/refresh-cw.svg" class="btn_logo color-invert"><p2>Restore</p2></button>
+
+                <hr class="invert" style="border: 0.025em solid var(--white); margin: 4em 0;">
+            </div>
+        `;
+    }
+
+    return exerciseHTML;
 }
 
 function generateOperationsHTML(operations, exerciseID) {
@@ -226,6 +246,10 @@ function generateOperationHTML(operation) {
         </div>
 
         ${generateOperationSetsHTML(operation.operation_sets, operation)}
+
+        <div class="bottom-row">
+            <img src="/assets/trash-2.svg" style="height: 1em; width: 1em; padding: 0.5em 1em 1em 1em;" onclick="deleteOperation('${operation.id}')" class="btn_logo clickable">
+        </div>
     `;
 
     return operationHTML;
@@ -319,17 +343,7 @@ function generateOperationSetHTML(operationSet, operation, setCounter) {
     }
     var time = ""
     if(operationSet.time) {
-        var hourString = '';
-        var minutes = operationSet.time
-        var hours = Math.floor(operationSet.time / 3600)
-        if(hours != 0) {
-            hourString = padNumber(hours, 2) + ":"
-            minutes = operationSet.time % 3600
-        }
-
-        var minutesString = padNumber(Math.floor(minutes / 60), 2)
-        var secondsString = padNumber((operationSet.time % 60), 2)
-        time = hourString + minutesString + ':' + secondsString
+        time = secondsToDurationString(operationSet.time)
     }
     var distance = ""
     if(operationSet.distance != null) {
@@ -337,17 +351,17 @@ function generateOperationSetHTML(operationSet, operation, setCounter) {
     }
 
     return `
-        <div class="operation-set unselectable" id="operation-set-counter-${operationSet.id}">
+        <div class="operation-set clickable" id="operation-set-counter-${operationSet.id}"  onclick="deleteOperationSet('${operationSet.id}')">
             Set ${setCounter}
-        </div>
-        <div class="operation-set-input" id="operation-set-rep-${operationSet.id}" style="display: ${repsHTML};">
-            <input style="" min="0" class="operation-set-rep-input" type="number" id="operation-set-rep-input-${operationSet.id}" name="operation-set-rep-input" placeholder="reps" value="${reps}" onchange="updateOperationSet('${operationSet.id}', '${setCounter}')">
         </div>
         <div class="operation-set-input" id="operation-set-weight-${operationSet.id}" style="display: ${weightHTML};">
             <input style="" min="0" class="operation-set-weight-input" type="number" id="operation-set-weight-input-${operationSet.id}" name="operation-set-weight-input" placeholder="${operation.weight_unit}" value="${weight}" onchange="updateOperationSet('${operationSet.id}', '${setCounter}')">
         </div>
+        <div class="operation-set-input" id="operation-set-rep-${operationSet.id}" style="display: ${repsHTML};">
+            <input style="" min="0" class="operation-set-rep-input" type="number" id="operation-set-rep-input-${operationSet.id}" name="operation-set-rep-input" placeholder="reps" value="${reps}" onchange="updateOperationSet('${operationSet.id}', '${setCounter}')">
+        </div>
         <div class="operation-set-input operation-set-input-wide" id="operation-set-time-${operationSet.id}" style="display: ${timingHTML};">
-            <input style="" class="operation-set-time-input" type="text" id="operation-set-time-input-${operationSet.id}" name="operation-set-time-input" placeholder="00:00" value="${time}" onchange="updateOperationSet('${operationSet.id}', '${setCounter}')">
+            <input style="" class="operation-set-time-input" type="text" id="operation-set-time-input-${operationSet.id}" name="operation-set-time-input" pattern="[0-9:]{0,}" placeholder="hh:mm:ss" value="${time}" onchange="updateOperationSet('${operationSet.id}', '${setCounter}')">
         </div>
         <div class="operation-set-input" id="operation-set-distance-${operationSet.id}" style="display: ${distanceHTML};">
             <input style="" min="0" class="operation-set-distance-input" type="number" id="operation-set-distance-input-${operationSet.id}" name="operation-set-distance-input" placeholder="${operation.distance_unit}" value="${distance}" onchange="updateOperationSet('${operationSet.id}', '${setCounter}')">
@@ -380,11 +394,8 @@ function updateExerciseDay(exerciseDayID) {
                 error(result.error);
             } else {
                 document.getElementById('exercise-day-note').innerHTML = result.exercise_day.note;
-                success("Saved.")
             }
 
-        } else {
-            info("Updating...");
         }
     };
     xhttp.withCredentials = true;
@@ -521,7 +532,7 @@ function addOperationSet(operationID) {
             if(result.error) {
                 error(result.error);
             } else {
-                placeOperationNewSet(result.operation_set, operationID, result.operation)
+                placeNewOperationSet(result.operation_set, operationID, result.operation)
             }
 
         }
@@ -534,7 +545,7 @@ function addOperationSet(operationID) {
     return false;
 }
 
-function placeOperationNewSet(operationSet, operationID, operation) {
+function placeNewOperationSet(operationSet, operationID, operation) {
     element = document.getElementById('operation-set-wrapper-sub-' + operationID)
     count = element.children.length
     operationSetHTML = `
@@ -599,29 +610,8 @@ function updateOperationSet(operationSetID, setCount) {
     var time = document.getElementById('operation-set-time-input-' + operationSetID).value
     var distance = parseFloat(document.getElementById('operation-set-distance-input-' + operationSetID).value)
 
-    var timeFinal = null;
-    try {
-        if(time.includes(':')) {
-            timeArray = time.split(':')
-            
-            if(timeArray.length == 2) {
-                var minutes = parseFloat(timeArray[0])
-                var seconds = parseFloat(timeArray[1])
-                timeFinal = (minutes * 60) + seconds
-            } else if (timeArray.length == 3){
-                var hours = parseFloat(timeArray[0])
-                var minutes = parseFloat(timeArray[1])
-                var seconds = parseFloat(timeArray[2])
-                timeFinal = (hours * 3600) + (minutes * 60) + seconds
-            }
-
-        } else if(time != ''){
-            timeFinal = parseFloat(time)
-        }
-    } catch (e) {
-        console.log("Failed to parse time. Error: " + e)
-    }
-
+    var timeFinal = parseDurationStringToSeconds(time);
+    
     var form_obj = {
         "repetitions": repetitions,
         "weight": weight,
@@ -664,12 +654,18 @@ function placeOperationSet(operationSet, operation, setCount) {
     document.getElementById('operation-set-' + operationSet.id).innerHTML = operationSetHTML
 }
 
-function updateExercise(exerciseID) {
+function updateExercise(exerciseID, on, count) {
+    if(!on && !confirm("Are you sure you want to delete this set?")) {
+        return;
+    }
+
     var note = document.getElementById('exercise-note-' + exerciseID).value
+    var time = document.getElementById('exercise-time-input-' + exerciseID).value
 
     var form_obj = {
         "note": note,
-        "on": true,
+        "on": on,
+        "duration": parseDurationStringToSeconds(time)
     };
 
     var form_data = JSON.stringify(form_obj);
@@ -689,7 +685,7 @@ function updateExercise(exerciseID) {
             if(result.error) {
                 error(result.error);
             } else {
-                placeExercise(result.exercise)
+                placeExercise(result.exercise, count)
             }
 
         }
@@ -702,8 +698,8 @@ function updateExercise(exerciseID) {
     return false;
 }
 
-function placeExercise(exercise) {
-    document.getElementById('exercise-note-' + exercise.id).value = exercise.note
+function placeExercise(exercise, count) {
+    document.getElementById('exercise-' + exercise.id).innerHTML = generateExerciseHTML(exercise, count)
 }
 
 function loadExerciseList() {
@@ -742,4 +738,127 @@ function processExerciseList(exercisesArray) {
             </option>
         `
     });
+}
+
+function addExercise(exerciseDayID) {
+    var form_obj = {
+        "exercise_day_id": exerciseDayID,
+        "on" : true,
+        "note": "",
+        "duration": null
+    };
+
+    var form_data = JSON.stringify(form_obj);
+
+    var xhttp = new XMLHttpRequest();
+    xhttp.onreadystatechange = function() {
+        if (this.readyState == 4) {
+            
+            try {
+                result = JSON.parse(this.responseText);
+            } catch(e) {
+                console.log(e +' - Response: ' + this.responseText);
+                error("Could not reach API.");
+                return;
+            }
+            
+            if(result.error) {
+                error(result.error);
+            } else {
+                placeNewExercise(result.exercise)
+            }
+
+        }
+    };
+    xhttp.withCredentials = true;
+    xhttp.open("post", api_url + "auth/exercises");
+    xhttp.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
+    xhttp.setRequestHeader("Authorization", jwt);
+    xhttp.send(form_data);
+    return false;
+}
+
+function placeNewExercise(exercise) {
+    element = document.getElementById('exercisesWrapper')
+    count = element.children.length
+    var exerciseHTML = `
+        <div class="exerciseWrapper" id="exercise-${exercise.id}">
+            ${generateExerciseHTML(exercise, count + 1)}
+        </div>
+    `;
+    element.insertAdjacentHTML("beforeend", exerciseHTML)
+}
+
+function deleteExercise() {
+
+}
+
+function deleteOperation(operationID) {
+    if(!confirm("Are you sure you want to delete this exercise?")) {
+        return;
+    }
+
+    var xhttp = new XMLHttpRequest();
+    xhttp.onreadystatechange = function() {
+        if (this.readyState == 4) {
+            
+            try {
+                result = JSON.parse(this.responseText);
+            } catch(e) {
+                console.log(e +' - Response: ' + this.responseText);
+                error("Could not reach API.");
+                return;
+            }
+            
+            if(result.error) {
+                error(result.error);
+            } else {
+                document.getElementById('operation-' + operationID).remove();
+            }
+
+        }
+    };
+    xhttp.withCredentials = true;
+    xhttp.open("delete", api_url + "auth/operations/" + operationID);
+    xhttp.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
+    xhttp.setRequestHeader("Authorization", jwt);
+    xhttp.send();
+    return false;
+}
+
+function deleteOperationSet(operationSetID) {
+    if(!confirm("Are you sure you want to delete this set?")) {
+        return;
+    }
+
+    var xhttp = new XMLHttpRequest();
+    xhttp.onreadystatechange = function() {
+        if (this.readyState == 4) {
+            
+            try {
+                result = JSON.parse(this.responseText);
+            } catch(e) {
+                console.log(e +' - Response: ' + this.responseText);
+                error("Could not reach API.");
+                return;
+            }
+            
+            if(result.error) {
+                error(result.error);
+            } else {
+                removeOperationSet(result.operation)
+            }
+
+        }
+    };
+    xhttp.withCredentials = true;
+    xhttp.open("delete", api_url + "auth/operation-sets/" + operationSetID);
+    xhttp.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
+    xhttp.setRequestHeader("Authorization", jwt);
+    xhttp.send();
+    return false;
+}
+
+function removeOperationSet(operation) {
+    document.getElementById('operation-' + operation.id).innerHTML = generateOperationHTML(operation)
 }

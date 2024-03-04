@@ -170,3 +170,31 @@ func GetExerciseDayByID(exerciseDayID uuid.UUID) (models.ExerciseDay, error) {
 
 	return exerciseDay, nil
 }
+
+func GetExerciseDayByIDAndUserID(exerciseDayID uuid.UUID, userID uuid.UUID) (models.ExerciseDay, error) {
+	var exerciseDay models.ExerciseDay
+
+	exerciserecord := Instance.Where("`exercise_days`.enabled = ?", 1).
+		Where("`exercise_days`.id = ?", exerciseDayID).
+		Joins("JOIN `goals` on `exercise_days`.goal_id = `goals`.id").
+		Where("`goals`.enabled = ?", 1).
+		Joins("JOIN `users` on `goals`.user_id = `users`.id").
+		Where("`users`.enabled = ?", 1).
+		Where("`users`.id = ?", userID).
+		Find(&exerciseDay)
+	if exerciserecord.Error != nil {
+		return models.ExerciseDay{}, exerciserecord.Error
+	} else if exerciserecord.RowsAffected != 1 {
+		return models.ExerciseDay{}, nil
+	}
+
+	return exerciseDay, nil
+}
+
+func UpdateExerciseDayInDB(exerciseDay models.ExerciseDay) (models.ExerciseDay, error) {
+	record := Instance.Save(&exerciseDay)
+	if record.Error != nil {
+		return exerciseDay, record.Error
+	}
+	return exerciseDay, nil
+}

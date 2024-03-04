@@ -32,21 +32,31 @@ type ExerciseDayUpdateRequest struct {
 
 type Exercise struct {
 	GormModel
-	Note          string      `json:"note"`
-	Enabled       bool        `json:"enabled" gorm:"not null; default: true"`
-	On            bool        `json:"on" gorm:"not null; default: true"`
-	ExerciseDayID uuid.UUID   `json:"" gorm:"type:varchar(100);"`
-	ExerciseDay   ExerciseDay `json:"exercise_day" gorm:"not null"`
+	Note          string        `json:"note"`
+	Duration      time.Duration `json:"duration"`
+	Enabled       bool          `json:"enabled" gorm:"not null; default: true"`
+	On            bool          `json:"on" gorm:"not null; default: true"`
+	ExerciseDayID uuid.UUID     `json:"" gorm:"type:varchar(100);"`
+	ExerciseDay   ExerciseDay   `json:"exercise_day" gorm:"not null"`
 }
 
 type ExerciseUpdateRequest struct {
-	Note string `json:"note"`
-	On   bool   `json:"on"`
+	Note     string        `json:"note"`
+	On       bool          `json:"on"`
+	Duration time.Duration `json:"duration"`
+}
+
+type ExerciseCreationRequest struct {
+	ExerciseDayID uuid.UUID     `json:"exercise_day_id"`
+	Note          string        `json:"note"`
+	On            bool          `json:"on"`
+	Duration      time.Duration `json:"duration"`
 }
 
 type ExerciseObject struct {
 	GormModel
 	Note        string            `json:"note"`
+	Duration    time.Duration     `json:"duration"`
 	Enabled     bool              `json:"enabled"`
 	On          bool              `json:"on"`
 	ExerciseDay uuid.UUID         `json:"exercise_day"`

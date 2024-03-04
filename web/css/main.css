@@ -335,7 +335,7 @@ input[type=text], input[type=password], input[type=email], input[type=date], inp
   box-sizing: inherit;
   border-radius: 0.5em;
   font-size: 0.8 em;
-  border: solid 2px var(--grey); 
+  border: solid 0.2em var(--grey); 
   resize: vertical;
   min-height: 2em;
   max-height: 25em;
@@ -1965,6 +1965,18 @@ input[type=checkbox]
   align-items: center;
 }
 
+.exerciseSubWrapper {
+  width: 100%;
+  width: -webkit-fill-available;
+  width: -moz-available;
+  display: flex;
+  flex-direction: column;
+  flex-wrap: wrap;
+  align-content: center;
+  justify-content: center;
+  align-items: center;
+}
+
 .operationsWrapper {
   width: 100%;
   width: -webkit-fill-available;
@@ -1993,8 +2005,8 @@ input[type=checkbox]
 }
 
 .operationWrapper {
-  width: 15em;
-  height: 15em;
+  width: 20em;
+  height: 20em;
   background-color: var(--white);
   border-radius: 10%;
   margin: 1em;
@@ -2019,7 +2031,6 @@ input[type=checkbox]
   align-content: center;
   justify-content: center;
   align-items: center;
-  margin: 1em;
 }
 
 .operationSetWrapper {
@@ -2059,6 +2070,8 @@ input[type=checkbox]
   margin: 0.12em;
   border-radius: 1em;
   height: 1.5em;
+  width: 3em;
+  text-align: center;
 }
 
 .addOperationSetWrapper {
@@ -2108,6 +2121,8 @@ input[type=checkbox]
   width: 100%;
   width: -webkit-fill-available;
   width: -moz-available;
+  font-size: 1em !important;
+  border: solid 0.1em var(--grey) !important;
 }
 
 .operationAction {
@@ -2120,7 +2135,7 @@ input[type=checkbox]
   box-sizing: inherit;
 }
 
-.operation-set-rep-input, .operation-set-weight-input, .operation-set-time-input, .operation-set-distance-input {
+.operation-set-rep-input, .operation-set-weight-input, .operation-set-time-input, .operation-set-distance-input, .exercise-time-input {
   width: 100%;
   width: -webkit-fill-available;
   width: -moz-available;
@@ -2134,12 +2149,16 @@ input[type=checkbox]
   border: none !important;
 }
 
+.exercise-time-input {
+  border: solid 0.1em var(--grey) !important;
+}
+
 .operation-set-input-wide {
-  width: 5em !important;
+  width: 8em !important;
 }
 
 .operation-set-input {
-  width: 4em;
+  width: 6em;
 }
 
 .operation-set-title {
@@ -2152,4 +2171,37 @@ input[type=checkbox]
 
 .operation-type-input-lifting {
   background-image: url("/assets/logo.svg");
+}
+
+.exercise-time-input {
+  background-color: var(--white) !important;
+  border: solid 0.2em var(--grey);
+}
+
+.bottom-row {
+  width: 100%;
+  width: -webkit-fill-available;
+  width: -moz-available;
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-content: center;
+  justify-content: end;
+  align-items: center;
+  box-sizing: content-box;
+  margin-top: auto;
+}
+
+.top-row {
+  width: 100%;
+  width: -webkit-fill-available;
+  width: -moz-available;
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-content: center;
+  justify-content: end;
+  align-items: center;
+  box-sizing: content-box;
+  margin: auto;
 }

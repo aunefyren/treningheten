@@ -452,6 +452,7 @@ func APIGetExerciseDays(context *gin.Context) {
 	context.JSON(http.StatusOK, gin.H{"message": "Exercise retrieved.", "exercise": exerciseDays})
 }
 
+// Change exercises to correlate with exercise days
 func CorrelateExerciseWithExerciseDay(exerciseDayID uuid.UUID, exerciseDayExerciseInterval int) error {
 
 	exercises, err := database.GetExerciseByExerciseDayID(exerciseDayID)
@@ -713,6 +714,7 @@ func ConvertExerciseToExerciseObject(exercise models.Exercise) (exerciseObject m
 	exerciseObject.Note = exercise.Note
 	exerciseObject.On = exercise.On
 	exerciseObject.UpdatedAt = exercise.UpdatedAt
+	exerciseObject.Duration = exercise.Duration
 
 	return
 }
@@ -866,8 +868,28 @@ func APIUpdateExercise(context *gin.Context) {
 		return
 	}
 
+	turnedOn := false
+	if !exercise.On && exerciseUpdateRequest.On {
+		turnedOn = true
+	}
+
+	exerciseDay, err := database.GetExerciseDayByIDAndUserID(exercise.ExerciseDayID, userID)
+	if err != nil {
+		log.Println("Failed to get exercise day. Error: " + err.Error())
+		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get exercise day."})
+		context.Abort()
+		return
+	}
+
+	if turnedOn && exerciseDay.ExerciseInterval >= 3 {
+		context.JSON(http.StatusBadRequest, gin.H{"error": "You can only exercise three times in a day."})
+		context.Abort()
+		return
+	}
+
 	exercise.Note = strings.TrimSpace(exerciseUpdateRequest.Note)
 	exercise.On = exerciseUpdateRequest.On
+	exercise.Duration = exerciseUpdateRequest.Duration
 
 	if len(exercise.Note) > 255 {
 		context.JSON(http.StatusBadRequest, gin.H{"error": "Invalid note length."})
@@ -891,5 +913,89 @@ func APIUpdateExercise(context *gin.Context) {
 		return
 	}
 
+	if turnedOn {
+		exerciseDay.ExerciseInterval += 1
+	} else {
+		exerciseDay.ExerciseInterval -= 1
+	}
+
+	_, err = database.UpdateExerciseDayInDB(exerciseDay)
+	if err != nil {
+		log.Println("Failed to update exercise day. Error: " + err.Error())
+		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update exercise day."})
+		context.Abort()
+		return
+	}
+
 	context.JSON(http.StatusOK, gin.H{"message": "Exercise updated.", "exercise": exerciseObject})
+}
+
+func APICreateExercise(context *gin.Context) {
+	// Initialize variables
+	var exerciseCreationRequest models.ExerciseCreationRequest
+	var exercise models.Exercise
+
+	// Get user ID
+	userID, err := middlewares.GetAuthUsername(context.GetHeader("Authorization"))
+	if err != nil {
+		log.Println("Failed to verify user ID. Error: " + err.Error())
+		context.JSON(http.StatusBadRequest, gin.H{"error": "Failed to verify user ID."})
+		context.Abort()
+		return
+	}
+
+	// Parse creation request
+	if err := context.ShouldBindJSON(&exerciseCreationRequest); err != nil {
+		log.Println("Failed to parse creation request. Error: " + err.Error())
+		context.JSON(http.StatusBadRequest, gin.H{"error": "Failed to parse creation request."})
+		context.Abort()
+		return
+	}
+
+	exerciseDay, err := database.GetExerciseDayByIDAndUserID(exerciseCreationRequest.ExerciseDayID, userID)
+	if err != nil {
+		log.Println("Failed to verify exercise day. Error: " + err.Error())
+		context.JSON(http.StatusBadRequest, gin.H{"error": "Failed to verify exercise day."})
+		context.Abort()
+		return
+	}
+
+	if exerciseDay.ExerciseInterval >= 3 {
+		context.JSON(http.StatusBadRequest, gin.H{"error": "You can only exercise three times in a day."})
+		context.Abort()
+		return
+	}
+
+	exercise.On = exerciseCreationRequest.On
+	exercise.Duration = exerciseCreationRequest.Duration
+	exercise.Note = strings.TrimSpace(exerciseCreationRequest.Note)
+	exercise.ExerciseDayID = exerciseCreationRequest.ExerciseDayID
+	exercise.ID = uuid.New()
+
+	exercise, err = database.CreateExerciseInDB(exercise)
+	if err != nil {
+		log.Println("Failed to create exercise. Error: " + err.Error())
+		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create exercise."})
+		context.Abort()
+		return
+	}
+
+	exerciseDay.ExerciseInterval += 1
+	_, err = database.UpdateExerciseDayInDB(exerciseDay)
+	if err != nil {
+		log.Println("Failed to update exercise day in the database. Error: " + err.Error())
+		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update exercise day in the database."})
+		context.Abort()
+		return
+	}
+
+	exerciseObject, err := ConvertExerciseToExerciseObject(exercise)
+	if err != nil {
+		log.Println("Failed to get convert exercise to exercise object. Error: " + err.Error())
+		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get convert exercise to exercise object."})
+		context.Abort()
+		return
+	}
+
+	context.JSON(http.StatusCreated, gin.H{"message": "Exercise created.", "exercise": exerciseObject})
 }
