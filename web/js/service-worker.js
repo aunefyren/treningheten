@@ -96,7 +96,8 @@ self.addEventListener('notificationclick', event => {
         if (action === 'close') {
             notification.close();
         } else {
-            event.waitUntil(clients.openWindow(self.location.origin + url));
+            const promiseChain = clients.openWindow(url);
+            event.waitUntil(promiseChain);
             notification.close();
         }
 
@@ -138,14 +139,13 @@ self.addEventListener("push", (event) => {
 */
 
 self.addEventListener('push', function(event) {
-
     if (!(self.Notification && self.Notification.permission === "granted")) {
         console.log("Notification permission not given.")
         return;
     }
-
+    
     console.log("Pushing notification.")
-
+    
     try {
 
         let jsonData = event.data?.json() ?? {
@@ -198,5 +198,4 @@ self.addEventListener('push', function(event) {
     } catch(e) {
         console.log("Failed to push notification. Error: " + e)
     }
-
 });
