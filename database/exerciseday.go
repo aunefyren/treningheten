@@ -45,25 +45,12 @@ func CreateExerciseDayInDB(exercise models.ExerciseDay) error {
 }
 
 // Update an exercise in the database
-func UpdateExerciseDayInDatabase(exercise models.ExerciseDay) (err error) {
-
-	err = nil
-
-	startDayString := exercise.Date.Format("2006-01-02") + " 00:00:00.000"
-	endDayString := exercise.Date.Format("2006-01-02") + " 23:59:59"
-
-	err = UpdateExerciseDayNoteInDatabase(exercise.GoalID, startDayString, endDayString, exercise.Note)
-	if err != nil {
-		return err
+func UpdateExerciseDayInDatabase(exercise models.ExerciseDay) (models.ExerciseDay, error) {
+	record := Instance.Save(&exercise)
+	if record.Error != nil {
+		return exercise, record.Error
 	}
-
-	err = UpdateExerciseDayIntervalInDatabase(exercise.GoalID, startDayString, endDayString, exercise.ExerciseInterval)
-	if err != nil {
-		return err
-	}
-
-	return err
-
+	return exercise, nil
 }
 
 func UpdateExerciseDayNoteInDatabase(goalID uuid.UUID, startDayString string, endDayString string, note string) (err error) {

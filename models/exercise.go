@@ -8,12 +8,11 @@ import (
 
 type ExerciseDay struct {
 	GormModel
-	Date             time.Time `json:"date" gorm:"not null"`
-	Note             string    `json:"note"`
-	Enabled          bool      `json:"enabled" gorm:"not null; default: true"`
-	GoalID           uuid.UUID `json:"" gorm:"type:varchar(100);"`
-	Goal             Goal      `json:"goal" gorm:"not null"`
-	ExerciseInterval int       `json:"exercise_interval" gorm:"not null; default: 0"`
+	Date    time.Time `json:"date" gorm:"not null"`
+	Note    string    `json:"note"`
+	Enabled bool      `json:"enabled" gorm:"not null; default: true"`
+	GoalID  uuid.UUID `json:"" gorm:"type:varchar(100);"`
+	Goal    Goal      `json:"goal" gorm:"not null"`
 }
 
 type ExerciseDayObject struct {
@@ -70,7 +69,7 @@ type ExerciseDayCreationRequest struct {
 }
 
 type Week struct {
-	Days []ExerciseDay `json:"days"`
+	Days []ExerciseDayObject `json:"days"`
 }
 
 type WeekCreationRequest struct {
