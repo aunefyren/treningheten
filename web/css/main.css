@@ -2072,6 +2072,7 @@ input[type=checkbox]
   height: 1.5em;
   width: 3em;
   text-align: center;
+  overflow: hidden;
 }
 
 .addOperationSetWrapper {
@@ -2135,7 +2136,7 @@ input[type=checkbox]
   box-sizing: inherit;
 }
 
-.operation-set-rep-input, .operation-set-weight-input, .operation-set-time-input, .operation-set-distance-input, .exercise-time-input {
+.operation-set-rep-input, .operation-set-weight-input, .operation-set-time-input, .operation-set-distance-input, .exercise-time-input, .operation-set-average-input {
   width: 100%;
   width: -webkit-fill-available;
   width: -moz-available;
@@ -2154,11 +2155,11 @@ input[type=checkbox]
 }
 
 .operation-set-input-wide {
-  width: 8em !important;
+  width: 6em !important;
 }
 
 .operation-set-input {
-  width: 6em;
+  width: 5em;
 }
 
 .operation-set-title {

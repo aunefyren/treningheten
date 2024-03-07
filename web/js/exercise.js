@@ -27,30 +27,30 @@ function load_page(result) {
     }
 
     var html = `
-                <div class="" id="front-page">
-                    
-                    <div class="module">
-                    
-                        <div class="text-body" style="text-align: center;">
-                            <div class="exerciseDayWrapper" id="exerciseDayWrapper">
-                                <p id="exercise-day-date" style="text-align: center;">...</p>
-                                <p id="exercise-day-exercise-goal" style="text-align: center;">...</p>
+        <div class="" id="front-page">
+            
+            <div class="module">
+            
+                <div class="text-body" style="text-align: center;">
+                    <div class="exerciseDayWrapper" id="exerciseDayWrapper">
+                        <p id="exercise-day-date" style="text-align: center;">...</p>
+                        <p id="exercise-day-exercise-goal" style="text-align: center;">...</p>
 
-                                <textarea onchange="updateExerciseDay('${exerciseDayID}')" class="day-note-area" id="exercise-day-note" name="exercise-day-exercise-note" rows="3" cols="33" placeholder="Notes" style="margin-top: 1em;"></textarea>
-                            </div>
-                        </div>
-
-                        <hr class="invert" style="border: 0.025em solid var(--white); margin: 4em 0;">
-
-                        <div class="exercisesWrapper" id="exercisesWrapper"></div>
-
-                        <div class="addExerciseWrapper clickable hover" id="addExerciseWrapper" title="Add session" onclick="addExercise('${exerciseDayID}');">
-                            <img src="/assets/plus.svg" class="button-icon" style="height: 100%; margin: 1em;">
-                        </div>
-
+                        <textarea onchange="updateExerciseDay('${exerciseDayID}')" class="day-note-area" id="exercise-day-note" name="exercise-day-exercise-note" rows="3" cols="33" placeholder="Notes" style="margin-top: 1em;"></textarea>
                     </div>
-
                 </div>
+
+                <hr class="invert" style="border: 0.025em solid var(--white); margin: 4em 0;">
+
+                <div class="exercisesWrapper" id="exercisesWrapper"></div>
+
+                <div class="addExerciseWrapper clickable hover" id="addExerciseWrapper" title="Add session" onclick="addExercise('${exerciseDayID}');">
+                    <img src="/assets/plus.svg" class="button-icon" style="height: 100%; margin: 1em;">
+                </div>
+
+            </div>
+
+        </div>
     `;
 
     document.getElementById('content').innerHTML = html;
@@ -262,13 +262,16 @@ function generateOperationSetsHTML(operationSets, operation) {
     distanceHTML = 'block'
     timingHTML = 'block'
     weightHTML = 'block'
+    averageHTML = 'block'
     if(operation.type == 'lifting') {
         distanceHTML = 'none'
         timingHTML = 'none'
+        averageHTML = 'none'
     } else if(operation.type == 'timing') {
         repsHTML = 'none'
         distanceHTML = 'none'
         weightHTML = 'none'
+        averageHTML = 'none'
     } else if(operation.type == 'moving') {
         repsHTML = 'none'
         weightHTML = 'none'
@@ -290,6 +293,9 @@ function generateOperationSetsHTML(operationSets, operation) {
             </div>
             <div class="operation-set-title" style="display: ${distanceHTML};">
                 ${operation.distance_unit}
+            </div>
+            <div class="operation-set-title" style="display: ${averageHTML};">
+                ${operation.distance_unit}/t
             </div>
         </div>
 
@@ -321,13 +327,16 @@ function generateOperationSetHTML(operationSet, operation, setCounter) {
     distanceHTML = 'block'
     timingHTML = 'block'
     weightHTML = 'block'
+    averageHTML = 'block'
     if(operation.type == 'lifting') {
         distanceHTML = 'none'
         timingHTML = 'none'
+        averageHTML = 'none'
     } else if(operation.type == 'timing') {
         repsHTML = 'none'
         distanceHTML = 'none'
         weightHTML = 'none'
+        averageHTML = 'none'
     } else if(operation.type == 'moving') {
         repsHTML = 'none'
         weightHTML = 'none'
@@ -349,6 +358,10 @@ function generateOperationSetHTML(operationSet, operation, setCounter) {
     if(operationSet.distance != null) {
         distance = operationSet.distance
     }
+    var average = ""
+    if(operationSet.distance != null && operationSet.time != null) {
+        average = parseFloat(operationSet.distance / (operationSet.time / 3600)).toFixed(2);
+    }
 
     return `
         <div class="operation-set clickable" id="operation-set-counter-${operationSet.id}"  onclick="deleteOperationSet('${operationSet.id}')">
@@ -365,6 +378,9 @@ function generateOperationSetHTML(operationSet, operation, setCounter) {
         </div>
         <div class="operation-set-input" id="operation-set-distance-${operationSet.id}" style="display: ${distanceHTML};">
             <input style="" min="0" class="operation-set-distance-input" type="number" id="operation-set-distance-input-${operationSet.id}" name="operation-set-distance-input" placeholder="${operation.distance_unit}" value="${distance}" onchange="updateOperationSet('${operationSet.id}', '${setCounter}')">
+        </div>
+        <div class="operation-set" id="operation-set-average-${operationSet.id}" style="display: ${averageHTML};">
+            ${average}
         </div>
     `;
 }
