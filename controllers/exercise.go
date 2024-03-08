@@ -997,6 +997,13 @@ func APICreateExercise(context *gin.Context) {
 		return
 	}
 
+	now := time.Now()
+	if exerciseDayObject.Date.Round(0).After(now.Round(0)) {
+		context.JSON(http.StatusBadRequest, gin.H{"error": "You can't create exercises on days in the future."})
+		context.Abort()
+		return
+	}
+
 	exercise.On = exerciseCreationRequest.On
 	exercise.Duration = exerciseCreationRequest.Duration
 	exercise.Note = strings.TrimSpace(exerciseCreationRequest.Note)

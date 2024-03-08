@@ -47,6 +47,8 @@ function load_page(result) {
                             <img src="/assets/images/barbell.gif">
                         </div>
 
+                        <button type="submit" onclick="" id="add-exercise-button" style="display: none; margin-bottom: 0em; width: 12em;"><img src="assets/plus.svg" class="btn_logo color-invert"><p2>Start new workout</p2></button>
+
                     </div>
 
                     <div class="module" id="ongoingseason" style="display: none;">
@@ -537,6 +539,13 @@ function place_week(week, fireworks) {
     // Add class to current day
     document.getElementById("day_" + day + "_check").classList.add("active-day") 
 
+    // Enable workout button
+    addExerciseButton = document.getElementById("add-exercise-button")
+    addExerciseButton.addEventListener("click", function(e) {
+        addExercise(week.days[day-1].id)
+    }, false);
+    addExerciseButton.style.display = 'flex'
+
     // Place editing icon for exercise
     for(var i = 1; i <= day; i++) {
         document.getElementById("day_" + i + "_edit").style.display = "flex" // Disabled because not ready
@@ -910,6 +919,8 @@ function place_current_week(week_array) {
             var current_streak = week_array.users[i].current_streak + "🤢"
             transparent = "transparent"
 
+            document.getElementById("add-exercise-button").style.display = 'none';
+
             if(week_array.users[i].user.id == user_id){
                 document.getElementById("calendar").classList.add("transparent")
                 document.getElementById("calendar").classList.add("unselectable")
@@ -1239,4 +1250,46 @@ function registerGoalRedirect() {
 
     window.location = '/registergoal'
     
+}
+
+function exerciseRedirect(exerciseDayID) {
+    window.location = '/exercises/' + exerciseDayID
+}
+
+function addExercise(exerciseDayID) {
+    var form_obj = {
+        "exercise_day_id": exerciseDayID,
+        "on" : true,
+        "note": "",
+        "duration": null
+    };
+
+    var form_data = JSON.stringify(form_obj);
+
+    var xhttp = new XMLHttpRequest();
+    xhttp.onreadystatechange = function() {
+        if (this.readyState == 4) {
+            
+            try {
+                result = JSON.parse(this.responseText);
+            } catch(e) {
+                console.log(e +' - Response: ' + this.responseText);
+                error("Could not reach API.");
+                return;
+            }
+            
+            if(result.error) {
+                error(result.error);
+            } else {
+                exerciseRedirect(exerciseDayID)
+            }
+
+        }
+    };
+    xhttp.withCredentials = true;
+    xhttp.open("post", api_url + "auth/exercises");
+    xhttp.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
+    xhttp.setRequestHeader("Authorization", jwt);
+    xhttp.send(form_data);
+    return false;
 }

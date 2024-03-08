@@ -143,6 +143,11 @@ function generateExerciseHTML(exercise, count) {
     var exerciseHTML = null;
 
     if(exercise.on) {
+        durationHTML = ""
+        if(exercise.duration) {
+            durationHTML = secondsToDurationString(exercise.duration)
+        }
+
         exerciseHTML = `
             <div class="top-row">
                 <img src="/assets/trash-2.svg" style="height: 1em; width: 1em; padding: 1em;" onclick="updateExercise('${exercise.id}', false, ${count})" class="btn_logo clickable">
@@ -152,7 +157,7 @@ function generateExerciseHTML(exercise, count) {
                 <h2 style="">Session ${count}</h2>
                 
                 <div class="exercise-input" id="exercise-time-${exercise.id}">
-                    <input style="" class="exercise-time-input" type="text" id="exercise-time-input-${exercise.id}" name="exercise-time-input" pattern="[0-9:]{0,}" placeholder="hh:mm:ss" value="${secondsToDurationString(exercise.duration)}" onchange="updateExercise('${exercise.id}', true, ${count})">
+                    <input style="" class="exercise-time-input" type="text" id="exercise-time-input-${exercise.id}" name="exercise-time-input" pattern="[0-9:]{0,}" placeholder="hh:mm:ss" value="${durationHTML}" onchange="updateExercise('${exercise.id}', true, ${count})">
                 </div>
 
                 <textarea class="day-note-area" id="exercise-note-${exercise.id}" name="exercise-exercise-note" rows="3" cols="33" placeholder="Notes" style="margin-top: 1em; width: 20em;" onchange="updateExercise('${exercise.id}', true, ${count})">${exercise.note}</textarea>
@@ -282,11 +287,11 @@ function generateOperationSetsHTML(operationSets, operation) {
             <div class="operation-set-title">
                 sets
             </div>
-            <div class="operation-set-title" style="display: ${repsHTML};">
-                reps
-            </div>
             <div class="operation-set-title" style="display: ${weightHTML};">
                 ${operation.weight_unit}
+            </div>
+            <div class="operation-set-title" style="display: ${repsHTML};">
+                reps
             </div>
             <div class="operation-set-title" style="display: ${timingHTML};">
                 time
