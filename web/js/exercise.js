@@ -676,7 +676,7 @@ function placeOperationSet(operationSet, operation, setCount) {
 }
 
 function updateExercise(exerciseID, on, count) {
-    if(!on && !confirm("Are you sure you want to delete this set?")) {
+    if(!on && !confirm("Are you sure you want to delete this session?")) {
         return;
     }
 
