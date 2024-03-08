@@ -335,8 +335,8 @@ function place_exercises(exercise_array, goalID) {
 
         `;
 
-        document.getElementById("goal-leaderboard-" + exercise_array[i].GoalID).innerHTML += html
-        document.getElementById("goal-leaderboard-" + exercise_array[i].GoalID).style.margin = "1em 0"
+        document.getElementById("goal-leaderboard-" + exercise_array[i].goal.id).innerHTML += html
+        document.getElementById("goal-leaderboard-" + exercise_array[i].goal.id).style.margin = "1em 0"
 
         lastWeek = week;
 

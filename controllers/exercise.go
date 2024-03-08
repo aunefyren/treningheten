@@ -468,7 +468,15 @@ func APIGetExerciseDays(context *gin.Context) {
 		}
 	}
 
-	context.JSON(http.StatusOK, gin.H{"message": "Exercise retrieved.", "exercise": exerciseDays})
+	exerciseDayObjects, err := ConvertExerciseDaysToExerciseDayObjects(exerciseDays)
+	if err != nil {
+		log.Println("Failed to get convert exercise days to exercise day objects. Error: " + err.Error())
+		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get convert exercise days to exercise day objects."})
+		context.Abort()
+		return
+	}
+
+	context.JSON(http.StatusOK, gin.H{"message": "Exercise retrieved.", "exercise": exerciseDayObjects})
 }
 
 // Change exercises to correlate with exercise days
