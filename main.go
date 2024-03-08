@@ -23,9 +23,9 @@ import (
 
 	_ "time/tzdata"
 
+	"codnect.io/chrono"
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
-	"github.com/procyon-projects/chrono"
 	"github.com/thanhpk/randstr"
 )
 
