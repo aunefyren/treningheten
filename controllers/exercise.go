@@ -1011,7 +1011,7 @@ func APICreateExercise(context *gin.Context) {
 	exerciseYear, exerciseWeek := exerciseDayObject.Date.ISOWeek()
 	nowYear, nowWeek := time.Now().ISOWeek()
 	if nowYear != exerciseYear || exerciseWeek != nowWeek {
-		context.JSON(http.StatusBadRequest, gin.H{"error": "You can't add exercise sessions outside the week."})
+		context.JSON(http.StatusBadRequest, gin.H{"error": "You can't add exercise sessions outside the week the day happened."})
 		context.Abort()
 		return
 	}
