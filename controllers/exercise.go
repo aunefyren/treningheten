@@ -898,8 +898,11 @@ func APIUpdateExercise(context *gin.Context) {
 	}
 
 	turnedOn := false
+	turnedOff := false
 	if !exercise.On && exerciseUpdateRequest.On {
 		turnedOn = true
+	} else if exercise.On && !exerciseUpdateRequest.On {
+		turnedOff = true
 	}
 
 	exerciseDay, err := database.GetExerciseDayByIDAndUserID(exercise.ExerciseDayID, userID)
@@ -920,6 +923,14 @@ func APIUpdateExercise(context *gin.Context) {
 
 	if turnedOn && exerciseDayObject.ExerciseInterval >= 3 {
 		context.JSON(http.StatusBadRequest, gin.H{"error": "You can only exercise three times in a day."})
+		context.Abort()
+		return
+	}
+
+	exerciseYear, exerciseWeek := exerciseDayObject.Date.ISOWeek()
+	nowYear, nowWeek := time.Now().ISOWeek()
+	if turnedOff && (nowYear != exerciseYear || exerciseWeek != nowWeek) {
+		context.JSON(http.StatusBadRequest, gin.H{"error": "You can't remove exercise sessions after the week has ended."})
 		context.Abort()
 		return
 	}
@@ -993,6 +1004,14 @@ func APICreateExercise(context *gin.Context) {
 
 	if exerciseDayObject.ExerciseInterval >= 3 {
 		context.JSON(http.StatusBadRequest, gin.H{"error": "You can only exercise three times in a day."})
+		context.Abort()
+		return
+	}
+
+	exerciseYear, exerciseWeek := exerciseDayObject.Date.ISOWeek()
+	nowYear, nowWeek := time.Now().ISOWeek()
+	if nowYear != exerciseYear || exerciseWeek != nowWeek {
+		context.JSON(http.StatusBadRequest, gin.H{"error": "You can't add exercise sessions outside the week."})
 		context.Abort()
 		return
 	}

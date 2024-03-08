@@ -324,7 +324,7 @@ function place_exercises(exercise_array, goalID) {
                     <div class="exercise-week">
                         <b>Week: ${week}</b>
                     </div>
-                    <div id="exercises-${exercise_array[i].goal}-${week}-${year}" class="exercises-group">
+                    <div id="exercises-${exercise_array[i].goal.id}-${week}-${year}" class="exercises-group">
                     </div>
                 `;
         }
@@ -379,7 +379,7 @@ function place_exercises(exercise_array, goalID) {
 
         var html = `
 
-            <div class="exercise-object unselectable" title="${dateStringDetailed}">
+            <div class="exercise-object clickable" title="${dateStringDetailed}" onclick="exerciseRedirect('${exercise_array[i].id}')">
 
                 <div class="exercise-base">
 
@@ -404,8 +404,8 @@ function place_exercises(exercise_array, goalID) {
             </div>
         `;
 
-        var oldHTML = document.getElementById(`exercises-${exercise_array[i].goal}-${week}-${year}`).innerHTML
-        document.getElementById(`exercises-${exercise_array[i].goal}-${week}-${year}`).innerHTML = html + oldHTML
+        var oldHTML = document.getElementById(`exercises-${exercise_array[i].goal.id}-${week}-${year}`).innerHTML
+        document.getElementById(`exercises-${exercise_array[i].goal.id}-${week}-${year}`).innerHTML = html + oldHTML
 
         exerciseFound = true;
 
@@ -465,4 +465,8 @@ function PlaceProfileImageForUserOnLeaderboard(imageBase64, userID, seasonID) {
 
     document.getElementById("member-img-" + seasonID + "-" + userID).src = imageBase64
 
+}
+
+function exerciseRedirect(exerciseDayID) {
+    window.location = '/exercises/' + exerciseDayID
 }
