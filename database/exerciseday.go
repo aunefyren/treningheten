@@ -121,7 +121,14 @@ func GetExerciseDaysForUserUsingUserIDAndGoalID(userID uuid.UUID, goalID uuid.UU
 
 	var exercises []models.ExerciseDay
 
-	exerciserecord := Instance.Order("date desc").Where("`exercise_days`.enabled = ?", 1).Where("`exercise_days`.goal_id = ?", goalID).Joins("JOIN goals on `exercise_days`.goal_id = `goals`.ID").Where("`goals`.user_id = ?", userID).Where("`goals`.enabled = ?", 1).Find(&exercises)
+	exerciserecord := Instance.Order("date desc").
+		Where("`exercise_days`.enabled = ?", 1).
+		Where("`exercise_days`.goal_id = ?", goalID).
+		Joins("JOIN goals on `exercise_days`.goal_id = `goals`.ID").
+		Where("`goals`.user_id = ?", userID).
+		Where("`goals`.enabled = ?", 1).
+		Find(&exercises)
+
 	if exerciserecord.Error != nil {
 		return []models.ExerciseDay{}, exerciserecord.Error
 	} else if exerciserecord.RowsAffected == 0 {
@@ -132,17 +139,22 @@ func GetExerciseDaysForUserUsingUserIDAndGoalID(userID uuid.UUID, goalID uuid.UU
 
 }
 
+// Get enabled exercises where the season and goals are enabled too.
 func GetAllEnabledExerciseDays() ([]models.ExerciseDay, error) {
-
 	var exercises []models.ExerciseDay
 
-	exerciserecord := Instance.Order("date desc").Where("`exercise_days`.enabled = ?", 1).Find(&exercises)
+	exerciserecord := Instance.Order("date desc").
+		Where("`exercise_days`.enabled = ?", 1).
+		Joins("JOIN `goals` on `exercise_days`.goal_id = `goals`.id").
+		Where("`goals`.enabled = ?", 1).
+		Joins("JOIN `seasons` on `goals`.season_id = `seasons`.id").
+		Where("`seasons`.enabled = ?", 1).
+		Find(&exercises)
 	if exerciserecord.Error != nil {
 		return []models.ExerciseDay{}, exerciserecord.Error
 	}
 
 	return exercises, nil
-
 }
 
 func GetExerciseDayByID(exerciseDayID uuid.UUID) (models.ExerciseDay, error) {
