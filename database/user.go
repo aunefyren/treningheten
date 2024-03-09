@@ -97,7 +97,7 @@ func VerifyUserVerificationCodeMatches(userID uuid.UUID, verificationCode string
 	if userrecords.RowsAffected != 1 {
 		return false, time.Now(), nil
 	} else {
-		return true, time.Now(), nil
+		return true, user.VerificationCodeExpiration, nil
 	}
 
 }
