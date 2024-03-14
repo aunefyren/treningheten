@@ -7,10 +7,13 @@ import (
 	"errors"
 	"log"
 	"net/http"
+	"sort"
 	"strings"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
+	"golang.org/x/text/cases"
+	"golang.org/x/text/language"
 )
 
 func ConvertOperationToOperationObject(operation models.Operation) (operationObject models.OperationObject, err error) {
@@ -31,13 +34,24 @@ func ConvertOperationToOperationObject(operation models.Operation) (operationObj
 
 	operationObject.OperationSets = operationSetObjects
 
+	if operation.ActionID != nil {
+		action, err := database.GetActionByID(*operation.ActionID)
+		if err != nil {
+			log.Println("Failed to get action in database. Error: " + err.Error())
+			return operationObject, errors.New("Failed to get action in database.")
+		}
+
+		operationObject.Action = &action
+	} else {
+		operationObject.Action = nil
+	}
+
 	operationObject.CreatedAt = operation.CreatedAt
 	operationObject.DeletedAt = operation.DeletedAt
 	operationObject.Enabled = operation.Enabled
 	operationObject.Exercise = operation.ExerciseID
 	operationObject.ID = operation.ID
 	operationObject.UpdatedAt = operation.UpdatedAt
-	operationObject.Action = operation.Action
 	operationObject.Type = operation.Type
 	operationObject.WeightUnit = operation.WeightUnit
 	operationObject.DistanceUnit = operation.DistanceUnit
@@ -57,6 +71,10 @@ func ConvertOperationsToOperationObjects(operations []models.Operation) (operati
 		}
 		operationObjects = append(operationObjects, operationObject)
 	}
+
+	sort.Slice(operationObjects, func(i, j int) bool {
+		return operationObjects[j].CreatedAt.After(operationObjects[i].CreatedAt)
+	})
 
 	return
 }
@@ -91,6 +109,10 @@ func ConvertOperationSetsToOperationSetObjects(operationSets []models.OperationS
 		}
 		operationSetObjects = append(operationSetObjects, operationSetObject)
 	}
+
+	sort.Slice(operationSetObjects, func(i, j int) bool {
+		return operationSetObjects[j].CreatedAt.After(operationSetObjects[i].CreatedAt)
+	})
 
 	return
 }
@@ -243,7 +265,7 @@ func APICreateOperationForUser(context *gin.Context) {
 		return
 	}
 
-	operation.Action = strings.TrimSpace(operationCreationRequest.Action)
+	operation.ActionID = nil
 	operation.DistanceUnit = strings.TrimSpace(operationCreationRequest.DistanceUnit)
 	operation.ExerciseID = operationCreationRequest.ExerciseID
 	operation.Type = strings.TrimSpace(operationCreationRequest.Type)
@@ -392,9 +414,25 @@ func APIUpdateOperation(context *gin.Context) {
 		return
 	}
 
-	operation.Action = strings.TrimSpace(operationUpdateRequest.Action)
+	if operationUpdateRequest.Action != "" {
+		action, err := database.GetActionByName(strings.TrimSpace(operationUpdateRequest.Action))
+		if err != nil {
+			log.Println("Failed to get action by name. Error: " + err.Error())
+			context.JSON(http.StatusBadRequest, gin.H{"error": "Choose a valid exercise."})
+			context.Abort()
+			return
+		}
+
+		operation.ActionID = &action.ID
+		operation.Action = &action
+		operation.Type = action.Type
+	} else {
+		operation.ActionID = nil
+		operation.Action = nil
+		operation.Type = strings.TrimSpace(operationUpdateRequest.Type)
+	}
+
 	operation.DistanceUnit = strings.TrimSpace(operationUpdateRequest.DistanceUnit)
-	operation.Type = strings.TrimSpace(operationUpdateRequest.Type)
 	operation.WeightUnit = strings.TrimSpace(operationUpdateRequest.WeightUnit)
 
 	if operation.Type != "lifting" && operation.Type != "moving" && operation.Type != "timing" {
@@ -621,4 +659,67 @@ func APIDeleteOperationSet(context *gin.Context) {
 	}
 
 	context.JSON(http.StatusOK, gin.H{"message": "Operation set deleted.", "operation_set": operationSetObject, "operation": operationObject})
+}
+
+func APIGetActions(context *gin.Context) {
+	actions, err := database.GetAllEnabledActions()
+	if err != nil {
+		log.Println("Failed to get actions. Error: " + err.Error())
+		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get actions."})
+		context.Abort()
+		return
+	}
+
+	context.JSON(http.StatusOK, gin.H{"message": "Actions retrieved.", "actions": actions})
+}
+
+func APICreateAction(context *gin.Context) {
+	// Initialize variables
+	var actionCreationRequest models.ActionCreationRequest
+	var action models.Action
+
+	// Parse creation request
+	err := context.ShouldBindJSON(&actionCreationRequest)
+	if err != nil {
+		log.Println("Failed to parse creation request. Error: " + err.Error())
+		context.JSON(http.StatusBadRequest, gin.H{"error": "Failed to parse creation request."})
+		context.Abort()
+		return
+	}
+
+	caserEng := cases.Title(language.English)
+	caserNor := cases.Title(language.Norwegian)
+
+	action.BodyPart = caserEng.String(strings.TrimSpace(actionCreationRequest.BodyPart))
+	action.Description = caserEng.String(strings.TrimSpace(actionCreationRequest.Description))
+	action.Name = caserEng.String(strings.TrimSpace(actionCreationRequest.Name))
+	action.NorwegianName = caserNor.String(strings.TrimSpace(actionCreationRequest.NorwegianName))
+
+	if action.Type != "lifting" && action.Type != "moving" && action.Type != "timing" {
+		context.JSON(http.StatusBadRequest, gin.H{"error": "Invalid exercise type."})
+		context.Abort()
+		return
+	}
+
+	if action.Name == "" && action.NorwegianName == "" {
+		context.JSON(http.StatusBadRequest, gin.H{"error": "Both names can't be empty."})
+		context.Abort()
+		return
+	}
+
+	if len(action.Description) > 255 {
+		context.JSON(http.StatusBadRequest, gin.H{"error": "Invalid description length."})
+		context.Abort()
+		return
+	}
+
+	action, err = database.CreateActionInDB(action)
+	if err != nil {
+		log.Println("Failed to create action. Error: " + err.Error())
+		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create action."})
+		context.Abort()
+		return
+	}
+
+	context.JSON(http.StatusCreated, gin.H{"message": "Action created.", "action": action})
 }

@@ -231,21 +231,31 @@ function generateOperationHTML(operation) {
         movingHTML = 'selected'
     }
 
+    actionHTML = ""
+    if(operation.action) {
+        actionHTML = operation.action.name
+    }
+
     var operationHTML = `
         <div class="operation-selectors">
             <div class="operationType" id="operation-type-${operation.id}">
-                <select class="operation-type-input" type="text" id="operation-type-text-${operation.id}" name="operation-type-text" onchange="updateOperation('${operation.id}')">
+                <select class="operation-type-input" type="text" id="operation-type-text-${operation.id}" name="operation-type-text" style="text-align: center;" onchange="updateOperation('${operation.id}')">
                     <option value="lifting" ${liftingHTML}>💪</option>
                     <option value="moving" ${movingHTML}>🏃‍♂️</option>
                     <option value="timing" ${timingHTML}>⏱️</option>
                 </select>  
             </div>
             <div class="operationAction" id="operation-action-${operation.id}">
-                <input style="" class="operation-action-input" type="text" list="operation-action-text-list-${operation.id}" id="operation-action-text-${operation.id}" name="operation-action-text" placeholder="exercise" value="${operation.action}" onchange="updateOperation('${operation.id}')">
+                <input style="" class="operation-action-input" type="text" list="operation-action-text-list-${operation.id}" id="operation-action-text-${operation.id}" name="operation-action-text" placeholder="exercise" value="${actionHTML}" onchange="updateOperation('${operation.id}')">
                 <datalist id="operation-action-text-list-${operation.id}">
                     ${exerciseListHTML}
                 </datalist>
             </div>
+            
+            <div class="addActionWrapper clickable hover" id="addActionWrapper-${operation.id}" title="Add new exercise" onclick="addAction('${operation.id}');" style="">
+                <img src="/assets/plus.svg" class="button-icon" style="width: 100%; margin: 0.25em;">
+            </div>
+
             <input type="hidden" id="operation-distance-unit-${operation.id}" value="${operation.distance_unit}">
             <input type="hidden" id="operation-weight-unit-${operation.id}" value="${operation.weight_unit}">
         </div>
@@ -739,25 +749,35 @@ function loadExerciseList() {
             if(result.error) {
                 error(result.error);
             } else {
-                processExerciseList(result)
+                processExerciseList(result.actions)
             }
 
         }
     };
-
-    xhttp.open("get", "/json/exercises.json");
+    xhttp.withCredentials = true;
+    xhttp.open("get", api_url + "auth/actions");
     xhttp.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
+    xhttp.setRequestHeader("Authorization", jwt);
     xhttp.send();
     return false;
 }
 
-function processExerciseList(exercisesArray) {
-    exercisesArray.forEach(function(item){
-        exerciseListHTML += `
-            <option value="${item.title}">
-                ${item.title}
-            </option>
-        `
+function processExerciseList(actions) {
+    actions.forEach(function(action){
+        if(action.name && action.name != "") {
+            exerciseListHTML += `
+                <option value="${action.name}">
+                    ${action.name}
+                </option>
+            `
+        }
+        if(action.norwegian_name && action.norwegian_name != "" && action.norwegian_name != action.name) {
+            exerciseListHTML += `
+                <option value="${action.norwegian_name}">
+                    ${action.norwegian_name}
+                </option>
+            `
+        }
     });
 }
 
@@ -882,4 +902,8 @@ function deleteOperationSet(operationSetID) {
 
 function removeOperationSet(operation) {
     document.getElementById('operation-' + operation.id).innerHTML = generateOperationHTML(operation)
+}
+
+function addAction(operationID) {
+    alert("In the future this will add new exercises to choose from ;)")
 }

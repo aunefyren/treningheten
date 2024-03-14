@@ -3,6 +3,7 @@ package database
 import (
 	"aunefyren/treningheten/models"
 	"errors"
+	"strings"
 
 	"github.com/google/uuid"
 )
@@ -187,4 +188,61 @@ func UpdateOperationSetInDB(operationSet models.OperationSet) (models.OperationS
 		return operationSet, record.Error
 	}
 	return operationSet, nil
+}
+
+func GetAllEnabledActions() (actions []models.Action, err error) {
+	actions = []models.Action{}
+	err = nil
+
+	record := Instance.Where("`actions`.enabled = ?", 1).
+		Find(&actions)
+
+	if record.Error != nil {
+		return actions, record.Error
+	}
+
+	return
+}
+
+func GetActionByName(actionName string) (action models.Action, err error) {
+	action = models.Action{}
+	err = nil
+	actionName = strings.ToLower(actionName)
+
+	record := Instance.Where("`actions`.enabled = ?", 1).
+		Where("LOWER(`actions`.name) = ? OR LOWER(`actions`.norwegian_name) = ?", actionName, actionName).
+		Find(&action)
+
+	if record.Error != nil {
+		return action, record.Error
+	} else if record.RowsAffected != 1 {
+		return action, errors.New("Failed to find action.")
+	}
+
+	return
+}
+
+func GetActionByID(actionID uuid.UUID) (action models.Action, err error) {
+	action = models.Action{}
+	err = nil
+
+	record := Instance.Where("`actions`.enabled = ?", 1).
+		Where("`actions`.id = ?", actionID).
+		Find(&action)
+
+	if record.Error != nil {
+		return action, record.Error
+	} else if record.RowsAffected != 1 {
+		return action, errors.New("Record not found.")
+	}
+
+	return
+}
+
+func CreateActionInDB(action models.Action) (models.Action, error) {
+	record := Instance.Create(&action)
+	if record.Error != nil {
+		return action, record.Error
+	}
+	return action, nil
 }

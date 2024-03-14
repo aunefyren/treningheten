@@ -249,6 +249,9 @@ func initRouter() *gin.Engine {
 			auth.PUT("/operations/:operation_id", controllers.APIUpdateOperation)
 			auth.DELETE("/operations/:operation_id", controllers.APIDeleteOperation)
 
+			auth.GET("/actions", controllers.APIGetActions)
+			auth.POST("/actions", controllers.APICreateAction)
+
 			auth.GET("/operation-sets", controllers.APIGetOperationSets)
 			auth.POST("/operation-sets", controllers.APICreateOperationSetForUser)
 			auth.PUT("/operation-sets/:operation_set_id", controllers.APIUpdateOperationSet)

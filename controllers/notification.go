@@ -18,7 +18,6 @@ import (
 )
 
 func PushNotificationToSubscriptions(notificationType string, notificationBody string, notificationTitle string, subscriptions []models.Subscription) (int, error) {
-
 	vapidSettings, err := GetVAPIDSettings()
 	if err != nil {
 		log.Println("Failed to get VAPID settings. Error: " + err.Error())
@@ -42,7 +41,6 @@ func PushNotificationToSubscriptions(notificationType string, notificationBody s
 	}
 
 	for _, subscription := range subscriptions {
-
 		// Decode subscription
 		s := &webpush.Subscription{
 			Endpoint: subscription.Endpoint,
@@ -67,12 +65,19 @@ func PushNotificationToSubscriptions(notificationType string, notificationBody s
 
 		log.Println("Pushed notification, got status code: " + string(response.Status))
 
-		notificationSum += 1
+		// Disable "gone" endpoints
+		if response.StatusCode == 410 {
+			subscription.Enabled = false
+			_, err := database.UpdateSubscription(subscription)
+			if err != nil {
+				log.Println("Failed to disable subscription. Error: " + err.Error())
+			}
+		}
 
+		notificationSum += 1
 	}
 
 	return notificationSum, nil
-
 }
 
 func GetVAPIDSettings() (models.VAPIDSettings, error) {

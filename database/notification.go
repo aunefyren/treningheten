@@ -167,3 +167,11 @@ func UpdateSubscriptionNewsByEndpointAndUserID(userID uuid.UUID, endpoint string
 	return err
 
 }
+
+func UpdateSubscription(subscription models.Subscription) (models.Subscription, error) {
+	record := Instance.Save(&subscription)
+	if record.Error != nil {
+		return subscription, record.Error
+	}
+	return subscription, nil
+}

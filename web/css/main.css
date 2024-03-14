@@ -1990,6 +1990,7 @@ input[type=checkbox]
   margin: 1em;
   overflow-x: scroll;
   box-sizing: border-box;
+  border-right: var(--trans-lightblue) 0.15em solid;
 }
 
 .operationsWrapperSub {
@@ -2110,30 +2111,50 @@ input[type=checkbox]
   flex-direction: row;
   flex-wrap: wrap;
   align-content: center;
-  justify-content: center;
+  justify-content: space-around;
   align-items: center;
   box-sizing: content-box;
+  padding: 0 1em;
 }
 
-.operation-action-input, .operation-type-input {
+.operation-action-input, .operation-type-input, .operation-tech-input {
   height: 0.5em !important;
   padding: 0.12em 0.25em !important;
-  margin: 1em !important;
+  margin: 0.5em !important;
   width: 100%;
   width: -webkit-fill-available;
   width: -moz-available;
   font-size: 1em !important;
   border: solid 0.1em var(--grey) !important;
+  font-size: 0.9em !important;
 }
 
 .operationAction {
-  width: 70%;
+  width: 50%;
   box-sizing: inherit;
 }
 
 .operationType {
-  width: 30%;
+  width: 20%;
   box-sizing: inherit;
+}
+
+.operationTech {
+  width: 20%;
+  box-sizing: inherit;
+}
+
+.addActionWrapper {
+  width: 10%;
+  box-sizing: inherit;
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-content: center;
+  justify-content: center;
+  align-items: center;
+  background-color: var(--eggshell);
+  border-radius: 10%;
 }
 
 .operation-set-rep-input, .operation-set-weight-input, .operation-set-time-input, .operation-set-distance-input, .exercise-time-input, .operation-set-average-input {
