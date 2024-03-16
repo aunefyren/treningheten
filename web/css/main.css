@@ -1983,23 +1983,24 @@ input[type=checkbox]
   width: -moz-available;
   display: flex;
   flex-direction: row;
-  flex-wrap: nowrap;
+  flex-wrap: wrap;
   align-content: center;
   justify-content: start;
   align-items: center;
   margin: 1em;
   overflow-x: scroll;
   box-sizing: border-box;
-  border-right: var(--trans-lightblue) 0.15em solid;
 }
 
 .operationsWrapperSub {
-  width: auto;
+  width: 100%;
+  width: -webkit-fill-available;
+  width: -moz-available;
   display: flex;
   flex-direction: row;
-  flex-wrap: nowrap;
+  flex-wrap: wrap;
   align-content: center;
-  justify-content: start;
+  justify-content: center;
   align-items: center;
   margin: 1em;
   box-sizing: border-box;
@@ -2007,10 +2008,11 @@ input[type=checkbox]
 
 .operationWrapper {
   width: 20em;
-  height: 20em;
+  min-height: 20em;
+  max-height: 30em;
   background-color: var(--white);
   border-radius: 10%;
-  margin: 1em;
+  margin: 0.5em;
   display: flex;
   flex-direction: column;
   flex-wrap: nowrap;
@@ -2032,6 +2034,7 @@ input[type=checkbox]
   align-content: center;
   justify-content: center;
   align-items: center;
+  margin: auto;
 }
 
 .operationSetWrapper {
@@ -2132,6 +2135,13 @@ input[type=checkbox]
 .operationAction {
   width: 50%;
   box-sizing: inherit;
+  display: flex;
+  flex-direction: column;
+  flex-wrap: nowrap;
+  align-content: center;
+  justify-content: center;
+  align-items: center;
+  position: relative;
 }
 
 .operationType {
@@ -2226,4 +2236,29 @@ input[type=checkbox]
   align-items: center;
   box-sizing: content-box;
   margin: auto;
+}
+
+.dropdown-actions-wrapper {
+  flex-direction: column;
+  flex-wrap: nowrap;
+  align-content: center;
+  justify-content: center;
+  align-items: center;
+  position: absolute;
+  background: var(--white);
+  width: 12em;
+  border: solid 0.1em var(--grey);
+  border-radius: 1em;
+  padding: 0.5em;
+  max-height: 20em;
+  top: 3em;
+}
+
+.dropdown-action {
+  text-align: start;
+  margin: auto;
+  width: 100%;
+  width: -webkit-fill-available;
+  width: -moz-available;
+  font-size: 0.8em;
 }

@@ -246,10 +246,10 @@ function generateOperationHTML(operation) {
                 </select>  
             </div>
             <div class="operationAction" id="operation-action-${operation.id}">
-                <input style="" class="operation-action-input" type="text" list="operation-action-text-list-${operation.id}" id="operation-action-text-${operation.id}" name="operation-action-text" placeholder="exercise" value="${actionHTML}" onchange="updateOperation('${operation.id}')">
-                <datalist id="operation-action-text-list-${operation.id}">
-                    ${exerciseListHTML}
-                </datalist>
+                <input style="" class="operation-action-input" type="text" list="operation-action-text-list-${operation.id}" id="operation-action-text-${operation.id}" name="operation-action-text" placeholder="exercise" value="${actionHTML}" onchange="updateOperation('${operation.id}')" onkeyup="filterFunction('${operation.id}')" onfocus="showSelectDropdown('${operation.id}', true)">
+                <div id="operation-action-text-list-${operation.id}" class="dropdown-actions-wrapper" style="display: none;">
+                    ${processExerciseList(operation.id)}
+                </div>
             </div>
             
             <div class="addActionWrapper clickable hover" id="addActionWrapper-${operation.id}" title="Add new exercise" onclick="addAction('${operation.id}');" style="">
@@ -588,6 +588,8 @@ function placeNewOperationSet(operationSet, operationID, operation) {
 }
 
 function updateOperation(operationID) {
+    toggleActionBorder(operationID, 'none');
+
     var type = document.getElementById('operation-type-text-' + operationID).value
     var action = document.getElementById('operation-action-text-' + operationID).value
     var weight_unit = document.getElementById('operation-weight-unit-' + operationID).value
@@ -615,7 +617,8 @@ function updateOperation(operationID) {
             }
             
             if(result.error) {
-                error(result.error);
+                console.log(result.error);
+                toggleActionBorder(operationID, 'var(--red)');
             } else {
                 placeOperation(result.operation)
             }
@@ -749,7 +752,7 @@ function loadExerciseList() {
             if(result.error) {
                 error(result.error);
             } else {
-                processExerciseList(result.actions)
+                exerciseList = result.actions
             }
 
         }
@@ -762,23 +765,28 @@ function loadExerciseList() {
     return false;
 }
 
-function processExerciseList(actions) {
+function processExerciseList(operationID) {
+    exerciseListHTML = "";
+    actions = exerciseList;
+
     actions.forEach(function(action){
         if(action.name && action.name != "") {
             exerciseListHTML += `
-                <option value="${action.name}">
+                <a value="" onclick="selectActionForOperation('${operationID}', '${action.name}')" class="dropdown-action clickable">
                     ${action.name}
-                </option>
+                </a>
             `
         }
         if(action.norwegian_name && action.norwegian_name != "" && action.norwegian_name != action.name) {
             exerciseListHTML += `
-                <option value="${action.norwegian_name}">
+                <a value="" onclick="selectActionForOperation('${operationID}', '${action.norwegian_name}')" class="dropdown-action clickable">
                     ${action.norwegian_name}
-                </option>
+                </a>
             `
         }
     });
+
+    return exerciseListHTML
 }
 
 function addExercise(exerciseDayID) {
@@ -906,4 +914,15 @@ function removeOperationSet(operation) {
 
 function addAction(operationID) {
     alert("In the future this will add new exercises to choose from ;)")
+}
+
+function selectActionForOperation(operationID, actionName) {
+    console.log('Selected: ' + actionName)
+    document.getElementById('operation-action-text-' + operationID).value = actionName 
+    showSelectDropdown(operationID, false)
+    updateOperation(operationID)
+}
+
+function toggleActionBorder(operationID, color) {
+    //document.getElementById('operation-action-text-' + operationID).style.backgroundColor = color
 }
