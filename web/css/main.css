@@ -1988,7 +1988,6 @@ input[type=checkbox]
   justify-content: start;
   align-items: center;
   margin: 1em;
-  overflow-x: scroll;
   box-sizing: border-box;
 }
 
@@ -2024,8 +2023,8 @@ input[type=checkbox]
 }
 
 .addOperationWrapper{
-  width: 15em;
-  height: 15em;
+  width: 4em;
+  height: 4em;
   background-color: var(--trans-lightblue);
   border-radius: 10%;
   display: flex;
@@ -2250,15 +2249,17 @@ input[type=checkbox]
   border: solid 0.1em var(--grey);
   border-radius: 1em;
   padding: 0.5em;
-  max-height: 20em;
+  max-height: 10em;
   top: 3em;
+  overflow-y: scroll;
 }
 
 .dropdown-action {
   text-align: start;
-  margin: auto;
+  padding: 0.25em 0;
   width: 100%;
   width: -webkit-fill-available;
   width: -moz-available;
   font-size: 0.8em;
+  border-bottom: 0.1em solid var(--grey);
 }

@@ -214,7 +214,7 @@ function generateOperationsHTML(operations, exerciseID) {
 function generateOperationAddButtonHTML(operations, exerciseID) {
     return `
         <div class="addOperationWrapper clickable hover" id="addOperationWrapper-${exerciseID}" title="Add exercise" onclick="addOperation('${exerciseID}');">
-            <img src="/assets/plus.svg" class="button-icon" style="height: 100%; margin: 4em;">
+            <img src="/assets/plus.svg" class="button-icon" style="height: 100%; margin: 1em;">
         </div>
     `;
 }
