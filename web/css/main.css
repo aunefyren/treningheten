@@ -2282,6 +2282,11 @@ input[type=checkbox]
   background-color: rgb(0,0,0); /* Fallback color */
   background-color: rgba(0,0,0,0.9); /* Black w/ opacity */
   z-index: 100;
+  flex-direction: column;
+  flex-wrap: wrap;
+  align-content: center;
+  justify-content: center;
+  align-items: center;
 }
 
 /* Modal Content (image) */
@@ -2387,4 +2392,6 @@ label {
   padding: 1em;
   border-radius: 1em;
   box-sizing: border-box;
+  margin: 0 2em;
+  width: auto;
 }

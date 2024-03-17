@@ -974,16 +974,16 @@ function toggleActionBorder(operationID, color) {
 
 function addAction(operationID) {
     myModal = document.getElementById("myModal")
-    myModal.style.display = "block";
+    myModal.style.display = "flex";
     modalContent = document.getElementById("modal-content") 
 
     modalHTML = `
         <div class="addNewActionWrapper" id="add-action-wrapper-${operationID}">
-            <h2 style="">Add new exercise</h2>
+            <h3 style="">Add new exercise</h3>
             
             <div class="add-new-exercise-names">
                 <div class="add-new-exercise-name">
-                    <h3>English name</h3>
+                    <b>English name</b>
                     <div class="exercise-input" id="action-${operationID}">
                         <input style="" class="new-action-name-english-input" type="text" id="new-action-name-english-input-${operationID}" name="new-action-name-english-input" placeholder="Running" value="">
                     </div>
@@ -992,14 +992,14 @@ function addAction(operationID) {
                     OR/AND
                 </div>
                 <div class="add-new-exercise-name">
-                    <h3>Norwegian name</h3>
+                    <hb>Norwegian name</b>
                     <div class="exercise-input" id="action-${operationID}">
                         <input style="" class="new-action-name-norwegian-input" type="text" id="new-action-name-norwegian-input-${operationID}" name="new-action-name-norwegian-input" placeholder="Løping" value="">
                     </div>
                 </div>
             </div>
 
-            <h3 style="margin-top: 1em;">Sets, distance or time-based?</h3>
+            <b style="margin-top: 1em;">Sets, distance or time-based?</b>
             <div class="operationType" id="new-action-type-${operationID}">
                 <select class="new-action-type-input" type="text" id="new-action-type-input-${operationID}" name="new-action-type-input" style="text-align: center; font-size: 0.9em !important; min-height: 2em; min-width: 3em;">
                     <option value="lifting">💪</option>
@@ -1009,13 +1009,13 @@ function addAction(operationID) {
             </div>
 
             <hr class="invert" style="border: 0.025em solid var(--grey); margin: 1em 0;">
-            <h2 style="margin-bottom:1em; ">Optional</h2>
+            <h3 style="margin-bottom:1em; ">Optional</h3>
             
-            <h3>Description</h3>
+            <b>Description</b>
             <textarea class="new-action-description-input" id="new-action-description-input-${operationID}" name="new-action-description-input" rows="3" cols="33" placeholder="Fast paced moving which can be..." style="width: 20em;" ></textarea>
 
             <div class="add-new-exercise-name">
-                <h3>Body part/category</h3>
+                <b>Body part/category</b>
                 <div class="new-action-bodypart" id="new-action-bodypart-${operationID}">
                     <input style="" class="new-action-bodypart-input" type="text" id="new-action-bodypart-input-${operationID}" name="new-action-bodypart-input" placeholder="Cardio" value="">
                 </div>
