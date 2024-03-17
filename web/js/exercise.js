@@ -28,6 +28,15 @@ function load_page(result) {
 
     var html = `
         <div class="" id="front-page">
+
+            <div id="myModal" class="modal">
+                <span class="close selectable clickable" onclick="closeModal()">&times;</span>
+
+                <div class="modal-content" id="modal-content">
+                </div>
+
+                <div id="caption"></div>
+            </div>
             
             <div class="module">
             
@@ -236,10 +245,36 @@ function generateOperationHTML(operation) {
         actionHTML = operation.action.name
     }
 
+    noneHTML = ''
+    barbellsHTML = ''
+    dumbbellsHTML = ''
+    bandsHTML = ''
+    ropeHTML = ''
+    benchHTML = ''
+    treadmillHTML = ''
+    machineHTML = ''
+    if(operation.equipment == 'barbells') {
+        barbellsHTML = 'selected'
+    } else if(operation.equipment == 'dumbbells') {
+        dumbbellsHTML = 'selected'
+    } else if(operation.equipment == 'bands') {
+        bandsHTML = 'selected'
+    } else if(operation.equipment == 'rope') {
+        ropeHTML = 'selected'
+    } else if(operation.equipment == 'bench') {
+        benchHTML = 'selected'
+    } else if(operation.equipment == 'treadmill') {
+        treadmillHTML = 'selected'
+    } else if(operation.equipment == 'machine') {
+        machineHTML = 'selected'
+    } else {
+        noneHTML = 'selected'
+    }
+
     var operationHTML = `
         <div class="operation-selectors">
             <div class="operationType" id="operation-type-${operation.id}">
-                <select class="operation-type-input" type="text" id="operation-type-text-${operation.id}" name="operation-type-text" style="text-align: center;" onchange="updateOperation('${operation.id}')">
+                <select class="operation-type-input" type="text" id="operation-type-text-${operation.id}" name="operation-type-text" style="text-align: center; font-size: 0.9em !important; min-height: 2em; min-width: 3em;" onchange="updateOperation('${operation.id}')">
                     <option value="lifting" ${liftingHTML}>💪</option>
                     <option value="moving" ${movingHTML}>🏃‍♂️</option>
                     <option value="timing" ${timingHTML}>⏱️</option>
@@ -250,6 +285,18 @@ function generateOperationHTML(operation) {
                 <div id="operation-action-text-list-${operation.id}" class="dropdown-actions-wrapper" style="display: none;">
                     ${processExerciseList(operation.id)}
                 </div>
+            </div>
+            <div class="operationEquipment" id="operation-equipment-${operation.id}">
+                <select class="operation-equipment-input" type="text" id="operation-equipment-text-${operation.id}" name="operation-equipment-text" style="text-align: center; font-size: 0.9em !important; min-height: 2em; min-width: 3em;" onchange="updateOperation('${operation.id}')">
+                    <option value="" ${noneHTML}></option>
+                    <option value="barbells" ${barbellsHTML}>Barbells</option>
+                    <option value="dumbbells" ${dumbbellsHTML}>Dumbbells</option>
+                    <option value="bands" ${bandsHTML}>Bands</option>
+                    <option value="rope" ${ropeHTML}>Rope</option>
+                    <option value="bench" ${benchHTML}>Bench</option>
+                    <option value="treadmill" ${treadmillHTML}>Treadmill</option>
+                    <option value="machine" ${machineHTML}>Machine</option>
+                </select>  
             </div>
             
             <div class="addActionWrapper clickable hover" id="addActionWrapper-${operation.id}" title="Add new exercise" onclick="addAction('${operation.id}');" style="">
@@ -594,12 +641,14 @@ function updateOperation(operationID) {
     var action = document.getElementById('operation-action-text-' + operationID).value
     var weight_unit = document.getElementById('operation-weight-unit-' + operationID).value
     var distance_unit = document.getElementById('operation-distance-unit-' + operationID).value
+    var equipment = document.getElementById('operation-equipment-text-' + operationID).value
 
     var form_obj = {
         "type": type,
         "action": action,
         "weight_unit": weight_unit,
         "distance_unit": distance_unit,
+        "equipment": equipment,
     };
 
     var form_data = JSON.stringify(form_obj);
@@ -912,10 +961,6 @@ function removeOperationSet(operation) {
     document.getElementById('operation-' + operation.id).innerHTML = generateOperationHTML(operation)
 }
 
-function addAction(operationID) {
-    alert("In the future this will add new exercises to choose from ;)")
-}
-
 function selectActionForOperation(operationID, actionName) {
     console.log('Selected: ' + actionName)
     document.getElementById('operation-action-text-' + operationID).value = actionName 
@@ -925,4 +970,111 @@ function selectActionForOperation(operationID, actionName) {
 
 function toggleActionBorder(operationID, color) {
     //document.getElementById('operation-action-text-' + operationID).style.backgroundColor = color
+}
+
+function addAction(operationID) {
+    myModal = document.getElementById("myModal")
+    myModal.style.display = "block";
+    modalContent = document.getElementById("modal-content") 
+
+    modalHTML = `
+        <div class="addNewActionWrapper" id="add-action-wrapper-${operationID}">
+            <h2 style="">Add new exercise</h2>
+            
+            <div class="add-new-exercise-names">
+                <div class="add-new-exercise-name">
+                    <h3>English name</h3>
+                    <div class="exercise-input" id="action-${operationID}">
+                        <input style="" class="new-action-name-english-input" type="text" id="new-action-name-english-input-${operationID}" name="new-action-name-english-input" placeholder="Running" value="">
+                    </div>
+                </div>
+                <div class="add-new-exercise-name" style="min-width: 8em;">
+                    OR/AND
+                </div>
+                <div class="add-new-exercise-name">
+                    <h3>Norwegian name</h3>
+                    <div class="exercise-input" id="action-${operationID}">
+                        <input style="" class="new-action-name-norwegian-input" type="text" id="new-action-name-norwegian-input-${operationID}" name="new-action-name-norwegian-input" placeholder="Løping" value="">
+                    </div>
+                </div>
+            </div>
+
+            <h3 style="margin-top: 1em;">Sets, distance or time-based?</h3>
+            <div class="operationType" id="new-action-type-${operationID}">
+                <select class="new-action-type-input" type="text" id="new-action-type-input-${operationID}" name="new-action-type-input" style="text-align: center; font-size: 0.9em !important; min-height: 2em; min-width: 3em;">
+                    <option value="lifting">💪</option>
+                    <option value="moving">🏃‍♂️</option>
+                    <option value="timing">⏱️</option>
+                </select>  
+            </div>
+
+            <hr class="invert" style="border: 0.025em solid var(--grey); margin: 1em 0;">
+            <h2 style="margin-bottom:1em; ">Optional</h2>
+            
+            <h3>Description</h3>
+            <textarea class="new-action-description-input" id="new-action-description-input-${operationID}" name="new-action-description-input" rows="3" cols="33" placeholder="Fast paced moving which can be..." style="width: 20em;" ></textarea>
+
+            <div class="add-new-exercise-name">
+                <h3>Body part/category</h3>
+                <div class="new-action-bodypart" id="new-action-bodypart-${operationID}">
+                    <input style="" class="new-action-bodypart-input" type="text" id="new-action-bodypart-input-${operationID}" name="new-action-bodypart-input" placeholder="Cardio" value="">
+                </div>
+            </div>
+
+            <button type="submit" onclick="createAction('${operationID}');" id="goal_amount_button" style="margin-bottom: 0em;"><img src="/assets/done.svg" class="btn_logo color-invert"><p2>Add and use</p2></button>
+
+        </div>
+    `;
+
+    modalContent.innerHTML = modalHTML
+}
+
+function closeModal() {
+    document.getElementById("myModal").style.display = "none";
+}
+
+function createAction(operationID) {
+    var name = document.getElementById('new-action-name-english-input-' + operationID).value
+    var norwegian_name = document.getElementById('new-action-name-norwegian-input-' + operationID).value
+    var description = document.getElementById('new-action-description-input-' + operationID).value
+    var type = document.getElementById('new-action-type-input-' + operationID).value
+    var body_part = document.getElementById('new-action-bodypart-input-' + operationID).value
+
+    var form_obj = {
+        "name": name,
+        "norwegian_name" : norwegian_name,
+        "description": description,
+        "type": type,
+        "body_part": body_part
+    };
+
+    var form_data = JSON.stringify(form_obj);
+
+    var xhttp = new XMLHttpRequest();
+    xhttp.onreadystatechange = function() {
+        if (this.readyState == 4) {
+            
+            try {
+                result = JSON.parse(this.responseText);
+            } catch(e) {
+                console.log(e +' - Response: ' + this.responseText);
+                alert("Could not reach API.");
+                return;
+            }
+            
+            if(result.error) {
+                alert(result.error);
+            } else {
+                selectActionForOperation(operationID, result.action.name)
+                closeModal();
+            }
+
+        }
+    };
+    xhttp.withCredentials = true;
+    xhttp.open("post", api_url + "auth/actions");
+    xhttp.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
+    xhttp.setRequestHeader("Authorization", jwt);
+    xhttp.send(form_data);
+    return false;
 }

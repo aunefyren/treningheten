@@ -16,6 +16,7 @@ type Operation struct {
 	Type         string     `json:"type" gorm:"not null; default: lifting"`
 	WeightUnit   string     `json:"weight_unit" gorm:"not null; default: kg"`
 	DistanceUnit string     `json:"distance_unit" gorm:"not null; default: km"`
+	Equipment    *string    `json:"equipment" gorm:""`
 }
 
 type OperationCreationRequest struct {
@@ -24,6 +25,7 @@ type OperationCreationRequest struct {
 	Type         string     `json:"type"`
 	WeightUnit   string     `json:"weight_unit"`
 	DistanceUnit string     `json:"distance_unit"`
+	Equipment    *string    `json:"equipment"`
 }
 
 type OperationUpdateRequest struct {
@@ -31,6 +33,7 @@ type OperationUpdateRequest struct {
 	Type         string `json:"type"`
 	WeightUnit   string `json:"weight_unit"`
 	DistanceUnit string `json:"distance_unit"`
+	Equipment    string `json:"equipment"`
 }
 
 type OperationObject struct {
@@ -42,6 +45,7 @@ type OperationObject struct {
 	Type          string               `json:"type"`
 	WeightUnit    string               `json:"weight_unit"`
 	DistanceUnit  string               `json:"distance_unit"`
+	Equipment     string               `json:"equipment"`
 }
 
 type OperationSet struct {
@@ -82,7 +86,7 @@ type OperationSetObject struct {
 
 type Action struct {
 	GormModel
-	Enabled       bool   `json:"enabled"`
+	Enabled       bool   `json:"enabled" gorm:"not null; default: true;"`
 	Name          string `json:"name"`
 	NorwegianName string `json:"norwegian_name"`
 	Description   string `json:"description"`

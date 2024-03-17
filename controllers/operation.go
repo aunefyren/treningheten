@@ -46,6 +46,10 @@ func ConvertOperationToOperationObject(operation models.Operation) (operationObj
 		operationObject.Action = nil
 	}
 
+	if operation.Equipment != nil {
+		operationObject.Equipment = *operation.Equipment
+	}
+
 	operationObject.CreatedAt = operation.CreatedAt
 	operationObject.DeletedAt = operation.DeletedAt
 	operationObject.Enabled = operation.Enabled
@@ -272,6 +276,27 @@ func APICreateOperationForUser(context *gin.Context) {
 	operation.WeightUnit = strings.TrimSpace(operationCreationRequest.WeightUnit)
 	operation.ID = uuid.New()
 
+	if operationCreationRequest.Equipment != nil {
+		trimmedEquipment := strings.TrimSpace(*operationCreationRequest.Equipment)
+
+		if trimmedEquipment != "barbells" &&
+			trimmedEquipment != "dumbbells" &&
+			trimmedEquipment != "bands" &&
+			trimmedEquipment != "rope" &&
+			trimmedEquipment != "bench" &&
+			trimmedEquipment != "treadmill" &&
+			trimmedEquipment != "machine" {
+			context.JSON(http.StatusBadRequest, gin.H{"error": "Invalid equipment type."})
+			context.Abort()
+			return
+		}
+
+		operation.Equipment = &trimmedEquipment
+	} else {
+		emptyString := ""
+		operation.Equipment = &emptyString
+	}
+
 	if operation.Type != "lifting" && operation.Type != "moving" && operation.Type != "timing" {
 		context.JSON(http.StatusBadRequest, gin.H{"error": "Invalid operation type."})
 		context.Abort()
@@ -434,6 +459,27 @@ func APIUpdateOperation(context *gin.Context) {
 
 	operation.DistanceUnit = strings.TrimSpace(operationUpdateRequest.DistanceUnit)
 	operation.WeightUnit = strings.TrimSpace(operationUpdateRequest.WeightUnit)
+
+	if operationUpdateRequest.Equipment != "" {
+		trimmedEquipment := strings.TrimSpace(operationUpdateRequest.Equipment)
+
+		if trimmedEquipment != "barbells" &&
+			trimmedEquipment != "dumbbells" &&
+			trimmedEquipment != "bands" &&
+			trimmedEquipment != "rope" &&
+			trimmedEquipment != "bench" &&
+			trimmedEquipment != "treadmill" &&
+			trimmedEquipment != "machine" {
+			context.JSON(http.StatusBadRequest, gin.H{"error": "Invalid equipment type."})
+			context.Abort()
+			return
+		}
+
+		operation.Equipment = &trimmedEquipment
+	} else {
+		emptyString := ""
+		operation.Equipment = &emptyString
+	}
 
 	if operation.Type != "lifting" && operation.Type != "moving" && operation.Type != "timing" {
 		context.JSON(http.StatusBadRequest, gin.H{"error": "Invalid operation type."})
@@ -691,9 +737,12 @@ func APICreateAction(context *gin.Context) {
 	caserNor := cases.Title(language.Norwegian)
 
 	action.BodyPart = caserEng.String(strings.TrimSpace(actionCreationRequest.BodyPart))
-	action.Description = caserEng.String(strings.TrimSpace(actionCreationRequest.Description))
 	action.Name = caserEng.String(strings.TrimSpace(actionCreationRequest.Name))
 	action.NorwegianName = caserNor.String(strings.TrimSpace(actionCreationRequest.NorwegianName))
+
+	action.Type = strings.TrimSpace(actionCreationRequest.Type)
+	action.Description = strings.TrimSpace(actionCreationRequest.Description)
+	action.ID = uuid.New()
 
 	if action.Type != "lifting" && action.Type != "moving" && action.Type != "timing" {
 		context.JSON(http.StatusBadRequest, gin.H{"error": "Invalid exercise type."})

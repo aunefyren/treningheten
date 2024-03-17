@@ -61,7 +61,7 @@
   }
   
   h3 {
-    font-size: 1.75em;
+    font-size: 1.25em;
     margin: 0;
   }
   
@@ -722,7 +722,7 @@ hr {
   overflow: auto;
 }
 
-.day-note-area{
+.day-note-area, .new-action-description-input {
   box-sizing: inherit;
   border-radius: 0.5em;
   font-size: 1em;
@@ -2116,13 +2116,14 @@ input[type=checkbox]
   justify-content: space-around;
   align-items: center;
   box-sizing: content-box;
-  padding: 0 1em;
+  padding: 0 0.75em;
+  box-sizing: border-box;
 }
 
-.operation-action-input, .operation-type-input, .operation-tech-input {
+.operation-action-input, .operation-type-input, .operation-tech-input, .operation-equipment-input {
   height: 0.5em !important;
   padding: 0.12em 0.25em !important;
-  margin: 0.5em !important;
+  margin: 0.5em 0.25em !important;
   width: 100%;
   width: -webkit-fill-available;
   width: -moz-available;
@@ -2132,7 +2133,7 @@ input[type=checkbox]
 }
 
 .operationAction {
-  width: 50%;
+  width: 8em;
   box-sizing: inherit;
   display: flex;
   flex-direction: column;
@@ -2141,20 +2142,21 @@ input[type=checkbox]
   justify-content: center;
   align-items: center;
   position: relative;
-}
-
-.operationType {
-  width: 20%;
   box-sizing: inherit;
 }
 
-.operationTech {
-  width: 20%;
+.operationType {
+  width: 3em;
+  box-sizing: inherit;
+}
+
+.operationEquipment {
+  width: 5em;
   box-sizing: inherit;
 }
 
 .addActionWrapper {
-  width: 10%;
+  width: 1.5em;
   box-sizing: inherit;
   display: flex;
   flex-direction: row;
@@ -2166,7 +2168,7 @@ input[type=checkbox]
   border-radius: 10%;
 }
 
-.operation-set-rep-input, .operation-set-weight-input, .operation-set-time-input, .operation-set-distance-input, .exercise-time-input, .operation-set-average-input {
+.operation-set-rep-input, .operation-set-weight-input, .operation-set-time-input, .operation-set-distance-input, .exercise-time-input, .operation-set-average-input, .new-action-bodypart-input, .new-action-type-input, .new-action-name-norwegian-input, .new-action-name-english-input {
   width: 100%;
   width: -webkit-fill-available;
   width: -moz-available;
@@ -2241,14 +2243,14 @@ input[type=checkbox]
   flex-direction: column;
   flex-wrap: nowrap;
   align-content: center;
-  justify-content: center;
+  justify-content: start;
   align-items: center;
   position: absolute;
   background: var(--white);
   width: 12em;
   border: solid 0.1em var(--grey);
   border-radius: 1em;
-  padding: 0.5em;
+  padding: 0 0.5em;
   max-height: 10em;
   top: 3em;
   overflow-y: scroll;
@@ -2262,4 +2264,127 @@ input[type=checkbox]
   width: -moz-available;
   font-size: 0.8em;
   border-bottom: 0.1em solid var(--grey);
+  position: relative;
+}
+
+
+/* The Modal (background) */
+.modal {
+  display: none; /* Hidden by default */
+  position: fixed; /* Stay in place */
+  z-index: 1; /* Sit on top */
+  padding-top: 100px; /* Location of the box */
+  left: 0;
+  top: 0;
+  width: 100%; /* Full width */
+  height: 100%; /* Full height */
+  overflow: auto; /* Enable scroll if needed */
+  background-color: rgb(0,0,0); /* Fallback color */
+  background-color: rgba(0,0,0,0.9); /* Black w/ opacity */
+  z-index: 100;
+}
+
+/* Modal Content (image) */
+.modal-content {
+  margin: auto;
+  display: block;
+  width: 80%;
+  max-width: 700px;
+  background-color: var(--white);
+}
+
+/* Caption of Modal Image */
+#caption {
+  margin: auto;
+  display: block;
+  width: 80%;
+  max-width: 700px;
+  text-align: center;
+  color: #ccc;
+  padding: 10px 0;
+  height: 150px;
+}
+
+/* Add Animation */
+.modal-content, #caption {  
+  -webkit-animation-name: zoom;
+  -webkit-animation-duration: 0.6s;
+  animation-name: zoom;
+  animation-duration: 0.6s;
+}
+
+@-webkit-keyframes zoom {
+  from {-webkit-transform:scale(0)} 
+  to {-webkit-transform:scale(1)}
+}
+
+@keyframes zoom {
+  from {transform:scale(0)} 
+  to {transform:scale(1)}
+}
+
+/* The Close Button */
+.close {
+  position: absolute;
+  top: 15px;
+  right: 35px;
+  color: #f1f1f1;
+  font-size: 40px;
+  font-weight: bold;
+  transition: 0.3s;
+}
+
+.close:hover,
+.close:focus {
+  color: #bbb;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+/* 100% Image Width on Smaller Screens */
+@media only screen and (max-width: 700px){
+  .modal-content {
+    width: 100%;
+  }
+}
+
+label {
+  margin: 1em 0 0 0;
+}
+
+.addNewActionWrapper {
+  width: 100%;
+  width: -webkit-fill-available;
+  width: -moz-available;
+  display: flex;
+  flex-direction: column;
+  flex-wrap: wrap;
+  align-content: center;
+  justify-content: center;
+  align-items: center;
+  margin: 1em;
+  box-sizing: border-box;
+}
+
+.add-new-exercise-names{
+  width: 100%;
+  width: -webkit-fill-available;
+  width: -moz-available;
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-content: center;
+  justify-content: center;
+  align-items: center;
+}
+
+.add-new-exercise-name {
+  margin: 1em;
+  text-align: center;
+}
+
+.modal-content {
+  padding: 1em;
+  border-radius: 1em;
+  box-sizing: border-box;
 }
