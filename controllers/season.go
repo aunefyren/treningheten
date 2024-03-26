@@ -359,15 +359,12 @@ func RetrieveWeekResultsFromSeasonWithinTimeframe(firstPointInTime time.Time, la
 		return []models.WeekResults{}, nil
 	}
 
-	goals, err := database.GetGoalsFromWithinSeason(season.ID)
-	if err != nil {
-		return []models.WeekResults{}, err
-	}
+	goalObjects := season.Goals
 
 	currentTime := season.Start
 	finished := false
 	userStreaks := []models.UserStreak{}
-	for finished == false {
+	for !finished {
 
 		// New week
 		weekResult := models.WeekResults{
@@ -379,7 +376,7 @@ func RetrieveWeekResultsFromSeasonWithinTimeframe(firstPointInTime time.Time, la
 		weekResult.WeekDate = currentTime
 
 		// Go through all goals
-		for _, goal := range goals {
+		for _, goal := range goalObjects {
 
 			// Get Week result for goal
 			weekResultForGoal, newUserStreaks, err := GetWeekResultForGoal(goal, currentTime, userStreaks)
@@ -402,29 +399,25 @@ func RetrieveWeekResultsFromSeasonWithinTimeframe(firstPointInTime time.Time, la
 		if currentTime.After(season.End) || currentTime.After(lastPointInTime) {
 			finished = true
 		}
-
 	}
 
 	// Remove weeks from before selected starting point
 	newWeeksResults := []models.WeekResults{}
 	for _, weeksResult := range weeksResults {
-
 		if weeksResult.WeekDate.Before(firstPointInTime) || weeksResult.WeekDate.After(lastPointInTime) {
 			continue
 		}
 
 		newWeeksResults = append(newWeeksResults, weeksResult)
-
 	}
 
 	// Reverse array
 	newWeeksResults = ReverseWeeksArray(newWeeksResults)
 
 	return newWeeksResults, nil
-
 }
 
-func GetWeekResultForGoal(goal models.Goal, currentTime time.Time, userStreaks []models.UserStreak) (models.UserWeekResults, []models.UserStreak, error) {
+func GetWeekResultForGoal(goal models.GoalObject, currentTime time.Time, userStreaks []models.UserStreak) (models.UserWeekResults, []models.UserStreak, error) {
 
 	// Week result for goal
 	newResult := models.UserWeekResults{}
@@ -445,28 +438,22 @@ func GetWeekResultForGoal(goal models.Goal, currentTime time.Time, userStreaks [
 
 	}
 
-	// Get goal object
-	goalObject, err := ConvertGoalToGoalObject(goal)
-	if err != nil {
-		return models.UserWeekResults{}, userStreaks, err
-	}
-
 	// Add details to week result for goal
-	newResult.User = goalObject.User
+	newResult.User = goal.User
 	newResult.WeekCompletion = (float64(exerciseSum) / float64(goal.ExerciseInterval))
 	newResult.CurrentStreak = 0
-	newResult.Competing = goalObject.Competing
-	newResult.Goal = goalObject.ID
+	newResult.Competing = goal.Competing
+	newResult.Goal = goal.ID
 	newResult.GoalJoinDate = goal.CreatedAt
 
 	// Check for debt for week
-	debt, debtFound, err := database.GetDebtForWeekForUser(currentTime, goalObject.User.ID)
+	debt, debtFound, err := database.GetDebtForWeekForUser(currentTime, goal.User.ID)
 	if err != nil {
-		log.Println("Failed to check for debt for user '" + goalObject.User.ID.String() + "'. Debt will be null.")
+		log.Println("Failed to check for debt for user '" + goal.User.ID.String() + "'. Debt will be null.")
 	} else if debtFound {
 		debtObject, err := ConvertDebtToDebtObject(debt)
 		if err != nil {
-			log.Println("Failed to convert debt to debt object for user '" + goalObject.User.ID.String() + "'. Debt will be null.")
+			log.Println("Failed to convert debt to debt object for user '" + goal.User.ID.String() + "'. Debt will be null.")
 		} else {
 			newResult.Debt = &debtObject
 		}
@@ -476,7 +463,7 @@ func GetWeekResultForGoal(goal models.Goal, currentTime time.Time, userStreaks [
 	userFound := false
 	userIndex := 0
 	for index, userStreak := range userStreaks {
-		if userStreak.UserID == goalObject.User.ID {
+		if userStreak.UserID == goal.User.ID {
 			userFound = true
 			userIndex = index
 			break
@@ -487,7 +474,7 @@ func GetWeekResultForGoal(goal models.Goal, currentTime time.Time, userStreaks [
 		// Not found in dict, current streak is 0
 		newResult.CurrentStreak = 0
 		userStreak := models.UserStreak{
-			UserID: goalObject.User.ID,
+			UserID: goal.User.ID,
 			Streak: 0,
 		}
 		userStreaks = append(userStreaks, userStreak)
@@ -495,7 +482,7 @@ func GetWeekResultForGoal(goal models.Goal, currentTime time.Time, userStreaks [
 		userFound = false
 		userIndex = 0
 		for index, userStreak := range userStreaks {
-			if userStreak.UserID == goalObject.User.ID {
+			if userStreak.UserID == goal.User.ID {
 				userFound = true
 				userIndex = index
 				break
@@ -529,7 +516,6 @@ func GetWeekResultForGoal(goal models.Goal, currentTime time.Time, userStreaks [
 	}
 
 	return newResult, userStreaks, nil
-
 }
 
 func ReverseWeeksArray(input []models.WeekResults) []models.WeekResults {
