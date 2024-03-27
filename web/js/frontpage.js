@@ -775,11 +775,11 @@ function place_leaderboard(weeks_array) {
             for(var j = 0; j < weeks_array[i].users.length; j++) {
                 var completion = "❌"
 
-                if(!weeks_array[i].users[j].full_week_participation && weeks_array[i].users[j].week_completion < 1) {
+                if(!weeks_array[i].users[j].full_week_participation && weeks_array[i].users[j].week_completion < 1.0) {
                     completion = "🕙"
                 } else if(weeks_array[i].users[j].sick_leave) {
                     completion = "🤢"
-                } else if(weeks_array[i].users[j].week_completion >= 1) {
+                } else if(weeks_array[i].users[j].week_completion >= 1.0) {
                     completion = "✅"
                 }
 
@@ -794,8 +794,8 @@ function place_leaderboard(weeks_array) {
 
                 var result_html = `
                 <div class="leaderboard-week-result" id="">
-                    <div class="leaderboard-week-result-user clickable" style="cursor: pointer;" onclick="location.href='/users/${weeks_array[i].users[j].user.id}'">
-                        ` + weeks_array[i].users[j].user.first_name + `
+                    <div class="leaderboard-week-result-user clickable" style="cursor: pointer;" onclick="location.href='/users/${weeks_array[i].users[j].user_id}'">
+                        ` + userList[weeks_array[i].users[j].user_id].first_name + `
                     </div>
                     <div class="leaderboard-week-result-exercise ` + clickable_str  + `" onclick="` + onclick_command_str  + `">
                         ` + completion  + `
@@ -897,7 +897,7 @@ function place_current_week(week_array) {
         var completion = Math.trunc((week_array.users[i].week_completion * 100))
         var transparent = ""
 
-        if(!week_array.users[i].full_week_participation) {
+        if(!week_array.users[i].full_week_participation && completion < 100) {
             var current_streak = week_array.users[i].current_streak + "🕙"
         } else if(week_array.users[i].sickleave) {
             var current_streak = week_array.users[i].current_streak + "🤢"

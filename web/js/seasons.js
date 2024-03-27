@@ -351,7 +351,7 @@ function place_leaderboard(weeks_array, season_id) {
 
                 var userFound = false;
                 for(var l = 0; l < memberPhotoIDArray.length; l++) {
-                    if(memberPhotoIDArray[l] == weeks_array[i].users[j].user.id) {
+                    if(memberPhotoIDArray[l] == weeks_array[i].users[j].user_id) {
                         userFound = true;
                         break;
                     }

@@ -439,12 +439,12 @@ func GetWeekResultForGoal(goal models.GoalObject, currentTime time.Time, userStr
 	newResult.CurrentStreak = 0
 	newResult.Competing = goal.Competing
 	newResult.GoalID = goal.ID
-	newResult.FullWeekParticipation = false
+	newResult.FullWeekParticipation = true
 
 	currentTimeYear, currentTimeWeek := currentTime.ISOWeek()
 	joinYear, joinWeek := goal.CreatedAt.ISOWeek()
-	if currentTimeYear > joinYear && currentTimeWeek > joinWeek {
-		newResult.FullWeekParticipation = true
+	if joinYear > currentTimeYear || joinWeek > currentTimeWeek {
+		newResult.FullWeekParticipation = false
 	}
 
 	// Check for debt for week
