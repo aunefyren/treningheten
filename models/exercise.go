@@ -86,3 +86,15 @@ type WeekFrequency struct {
 	Saturday  int `json:"saturday"`
 	Sunday    int `json:"sunday"`
 }
+
+type WeekResult struct {
+	WeekNumber            int        `json:"week_number"`
+	WeekYear              int        `json:"week_year"`
+	WeekDate              time.Time  `json:"week_date"`
+	UserID                uuid.UUID  `json:"user_id"`
+	GoalID                uuid.UUID  `json:"goal_id"`
+	DebtID                *uuid.UUID `json:"debt_id"`
+	ExercisePercentage    float64    `json:"exercise_percentage"`
+	SickLeave             bool       `json:"sick_leave"`
+	FullWeekParticipation bool       `json:"full_week_participation"`
+}

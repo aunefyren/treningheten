@@ -65,24 +65,26 @@ type WeekResultsPersonal struct {
 }
 
 type UserWeekResults struct {
-	WeekCompletion float64     `json:"week_completion"`
-	CurrentStreak  int         `json:"current_streak"`
-	User           User        `json:"user"`
-	Sickleave      bool        `json:"sickleave"`
-	Competing      bool        `json:"competing"`
-	Debt           *DebtObject `json:"debt"`
-	Goal           uuid.UUID   `json:"goal"`
-	GoalJoinDate   time.Time   `json:"goal_join_date"`
+	WeekCompletion        float64     `json:"week_completion"`
+	CurrentStreak         int         `json:"current_streak"`
+	UserID                uuid.UUID   `json:"user_id"`
+	SickLeave             bool        `json:"sick_leave"`
+	Competing             bool        `json:"competing"`
+	Debt                  *DebtObject `json:"debt"`
+	GoalID                uuid.UUID   `json:"goal_id"`
+	FullWeekParticipation bool        `json:"full_week_participation"`
 }
 
 type UserWeekResultPersonal struct {
 	WeekCompletionInterval int         `json:"week_completion_interval"`
 	ExerciseGoal           int         `json:"exercise_goal"`
 	CurrentStreak          int         `json:"current_streak"`
-	User                   User        `json:"user"`
-	Sickleave              bool        `json:"sickleave"`
+	UserID                 uuid.UUID   `json:"user_id"`
+	GoalID                 uuid.UUID   `json:"goal_id"`
+	SickLeave              bool        `json:"sick_leave"`
 	Competing              bool        `json:"competing"`
 	Debt                   *DebtObject `json:"debt"`
+	FullWeekParticipation  bool        `json:"full_week_participation"`
 }
 
 type UserStreak struct {

@@ -43,7 +43,7 @@ func GetPrizeByNameAndQuantity(prizeName string, prizeQuantity int) (models.Priz
 
 	var prizeStruct models.Prize
 
-	prizeRecord := Instance.Where("`prizes`.enabled = ?", 1).Where("`prizes`.name = ?", prizeName).Where("`prizes`.quanitity = ?", prizeQuantity).Find(&prizeStruct)
+	prizeRecord := Instance.Where("`prizes`.enabled = ?", 1).Where("`prizes`.name = ?", prizeName).Where("`prizes`.quantity = ?", prizeQuantity).Find(&prizeStruct)
 	if prizeRecord.Error != nil {
 		return models.Prize{}, false, prizeRecord.Error
 	} else if prizeRecord.RowsAffected == 0 {

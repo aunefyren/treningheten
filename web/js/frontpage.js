@@ -403,6 +403,10 @@ function get_season(user_id){
                     }
                 }
 
+                for(var i = 0; i < season.goals.length; i++) {
+                    userList[season.goals[i].user.id] = season.goals[i].user
+                }
+
                 var date_start = new Date(season.start);
                 var now = Date.now();
 
@@ -492,7 +496,14 @@ function place_week(week, fireworks) {
     }
 
     // Sum of exercise to decide fireworks
-    fireworks_int = week.days[0].exercise_interval + week.days[1].exercise_interval + week.days[2].exercise_interval + week.days[3].exercise_interval + week.days[4].exercise_interval + week.days[5].exercise_interval + week.days[6].exercise_interval
+    fireworks_int = 0
+    if(week.days && week.days.length > 0) {
+        for(var i = 0; i < week.days.length; i++) {
+            if(week.days[i].exercise_interval) {
+                fireworks_int += week.days[i].exercise_interval
+            }
+        }
+    }
 
     document.getElementById("day_1_check").innerHTML = week.days[0].exercise_interval
     document.getElementById("day_1_note").value = HTMLDecode(week.days[0].note)
@@ -761,25 +772,12 @@ function place_leaderboard(weeks_array) {
 
             var results_html = "";
 
-            try {
-                var weekDate = new Date(Date.parse(weeks_array[i].week_date));
-            } catch(e) {
-                error("Failed to process API date response.")
-                return;
-            }
-
             for(var j = 0; j < weeks_array[i].users.length; j++) {
-                try {
-                    var resultDate = new Date(Date.parse(weeks_array[i].users[j].goal_join_date));
-                } catch(e) {
-                    error("Failed to process API date response.")
-                    return;
-                }
-
                 var completion = "❌"
-                if(resultDate > weekDate && weeks_array[i].users[j].week_completion < 1) {
+
+                if(!weeks_array[i].users[j].full_week_participation && weeks_array[i].users[j].week_completion < 1) {
                     completion = "🕙"
-                } else if(weeks_array[i].users[j].sickleave) {
+                } else if(weeks_array[i].users[j].sick_leave) {
                     completion = "🤢"
                 } else if(weeks_array[i].users[j].week_completion >= 1) {
                     completion = "✅"
@@ -894,26 +892,12 @@ function place_current_week(week_array) {
     // Remove initial data
     currentWeekUsers.innerHTML = ""
 
-    try {
-        var weekDate = new Date(Date.parse(week_array.week_date));
-    } catch(e) {
-        error("Failed to process API date response.")
-        return;
-    }
-
     for(var i = 0; i < week_array.users.length; i++) {
 
         var completion = Math.trunc((week_array.users[i].week_completion * 100))
         var transparent = ""
 
-        try {
-            var resultDate = new Date(Date.parse(week_array.users[i].goal_join_date));
-        } catch(e) {
-            error("Failed to process API date response.")
-            return;
-        }
-
-        if(resultDate > weekDate) {
+        if(!week_array.users[i].full_week_participation) {
             var current_streak = week_array.users[i].current_streak + "🕙"
         } else if(week_array.users[i].sickleave) {
             var current_streak = week_array.users[i].current_streak + "🤢"
@@ -939,7 +923,7 @@ function place_current_week(week_array) {
             transparent += " bold-font "
         }
 
-        if(week_array.users[i].user.id == user_id) {
+        if(week_array.users[i].user_id == user_id) {
             placeWeekProgress(completion)
         }
 
@@ -949,11 +933,11 @@ function place_current_week(week_array) {
                 <div style="" class="">
                     
                     <div class="" style="font-size: 0.8em;">
-                        <b>${week_array.users[i].user.first_name}</b>
+                        <b>${userList[week_array.users[i].user_id].first_name}</b>
                     </div>
 
-                    <div class="current-week-user-photo" title="` + week_array.users[i].user.first_name + ` ` + week_array.users[i].user.last_name + `" onclick="location.href='/users/${week_array.users[i].user.id}'">
-                        <img style="width: 100%; height: 100%;" class="current-week-user-photo-img" id="current-week-user-photo-` + week_array.users[i].user.id + `-` + i + `" src="/assets/images/barbell.gif">
+                    <div class="current-week-user-photo" title="` + userList[week_array.users[i].user_id].first_name + ` ` + userList[week_array.users[i].user_id].last_name + `" onclick="location.href='/users/${week_array.users[i].user_id}'">
+                        <img style="width: 100%; height: 100%;" class="current-week-user-photo-img" id="current-week-user-photo-` + week_array.users[i].user_id + `-` + i + `" src="/assets/images/barbell.gif">
                     </div>
                 </div>
 
@@ -973,7 +957,7 @@ function place_current_week(week_array) {
         `;
 
         currentWeekUsers.innerHTML += week_html
-        GetProfileImagesForCurrentWeek(week_array.users[i].user.id, i)
+        GetProfileImagesForCurrentWeek(week_array.users[i].user_id, i)
     }
 
     return

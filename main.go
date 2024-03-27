@@ -225,6 +225,7 @@ func initRouter() *gin.Engine {
 			auth.POST("/tokens/validate", controllers.ValidateToken)
 
 			auth.GET("/seasons", controllers.APIGetSeasons)
+			auth.GET("/seasons/:season_id", controllers.APIGetSeason)
 			auth.GET("/seasons/:season_id/leaderboard/", controllers.APIGetSeasonWeeks)
 			auth.GET("/seasons/:season_id/leaderboard-personal", controllers.APIGetSeasonWeeksPersonal)
 			auth.GET("/seasons/getongoing", controllers.APIGetOngoingSeason)

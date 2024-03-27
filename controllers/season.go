@@ -38,6 +38,11 @@ func APIGetOngoingSeason(context *gin.Context) {
 		return
 	}
 
+	// Censor goals
+	for i := 0; i < len(seasonObject.Goals); i++ {
+		seasonObject.Goals[i].ExerciseInterval = 0
+	}
+
 	// Get configuration
 	config, err := config.GetConfig()
 	if err != nil {
@@ -49,7 +54,6 @@ func APIGetOngoingSeason(context *gin.Context) {
 
 	// Return group with owner and success message
 	context.JSON(http.StatusOK, gin.H{"season": seasonObject, "message": "Season retrieved.", "timezone": config.Timezone})
-
 }
 
 func GetOngoingSeasonFromDB(givenTime time.Time) (models.Season, bool, error) {
@@ -336,7 +340,7 @@ func APIGetCurrentSeasonLeaderboard(context *gin.Context) {
 		context.Abort()
 		return
 	} else if len(thisWeek) != 1 {
-		log.Println("Got more than one week for current week. Error: " + err.Error())
+		log.Println("Got more than one week for current week.")
 		context.JSON(http.StatusInternalServerError, gin.H{"error": "Got more than one week for current week."})
 		context.Abort()
 		return
@@ -359,8 +363,6 @@ func RetrieveWeekResultsFromSeasonWithinTimeframe(firstPointInTime time.Time, la
 		return []models.WeekResults{}, nil
 	}
 
-	goalObjects := season.Goals
-
 	currentTime := season.Start
 	finished := false
 	userStreaks := []models.UserStreak{}
@@ -376,7 +378,7 @@ func RetrieveWeekResultsFromSeasonWithinTimeframe(firstPointInTime time.Time, la
 		weekResult.WeekDate = currentTime
 
 		// Go through all goals
-		for _, goal := range goalObjects {
+		for _, goal := range season.Goals {
 
 			// Get Week result for goal
 			weekResultForGoal, newUserStreaks, err := GetWeekResultForGoal(goal, currentTime, userStreaks)
@@ -417,34 +419,33 @@ func RetrieveWeekResultsFromSeasonWithinTimeframe(firstPointInTime time.Time, la
 	return newWeeksResults, nil
 }
 
-func GetWeekResultForGoal(goal models.GoalObject, currentTime time.Time, userStreaks []models.UserStreak) (models.UserWeekResults, []models.UserStreak, error) {
-
-	// Week result for goal
-	newResult := models.UserWeekResults{}
+func GetWeekResultForGoal(goal models.GoalObject, currentTime time.Time, userStreaksInput []models.UserStreak) (newResult models.UserWeekResults, userStreaks []models.UserStreak, err error) {
+	userStreaks = userStreaksInput
+	newResult = models.UserWeekResults{}
+	err = nil
 
 	// Get the exercises from the week
-	week, err := GetExercisesForWeekUsingGoal(currentTime, goal.ID)
+	exercises, err := GetExercisesForWeekUsingGoal(currentTime, goal.ID)
 	if err != nil {
 		return models.UserWeekResults{}, userStreaks, err
 	}
 
 	// Define exercise sum
-	exerciseSum := 0
-
-	// Sum all exercises
-	for _, day := range week.Days {
-
-		exerciseSum += day.ExerciseInterval
-
-	}
+	exerciseSum := len(exercises)
 
 	// Add details to week result for goal
-	newResult.User = goal.User
+	newResult.UserID = goal.User.ID
 	newResult.WeekCompletion = (float64(exerciseSum) / float64(goal.ExerciseInterval))
 	newResult.CurrentStreak = 0
 	newResult.Competing = goal.Competing
-	newResult.Goal = goal.ID
-	newResult.GoalJoinDate = goal.CreatedAt
+	newResult.GoalID = goal.ID
+	newResult.FullWeekParticipation = false
+
+	currentTimeYear, currentTimeWeek := currentTime.ISOWeek()
+	joinYear, joinWeek := goal.CreatedAt.ISOWeek()
+	if currentTimeYear > joinYear && currentTimeWeek > joinWeek {
+		newResult.FullWeekParticipation = true
+	}
 
 	// Check for debt for week
 	debt, debtFound, err := database.GetDebtForWeekForUser(currentTime, goal.User.ID)
@@ -501,12 +502,12 @@ func GetWeekResultForGoal(goal models.GoalObject, currentTime time.Time, userStr
 	}
 
 	// Found in streak, retrieve current streak
-	if currentTime.Before(newResult.GoalJoinDate) && newResult.WeekCompletion < 1 {
+	if newResult.FullWeekParticipation && newResult.WeekCompletion < 1 {
 		newResult.CurrentStreak = userStreaks[userIndex].Streak
 		userStreaks[userIndex].Streak = 0
 	} else if sickleaveFound && sickleave.Used {
 		newResult.CurrentStreak = userStreaks[userIndex].Streak
-		newResult.Sickleave = true
+		newResult.SickLeave = true
 	} else if newResult.WeekCompletion >= 1 {
 		newResult.CurrentStreak = userStreaks[userIndex].Streak
 		userStreaks[userIndex].Streak = userStreaks[userIndex].Streak + 1
@@ -551,6 +552,43 @@ func APIGetSeasons(context *gin.Context) {
 
 	// Return seasons
 	context.JSON(http.StatusOK, gin.H{"seasons": seasonObjects, "message": "Seasons retrieved."})
+
+}
+
+// Get one enabled seasons
+func APIGetSeason(context *gin.Context) {
+	var seasonID = context.Param("season_id")
+
+	seasonIDUUIID, err := uuid.Parse(seasonID)
+	if err != nil {
+		context.JSON(http.StatusBadRequest, gin.H{"error": "Failed to parse ID."})
+		context.Abort()
+		return
+	}
+
+	season, err := database.GetSeasonByID(seasonIDUUIID)
+	if err != nil {
+		log.Println("Failed to get season from database. Error: " + err.Error())
+		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get season from database."})
+		context.Abort()
+		return
+	}
+
+	seasonObject, err := ConvertSeasonToSeasonObject(season)
+	if err != nil {
+		log.Println("Failed process season. Error: " + err.Error())
+		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed process season."})
+		context.Abort()
+		return
+	}
+
+	// Censor goals
+	for i := 0; i < len(seasonObject.Goals); i++ {
+		seasonObject.Goals[i].ExerciseInterval = 0
+	}
+
+	// Return season
+	context.JSON(http.StatusOK, gin.H{"season": seasonObject, "message": "Season retrieved."})
 
 }
 
@@ -659,11 +697,11 @@ func APIGetSeasonWeeksPersonal(context *gin.Context) {
 
 		for _, result := range weekResult.UserWeekResults {
 
-			if result.User.ID == userID {
+			if result.UserID == userID {
 				userWeekResultPersonal := models.UserWeekResultPersonal{
 					CurrentStreak: result.CurrentStreak,
-					User:          result.User,
-					Sickleave:     result.Sickleave,
+					UserID:        result.UserID,
+					SickLeave:     result.SickLeave,
 					Competing:     result.Competing,
 					Debt:          result.Debt,
 					ExerciseGoal:  goal.ExerciseInterval,
@@ -672,7 +710,7 @@ func APIGetSeasonWeeksPersonal(context *gin.Context) {
 				userWeekResultPersonal.WeekCompletionInterval = int(float64(result.WeekCompletion) * float64(goal.ExerciseInterval))
 
 				// Get the exercises from the week
-				week, err := GetExercisesForWeekUsingGoal(weekResult.WeekDate, goal.ID)
+				week, err := GetExerciseDaysForWeekUsingGoal(weekResult.WeekDate, goal.ID)
 				if err != nil {
 					log.Println("Failed to get exercise. Using empty week.")
 					week = models.Week{

@@ -131,8 +131,8 @@ func GenerateDebtForWeek(givenTime time.Time) (models.WeekResults, error) {
 
 	lastWeek := lastWeekArray[0]
 
-	winners := []models.User{}
-	losers := []models.User{}
+	winners := []uuid.UUID{}
+	losers := []uuid.UUID{}
 
 	// Find week start
 	givenTimeWeekStart, err := utilities.FindEarlierMonday(givenTime)
@@ -157,10 +157,10 @@ func GenerateDebtForWeek(givenTime time.Time) (models.WeekResults, error) {
 		log.Println("Potential winner/loser: ")
 		log.Println(user)
 
-		if user.Competing && user.WeekCompletion < 1 && !user.Sickleave && givenTimeWeekStart.After(user.GoalJoinDate) {
-			losers = append(losers, user.User)
-		} else if user.Competing && user.WeekCompletion >= 1 && !user.Sickleave {
-			winners = append(winners, user.User)
+		if user.Competing && user.WeekCompletion < 1 && !user.SickLeave && user.FullWeekParticipation {
+			losers = append(losers, user.UserID)
+		} else if user.Competing && user.WeekCompletion >= 1 && !user.SickLeave {
+			winners = append(winners, user.UserID)
 		}
 	}
 
@@ -176,32 +176,32 @@ func GenerateDebtForWeek(givenTime time.Time) (models.WeekResults, error) {
 		log.Println("No winners this week. Returning.")
 		return lastWeek, nil
 	} else if len(winners) == 1 {
-		winner = &winners[0].ID
+		winner = &winners[0]
 	}
 
 	for _, user := range losers {
 
-		_, debtFound, err := database.GetDebtForWeekForUserInSeasonID(givenTime, user.ID, seasonObject.ID)
+		_, debtFound, err := database.GetDebtForWeekForUserInSeasonID(givenTime, user, seasonObject.ID)
 		if err != nil {
-			log.Println("Failed check for debt for '" + user.ID.String() + "'. Skipping.")
+			log.Println("Failed check for debt for '" + user.String() + "'. Skipping.")
 			continue
 		} else if debtFound {
-			log.Println("Debt found for '" + user.ID.String() + "'. Skipping.")
+			log.Println("Debt found for '" + user.String() + "'. Skipping.")
 			continue
 		}
 
 		debt := models.Debt{}
 		debt.Date = givenTime.Truncate(24 * time.Hour)
-		debt.LoserID = user.ID
+		debt.LoserID = user
 		debt.WinnerID = winner
 		debt.SeasonID = season.ID
 		debt.ID = uuid.New()
 
-		log.Println("Creating debt for '" + user.ID.String() + "'.")
+		log.Println("Creating debt for '" + user.String() + "'.")
 
 		err = database.RegisterDebtInDB(debt)
 		if err != nil {
-			log.Println("Failed to log debt for '" + user.ID.String() + "'. Skipping.")
+			log.Println("Failed to log debt for '" + user.String() + "'. Skipping.")
 			continue
 		}
 
@@ -219,41 +219,41 @@ func GenerateDebtForWeek(givenTime time.Time) (models.WeekResults, error) {
 				}
 
 				// Give achievement to loser for spinning wheel
-				err = GiveUserAnAchievement(user.ID, uuid.MustParse("d415fffc-ea99-4b27-8929-aeb02ae44da3"), nextSunday)
+				err = GiveUserAnAchievement(user, uuid.MustParse("d415fffc-ea99-4b27-8929-aeb02ae44da3"), nextSunday)
 				if err != nil {
-					log.Println("Failed to give achievement for user '" + user.ID.String() + "'. Ignoring. Error: " + err.Error())
+					log.Println("Failed to give achievement for user '" + user.String() + "'. Ignoring. Error: " + err.Error())
 				}
 
 				// Get loser object
-				loserObject, err := database.GetAllUserInformation(user.ID)
+				loserObject, err := database.GetAllUserInformation(user)
 				if err != nil {
-					log.Println("Failed to get object for user '" + user.ID.String() + "'. Ignoring. Error: " + err.Error())
+					log.Println("Failed to get object for user '" + user.String() + "'. Ignoring. Error: " + err.Error())
 				} else {
 
 					// Notify loser by e-mail
 					err = utilities.SendSMTPForWeekLost(loserObject)
 					if err != nil {
-						log.Println("Failed to notify user '" + user.ID.String() + "' by e-mail. Ignoring. Error: " + err.Error())
+						log.Println("Failed to notify user '" + user.String() + "' by e-mail. Ignoring. Error: " + err.Error())
 					}
 
 				}
 
 				// Notify loser by push
-				err = PushNotificationsForWeekLost(user.ID)
+				err = PushNotificationsForWeekLost(user)
 				if err != nil {
-					log.Println("Failed to notify user '" + user.ID.String() + "' by push. Ignoring. Error: " + err.Error())
+					log.Println("Failed to notify user '" + user.String() + "' by push. Ignoring. Error: " + err.Error())
 				}
 
 				// Get winner object
 				winnerObject, err := database.GetAllUserInformation(*winner)
 				if err != nil {
-					log.Println("Failed to get object for user '" + user.ID.String() + "'. Ignoring. Error: " + err.Error())
+					log.Println("Failed to get object for user '" + user.String() + "'. Ignoring. Error: " + err.Error())
 				} else {
 
 					// Notify winner by e-mail
 					err = utilities.SendSMTPForWheelSpinWin(winnerObject)
 					if err != nil {
-						log.Println("Failed to notify user '" + user.ID.String() + "' by e-mail. Ignoring. Error: " + err.Error())
+						log.Println("Failed to notify user '" + user.String() + "' by e-mail. Ignoring. Error: " + err.Error())
 					}
 
 				}
@@ -261,7 +261,7 @@ func GenerateDebtForWeek(givenTime time.Time) (models.WeekResults, error) {
 				// Notify winner by push
 				err = PushNotificationsForWheelSpinWin(*winner)
 				if err != nil {
-					log.Println("Failed to notify user '" + user.ID.String() + "' by push. Ignoring. Error: " + err.Error())
+					log.Println("Failed to notify user '" + user.String() + "' by push. Ignoring. Error: " + err.Error())
 				}
 
 			}
@@ -269,23 +269,23 @@ func GenerateDebtForWeek(givenTime time.Time) (models.WeekResults, error) {
 		} else {
 
 			// Get loser object
-			loserObject, err := database.GetAllUserInformation(user.ID)
+			loserObject, err := database.GetAllUserInformation(user)
 			if err != nil {
-				log.Println("Failed to get object for user '" + user.ID.String() + "'. Ignoring. Error: " + err.Error())
+				log.Println("Failed to get object for user '" + user.String() + "'. Ignoring. Error: " + err.Error())
 			} else {
 
 				// Notify loser by e-mail
 				err = utilities.SendSMTPForWheelSpin(loserObject)
 				if err != nil {
-					log.Println("Failed to notify user '" + user.ID.String() + "' by e-mail. Ignoring. Error: " + err.Error())
+					log.Println("Failed to notify user '" + user.String() + "' by e-mail. Ignoring. Error: " + err.Error())
 				}
 
 			}
 
 			// Notify loser by push
-			err = PushNotificationsForWheelSpin(user.ID)
+			err = PushNotificationsForWheelSpin(user)
 			if err != nil {
-				log.Println("Failed to notify user '" + user.ID.String() + "' by push. Ignoring. Error: " + err.Error())
+				log.Println("Failed to notify user '" + user.String() + "' by push. Ignoring. Error: " + err.Error())
 			}
 
 		}
@@ -485,9 +485,17 @@ func APIGetDebt(context *gin.Context) {
 
 	for _, user := range lastWeek.UserWeekResults {
 
-		if user.Competing && user.WeekCompletion >= 1.0 && !user.Sickleave && user.GoalJoinDate.Before(debtDateMonday) {
+		if user.Competing && user.WeekCompletion >= 1.0 && !user.SickLeave && user.FullWeekParticipation {
+			userObject, err := database.GetAllUserInformation(user.UserID)
+			if err != nil {
+				log.Println("Failed to get user object. Error: " + err.Error())
+				context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get user object."})
+				context.Abort()
+				return
+			}
+
 			userWithTickets := models.UserWithTickets{
-				User:    user.User,
+				User:    userObject,
 				Tickets: user.CurrentStreak + 1,
 			}
 			winners = append(winners, userWithTickets)
@@ -598,13 +606,21 @@ func APIChooseWinnerForDebt(context *gin.Context) {
 	// Find weeks winners
 	for _, user := range lastWeek.UserWeekResults {
 
-		if user.Competing && user.WeekCompletion >= 1 && !user.Sickleave {
+		if user.Competing && user.WeekCompletion >= 1 && !user.SickLeave {
+			userObject, err := database.GetAllUserInformation(user.UserID)
+			if err != nil {
+				log.Println("Failed to get user object. Error: " + err.Error())
+				context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get user object."})
+				context.Abort()
+				return
+			}
+
 			userWithTickets := models.UserWithTickets{
-				User:    user.User,
+				User:    userObject,
 				Tickets: user.CurrentStreak + 1,
 			}
 			winners = append(winners, userWithTickets)
-			log.Println("Contestant '" + user.User.FirstName + " " + user.User.LastName + "' with '" + strconv.Itoa(user.CurrentStreak+1) + "' tickets added.")
+			log.Println("Contestant '" + userObject.FirstName + " " + userObject.LastName + "' with '" + strconv.Itoa(user.CurrentStreak+1) + "' tickets added.")
 		}
 
 	}

@@ -237,6 +237,42 @@ function get_leaderboard(season_id){
                 error(result.error);
 
             } else {
+                season = result.season;
+
+                for(var i = 0; i < season.goals.length; i++) {
+                    userList[season.goals[i].user.id] = season.goals[i].user
+                }
+
+                get_leaderboard_two(season_id);
+            }
+        }
+    };
+    xhttp.withCredentials = true;
+    xhttp.open("get", api_url + "auth/seasons/" + season_id);
+    xhttp.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
+    xhttp.setRequestHeader("Authorization", jwt);
+    xhttp.send();
+    return false;
+}
+
+function get_leaderboard_two(season_id) {
+    var xhttp = new XMLHttpRequest();
+    xhttp.onreadystatechange = function() {
+        if (this.readyState == 4) {
+            
+            try {
+                result = JSON.parse(this.responseText);
+            } catch(e) {
+                console.log(e +' - Response: ' + this.responseText);
+                error("Could not reach API.");
+                return;
+            }
+            
+            if(result.error) {
+
+                error(result.error);
+
+            } else {
 
                 //clearResponse();
                 weeks = result.leaderboard;
@@ -256,7 +292,6 @@ function get_leaderboard(season_id){
     xhttp.setRequestHeader("Authorization", jwt);
     xhttp.send();
     return false;
-
 }
 
 function place_leaderboard(weeks_array, season_id) {
@@ -283,25 +318,12 @@ function place_leaderboard(weeks_array, season_id) {
 
             var results_html = "";
 
-            try {
-                var weekDate = new Date(Date.parse(weeks_array[i].week_date));
-            } catch(e) {
-                error("Failed to process API date response.")
-                return;
-            }
-
             for(var j = 0; j < weeks_array[i].users.length; j++) {
-                try {
-                    var resultDate = new Date(Date.parse(weeks_array[i].users[j].goal_join_date));
-                } catch(e) {
-                    error("Failed to process API date response.")
-                    return;
-                }
-
                 var completion = "❌"
-                if(resultDate > weekDate && weeks_array[i].users[j].week_completion < 1) {
+
+                if(!weeks_array[i].users[j].full_week_participation && weeks_array[i].users[j].week_completion < 1) {
                     completion = "🕙"
-                } else if(weeks_array[i].users[j].sickleave) {
+                } else if(weeks_array[i].users[j].sick_leave) {
                     completion = "🤢"
                 } else if(weeks_array[i].users[j].week_completion >= 1) {
                     completion = "✅"
@@ -317,8 +339,8 @@ function place_leaderboard(weeks_array, season_id) {
 
                 var result_html = `
                 <div class="leaderboard-week-result" id="">
-                    <div class="leaderboard-week-result-user clickable grey-underline" style="" onclick="location.href='/users/${weeks_array[i].users[j].user.id}'">
-                        ` + weeks_array[i].users[j].user.first_name + `
+                    <div class="leaderboard-week-result-user clickable grey-underline" style="" onclick="location.href='/users/${weeks_array[i].users[j].user_id}'">
+                        ` + userList[weeks_array[i].users[j].user_id].first_name + `
                     </div>
                     <div class="leaderboard-week-result-exercise ` + clickable_str  + `" onclick="` + onclick_command_str  + `">
                         ` + completion  + `
@@ -337,15 +359,15 @@ function place_leaderboard(weeks_array, season_id) {
 
                 if(!userFound) {
                     var joined_image = `
-                    <div class="leaderboard-week-member" style="cursor:hover;" id="member-${season_id}-${weeks_array[i].users[j].user.id}" title="${weeks_array[i].users[j].user.first_name} ${weeks_array[i].users[j].user.last_name}" onclick="location.href='/users/${weeks_array[i].users[j].user.id}'">
+                    <div class="leaderboard-week-member" style="cursor:hover;" id="member-${season_id}-${weeks_array[i].users[j].user_id}" title="${weeks_array[i].users[j].user_id} ${weeks_array[i].users[j].user_id}" onclick="location.href='/users/${weeks_array[i].users[j].user_id}'">
                         <div class="leaderboard-week-member-image">
-                            <img style="width: 100%; height: 100%;" class="leaderboard-week-member-image-img" id="member-img-${season_id}-${weeks_array[i].users[j].user.id}" src="/assets/images/barbell.gif">
+                            <img style="width: 100%; height: 100%;" class="leaderboard-week-member-image-img" id="member-img-${season_id}-${weeks_array[i].users[j].user_id}" src="/assets/images/barbell.gif">
                         </div>
-                        ${weeks_array[i].users[j].user.first_name}
+                        ${userList[weeks_array[i].users[j].user_id].first_name}
                     </div>
                     `;
                     members += joined_image
-                    memberPhotoIDArray.push(weeks_array[i].users[j].user.id)
+                    memberPhotoIDArray.push(weeks_array[i].users[j].user_id)
                 }
 
             }
@@ -569,7 +591,7 @@ function place_statistics(leaderboard_array, weekday_array, wheel_statistics) {
         xValues.push("" + leaderboard_array[i].week_number + " (" + leaderboard_array[i].week_year + ")");
 
         var exercise = leaderboard_array[i].user.week_completion_interval
-        var sickleave = leaderboard_array[i].user.sickleave
+        var sickleave = leaderboard_array[i].user.sick_leave
         goal = leaderboard_array[i].user.exercise_goal
         var streak = leaderboard_array[i].user.current_streak
         exercise_amount = exercise_amount + exercise

@@ -277,7 +277,7 @@ func APIRegisterWeek(context *gin.Context) {
 	}
 
 	// Get week for goal using current time
-	weekReturn, err := GetExercisesForWeekUsingGoal(now, goalID)
+	weekReturn, err := GetExerciseDaysForWeekUsingGoal(now, goalID)
 	if err != nil {
 		log.Println("Failed to get calendar. Error: " + err.Error())
 		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get calender."})
@@ -340,7 +340,7 @@ func APIGetWeek(context *gin.Context) {
 	}
 
 	// Get week for goal using current time
-	week, err := GetExercisesForWeekUsingGoal(now, goalID)
+	week, err := GetExerciseDaysForWeekUsingGoal(now, goalID)
 	if err != nil {
 		log.Println("Failed to get calendar. Error: " + err.Error())
 		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get calender."})
@@ -352,7 +352,7 @@ func APIGetWeek(context *gin.Context) {
 
 }
 
-func GetExercisesForWeekUsingGoal(timeReq time.Time, goalID uuid.UUID) (models.Week, error) {
+func GetExerciseDaysForWeekUsingGoal(timeReq time.Time, goalID uuid.UUID) (models.Week, error) {
 
 	week := models.Week{}
 	var startTime time.Time
@@ -1046,4 +1046,46 @@ func APICreateExercise(context *gin.Context) {
 	}
 
 	context.JSON(http.StatusCreated, gin.H{"message": "Exercise created.", "exercise": exerciseObject})
+}
+
+func GetExercisesForWeekUsingGoal(timeReq time.Time, goalID uuid.UUID) (exercises []models.Exercise, err error) {
+	err = nil
+	exercises = []models.Exercise{}
+
+	var startTime time.Time
+	startTimeWeek := 0
+	var endTime time.Time
+	endTimeWeek := 0
+	_, timeReqWeek := timeReq.ISOWeek()
+
+	// Find monday
+	startTime, err = utilities.FindEarlierMonday(timeReq)
+	if err != nil {
+		log.Println("Failed to find earlier Monday for date. Error: " + err.Error())
+		return exercises, errors.New("Failed to find earlier Monday for date.")
+	}
+	_, startTimeWeek = startTime.ISOWeek()
+
+	// Find sunday
+	endTime, err = utilities.FindNextSunday(timeReq)
+	if err != nil {
+		log.Println("Failed to find next Sunday for date. Error: " + err.Error())
+		return exercises, errors.New("Failed to find next Sunday for date.")
+	}
+	_, endTimeWeek = endTime.ISOWeek()
+
+	// Verify all dates are the same week
+	if timeReqWeek != startTimeWeek || timeReqWeek != endTimeWeek {
+		log.Println("Required time week: " + strconv.Itoa(timeReqWeek))
+		log.Println("Start time week: " + strconv.Itoa(startTimeWeek))
+		log.Println("End time week: " + strconv.Itoa(endTimeWeek))
+		return exercises, errors.New("Managed to find dates outside of chosen week.")
+	}
+
+	exercises, err = database.GetValidExercisesBetweenDatesUsingDates(goalID, startTime, endTime)
+	if err != nil {
+		return exercises, err
+	}
+
+	return
 }
