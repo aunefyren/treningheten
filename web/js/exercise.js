@@ -281,7 +281,7 @@ function generateOperationHTML(operation) {
                 </select>  
             </div>
             <div class="operationAction" id="operation-action-${operation.id}">
-                <input style="" class="operation-action-input" type="text" list="operation-action-text-list-${operation.id}" id="operation-action-text-${operation.id}" name="operation-action-text" placeholder="exercise" value="${actionHTML}" onchange="updateOperation('${operation.id}')" onkeyup="filterFunction('${operation.id}')" onfocus="showSelectDropdown('${operation.id}', true)">
+                <input style="" class="operation-action-input" type="text" list="operation-action-text-list-${operation.id}" id="operation-action-text-${operation.id}" name="operation-action-text" placeholder="exercise" value="${actionHTML}" onkeyup="filterFunction('${operation.id}')" onfocus="showSelectDropdown('${operation.id}', true)">
                 <div id="operation-action-text-list-${operation.id}" class="dropdown-actions-wrapper" style="display: none;">
                     ${processExerciseList(operation.id)}
                 </div>
@@ -635,6 +635,7 @@ function placeNewOperationSet(operationSet, operationID, operation) {
 }
 
 function updateOperation(operationID) {
+    console.log('Updating operation...')
     toggleActionBorder(operationID, 'none');
 
     var type = document.getElementById('operation-type-text-' + operationID).value
@@ -667,7 +668,7 @@ function updateOperation(operationID) {
             
             if(result.error) {
                 console.log(result.error);
-                toggleActionBorder(operationID, 'var(--red)');
+                toggleActionBorder(operationID, 'salmon');
             } else {
                 placeOperation(result.operation)
             }
@@ -969,7 +970,8 @@ function selectActionForOperation(operationID, actionName) {
 }
 
 function toggleActionBorder(operationID, color) {
-    //document.getElementById('operation-action-text-' + operationID).style.backgroundColor = color
+    element = document.getElementById('operation-action-text-' + operationID)
+    element.setAttribute('style', `border:0.2em solid ${color} !important`);
 }
 
 function addAction(operationID) {
@@ -1077,4 +1079,28 @@ function createAction(operationID) {
     xhttp.setRequestHeader("Authorization", jwt);
     xhttp.send(form_data);
     return false;
+}
+
+window.addEventListener('click', function(e){   
+    if (
+        e.target.classList.contains('dropdown-action') ||
+        e.target.classList.contains('dropdown-actions-wrapper') ||
+        e.target.classList.contains('operation-action-input') ||
+        e.target.classList.contains('operationAction')
+    ){
+        console.log('Inside div.')
+    } else{
+        closeAllLists();
+    }
+});
+
+function closeAllLists() {
+    lists = document.getElementsByClassName('dropdown-actions-wrapper');
+    for(var i = 0; i < lists.length; i++) {
+        if(lists[i].style.display == 'flex') {
+            operationID = lists[i].id.replace('operation-action-text-list-', '')
+            lists[i].style.display = 'none';
+            updateOperation(operationID)
+        }
+    }
 }

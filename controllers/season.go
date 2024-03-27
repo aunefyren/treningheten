@@ -443,7 +443,8 @@ func GetWeekResultForGoal(goal models.GoalObject, currentTime time.Time, userStr
 
 	currentTimeYear, currentTimeWeek := currentTime.ISOWeek()
 	joinYear, joinWeek := goal.CreatedAt.ISOWeek()
-	if joinYear > currentTimeYear || joinWeek > currentTimeWeek {
+
+	if joinYear == currentTimeYear && joinWeek >= currentTimeWeek || joinYear > currentTimeYear {
 		newResult.FullWeekParticipation = false
 	}
 
@@ -498,7 +499,7 @@ func GetWeekResultForGoal(goal models.GoalObject, currentTime time.Time, userStr
 	sickleave, sickleaveFound, err := database.GetUsedSickleaveForGoalWithinWeek(currentTime, goal.ID)
 	if err != nil {
 		log.Println("Failed to process sickleave. Returning.")
-		return models.UserWeekResults{}, userStreaks, errors.New("Failed to process sickleave.")
+		return models.UserWeekResults{}, userStreaks, errors.New("Failed to process sick leave.")
 	}
 
 	// Found in streak, retrieve current streak
