@@ -2,6 +2,7 @@ package controllers
 
 import (
 	"aunefyren/treningheten/auth"
+	"aunefyren/treningheten/config"
 	"aunefyren/treningheten/database"
 	"aunefyren/treningheten/middlewares"
 	"aunefyren/treningheten/models"
@@ -113,6 +114,14 @@ func ValidateToken(context *gin.Context) {
 		log.Println("Failed to get public VAPID key from config. Error: " + err.Error())
 	}
 
-	context.JSON(http.StatusOK, gin.H{"message": "Valid session!", "data": claims, "token": token, "vapid_public_key": VAPIDSettings.VAPIDPublicKey})
+	configFile, err := config.GetConfig()
+	if err != nil {
+		log.Println("Failed to get config. Error: " + err.Error())
+		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get config."})
+		context.Abort()
+		return
+	}
+
+	context.JSON(http.StatusOK, gin.H{"message": "Valid session!", "data": claims, "token": token, "vapid_public_key": VAPIDSettings.VAPIDPublicKey, "strava_client_id": configFile.StravaClientID, "strava_redirect_uri": configFile.StravaRedirectURI})
 
 }

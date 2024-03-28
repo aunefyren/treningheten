@@ -100,3 +100,27 @@ func CreateExerciseInDB(exercise models.Exercise) (models.Exercise, error) {
 	}
 	return exercise, nil
 }
+
+func GetExerciseForUserWithStravaID(userID uuid.UUID, stravaID int) (exercise *models.Exercise, err error) {
+	exercise = nil
+	err = nil
+
+	exerciseRecord := Instance.Model(exercise).Where("`exercises`.enabled = ?", 1).
+		Where("`exercises`.strava_id = ?", stravaID).
+		Joins("JOIN `exercise_days` on `exercises`.exercise_day_id = `exercise_days`.id").
+		Where("`exercise_days`.enabled = ?", 1).
+		Joins("JOIN `goals` on `exercise_days`.goal_id = `goals`.id").
+		Where("`goals`.enabled = ?", 1).
+		Joins("JOIN `users` on `goals`.user_id = `users`.id").
+		Where("`users`.enabled = ?", 1).
+		Where("`users`.id = ?", userID).
+		Find(&exercise)
+
+	if exerciseRecord.Error != nil {
+		return exercise, exerciseRecord.Error
+	} else if exerciseRecord.RowsAffected != 1 {
+		return nil, err
+	}
+
+	return exercise, err
+}

@@ -724,3 +724,47 @@ func SendSundayReminders() {
 	}
 
 }
+
+func APISetStravaCode(context *gin.Context) {
+	// Initialize variables
+	var user models.User
+	var userStravaCodeUpdateRequest models.UserStravaCodeUpdateRequest
+
+	// Parse creation request
+	err := context.ShouldBindJSON(&userStravaCodeUpdateRequest)
+	if err != nil {
+		context.JSON(http.StatusBadRequest, gin.H{"error": "Failed to parse request."})
+		context.Abort()
+		return
+	}
+
+	// Get user ID
+	userID, err := middlewares.GetAuthUsername(context.GetHeader("Authorization"))
+	if err != nil {
+		log.Println("Failed to get user ID. Error: " + err.Error())
+		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get user ID."})
+		context.Abort()
+		return
+	}
+
+	user, err = database.GetAllUserInformation(userID)
+	if err != nil {
+		log.Println("Failed to get user object. Error: " + err.Error())
+		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get user object."})
+		context.Abort()
+		return
+	}
+
+	newCode := "c:" + userStravaCodeUpdateRequest.StravaCode
+	user.StravaCode = &newCode
+
+	_, err = database.UpdateUser(user)
+	if err != nil {
+		log.Println("Failed to update user object. Error: " + err.Error())
+		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update user object."})
+		context.Abort()
+		return
+	}
+
+	context.JSON(http.StatusOK, gin.H{"message": "Code updated!"})
+}

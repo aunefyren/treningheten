@@ -191,13 +191,23 @@ func main() {
 		log.Println("Monday competition task was not scheduled successfully.")
 	}
 
+	if Config.StravaEnabled {
+		_, err = taskScheduler.ScheduleWithCron(func(ctx context.Context) {
+			log.Println("Strava sync task executing.")
+			controllers.StravaSyncWeekForAllUsers()
+		}, "0 0 * * * *")
+
+		if err != nil {
+			log.Println("Strava sync task was not scheduled successfully. Error: " + err.Error())
+		}
+	}
+
 	// Initialize Router
 	router := initRouter()
 
 	log.Println("Router initialized.")
 
 	log.Fatal(router.Run(":" + strconv.Itoa(Config.TreninghetenPort)))
-
 }
 
 func initRouter() *gin.Engine {
@@ -264,6 +274,7 @@ func initRouter() *gin.Engine {
 			auth.GET("/news/:news_id", controllers.GetNewsPost)
 
 			auth.GET("/users/:user_id", controllers.GetUser)
+			auth.POST("/users/:user_id/strava", controllers.APISetStravaCode)
 			auth.GET("/users/:user_id/image", controllers.APIGetUserProfileImage)
 			auth.GET("/users", controllers.GetUsers)
 			auth.POST("/users/:user_id", controllers.UpdateUser)
@@ -387,6 +398,11 @@ func initRouter() *gin.Engine {
 	// Static endpoint for account verification
 	router.GET("/verify", func(c *gin.Context) {
 		c.HTML(http.StatusOK, "verify.html", nil)
+	})
+
+	// Static endpoint for account verification
+	router.GET("/oauth", func(c *gin.Context) {
+		c.HTML(http.StatusOK, "oauth.html", nil)
 	})
 
 	// Static endpoint for season sign up

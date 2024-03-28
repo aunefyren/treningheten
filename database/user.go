@@ -381,6 +381,7 @@ func CensorUserObject(user models.User) models.User {
 	user.ResetCode = "REDACTED"
 	user.ResetExpiration = time.Now()
 	user.SundayAlert = false
+	user.StravaCode = nil
 
 	return user
 }
@@ -400,4 +401,31 @@ func GetUserEmailByUserID(userID uuid.UUID) (string, bool, error) {
 	}
 
 	return user.Email, true, nil
+}
+
+func UpdateUser(user models.User) (models.User, error) {
+	record := Instance.Save(&user)
+	if record.Error != nil {
+		return user, record.Error
+	}
+	return user, nil
+}
+
+func GetStravaUsersWithinSeason(seasonID uuid.UUID) (users []models.User, err error) {
+	err = nil
+	users = []models.User{}
+
+	record := Instance.Where("`users`.enabled = ?", 1).
+		Where("`users`.strava_code IS NOT NULL").
+		Joins("JOIN `goals` on `goals`.user_id = `users`.id").
+		Where("`goals`.enabled = ?", 1).
+		Joins("JOIN `seasons` on `goals`.season_id = `seasons`.id").
+		Where("`seasons`.enabled = ?", 1).
+		Where("`seasons`.id = ?", seasonID).
+		Find(&users)
+	if record.Error != nil {
+		return users, record.Error
+	}
+
+	return
 }

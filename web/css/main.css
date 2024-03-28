@@ -2395,3 +2395,12 @@ label {
   margin: 0 2em;
   width: auto;
 }
+
+.strava-text {
+  font-size: 0.75em; 
+  margin-bottom: 1em; 
+  color: salmon; 
+  background-color: var(--white);
+  border-radius: 1em;
+  padding: 0.5em;
+}

@@ -157,12 +157,19 @@ function generateExerciseHTML(exercise, count) {
             durationHTML = secondsToDurationString(exercise.duration)
         }
 
+        stravaHTML = ""
+        if(exercise.strava_id) {
+            stravaHTML = `<p class="strava-text">Strava session (could be overwritten)</p>`
+        }
+
         exerciseHTML = `
             <div class="top-row">
                 <img src="/assets/trash-2.svg" style="height: 1em; width: 1em; padding: 1em;" onclick="updateExercise('${exercise.id}', false, ${count})" class="btn_logo clickable">
             </div>
 
             <div class="exerciseSubWrapper" id="exercise-sub-${exercise.id}">
+                ${stravaHTML}
+
                 <h2 style="">Session ${count}</h2>
                 
                 <div class="exercise-input" id="exercise-time-${exercise.id}">

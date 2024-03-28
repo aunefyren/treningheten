@@ -21,6 +21,7 @@ type User struct {
 	ResetExpiration            time.Time  `json:"reset_expiration"`
 	SundayAlert                bool       `json:"sunday_alert" gorm:"not null; default: false"`
 	BirthDate                  *time.Time `json:"birth_date" gorm:"default: null"`
+	StravaCode                 *string    `json:"strava_code" gorm:"default: null"`
 }
 
 type UserCreationRequest struct {
@@ -46,6 +47,10 @@ type UserUpdatePasswordRequest struct {
 	ResetCode      string `json:"reset_code"`
 	Password       string `json:"password"`
 	PasswordRepeat string `json:"password_repeat"`
+}
+
+type UserStravaCodeUpdateRequest struct {
+	StravaCode string `json:"strava_code"`
 }
 
 type UserWithTickets struct {

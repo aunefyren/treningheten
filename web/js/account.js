@@ -11,6 +11,9 @@ function load_page(result) {
             user_id = login_data.data.id
             admin = login_data.data.admin
             vapid_public_key = login_data.vapid_public_key;
+            strava_client_id = login_data.strava_client_id;
+            strava_redirect_uri = login_data.strava_redirect_uri;
+            strava_oauth = `http://www.strava.com/oauth/authorize?client_id=${encodeURI(strava_client_id)}&response_type=code&redirect_uri=${encodeURI(strava_redirect_uri)}&approval_prompt=force&scope=activity:read_all`
         } catch {
             var email = ""
             var first_name = ""
@@ -134,6 +137,16 @@ function load_page(result) {
                 <button id="update-button" style="margin-top: 2em;" type="submit" href="/">Update account</button>
 
             </form>
+
+            <div class="module color-invert" id="" style="">
+                <hr>
+            </div>
+
+            <div class="button-collection">
+
+                <button onclick="window.location.href='${strava_oauth}';" class="" style="width: 10em;" type="submit" href="">Connect Strava</button>
+
+            </div>
 
             <div class="module color-invert" id="" style="">
                 <hr>
@@ -415,7 +428,6 @@ function PlaceUserData(user_object) {
     if(user_object.sunday_alert) {
         document.getElementById("reminder-toggle").checked = true;
     }
-
 }
 
 function leave_season() {

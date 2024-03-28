@@ -221,3 +221,25 @@ func GetValidExercisesBetweenDatesUsingDates(goalID uuid.UUID, startDate time.Ti
 
 	return exercises, nil
 }
+
+func GetExerciseDayByDateAndGoal(goalID uuid.UUID, date time.Time) (*models.ExerciseDay, error) {
+	var exercise models.ExerciseDay
+	var err error
+
+	startDayString := date.Format("2006-01-02") + " 00:00:00.000"
+	endDayString := date.Format("2006-01-02") + " 23:59:59"
+
+	goalrecord := Instance.Where("`exercise_days`.enabled = ?", 1).
+		Where("`exercise_days`.goal_id = ?", goalID).
+		Where("`exercise_days`.Date >= ?", startDayString).
+		Where("`exercise_days`.Date <= ?", endDayString).
+		Find(&exercise)
+
+	if goalrecord.Error != nil {
+		return nil, goalrecord.Error
+	} else if goalrecord.RowsAffected != 1 {
+		return nil, err
+	}
+
+	return &exercise, err
+}

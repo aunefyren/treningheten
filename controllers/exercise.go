@@ -752,6 +752,7 @@ func ConvertExerciseToExerciseObject(exercise models.Exercise) (exerciseObject m
 	exerciseObject.On = exercise.On
 	exerciseObject.UpdatedAt = exercise.UpdatedAt
 	exerciseObject.Duration = exercise.Duration
+	exerciseObject.StravaID = exercise.StravaID
 
 	return
 }
