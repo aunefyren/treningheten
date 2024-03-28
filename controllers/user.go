@@ -61,11 +61,13 @@ func RegisterUser(context *gin.Context) {
 
 	randomString := randstr.String(8)
 	user.VerificationCode = strings.ToUpper(randomString)
-	user.VerificationCodeExpiration = time.Now().Add(time.Hour * 24 * 2)
+	timeExpir := time.Now().Add(time.Hour * 24 * 2)
+	user.VerificationCodeExpiration = &timeExpir
 
 	randomString = randstr.String(8)
 	user.ResetCode = strings.ToUpper(randomString)
-	user.ResetExpiration = time.Now()
+	timeResetExp := time.Now()
+	user.ResetExpiration = &timeResetExp
 
 	// Get configuration
 	config, err := config.GetConfig()
@@ -248,7 +250,7 @@ func VerifyUser(context *gin.Context) {
 		context.JSON(http.StatusBadRequest, gin.H{"error": "Verification code invalid."})
 		context.Abort()
 		return
-	} else if time.Now().After(expiration) {
+	} else if expiration == nil || time.Now().After(*expiration) {
 		context.JSON(http.StatusBadRequest, gin.H{"error": "Verification code has expired, request a new one."})
 		context.Abort()
 		return

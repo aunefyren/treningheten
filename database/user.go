@@ -84,18 +84,19 @@ func VerifyUserHasVerificationCode(userID uuid.UUID) (bool, error) {
 }
 
 // Verify if user has a verification code set
-func VerifyUserVerificationCodeMatches(userID uuid.UUID, verificationCode string) (bool, time.Time, error) {
+func VerifyUserVerificationCodeMatches(userID uuid.UUID, verificationCode string) (bool, *time.Time, error) {
 
 	var user models.User
+	var now = time.Now()
 
 	userrecords := Instance.Where("`users`.enabled = ?", 1).Where("`users`.ID = ?", userID).Where("`users`.verification_code = ?", verificationCode).Find(&user)
 
 	if userrecords.Error != nil {
-		return false, time.Now(), userrecords.Error
+		return false, &now, userrecords.Error
 	}
 
 	if userrecords.RowsAffected != 1 {
-		return false, time.Now(), nil
+		return false, &now, nil
 	} else {
 		return true, user.VerificationCodeExpiration, nil
 	}
@@ -379,7 +380,9 @@ func CensorUserObject(user models.User) models.User {
 	user.Email = "REDACTED"
 	user.VerificationCode = "REDACTED"
 	user.ResetCode = "REDACTED"
-	user.ResetExpiration = time.Now()
+	now := time.Now()
+	user.ResetExpiration = &now
+	user.VerificationCodeExpiration = &now
 	user.SundayAlert = false
 	user.StravaCode = nil
 

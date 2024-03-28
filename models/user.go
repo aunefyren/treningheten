@@ -16,9 +16,9 @@ type User struct {
 	Enabled                    bool       `json:"enabled" gorm:"not null; default: false"`
 	Verified                   bool       `json:"verified" gorm:"not null; default: false"`
 	VerificationCode           string     `json:"verification_code"`
-	VerificationCodeExpiration time.Time  `json:"verification_code_expiration"`
+	VerificationCodeExpiration *time.Time `json:"verification_code_expiration"`
 	ResetCode                  string     `json:"reset_code"`
-	ResetExpiration            time.Time  `json:"reset_expiration"`
+	ResetExpiration            *time.Time `json:"reset_expiration"`
 	SundayAlert                bool       `json:"sunday_alert" gorm:"not null; default: false"`
 	BirthDate                  *time.Time `json:"birth_date" gorm:"default: null"`
 	StravaCode                 *string    `json:"strava_code" gorm:"default: null"`
