@@ -26,8 +26,6 @@ type ConfigStruct struct {
 	StravaEnabled           bool   `json:"strava_enabled"`
 	StravaClientID          string `json:"strava_client_id"`
 	StravaClientSecret      string `json:"strava_client_secret"`
-	StravaAccessToken       string `json:"strava_access_token"`
-	StravaRefreshToken      string `json:"strava_refresh_token"`
 	StravaRedirectURI       string `json:"strava_redirect_uri"`
 }
 

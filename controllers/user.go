@@ -60,12 +60,16 @@ func RegisterUser(context *gin.Context) {
 	user.ID = uuid.New()
 
 	randomString := randstr.String(8)
-	user.VerificationCode = strings.ToUpper(randomString)
+	finalRandomString := strings.ToUpper(randomString)
+	user.VerificationCode = &finalRandomString
+
 	timeExpir := time.Now().Add(time.Hour * 24 * 2)
 	user.VerificationCodeExpiration = &timeExpir
 
 	randomString = randstr.String(8)
-	user.ResetCode = strings.ToUpper(randomString)
+	finalRandomString = strings.ToUpper(randomString)
+	user.ResetCode = &finalRandomString
+
 	timeResetExp := time.Now()
 	user.ResetExpiration = &timeResetExp
 
@@ -508,7 +512,7 @@ func UpdateUser(context *gin.Context) {
 			return
 		}
 
-		user.VerificationCode = verificationCode
+		user.VerificationCode = &verificationCode
 
 		log.Println("Sending verification e-mail to new user: " + user.FirstName + " " + user.LastName + ".")
 

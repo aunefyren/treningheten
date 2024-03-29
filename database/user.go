@@ -76,7 +76,7 @@ func VerifyUserHasVerificationCode(userID uuid.UUID) (bool, error) {
 		return false, errors.New("Couldn't find the user.")
 	}
 
-	if user.VerificationCode == "" {
+	if user.VerificationCode == nil {
 		return false, nil
 	} else {
 		return true, nil
@@ -378,11 +378,10 @@ func CensorUserObject(user models.User) models.User {
 	// Redact user information
 	user.Password = "REDACTED"
 	user.Email = "REDACTED"
-	user.VerificationCode = "REDACTED"
-	user.ResetCode = "REDACTED"
-	now := time.Now()
-	user.ResetExpiration = &now
-	user.VerificationCodeExpiration = &now
+	user.VerificationCode = nil
+	user.ResetCode = nil
+	user.ResetExpiration = nil
+	user.VerificationCodeExpiration = nil
 	user.SundayAlert = false
 	user.StravaCode = nil
 

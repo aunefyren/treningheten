@@ -29,7 +29,7 @@ func SendSMTPVerificationEmail(user models.User) error {
 	m.SetAddressHeader("From", config.SMTPFrom, config.TreninghetenName)
 	m.SetHeader("To", user.Email)
 	m.SetHeader("Subject", "Please verify your account")
-	m.SetBody("text/html", "Hello <b>"+user.FirstName+"</b>!<br><br>Someone created a Treningheten account using your e-mail. If this wasn't you, please ignore this e-mail.<br><br>To verify the new account, visit Treningheten and verify the account using this code: <b>"+user.VerificationCode+"</b>.")
+	m.SetBody("text/html", "Hello <b>"+user.FirstName+"</b>!<br><br>Someone created a Treningheten account using your e-mail. If this wasn't you, please ignore this e-mail.<br><br>To verify the new account, visit Treningheten and verify the account using this code: <b>"+*user.VerificationCode+"</b>.")
 
 	d := mail.NewDialer(config.SMTPHost, config.SMTPPort, config.SMTPUsername, config.SMTPPassword)
 
@@ -57,7 +57,7 @@ func SendSMTPResetEmail(user models.User) error {
 
 	log.Println("Sending e-mail to: " + user.Email + ".")
 
-	link := config.TreninghetenExternalURL + "/login?reset_code=" + user.ResetCode
+	link := config.TreninghetenExternalURL + "/login?reset_code=" + *user.ResetCode
 
 	m := mail.NewMessage()
 	m.SetAddressHeader("From", config.SMTPFrom, config.TreninghetenName)
