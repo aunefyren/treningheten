@@ -195,134 +195,141 @@ func StravaSyncWeekForAllUsers() {
 	log.Println("Got '" + strconv.Itoa(len(users)) + "' users.")
 
 	for _, user := range users {
-		log.Println("Strava sync for user '" + user.FirstName + " " + user.LastName + "'.")
+		err = StravaSyncWeekForUser(user, *configFile, season)
+	}
+	log.Println("Strava sync task finished.")
+}
 
-		goal, err := database.GetGoalFromUserWithinSeason(season.ID, user.ID)
-		if err != nil {
-			log.Println("Failed to get goal. ID: " + user.ID.String())
-			return
-		}
+func StravaSyncWeekForUser(user models.User, configFile models.ConfigStruct, season models.Season) (err error) {
+	err = nil
+	now := time.Now()
+	log.Println("Strava sync for user '" + user.FirstName + " " + user.LastName + "'.")
 
-		stravaCodeData := strings.Split(*user.StravaCode, ":")
-
-		if len(stravaCodeData) != 2 {
-			log.Println("Invalid Strava code format for user. ID: " + string(user.ID.String()))
-			continue
-		}
-
-		token := ""
-
-		// If totally new authorization
-		if stravaCodeData[0] == "c" {
-			authorization, err := StravaAuthorize(*configFile, stravaCodeData[1])
-			if err != nil {
-				log.Println("Failed to authorize user. ID: " + user.ID.String())
-				continue
-			}
-
-			newCode := "r:" + authorization.RefreshToken
-			user.StravaCode = &newCode
-			user, err = database.UpdateUser(user)
-			if err != nil {
-				log.Println("Failed to update user. ID: " + user.ID.String())
-				continue
-			}
-
-			token = authorization.AccessToken
-			// If re-authorization
-		} else if stravaCodeData[0] == "r" {
-			authorization, err := StravaReauthorize(*configFile, stravaCodeData[1])
-			if err != nil {
-				log.Println("Failed to re-authorize user. ID: " + user.ID.String())
-				continue
-			}
-
-			newCode := "r:" + authorization.RefreshToken
-			user.StravaCode = &newCode
-			user, err = database.UpdateUser(user)
-			if err != nil {
-				log.Println("Failed to update user. ID: " + user.ID.String())
-				continue
-			}
-
-			token = authorization.AccessToken
-		} else {
-			log.Println("Invalid Strava code format for user. ID: " + string(user.ID.String()))
-			continue
-		}
-
-		monday, err := utilities.FindEarlierMonday(now)
-		if err != nil {
-			log.Println("Failed to find monday. ID: " + user.ID.String())
-			continue
-		}
-
-		sunday, err := utilities.FindNextSunday(now)
-		if err != nil {
-			log.Println("Failed to find sunday. ID: " + user.ID.String())
-			continue
-		}
-
-		activities, err := StravaGetActivities(*configFile, token, int(sunday.Unix()), int(monday.Unix()))
-		if err != nil {
-			log.Println("Failed to get activities. ID: " + user.ID.String())
-			continue
-		}
-
-		log.Println("Got '" + strconv.Itoa((len(activities))) + "' activities for user.")
-
-		for _, activity := range activities {
-			exercise, err := database.GetExerciseForUserWithStravaID(user.ID, int(activity.ID))
-			if err != nil {
-				log.Println("Failed to get exercise. ID: " + user.ID.String())
-				continue
-			} else if exercise == nil {
-				// Get exercise day
-				exerciseDay, err := database.GetExerciseDayByDateAndGoal(goal.ID, activity.StartDate)
-				if err != nil {
-					log.Println("Failed to get exercise day. ID: " + user.ID.String())
-					continue
-				} else if exerciseDay == nil {
-					log.Println("Creating new exercise day.")
-
-					exerciseDay = &models.ExerciseDay{}
-					exerciseDay.ID = uuid.New()
-					exerciseDay.Enabled = true
-					exerciseDay.CreatedAt = now
-					exerciseDay.UpdatedAt = now
-					exerciseDay.GoalID = goal.ID
-
-					err = database.CreateExerciseDayInDB(*exerciseDay)
-					if err != nil {
-						log.Println("Failed to create exercise day. ID: " + user.ID.String())
-						continue
-					}
-				}
-				log.Println("Creating new exercise.")
-
-				exercise = &models.Exercise{}
-				exercise.ID = uuid.New()
-				exercise.CreatedAt = now
-				exercise.UpdatedAt = now
-				exercise.ExerciseDayID = exerciseDay.ID
-			}
-
-			exercise.Enabled = true
-			exercise.Note = activity.Name
-			elapsedTime := time.Duration(activity.ElapsedTime)
-			exercise.Duration = &elapsedTime
-			exercise.On = true
-			exercise.StravaID = strconv.Itoa(int(activity.ID))
-
-			_, err = database.UpdateExerciseInDB(*exercise)
-			if err != nil {
-				log.Println("Failed to get exercise. ID: " + user.ID.String())
-				continue
-			}
-
-			log.Println("Updated exercise.")
-		}
+	goal, err := database.GetGoalFromUserWithinSeason(season.ID, user.ID)
+	if err != nil {
+		log.Println("Failed to get goal. ID: " + user.ID.String())
+		return
 	}
 
-	log.Println("Strava sync task finished.")
+	stravaCodeData := strings.Split(*user.StravaCode, ":")
+
+	if len(stravaCodeData) != 2 {
+		log.Println("Invalid Strava code format for user. ID: " + string(user.ID.String()))
+		return errors.New("Invalid Strava code format for user.")
+	}
+
+	token := ""
+
+	// If totally new authorization
+	if stravaCodeData[0] == "c" {
+		authorization, err := StravaAuthorize(configFile, stravaCodeData[1])
+		if err != nil {
+			log.Println("Failed to authorize user. ID: " + user.ID.String())
+			return errors.New("Failed to authorize user.")
+		}
+
+		newCode := "r:" + authorization.RefreshToken
+		user.StravaCode = &newCode
+		user, err = database.UpdateUser(user)
+		if err != nil {
+			log.Println("Failed to update user. ID: " + user.ID.String())
+			return errors.New("Failed to update user.")
+		}
+
+		token = authorization.AccessToken
+		// If re-authorization
+	} else if stravaCodeData[0] == "r" {
+		authorization, err := StravaReauthorize(configFile, stravaCodeData[1])
+		if err != nil {
+			log.Println("Failed to re-authorize user. ID: " + user.ID.String())
+			return errors.New("Failed to re-authorize user.")
+		}
+
+		newCode := "r:" + authorization.RefreshToken
+		user.StravaCode = &newCode
+		user, err = database.UpdateUser(user)
+		if err != nil {
+			log.Println("Failed to update user. ID: " + user.ID.String())
+			return errors.New("Failed to update user.")
+		}
+
+		token = authorization.AccessToken
+	} else {
+		log.Println("Invalid Strava code format for user. ID: " + string(user.ID.String()))
+		return errors.New("Invalid Strava code format for user.")
+	}
+
+	monday, err := utilities.FindEarlierMonday(now)
+	if err != nil {
+		log.Println("Failed to find monday. ID: " + user.ID.String())
+		return errors.New("Failed to find monday.")
+	}
+
+	sunday, err := utilities.FindNextSunday(now)
+	if err != nil {
+		log.Println("Failed to find sunday. ID: " + user.ID.String())
+		return errors.New("Failed to find sunday.")
+	}
+
+	activities, err := StravaGetActivities(configFile, token, int(sunday.Unix()), int(monday.Unix()))
+	if err != nil {
+		log.Println("Failed to get activities. ID: " + user.ID.String())
+		return errors.New("Failed to get activities.")
+	}
+
+	log.Println("Got '" + strconv.Itoa((len(activities))) + "' activities for user.")
+
+	for _, activity := range activities {
+		exercise, err := database.GetExerciseForUserWithStravaID(user.ID, int(activity.ID))
+		if err != nil {
+			log.Println("Failed to get exercise. ID: " + user.ID.String())
+			return errors.New("Failed to get exercise.")
+		} else if exercise == nil {
+			// Get exercise day
+			exerciseDay, err := database.GetExerciseDayByDateAndGoal(goal.ID, activity.StartDate)
+			if err != nil {
+				log.Println("Failed to get exercise day. ID: " + user.ID.String())
+				return errors.New("Failed to get exercise day.")
+			} else if exerciseDay == nil {
+				log.Println("Creating new exercise day.")
+
+				exerciseDay = &models.ExerciseDay{}
+				exerciseDay.ID = uuid.New()
+				exerciseDay.Enabled = true
+				exerciseDay.CreatedAt = now
+				exerciseDay.UpdatedAt = now
+				exerciseDay.GoalID = goal.ID
+
+				err = database.CreateExerciseDayInDB(*exerciseDay)
+				if err != nil {
+					log.Println("Failed to create exercise day. ID: " + user.ID.String())
+					return errors.New("Failed to create exercise day.")
+				}
+			}
+			log.Println("Creating new exercise.")
+
+			exercise = &models.Exercise{}
+			exercise.ID = uuid.New()
+			exercise.CreatedAt = now
+			exercise.UpdatedAt = now
+			exercise.ExerciseDayID = exerciseDay.ID
+		}
+
+		exercise.Enabled = true
+		exercise.Note = activity.Name
+		elapsedTime := time.Duration(activity.ElapsedTime)
+		exercise.Duration = &elapsedTime
+		exercise.On = true
+		exercise.StravaID = strconv.Itoa(int(activity.ID))
+
+		_, err = database.UpdateExerciseInDB(*exercise)
+		if err != nil {
+			log.Println("Failed to get exercise. ID: " + user.ID.String())
+			return errors.New("Failed to get exercise.")
+		}
+
+		log.Println("Updated exercise.")
+	}
+
+	return
 }

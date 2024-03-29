@@ -81,7 +81,7 @@ function load_page(result) {
                                                 <img src="assets/plus.svg" class="small-button-icon" onclick="IncreaseNumberInput('day_1_check', 0, 3);">
                                             </div>
                                             <div class="edit-exercise-button" id="day_1_edit">
-                                                <img src="assets/edit.svg" class="smaller-button-icon" onclick="EditExercise(1);">
+                                                <img src="assets/edit-3.svg" style="padding: 0.40em;" class="small-button-icon" onclick="EditExercise(1);">
                                             </div>
                                         </div>
                                         <div class="day-note">
@@ -105,7 +105,7 @@ function load_page(result) {
                                                 <img src="assets/plus.svg" class="small-button-icon" onclick="IncreaseNumberInput('day_2_check', 0, 3);">
                                             </div>
                                             <div class="edit-exercise-button" id="day_2_edit">
-                                                <img src="assets/edit.svg" class="smaller-button-icon" onclick="EditExercise(2);">
+                                                <img src="assets/edit-3.svg" style="padding: 0.40em;" class="small-button-icon" onclick="EditExercise(2);">
                                             </div>
                                         </div>
                                         <div class="day-note">
@@ -129,7 +129,7 @@ function load_page(result) {
                                                 <img src="assets/plus.svg" class="small-button-icon" onclick="IncreaseNumberInput('day_3_check', 0, 3);">
                                             </div>
                                             <div class="edit-exercise-button" id="day_3_edit">
-                                                <img src="assets/edit.svg" class="smaller-button-icon" onclick="EditExercise(3);">
+                                                <img src="assets/edit-3.svg" style="padding: 0.40em;" class="small-button-icon" onclick="EditExercise(3);">
                                             </div>
                                         </div>
                                         <div class="day-note">
@@ -153,7 +153,7 @@ function load_page(result) {
                                                 <img src="assets/plus.svg" class="small-button-icon" onclick="IncreaseNumberInput('day_4_check', 0, 3);">
                                             </div>
                                             <div class="edit-exercise-button" id="day_4_edit">
-                                                <img src="assets/edit.svg" class="smaller-button-icon" onclick="EditExercise(4);">
+                                                <img src="assets/edit-3.svg" style="padding: 0.40em;" class="small-button-icon" onclick="EditExercise(4);">
                                             </div>
                                         </div>
                                         <div class="day-note">
@@ -177,7 +177,7 @@ function load_page(result) {
                                                 <img src="assets/plus.svg" class="small-button-icon" onclick="IncreaseNumberInput('day_5_check', 0, 3);">
                                             </div>
                                             <div class="edit-exercise-button" id="day_5_edit">
-                                                <img src="assets/edit.svg" class="smaller-button-icon" onclick="EditExercise(5);">
+                                                <img src="assets/edit-3.svg" style="padding: 0.40em;" class="small-button-icon" onclick="EditExercise(5);">
                                             </div>
                                         </div>
                                         <div class="day-note">
@@ -201,7 +201,7 @@ function load_page(result) {
                                                 <img src="assets/plus.svg" class="small-button-icon" onclick="IncreaseNumberInput('day_6_check', 0, 3);">
                                             </div>
                                             <div class="edit-exercise-button" id="day_6_edit">
-                                                <img src="assets/edit.svg" class="smaller-button-icon" onclick="EditExercise(6);">
+                                                <img src="assets/edit-3.svg" style="padding: 0.40em;" class="small-button-icon" onclick="EditExercise(6);">
                                             </div>
                                         </div>
                                         <div class="day-note">
@@ -225,7 +225,7 @@ function load_page(result) {
                                                 <img src="assets/plus.svg" class="small-button-icon" onclick="IncreaseNumberInput('day_7_check', 0, 3);">
                                             </div>
                                             <div class="edit-exercise-button" id="day_7_edit">
-                                                <img src="assets/edit.svg" class="smaller-button-icon" onclick="EditExercise(7);">
+                                                <img src="assets/edit-3.svg" style="padding: 0.40em;" class="small-button-icon" onclick="EditExercise(7);">
                                             </div>
                                         </div>
                                         <div class="day-note">

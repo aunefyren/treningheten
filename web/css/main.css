@@ -695,7 +695,7 @@ hr {
   align-content: center;
   justify-content: space-between;
   align-items: center;
-  padding: 0.5em 1em;
+  padding: 0.5em;
   box-sizing: inherit;
   width: 100%;
   width: -webkit-fill-available;
@@ -709,7 +709,7 @@ hr {
   justify-content: space-between;
   align-items: center;
   display: flex;
-  width: 5em;
+  width: 6em;
   max-width: 100%;
   max-width: -webkit-fill-available;
   max-width: -moz-available;
@@ -953,11 +953,14 @@ hr {
 /* End of fireworks */
 
 .small-button-icon {
-  width: 1.5em;
-  height: 1.5em;
-  margin: 0;
-  padding: 0 0.12em;
+  width: 1.75em;
+  height: 1.75em;
+  margin: 0 0.25em;
+  padding: 0.25em;
   cursor: pointer;
+  background-color: var(--trans-lightblue);
+  box-sizing: border-box;
+  border-radius: 0.25em;
 }
 
 .smaller-button-icon {
@@ -1775,6 +1778,7 @@ input[type=checkbox]
 }
 
 .edit-exercise-button {
+  margin-top: 0.3125em;
   display: none;
 }
 

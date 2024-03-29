@@ -144,7 +144,12 @@ function load_page(result) {
 
             <div class="button-collection">
 
+                <p style="width: 100%; text-align: center;">
+                    Strava exercises sync automatically every hour. Be careful to only log your sessions to either Strava or Treningheten.
+                </p>
+
                 <button onclick="window.location.href='${strava_oauth}';" class="" style="width: 10em;" type="submit" href="">Connect Strava</button>
+                <button onclick="syncStrava('${user_id}');" class="" style="width: 10em;" type="submit" href="">Sync Strava now</button>
 
             </div>
 
@@ -444,4 +449,33 @@ function PlaceSubscriptionData(subscription) {
     document.getElementById("notification-achievement-toggle").checked = subscription.achievement_alert;
     document.getElementById("notification-news-toggle").checked = subscription.news_alert;
 
+}
+
+function syncStrava(user_id) {
+    var xhttp = new XMLHttpRequest();
+    xhttp.onreadystatechange = function() {
+        if (this.readyState == 4) {
+            try {
+                result = JSON.parse(this.responseText);
+            } catch(e) {
+                console.log(e +' - Response: ' + this.responseText);
+                error("Could not reach API.");
+                return;
+            }
+            
+            if(result.error) {
+                error(result.error);
+            } else {
+                success(result.message);                
+            }
+        } else {
+            info("Syncing...");
+        }
+    };
+    xhttp.withCredentials = true;
+    xhttp.open("post", api_url + "auth/users/" + user_id + "/strava-sync");
+    xhttp.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
+    xhttp.setRequestHeader("Authorization", jwt);
+    xhttp.send();
+    return false;
 }

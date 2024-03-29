@@ -770,3 +770,67 @@ func APISetStravaCode(context *gin.Context) {
 
 	context.JSON(http.StatusOK, gin.H{"message": "Code updated!"})
 }
+
+func APISyncStravaForUser(context *gin.Context) {
+	// Initialize variables
+	var user models.User
+
+	configFile, err := config.GetConfig()
+	if err != nil {
+		log.Println("Failed to get config. Error: " + err.Error())
+		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get config."})
+		context.Abort()
+		return
+	}
+
+	if !configFile.StravaEnabled {
+		context.JSON(http.StatusBadRequest, gin.H{"error": "Strava is not enabled."})
+		context.Abort()
+		return
+	}
+
+	season, seasonFound, err := GetOngoingSeasonFromDB(time.Now())
+	if err != nil {
+		log.Println("Failed to get ongoing season. Error: " + err.Error())
+		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get ongoing season."})
+		context.Abort()
+		return
+	} else if !seasonFound {
+		context.JSON(http.StatusBadRequest, gin.H{"error": "No ongoing season for user."})
+		context.Abort()
+		return
+	}
+
+	// Get user ID
+	userID, err := middlewares.GetAuthUsername(context.GetHeader("Authorization"))
+	if err != nil {
+		log.Println("Failed to get user ID. Error: " + err.Error())
+		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get user ID."})
+		context.Abort()
+		return
+	}
+
+	user, err = database.GetAllUserInformation(userID)
+	if err != nil {
+		log.Println("Failed to get user object. Error: " + err.Error())
+		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get user object."})
+		context.Abort()
+		return
+	}
+
+	if user.StravaCode == nil {
+		context.JSON(http.StatusInternalServerError, gin.H{"error": "User does not have a Strava connection."})
+		context.Abort()
+		return
+	}
+
+	err = StravaSyncWeekForUser(user, *configFile, season)
+	if err != nil {
+		log.Println("Failed to sync Strava for user. Error: " + err.Error())
+		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to sync Strava for user."})
+		context.Abort()
+		return
+	}
+
+	context.JSON(http.StatusOK, gin.H{"message": "Strava sync started!"})
+}

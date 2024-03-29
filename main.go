@@ -275,6 +275,7 @@ func initRouter() *gin.Engine {
 
 			auth.GET("/users/:user_id", controllers.GetUser)
 			auth.POST("/users/:user_id/strava", controllers.APISetStravaCode)
+			auth.POST("/users/:user_id/strava-sync", controllers.APISyncStravaForUser)
 			auth.GET("/users/:user_id/image", controllers.APIGetUserProfileImage)
 			auth.GET("/users", controllers.GetUsers)
 			auth.POST("/users/:user_id", controllers.UpdateUser)
