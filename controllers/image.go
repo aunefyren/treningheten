@@ -67,7 +67,9 @@ func APIGetUserProfileImage(context *gin.Context) {
 	imageBytes, err := LoadImageFile(filePath)
 	resize := true
 	if err != nil {
-		log.Println("Failed to find profile image. Loading default.")
+		// Debug line
+		// log.Println("Failed to find profile image. Loading default.")
+
 		imageBytes, err = LoadDefaultProfileImage()
 		if err != nil {
 			log.Println("Failed to load default profile image. Error: " + err.Error())
@@ -106,7 +108,9 @@ func LoadImageFile(filePath string) ([]byte, error) {
 	// Read the entire file into a byte slice
 	imageBytes, err := ioutil.ReadFile(filePath)
 	if err != nil {
-		log.Println("Failed to read file. Returning.")
+		// Debug line
+		// log.Println("Failed to read file. Returning.")
+
 		return nil, errors.New("Failed to read file.")
 	}
 

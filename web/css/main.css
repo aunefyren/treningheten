@@ -955,7 +955,7 @@ hr {
 .small-button-icon {
   width: 1.75em;
   height: 1.75em;
-  margin: 0 0.25em;
+  margin: 0.25em;
   padding: 0.25em;
   cursor: pointer;
   background-color: var(--trans-lightblue);
@@ -971,8 +971,8 @@ hr {
   cursor: pointer;
 }
 
-.two-buttons {
-  display: flex;
+.day-buttons {
+  display: none;
   flex-direction: row;
   flex-wrap: wrap;
   justify-content: center;;
@@ -1777,11 +1777,6 @@ input[type=checkbox]
   width: 10em;
 }
 
-.edit-exercise-button {
-  margin-top: 0.3125em;
-  display: none;
-}
-
 @keyframes shine{
   0%{top:-120%;left:-120%;}
   10%{left:100%;top:100%;}
@@ -2300,6 +2295,10 @@ input[type=checkbox]
   width: 80%;
   max-width: 700px;
   background-color: var(--white);
+  position: absolute;
+  max-height: 75%;
+  overflow: scroll;
+  position: relative;
 }
 
 /* Caption of Modal Image */

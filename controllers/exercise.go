@@ -88,13 +88,13 @@ func APIRegisterWeek(context *gin.Context) {
 	}
 
 	// Check if week is sickleave
-	sickleave, sickleaveFound, err := database.GetUsedSickleaveForGoalWithinWeek(now, goalID)
+	sickLeave, err := database.GetUsedSickleaveForGoalWithinWeek(now, goalID)
 	if err != nil {
 		log.Println("Failed to verify sickleave. Error: " + err.Error())
 		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to verify sickleave."})
 		context.Abort()
 		return
-	} else if sickleaveFound && sickleave.Used {
+	} else if sickLeave != nil && sickLeave.Used {
 		context.JSON(http.StatusBadRequest, gin.H{"error": "This week is marked as sickleave."})
 		context.Abort()
 		return

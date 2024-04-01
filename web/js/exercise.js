@@ -982,6 +982,7 @@ function toggleActionBorder(operationID, color) {
 }
 
 function addAction(operationID) {
+    closeAllLists();
     myModal = document.getElementById("myModal")
     myModal.style.display = "flex";
     modalContent = document.getElementById("modal-content") 

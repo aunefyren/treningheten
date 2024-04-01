@@ -9,9 +9,9 @@ import (
 )
 
 // Retrieves a sickleave for a chosen week for a chosen goal
-func GetUsedSickleaveForGoalWithinWeek(time time.Time, goalID uuid.UUID) (models.Sickleave, bool, error) {
-
-	var sickleavestruct models.Sickleave
+func GetUsedSickleaveForGoalWithinWeek(time time.Time, goalID uuid.UUID) (sickLeave *models.Sickleave, err error) {
+	sickLeave = nil
+	err = nil
 
 	timeWeekday := time.Weekday()
 	startDayString := "Error"
@@ -51,15 +51,15 @@ func GetUsedSickleaveForGoalWithinWeek(time time.Time, goalID uuid.UUID) (models
 		}
 	}
 
-	sickleaverecord := Instance.Where("`sickleaves`.enabled = ?", 1).Where("`sickleaves`.goal_id = ?", goalID).Where("`sickleaves`.date >= ?", startDayString).Where("`sickleaves`.date <= ?", endDayString).Find(&sickleavestruct)
-	if sickleaverecord.Error != nil {
-		return models.Sickleave{}, false, sickleaverecord.Error
-	} else if sickleaverecord.RowsAffected != 1 {
-		return models.Sickleave{}, false, nil
+	sickLeaveRecord := Instance.Where("`sickleaves`.enabled = ?", 1).Where("`sickleaves`.goal_id = ?", goalID).Where("`sickleaves`.date >= ?", startDayString).Where("`sickleaves`.date <= ?", endDayString).Find(&sickLeave)
+
+	if sickLeaveRecord.Error != nil {
+		return nil, sickLeaveRecord.Error
+	} else if sickLeaveRecord.RowsAffected != 1 {
+		return nil, err
 	}
 
-	return sickleavestruct, true, nil
-
+	return sickLeave, err
 }
 
 // Retrieve a unused sickleave for chosen goal

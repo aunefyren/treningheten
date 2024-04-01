@@ -76,11 +76,9 @@ function load_page(result) {
                                             <div class="number-box" id="day_1_check">
                                                 0
                                             </div>
-                                            <div class="two-buttons">
+                                            <div class="day-buttons" id="day_1_buttons">
                                                 <img src="assets/minus.svg" class="small-button-icon" onclick="DecreaseNumberInput('day_1_check', 0, 3);">
                                                 <img src="assets/plus.svg" class="small-button-icon" onclick="IncreaseNumberInput('day_1_check', 0, 3);">
-                                            </div>
-                                            <div class="edit-exercise-button" id="day_1_edit">
                                                 <img src="assets/edit-3.svg" style="padding: 0.40em;" class="small-button-icon" onclick="EditExercise(1);">
                                             </div>
                                         </div>
@@ -100,11 +98,9 @@ function load_page(result) {
                                             <div class="number-box" id="day_2_check">
                                                 0
                                             </div>
-                                            <div class="two-buttons">
+                                            <div class="day-buttons" id="day_2_buttons">
                                                 <img src="assets/minus.svg" class="small-button-icon" onclick="DecreaseNumberInput('day_2_check', 0, 3);">
                                                 <img src="assets/plus.svg" class="small-button-icon" onclick="IncreaseNumberInput('day_2_check', 0, 3);">
-                                            </div>
-                                            <div class="edit-exercise-button" id="day_2_edit">
                                                 <img src="assets/edit-3.svg" style="padding: 0.40em;" class="small-button-icon" onclick="EditExercise(2);">
                                             </div>
                                         </div>
@@ -124,11 +120,9 @@ function load_page(result) {
                                             <div class="number-box" id="day_3_check">
                                                 0
                                             </div>
-                                            <div class="two-buttons">
+                                            <div class="day-buttons" id="day_3_buttons">
                                                 <img src="assets/minus.svg" class="small-button-icon" onclick="DecreaseNumberInput('day_3_check', 0, 3);">
                                                 <img src="assets/plus.svg" class="small-button-icon" onclick="IncreaseNumberInput('day_3_check', 0, 3);">
-                                            </div>
-                                            <div class="edit-exercise-button" id="day_3_edit">
                                                 <img src="assets/edit-3.svg" style="padding: 0.40em;" class="small-button-icon" onclick="EditExercise(3);">
                                             </div>
                                         </div>
@@ -148,11 +142,9 @@ function load_page(result) {
                                             <div class="number-box" id="day_4_check">
                                                 0
                                             </div>
-                                            <div class="two-buttons">
+                                            <div class="day-buttons" id="day_4_buttons">
                                                 <img src="assets/minus.svg" class="small-button-icon" onclick="DecreaseNumberInput('day_4_check', 0, 3);">
                                                 <img src="assets/plus.svg" class="small-button-icon" onclick="IncreaseNumberInput('day_4_check', 0, 3);">
-                                            </div>
-                                            <div class="edit-exercise-button" id="day_4_edit">
                                                 <img src="assets/edit-3.svg" style="padding: 0.40em;" class="small-button-icon" onclick="EditExercise(4);">
                                             </div>
                                         </div>
@@ -172,11 +164,9 @@ function load_page(result) {
                                             <div class="number-box" id="day_5_check">
                                                 0
                                             </div>
-                                            <div class="two-buttons">
+                                            <div class="day-buttons" id="day_5_buttons">
                                                 <img src="assets/minus.svg" class="small-button-icon" onclick="DecreaseNumberInput('day_5_check', 0, 3);">
                                                 <img src="assets/plus.svg" class="small-button-icon" onclick="IncreaseNumberInput('day_5_check', 0, 3);">
-                                            </div>
-                                            <div class="edit-exercise-button" id="day_5_edit">
                                                 <img src="assets/edit-3.svg" style="padding: 0.40em;" class="small-button-icon" onclick="EditExercise(5);">
                                             </div>
                                         </div>
@@ -196,11 +186,9 @@ function load_page(result) {
                                             <div class="number-box" id="day_6_check">
                                                 0
                                             </div>
-                                            <div class="two-buttons">
+                                            <div class="day-buttons" id="day_6_buttons">
                                                 <img src="assets/minus.svg" class="small-button-icon" onclick="DecreaseNumberInput('day_6_check', 0, 3);">
                                                 <img src="assets/plus.svg" class="small-button-icon" onclick="IncreaseNumberInput('day_6_check', 0, 3);">
-                                            </div>
-                                            <div class="edit-exercise-button" id="day_6_edit">
                                                 <img src="assets/edit-3.svg" style="padding: 0.40em;" class="small-button-icon" onclick="EditExercise(6);">
                                             </div>
                                         </div>
@@ -220,11 +208,9 @@ function load_page(result) {
                                             <div class="number-box" id="day_7_check">
                                                 0
                                             </div>
-                                            <div class="two-buttons">
+                                            <div class="day-buttons" id="day_7_buttons">
                                                 <img src="assets/minus.svg" class="small-button-icon" onclick="DecreaseNumberInput('day_7_check', 0, 3);">
                                                 <img src="assets/plus.svg" class="small-button-icon" onclick="IncreaseNumberInput('day_7_check', 0, 3);">
-                                            </div>
-                                            <div class="edit-exercise-button" id="day_7_edit">
                                                 <img src="assets/edit-3.svg" style="padding: 0.40em;" class="small-button-icon" onclick="EditExercise(7);">
                                             </div>
                                         </div>
@@ -550,7 +536,7 @@ function place_week(week, fireworks) {
     // Add class to current day
     document.getElementById("day_" + day + "_check").classList.add("active-day") 
 
-    // Enable workout button
+    // Enable workout buttons
     addExerciseButton = document.getElementById("add-exercise-button")
     addExerciseButton.addEventListener("click", function(e) {
         addExercise(week.days[day-1].id)
@@ -559,7 +545,7 @@ function place_week(week, fireworks) {
 
     // Place editing icon for exercise
     for(var i = 1; i <= day; i++) {
-        document.getElementById("day_" + i + "_edit").style.display = "flex" // Disabled because not ready
+        document.getElementById("day_" + i + "_buttons").style.display = "flex" // Disabled because not ready
     }
 
     document.getElementById("workout_this_week").innerText  = fireworks_int
