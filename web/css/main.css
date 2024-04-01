@@ -1600,7 +1600,7 @@ input[type=checkbox]
   box-sizing: content-box;
 }
 
-.achievement:hover .overlay {
+.achievement:focus .overlay {
   opacity: 1;
 }
 

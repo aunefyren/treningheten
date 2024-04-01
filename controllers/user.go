@@ -720,7 +720,7 @@ func SendSundayReminders() {
 	}
 
 	for _, user := range usersToAlert {
-		utilities.SendSMTPSundayReminderEmail(user)
+		utilities.SendSMTPSundayReminderEmail(user, season, time.Now())
 	}
 
 	// Send push notifications

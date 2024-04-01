@@ -7,6 +7,7 @@ import (
 	"log"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/go-mail/mail"
 )
@@ -77,7 +78,7 @@ func SendSMTPResetEmail(user models.User) error {
 
 }
 
-func SendSMTPSundayReminderEmail(user models.User) error {
+func SendSMTPSundayReminderEmail(user models.User, season models.Season, timeStamp time.Time) error {
 
 	// Get configuration
 	config, err := config.GetConfig()
@@ -92,12 +93,13 @@ func SendSMTPSundayReminderEmail(user models.User) error {
 	log.Println("Sending e-mail to: " + user.Email + ".")
 
 	link := config.TreninghetenExternalURL
+	_, weekNumber := timeStamp.ISOWeek()
 
 	m := mail.NewMessage()
 	m.SetAddressHeader("From", config.SMTPFrom, config.TreninghetenName)
 	m.SetHeader("To", user.Email)
 	m.SetHeader("Subject", "Sunday reminder")
-	m.SetBody("text/html", "Hello <b>"+user.FirstName+"</b>!<br><br>It's Sunday and the week is almost over.<br><br>If you haven't already, head to Treningheten using <a href='"+link+"' target='_blank'>this link</a> and log your workouts.<br><br>You can disable this alert in your settings.")
+	m.SetBody("text/html", "Hello <b>"+user.FirstName+"</b>!<br><br>It's Sunday and week "+strconv.Itoa(weekNumber)+" within '"+season.Name+"' is almost over.<br><br>If you haven't already, head to Treningheten using <a href='"+link+"' target='_blank'>this link</a> and log your workouts.<br><br>You can disable this alert in your settings.")
 
 	d := mail.NewDialer(config.SMTPHost, config.SMTPPort, config.SMTPUsername, config.SMTPPassword)
 
@@ -159,7 +161,7 @@ func SendSMTPSeasonStartEmail(season models.SeasonObject) error {
 
 }
 
-func SendSMTPForWeekLost(user models.User) error {
+func SendSMTPForWeekLost(user models.User, weekNumber int) error {
 
 	// Get configuration
 	config, err := config.GetConfig()
@@ -179,7 +181,7 @@ func SendSMTPForWeekLost(user models.User) error {
 	m.SetAddressHeader("From", config.SMTPFrom, config.TreninghetenName)
 	m.SetHeader("To", user.Email)
 	m.SetHeader("Subject", "Your week didn't go as planned")
-	m.SetBody("text/html", "Hello <b>"+user.FirstName+"</b>!<br><br>You didn't hit your goal this week. 😢<br><br>If you haven't already, head to Treningheten using <a href='"+link+"' target='_blank'>this link</a> and check who won.")
+	m.SetBody("text/html", "Hello <b>"+user.FirstName+"</b>!<br><br>You didn't hit your goal for week "+strconv.Itoa(weekNumber)+". 😢<br><br>If you haven't already, head to Treningheten using <a href='"+link+"' target='_blank'>this link</a> and check who won.")
 
 	d := mail.NewDialer(config.SMTPHost, config.SMTPPort, config.SMTPUsername, config.SMTPPassword)
 
@@ -193,7 +195,7 @@ func SendSMTPForWeekLost(user models.User) error {
 
 }
 
-func SendSMTPForWheelSpin(user models.User) error {
+func SendSMTPForWheelSpin(user models.User, weekNumber int) error {
 
 	// Get configuration
 	config, err := config.GetConfig()
@@ -213,7 +215,7 @@ func SendSMTPForWheelSpin(user models.User) error {
 	m.SetAddressHeader("From", config.SMTPFrom, config.TreninghetenName)
 	m.SetHeader("To", user.Email)
 	m.SetHeader("Subject", "You have a wheel to spin")
-	m.SetBody("text/html", "Hello <b>"+user.FirstName+"</b>!<br><br>You didn't hit your goal this week. 😢<br><br>If you haven't already, head to Treningheten using <a href='"+link+"' target='_blank'>this link</a> and spin the wheel.")
+	m.SetBody("text/html", "Hello <b>"+user.FirstName+"</b>!<br><br>You didn't hit your goal for week "+strconv.Itoa(weekNumber)+". 😢<br><br>If you haven't already, head to Treningheten using <a href='"+link+"' target='_blank'>this link</a> and spin the wheel.")
 
 	d := mail.NewDialer(config.SMTPHost, config.SMTPPort, config.SMTPUsername, config.SMTPPassword)
 
@@ -227,7 +229,7 @@ func SendSMTPForWheelSpin(user models.User) error {
 
 }
 
-func SendSMTPForWheelSpinCheck(user models.User) error {
+func SendSMTPForWheelSpinCheck(user models.User, weekNumber int) error {
 
 	// Get configuration
 	config, err := config.GetConfig()
@@ -247,7 +249,7 @@ func SendSMTPForWheelSpinCheck(user models.User) error {
 	m.SetAddressHeader("From", config.SMTPFrom, config.TreninghetenName)
 	m.SetHeader("To", user.Email)
 	m.SetHeader("Subject", "Someone spun the wheel")
-	m.SetBody("text/html", "Hello <b>"+user.FirstName+"</b>!<br><br>Someone spun the wheel, check if you won. 🏆<br><br>If you haven't already, head to Treningheten using <a href='"+link+"' target='_blank'>this link</a> and check out the wheel spin.")
+	m.SetBody("text/html", "Hello <b>"+user.FirstName+"</b>!<br><br>Someone spun the wheel, check if you won in week "+strconv.Itoa(weekNumber)+". 🏆<br><br>If you haven't already, head to Treningheten using <a href='"+link+"' target='_blank'>this link</a> and check out the wheel spin.")
 
 	d := mail.NewDialer(config.SMTPHost, config.SMTPPort, config.SMTPUsername, config.SMTPPassword)
 
@@ -261,7 +263,7 @@ func SendSMTPForWheelSpinCheck(user models.User) error {
 
 }
 
-func SendSMTPForWheelSpinWin(user models.User) error {
+func SendSMTPForWheelSpinWin(user models.User, weekNumber int) error {
 
 	// Get configuration
 	config, err := config.GetConfig()
@@ -281,7 +283,7 @@ func SendSMTPForWheelSpinWin(user models.User) error {
 	m.SetAddressHeader("From", config.SMTPFrom, config.TreninghetenName)
 	m.SetHeader("To", user.Email)
 	m.SetHeader("Subject", "Someone just paid their dues")
-	m.SetBody("text/html", "Hello <b>"+user.FirstName+"</b>!<br><br>Someone failed to hit their goal, and you won. 🏆<br><br>If you haven't already, head to Treningheten using <a href='"+link+"' target='_blank'>this link</a> and check out your prize.")
+	m.SetBody("text/html", "Hello <b>"+user.FirstName+"</b>!<br><br>Someone failed to hit their goal, and you won for week "+strconv.Itoa(weekNumber)+". 🏆<br><br>If you haven't already, head to Treningheten using <a href='"+link+"' target='_blank'>this link</a> and check out your prize.")
 
 	d := mail.NewDialer(config.SMTPHost, config.SMTPPort, config.SMTPUsername, config.SMTPPassword)
 

@@ -179,6 +179,8 @@ func GenerateDebtForWeek(givenTime time.Time) (models.WeekResults, error) {
 		winner = &winners[0]
 	}
 
+	_, weekNumber := givenTime.ISOWeek()
+
 	for _, user := range losers {
 
 		_, debtFound, err := database.GetDebtForWeekForUserInSeasonID(givenTime, user, seasonObject.ID)
@@ -231,7 +233,7 @@ func GenerateDebtForWeek(givenTime time.Time) (models.WeekResults, error) {
 				} else {
 
 					// Notify loser by e-mail
-					err = utilities.SendSMTPForWeekLost(loserObject)
+					err = utilities.SendSMTPForWeekLost(loserObject, weekNumber)
 					if err != nil {
 						log.Println("Failed to notify user '" + user.String() + "' by e-mail. Ignoring. Error: " + err.Error())
 					}
@@ -251,7 +253,7 @@ func GenerateDebtForWeek(givenTime time.Time) (models.WeekResults, error) {
 				} else {
 
 					// Notify winner by e-mail
-					err = utilities.SendSMTPForWheelSpinWin(winnerObject)
+					err = utilities.SendSMTPForWheelSpinWin(winnerObject, weekNumber)
 					if err != nil {
 						log.Println("Failed to notify user '" + user.String() + "' by e-mail. Ignoring. Error: " + err.Error())
 					}
@@ -275,7 +277,7 @@ func GenerateDebtForWeek(givenTime time.Time) (models.WeekResults, error) {
 			} else {
 
 				// Notify loser by e-mail
-				err = utilities.SendSMTPForWheelSpin(loserObject)
+				err = utilities.SendSMTPForWheelSpin(loserObject, weekNumber)
 				if err != nil {
 					log.Println("Failed to notify user '" + user.String() + "' by e-mail. Ignoring. Error: " + err.Error())
 				}
@@ -684,8 +686,10 @@ func APIChooseWinnerForDebt(context *gin.Context) {
 			log.Println("Failed to get object for user '" + user.User.ID.String() + "'. Ignoring. Error: " + err.Error())
 		} else {
 
+			_, weekNumber := debtObject.Date.ISOWeek()
+
 			// Notify winner by e-mail
-			err = utilities.SendSMTPForWheelSpinCheck(winnerObject)
+			err = utilities.SendSMTPForWheelSpinCheck(winnerObject, weekNumber)
 			if err != nil {
 				log.Println("Failed to notify user '" + user.User.ID.String() + "' by e-mail. Ignoring. Error: " + err.Error())
 			}

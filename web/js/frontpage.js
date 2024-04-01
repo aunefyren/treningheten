@@ -72,7 +72,7 @@ function load_page(result) {
 
                                     <div class="form-group" style="" id="day_1_group">
                                         <div class="day-check">
-                                            <label for="day_1_check" title="Have you been working out?">Monday</label>
+                                            <label style="margin: 0;" for="day_1_check" title="Have you been working out?">Monday</label>
                                             <div class="number-box" id="day_1_check">
                                                 0
                                             </div>
@@ -94,7 +94,7 @@ function load_page(result) {
 
                                     <div class="form-group" style="" id="day_2_group">
                                         <div class="day-check">
-                                            <label for="day_2_check" title="Have you been working out?">Tuesday</label>
+                                            <label style="margin: 0;" for="day_2_check" title="Have you been working out?">Tuesday</label>
                                             <div class="number-box" id="day_2_check">
                                                 0
                                             </div>
@@ -116,7 +116,7 @@ function load_page(result) {
 
                                     <div class="form-group" style="" id="day_3_group">
                                         <div class="day-check">
-                                            <label for="day_3_check" title="Have you been working out?">Wednesday</label>
+                                            <label style="margin: 0;" for="day_3_check" title="Have you been working out?">Wednesday</label>
                                             <div class="number-box" id="day_3_check">
                                                 0
                                             </div>
@@ -138,7 +138,7 @@ function load_page(result) {
 
                                     <div class="form-group" style="" id="day_4_group">
                                         <div class="day-check">
-                                            <label for="day_4_check" title="Have you been working out?">Thursday</label>
+                                            <label style="margin: 0;" for="day_4_check" title="Have you been working out?">Thursday</label>
                                             <div class="number-box" id="day_4_check">
                                                 0
                                             </div>
@@ -160,7 +160,7 @@ function load_page(result) {
 
                                     <div class="form-group" style="" id="day_5_group">
                                         <div class="day-check">
-                                            <label for="day_5_check" title="Have you been working out?">Friday</label>
+                                            <label style="margin: 0;" for="day_5_check" title="Have you been working out?">Friday</label>
                                             <div class="number-box" id="day_5_check">
                                                 0
                                             </div>
@@ -182,7 +182,7 @@ function load_page(result) {
 
                                     <div class="form-group" style="" id="day_6_group">
                                         <div class="day-check">
-                                            <label for="day_6_check" title="Have you been working out?">Saturday</label>
+                                            <label style="margin: 0;" for="day_6_check" title="Have you been working out?">Saturday</label>
                                             <div class="number-box" id="day_6_check">
                                                 0
                                             </div>
@@ -204,7 +204,7 @@ function load_page(result) {
 
                                     <div class="form-group" style="" id="day_7_group">
                                         <div class="day-check">
-                                            <label for="day_7_check" title="Have you been working out?">Sunday</label>
+                                            <label style="margin: 0;" for="day_7_check" title="Have you been working out?">Sunday</label>
                                             <div class="number-box" id="day_7_check">
                                                 0
                                             </div>
@@ -1055,7 +1055,7 @@ function placeDebtOverview(overviewArray) {
         html += `
             <div class="debt-module-notification-view" id="">
                 ${overviewArray.debt_unviewed[i].debt.loser.first_name} ${overviewArray.debt_unviewed[i].debt.loser.last_name} spun the wheel for week ${date_str}.<br>See if you won!<br>
-                <img src="assets/arrow-right.svg" class="small-button-icon" onclick="location.replace('/wheel?debt_id=${overviewArray.debt_unviewed[i].debt.id}'); ">
+                <img src="assets/arrow-right.svg" class="small-button-icon clickable" onclick="location.replace('/wheel?debt_id=${overviewArray.debt_unviewed[i].debt.id}'); ">
             </div>
             `;
     }
@@ -1077,7 +1077,7 @@ function placeDebtOverview(overviewArray) {
         html += `
             <div class="debt-module-notification-prize" id="">
                 ${overviewArray.debt_won[i].loser.first_name} ${overviewArray.debt_won[i].loser.last_name} spun the wheel for week ${date_str} and you won <b>${overviewArray.debt_won[i].season.prize.quantity} ${overviewArray.debt_won[i].season.prize.name}</b>!<br>Have you received it?<br>
-                <img src="assets/done.svg" class="small-button-icon" onclick="setPrizeReceived('${overviewArray.debt_won[i].id}');">
+                <img src="assets/done.svg" class="small-button-icon clickable" onclick="setPrizeReceived('${overviewArray.debt_won[i].id}');">
             </div>
             `;
     }
