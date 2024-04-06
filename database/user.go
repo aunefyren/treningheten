@@ -384,6 +384,8 @@ func CensorUserObject(user models.User) models.User {
 	user.VerificationCodeExpiration = nil
 	user.SundayAlert = false
 	user.StravaCode = nil
+	user.StravaPadel = nil
+	user.StravaWalks = nil
 
 	return user
 }

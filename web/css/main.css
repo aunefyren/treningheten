@@ -2407,3 +2407,13 @@ label {
   border-radius: 1em;
   padding: 0.5em;
 }
+
+.strava-option {
+  display: flex;
+  flex-direction: column;
+  flex-wrap: wrap;
+  align-content: center;
+  justify-content: center;
+  align-items: center;
+  margin: 1em;
+}

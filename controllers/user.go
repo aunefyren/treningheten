@@ -158,6 +158,7 @@ func GetUser(context *gin.Context) {
 
 	// Create user request
 	var user = context.Param("user_id")
+	userObject := models.User{}
 
 	// Parse requested user id
 	user_id_int, err := uuid.Parse(user)
@@ -176,25 +177,23 @@ func GetUser(context *gin.Context) {
 		return
 	}
 
-	user_object, err := database.GetUserInformation(user_id_int)
-	if err != nil {
-		log.Println("Failed to get user. Error: " + err.Error())
-		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get user."})
-		context.Abort()
-		return
-	}
-
 	if requesterUserID == user_id_int {
-		complete_user, err := database.GetAllUserInformation(requesterUserID)
+		userObject, err = database.GetAllUserInformation(requesterUserID)
 		if err != nil {
 			log.Println("Failed to get user details. Error: " + err.Error())
 			context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get user details."})
 			context.Abort()
 			return
 		}
-		user_object.Email = complete_user.Email
-		user_object.SundayAlert = complete_user.SundayAlert
 	} else {
+		userObject, err = database.GetUserInformation(user_id_int)
+		if err != nil {
+			log.Println("Failed to get user. Error: " + err.Error())
+			context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get user."})
+			context.Abort()
+			return
+		}
+
 		// Give achievement for visiting another user's profile
 		err := GiveUserAnAchievement(requesterUserID, uuid.MustParse("cbd81cd0-4caf-438b-989b-b5ca7e76605d"), time.Now())
 		if err != nil {
@@ -203,7 +202,7 @@ func GetUser(context *gin.Context) {
 	}
 
 	// Reply
-	context.JSON(http.StatusOK, gin.H{"user": user_object, "message": "User retrieved."})
+	context.JSON(http.StatusOK, gin.H{"user": userObject, "message": "User retrieved."})
 }
 
 func GetUsers(context *gin.Context) {
@@ -837,4 +836,53 @@ func APISyncStravaForUser(context *gin.Context) {
 	}
 
 	context.JSON(http.StatusOK, gin.H{"message": "Strava sync started!"})
+}
+
+func APIConfigureStravaForUser(context *gin.Context) {
+	// Initialize variables
+	var user models.User
+	var userStravaConfigurationUpdateRequest models.UserStravaConfigurationUpdateRequest
+
+	// Parse creation request
+	err := context.ShouldBindJSON(&userStravaConfigurationUpdateRequest)
+	if err != nil {
+		context.JSON(http.StatusBadRequest, gin.H{"error": "Failed to parse request."})
+		context.Abort()
+		return
+	}
+
+	// Get user ID
+	userID, err := middlewares.GetAuthUsername(context.GetHeader("Authorization"))
+	if err != nil {
+		log.Println("Failed to get user ID. Error: " + err.Error())
+		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get user ID."})
+		context.Abort()
+		return
+	}
+
+	user, err = database.GetAllUserInformation(userID)
+	if err != nil {
+		log.Println("Failed to get user object. Error: " + err.Error())
+		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get user object."})
+		context.Abort()
+		return
+	}
+
+	if userStravaConfigurationUpdateRequest.StravaPadel != nil {
+		user.StravaPadel = userStravaConfigurationUpdateRequest.StravaPadel
+	}
+
+	if userStravaConfigurationUpdateRequest.StravaWalks != nil {
+		user.StravaWalks = userStravaConfigurationUpdateRequest.StravaWalks
+	}
+
+	user, err = database.UpdateUser(user)
+	if err != nil {
+		log.Println("Failed to update user object. Error: " + err.Error())
+		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update user object."})
+		context.Abort()
+		return
+	}
+
+	context.JSON(http.StatusOK, gin.H{"message": "Code updated!", "user": user})
 }

@@ -122,6 +122,13 @@ func ValidateToken(context *gin.Context) {
 		return
 	}
 
-	context.JSON(http.StatusOK, gin.H{"message": "Valid session!", "data": claims, "token": token, "vapid_public_key": VAPIDSettings.VAPIDPublicKey, "strava_client_id": configFile.StravaClientID, "strava_redirect_uri": configFile.StravaRedirectURI})
+	context.JSON(http.StatusOK, gin.H{
+		"message": "Valid session!",
+		"data":    claims, "token": token,
+		"vapid_public_key":    VAPIDSettings.VAPIDPublicKey,
+		"strava_enabled":      configFile.StravaEnabled,
+		"strava_client_id":    configFile.StravaClientID,
+		"strava_redirect_uri": configFile.StravaRedirectURI,
+	})
 
 }

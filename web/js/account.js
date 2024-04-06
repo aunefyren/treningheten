@@ -1,24 +1,26 @@
 function load_page(result) {
+    strava_oauth = `http://www.strava.com/oauth/authorize?client_id=${encodeURI(strava_client_id)}&response_type=code&redirect_uri=${encodeURI(strava_redirect_uri)}&approval_prompt=force&scope=activity:read_all`
 
     if(result !== false) {
         var login_data = JSON.parse(result);
 
         try {
-            var email = login_data.data.email
-            var first_name = login_data.data.first_name
-            var last_name = login_data.data.last_name
-            var sunday_alert = login_data.data.sunday_alert
+            // Server data
+            var vapid_public_key = login_data.vapid_public_key;
+            var strava_client_id = login_data.strava_client_id;
+            var strava_redirect_uri = login_data.strava_redirect_uri;
+            var strava_enabled = login_data.strava_enabled;
+
+            // Premade variables
             user_id = login_data.data.id
             admin = login_data.data.admin
-            vapid_public_key = login_data.vapid_public_key;
-            strava_client_id = login_data.strava_client_id;
-            strava_redirect_uri = login_data.strava_redirect_uri;
-            strava_oauth = `http://www.strava.com/oauth/authorize?client_id=${encodeURI(strava_client_id)}&response_type=code&redirect_uri=${encodeURI(strava_redirect_uri)}&approval_prompt=force&scope=activity:read_all`
+            
         } catch {
-            var email = ""
-            var first_name = ""
-            var last_name = ""
-            var sunday_alert = false
+            vapid_public_key = "";
+            strava_client_id = "";
+            strava_redirect_uri = "";
+            strava_enabled = false;
+
             user_id = 0
             admin = false
         }
@@ -26,29 +28,13 @@ function load_page(result) {
         showAdminMenu(admin)
 
     } else {
-        var email = ""
-        var first_name = ""
-        var last_name = ""
-        var admin = false;
-        var sunday_reminder = false
+        vapid_public_key = "";
+        strava_client_id = "";
+        strava_redirect_uri = "";
+        strava_enabled = false;
+
         user_id = 0
-    }
-
-    try {
-        string_index = document.URL.lastIndexOf('/');
-        wishlist_id = document.URL.substring(string_index+1);
-
-        group_id = 0
-    }
-    catch {
-        group_id = 0
-        wishlist_id = 0
-    }
-
-    if(sunday_alert) {
-        sunday_reminder_str = "checked"
-    } else {
-        sunday_reminder_str = ""
+        admin = false
     }
 
     var html = `
@@ -142,15 +128,7 @@ function load_page(result) {
                 <hr>
             </div>
 
-            <div class="button-collection">
-
-                <p style="width: 100%; text-align: center;">
-                    Strava exercises sync automatically every hour. Be careful to only log your sessions to either Strava or Treningheten.
-                </p>
-
-                <button onclick="window.location.href='${strava_oauth}';" class="" style="width: 10em;" type="submit" href="">Connect Strava</button>
-                <button onclick="syncStrava('${user_id}');" class="" style="width: 10em;" type="submit" href="">Sync Strava now</button>
-
+            <div class="button-collection" id="strava-button-collection">
             </div>
 
             <div class="module color-invert" id="" style="">
@@ -175,7 +153,7 @@ function load_page(result) {
 
     if(result !== false) {
         showLoggedInMenu();
-        GetUserData(user_id);
+        GetUserData(user_id, strava_oauth, strava_enabled);
         GetProfileImage(user_id);
         CheckForSubscription();
     } else {
@@ -363,7 +341,7 @@ function PlaceProfileImage(imageBase64) {
 
 }
 
-function GetUserData(userID) {
+function GetUserData(userID, stravaOauth, stravaEnabled) {
 
     var xhttp = new XMLHttpRequest();
     xhttp.onreadystatechange = function() {
@@ -383,7 +361,7 @@ function GetUserData(userID) {
 
             } else {
 
-                PlaceUserData(result.user)
+                PlaceUserData(result.user, stravaOauth, stravaEnabled)
                 
             }
 
@@ -401,7 +379,7 @@ function GetUserData(userID) {
 
 }
 
-function PlaceUserData(user_object) {
+function PlaceUserData(user_object, stravaOauth, stravaEnabled) {
 
     document.getElementById("user_name").innerHTML = user_object.first_name + " " + user_object.last_name
     document.getElementById("email").value = user_object.email
@@ -432,6 +410,49 @@ function PlaceUserData(user_object) {
 
     if(user_object.sunday_alert) {
         document.getElementById("reminder-toggle").checked = true;
+    }
+
+    if(stravaEnabled) {
+        var stravaHTML = `
+            <p style="width: 100%; text-align: center;">
+                Strava exercises sync automatically every hour. Be careful to only log your sessions to either Strava or Treningheten.
+            </p>
+
+            <button onclick="window.location.href='${stravaOauth}';" class="" style="width: 10em;" type="submit" href="">Connect Strava</button>
+        `;
+
+        if(user_object.strava_code && user_object.strava_code != "") {
+            walksHTML = "";
+            padelHTML = "";
+
+            if(user_object.strava_padel) {
+                padelHTML = "checked"
+            }
+            if(user_object.strava_walks) {
+                walksHTML = "checked"
+            }
+
+            stravaHTML = `
+                <p style="width: 100%; text-align: center;">
+                    Strava exercises sync automatically every hour. Be careful to only log your sessions to either Strava or Treningheten.
+                </p>
+
+                <button onclick="window.location.href='${stravaOauth}';" class="" style="width: 12em;" type="submit" href="">Connect Strava again</button>
+                <button onclick="syncStrava('${user_object.id}');" class="" style="width: 12em;" type="submit" href="">Sync Strava now</button>
+
+                <div class="strava-option" id="" style="">
+                    <input style="" class="clickable" type="checkbox" id="strava_padel" name="strava_padel" value="" onchange="updateStravaValue('strava_padel');" ${padelHTML}>
+                    <label for="strava_padel" style="margin: 0;" class="clickable">Translate Pickleball to Padel</label><br>
+                </div>
+
+                <div class="strava-option" id="" style="">
+                    <input style="" class="clickable" type="checkbox" id="strava_walks" name="strava_walks" value="" onchange="updateStravaValue('strava_walks');" ${walksHTML}>
+                    <label for="strava_walks" style="margin: 0;" class="clickable">Ignore walks</label><br>
+                </div>
+            `;
+        }
+
+        document.getElementById("strava-button-collection").innerHTML = stravaHTML
     }
 }
 
@@ -477,5 +498,37 @@ function syncStrava(user_id) {
     xhttp.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
     xhttp.setRequestHeader("Authorization", jwt);
     xhttp.send();
+    return false;
+}
+
+function updateStravaValue(property) {
+    var value = document.getElementById(property).checked;
+
+    var form_obj = {};
+    form_obj[property] = value;
+
+    var form_data = JSON.stringify(form_obj);
+
+    var xhttp = new XMLHttpRequest();
+    xhttp.onreadystatechange = function() {
+        if (this.readyState == 4) {
+            try {
+                result = JSON.parse(this.responseText);
+            } catch(e) {
+                console.log(e +' - Response: ' + this.responseText);
+                error("Could not reach API.");
+                return;
+            }
+            
+            if(result.error) {
+                error(result.error);
+            }
+        }
+    };
+    xhttp.withCredentials = true;
+    xhttp.open("post", api_url + "auth/users/" + user_id + "/strava-configuration");
+    xhttp.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
+    xhttp.setRequestHeader("Authorization", jwt);
+    xhttp.send(form_data);
     return false;
 }

@@ -246,3 +246,21 @@ func CreateActionInDB(action models.Action) (models.Action, error) {
 	}
 	return action, nil
 }
+
+func GetActionByStravaName(stravaName string) (action *models.Action, err error) {
+	action = nil
+	err = nil
+	stravaName = strings.ToLower(stravaName)
+
+	record := Instance.Where("`actions`.enabled = ?", 1).
+		Where("LOWER(`actions`.strava_name) = ?", stravaName).
+		Find(&action)
+
+	if record.Error != nil {
+		return action, record.Error
+	} else if record.RowsAffected != 1 {
+		return nil, err
+	}
+
+	return
+}

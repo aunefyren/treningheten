@@ -1057,7 +1057,7 @@ function placeDebtOverview(overviewArray) {
                 ${overviewArray.debt_unviewed[i].debt.loser.first_name} ${overviewArray.debt_unviewed[i].debt.loser.last_name} spun the wheel for week ${date_str}.<br>See if you won!<br>
                 <img src="assets/arrow-right.svg" class="small-button-icon clickable" onclick="location.replace('/wheel?debt_id=${overviewArray.debt_unviewed[i].debt.id}'); ">
             </div>
-            `;
+        `;
     }
 
     for(var i = 0; i < overviewArray.debt_won.length; i++) {
@@ -1079,7 +1079,7 @@ function placeDebtOverview(overviewArray) {
                 ${overviewArray.debt_won[i].loser.first_name} ${overviewArray.debt_won[i].loser.last_name} spun the wheel for week ${date_str} and you won <b>${overviewArray.debt_won[i].season.prize.quantity} ${overviewArray.debt_won[i].season.prize.name}</b>!<br>Have you received it?<br>
                 <img src="assets/done.svg" class="small-button-icon clickable" onclick="setPrizeReceived('${overviewArray.debt_won[i].id}');">
             </div>
-            `;
+        `;
     }
 
     for(var i = 0; i < overviewArray.debt_unpaid.length; i++) {

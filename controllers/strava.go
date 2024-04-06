@@ -280,6 +280,13 @@ func StravaSyncWeekForUser(user models.User, configFile models.ConfigStruct, sea
 	log.Println("Got '" + strconv.Itoa((len(activities))) + "' activities for user.")
 
 	for _, activity := range activities {
+		// Skip walks if enabled
+		tmp := true
+		if user.StravaWalks == &tmp && strings.ToLower(activity.SportType) == "walk" {
+			continue
+		}
+
+		newExercise := false
 		exercise, err := database.GetExerciseForUserWithStravaID(user.ID, int(activity.ID))
 		if err != nil {
 			log.Println("Failed to get exercise. ID: " + user.ID.String())
@@ -313,6 +320,8 @@ func StravaSyncWeekForUser(user models.User, configFile models.ConfigStruct, sea
 			exercise.CreatedAt = now
 			exercise.UpdatedAt = now
 			exercise.ExerciseDayID = exerciseDay.ID
+
+			newExercise = true
 		}
 
 		exercise.Enabled = true
@@ -322,13 +331,65 @@ func StravaSyncWeekForUser(user models.User, configFile models.ConfigStruct, sea
 		exercise.On = true
 		exercise.StravaID = strconv.Itoa(int(activity.ID))
 
-		_, err = database.UpdateExerciseInDB(*exercise)
+		finalExercise, err := database.UpdateExerciseInDB(*exercise)
 		if err != nil {
 			log.Println("Failed to get exercise. ID: " + user.ID.String())
 			return errors.New("Failed to get exercise.")
 		}
 
+		if newExercise {
+			err = StravaCreateOperationForActivity(activity, user, finalExercise)
+			if err != nil {
+				log.Println("Failed to create operation. ID: " + user.ID.String())
+				return errors.New("Failed to create operation.")
+			}
+		}
+
 		log.Println("Updated exercise.")
+	}
+
+	return
+}
+
+func StravaCreateOperationForActivity(activity models.StravaGetActivitiesRequestReply, user models.User, exercise models.Exercise) (err error) {
+	err = nil
+
+	operations, err := database.GetOperationsByExerciseID(exercise.ID)
+	if len(operations) > 0 {
+		return
+	}
+
+	if strings.ToLower(activity.SportType) == "pickleball" {
+		activity.SportType = "Padel"
+	}
+
+	action, err := database.GetActionByStravaName(activity.SportType)
+	if err != nil {
+		return err
+	} else if action == nil {
+		return nil
+	}
+
+	operation := models.Operation{}
+	operation.ID = uuid.New()
+	operation.ExerciseID = exercise.ID
+	operation.ActionID = &action.ID
+	operation.Type = action.Type
+
+	operation, err = database.CreateOperationInDB(operation)
+	if err != nil {
+		return err
+	}
+
+	operationSet := models.OperationSet{}
+	operationSet.OperationID = operation.ID
+	operationSet.Distance = &activity.Distance
+	movingTime := time.Duration(activity.MovingTime)
+	operationSet.Time = &movingTime
+
+	_, err = database.CreateOperationSetInDB(operationSet)
+	if err != nil {
+		return err
 	}
 
 	return

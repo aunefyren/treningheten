@@ -92,6 +92,7 @@ type Action struct {
 	Description   string `json:"description"`
 	Type          string `json:"type"`
 	BodyPart      string `json:"body_part"`
+	StravaName    string `json:"strava_name"`
 }
 
 type ActionCreationRequest struct {

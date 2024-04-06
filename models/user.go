@@ -22,6 +22,8 @@ type User struct {
 	SundayAlert                bool       `json:"sunday_alert" gorm:"not null; default: false"`
 	BirthDate                  *time.Time `json:"birth_date" gorm:"default: null"`
 	StravaCode                 *string    `json:"strava_code" gorm:"default: null"`
+	StravaPadel                *bool      `json:"strava_padel"`
+	StravaWalks                *bool      `json:"strava_walks"`
 }
 
 type UserCreationRequest struct {
@@ -51,6 +53,11 @@ type UserUpdatePasswordRequest struct {
 
 type UserStravaCodeUpdateRequest struct {
 	StravaCode string `json:"strava_code"`
+}
+
+type UserStravaConfigurationUpdateRequest struct {
+	StravaPadel *bool `json:"strava_padel"`
+	StravaWalks *bool `json:"strava_walks"`
 }
 
 type UserWithTickets struct {
