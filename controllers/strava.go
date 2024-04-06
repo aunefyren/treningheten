@@ -340,8 +340,8 @@ func StravaSyncWeekForUser(user models.User, configFile models.ConfigStruct, sea
 		if newExercise {
 			err = StravaCreateOperationForActivity(activity, user, finalExercise)
 			if err != nil {
-				log.Println("Failed to create operation. ID: " + user.ID.String())
-				return errors.New("Failed to create operation.")
+				log.Println("Failed to create operation. Error: " + err.Error())
+				log.Println("Sport type was: " + activity.SportType)
 			}
 		}
 
