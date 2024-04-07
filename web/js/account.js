@@ -442,7 +442,7 @@ function PlaceUserData(user_object, stravaOauth, stravaEnabled) {
 
                 <div class="strava-option" id="" style="">
                     <input style="" class="clickable" type="checkbox" id="strava_padel" name="strava_padel" value="" onchange="updateStravaValue('strava_padel');" ${padelHTML}>
-                    <label for="strava_padel" style="margin: 0;" class="clickable">Translate Pickleball to Padel</label><br>
+                    <label for="strava_padel" style="margin: 0;" class="clickable">Convert Pickleball to Padel</label><br>
                 </div>
 
                 <div class="strava-option" id="" style="">
