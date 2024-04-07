@@ -338,11 +338,16 @@ func StravaSyncWeekForUser(user models.User, configFile models.ConfigStruct, sea
 		}
 
 		if newExercise {
-			err = StravaCreateOperationForActivity(activity, user, finalExercise)
+			log.Println("Creating new operation for exercise based on activity.")
+			operation, err := StravaCreateOperationForActivity(activity, user, finalExercise)
 			if err != nil {
 				log.Println("Failed to create operation. Error: " + err.Error())
 				log.Println("Sport type was: " + activity.SportType)
+			} else if operation == nil {
+				log.Println("Failed to create operation. No error.")
+				log.Println("Sport type was: " + activity.SportType)
 			}
+
 		}
 
 		log.Println("Updated exercise.")
@@ -351,8 +356,9 @@ func StravaSyncWeekForUser(user models.User, configFile models.ConfigStruct, sea
 	return
 }
 
-func StravaCreateOperationForActivity(activity models.StravaGetActivitiesRequestReply, user models.User, exercise models.Exercise) (err error) {
+func StravaCreateOperationForActivity(activity models.StravaGetActivitiesRequestReply, user models.User, exercise models.Exercise) (finalOperation *models.Operation, err error) {
 	err = nil
+	finalOperation = nil
 
 	operations, err := database.GetOperationsByExerciseID(exercise.ID)
 	if len(operations) > 0 {
@@ -365,9 +371,9 @@ func StravaCreateOperationForActivity(activity models.StravaGetActivitiesRequest
 
 	action, err := database.GetActionByStravaName(activity.SportType)
 	if err != nil {
-		return err
+		return finalOperation, err
 	} else if action == nil {
-		return nil
+		return finalOperation, nil
 	}
 
 	operation := models.Operation{}
@@ -378,8 +384,10 @@ func StravaCreateOperationForActivity(activity models.StravaGetActivitiesRequest
 
 	operation, err = database.CreateOperationInDB(operation)
 	if err != nil {
-		return err
+		return finalOperation, err
 	}
+
+	finalOperation = &operation
 
 	operationSet := models.OperationSet{}
 	operationSet.OperationID = operation.ID
@@ -389,7 +397,7 @@ func StravaCreateOperationForActivity(activity models.StravaGetActivitiesRequest
 
 	_, err = database.CreateOperationSetInDB(operationSet)
 	if err != nil {
-		return err
+		return finalOperation, err
 	}
 
 	return
