@@ -392,9 +392,16 @@ func StravaCreateOperationForActivity(activity models.StravaGetActivitiesRequest
 	operationSet := models.OperationSet{}
 	operationSet.ID = uuid.New()
 	operationSet.OperationID = operation.ID
-	operationSet.Distance = &activity.Distance
 	movingTime := time.Duration(activity.MovingTime)
 	operationSet.Time = &movingTime
+
+	if activity.Distance != 0.0 {
+		var newFloat float64
+		var newDistance float64
+		newFloat = activity.Distance
+		newDistance = (newFloat / 1000)
+		operationSet.Distance = &newDistance
+	}
 
 	_, err = database.CreateOperationSetInDB(operationSet)
 	if err != nil {
