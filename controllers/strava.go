@@ -390,6 +390,7 @@ func StravaCreateOperationForActivity(activity models.StravaGetActivitiesRequest
 	finalOperation = &operation
 
 	operationSet := models.OperationSet{}
+	operationSet.ID = uuid.New()
 	operationSet.OperationID = operation.ID
 	operationSet.Distance = &activity.Distance
 	movingTime := time.Duration(activity.MovingTime)
