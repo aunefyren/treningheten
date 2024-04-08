@@ -24,7 +24,7 @@ type AchievementDelegation struct {
 	User          User        `json:"user" gorm:"not null; foreignkey: UserID;"`
 	AchievementID uuid.UUID   `json:"" gorm:"type: varchar(100);"`
 	Achievement   Achievement `json:"achievement" gorm:"not null; foreignkey: AchievementID;"`
-	GivenAt       time.Time   `json:"given_at" gorm:"default: CURRENT_TIMESTAMP;"`
+	GivenAt       time.Time   `json:"given_at" gorm:"default: CURRENT_TIMESTAMP();"`
 	Seen          bool        `json:"seen" gorm:"not null; default: false;"`
 }
 
