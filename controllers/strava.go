@@ -60,6 +60,11 @@ func StravaAuthorize(config models.ConfigStruct, code string) (authorization mod
 		return authorization, errors.New("Failed to read reply body.")
 	}
 
+	if resp.StatusCode != 200 {
+		log.Println("HTTP code was not 200. Body:")
+		log.Println(string(body))
+	}
+
 	err = json.Unmarshal(body, &authorization)
 	if err != nil {
 		log.Println("Failed to parse reply body. Error: " + err.Error())
@@ -107,6 +112,11 @@ func StravaReauthorize(config models.ConfigStruct, code string) (authorization m
 	if err != nil {
 		log.Println("Failed to read reply body. Error: " + err.Error())
 		return authorization, errors.New("Failed to read reply body.")
+	}
+
+	if resp.StatusCode != 200 {
+		log.Println("HTTP code was not 200. Body:")
+		log.Println(string(body))
 	}
 
 	err = json.Unmarshal(body, &authorization)
@@ -159,6 +169,11 @@ func StravaGetActivities(config models.ConfigStruct, token string, before int, a
 		return activities, errors.New("Failed to read reply body.")
 	}
 
+	if resp.StatusCode != 200 {
+		log.Println("HTTP code was not 200. Body:")
+		log.Println(string(body))
+	}
+
 	err = json.Unmarshal(body, &activities)
 	if err != nil {
 		log.Println("Failed to parse reply body. Error: " + err.Error())
@@ -196,6 +211,9 @@ func StravaSyncWeekForAllUsers() {
 
 	for _, user := range users {
 		err = StravaSyncWeekForUser(user, *configFile, season)
+		if err != nil {
+			log.Println("Sync Strava for user returned error. Error: " + err.Error())
+		}
 	}
 	log.Println("Strava sync task finished.")
 }
