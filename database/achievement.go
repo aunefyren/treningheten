@@ -39,6 +39,7 @@ func GetDelegatedAchievementsByUserID(userID uuid.UUID) ([]models.AchievementDel
 
 // Get all unique achievement delegations for userID
 func GetDistinctDelegatedAchievementsByUserID(userID uuid.UUID) ([]models.AchievementDelegation, bool, error) {
+	var finalAchievementDelegations = []models.AchievementDelegation{}
 	var achievementStruct = []models.AchievementDelegation{}
 
 	achievementRecord := Instance.Order("created_at desc").
@@ -48,7 +49,6 @@ func GetDistinctDelegatedAchievementsByUserID(userID uuid.UUID) ([]models.Achiev
 		Where("`users`.enabled = ?", 1).
 		Joins("JOIN achievements on `achievement_delegations`.achievement_id = `achievements`.ID").
 		Where("`achievements`.enabled = ?", 1).
-		Group("achievement_id").
 		Find(&achievementStruct)
 
 	if achievementRecord.Error != nil {
@@ -57,7 +57,21 @@ func GetDistinctDelegatedAchievementsByUserID(userID uuid.UUID) ([]models.Achiev
 		return []models.AchievementDelegation{}, false, nil
 	}
 
-	return achievementStruct, true, nil
+	// Remove duplicate achievements
+	for _, achievementDelegation := range achievementStruct {
+		added := false
+		for _, finalAchievementDelegation := range finalAchievementDelegations {
+			if achievementDelegation.AchievementID == finalAchievementDelegation.AchievementID {
+				added = true
+				break
+			}
+		}
+		if !added {
+			finalAchievementDelegations = append(finalAchievementDelegations, achievementDelegation)
+		}
+	}
+
+	return finalAchievementDelegations, true, nil
 }
 
 func CheckIfAchievementsExistsInDB() (bool, error) {
