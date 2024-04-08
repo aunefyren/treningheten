@@ -743,6 +743,32 @@ func APISetStravaCode(context *gin.Context) {
 		return
 	}
 
+	configFile, err := config.GetConfig()
+	if err != nil {
+		log.Println("Failed to get config. Error: " + err.Error())
+		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get config."})
+		context.Abort()
+		return
+	}
+
+	if !configFile.StravaEnabled {
+		context.JSON(http.StatusBadRequest, gin.H{"error": "Strava is not enabled."})
+		context.Abort()
+		return
+	}
+
+	season, seasonFound, err := GetOngoingSeasonFromDB(time.Now())
+	if err != nil {
+		log.Println("Failed to get ongoing season. Error: " + err.Error())
+		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get ongoing season."})
+		context.Abort()
+		return
+	} else if !seasonFound {
+		context.JSON(http.StatusBadRequest, gin.H{"error": "No ongoing season for user."})
+		context.Abort()
+		return
+	}
+
 	// Get user ID
 	userID, err := middlewares.GetAuthUsername(context.GetHeader("Authorization"))
 	if err != nil {
@@ -767,6 +793,14 @@ func APISetStravaCode(context *gin.Context) {
 	if err != nil {
 		log.Println("Failed to update user object. Error: " + err.Error())
 		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update user object."})
+		context.Abort()
+		return
+	}
+
+	err = StravaSyncWeekForUser(user, *configFile, season)
+	if err != nil {
+		log.Println("Failed to sync Strava for user. Error: " + err.Error())
+		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to sync Strava for user."})
 		context.Abort()
 		return
 	}
