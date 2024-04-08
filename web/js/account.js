@@ -1,6 +1,4 @@
 function load_page(result) {
-    strava_oauth = `http://www.strava.com/oauth/authorize?client_id=${encodeURI(strava_client_id)}&response_type=code&redirect_uri=${encodeURI(strava_redirect_uri)}&approval_prompt=force&scope=activity:read_all`
-
     if(result !== false) {
         var login_data = JSON.parse(result);
 
@@ -35,7 +33,9 @@ function load_page(result) {
 
         user_id = 0
         admin = false
-    }
+    }   
+
+    var strava_oauth = `http://www.strava.com/oauth/authorize?client_id=${encodeURI(strava_client_id)}&response_type=code&redirect_uri=${encodeURI(strava_redirect_uri)}&approval_prompt=force&scope=activity:read_all`
 
     var html = `
 
