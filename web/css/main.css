@@ -2417,3 +2417,20 @@ label {
   align-items: center;
   margin: 1em;
 }
+
+.achievement-delegation-sum {
+  position: absolute;
+  top: 1em;
+  right: 1em;
+  border: 0.15em solid var(--lightblue);
+  background-color: var(--yellow);
+  border-radius: 100%;
+  width: 2em;
+  height: 2em;
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-content: center;
+  justify-content: center;
+  align-items: center;
+}

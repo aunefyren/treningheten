@@ -56,7 +56,7 @@ func APIGetAchievements(context *gin.Context) {
 		}
 		requestedUser = &requestedUserNew
 
-		achievementsArray, _, err := database.GetDelegatedAchievementsByUserID(*requestedUser)
+		achievementsArray, _, err := database.GetDistinctDelegatedAchievementsByUserID(*requestedUser)
 		if err != nil {
 			log.Println("Failed to get achievements. Error: " + err.Error())
 			context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get achievements."})
@@ -73,7 +73,7 @@ func APIGetAchievements(context *gin.Context) {
 		}
 
 		sort.Slice(achievementObjectsArray, func(i, j int) bool {
-			return achievementObjectsArray[i].AchievementDelegation.GivenAt.After(achievementObjectsArray[j].AchievementDelegation.GivenAt)
+			return achievementObjectsArray[i].LastGivenAt.After(*achievementObjectsArray[j].LastGivenAt)
 		})
 	}
 
@@ -96,6 +96,7 @@ func CheckIfAchievementsExist() (bool, error) {
 func CreateDefaultAchievements() error {
 
 	achievements := []models.Achievement{}
+	trueVariable := true
 
 	leapAchievement := models.Achievement{
 		Name:          "One of us",
@@ -104,6 +105,7 @@ func CreateDefaultAchievements() error {
 		CategoryColor: "lightblue",
 	}
 	leapAchievement.ID = uuid.MustParse("7f2d49ad-d056-415e-aa80-0ada6db7cc00")
+	leapAchievement.MultipleDelegations = &trueVariable
 	achievements = append(achievements, leapAchievement)
 
 	weekAchievement := models.Achievement{
@@ -113,6 +115,7 @@ func CreateDefaultAchievements() error {
 		CategoryColor: "lightblue",
 	}
 	weekAchievement.ID = uuid.MustParse("a8c62293-6090-4b16-a070-ad65404836ae")
+	weekAchievement.MultipleDelegations = &trueVariable
 	achievements = append(achievements, weekAchievement)
 
 	noteAchievement := models.Achievement{
@@ -131,6 +134,7 @@ func CreateDefaultAchievements() error {
 		CategoryColor: "lightblue",
 	}
 	deserveAchievement.ID = uuid.MustParse("d415fffc-ea99-4b27-8929-aeb02ae44da3")
+	deserveAchievement.MultipleDelegations = &trueVariable
 	achievements = append(achievements, deserveAchievement)
 
 	winAchievement := models.Achievement{
@@ -140,6 +144,7 @@ func CreateDefaultAchievements() error {
 		CategoryColor: "lightblue",
 	}
 	winAchievement.ID = uuid.MustParse("bb964360-6413-47c2-8400-ee87b40365a7")
+	winAchievement.MultipleDelegations = &trueVariable
 	achievements = append(achievements, winAchievement)
 
 	anotherAchievement := models.Achievement{
@@ -150,6 +155,7 @@ func CreateDefaultAchievements() error {
 		AchievementOrder: 11,
 	}
 	anotherAchievement.ID = uuid.MustParse("51c48b42-4429-4b82-8fb2-d2bb2bfe907a")
+	anotherAchievement.MultipleDelegations = &trueVariable
 	achievements = append(achievements, anotherAchievement)
 
 	overAchievement := models.Achievement{
@@ -159,6 +165,7 @@ func CreateDefaultAchievements() error {
 		CategoryColor: "lightblue",
 	}
 	overAchievement.ID = uuid.MustParse("f7fad558-3e59-4812-9b13-4c30a91c04b9")
+	overAchievement.MultipleDelegations = &trueVariable
 	achievements = append(achievements, overAchievement)
 
 	mayAchievement := models.Achievement{
@@ -168,6 +175,7 @@ func CreateDefaultAchievements() error {
 		CategoryColor: "lightblue",
 	}
 	mayAchievement.ID = uuid.MustParse("ab0b1bf0-c57b-469f-a6ba-5d195f1b896d")
+	mayAchievement.MultipleDelegations = &trueVariable
 	achievements = append(achievements, mayAchievement)
 
 	christmasAchievement := models.Achievement{
@@ -178,6 +186,7 @@ func CreateDefaultAchievements() error {
 		AchievementOrder: 5,
 	}
 	christmasAchievement.ID = uuid.MustParse("c4a131a6-2aa6-49fb-98e5-fa797152a9a4")
+	christmasAchievement.MultipleDelegations = &trueVariable
 	achievements = append(achievements, christmasAchievement)
 
 	sickAchievement := models.Achievement{
@@ -187,6 +196,7 @@ func CreateDefaultAchievements() error {
 		CategoryColor: "lightblue",
 	}
 	sickAchievement.ID = uuid.MustParse("420b020c-2cad-4898-bb94-d86dc0031203")
+	sickAchievement.MultipleDelegations = &trueVariable
 	achievements = append(achievements, sickAchievement)
 
 	weekendAchievement := models.Achievement{
@@ -196,6 +206,7 @@ func CreateDefaultAchievements() error {
 		CategoryColor: "lightblue",
 	}
 	weekendAchievement.ID = uuid.MustParse("31fa2681-eec7-43e4-bc69-35dee352eaee")
+	weekendAchievement.MultipleDelegations = &trueVariable
 	achievements = append(achievements, weekendAchievement)
 
 	easyAchievement := models.Achievement{
@@ -205,6 +216,7 @@ func CreateDefaultAchievements() error {
 		CategoryColor: "lightblue",
 	}
 	easyAchievement.ID = uuid.MustParse("e7ee36d4-f39e-40a3-af92-2f7e1f707d07")
+	easyAchievement.MultipleDelegations = &trueVariable
 	achievements = append(achievements, easyAchievement)
 
 	threeAchievement := models.Achievement{
@@ -215,6 +227,7 @@ func CreateDefaultAchievements() error {
 		AchievementOrder: 5,
 	}
 	threeAchievement.ID = uuid.MustParse("8875597e-d8f5-4514-b96f-c51ecce4eb1f")
+	threeAchievement.MultipleDelegations = &trueVariable
 	achievements = append(achievements, threeAchievement)
 
 	tenAchievement := models.Achievement{
@@ -225,6 +238,7 @@ func CreateDefaultAchievements() error {
 		AchievementOrder: 6,
 	}
 	tenAchievement.ID = uuid.MustParse("ca6a4692-153b-47a7-8444-457b906d0666")
+	tenAchievement.MultipleDelegations = &trueVariable
 	achievements = append(achievements, tenAchievement)
 
 	fifteenAchievement := models.Achievement{
@@ -235,6 +249,7 @@ func CreateDefaultAchievements() error {
 		AchievementOrder: 7,
 	}
 	fifteenAchievement.ID = uuid.MustParse("2a84df89-9976-443b-a093-19f8d73b5eff")
+	fifteenAchievement.MultipleDelegations = &trueVariable
 	achievements = append(achievements, fifteenAchievement)
 
 	twentyAchievement := models.Achievement{
@@ -245,6 +260,7 @@ func CreateDefaultAchievements() error {
 		AchievementOrder: 8,
 	}
 	twentyAchievement.ID = uuid.MustParse("09da2ab1-393d-4c43-a1d0-daa45520b49f")
+	twentyAchievement.MultipleDelegations = &trueVariable
 	achievements = append(achievements, twentyAchievement)
 
 	completeAchievement := models.Achievement{
@@ -255,6 +271,7 @@ func CreateDefaultAchievements() error {
 		AchievementOrder: 9,
 	}
 	completeAchievement.ID = uuid.MustParse("01dc9c4b-cf65-4d3c-9596-1417b67bd86f")
+	completeAchievement.MultipleDelegations = &trueVariable
 	achievements = append(achievements, completeAchievement)
 
 	comebackAchievement := models.Achievement{
@@ -264,6 +281,7 @@ func CreateDefaultAchievements() error {
 		CategoryColor: "yellow-light",
 	}
 	comebackAchievement.ID = uuid.MustParse("38524a0a-f0b6-4cbf-b221-05ebfa0797f7")
+	comebackAchievement.MultipleDelegations = &trueVariable
 	achievements = append(achievements, comebackAchievement)
 
 	deadAchievement := models.Achievement{
@@ -273,6 +291,7 @@ func CreateDefaultAchievements() error {
 		CategoryColor: "yellow-light",
 	}
 	deadAchievement.ID = uuid.MustParse("b342cd1b-1812-4384-967f-51d2be772eab")
+	deadAchievement.MultipleDelegations = &trueVariable
 	achievements = append(achievements, deadAchievement)
 
 	fullAchievement := models.Achievement{
@@ -283,6 +302,7 @@ func CreateDefaultAchievements() error {
 		AchievementOrder: 12,
 	}
 	fullAchievement.ID = uuid.MustParse("c92178b4-753a-4624-a7f6-ae5afd0a9ca3")
+	fullAchievement.MultipleDelegations = &trueVariable
 	achievements = append(achievements, fullAchievement)
 
 	photoAchievement := models.Achievement{
@@ -301,6 +321,7 @@ func CreateDefaultAchievements() error {
 		CategoryColor: "lightblue",
 	}
 	treatyoselfAchievement.ID = uuid.MustParse("5e0f5605-b3e5-4350-a408-1c9f5b5a99a4")
+	treatyoselfAchievement.MultipleDelegations = &trueVariable
 	achievements = append(achievements, treatyoselfAchievement)
 
 	shameAchievement := models.Achievement{
@@ -310,6 +331,7 @@ func CreateDefaultAchievements() error {
 		CategoryColor: "lightblue",
 	}
 	shameAchievement.ID = uuid.MustParse("96cf246b-5d16-4fc8-8887-d95815a89683")
+	shameAchievement.MultipleDelegations = &trueVariable
 	achievements = append(achievements, shameAchievement)
 
 	immuneAchievement := models.Achievement{
@@ -320,6 +342,7 @@ func CreateDefaultAchievements() error {
 		AchievementOrder: 10,
 	}
 	immuneAchievement.ID = uuid.MustParse("b566e486-d476-40f1-a9f2-28035bb43f37")
+	immuneAchievement.MultipleDelegations = &trueVariable
 	achievements = append(achievements, immuneAchievement)
 
 	firstAdventAchievement := models.Achievement{
@@ -330,6 +353,7 @@ func CreateDefaultAchievements() error {
 		AchievementOrder: 1,
 	}
 	firstAdventAchievement.ID = uuid.MustParse("5276382c-fdae-410b-a298-5107a3ff3089")
+	firstAdventAchievement.MultipleDelegations = &trueVariable
 	achievements = append(achievements, firstAdventAchievement)
 
 	secondAdventAchievement := models.Achievement{
@@ -340,6 +364,7 @@ func CreateDefaultAchievements() error {
 		AchievementOrder: 2,
 	}
 	secondAdventAchievement.ID = uuid.MustParse("6c991ba6-d0ae-4022-9410-6558e376ec5e")
+	secondAdventAchievement.MultipleDelegations = &trueVariable
 	achievements = append(achievements, secondAdventAchievement)
 
 	thirdAdventAchievement := models.Achievement{
@@ -350,6 +375,7 @@ func CreateDefaultAchievements() error {
 		AchievementOrder: 3,
 	}
 	thirdAdventAchievement.ID = uuid.MustParse("7ef923b5-21aa-4478-a658-68078f499620")
+	thirdAdventAchievement.MultipleDelegations = &trueVariable
 	achievements = append(achievements, thirdAdventAchievement)
 
 	fourthAdventAchievement := models.Achievement{
@@ -360,6 +386,7 @@ func CreateDefaultAchievements() error {
 		AchievementOrder: 4,
 	}
 	fourthAdventAchievement.ID = uuid.MustParse("720b036c-7d24-418f-88e6-a0e84147efda")
+	fourthAdventAchievement.MultipleDelegations = &trueVariable
 	achievements = append(achievements, fourthAdventAchievement)
 
 	mondaysAchievement := models.Achievement{
@@ -369,6 +396,7 @@ func CreateDefaultAchievements() error {
 		CategoryColor: "lightblue",
 	}
 	mondaysAchievement.ID = uuid.MustParse("47f04b1f-4e19-40fe-ace3-3afa18378751")
+	mondaysAchievement.MultipleDelegations = &trueVariable
 	achievements = append(achievements, mondaysAchievement)
 
 	drewBloodAchievement := models.Achievement{
@@ -378,6 +406,7 @@ func CreateDefaultAchievements() error {
 		CategoryColor: "lightblue",
 	}
 	drewBloodAchievement.ID = uuid.MustParse("6cc0f1b0-c894-4b12-a9ed-569cdfde3b16")
+	drewBloodAchievement.MultipleDelegations = &trueVariable
 	achievements = append(achievements, drewBloodAchievement)
 
 	creeperAchievement := models.Achievement{
@@ -403,7 +432,6 @@ func CreateDefaultAchievements() error {
 }
 
 func ConvertAchievementDelegationToAchievementUserObject(achievementDelegation models.AchievementDelegation) (models.AchievementUserObject, error) {
-
 	achievement, err := database.GetAchievementByID(achievementDelegation.AchievementID)
 	if err != nil {
 		log.Println("Failed to get achievement. Error: " + err.Error())
@@ -416,25 +444,37 @@ func ConvertAchievementDelegationToAchievementUserObject(achievementDelegation m
 		return models.AchievementUserObject{}, errors.New("Failed to get user. Returning...")
 	}
 
-	achievementDelegation.User = user
+	achievementDelegations, err := database.GetAchievementDelegationByAchievementIDAndUserID(achievementDelegation.UserID, achievementDelegation.AchievementID)
+	if err != nil {
+		log.Println("Failed to get achievement delegations. Error: " + err.Error())
+		return models.AchievementUserObject{}, errors.New("Failed to get achievement delegations. Returning...")
+	}
 
 	achievementObject := models.AchievementUserObject{
-		Name:                  achievement.Name,
-		Description:           achievement.Description,
-		Enabled:               achievement.Enabled,
-		Category:              achievement.Category,
-		CategoryColor:         achievement.CategoryColor,
-		AchievementOrder:      achievement.AchievementOrder,
-		AchievementDelegation: &achievementDelegation,
+		Name:             achievement.Name,
+		Description:      achievement.Description,
+		Enabled:          achievement.Enabled,
+		Category:         achievement.Category,
+		CategoryColor:    achievement.CategoryColor,
+		AchievementOrder: achievement.AchievementOrder,
 	}
 	achievementObject.ID = achievement.ID
+
+	for _, achievementDelegation := range achievementDelegations {
+		achievementDelegation.User = user
+
+		if achievementObject.LastGivenAt == nil || achievementDelegation.GivenAt.Before(*achievementObject.LastGivenAt) {
+			achievementObject.LastGivenAt = &achievementDelegation.GivenAt
+		}
+	}
+
+	achievementObject.AchievementDelegation = &achievementDelegations
 
 	return achievementObject, nil
 
 }
 
 func ConvertAchievementDelegationsToAchievementUserObjects(achievementDelegations []models.AchievementDelegation) ([]models.AchievementUserObject, error) {
-
 	achievementObjects := []models.AchievementUserObject{}
 
 	for _, achievementDelegation := range achievementDelegations {
@@ -450,7 +490,6 @@ func ConvertAchievementDelegationsToAchievementUserObjects(achievementDelegation
 	}
 
 	return achievementObjects, nil
-
 }
 
 func ConvertAchievementToAchievementUserObject(achievement models.Achievement) (models.AchievementUserObject, error) {
@@ -487,12 +526,18 @@ func ConvertAchievementsToAchievementUserObjects(achievements []models.Achieveme
 }
 
 func GiveUserAnAchievement(userID uuid.UUID, achievementID uuid.UUID, achievementTime time.Time) error {
+	achievement, err := database.GetAchievementByID(achievementID)
+	if err != nil {
+		log.Println("Failed to get achievement. Error: " + err.Error())
+		return errors.New("Failed to get achievement.")
+	}
 
-	_, found, err := database.GetAchievementDelegationByAchievementIDAndUserID(userID, achievementID)
+	tmp := true
+	achievementDelegations, err := database.GetAchievementDelegationByAchievementIDAndUserID(userID, achievementID)
 	if err != nil {
 		log.Println("Failed to check achievement delegation. Error: " + err.Error())
 		return errors.New("Failed to check achievement delegation.")
-	} else if found {
+	} else if len(achievementDelegations) > 0 && achievement.MultipleDelegations != &tmp {
 		return errors.New("User already has achievement.")
 	}
 
@@ -515,7 +560,6 @@ func GiveUserAnAchievement(userID uuid.UUID, achievementID uuid.UUID, achievemen
 	}
 
 	return nil
-
 }
 
 func GenerateAchievementsForWeek(weekResults models.WeekResults) error {

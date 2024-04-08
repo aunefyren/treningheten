@@ -25,7 +25,6 @@ func GetAllEnabledAchievements() ([]models.Achievement, error) {
 
 // Get all achievement delegations for userID
 func GetDelegatedAchievementsByUserID(userID uuid.UUID) ([]models.AchievementDelegation, bool, error) {
-
 	var achievementStruct = []models.AchievementDelegation{}
 
 	achievementRecord := Instance.Order("created_at desc").Where("`achievement_delegations`.enabled = ?", 1).Where("`achievement_delegations`.user_id = ?", userID).Joins("JOIN users on `achievement_delegations`.user_id = `users`.ID").Where("`users`.enabled = ?", 1).Joins("JOIN achievements on `achievement_delegations`.achievement_id = `achievements`.ID").Where("`achievements`.enabled = ?", 1).Find(&achievementStruct)
@@ -36,7 +35,29 @@ func GetDelegatedAchievementsByUserID(userID uuid.UUID) ([]models.AchievementDel
 	}
 
 	return achievementStruct, true, nil
+}
 
+// Get all unique achievement delegations for userID
+func GetDistinctDelegatedAchievementsByUserID(userID uuid.UUID) ([]models.AchievementDelegation, bool, error) {
+	var achievementStruct = []models.AchievementDelegation{}
+
+	achievementRecord := Instance.Order("created_at desc").
+		Where("`achievement_delegations`.enabled = ?", 1).
+		Where("`achievement_delegations`.user_id = ?", userID).
+		Joins("JOIN users on `achievement_delegations`.user_id = `users`.ID").
+		Where("`users`.enabled = ?", 1).
+		Joins("JOIN achievements on `achievement_delegations`.achievement_id = `achievements`.ID").
+		Where("`achievements`.enabled = ?", 1).
+		Group("achievement_id").
+		Find(&achievementStruct)
+
+	if achievementRecord.Error != nil {
+		return []models.AchievementDelegation{}, false, achievementRecord.Error
+	} else if achievementRecord.RowsAffected == 0 {
+		return []models.AchievementDelegation{}, false, nil
+	}
+
+	return achievementStruct, true, nil
 }
 
 func CheckIfAchievementsExistsInDB() (bool, error) {
@@ -96,19 +117,23 @@ func RegisterAchievementDelegationInDB(achievementDelegation models.AchievementD
 	return achievementDelegation, nil
 }
 
-func GetAchievementDelegationByAchievementIDAndUserID(userID uuid.UUID, achievementID uuid.UUID) (models.AchievementDelegation, bool, error) {
+func GetAchievementDelegationByAchievementIDAndUserID(userID uuid.UUID, achievementID uuid.UUID) (achievementDelegations []models.AchievementDelegation, err error) {
+	achievementDelegations = []models.AchievementDelegation{}
 
-	var achievementStruct models.AchievementDelegation
+	achievementRecord := Instance.Where("`achievement_delegations`.enabled = ?", 1).
+		Where("`achievement_delegations`.user_id = ?", userID).
+		Joins("JOIN users on `achievement_delegations`.user_id = `users`.ID").
+		Where("`users`.enabled = ?", 1).
+		Joins("JOIN achievements on `achievement_delegations`.achievement_id = `achievements`.ID").
+		Where("`achievements`.enabled = ?", 1).
+		Where("`achievements`.ID = ?", achievementID).
+		Find(&achievementDelegations)
 
-	achievementRecord := Instance.Where("`achievement_delegations`.enabled = ?", 1).Where("`achievement_delegations`.user_id = ?", userID).Joins("JOIN users on `achievement_delegations`.user_id = `users`.ID").Where("`users`.enabled = ?", 1).Joins("JOIN achievements on `achievement_delegations`.achievement_id = `achievements`.ID").Where("`achievements`.enabled = ?", 1).Where("`achievements`.ID = ?", achievementID).Find(&achievementStruct)
 	if achievementRecord.Error != nil {
-		return models.AchievementDelegation{}, false, achievementRecord.Error
-	} else if achievementRecord.RowsAffected == 0 {
-		return models.AchievementDelegation{}, false, nil
+		return achievementDelegations, achievementRecord.Error
 	}
 
-	return achievementStruct, true, nil
-
+	return
 }
 
 func SetAchievementsToSeenForUser(userID uuid.UUID) (updates int64, err error) {

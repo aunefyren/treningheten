@@ -244,15 +244,17 @@ function PlaceUserAchievements(achievementArray) {
 
         // parse date object
         try {
-            var date = new Date(Date.parse(achievementArray[i].achievement_delegation.given_at));
+            var date = new Date(Date.parse(achievementArray[i].last_given_at));
             var date_string = GetDateString(date, false)
         } catch {
             var date_string = "Error"
         }
 
         var classString = ""
-        if(!achievementArray[i].achievement_delegation.seen && achievementArray[i].achievement_delegation.user.id == user_id) {
-            classString += " new-achievement"
+        for(var j = 0; j < achievementArray[i].achievement_delegations.length; j++) {
+            if(!achievementArray[i].achievement_delegations[j].seen && achievementArray[i].achievement_delegations[j].user_id == user_id) {
+                classString += " new-achievement"
+            }
         }
 
         var categoryColor = `var(--${achievementArray[i].category_color})`;
@@ -265,11 +267,24 @@ function PlaceUserAchievements(achievementArray) {
             `;
         }
 
+        var delegationSum = achievementArray[i].achievement_delegations.length
+        var delegationSumHTML = ``;
+
+        if(delegationSum > 1) {
+            delegationSumHTML = `
+                <div class="achievement-delegation-sum">
+                    <b>${delegationSum}</b>
+                </div>
+            `;
+        }
+
         var html = `
 
         <div class="achievement unselectable" title="${achievementArray[i].description}" tabindex="1">
 
             <div class="achievement-base ${classString}">
+
+                ${delegationSumHTML}
 
                 <div class="achievement-image" style="border: solid 0.2em ${categoryColor};">
                     <img style="width: 100%; height: 100%;" class="achievement-img" id="achievement-img-${achievementArray[i].id}" src="/assets/images/barbell.gif">

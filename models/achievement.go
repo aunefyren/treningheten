@@ -8,18 +8,19 @@ import (
 
 type Achievement struct {
 	GormModel
-	Enabled          bool   `json:"enabled" gorm:"not null; default: true;"`
-	Name             string `json:"name" gorm:"not null;"`
-	Description      string `json:"description" gorm:"not null;"`
-	Category         string `json:"category" gorm:"default: default;"`
-	CategoryColor    string `json:"category_color" gorm:"default: #778da9;"`
-	AchievementOrder int    `json:"achievement_order" gorm:"default: 1;"`
+	Enabled             bool   `json:"enabled" gorm:"not null; default: true;"`
+	Name                string `json:"name" gorm:"not null;"`
+	Description         string `json:"description" gorm:"not null;"`
+	Category            string `json:"category" gorm:"default: default;"`
+	CategoryColor       string `json:"category_color" gorm:"default: #778da9;"`
+	AchievementOrder    int    `json:"achievement_order" gorm:"default: 1;"`
+	MultipleDelegations *bool  `json:"multiple_delegations" gorm:"default: 0;"`
 }
 
 type AchievementDelegation struct {
 	GormModel
 	Enabled       bool        `json:"enabled" gorm:"not null; default: true;"`
-	UserID        uuid.UUID   `json:"" gorm:"type: varchar(100);"`
+	UserID        uuid.UUID   `json:"user_id" gorm:"type: varchar(100);"`
 	User          User        `json:"user" gorm:"not null; foreignkey: UserID;"`
 	AchievementID uuid.UUID   `json:"" gorm:"type: varchar(100);"`
 	Achievement   Achievement `json:"achievement" gorm:"not null; foreignkey: AchievementID;"`
@@ -29,11 +30,12 @@ type AchievementDelegation struct {
 
 type AchievementUserObject struct {
 	GormModel
-	Enabled               bool                   `json:"enabled"`
-	Name                  string                 `json:"name"`
-	Description           string                 `json:"description"`
-	Category              string                 `json:"category"`
-	CategoryColor         string                 `json:"category_color"`
-	AchievementOrder      int                    `json:"achievement_order"`
-	AchievementDelegation *AchievementDelegation `json:"achievement_delegation"`
+	Enabled               bool                     `json:"enabled"`
+	Name                  string                   `json:"name"`
+	Description           string                   `json:"description"`
+	Category              string                   `json:"category"`
+	CategoryColor         string                   `json:"category_color"`
+	AchievementOrder      int                      `json:"achievement_order"`
+	AchievementDelegation *[]AchievementDelegation `json:"achievement_delegations"`
+	LastGivenAt           *time.Time               `json:"last_given_at"`
 }

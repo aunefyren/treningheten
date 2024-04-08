@@ -183,7 +183,7 @@ function PlaceUserAchievements(achievementArrayPersonal, achievementArray, userI
 
             // parse date object
             try {
-                var date = new Date(Date.parse(achievementArrayPersonal[achievedIndex].achievement_delegation.given_at));
+                var date = new Date(Date.parse(achievementArrayPersonal[achievedIndex].last_given_at));
                 var date_string = GetDateString(date, false)
             } catch {
                 var date_string = "Error"
@@ -191,12 +191,28 @@ function PlaceUserAchievements(achievementArrayPersonal, achievementArray, userI
             var date_string_html = date_string
             var class_string_html = ""
 
-            if(!achievementArrayPersonal[achievedIndex].achievement_delegation.seen){
-                class_string_html += " new-achievement"
+            for(var j = 0; j < achievementArrayPersonal[achievedIndex].achievement_delegations.length; j++) {
+                if(!achievementArrayPersonal[achievedIndex].achievement_delegations[j].seen){
+                    class_string_html += " new-achievement"
+                    break;
+                }
             }
+
+            var delegationSum = achievementArrayPersonal[achievedIndex].achievement_delegations.length
+            var delegationSumHTML = ``;
+
+            if(delegationSum > 1) {
+                delegationSumHTML = `
+                    <div class="achievement-delegation-sum">
+                        <b>${delegationSum}</b>
+                    </div>
+                `;
+            }
+
         } else {
             var date_string_html = "Locked";
             var class_string_html = "transparent"
+            var delegationSumHTML = ``
         }
 
         var html = `
@@ -204,6 +220,8 @@ function PlaceUserAchievements(achievementArrayPersonal, achievementArray, userI
         <div class="achievement unselectable" title="${achievementArray[i].description}" tabindex="1">
 
             <div class="achievement-base ${class_string_html}">
+
+                ${delegationSumHTML}
 
                 <div class="achievement-image" style="border: solid 0.2em ${categoryColor};">
                     <img style="width: 100%; height: 100%; padding: 1.5em; border-radius: 0;" class="achievement-img" id="achievement-img-${achievementArray[i].id}" src="/assets/images/barbell.gif">
