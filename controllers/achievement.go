@@ -463,7 +463,7 @@ func ConvertAchievementDelegationToAchievementUserObject(achievementDelegation m
 	for _, achievementDelegation := range achievementDelegations {
 		achievementDelegation.User = user
 
-		if achievementObject.LastGivenAt == nil || achievementDelegation.GivenAt.Before(*achievementObject.LastGivenAt) {
+		if achievementObject.LastGivenAt == nil || achievementDelegation.GivenAt.After(*achievementObject.LastGivenAt) {
 			achievementObject.LastGivenAt = &achievementDelegation.GivenAt
 		}
 	}
