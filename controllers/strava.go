@@ -299,8 +299,7 @@ func StravaSyncWeekForUser(user models.User, configFile models.ConfigStruct, sea
 
 	for _, activity := range activities {
 		// Skip walks if enabled
-		tmp := true
-		if user.StravaWalks == &tmp && strings.ToLower(activity.SportType) == "walk" {
+		if *user.StravaWalks && strings.ToLower(activity.SportType) == "walk" {
 			log.Println("Skipping activity because user has 'ignore walks' enabled.")
 			continue
 		} else {
@@ -327,6 +326,7 @@ func StravaSyncWeekForUser(user models.User, configFile models.ConfigStruct, sea
 				exerciseDay.CreatedAt = now
 				exerciseDay.UpdatedAt = now
 				exerciseDay.GoalID = goal.ID
+				exerciseDay.Date = activity.StartDate.Round(0)
 
 				err = database.CreateExerciseDayInDB(*exerciseDay)
 				if err != nil {
