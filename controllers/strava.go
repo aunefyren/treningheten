@@ -417,7 +417,7 @@ func StravaSyncOperationForActivity(activity models.StravaGetActivitiesRequestRe
 		return finalOperation, err
 	} else if oldOperation == nil {
 		log.Println("Creating new operation.")
-		operation := models.Operation{}
+		operation = models.Operation{}
 		operation.ID = uuid.New()
 	} else {
 		log.Println("Updating operation.")
