@@ -343,10 +343,10 @@ func StravaSyncWeekForUser(user models.User, configFile models.ConfigStruct, sea
 		}
 
 		// Strava ID list
-		idString := exercise.StravaID
+		idString := strconv.Itoa(int(activity.ID))
 		newStravaID := ""
-		if idString != nil {
-			stravaIDArray := strings.Split(*idString, ";")
+		if idString != "" && idString != "0" {
+			stravaIDArray := strings.Split(idString, ";")
 			idFound := false
 			for _, stravaID := range stravaIDArray {
 				if stravaID == strconv.Itoa(int(activity.ID)) {
@@ -399,11 +399,6 @@ func StravaSyncWeekForUser(user models.User, configFile models.ConfigStruct, sea
 func StravaSyncOperationForActivity(activity models.StravaGetActivitiesRequestReply, user models.User, exercise models.Exercise) (finalOperation *models.Operation, err error) {
 	err = nil
 	finalOperation = nil
-
-	operations, err := database.GetOperationsByExerciseID(exercise.ID)
-	if len(operations) > 0 {
-		return
-	}
 
 	if strings.ToLower(activity.SportType) == "pickleball" {
 		activity.SportType = "Padel"
