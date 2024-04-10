@@ -3,6 +3,7 @@ package database
 import (
 	"aunefyren/treningheten/models"
 	"errors"
+	"strconv"
 
 	"github.com/google/uuid"
 )
@@ -106,8 +107,10 @@ func GetExerciseForUserWithStravaID(userID uuid.UUID, stravaID int) (exercise *m
 	exercise = nil
 	err = nil
 
+	stravaIDString := "%" + strconv.Itoa(stravaID) + "%"
+
 	exerciseRecord := Instance.Model(exercise).Where("`exercises`.enabled = ?", 1).
-		Where("`exercises`.strava_id = ?", stravaID).
+		Where("`exercises`.strava_id LIKE ?", stravaIDString).
 		Joins("JOIN `exercise_days` on `exercises`.exercise_day_id = `exercise_days`.id").
 		Where("`exercise_days`.enabled = ?", 1).
 		Joins("JOIN `goals` on `exercise_days`.goal_id = `goals`.id").

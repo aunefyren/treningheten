@@ -698,6 +698,7 @@ func ConvertExerciseDayToExerciseDayObject(exerciseDay models.ExerciseDay) (exer
 			exerciseDayObject.ExerciseInterval += 1
 		}
 	}
+
 	exerciseDayObject.CreatedAt = exerciseDay.CreatedAt
 	exerciseDayObject.Date = exerciseDay.Date
 	exerciseDayObject.DeletedAt = exerciseDay.DeletedAt
@@ -743,6 +744,14 @@ func ConvertExerciseToExerciseObject(exercise models.Exercise) (exerciseObject m
 
 	exerciseObject.Operations = operationObjects
 
+	if exercise.StravaID != nil {
+		idString := exercise.StravaID
+		array := strings.Split(*idString, ";")
+		exerciseObject.StravaID = array
+	} else {
+		exerciseObject.StravaID = nil
+	}
+
 	exerciseObject.CreatedAt = exercise.CreatedAt
 	exerciseObject.DeletedAt = exercise.DeletedAt
 	exerciseObject.Enabled = exercise.Enabled
@@ -752,7 +761,6 @@ func ConvertExerciseToExerciseObject(exercise models.Exercise) (exerciseObject m
 	exerciseObject.On = exercise.On
 	exerciseObject.UpdatedAt = exercise.UpdatedAt
 	exerciseObject.Duration = exercise.Duration
-	exerciseObject.StravaID = exercise.StravaID
 
 	return
 }

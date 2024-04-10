@@ -306,7 +306,6 @@ func StravaSyncWeekForUser(user models.User, configFile models.ConfigStruct, sea
 			log.Println("Sport type is: " + activity.SportType)
 		}
 
-		newExercise := false
 		exercise, err := database.GetExerciseForUserWithStravaID(user.ID, int(activity.ID))
 		if err != nil {
 			log.Println("Failed to get exercise. ID: " + user.ID.String())
@@ -341,8 +340,32 @@ func StravaSyncWeekForUser(user models.User, configFile models.ConfigStruct, sea
 			exercise.CreatedAt = now
 			exercise.UpdatedAt = now
 			exercise.ExerciseDayID = exerciseDay.ID
+		}
 
-			newExercise = true
+		// Strava ID list
+		idString := exercise.StravaID
+		newStravaID := ""
+		if idString != nil {
+			stravaIDArray := strings.Split(*idString, ";")
+			idFound := false
+			for _, stravaID := range stravaIDArray {
+				if stravaID == strconv.Itoa(int(activity.ID)) {
+					idFound = true
+					break
+				}
+			}
+			if !idFound {
+				stravaIDArray = append(stravaIDArray, strconv.Itoa(int(activity.ID)))
+			}
+			newStravaID := ""
+			for index, stravaID := range stravaIDArray {
+				if index != 0 {
+					newStravaID += ";"
+				}
+				newStravaID += stravaID
+			}
+		} else {
+			newStravaID = strconv.Itoa(int(activity.ID))
 		}
 
 		exercise.Enabled = true
@@ -350,7 +373,7 @@ func StravaSyncWeekForUser(user models.User, configFile models.ConfigStruct, sea
 		elapsedTime := time.Duration(activity.ElapsedTime)
 		exercise.Duration = &elapsedTime
 		exercise.On = true
-		exercise.StravaID = strconv.Itoa(int(activity.ID))
+		exercise.StravaID = &newStravaID
 
 		finalExercise, err := database.UpdateExerciseInDB(*exercise)
 		if err != nil {
@@ -358,17 +381,13 @@ func StravaSyncWeekForUser(user models.User, configFile models.ConfigStruct, sea
 			return errors.New("Failed to get exercise.")
 		}
 
-		if newExercise {
-			log.Println("Creating new operation for exercise based on activity.")
-			operation, err := StravaCreateOperationForActivity(activity, user, finalExercise)
-			if err != nil {
-				log.Println("Failed to create operation. Error: " + err.Error())
-				log.Println("Sport type was: " + activity.SportType)
-			} else if operation == nil {
-				log.Println("Failed to create operation. No error.")
-				log.Println("Sport type was: " + activity.SportType)
-			}
-
+		operation, err := StravaSyncOperationForActivity(activity, user, finalExercise)
+		if err != nil {
+			log.Println("Failed to sync operation. Error: " + err.Error())
+			log.Println("Sport type was: " + activity.SportType)
+		} else if operation == nil {
+			log.Println("Failed to sync operation. No error.")
+			log.Println("Sport type was: " + activity.SportType)
 		}
 
 		log.Println("Updated exercise.")
@@ -377,7 +396,7 @@ func StravaSyncWeekForUser(user models.User, configFile models.ConfigStruct, sea
 	return
 }
 
-func StravaCreateOperationForActivity(activity models.StravaGetActivitiesRequestReply, user models.User, exercise models.Exercise) (finalOperation *models.Operation, err error) {
+func StravaSyncOperationForActivity(activity models.StravaGetActivitiesRequestReply, user models.User, exercise models.Exercise) (finalOperation *models.Operation, err error) {
 	err = nil
 	finalOperation = nil
 
@@ -397,18 +416,31 @@ func StravaCreateOperationForActivity(activity models.StravaGetActivitiesRequest
 		return finalOperation, nil
 	}
 
-	operation := models.Operation{}
-	operation.ID = uuid.New()
+	operation, err := database.GetOperationByStravaIDAndUserID(user.ID, int(activity.ID))
+	if err != nil {
+		return finalOperation, err
+	} else if operation == nil {
+		log.Println("Creating new operation.")
+		operation := models.Operation{}
+		operation.ID = uuid.New()
+	} else {
+		log.Println("Updating operation.")
+	}
+
 	operation.ExerciseID = exercise.ID
 	operation.ActionID = &action.ID
 	operation.Type = action.Type
+	stravaID := strconv.Itoa(int(activity.ID))
+	operation.StravaID = &stravaID
+	durationTime := time.Duration(activity.ElapsedTime)
+	operation.Duration = &durationTime
 
-	operation, err = database.CreateOperationInDB(operation)
+	newOperation, err := database.CreateOperationInDB(*operation)
 	if err != nil {
 		return finalOperation, err
 	}
 
-	finalOperation = &operation
+	finalOperation = &newOperation
 
 	operationSet := models.OperationSet{}
 	operationSet.ID = uuid.New()
@@ -427,6 +459,44 @@ func StravaCreateOperationForActivity(activity models.StravaGetActivitiesRequest
 	_, err = database.CreateOperationSetInDB(operationSet)
 	if err != nil {
 		return finalOperation, err
+	}
+
+	err = SyncStravaOperationsToExerciseSession(exercise.ID, user.ID)
+	if err != nil {
+		return finalOperation, err
+	}
+
+	return
+}
+
+func SyncStravaOperationsToExerciseSession(exerciseID uuid.UUID, userID uuid.UUID) (err error) {
+	err = nil
+
+	exercise, err := database.GetExerciseByIDAndUserID(exerciseID, userID)
+	if err != nil {
+		log.Println("Failed to get exercise object. Error: " + err.Error())
+		return errors.New("Failed to get exercise object.")
+	}
+
+	exerciseObject, err := ConvertExerciseToExerciseObject(exercise)
+	if err != nil {
+		log.Println("Failed to convert exercise to exercise object. Error: " + err.Error())
+		return errors.New("Failed to convert exercise to exercise object.")
+	}
+
+	var newDuration time.Duration = time.Duration(0)
+	for _, operation := range exerciseObject.Operations {
+		if operation.Duration != nil {
+			newDuration += *operation.Duration
+		}
+	}
+
+	exercise.Duration = &newDuration
+
+	_, err = database.UpdateExerciseInDB(exercise)
+	if err != nil {
+		log.Println("Failed to update exercise. Error: " + err.Error())
+		return errors.New("Failed to update exercise.")
 	}
 
 	return

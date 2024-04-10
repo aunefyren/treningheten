@@ -37,7 +37,7 @@ type Exercise struct {
 	On            bool           `json:"on" gorm:"not null; default: true"`
 	ExerciseDayID uuid.UUID      `json:"" gorm:"type:varchar(100);"`
 	ExerciseDay   ExerciseDay    `json:"exercise_day" gorm:"not null"`
-	StravaID      string         `json:"strava_id" gorm:"default: null;"`
+	StravaID      *string        `json:"strava_id" gorm:"default: null;"`
 }
 
 type ExerciseUpdateRequest struct {
@@ -61,7 +61,7 @@ type ExerciseObject struct {
 	On          bool              `json:"on"`
 	ExerciseDay uuid.UUID         `json:"exercise_day"`
 	Operations  []OperationObject `json:"operations"`
-	StravaID    string            `json:"strava_id"`
+	StravaID    []string          `json:"strava_id"`
 }
 
 type ExerciseDayCreationRequest struct {

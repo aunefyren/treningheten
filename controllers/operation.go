@@ -46,10 +46,7 @@ func ConvertOperationToOperationObject(operation models.Operation) (operationObj
 		operationObject.Action = nil
 	}
 
-	if operation.Equipment != nil {
-		operationObject.Equipment = *operation.Equipment
-	}
-
+	operationObject.Equipment = operation.Equipment
 	operationObject.CreatedAt = operation.CreatedAt
 	operationObject.DeletedAt = operation.DeletedAt
 	operationObject.Enabled = operation.Enabled
@@ -59,6 +56,7 @@ func ConvertOperationToOperationObject(operation models.Operation) (operationObj
 	operationObject.Type = operation.Type
 	operationObject.WeightUnit = operation.WeightUnit
 	operationObject.DistanceUnit = operation.DistanceUnit
+	operationObject.Duration = operation.Duration
 
 	return
 }

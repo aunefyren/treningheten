@@ -8,15 +8,17 @@ import (
 
 type Operation struct {
 	GormModel
-	Enabled      bool       `json:"enabled" gorm:"not null; default: true"`
-	ExerciseID   uuid.UUID  `json:"" gorm:"type:varchar(100);"`
-	Exercise     Exercise   `json:"exercise" gorm:"not null;"`
-	ActionID     *uuid.UUID `json:"" gorm:"type:varchar(100);"`
-	Action       *Action    `json:"action" gorm:""`
-	Type         string     `json:"type" gorm:"not null; default: lifting"`
-	WeightUnit   string     `json:"weight_unit" gorm:"not null; default: kg"`
-	DistanceUnit string     `json:"distance_unit" gorm:"not null; default: km"`
-	Equipment    *string    `json:"equipment" gorm:""`
+	Enabled      bool           `json:"enabled" gorm:"not null; default: true"`
+	ExerciseID   uuid.UUID      `json:"" gorm:"type:varchar(100);"`
+	Exercise     Exercise       `json:"exercise" gorm:"not null;"`
+	ActionID     *uuid.UUID     `json:"" gorm:"type:varchar(100);"`
+	Action       *Action        `json:"action" gorm:""`
+	Type         string         `json:"type" gorm:"not null; default: lifting"`
+	WeightUnit   string         `json:"weight_unit" gorm:"not null; default: kg"`
+	DistanceUnit string         `json:"distance_unit" gorm:"not null; default: km"`
+	Equipment    *string        `json:"equipment" gorm:""`
+	StravaID     *string        `json:"strava_id" gorm:"default: null;"`
+	Duration     *time.Duration `json:"duration"`
 }
 
 type OperationCreationRequest struct {
@@ -45,7 +47,9 @@ type OperationObject struct {
 	Type          string               `json:"type"`
 	WeightUnit    string               `json:"weight_unit"`
 	DistanceUnit  string               `json:"distance_unit"`
-	Equipment     string               `json:"equipment"`
+	Equipment     *string              `json:"equipment"`
+	StravaID      *string              `json:"strava_id"`
+	Duration      *time.Duration       `json:"duration"`
 }
 
 type OperationSet struct {
