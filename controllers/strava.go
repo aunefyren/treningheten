@@ -411,15 +411,17 @@ func StravaSyncOperationForActivity(activity models.StravaGetActivitiesRequestRe
 		return finalOperation, nil
 	}
 
-	operation, err := database.GetOperationByStravaIDAndUserID(user.ID, int(activity.ID))
+	var operation models.Operation = models.Operation{}
+	oldOperation, err := database.GetOperationByStravaIDAndUserID(user.ID, int(activity.ID))
 	if err != nil {
 		return finalOperation, err
-	} else if operation == nil {
+	} else if oldOperation == nil {
 		log.Println("Creating new operation.")
 		operation := models.Operation{}
 		operation.ID = uuid.New()
 	} else {
 		log.Println("Updating operation.")
+		operation = *oldOperation
 	}
 
 	operation.ExerciseID = exercise.ID
@@ -430,7 +432,7 @@ func StravaSyncOperationForActivity(activity models.StravaGetActivitiesRequestRe
 	durationTime := time.Duration(activity.ElapsedTime)
 	operation.Duration = &durationTime
 
-	newOperation, err := database.CreateOperationInDB(*operation)
+	newOperation, err := database.CreateOperationInDB(operation)
 	if err != nil {
 		return finalOperation, err
 	}
