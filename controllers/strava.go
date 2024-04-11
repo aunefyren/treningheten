@@ -408,6 +408,7 @@ func StravaSyncOperationForActivity(activity models.StravaGetActivitiesRequestRe
 		activity.SportType = "Padel"
 	}
 
+	// Get action by Strava activity
 	action, err := database.GetActionByStravaName(activity.SportType)
 	if err != nil {
 		return finalOperation, err
@@ -415,6 +416,7 @@ func StravaSyncOperationForActivity(activity models.StravaGetActivitiesRequestRe
 		return finalOperation, nil
 	}
 
+	// Get or create operation
 	var operation models.Operation = models.Operation{}
 	oldOperation, err := database.GetOperationByStravaIDAndUserID(user.ID, int(activity.ID))
 	if err != nil {
@@ -443,8 +445,21 @@ func StravaSyncOperationForActivity(activity models.StravaGetActivitiesRequestRe
 
 	finalOperation = &newOperation
 
-	operationSet := models.OperationSet{}
-	operationSet.ID = uuid.New()
+	// Get or create operation set
+	var operationSet models.OperationSet = models.OperationSet{}
+	oldOperationSet, err := database.GetOperationSetByStravaIDAndUserID(user.ID, int(activity.ID))
+	if err != nil {
+		return finalOperation, err
+	} else if oldOperation == nil {
+		log.Println("Creating new operation set.")
+		operationSet := models.OperationSet{}
+		operationSet.ID = uuid.New()
+	} else {
+		log.Println("Updating operation set.")
+		operationSet = *oldOperationSet
+	}
+
+	operation.StravaID = &stravaID
 	operationSet.OperationID = operation.ID
 	movingTime := time.Duration(activity.MovingTime)
 	operationSet.Time = &movingTime
@@ -462,6 +477,7 @@ func StravaSyncOperationForActivity(activity models.StravaGetActivitiesRequestRe
 		return finalOperation, err
 	}
 
+	// Sync duration of operations to exercise
 	err = SyncStravaOperationsToExerciseSession(exercise.ID, user.ID)
 	if err != nil {
 		return finalOperation, err

@@ -61,6 +61,7 @@ type OperationSet struct {
 	Weight      *float64       `json:"weight" gorm:"default: null"`
 	Distance    *float64       `json:"distance" gorm:"default: null"`
 	Time        *time.Duration `json:"time" gorm:"default: null"`
+	StravaID    *string        `json:"strava_id" gorm:"default: null;"`
 }
 
 type OperationSetCreationRequest struct {
@@ -86,6 +87,7 @@ type OperationSetObject struct {
 	Weight      *float64       `json:"weight"`
 	Distance    *float64       `json:"distance"`
 	Time        *time.Duration `json:"time"`
+	StravaID    *string        `json:"strava_id" gorm:"default: null;"`
 }
 
 type Action struct {

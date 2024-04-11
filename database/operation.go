@@ -290,3 +290,31 @@ func GetOperationByStravaIDAndUserID(userID uuid.UUID, stravaID int) (operation 
 
 	return
 }
+
+func GetOperationSetByStravaIDAndUserID(userID uuid.UUID, stravaID int) (operationSet *models.OperationSet, err error) {
+	operationSet = nil
+	err = nil
+
+	record := Instance.Where("`operation_sets`.enabled = ?", 1).
+		Where("`operation_sets`.strava_id = ?", stravaID).
+		Joins("JOIN `operations` on `operation_sets`.operation_id = `operations`.id").
+		Where("`operations`.enabled = ?", 1).
+		Joins("JOIN `exercises` on `operations`.exercise_id = `exercises`.id").
+		Where("`exercises`.enabled = ?", 1).
+		Joins("JOIN `exercise_days` on `exercises`.exercise_day_id = `exercise_days`.id").
+		Where("`exercise_days`.enabled = ?", 1).
+		Joins("JOIN `goals` on `exercise_days`.goal_id = `goals`.id").
+		Where("`goals`.enabled = ?", 1).
+		Joins("JOIN `users` on `goals`.user_id = `users`.id").
+		Where("`users`.enabled = ?", 1).
+		Where("`users`.id = ?", userID).
+		Find(&operationSet)
+
+	if record.Error != nil {
+		return nil, record.Error
+	} else if record.RowsAffected != 1 {
+		return nil, err
+	}
+
+	return
+}
