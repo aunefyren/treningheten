@@ -385,6 +385,8 @@ func StravaSyncWeekForUser(user models.User, configFile models.ConfigStruct, sea
 			return errors.New("Failed to get exercise.")
 		}
 
+		log.Println("Updated exercise.")
+
 		operation, err := StravaSyncOperationForActivity(activity, user, finalExercise)
 		if err != nil {
 			log.Println("Failed to sync operation. Error: " + err.Error())
@@ -394,7 +396,7 @@ func StravaSyncWeekForUser(user models.User, configFile models.ConfigStruct, sea
 			log.Println("Sport type was: " + activity.SportType)
 		}
 
-		log.Println("Updated exercise.")
+		log.Println("Synced operations.")
 	}
 
 	return
