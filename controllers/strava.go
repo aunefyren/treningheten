@@ -444,6 +444,8 @@ func StravaSyncOperationForActivity(activity models.StravaGetActivitiesRequestRe
 		return finalOperation, err
 	}
 
+	log.Println("Updated operation.")
+
 	finalOperation = &newOperation
 
 	// Get or create operation set
@@ -478,6 +480,8 @@ func StravaSyncOperationForActivity(activity models.StravaGetActivitiesRequestRe
 		return finalOperation, err
 	}
 
+	log.Println("Updated operation set.")
+
 	// Sync duration of operations to exercise
 	err = SyncStravaOperationsToExerciseSession(exercise.ID, user.ID)
 	if err != nil {
@@ -489,6 +493,8 @@ func StravaSyncOperationForActivity(activity models.StravaGetActivitiesRequestRe
 
 func SyncStravaOperationsToExerciseSession(exerciseID uuid.UUID, userID uuid.UUID) (err error) {
 	err = nil
+
+	log.Println("Syncing Strava operations to exercise.")
 
 	exercise, err := database.GetExerciseByIDAndUserID(exerciseID, userID)
 	if err != nil {
@@ -527,6 +533,8 @@ func SyncStravaOperationsToExerciseSession(exerciseID uuid.UUID, userID uuid.UUI
 		log.Println("Failed to update exercise. Error: " + err.Error())
 		return errors.New("Failed to update exercise.")
 	}
+
+	log.Println("Updated exercise with operations.")
 
 	return
 }
