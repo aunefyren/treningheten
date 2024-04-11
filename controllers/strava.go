@@ -452,14 +452,14 @@ func StravaSyncOperationForActivity(activity models.StravaGetActivitiesRequestRe
 		return finalOperation, err
 	} else if oldOperationSet == nil {
 		log.Println("Creating new operation set.")
-		operationSet := models.OperationSet{}
+		operationSet = models.OperationSet{}
 		operationSet.ID = uuid.New()
 	} else {
 		log.Println("Updating operation set.")
 		operationSet = *oldOperationSet
 	}
 
-	operation.StravaID = &stravaID
+	operationSet.StravaID = &stravaID
 	operationSet.OperationID = operation.ID
 	movingTime := time.Duration(activity.MovingTime)
 	operationSet.Time = &movingTime
