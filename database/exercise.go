@@ -63,12 +63,37 @@ func UpdateExerciseByTurningOffByExerciseID(exerciseID uuid.UUID) error {
 
 }
 
+// Return exercises that are enabled and on
 func GetExerciseByIDAndUserID(exerciseID uuid.UUID, userID uuid.UUID) (models.Exercise, error) {
 	var exercise models.Exercise
 
 	record := Instance.Where("`exercises`.enabled = ?", 1).
 		Where("`exercises`.id = ?", exerciseID).
 		Where("`exercises`.on = ?", 1).
+		Joins("JOIN `exercise_days` on `exercises`.exercise_day_id = `exercise_days`.id").
+		Where("`exercise_days`.enabled = ?", 1).
+		Joins("JOIN `goals` on `exercise_days`.goal_id = `goals`.id").
+		Where("`goals`.enabled = ?", 1).
+		Joins("JOIN `users` on `goals`.user_id = `users`.id").
+		Where("`users`.enabled = ?", 1).
+		Where("`users`.id = ?", userID).
+		Find(&exercise)
+
+	if record.Error != nil {
+		return models.Exercise{}, record.Error
+	} else if record.RowsAffected != 1 {
+		return models.Exercise{}, errors.New("No exercise found.")
+	}
+
+	return exercise, nil
+}
+
+// Return exercises that are enabled
+func GetAllExerciseByIDAndUserID(exerciseID uuid.UUID, userID uuid.UUID) (models.Exercise, error) {
+	var exercise models.Exercise
+
+	record := Instance.Where("`exercises`.enabled = ?", 1).
+		Where("`exercises`.id = ?", exerciseID).
 		Joins("JOIN `exercise_days` on `exercises`.exercise_day_id = `exercise_days`.id").
 		Where("`exercise_days`.enabled = ?", 1).
 		Joins("JOIN `goals` on `exercise_days`.goal_id = `goals`.id").

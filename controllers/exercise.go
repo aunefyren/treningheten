@@ -911,7 +911,7 @@ func APIUpdateExercise(context *gin.Context) {
 		return
 	}
 
-	exercise, err = database.GetExerciseByIDAndUserID(exerciseIDUUID, userID)
+	exercise, err = database.GetAllExerciseByIDAndUserID(exerciseIDUUID, userID)
 	if err != nil {
 		log.Println("Failed to get exercise. Error: " + err.Error())
 		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get exercise."})
