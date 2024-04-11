@@ -343,10 +343,15 @@ func StravaSyncWeekForUser(user models.User, configFile models.ConfigStruct, sea
 		}
 
 		// Strava ID list
-		idString := strconv.Itoa(int(activity.ID))
+		oldStravaID := ""
+		idString := exercise.StravaID
+		if idString != nil {
+			oldStravaID = *idString
+		}
+
 		newStravaID := ""
-		if idString != "" && idString != "0" {
-			stravaIDArray := strings.Split(idString, ";")
+		if oldStravaID != "" {
+			stravaIDArray := strings.Split(oldStravaID, ";")
 			idFound := false
 			for _, stravaID := range stravaIDArray {
 				if stravaID == strconv.Itoa(int(activity.ID)) {
@@ -357,7 +362,6 @@ func StravaSyncWeekForUser(user models.User, configFile models.ConfigStruct, sea
 			if !idFound {
 				stravaIDArray = append(stravaIDArray, strconv.Itoa(int(activity.ID)))
 			}
-			newStravaID := ""
 			for index, stravaID := range stravaIDArray {
 				if index != 0 {
 					newStravaID += ";"
