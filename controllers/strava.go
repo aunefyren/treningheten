@@ -450,7 +450,7 @@ func StravaSyncOperationForActivity(activity models.StravaGetActivitiesRequestRe
 	oldOperationSet, err := database.GetOperationSetByStravaIDAndUserID(user.ID, int(activity.ID))
 	if err != nil {
 		return finalOperation, err
-	} else if oldOperation == nil {
+	} else if oldOperationSet == nil {
 		log.Println("Creating new operation set.")
 		operationSet := models.OperationSet{}
 		operationSet.ID = uuid.New()
