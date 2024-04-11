@@ -18,6 +18,7 @@ type Operation struct {
 	DistanceUnit string         `json:"distance_unit" gorm:"not null; default: km"`
 	Equipment    *string        `json:"equipment" gorm:""`
 	StravaID     *string        `json:"strava_id" gorm:"default: null;"`
+	Note         *string        `json:"note" gorm:"default: null;"`
 	Duration     *time.Duration `json:"duration"`
 }
 
@@ -49,6 +50,7 @@ type OperationObject struct {
 	DistanceUnit  string               `json:"distance_unit"`
 	Equipment     *string              `json:"equipment"`
 	StravaID      *string              `json:"strava_id"`
+	Note          *string              `json:"note"`
 	Duration      *time.Duration       `json:"duration"`
 }
 

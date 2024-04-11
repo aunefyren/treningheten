@@ -58,6 +58,7 @@ func ConvertOperationToOperationObject(operation models.Operation) (operationObj
 	operationObject.DistanceUnit = operation.DistanceUnit
 	operationObject.Duration = operation.Duration
 	operationObject.StravaID = operation.StravaID
+	operationObject.Note = operation.Note
 
 	return
 }

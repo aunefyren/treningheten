@@ -437,6 +437,7 @@ func StravaSyncOperationForActivity(activity models.StravaGetActivitiesRequestRe
 	operation.StravaID = &stravaID
 	durationTime := time.Duration(activity.ElapsedTime)
 	operation.Duration = &durationTime
+	operation.Note = &activity.Name
 
 	newOperation, err := database.UpdateOperationInDB(operation)
 	if err != nil {
@@ -508,7 +509,18 @@ func SyncStravaOperationsToExerciseSession(exerciseID uuid.UUID, userID uuid.UUI
 		}
 	}
 
+	var newNote string = ""
+	for index, operation := range exerciseObject.Operations {
+		if operation.Note != nil {
+			if index != 0 {
+				newNote += " + "
+			}
+			newNote += *operation.Note
+		}
+	}
+
 	exercise.Duration = &newDuration
+	exercise.Note = newNote
 
 	_, err = database.UpdateExerciseInDB(exercise)
 	if err != nil {
