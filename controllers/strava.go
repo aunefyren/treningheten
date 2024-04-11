@@ -436,7 +436,7 @@ func StravaSyncOperationForActivity(activity models.StravaGetActivitiesRequestRe
 	durationTime := time.Duration(activity.ElapsedTime)
 	operation.Duration = &durationTime
 
-	newOperation, err := database.CreateOperationInDB(operation)
+	newOperation, err := database.UpdateOperationInDB(operation)
 	if err != nil {
 		return finalOperation, err
 	}
@@ -457,7 +457,7 @@ func StravaSyncOperationForActivity(activity models.StravaGetActivitiesRequestRe
 		operationSet.Distance = &newDistance
 	}
 
-	_, err = database.CreateOperationSetInDB(operationSet)
+	_, err = database.UpdateOperationSetInDB(operationSet)
 	if err != nil {
 		return finalOperation, err
 	}
