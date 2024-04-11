@@ -170,8 +170,9 @@ func GetExerciseDayByID(exerciseDayID uuid.UUID) (models.ExerciseDay, error) {
 	return exerciseDay, nil
 }
 
-func GetExerciseDayByIDAndUserID(exerciseDayID uuid.UUID, userID uuid.UUID) (models.ExerciseDay, error) {
-	var exerciseDay models.ExerciseDay
+func GetExerciseDayByIDAndUserID(exerciseDayID uuid.UUID, userID uuid.UUID) (exerciseDay *models.ExerciseDay, err error) {
+	exerciseDay = &models.ExerciseDay{}
+	err = nil
 
 	exerciserecord := Instance.Where("`exercise_days`.enabled = ?", 1).
 		Where("`exercise_days`.id = ?", exerciseDayID).
@@ -181,10 +182,11 @@ func GetExerciseDayByIDAndUserID(exerciseDayID uuid.UUID, userID uuid.UUID) (mod
 		Where("`users`.enabled = ?", 1).
 		Where("`users`.id = ?", userID).
 		Find(&exerciseDay)
+
 	if exerciserecord.Error != nil {
-		return models.ExerciseDay{}, exerciserecord.Error
+		return nil, exerciserecord.Error
 	} else if exerciserecord.RowsAffected != 1 {
-		return models.ExerciseDay{}, nil
+		return nil, nil
 	}
 
 	return exerciseDay, nil

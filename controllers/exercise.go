@@ -791,15 +791,28 @@ func APIGetExerciseDay(context *gin.Context) {
 		return
 	}
 
-	exerciseDay, err := database.GetExerciseDayByID(exerciseIDUUIID)
+	// Get user ID
+	userID, err := middlewares.GetAuthUsername(context.GetHeader("Authorization"))
+	if err != nil {
+		log.Println("Failed to verify user ID. Error: " + "Failed to verify user ID.")
+		context.JSON(http.StatusBadRequest, gin.H{"error": "Failed to verify user ID."})
+		context.Abort()
+		return
+	}
+
+	exerciseDay, err := database.GetExerciseDayByIDAndUserID(exerciseIDUUIID, userID)
 	if err != nil {
 		log.Println("Failed to get exercise day. Error: " + err.Error())
 		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get exercise day."})
 		context.Abort()
 		return
+	} else if exerciseDay == nil {
+		context.JSON(http.StatusNotFound, gin.H{"error": "Failed to find exercise day."})
+		context.Abort()
+		return
 	}
 
-	exerciseDayObject, err := ConvertExerciseDayToExerciseDayObject(exerciseDay)
+	exerciseDayObject, err := ConvertExerciseDayToExerciseDayObject(*exerciseDay)
 	if err != nil {
 		log.Println("Failed to get convert exercise day to exercise day object. Error: " + err.Error())
 		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get convert exercise day to exercise day object."})
@@ -920,9 +933,13 @@ func APIUpdateExercise(context *gin.Context) {
 		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get exercise day."})
 		context.Abort()
 		return
+	} else if exerciseDay == nil {
+		context.JSON(http.StatusNotFound, gin.H{"error": "Failed to find exercise day."})
+		context.Abort()
+		return
 	}
 
-	exerciseDayObject, err := ConvertExerciseDayToExerciseDayObject(exerciseDay)
+	exerciseDayObject, err := ConvertExerciseDayToExerciseDayObject(*exerciseDay)
 	if err != nil {
 		log.Println("Failed to convert exercise day to exercise day object. Error: " + err.Error())
 		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to convert exercise day to exercise day object."})
@@ -1001,9 +1018,13 @@ func APICreateExercise(context *gin.Context) {
 		context.JSON(http.StatusBadRequest, gin.H{"error": "Failed to verify exercise day."})
 		context.Abort()
 		return
+	} else if exerciseDay == nil {
+		context.JSON(http.StatusNotFound, gin.H{"error": "Failed to find exercise day."})
+		context.Abort()
+		return
 	}
 
-	exerciseDayObject, err := ConvertExerciseDayToExerciseDayObject(exerciseDay)
+	exerciseDayObject, err := ConvertExerciseDayToExerciseDayObject(*exerciseDay)
 	if err != nil {
 		log.Println("Failed to convert exercise day to exercise day object. Error: " + err.Error())
 		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to convert exercise day to exercise day object."})
