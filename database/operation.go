@@ -265,7 +265,7 @@ func GetActionByStravaName(stravaName string) (action *models.Action, err error)
 	return
 }
 
-func GetOperationByStravaIDAndUserID(userID uuid.UUID, stravaID int) (operation *models.Operation, err error) {
+func GetOperationByStravaIDAndUserIDAndExerciseID(userID uuid.UUID, stravaID int, exerciseID uuid.UUID) (operation *models.Operation, err error) {
 	operation = nil
 	err = nil
 
@@ -273,6 +273,7 @@ func GetOperationByStravaIDAndUserID(userID uuid.UUID, stravaID int) (operation 
 		Where("`operations`.strava_id = ?", stravaID).
 		Joins("JOIN `exercises` on `operations`.exercise_id = `exercises`.id").
 		Where("`exercises`.enabled = ?", 1).
+		Where("`exercises`.id = ?", exerciseID).
 		Joins("JOIN `exercise_days` on `exercises`.exercise_day_id = `exercise_days`.id").
 		Where("`exercise_days`.enabled = ?", 1).
 		Joins("JOIN `goals` on `exercise_days`.goal_id = `goals`.id").
@@ -291,7 +292,7 @@ func GetOperationByStravaIDAndUserID(userID uuid.UUID, stravaID int) (operation 
 	return
 }
 
-func GetOperationSetByStravaIDAndUserID(userID uuid.UUID, stravaID int) (operationSet *models.OperationSet, err error) {
+func GetOperationSetByStravaIDAndUserIDAndOperationID(userID uuid.UUID, stravaID int, operationID uuid.UUID) (operationSet *models.OperationSet, err error) {
 	operationSet = nil
 	err = nil
 
@@ -299,6 +300,7 @@ func GetOperationSetByStravaIDAndUserID(userID uuid.UUID, stravaID int) (operati
 		Where("`operation_sets`.strava_id = ?", stravaID).
 		Joins("JOIN `operations` on `operation_sets`.operation_id = `operations`.id").
 		Where("`operations`.enabled = ?", 1).
+		Where("`operations`.id = ?", operationID).
 		Joins("JOIN `exercises` on `operations`.exercise_id = `exercises`.id").
 		Where("`exercises`.enabled = ?", 1).
 		Joins("JOIN `exercise_days` on `exercises`.exercise_day_id = `exercise_days`.id").
