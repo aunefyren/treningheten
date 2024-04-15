@@ -140,6 +140,10 @@ func StravaGetActivities(config models.ConfigStruct, token string, before int, a
 		return activities, errors.New("URL request generation threw error.")
 	}
 
+	// Debug lines
+	// log.Println(strconv.Itoa(before))
+	// log.Println(strconv.Itoa(after))
+
 	// Headers
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Authorization", "Bearer "+token)
@@ -325,7 +329,9 @@ func StravaSyncWeekForUser(user models.User, configFile models.ConfigStruct, sea
 				exerciseDay.CreatedAt = now
 				exerciseDay.UpdatedAt = now
 				exerciseDay.GoalID = goal.ID
-				exerciseDay.Date = activity.StartDate.Round(0)
+
+				dateObject := time.Date(activity.StartDate.Year(), activity.StartDate.Month(), activity.StartDate.Day(), 0, 0, 0, activity.StartDate.Nanosecond(), activity.StartDate.Location())
+				exerciseDay.Date = dateObject
 
 				err = database.CreateExerciseDayInDB(*exerciseDay)
 				if err != nil {

@@ -144,7 +144,7 @@ func GenerateDebtForWeek(givenTime time.Time) (models.WeekResults, error) {
 	// Clean away time
 	hours, minutes, seconds := givenTimeWeekStart.Clock()
 	if hours != 0 || minutes != 0 || seconds != 0 {
-		givenTimeWeekStart = givenTimeWeekStart.Round(0)
+		givenTimeWeekStart = utilities.SetClockToMinimum(givenTimeWeekStart)
 	}
 
 	// Debug line
@@ -193,7 +193,7 @@ func GenerateDebtForWeek(givenTime time.Time) (models.WeekResults, error) {
 		}
 
 		debt := models.Debt{}
-		debt.Date = givenTime.Truncate(24 * time.Hour)
+		debt.Date = utilities.SetClockToMinimum(givenTime)
 		debt.LoserID = user
 		debt.WinnerID = winner
 		debt.SeasonID = season.ID

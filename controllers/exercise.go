@@ -415,7 +415,7 @@ func GetExerciseDaysForWeekUsingGoal(timeReq time.Time, goalID uuid.UUID) (model
 
 		if !added {
 			newExercise := models.ExerciseDayObject{
-				Date: currentDate.Truncate(24 * time.Hour),
+				Date: utilities.SetClockToMinimum(currentDate),
 			}
 			week.Days = append(week.Days, newExercise)
 		}
@@ -1047,7 +1047,7 @@ func APICreateExercise(context *gin.Context) {
 	}
 
 	now := time.Now()
-	if exerciseDayObject.Date.Round(0).After(now.Round(0)) {
+	if utilities.SetClockToMinimum(exerciseDayObject.Date).After(utilities.SetClockToMinimum(now)) {
 		context.JSON(http.StatusBadRequest, gin.H{"error": "You can't create exercises on days in the future."})
 		context.Abort()
 		return

@@ -66,21 +66,21 @@ func FindNextSunday(poinInTime time.Time) (time.Time, error) {
 	}
 
 	if sundayDate.Weekday() == 0 {
-		return sundayDate, nil
+		return SetClockToMaximum(sundayDate), nil
 	}
 
 	return time.Time{}, errors.New("Failed to find next sunday for date.")
 }
 
-func FindEarlierMonday(poinInTime time.Time) (time.Time, error) {
+func FindEarlierMonday(pointInTime time.Time) (time.Time, error) {
 
 	mondayDate := time.Time{}
 
 	// Find monday
-	if poinInTime.Weekday() == 1 {
-		mondayDate = poinInTime
+	if pointInTime.Weekday() == 1 {
+		mondayDate = pointInTime
 	} else {
-		previousDate := poinInTime
+		previousDate := pointInTime
 
 		for i := 0; i < 8; i++ {
 			previousDate = previousDate.AddDate(0, 0, -1)
@@ -93,21 +93,21 @@ func FindEarlierMonday(poinInTime time.Time) (time.Time, error) {
 	}
 
 	if mondayDate.Weekday() == 1 {
-		return mondayDate, nil
+		return SetClockToMinimum(mondayDate), nil
 	}
 
 	return time.Time{}, errors.New("Failed to find earlier monday for date.")
 }
 
-func FindEarlierSunday(poinInTime time.Time) (time.Time, error) {
+func FindEarlierSunday(pointInTime time.Time) (time.Time, error) {
 
 	sundayDate := time.Time{}
 
 	// Find monday
-	if poinInTime.Weekday() == 0 {
-		sundayDate = poinInTime
+	if pointInTime.Weekday() == 0 {
+		sundayDate = pointInTime
 	} else {
-		previousDate := poinInTime
+		previousDate := pointInTime
 
 		for i := 0; i < 8; i++ {
 			previousDate = previousDate.AddDate(0, 0, -1)
@@ -138,4 +138,14 @@ func RemoveIntFromArray(originalArray []int, intToRemove int) []int {
 
 	return newArray
 
+}
+
+func SetClockToMinimum(pointInTime time.Time) (newPointInTime time.Time) {
+	newPointInTime = time.Date(pointInTime.Year(), pointInTime.Month(), pointInTime.Day(), 0, 0, 0, pointInTime.Nanosecond(), pointInTime.Location())
+	return
+}
+
+func SetClockToMaximum(pointInTime time.Time) (newPointInTime time.Time) {
+	newPointInTime = time.Date(pointInTime.Year(), pointInTime.Month(), pointInTime.Day(), 23, 59, 59, pointInTime.Nanosecond(), pointInTime.Location())
+	return
 }
