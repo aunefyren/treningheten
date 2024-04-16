@@ -303,7 +303,7 @@ func StravaSyncWeekForUser(user models.User, configFile models.ConfigStruct, sea
 
 	for _, activity := range activities {
 		// Skip walks if enabled
-		if *user.StravaWalks && strings.ToLower(activity.SportType) == "walk" {
+		if user.StravaWalks != nil && *user.StravaWalks && strings.ToLower(activity.SportType) == "walk" {
 			log.Println("Skipping activity because user has 'ignore walks' enabled.")
 			continue
 		} else {
