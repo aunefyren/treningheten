@@ -747,7 +747,18 @@ func ConvertExerciseToExerciseObject(exercise models.Exercise) (exerciseObject m
 	if exercise.StravaID != nil {
 		idString := exercise.StravaID
 		array := strings.Split(*idString, ";")
-		exerciseObject.StravaID = array
+		newArray := []string{}
+
+		for _, stravaID := range array {
+			if stravaID != "" {
+				newArray = append(newArray, stravaID)
+			}
+		}
+		if len(newArray) < 1 {
+			exerciseObject.StravaID = nil
+		} else {
+			exerciseObject.StravaID = newArray
+		}
 	} else {
 		exerciseObject.StravaID = nil
 	}

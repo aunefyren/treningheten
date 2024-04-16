@@ -158,8 +158,17 @@ function generateExerciseHTML(exercise, count) {
         }
 
         stravaHTML = ""
-        if(exercise.strava_id) {
-            stravaHTML = `<p class="strava-text">Strava session (could be overwritten)</p>`
+        if(exercise.strava_id && exercise.strava_id.length > 0) {
+            stravaHTML += `<div class="strava-stack">`
+            for(var i = 0; i < exercise.strava_id.length; i++) {
+                stravaHTML += `
+                    <p class="strava-text clickable" onclick="window.open('https://www.strava.com/activities/${exercise.strava_id[i]}', '_blank')">
+                        Strava session (${exercise.strava_id[i]})
+                        <img src="/assets/external-link.svg" class="btn_logo" style="width: 1.25em; height: 1.25em; padding: 0; margin: 0.25em 0.5em;">
+                    </p>
+                `;
+            }
+            stravaHTML += `</div>`
         }
 
         exerciseHTML = `
