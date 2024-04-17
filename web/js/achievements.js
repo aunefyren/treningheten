@@ -311,7 +311,7 @@ function GetAchievementImage(achievementID) {
         }
     };
     xhttp.withCredentials = true;
-    xhttp.open("get", api_url + "auth/achievements/" + achievementID + "/image");
+    xhttp.open("get", api_url + "auth/achievements/" + achievementID + "/image?thumbnail=true");
     xhttp.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
     xhttp.setRequestHeader("Authorization", jwt);
     xhttp.send();

@@ -141,11 +141,16 @@ func RemoveIntFromArray(originalArray []int, intToRemove int) []int {
 }
 
 func SetClockToMinimum(pointInTime time.Time) (newPointInTime time.Time) {
-	newPointInTime = time.Date(pointInTime.Year(), pointInTime.Month(), pointInTime.Day(), 0, 0, 0, pointInTime.Nanosecond(), pointInTime.Location())
+	newPointInTime = SetClockToTime(pointInTime, 0, 0, 0)
 	return
 }
 
 func SetClockToMaximum(pointInTime time.Time) (newPointInTime time.Time) {
-	newPointInTime = time.Date(pointInTime.Year(), pointInTime.Month(), pointInTime.Day(), 23, 59, 59, pointInTime.Nanosecond(), pointInTime.Location())
+	newPointInTime = SetClockToTime(pointInTime, 23, 59, 59)
+	return
+}
+
+func SetClockToTime(pointInTime time.Time, hours int, minutes int, seconds int) (newPointInTime time.Time) {
+	newPointInTime = time.Date(pointInTime.Year(), pointInTime.Month(), pointInTime.Day(), hours, minutes, seconds, pointInTime.Nanosecond(), pointInTime.Location())
 	return
 }

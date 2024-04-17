@@ -458,7 +458,7 @@ func APIGetDebt(context *gin.Context) {
 		return
 	}
 
-	debtDateFriday, err := utilities.FindNextSunday(debtObject.Date)
+	debtDateSunday, err := utilities.FindNextSunday(debtObject.Date)
 	if err != nil {
 		log.Println("Failed to find next Sunday. Error: " + err.Error())
 		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to find next Sunday."})
@@ -466,7 +466,7 @@ func APIGetDebt(context *gin.Context) {
 		return
 	}
 
-	lastWeekArray, err := RetrieveWeekResultsFromSeasonWithinTimeframe(debtDateMonday.AddDate(0, 0, -7), debtDateFriday, debtObject.Season)
+	lastWeekArray, err := RetrieveWeekResultsFromSeasonWithinTimeframe(debtDateMonday, debtDateSunday, debtObject.Season)
 	if err != nil {
 		log.Println("Failed to retrieve week for debt. Error: " + err.Error())
 		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to retrieve week for debt."})
