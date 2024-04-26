@@ -885,7 +885,7 @@ function place_current_week(week_array) {
 
         if(!week_array.users[i].full_week_participation && completion < 100) {
             var current_streak = week_array.users[i].current_streak + "🕙"
-        } else if(week_array.users[i].sickleave) {
+        } else if(week_array.users[i].sick_leave) {
             var current_streak = week_array.users[i].current_streak + "🤢"
             transparent = "transparent"
 
