@@ -891,7 +891,7 @@ function place_current_week(week_array) {
 
             document.getElementById("add-exercise-button").style.display = 'none';
 
-            if(week_array.users[i].user.id == user_id){
+            if(week_array.users[i].user_id == user_id){
                 document.getElementById("calendar").classList.add("transparent")
                 document.getElementById("calendar").classList.add("unselectable")
                 document.getElementById("calendar").classList.add("noninteractive")
