@@ -685,49 +685,50 @@ func SendSundayReminders() {
 	now := time.Now()
 
 	// Get current season
-	season, seasonFound, err := GetOngoingSeasonFromDB(now)
+	seasons, err := GetOngoingSeasonsFromDB(now)
 	if err != nil {
 		log.Println("Failed to verify current season status. Returning. Error: " + err.Error())
 		return
-	} else if !seasonFound {
+	} else if len(seasons) == 0 {
 		log.Println("Failed to verify current season status. Returning. Error: No active or future seasons found.")
 		return
 	}
 
-	if season.Start.After(now) || season.End.Before(now) {
-		log.Println("Not in the middle of a season. Returning.")
-		return
-	}
-
-	usersWithAlerts, err := database.GetAllUsersWithSundayAlertsEnabled()
-	if err != nil {
-		log.Println("Failed to get users with alerts enabled. Returning. Error: " + err.Error())
-		return
-	}
-
-	usersToAlert := []models.User{}
-
-	for _, user := range usersWithAlerts {
-
-		goalStatus, _, err := database.VerifyUserGoalInSeason(user.ID, season.ID)
-		if err != nil {
-			log.Println("Failed to verify user '" + user.ID.String() + "'. Skipping.")
-		} else if goalStatus {
-			usersToAlert = append(usersToAlert, user)
+	for _, season := range seasons {
+		if season.Start.After(now) || season.End.Before(now) {
+			log.Println("Not in the middle of a season. Returning.")
+			return
 		}
 
-	}
+		usersWithAlerts, err := database.GetAllUsersWithSundayAlertsEnabled()
+		if err != nil {
+			log.Println("Failed to get users with alerts enabled. Returning. Error: " + err.Error())
+			return
+		}
 
-	for _, user := range usersToAlert {
-		utilities.SendSMTPSundayReminderEmail(user, season, time.Now())
-	}
+		usersToAlert := []models.User{}
 
-	// Send push notifications
-	err = PushNotificationsForSundayAlerts()
-	if err != nil {
-		log.Println("Failed to send push notifications for Sunday reminders.")
-	}
+		for _, user := range usersWithAlerts {
 
+			goalStatus, _, err := database.VerifyUserGoalInSeason(user.ID, season.ID)
+			if err != nil {
+				log.Println("Failed to verify user '" + user.ID.String() + "'. Skipping.")
+			} else if goalStatus {
+				usersToAlert = append(usersToAlert, user)
+			}
+
+		}
+
+		for _, user := range usersToAlert {
+			utilities.SendSMTPSundayReminderEmail(user, season, time.Now())
+		}
+
+		// Send push notifications
+		err = PushNotificationsForSundayAlerts()
+		if err != nil {
+			log.Println("Failed to send push notifications for Sunday reminders.")
+		}
+	}
 }
 
 func APISetStravaCode(context *gin.Context) {
@@ -757,23 +758,23 @@ func APISetStravaCode(context *gin.Context) {
 		return
 	}
 
-	season, seasonFound, err := GetOngoingSeasonFromDB(time.Now())
-	if err != nil {
-		log.Println("Failed to get ongoing season. Error: " + err.Error())
-		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get ongoing season."})
-		context.Abort()
-		return
-	} else if !seasonFound {
-		context.JSON(http.StatusBadRequest, gin.H{"error": "No ongoing season for user."})
-		context.Abort()
-		return
-	}
-
 	// Get user ID
 	userID, err := middlewares.GetAuthUsername(context.GetHeader("Authorization"))
 	if err != nil {
 		log.Println("Failed to get user ID. Error: " + err.Error())
 		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get user ID."})
+		context.Abort()
+		return
+	}
+
+	seasons, err := GetOngoingSeasonsFromDBForUserID(time.Now(), user.ID)
+	if err != nil {
+		log.Println("Failed to get ongoing season. Error: " + err.Error())
+		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get ongoing seasons."})
+		context.Abort()
+		return
+	} else if len(seasons) == 0 {
+		context.JSON(http.StatusBadRequest, gin.H{"error": "No ongoing seasons for user."})
 		context.Abort()
 		return
 	}
@@ -797,12 +798,14 @@ func APISetStravaCode(context *gin.Context) {
 		return
 	}
 
-	err = StravaSyncWeekForUser(user, *configFile, season)
-	if err != nil {
-		log.Println("Failed to sync Strava for user. Error: " + err.Error())
-		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to sync Strava for user."})
-		context.Abort()
-		return
+	for _, season := range seasons {
+		err = StravaSyncWeekForUser(user, *configFile, season)
+		if err != nil {
+			log.Println("Failed to sync Strava for user. Error: " + err.Error())
+			context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to sync Strava for user."})
+			context.Abort()
+			return
+		}
 	}
 
 	context.JSON(http.StatusOK, gin.H{"message": "Code updated!"})
@@ -826,23 +829,23 @@ func APISyncStravaForUser(context *gin.Context) {
 		return
 	}
 
-	season, seasonFound, err := GetOngoingSeasonFromDB(time.Now())
-	if err != nil {
-		log.Println("Failed to get ongoing season. Error: " + err.Error())
-		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get ongoing season."})
-		context.Abort()
-		return
-	} else if !seasonFound {
-		context.JSON(http.StatusBadRequest, gin.H{"error": "No ongoing season for user."})
-		context.Abort()
-		return
-	}
-
 	// Get user ID
 	userID, err := middlewares.GetAuthUsername(context.GetHeader("Authorization"))
 	if err != nil {
 		log.Println("Failed to get user ID. Error: " + err.Error())
 		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get user ID."})
+		context.Abort()
+		return
+	}
+
+	seasons, err := GetOngoingSeasonsFromDBForUserID(time.Now(), userID)
+	if err != nil {
+		log.Println("Failed to get ongoing seasons. Error: " + err.Error())
+		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get ongoing seasons."})
+		context.Abort()
+		return
+	} else if len(seasons) == 0 {
+		context.JSON(http.StatusBadRequest, gin.H{"error": "No ongoing seasons for user."})
 		context.Abort()
 		return
 	}
@@ -861,12 +864,14 @@ func APISyncStravaForUser(context *gin.Context) {
 		return
 	}
 
-	err = StravaSyncWeekForUser(user, *configFile, season)
-	if err != nil {
-		log.Println("Failed to sync Strava for user. Error: " + err.Error())
-		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to sync Strava for user."})
-		context.Abort()
-		return
+	for _, season := range seasons {
+		err = StravaSyncWeekForUser(user, *configFile, season)
+		if err != nil {
+			log.Println("Failed to sync Strava for user. Error: " + err.Error())
+			context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to sync Strava for user."})
+			context.Abort()
+			return
+		}
 	}
 
 	context.JSON(http.StatusOK, gin.H{"message": "Strava sync started!"})

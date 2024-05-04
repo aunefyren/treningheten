@@ -236,13 +236,13 @@ func initRouter() *gin.Engine {
 
 			auth.GET("/seasons", controllers.APIGetSeasons)
 			auth.GET("/seasons/:season_id", controllers.APIGetSeason)
-			auth.GET("/seasons/:season_id/leaderboard/", controllers.APIGetSeasonWeeks)
-			auth.GET("/seasons/:season_id/leaderboard-personal", controllers.APIGetSeasonWeeksPersonal)
-			auth.GET("/seasons/getongoing", controllers.APIGetOngoingSeason)
-			auth.GET("/seasons/leaderboard", controllers.APIGetCurrentSeasonLeaderboard)
+			auth.GET("/seasons/:season_id/weeks/", controllers.APIGetSeasonWeeks)
+			auth.GET("/seasons/:season_id/weeks-personal", controllers.APIGetSeasonWeeksPersonal)
+			auth.GET("/seasons/get-on-going", controllers.APIGetOngoingSeasons)
+			auth.GET("/seasons/:season_id/leaderboard", controllers.APIGetCurrentSeasonLeaderboard)
 
 			auth.POST("/goals", controllers.APIRegisterGoalToSeason)
-			auth.DELETE("/goals", controllers.APIDeleteGoalToSeason)
+			auth.DELETE("/goals/:goal_id", controllers.APIDeleteGoalToSeason)
 			auth.GET("/goals", controllers.APIGetGoals)
 
 			auth.GET("/exercise-days", controllers.APIGetExerciseDays)
@@ -268,7 +268,7 @@ func initRouter() *gin.Engine {
 			auth.PUT("/operation-sets/:operation_set_id", controllers.APIUpdateOperationSet)
 			auth.DELETE("/operation-sets/:operation_set_id", controllers.APIDeleteOperationSet)
 
-			auth.POST("/sickleave", controllers.APIRegisterSickleave)
+			auth.POST("/sickleave/:season_id", controllers.APIRegisterSickleave)
 
 			auth.GET("/news", controllers.GetNews)
 			auth.GET("/news/:news_id", controllers.GetNewsPost)

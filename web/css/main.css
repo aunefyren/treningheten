@@ -126,7 +126,7 @@
     flex-direction:column;
     min-width:0;
     word-wrap:break-word;
-    background-color: var(--eggshell);
+    background-color: var(--trans-lightblue);
     background-clip:border-box;
     margin-bottom: 25%;
     border-radius: 1em;
@@ -140,10 +140,8 @@
   .card-header{
     padding:.75rem 1.25rem;
     margin-bottom:0;
-    background-color:var(--grey);
-    border-bottom:1px solid rgba(0,0,0,.125);
-    border-top: 0.2em solid var(--grey);
-    border-bottom: 0.2em solid var(--grey);
+    background-color:var(--trans-lightblue);
+    border: 0.2em solid var(--lightblue);
     text-align: center;
     font-size: 0.8em;
     font-weight:200;
@@ -196,7 +194,7 @@
   .alert-danger{color:var(--red);background-color:var(--red-error);border-color:var(--red-error-border)}
   
   .navbar {
-    background-color: var(--eggshell);
+    background-color: var(--trans-lightblue);
     overflow: hidden;
     top: 0;
     width: 100%;
@@ -205,7 +203,8 @@
     display: block;
     text-align: center;
     z-index: 9;
-    box-shadow: 0 2px 4px 0 rgba(0, 0, 0, 0.2), 0 3px 10px 0 rgba(0, 0, 0, 0.19);
+    /*box-shadow: 0 2px 4px 0 rgba(0, 0, 0, 0.2), 0 3px 10px 0 rgba(0, 0, 0, 0.19);*/
+    border-bottom: var(--lightblue) 0.1em solid;
   }
   
   .nav-item {
@@ -244,13 +243,13 @@
   }
   
   .nav-item:hover, .nav-title:hover{
-    background-color: var(--eggshell);
+    background-color: var(--mediumblue);
     color: var(--black);
     text-decoration: none;
   }
   
   .nav-item:active {
-    background-color: var(--lightblue);
+    background-color: var(--darkblue);
     color: var(--black);
   }
   
@@ -360,6 +359,7 @@ button {
   border-radius: 5px; 
   border: none;
   background: var(--lightblue); 
+  border: solid 0.15em var(--mediumblue);
   font-size: 1em;
   font-weight: 600;
   color: var(--white);
@@ -1077,7 +1077,7 @@ input[type=checkbox]
   width: -webkit-fill-available;
   width: -moz-available;
   height: auto;
-  max-height: 58em;
+  max-height: 45em;
   overflow-y: auto;
 }
 
@@ -1731,6 +1731,7 @@ input[type=checkbox]
   margin-left: auto; 
   margin-right: auto; 
   width: 100%; /* Need a specific value to work */
+  color: var(--black);
 }
 
 .button-collection {
@@ -1862,7 +1863,7 @@ input[type=checkbox]
   border-radius: 0.5em 0.5em 0 0;
   box-sizing: content-box;
   overflow: hidden;
-  background-color: var(--white);
+  background-color: var(--grey);
   /*box-shadow: 0.1em 0.2em 0.5em rgba(0,0,0,.09);*/
   position: relative;
   box-sizing: border-box;
@@ -1872,7 +1873,7 @@ input[type=checkbox]
 .season-progress-bar, .week-progress-bar {
   height: 2em;
   width: 0;
-  background-color: var(--trans-lightblue);
+  background-color: var(--lightblue);
   box-sizing: inherit;
   overflow: hidden;
   transition: 2s;

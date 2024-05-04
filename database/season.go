@@ -2,7 +2,6 @@ package database
 
 import (
 	"aunefyren/treningheten/models"
-	"errors"
 
 	"github.com/google/uuid"
 )
@@ -31,15 +30,15 @@ func GetAllEnabledSeasons() ([]models.Season, error) {
 }
 
 // Get season by ID
-func GetSeasonByID(seasonID uuid.UUID) (models.Season, error) {
+func GetSeasonByID(seasonID uuid.UUID) (*models.Season, error) {
 	var season models.Season
 	seasonrecord := Instance.Where("`seasons`.enabled = ?", 1).Where("`seasons`.ID = ?", seasonID).Find(&season)
 	if seasonrecord.Error != nil {
-		return models.Season{}, seasonrecord.Error
+		return nil, seasonrecord.Error
 	} else if seasonrecord.RowsAffected != 1 {
-		return models.Season{}, errors.New("Failed to find season.")
+		return nil, nil
 	}
-	return season, nil
+	return &season, nil
 }
 
 // Create new season

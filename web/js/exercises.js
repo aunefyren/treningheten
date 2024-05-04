@@ -324,7 +324,7 @@ function place_exercises(exercise_array, goalID) {
                     <div class="exercise-week">
                         <b>Week: ${week}</b>
                     </div>
-                    <div id="exercises-${exercise_array[i].goal.id}-${week}-${year}" class="exercises-group">
+                    <div id="exercises-${goalID}-${week}-${year}" class="exercises-group">
                     </div>
                 `;
         }
@@ -335,8 +335,8 @@ function place_exercises(exercise_array, goalID) {
 
         `;
 
-        document.getElementById("goal-leaderboard-" + exercise_array[i].goal.id).innerHTML += html
-        document.getElementById("goal-leaderboard-" + exercise_array[i].goal.id).style.margin = "1em 0"
+        document.getElementById("goal-leaderboard-" + goalID).innerHTML += html
+        document.getElementById("goal-leaderboard-" + goalID).style.margin = "1em 0"
 
         lastWeek = week;
 
@@ -404,8 +404,8 @@ function place_exercises(exercise_array, goalID) {
             </div>
         `;
 
-        var oldHTML = document.getElementById(`exercises-${exercise_array[i].goal.id}-${week}-${year}`).innerHTML
-        document.getElementById(`exercises-${exercise_array[i].goal.id}-${week}-${year}`).innerHTML = html + oldHTML
+        var oldHTML = document.getElementById(`exercises-${goalID}-${week}-${year}`).innerHTML
+        document.getElementById(`exercises-${goalID}-${week}-${year}`).innerHTML = html + oldHTML
 
         exerciseFound = true;
 

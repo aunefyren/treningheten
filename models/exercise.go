@@ -8,11 +8,13 @@ import (
 
 type ExerciseDay struct {
 	GormModel
-	Date    time.Time `json:"date" gorm:"not null"`
-	Note    string    `json:"note"`
-	Enabled bool      `json:"enabled" gorm:"not null; default: true"`
-	GoalID  uuid.UUID `json:"" gorm:"type:varchar(100);"`
-	Goal    Goal      `json:"goal" gorm:"not null"`
+	Date    time.Time  `json:"date" gorm:"not null"`
+	Note    string     `json:"note"`
+	Enabled bool       `json:"enabled" gorm:"not null; default: true"`
+	GoalID  *uuid.UUID `json:"" gorm:"type:varchar(100);"`
+	Goal    *Goal      `json:"goal" gorm:""`
+	UserID  *uuid.UUID `json:"" gorm:"type:varchar(100);"`
+	User    *User      `json:"user" gorm:"not null"`
 }
 
 type ExerciseDayObject struct {
@@ -20,7 +22,8 @@ type ExerciseDayObject struct {
 	Date             time.Time        `json:"date"`
 	Note             string           `json:"note"`
 	Enabled          bool             `json:"enabled"`
-	Goal             GoalObject       `json:"goal"`
+	Goal             *GoalObject      `json:"goal"`
+	User             User             `json:"user"`
 	ExerciseInterval int              `json:"exercise_interval"`
 	Exercises        []ExerciseObject `json:"exercises"`
 }
@@ -71,7 +74,8 @@ type ExerciseDayCreationRequest struct {
 }
 
 type Week struct {
-	Days []ExerciseDayObject `json:"days"`
+	Days  []ExerciseDayObject `json:"days"`
+	Goals []Goal              `json:"goals"`
 }
 
 type WeekCreationRequest struct {
@@ -90,13 +94,13 @@ type WeekFrequency struct {
 }
 
 type WeekResult struct {
-	WeekNumber            int        `json:"week_number"`
-	WeekYear              int        `json:"week_year"`
-	WeekDate              time.Time  `json:"week_date"`
-	UserID                uuid.UUID  `json:"user_id"`
-	GoalID                uuid.UUID  `json:"goal_id"`
-	DebtID                *uuid.UUID `json:"debt_id"`
-	ExercisePercentage    float64    `json:"exercise_percentage"`
-	SickLeave             bool       `json:"sick_leave"`
-	FullWeekParticipation bool       `json:"full_week_participation"`
+	WeekNumber            int         `json:"week_number"`
+	WeekYear              int         `json:"week_year"`
+	WeekDate              time.Time   `json:"week_date"`
+	UserID                uuid.UUID   `json:"user_id"`
+	Goals                 []uuid.UUID `json:"goals"`
+	DebtID                *uuid.UUID  `json:"debt_id"`
+	ExercisePercentage    float64     `json:"exercise_percentage"`
+	SickLeave             bool        `json:"sick_leave"`
+	FullWeekParticipation bool        `json:"full_week_participation"`
 }

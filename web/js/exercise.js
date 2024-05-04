@@ -121,7 +121,7 @@ function placeExerciseDay(exerciseDay) {
     }
 
     document.getElementById('exercise-day-date').innerHTML = "<b>Date: " + dateString + "</b>";
-    document.getElementById('exercise-day-exercise-goal').innerHTML = "Exercise goal for week: " + exerciseDay.goal.exercise_interval;
+    //document.getElementById('exercise-day-exercise-goal').innerHTML = "Exercise goal for week: " + exerciseDay.goal.exercise_interval;
     document.getElementById('exercise-day-note').innerHTML = exerciseDay.note;
 
     placeExercises(exerciseDay.exercises);

@@ -16,21 +16,24 @@ import (
 )
 
 // GetOngoingSeason retrieves the currently active season, or the next upcoming.
-func APIGetOngoingSeason(context *gin.Context) {
-
-	// Verify user membership to group
-	season, seasonFound, err := GetOngoingSeasonFromDB(time.Now())
+func APIGetOngoingSeasons(context *gin.Context) {
+	// Get user ID
+	userID, err := middlewares.GetAuthUsername(context.GetHeader("Authorization"))
 	if err != nil {
 		context.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		context.Abort()
 		return
-	} else if !seasonFound {
-		context.JSON(http.StatusBadRequest, gin.H{"error": "No active or future seasons found."})
+	}
+
+	// Verify user membership to group
+	seasons, err := GetOngoingSeasonsFromDBForUserID(time.Now(), userID)
+	if err != nil {
+		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get ongoing seasons for user."})
 		context.Abort()
 		return
 	}
 
-	seasonObject, err := ConvertSeasonToSeasonObject(season)
+	seasonObjects, err := ConvertSeasonsToSeasonObjects(seasons)
 	if err != nil {
 		log.Println("Failed to convert season to season object. Error: " + err.Error())
 		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to convert season to season object."})
@@ -39,8 +42,12 @@ func APIGetOngoingSeason(context *gin.Context) {
 	}
 
 	// Censor goals
-	for i := 0; i < len(seasonObject.Goals); i++ {
-		seasonObject.Goals[i].ExerciseInterval = 0
+	for i := 0; i < len(seasonObjects); i++ {
+		for j := 0; j < len(seasonObjects[i].Goals); j++ {
+			if seasonObjects[i].Goals[j].User.ID != userID {
+				seasonObjects[i].Goals[j].ExerciseInterval = 0
+			}
+		}
 	}
 
 	// Get configuration
@@ -53,49 +60,57 @@ func APIGetOngoingSeason(context *gin.Context) {
 	}
 
 	// Return group with owner and success message
-	context.JSON(http.StatusOK, gin.H{"season": seasonObject, "message": "Season retrieved.", "timezone": config.Timezone})
+	context.JSON(http.StatusOK, gin.H{"seasons": seasonObjects, "message": "Seasons retrieved.", "timezone": config.Timezone})
 }
 
-func GetOngoingSeasonFromDB(givenTime time.Time) (models.Season, bool, error) {
-
-	current_time := givenTime
-	chosen_season := models.Season{}
-	change := false
+func GetOngoingSeasonsFromDB(givenTime time.Time) (currentSeasons []models.Season, err error) {
+	currentTime := givenTime
+	currentSeasons = []models.Season{}
 
 	seasons, err := database.GetAllEnabledSeasons()
 	if err != nil {
-		return models.Season{}, false, err
-	}
-
-	if len(seasons) == 0 {
-		return models.Season{}, false, nil
+		return
 	}
 
 	for _, season := range seasons {
-
-		if season.Start.Before(current_time) && season.End.After(current_time) {
-			chosen_season = season
-			change = true
-			break
+		if season.End.After(currentTime) && season.Start.Before(currentTime) {
+			currentSeasons = append(currentSeasons, season)
 		}
-
-		if season.Start.After(current_time) && (season.Start.Before(chosen_season.Start) || !change) {
-			chosen_season = season
-			change = true
-		}
-
 	}
 
-	if !change {
-		return models.Season{}, false, nil
+	return
+}
+
+func GetOngoingSeasonsFromDBForUserID(givenTime time.Time, userID uuid.UUID) (currentSeasons []models.Season, err error) {
+	currentTime := givenTime
+	currentSeasons = []models.Season{}
+	tempSeasons := []models.Season{}
+
+	seasons, err := database.GetAllEnabledSeasons()
+	if err != nil {
+		return
 	}
 
-	return chosen_season, true, nil
+	for _, season := range seasons {
+		if season.End.After(currentTime) && season.Start.Before(currentTime) {
+			tempSeasons = append(tempSeasons, season)
+		}
+	}
 
+	for _, season := range tempSeasons {
+		goalFound, _, err := database.VerifyUserGoalInSeason(userID, season.ID)
+		if err != nil {
+			log.Println("Failed to verify if goal in season. Skipping...")
+			continue
+		} else if goalFound {
+			currentSeasons = append(currentSeasons, season)
+		}
+	}
+
+	return
 }
 
 func ConvertSeasonToSeasonObject(season models.Season) (models.SeasonObject, error) {
-
 	seasonObject := models.SeasonObject{
 		Goals: []models.GoalObject{},
 	}
@@ -139,7 +154,22 @@ func ConvertSeasonToSeasonObject(season models.Season) (models.SeasonObject, err
 	seasonObject.JoinAnytime = season.JoinAnytime
 
 	return seasonObject, nil
+}
 
+func ConvertSeasonsToSeasonObjects(seasons []models.Season) (seasonObjects []models.SeasonObject, err error) {
+	err = nil
+	seasonObjects = []models.SeasonObject{}
+
+	for _, season := range seasons {
+		seasonObject, err := ConvertSeasonToSeasonObject(season)
+		if err != nil {
+			log.Println("Failed to convert season to season object. Returning. Error: " + err.Error())
+			return []models.SeasonObject{}, err
+		}
+		seasonObjects = append(seasonObjects, seasonObject)
+	}
+
+	return
 }
 
 func APIRegisterSeason(context *gin.Context) {
@@ -199,23 +229,6 @@ func APIRegisterSeason(context *gin.Context) {
 		return
 	}
 
-	// Verify season overlap
-	seasonOnGoing, seasonFound, err := GetOngoingSeasonFromDB(season.Start)
-	if err != nil {
-		log.Println("Failed to check season. Error: " + err.Error())
-		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to check season."})
-		context.Abort()
-		return
-	} else if season.Start.After(seasonOnGoing.Start) && season.Start.Before(seasonOnGoing.End) && seasonFound {
-		context.JSON(http.StatusBadRequest, gin.H{"error": "Season starts within season '" + seasonOnGoing.Name + "'."})
-		context.Abort()
-		return
-	} else if season.End.After(seasonOnGoing.Start) && season.End.Before(seasonOnGoing.End) && seasonFound {
-		context.JSON(http.StatusBadRequest, gin.H{"error": "Season ends within season '" + seasonOnGoing.Name + "'."})
-		context.Abort()
-		return
-	}
-
 	// Verify unique season name
 	uniqueSeasonName, err := database.VerifyUniqueSeasonName(season.Name)
 	if err != nil {
@@ -270,24 +283,33 @@ func compareTimes(t1, t2 time.Time) int {
 
 // Get current leaderboard from ongoing season
 func APIGetCurrentSeasonLeaderboard(context *gin.Context) {
+	// Create user request
+	var seasonID = context.Param("season_id")
+	seasonIDParsed, err := uuid.Parse(seasonID)
+	if err != nil {
+		log.Println("Failed to parse season ID. Error: " + err.Error())
+		context.JSON(http.StatusBadRequest, gin.H{"error": "Failed to parse season ID."})
+		context.Abort()
+		return
+	}
 
 	// Get current time
 	now := time.Now()
 
 	// Verify user membership to group
-	season, seasonFound, err := GetOngoingSeasonFromDB(now)
+	season, err := database.GetSeasonByID(seasonIDParsed)
 	if err != nil {
 		log.Println("Failed to check ongoing season. Error: " + err.Error())
 		context.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		context.Abort()
 		return
-	} else if !seasonFound {
-		context.JSON(http.StatusBadRequest, gin.H{"error": "No active or future seasons found."})
+	} else if season == nil {
+		context.JSON(http.StatusBadRequest, gin.H{"error": "Season not found."})
 		context.Abort()
 		return
 	}
 
-	seasonObject, err := ConvertSeasonToSeasonObject(season)
+	seasonObject, err := ConvertSeasonToSeasonObject(*season)
 	if err != nil {
 		context.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		context.Abort()
@@ -309,10 +331,15 @@ func APIGetCurrentSeasonLeaderboard(context *gin.Context) {
 		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to verify goal status."})
 		context.Abort()
 		return
+	} else if goal == nil {
+		log.Println("Failed to get goal status. Error: " + err.Error())
+		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get goal status."})
+		context.Abort()
+		return
 	}
 
 	// Convert goal to GoalObject
-	goalObject, err := ConvertGoalToGoalObject(goal)
+	goalObject, err := ConvertGoalToGoalObject(*goal)
 	if err != nil {
 		log.Println("Failed to verify goal status. Error: " + err.Error())
 		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to verify goal status."})
@@ -573,9 +600,14 @@ func APIGetSeason(context *gin.Context) {
 		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get season from database."})
 		context.Abort()
 		return
+	} else if season == nil {
+		log.Println("Failed to find season. Error: " + err.Error())
+		context.JSON(http.StatusBadRequest, gin.H{"error": "Failed to find season."})
+		context.Abort()
+		return
 	}
 
-	seasonObject, err := ConvertSeasonToSeasonObject(season)
+	seasonObject, err := ConvertSeasonToSeasonObject(*season)
 	if err != nil {
 		log.Println("Failed process season. Error: " + err.Error())
 		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed process season."})
@@ -613,9 +645,14 @@ func APIGetSeasonWeeks(context *gin.Context) {
 		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get season from database."})
 		context.Abort()
 		return
+	} else if season == nil {
+		log.Println("Failed to find season. Error: " + err.Error())
+		context.JSON(http.StatusBadRequest, gin.H{"error": "Failed to find season."})
+		context.Abort()
+		return
 	}
 
-	seasonObject, err := ConvertSeasonToSeasonObject(season)
+	seasonObject, err := ConvertSeasonToSeasonObject(*season)
 	if err != nil {
 		log.Println("Failed process season. Error: " + err.Error())
 		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed process season."})
@@ -670,9 +707,14 @@ func APIGetSeasonWeeksPersonal(context *gin.Context) {
 		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get season from database."})
 		context.Abort()
 		return
+	} else if season == nil {
+		log.Println("Failed to find season. Error: " + err.Error())
+		context.JSON(http.StatusBadRequest, gin.H{"error": "Failed to find season."})
+		context.Abort()
+		return
 	}
 
-	seasonObject, err := ConvertSeasonToSeasonObject(season)
+	seasonObject, err := ConvertSeasonToSeasonObject(*season)
 	if err != nil {
 		log.Println("Failed process season. Error: " + err.Error())
 		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed process season."})

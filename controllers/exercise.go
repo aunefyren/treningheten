@@ -40,20 +40,6 @@ func APIRegisterWeek(context *gin.Context) {
 		return
 	}
 
-	// Get current season
-	season, seasonFound, err := GetOngoingSeasonFromDB(time.Now())
-	if err != nil {
-		log.Println("Failed to verify current season status. Error: " + err.Error())
-		context.JSON(http.StatusBadRequest, gin.H{"error": "Failed to verify current season status."})
-		context.Abort()
-		return
-	} else if !seasonFound {
-		log.Println("Failed to verify current season status. Error: No active or future seasons found.")
-		context.JSON(http.StatusBadRequest, gin.H{"error": "Failed to verify current season status."})
-		context.Abort()
-		return
-	}
-
 	requestLocation, err := time.LoadLocation(week.TimeZone)
 	if err != nil {
 		log.Println("Failed to parse time zone. Error: " + err.Error())
@@ -65,40 +51,6 @@ func APIRegisterWeek(context *gin.Context) {
 	// Current time
 	now := time.Now()
 	isoYear, isoWeek := now.ISOWeek()
-
-	// Check if within season
-	if now.Before(season.Start) || now.After(season.End) {
-		context.JSON(http.StatusBadRequest, gin.H{"error": "Season has not started yet."})
-		context.Abort()
-		return
-	}
-
-	// Verify goal doesn't exist within season
-	goalStatus, goalID, err := database.VerifyUserGoalInSeason(userID, season.ID)
-	if err != nil {
-		log.Println("Failed to verify goal status. Error: " + err.Error())
-		context.JSON(http.StatusBadRequest, gin.H{"error": "Failed to verify goal status."})
-		context.Abort()
-		return
-	} else if !goalStatus {
-		log.Println("User does not have a goal for season: " + season.ID.String())
-		context.JSON(http.StatusBadRequest, gin.H{"error": "You don't have a goal set for this season."})
-		context.Abort()
-		return
-	}
-
-	// Check if week is sickleave
-	sickLeave, err := database.GetUsedSickleaveForGoalWithinWeek(now, goalID)
-	if err != nil {
-		log.Println("Failed to verify sickleave. Error: " + err.Error())
-		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to verify sickleave."})
-		context.Abort()
-		return
-	} else if sickLeave != nil && sickLeave.Used {
-		context.JSON(http.StatusBadRequest, gin.H{"error": "This week is marked as sickleave."})
-		context.Abort()
-		return
-	}
 
 	// Check if any debt is unspun
 	_, debtsFound, err := database.GetUnchosenDebtForUserByUserID(userID)
@@ -190,7 +142,7 @@ func APIRegisterWeek(context *gin.Context) {
 	// Process each day for database
 	for _, day := range week.Days {
 
-		exerciseDayDB, err := database.GetExerciseDayByGoalAndDate(goalID, day.Date)
+		exerciseDayDB, err := database.GetExerciseDayByUserIDAndDate(userID, day.Date)
 		if err != nil {
 			log.Println("Failed to verify exercise status. Error: " + err.Error())
 			context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to verify exercise status."})
@@ -247,7 +199,7 @@ func APIRegisterWeek(context *gin.Context) {
 			exerciseDay := models.ExerciseDay{
 				Date:   time.Date(day.Date.Year(), day.Date.Month(), day.Date.Day(), 00, 00, 00, 00, requestLocation),
 				Note:   day.Note,
-				GoalID: goalID,
+				UserID: &userID,
 			}
 			exerciseDay.ID = uuid.New()
 
@@ -277,7 +229,7 @@ func APIRegisterWeek(context *gin.Context) {
 	}
 
 	// Get week for goal using current time
-	weekReturn, err := GetExerciseDaysForWeekUsingGoal(now, goalID)
+	weekReturn, err := GetExerciseDaysForWeekUsingUserID(now, userID)
 	if err != nil {
 		log.Println("Failed to get calendar. Error: " + err.Error())
 		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get calender."})
@@ -301,49 +253,14 @@ func APIGetWeek(context *gin.Context) {
 		return
 	}
 
-	// Get current season
-	season, seasonFound, err := GetOngoingSeasonFromDB(time.Now())
-	if err != nil {
-		log.Println("Failed to verify current season status. Error: " + err.Error())
-		context.JSON(http.StatusBadRequest, gin.H{"error": "Failed to verify current season status."})
-		context.Abort()
-		return
-	} else if !seasonFound {
-		log.Println("Failed to verify current season status. Error: No active or future seasons found.")
-		context.JSON(http.StatusBadRequest, gin.H{"error": "Failed to verify current season status."})
-		context.Abort()
-		return
-	}
-
 	// Current time
 	now := time.Now()
 
-	// Check if within season
-	if now.Before(season.Start) || now.After(season.End) {
-		context.JSON(http.StatusBadRequest, gin.H{"error": "Season has not started yet."})
-		context.Abort()
-		return
-	}
-
-	// Verify goal doesn't exist within season
-	goalStatus, goalID, err := database.VerifyUserGoalInSeason(userID, season.ID)
-	if err != nil {
-		log.Println("Failed to verify goal status. Error: " + err.Error())
-		context.JSON(http.StatusBadRequest, gin.H{"error": "Failed to verify goal status."})
-		context.Abort()
-		return
-	} else if !goalStatus {
-		log.Println("User does not have a goal for season: " + season.ID.String())
-		context.JSON(http.StatusBadRequest, gin.H{"error": "You don't have a goal set for this season."})
-		context.Abort()
-		return
-	}
-
 	// Get week for goal using current time
-	week, err := GetExerciseDaysForWeekUsingGoal(now, goalID)
+	week, err := GetExerciseDaysForWeekUsingUserID(now, userID)
 	if err != nil {
 		log.Println("Failed to get calendar. Error: " + err.Error())
-		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get calender."})
+		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get calendar."})
 		context.Abort()
 		return
 	}
@@ -353,7 +270,6 @@ func APIGetWeek(context *gin.Context) {
 }
 
 func GetExerciseDaysForWeekUsingGoal(timeReq time.Time, goalID uuid.UUID) (models.Week, error) {
-
 	week := models.Week{}
 	var startTime time.Time
 	startTimeWeek := 0
@@ -423,11 +339,92 @@ func GetExerciseDaysForWeekUsingGoal(timeReq time.Time, goalID uuid.UUID) (model
 	}
 
 	return week, nil
+}
 
+func GetExerciseDaysForWeekUsingUserID(timeReq time.Time, userID uuid.UUID) (models.Week, error) {
+	week := models.Week{}
+	var startTime time.Time
+	startTimeWeek := 0
+	var endTime time.Time
+	endTimeWeek := 0
+	_, timeReqWeek := timeReq.ISOWeek()
+
+	// Find monday
+	startTime, err := utilities.FindEarlierMonday(timeReq)
+	if err != nil {
+		log.Println("Failed to find earlier Monday for date. Error: " + err.Error())
+		return models.Week{}, errors.New("Failed to find earlier Monday for date.")
+	}
+	_, startTimeWeek = startTime.ISOWeek()
+
+	// Find sunday
+	endTime, err = utilities.FindNextSunday(timeReq)
+	if err != nil {
+		log.Println("Failed to find next Sunday for date. Error: " + err.Error())
+		return models.Week{}, errors.New("Failed to find next Sunday for date.")
+	}
+	_, endTimeWeek = endTime.ISOWeek()
+
+	// Verify all dates are the same week
+	if timeReqWeek != startTimeWeek || timeReqWeek != endTimeWeek {
+		log.Println("Required time week: " + strconv.Itoa(timeReqWeek))
+		log.Println("Start time week: " + strconv.Itoa(startTimeWeek))
+		log.Println("End time week: " + strconv.Itoa(endTimeWeek))
+		return models.Week{}, errors.New("Managed to find dates outside of chosen week.")
+	}
+
+	exercises, err := database.GetExerciseDaysBetweenDatesUsingDatesAndUserID(userID, startTime, endTime)
+	if err != nil {
+		return models.Week{}, err
+	}
+
+	for i := 0; i < 7; i++ {
+
+		currentDate := startTime.AddDate(0, 0, i)
+		added := false
+
+		for _, exercise := range exercises {
+
+			if currentDate.Format("2006-01-02") == exercise.Date.Format("2006-01-02") {
+
+				exerciseDayObject, err := ConvertExerciseDayToExerciseDayObject(exercise)
+				if err != nil {
+					log.Println("Failed to convert exercise day to exercise day object. Error: " + err.Error())
+					return models.Week{}, errors.New("Failed to convert exercise day to exercise day object.")
+				}
+
+				week.Days = append(week.Days, exerciseDayObject)
+				added = true
+				break
+
+			}
+
+		}
+
+		if !added {
+			newExercise := models.ExerciseDayObject{
+				Date: utilities.SetClockToMinimum(currentDate),
+			}
+			week.Days = append(week.Days, newExercise)
+		}
+
+	}
+
+	week.Goals = []models.Goal{}
+	timeString := utilities.TimeToMySQLTimestamp(timeReq)
+	activeGoals, err := database.GetActiveGoalsForUserIDAndDate(userID, timeString)
+	if err != nil {
+		log.Println("Failed to get active goals. Error: " + err.Error())
+	} else {
+		week.Goals = activeGoals
+	}
+
+	return week, nil
 }
 
 // Get full workout calender for the week from the database, and return to user
 func APIGetExerciseDays(context *gin.Context) {
+	var goalObject *models.GoalObject = nil
 
 	// Get user ID
 	userID, err := middlewares.GetAuthUsername(context.GetHeader("Authorization"))
@@ -458,6 +455,22 @@ func APIGetExerciseDays(context *gin.Context) {
 			return
 		}
 
+		goalTMP, err := database.GetGoalUsingGoalID(goalID)
+		if err != nil {
+			log.Println("Failed to get goal. Error: " + err.Error())
+			context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get goal."})
+			context.Abort()
+			return
+		} else if goalTMP == nil {
+			context.JSON(http.StatusBadRequest, gin.H{"error": "Failed to find goal."})
+			context.Abort()
+			return
+		} else if goalTMP.UserID != userID {
+			context.JSON(http.StatusUnauthorized, gin.H{"error": "Not your goal."})
+			context.Abort()
+			return
+		}
+
 		// Get exercises from user
 		exerciseDays, err = database.GetExerciseDaysForUserUsingUserIDAndGoalID(userID, goalID)
 		if err != nil {
@@ -466,6 +479,16 @@ func APIGetExerciseDays(context *gin.Context) {
 			context.Abort()
 			return
 		}
+
+		goalObjectTMP, err := ConvertGoalToGoalObject(*goalTMP)
+		if err != nil {
+			log.Println("Failed to convert goal to goal object. Error: " + err.Error())
+			context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to convert goal to goal object."})
+			context.Abort()
+			return
+		}
+
+		goalObject = &goalObjectTMP
 	}
 
 	exerciseDayObjects, err := ConvertExerciseDaysToExerciseDayObjects(exerciseDays)
@@ -476,7 +499,7 @@ func APIGetExerciseDays(context *gin.Context) {
 		return
 	}
 
-	context.JSON(http.StatusOK, gin.H{"message": "Exercise retrieved.", "exercise": exerciseDayObjects})
+	context.JSON(http.StatusOK, gin.H{"message": "Exercise retrieved.", "exercise": exerciseDayObjects, "goal": goalObject})
 }
 
 // Change exercises to correlate with exercise days
@@ -664,19 +687,34 @@ func ConvertExerciseDayToExerciseDayObject(exerciseDay models.ExerciseDay) (exer
 	exerciseDayObject = models.ExerciseDayObject{}
 	err = nil
 
-	goal, err := database.GetGoalUsingGoalID(exerciseDay.GoalID)
-	if err != nil {
-		log.Println("Failed to get goal using goal ID. Error: " + err.Error())
-		return exerciseDayObject, errors.New("Failed to get goal using goal ID.")
+	// Convert to new type of exercise day
+	if exerciseDay.UserID == nil && exerciseDay.GoalID != nil {
+		goal, err := database.GetGoalUsingGoalID(*exerciseDay.GoalID)
+		if err != nil {
+			log.Println("Failed to get goal using goal ID. Error: " + err.Error())
+			return exerciseDayObject, errors.New("Failed to get goal using goal ID.")
+		}
+		exerciseDay.UserID = &goal.UserID
+		exerciseDay, err = database.UpdateExerciseDayInDB(exerciseDay)
+		if err != nil {
+			log.Println("Failed to save new exercise day. Error: " + err.Error())
+			return exerciseDayObject, errors.New("Failed to save new exercise day.")
+		}
+		log.Println("Converted exercise day to new format.")
 	}
 
-	goalObject, err := ConvertGoalToGoalObject(goal)
-	if err != nil {
-		log.Println("Failed to convert goal to goal object. Error: " + err.Error())
-		return exerciseDayObject, errors.New("Failed to convert goal to goal object.")
+	if exerciseDay.UserID == nil {
+		log.Println("Exercise day conversion error.")
+		return exerciseDayObject, errors.New("Exercise day conversion error.")
 	}
 
-	exerciseDayObject.Goal = goalObject
+	user, err := database.GetUserInformation(*exerciseDay.UserID)
+	if err != nil {
+		log.Println("Failed to get user using user ID. Error: " + err.Error())
+		return exerciseDayObject, errors.New("Failed to get user using user ID.")
+	}
+
+	exerciseDayObject.User = user
 
 	exercises, err := database.GetExerciseByExerciseDayID(exerciseDay.ID)
 	if err != nil {

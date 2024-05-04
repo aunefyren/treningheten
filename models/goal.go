@@ -16,8 +16,9 @@ type Goal struct {
 }
 
 type GoalCreationRequest struct {
-	ExerciseInterval int  `json:"exercise_interval"`
-	Competing        bool `json:"competing"`
+	ExerciseInterval int       `json:"exercise_interval"`
+	Competing        bool      `json:"competing"`
+	SeasonID         uuid.UUID `json:"season_id"`
 }
 
 type GoalObject struct {

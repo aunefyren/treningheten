@@ -135,7 +135,7 @@ function getSeason(userID){
         }
     };
     xhttp.withCredentials = true;
-    xhttp.open("get", api_url + "auth/seasons/getongoing");
+    xhttp.open("get", api_url + "auth/seasons/get-on-going");
     xhttp.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
     xhttp.setRequestHeader("Authorization", jwt);
     xhttp.send();

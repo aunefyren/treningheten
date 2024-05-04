@@ -196,27 +196,29 @@ func StravaSyncWeekForAllUsers() {
 
 	now := time.Now()
 
-	season, seasonFound, err := GetOngoingSeasonFromDB(now)
+	seasons, err := GetOngoingSeasonsFromDB(now)
 	if err != nil {
 		log.Println("Failed to check for ongoing season.")
 		return
-	} else if !seasonFound {
+	} else if len(seasons) == 0 {
 		log.Println("No ongoing season found.")
 		return
 	}
 
-	users, err := database.GetStravaUsersWithinSeason(season.ID)
-	if err != nil {
-		log.Println("Failed to get Strava users.")
-		return
-	}
-
-	log.Println("Got '" + strconv.Itoa(len(users)) + "' users.")
-
-	for _, user := range users {
-		err = StravaSyncWeekForUser(user, *configFile, season)
+	for _, season := range seasons {
+		users, err := database.GetStravaUsersWithinSeason(season.ID)
 		if err != nil {
-			log.Println("Sync Strava for user returned error. Error: " + err.Error())
+			log.Println("Failed to get Strava users.")
+			return
+		}
+
+		log.Println("Got '" + strconv.Itoa(len(users)) + "' users.")
+
+		for _, user := range users {
+			err = StravaSyncWeekForUser(user, *configFile, season)
+			if err != nil {
+				log.Println("Sync Strava for user returned error. Error: " + err.Error())
+			}
 		}
 	}
 	log.Println("Strava sync task finished.")
@@ -328,7 +330,7 @@ func StravaSyncWeekForUser(user models.User, configFile models.ConfigStruct, sea
 				exerciseDay.Enabled = true
 				exerciseDay.CreatedAt = now
 				exerciseDay.UpdatedAt = now
-				exerciseDay.GoalID = goal.ID
+				exerciseDay.UserID = &user.ID
 
 				dateObject := time.Date(activity.StartDate.Year(), activity.StartDate.Month(), activity.StartDate.Day(), 0, 0, 0, activity.StartDate.Nanosecond(), activity.StartDate.Location())
 				exerciseDay.Date = dateObject

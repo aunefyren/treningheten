@@ -45,15 +45,15 @@ func GetGoalsFromWithinSeason(seasonID uuid.UUID) ([]models.Goal, error) {
 }
 
 // Get goal from user within season
-func GetGoalFromUserWithinSeason(seasonID uuid.UUID, userID uuid.UUID) (models.Goal, error) {
+func GetGoalFromUserWithinSeason(seasonID uuid.UUID, userID uuid.UUID) (*models.Goal, error) {
 	var goal models.Goal
 	goalrecord := Instance.Where("`goals`.enabled = ?", 1).Where("`goals`.season_id = ?", seasonID).Where("`goals`.user_id = ?", userID).Find(&goal)
 	if goalrecord.Error != nil {
-		return models.Goal{}, goalrecord.Error
+		return nil, goalrecord.Error
 	} else if goalrecord.RowsAffected == 0 {
-		return models.Goal{}, errors.New("User does not have a goal for the season.")
+		return nil, nil
 	}
-	return goal, nil
+	return &goal, nil
 }
 
 // Set goal to disabled in DB using goal ID
@@ -88,16 +88,35 @@ func GetGoalsForUserUsingUserID(userID uuid.UUID) ([]models.Goal, error) {
 }
 
 // Get goal with goal ID
-func GetGoalUsingGoalID(goalID uuid.UUID) (models.Goal, error) {
+func GetGoalUsingGoalID(goalID uuid.UUID) (*models.Goal, error) {
 	var goal models.Goal
 
 	goalrecord := Instance.Where("`goals`.enabled = ?", 1).Where("`goals`.id = ?", goalID).Find(&goal)
 
 	if goalrecord.Error != nil {
-		return models.Goal{}, goalrecord.Error
+		return nil, goalrecord.Error
 	} else if goalrecord.RowsAffected != 1 {
-		return models.Goal{}, errors.New("Failed to find goal.")
+		return nil, errors.New("Failed to find goal.")
 	}
 
-	return goal, nil
+	return &goal, nil
+}
+
+func GetActiveGoalsForUserIDAndDate(userID uuid.UUID, timeString string) (goals []models.Goal, err error) {
+	goals = []models.Goal{}
+	err = nil
+
+	record := Instance.Where("`goals`.enabled = ?", 1).
+		Where("`goals`.user_id = ?", userID).
+		Joins("JOIN seasons on `goals`.season_id = `seasons`.ID").
+		Where("`seasons`.enabled = ?", 1).
+		Where("`seasons`.start <= ?", timeString).
+		Where("`seasons`.end >= ?", timeString).
+		Find(&goals)
+
+	if record.Error != nil {
+		return []models.Goal{}, record.Error
+	}
+
+	return goals, nil
 }

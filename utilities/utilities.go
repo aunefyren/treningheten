@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"regexp"
+	"strconv"
 	"time"
 )
 
@@ -152,5 +153,21 @@ func SetClockToMaximum(pointInTime time.Time) (newPointInTime time.Time) {
 
 func SetClockToTime(pointInTime time.Time, hours int, minutes int, seconds int) (newPointInTime time.Time) {
 	newPointInTime = time.Date(pointInTime.Year(), pointInTime.Month(), pointInTime.Day(), hours, minutes, seconds, pointInTime.Nanosecond(), pointInTime.Location())
+	return
+}
+
+func TimeToMySQLTimestamp(pointInTime time.Time) (timeString string) {
+	timeString = ""
+	timeString = IntToPaddedString(pointInTime.Year()) + "-" + IntToPaddedString(int(pointInTime.Month())) + "-" + IntToPaddedString(pointInTime.Day()) + " " + IntToPaddedString(pointInTime.Hour()) + ":" + IntToPaddedString(pointInTime.Minute()) + ":" + IntToPaddedString(pointInTime.Second()) + ".000"
+	return
+}
+
+func IntToPaddedString(number int) (paddedNumber string) {
+	paddedNumber = ""
+	if number > 9 {
+		return strconv.Itoa(number)
+	} else {
+		paddedNumber = "0" + strconv.Itoa(number)
+	}
 	return
 }

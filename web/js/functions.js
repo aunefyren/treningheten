@@ -268,11 +268,21 @@ function toggle_navbar() {
         x.classList.add("responsive");
         x.classList.remove("unresponsive");
         x.classList.remove("unresponsive");
+
+        var cols = document.getElementsByClassName('nav-item');
+        for(i = 0; i < cols.length; i++) {
+            cols[i].style.backgroundColor = 'var(--grey)';
+        }
     } else {
         x.classList.add("unresponsive");
         x.classList.add("unresponsive");
         x.classList.remove("responsive");
         x.classList.remove("responsive");
+
+        var cols = document.getElementsByClassName('nav-item');
+        for(i = 0; i < cols.length; i++) {
+            cols[i].style.backgroundColor = 'none';
+        }
     }
 }
 

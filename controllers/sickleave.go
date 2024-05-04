@@ -13,6 +13,14 @@ import (
 
 // Get full workout calender for the week from the user, sanitize and update database
 func APIRegisterSickleave(context *gin.Context) {
+	var seasonID = context.Param("season_id")
+
+	seasonIDUUIID, err := uuid.Parse(seasonID)
+	if err != nil {
+		context.JSON(http.StatusBadRequest, gin.H{"error": "Failed to parse ID."})
+		context.Abort()
+		return
+	}
 
 	// Get user ID
 	userID, err := middlewares.GetAuthUsername(context.GetHeader("Authorization"))
@@ -24,13 +32,13 @@ func APIRegisterSickleave(context *gin.Context) {
 	}
 
 	// Get current season
-	season, seasonFound, err := GetOngoingSeasonFromDB(time.Now())
+	season, err := database.GetSeasonByID(seasonIDUUIID)
 	if err != nil {
 		log.Println("Failed to verify current season status. Error: " + err.Error())
 		context.JSON(http.StatusBadRequest, gin.H{"error": "Failed to verify current season status."})
 		context.Abort()
 		return
-	} else if !seasonFound {
+	} else if season == nil {
 		log.Println("Failed to verify current season status. Error: No active or future seasons found.")
 		context.JSON(http.StatusBadRequest, gin.H{"error": "Failed to verify current season status."})
 		context.Abort()

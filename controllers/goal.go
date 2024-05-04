@@ -33,21 +33,32 @@ func APIRegisterGoalToSeason(context *gin.Context) {
 		return
 	}
 
-	// Get current season
-	season, seasonFound, err := GetOngoingSeasonFromDB(time.Now())
-	if err != nil {
-		log.Println("Failed to verify current season status. Error: " + err.Error())
-		context.JSON(http.StatusBadRequest, gin.H{"error": "Failed to verify current season status."})
-		context.Abort()
-		return
-	} else if !seasonFound {
-		log.Println("Failed to verify current season status. Error: No active or future seasons found.")
-		context.JSON(http.StatusBadRequest, gin.H{"error": "Failed to verify current season status."})
+	// Verify exercise interval
+	if goal.ExerciseInterval == 0 || goal.ExerciseInterval > 21 {
+		context.JSON(http.StatusBadRequest, gin.H{"error": "Your exercise goal must be between 1 and 21."})
 		context.Abort()
 		return
 	}
 
-	if season.Start.Before(time.Now()) && !*season.JoinAnytime {
+	// Finalize goal object
+	goalDB.Competing = goal.Competing
+	goalDB.ExerciseInterval = goal.ExerciseInterval
+	goalDB.SeasonID = goal.SeasonID
+	goalDB.UserID = userID
+	goalDB.ID = uuid.New()
+
+	season, err := database.GetSeasonByID(goal.SeasonID)
+	if err != nil {
+		log.Println("Failed to get season by ID. Error: " + err.Error())
+		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get season by ID."})
+		context.Abort()
+		return
+	} else if season == nil {
+		log.Println("Failed to find season by ID. Error: " + err.Error())
+		context.JSON(http.StatusBadRequest, gin.H{"error": "Failed to find season by ID."})
+		context.Abort()
+		return
+	} else if season.Start.Before(time.Now()) && !*season.JoinAnytime {
 		context.JSON(http.StatusBadRequest, gin.H{"error": "Season has already started."})
 		context.Abort()
 		return
@@ -66,20 +77,6 @@ func APIRegisterGoalToSeason(context *gin.Context) {
 		context.Abort()
 		return
 	}
-
-	// Verify exercise interval
-	if goal.ExerciseInterval == 0 || goal.ExerciseInterval > 21 {
-		context.JSON(http.StatusBadRequest, gin.H{"error": "Your exercise goal must be between 1 and 21."})
-		context.Abort()
-		return
-	}
-
-	// Finalize goal object
-	goalDB.Competing = goal.Competing
-	goalDB.ExerciseInterval = goal.ExerciseInterval
-	goalDB.SeasonID = season.ID
-	goalDB.UserID = userID
-	goalDB.ID = uuid.New()
 
 	// Create goal in DB
 	goalID, err := database.CreateGoalInDB(goalDB)
@@ -166,6 +163,14 @@ func ConvertGoalsToGoalObjects(goals []models.Goal) ([]models.GoalObject, error)
 }
 
 func APIDeleteGoalToSeason(context *gin.Context) {
+	var goalID = context.Param("goal_id")
+
+	goalIDUUIID, err := uuid.Parse(goalID)
+	if err != nil {
+		context.JSON(http.StatusBadRequest, gin.H{"error": "Failed to parse ID."})
+		context.Abort()
+		return
+	}
 
 	// Get user ID
 	userID, err := middlewares.GetAuthUsername(context.GetHeader("Authorization"))
@@ -175,14 +180,31 @@ func APIDeleteGoalToSeason(context *gin.Context) {
 		return
 	}
 
+	goal, err := database.GetGoalUsingGoalID(goalIDUUIID)
+	if err != nil {
+		log.Println("Failed to get goal by ID. Error: " + err.Error())
+		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get goal by ID."})
+		context.Abort()
+		return
+	} else if goal == nil {
+		log.Println("Failed to find goal by ID. Error: " + err.Error())
+		context.JSON(http.StatusBadRequest, gin.H{"error": "Failed to find goal by ID."})
+		context.Abort()
+		return
+	} else if goal.UserID != userID {
+		context.JSON(http.StatusUnauthorized, gin.H{"error": "Not your goal."})
+		context.Abort()
+		return
+	}
+
 	// Get current season
-	season, seasonFound, err := GetOngoingSeasonFromDB(time.Now())
+	season, err := database.GetSeasonByID(goal.SeasonID)
 	if err != nil {
 		log.Println("Failed to verify current season status. Error: " + err.Error())
 		context.JSON(http.StatusBadRequest, gin.H{"error": "Failed to verify current season status."})
 		context.Abort()
 		return
-	} else if !seasonFound {
+	} else if season == nil {
 		log.Println("Failed to verify current season status. Error: No active or future seasons found.")
 		context.JSON(http.StatusBadRequest, gin.H{"error": "Failed to verify current season status."})
 		context.Abort()
@@ -195,21 +217,7 @@ func APIDeleteGoalToSeason(context *gin.Context) {
 		return
 	}
 
-	// Verify goal exists within season
-	goalStatus, goalID, err := database.VerifyUserGoalInSeason(userID, season.ID)
-	if err != nil {
-		log.Println("Failed to verify goal status. Error: " + err.Error())
-		context.JSON(http.StatusBadRequest, gin.H{"error": "Failed to verify goal status."})
-		context.Abort()
-		return
-	} else if !goalStatus {
-		log.Println("User does not have a goal for season: " + season.ID.String())
-		context.JSON(http.StatusBadRequest, gin.H{"error": "You don't have a goal this season."})
-		context.Abort()
-		return
-	}
-
-	err = database.DisableGoalInDBUsingGoalID(goalID)
+	err = database.DisableGoalInDBUsingGoalID(goal.ID)
 	if err != nil {
 		log.Println("Failed to disable goal in database. Error: " + err.Error())
 		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to disable goal in database."})
