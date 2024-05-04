@@ -532,12 +532,13 @@ func GiveUserAnAchievement(userID uuid.UUID, achievementID uuid.UUID, achievemen
 		return errors.New("Failed to get achievement.")
 	}
 
-	tmp := true
+	tmp := new(bool)
+	*tmp = true
 	achievementDelegations, err := database.GetAchievementDelegationByAchievementIDAndUserID(userID, achievementID)
 	if err != nil {
 		log.Println("Failed to check achievement delegation. Error: " + err.Error())
 		return errors.New("Failed to check achievement delegation.")
-	} else if len(achievementDelegations) > 0 && achievement.MultipleDelegations != &tmp {
+	} else if len(achievementDelegations) > 0 && achievement.MultipleDelegations != tmp {
 		return errors.New("User already has achievement.")
 	}
 
