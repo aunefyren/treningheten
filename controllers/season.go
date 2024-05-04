@@ -360,19 +360,21 @@ func APIGetCurrentSeasonLeaderboard(context *gin.Context) {
 		return
 	}
 
-	thisWeek, err := RetrieveWeekResultsFromSeasonWithinTimeframe(now.AddDate(0, 0, -7), now, seasonObject)
-	if err != nil {
-		log.Println("Failed to retrieve current week for season. Error: " + err.Error())
-		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to retrieve current week for season."})
-		context.Abort()
-		return
-	} else if len(thisWeek) != 1 {
-		log.Println("Got more than one week for current week.")
-		context.JSON(http.StatusInternalServerError, gin.H{"error": "Got more than one week for current week."})
-		context.Abort()
-		return
-	} else {
-		seasonLeaderboard.CurrentWeek = thisWeek[0]
+	if now.Before(season.End) && now.After(season.Start) {
+		thisWeek, err := RetrieveWeekResultsFromSeasonWithinTimeframe(now.AddDate(0, 0, -7), now, seasonObject)
+		if err != nil {
+			log.Println("Failed to retrieve current week for season. Error: " + err.Error())
+			context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to retrieve current week for season."})
+			context.Abort()
+			return
+		} else if len(thisWeek) != 1 {
+			log.Println("Got more than one week for current week.")
+			context.JSON(http.StatusInternalServerError, gin.H{"error": "Got more than one week for current week."})
+			context.Abort()
+			return
+		} else {
+			seasonLeaderboard.CurrentWeek = &thisWeek[0]
+		}
 	}
 
 	// Return group with owner and success message

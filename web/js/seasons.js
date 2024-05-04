@@ -67,11 +67,11 @@ function load_page(result) {
                         <div id="season-statistics-element-wrapper-div" class="season-statistics-element-wrapper-div">
                         </div>
 
-                        <div id="chart-canvas-div" style="max-width: 40em; margin: 1em auto; padding: 0 0.5em;">
+                        <div id="chart-canvas-div" style="max-width: 40em; margin: 1em auto; padding: 0 0.5em; background-color: var(--white); border-radius: 1em;">
                             <canvas id="myChart" style="max-width: 100%; width: 1000px; display:none;"></canvas>
                         </div>
 
-                        <div id="chart-canvas-div-two" style="max-width: 40em; margin: 1em auto; padding: 0 0.5em;">
+                        <div id="chart-canvas-div-two" style="max-width: 40em; margin: 1em auto; padding: 0 0.5em; background-color: var(--white); border-radius: 1em;">
                             <canvas id="myChartTwo" style="max-width: 100%; width: 1000px; display:none;"></canvas>
                         </div>
 
@@ -278,7 +278,7 @@ function get_leaderboard_two(season_id) {
                 weeks = result.leaderboard;
 
                 console.log("Placing weeks: ")
-                place_leaderboard(weeks, season_id);
+                place_leaderboard(weeks.past_weeks, season_id);
                 
             }
 
@@ -551,7 +551,7 @@ function get_season_leaderboard(seasonID){
         }
     };
     xhttp.withCredentials = true;
-    xhttp.open("get", api_url + "auth/seasons/" + seasonID + "/leaderboard-personal");
+    xhttp.open("get", api_url + "auth/seasons/" + seasonID + "/weeks-personal");
     xhttp.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
     xhttp.setRequestHeader("Authorization", jwt);
     xhttp.send();

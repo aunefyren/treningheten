@@ -271,7 +271,7 @@ function toggle_navbar() {
 
         var cols = document.getElementsByClassName('nav-item');
         for(i = 0; i < cols.length; i++) {
-            cols[i].style.backgroundColor = 'var(--grey)';
+            cols[i].style.backgroundColor = 'var(--lightblue)';
         }
     } else {
         x.classList.add("unresponsive");

@@ -47,7 +47,7 @@ type SeasonLeaderboard struct {
 	UserGoal    GoalObject    `json:"goal"`
 	Season      SeasonObject  `json:"season"`
 	PastWeeks   []WeekResults `json:"past_weeks"`
-	CurrentWeek WeekResults   `json:"this_week"`
+	CurrentWeek *WeekResults  `json:"this_week"`
 }
 
 type WeekResults struct {
