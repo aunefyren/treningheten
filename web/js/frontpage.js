@@ -222,7 +222,9 @@ function load_page(result) {
                                         <input type="hidden" value="" id="day_7_id">
                                     </div>
 
-                                    <button type="submit" onclick="update_exercises(false, 0);" id="goal_amount_button" style="margin-bottom: 0em;"><img src="assets/done.svg" class="btn_logo color-invert"><p2>Save</p2></button>
+                                    <input type="hidden" value="" id="calendar_user_id">
+
+                                    <button type="submit" onclick="update_exercises(false, 0);" id="goal_amount_button" style="margin-bottom: 0em; transition: 1s;"><img src="assets/done.svg" class="btn_logo color-invert"><p2>Save</p2></button>
 
                                     <a style="margin: 0.5em; font-size:0.75em;cursor:pointer;" onclick="use_sickleave();">Use sick leave</i></a>
 
@@ -248,6 +250,12 @@ function load_page(result) {
                                     <h3 id="season_title">Loading...</h3>
                                     <p id="season_desc" style="text-align: center;">...</p>
 
+                                    <div id="potentialSeasonsWrapper" style="display:none;">
+                                    </div>
+
+                                    <div id="countdownSeasonsWrapper" style="display:none;">
+                                    </div>
+
                                     <p id="season_start_title" style="margin-top: 1em;">Season start: <a id="season_start">...</a></p>
                                     <p id="season_end_title" style="">Season end: <a id="season_end">...</a></p>
 
@@ -255,7 +263,7 @@ function load_page(result) {
                                     <p id="goal_sickleave_title" style="">Sick leave left: <b><a id="goal_sickleave">0</a></b></p>
 
                                     <p id="prize-title" style="margin-top: 1em;">Potential prize:</p>
-                                    <div class="prize-wrapper">
+                                    <div class="prize-wrapper" id="prize-wrapper">
                                         <div id="prize-text" class="prize-text">...</div>
                                     </div>
 
@@ -312,7 +320,7 @@ function load_page(result) {
 
     if(result !== false) {
         showLoggedInMenu();
-        get_season(user_id);
+        get_season(user_id, true);
         document.getElementById('front-page-text').innerHTML = 'Remember to log your workouts.';
     } else {
         showLoggedOutMenu();
@@ -321,7 +329,7 @@ function load_page(result) {
     }
 }
 
-function get_season(user_id){
+function get_season(user_id, loadingMessage){
 
     var xhttp = new XMLHttpRequest();
     xhttp.onreadystatechange = function() {
@@ -335,9 +343,9 @@ function get_season(user_id){
                 return;
             }
             
-            if(result.error == "No active or future seasons found.") {
-
-                info(result.error);
+            /*
+            if(result.error == "No active or future seasons found." || result.seasons.length == 0) {
+                clearResponse();
                 document.getElementById('top-module').innerHTML = `
                 <div class="module">
                     <div class="title">
@@ -370,7 +378,7 @@ function get_season(user_id){
 
                 getDebtOverview();
 
-            } else if(result.error) {
+            } else */if(result.error) {
 
                 error(result.error);
                 error_splash_image();
@@ -378,44 +386,61 @@ function get_season(user_id){
             } else {
 
                 clearResponse();
-                season = result.season;
 
-                user_found = false;
-                for(var i = 0; i < season.goals.length; i++) {
-                    if(season.goals[i].user.id == user_id) {
-                        user_found = true
-                        var goal = season.goals[i].exercise_interval
-                        break
+                document.getElementById("ongoingseason").style.display = "flex"
+                getDebtOverview();
+                
+                // If one or more seasons were found
+                if(result.seasons.length > 0) {
+                    var season = result.seasons[0];
+                    var goal = null;
+
+                    var user_found = false;
+                    for(var i = 0; i < season.goals.length; i++) {
+                        if(season.goals[i].user.id == user_id) {
+                            user_found = true
+                            goal = season.goals[i]
+                            break
+                        }
                     }
-                }
 
-                for(var i = 0; i < season.goals.length; i++) {
-                    userList[season.goals[i].user.id] = season.goals[i].user
-                }
+                    for(var i = 0; i < season.goals.length; i++) {
+                        userList[season.goals[i].user.id] = season.goals[i].user
+                    }
 
-                var date_start = new Date(season.start);
-                var now = Date.now();
+                    var date_start = new Date(season.start);
+                    var now = Date.now();
 
-                if(user_found && now < date_start) {
-                    countdownRedirect()
-                } else if(user_found) {
-                    document.getElementById("ongoingseason").style.display = "flex"
-                    get_calendar(false);
-                    place_season(season);
-                    get_leaderboard();
-                    getDebtOverview();
+                    if(user_found && now < date_start) {
+                        countdownRedirect()
+                    } else if(user_found) {
+                        get_calendar(false, user_id, loadingMessage);
+                        place_season(season, user_id);
+                        get_leaderboard(season, goal, true, false);
+                    }
                 } else {
-                    registerGoalRedirect();
-                }
+                    get_calendar(false, user_id, loadingMessage);
+                    place_season(false, user_id);
 
+                    try {
+                        document.getElementById('current-week').outerHTML = ""
+                        document.getElementById('leaderboard').outerHTML = ""
+                    } catch (e) {
+                        console.log('Removing divs threw error: ' + e)
+                    }
+
+                    document.getElementById('goal_this_week').innerHTML = "0"
+                }
             }
 
         } else {
-            info("Loading season...");
+            if(loadingMessage) {
+                info("Loading season...");
+            }
         }
     };
     xhttp.withCredentials = true;
-    xhttp.open("get", api_url + "auth/seasons/getongoing");
+    xhttp.open("get", api_url + "auth/seasons/get-on-going");
     xhttp.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
     xhttp.setRequestHeader("Authorization", jwt);
     xhttp.send();
@@ -423,15 +448,55 @@ function get_season(user_id){
 
 }
 
-function place_season(season_object) {
+function place_season(season_object, userID) {
 
-    document.getElementById("season_title").innerHTML = season_object.name
-    document.getElementById("season_desc").innerHTML = season_object.description
-    document.getElementById("prize-text").innerHTML = season_object.prize.quantity + " " + season_object.prize.name
+    if(season_object) {
+        document.getElementById("season_title").innerHTML = season_object.name
+        document.getElementById("season_desc").innerHTML = season_object.description
+        document.getElementById("prize-text").innerHTML = season_object.prize.quantity + " " + season_object.prize.name
+
+        try {
+            var date_start = new Date(season_object.start);
+            var date_end = new Date(season_object.end);
+    
+            var date_start_string = GetDateString(date_start, true)
+            var date_end_string = GetDateString(date_end, true)
+        } catch {
+            var date_start_string = "Error"
+            var date_end_string = "Error"
+        }
+        
+        document.getElementById("season_start").innerHTML = date_start_string
+        document.getElementById("season_end").innerHTML = date_end_string
+    
+        placeSeasonProgress(date_start, date_end);
+    } else {
+        document.getElementById("season_title").innerHTML = "No active season"
+        document.getElementById("season_desc").innerHTML = "You can join or create a season to start competing."
+        getPotentialSeasons();
+        getCountdownSeasons(userID);
+
+        try {
+            document.getElementById("season_start_title").outerHTML = ""
+            document.getElementById("season_end_title").outerHTML = ""
+            document.getElementById("week_goal_title").outerHTML = ""
+            document.getElementById("goal_sickleave_title").outerHTML = ""
+            document.getElementById("prize-title").outerHTML = ""
+            document.getElementById("prize-wrapper").outerHTML = ""
+        } catch(e) {
+            console.log('Removing div\'s threw error: ' + e)
+        }
+
+        var currentYear = new Date().getFullYear()  // returns the current yea
+        var startOfYear = new Date(currentYear + "-01-01")
+        var endOfYear = new Date(currentYear + "-12-24")
+
+        placeSeasonProgress(startOfYear, endOfYear);
+    }
 
 }
 
-function get_calendar(fireworks){
+function get_calendar(fireworks, user_id, loadingMessage){
 
     var xhttp = new XMLHttpRequest();
     xhttp.onreadystatechange = function() {
@@ -457,12 +522,14 @@ function get_calendar(fireworks){
                 console.log(week);
 
                 console.log("Placing intial week: ")
-                place_week(week, fireworks);
+                place_week(week, fireworks, user_id);
 
             }
 
         } else {
-            info("Loading week...");
+            if(loadingMessage) {
+                info("Loading week...");
+            }
         }
     };
     xhttp.withCredentials = true;
@@ -474,7 +541,7 @@ function get_calendar(fireworks){
 
 }
 
-function place_week(week, fireworks) {
+function place_week(week, fireworks, user_id) {
 
     if(fireworks) {
         console.log("Triggered fireworks.")
@@ -490,6 +557,8 @@ function place_week(week, fireworks) {
             }
         }
     }
+
+    document.getElementById("calendar_user_id").value = user_id
 
     document.getElementById("day_1_check").innerHTML = week.days[0].exercise_interval
     document.getElementById("day_1_note").value = HTMLDecode(week.days[0].note)
@@ -555,6 +624,7 @@ function place_week(week, fireworks) {
 }
 
 function update_exercises(go_to_exercise, weekDayInt) {
+    var user_id = document.getElementById("calendar_user_id").value
 
     var day_1_check = document.getElementById("day_1_check").innerHTML
     var day_1_note = document.getElementById("day_1_note").value
@@ -647,8 +717,8 @@ function update_exercises(go_to_exercise, weekDayInt) {
                 error(result.error);
 
             } else {
+                blinkCalendar();
 
-                clearResponse();
                 week = result.week;
 
                 if(go_to_exercise === true) {
@@ -669,14 +739,13 @@ function update_exercises(go_to_exercise, weekDayInt) {
 
                 console.log("Placing initial week: ")
                 place_week(week, new_fireworks);
-                get_leaderboard();
+                get_season(user_id, false);
 
-                success(result.message)
-
+                //success(result.message)
             }
 
         } else {
-            info("Saving week...");
+            //info("Saving week...");
         }
     };
     xhttp.withCredentials = true;
@@ -688,7 +757,7 @@ function update_exercises(go_to_exercise, weekDayInt) {
 
 }
 
-function get_leaderboard(fireworks){
+function get_leaderboard(season, goal, refresh, fireworks){
 
     var xhttp = new XMLHttpRequest();
     xhttp.onreadystatechange = function() {
@@ -709,14 +778,16 @@ function get_leaderboard(fireworks){
             } else {
 
                 //clearResponse();
-                past_weeks = result.leaderboard.past_weeks;
-                this_week = result.leaderboard.this_week;
+                past_weeks = result.leaderboard;
+                this_week = result.leaderboard[0];
 
                 console.log("Placing weeks: ")
                 place_current_week(this_week);
-                place_season_details(result.leaderboard.goal.exercise_interval, result.leaderboard.goal.sickleave_left, result.leaderboard.season.start, result.leaderboard.season.end);
-                place_leaderboard(past_weeks);
-                
+
+                if(refresh) {
+                    place_season_details(goal, season);
+                    place_leaderboard(past_weeks);
+                }
             }
 
         } else {
@@ -724,7 +795,7 @@ function get_leaderboard(fireworks){
         }
     };
     xhttp.withCredentials = true;
-    xhttp.open("get", api_url + "auth/seasons/leaderboard");
+    xhttp.open("get", api_url + "auth/seasons/" + season.id + "/weeks");
     xhttp.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
     xhttp.setRequestHeader("Authorization", jwt);
     xhttp.send();
@@ -846,27 +917,10 @@ function PlaceProfileImageForUserOnLeaderboard(imageBase64, userID) {
 
 }
 
-function place_season_details(goal, sickleave, seasonStart, SeasonEnd) {
-
-    try {
-        var date_start = new Date(seasonStart);
-        var date_end = new Date(SeasonEnd);
-
-        var date_start_string = GetDateString(date_start, true)
-        var date_end_string = GetDateString(date_end, true)
-    } catch {
-        var date_start_string = "Error"
-        var date_end_string = "Error"
-    }
-
-    document.getElementById("week_goal").innerHTML = goal
-    document.getElementById("goal_this_week").innerText  = goal
-    document.getElementById("goal_sickleave").innerHTML = sickleave
-    document.getElementById("season_start").innerHTML = date_start_string
-    document.getElementById("season_end").innerHTML = date_end_string
-
-    placeSeasonProgress(date_start, date_end);
-     
+function place_season_details(goal) {
+    document.getElementById("week_goal").innerHTML = goal.exercise_interval
+    document.getElementById("goal_this_week").innerText  = goal.exercise_interval
+    document.getElementById("goal_sickleave").innerHTML = goal.sickleave_left
 }
 
 function place_current_week(week_array) {
@@ -1204,9 +1258,15 @@ function placeWeekProgress(percentage, exercise, exerciseGoal) {
 
 }
 
-function frontPageRedirect() {
+function verifyPageRedirect() {
 
     window.location = '/verify'
+
+}
+
+function frontPageRedirect() {
+
+    window.location = '/'
 
 }
 
@@ -1262,4 +1322,234 @@ function addExercise(exerciseDayID) {
     xhttp.setRequestHeader("Authorization", jwt);
     xhttp.send(form_data);
     return false;
+}
+
+function getPotentialSeasons(user_id){
+
+    var xhttp = new XMLHttpRequest();
+    xhttp.onreadystatechange = function() {
+        if (this.readyState == 4) {
+            
+            try {
+                result = JSON.parse(this.responseText);
+            } catch(e) {
+                console.log(e +' - Response: ' + this.responseText);
+                error("Could not reach API.");
+                return;
+            }
+            
+            if(result.error) {
+                error(result.error);
+                return;
+            } else {
+                placePotentialSeasons(result.seasons);
+            }
+
+        }
+    };
+    xhttp.withCredentials = true;
+    xhttp.open("get", api_url + "auth/seasons?potential=true");
+    xhttp.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
+    xhttp.setRequestHeader("Authorization", jwt);
+    xhttp.send();
+    return false;
+
+}
+
+function placePotentialSeasons(seasonsArray) {
+    try {
+        var html = "Seasons you can join:<br><div class='potentialSeasonList'><hr>";
+        for(var i = 0; i < seasonsArray.length; i++) {
+            html += `
+                <div class="potentialSeason hover clickable" onclick="document.location.href = '/registergoal?season_id=${seasonsArray[i].id}'">
+                    ${seasonsArray[i].name}
+                </div>
+            `
+        }
+        html += '</div>'
+
+        potentialSeasonsWrapper = document.getElementById("potentialSeasonsWrapper");
+        potentialSeasonsWrapper.innerHTML = html;
+        potentialSeasonsWrapper.style.display = "flex";
+    } catch (e) {
+        console.log("Failed to place potential seasons. Error: " + e)
+        error("Failed to place potential seasons.")
+        return;
+    }
+}
+
+function getCountdownSeasons(userID){
+
+    var xhttp = new XMLHttpRequest();
+    xhttp.onreadystatechange = function() {
+        if (this.readyState == 4) {
+            
+            try {
+                result = JSON.parse(this.responseText);
+            } catch(e) {
+                console.log(e +' - Response: ' + this.responseText);
+                error("Could not reach API.");
+                return;
+            }
+            
+            if(result.error) {
+                error(result.error);
+                return;
+            } else {
+                placeCountdownSeasons(result.seasons, userID);
+            }
+
+        }
+    };
+    xhttp.withCredentials = true;
+    xhttp.open("get", api_url + "auth/seasons?countdown=true");
+    xhttp.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
+    xhttp.setRequestHeader("Authorization", jwt);
+    xhttp.send();
+    return false;
+
+}
+
+function placeCountdownSeasons(seasonsArray, userID) {
+    console.log(seasonsArray)
+
+    try {
+        var html = "Seasons you are waiting for:<br><div class='countdownSeasonList'><hr>";
+        for(var i = 0; i < seasonsArray.length; i++) {
+            var goalID = ''
+            for(var j = 0; j < seasonsArray[i].goals.length; j++) {
+                if(seasonsArray[i].goals[j].user.id == userID) {
+                    goalID = seasonsArray[i].goals[j].id;
+                    break;
+                }
+            }
+
+            var date_start = new Date(seasonsArray[i].start);
+            var date_end = new Date(seasonsArray[i].end);
+
+            var joinText = "..."
+            if(seasonsArray[i].join_anytime) {
+                joinText = "<b>You can join at any point in the season.</b>"
+            } else {
+                joinText = "<b>You must join before the start date.</b>"
+            }
+
+            var partici_string = "participants"
+            if(seasonsArray[i].goals.length == 1) {
+                partici_string = "participant"
+            }
+
+            html += `
+                <div class="countdownSeason">
+                    <h3 id="countdown_season_title" style="margin: 0 0 0.5em 0;">${seasonsArray[i].name}</h3>
+                    <p id="countdown_season_start">${GetDateString(date_start, true)}</p>
+                    <p id="countdown_season_end">${GetDateString(date_end, true)}</p>
+                  
+                    <p id="countdown_title" style="margin-top: 0.25em;">${seasonsArray[i].goals.length + " " + partici_string}. Starting in:</p>
+                    
+                    <p style="font-size: 2em; text-align: center;" id="countdown_number_${seasonsArray[i].id}" class="countdown_number">00d 00h 00m 00s</p>
+
+                    <a class="clickable hover" style="margin: 1em 0 0 0; font-size:0.75em;" onclick="deleteGoal('${goalID}');">I changed my mind!</i></a>
+                    <hr>
+                </div>
+            `
+        }
+        html += '</div>'
+
+        countdownSeasonsWrapper = document.getElementById("countdownSeasonsWrapper");
+        countdownSeasonsWrapper.innerHTML = html;
+        countdownSeasonsWrapper.style.display = "flex";
+
+        for(var i = 0; i < seasonsArray.length; i++) {
+            var date_start = new Date(seasonsArray[i].start);
+            activateCountdown(date_start, seasonsArray[i].id);
+        }
+    } catch (e) {
+        console.log("Failed to place countdown seasons. Error: " + e)
+        error("Failed to place countdown seasons.")
+        return;
+    }
+}
+
+function activateCountdown(countdownDate, seasonID){
+
+    // Set the date we're counting down to
+    var countDownDate = countdownDate.getTime();
+
+    // Update the count down every 1 second
+    var x = setInterval(function() {
+
+        // Get today's date
+        var now = new Date();
+
+        // Find the distance between now and the count down date
+        var distance = Math.floor(countDownDate - now.getTime());
+    
+        // Time calculations for days, hours, minutes and seconds
+        var days = Math.floor(distance / (1000 * 60 * 60 * 24));
+        var hours = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+        var minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
+        var seconds = Math.floor((distance % (1000 * 60)) / 1000);
+
+        if (distance > 0) {
+            // Display the result in the element with id="demo"
+            document.getElementById("countdown_number_" + seasonID).innerHTML = padNumber(days, 2) + "d " + padNumber(hours, 2) + "h "
+            + padNumber(minutes, 2) + "m " + padNumber(seconds, 2) + "s ";
+        
+            // If the count down is finished, write some text
+        } else {
+            clearInterval(x);
+            document.getElementById("countdown_number").innerHTML = "...";
+
+            setTimeout(() => {
+                frontPageRedirect();
+            }, 5000);
+              
+        }
+        
+    }, 1000);
+}
+
+function deleteGoal(goalID) {
+    if(!confirm("Are you sure you want to delete your goal? You are free to create another one afterward as long as the season has not started.")) {
+        return
+    }
+
+    var xhttp = new XMLHttpRequest();
+    xhttp.onreadystatechange = function() {
+        if (this.readyState == 4) {
+            
+            try {
+                result = JSON.parse(this.responseText);
+            } catch(e) {
+                console.log(e +' - Response: ' + this.responseText);
+                error("Could not reach API.");
+                return;
+            }
+            
+            if(result.error) {
+                error(result.error);
+            } else {
+                frontPageRedirect();
+            }
+
+        }
+    };
+    xhttp.withCredentials = true;
+    xhttp.open("delete", api_url + "auth/goals/" + goalID);
+    xhttp.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
+    xhttp.setRequestHeader("Authorization", jwt);
+    xhttp.send();
+    return false;
+}
+
+function blinkCalendar() {
+    try {
+        document.getElementById("goal_amount_button").classList.add("blink")
+        setTimeout(function() {
+            document.getElementById("goal_amount_button").classList.remove('blink');
+        }, 2500);
+    } catch (e) {
+        console.log("Failed to blink the calendar. Error: " + e)
+    }
 }

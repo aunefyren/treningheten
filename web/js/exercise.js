@@ -121,7 +121,7 @@ function placeExerciseDay(exerciseDay) {
     }
 
     document.getElementById('exercise-day-date').innerHTML = "<b>Date: " + dateString + "</b>";
-    document.getElementById('exercise-day-exercise-goal').innerHTML = "Exercise goal for week: " + exerciseDay.goal.exercise_interval;
+    //document.getElementById('exercise-day-exercise-goal').innerHTML = "Exercise goal for week: " + exerciseDay.goal.exercise_interval;
     document.getElementById('exercise-day-note').innerHTML = exerciseDay.note;
 
     placeExercises(exerciseDay.exercises);
@@ -173,7 +173,7 @@ function generateExerciseHTML(exercise, count) {
 
         exerciseHTML = `
             <div class="top-row">
-                <img src="/assets/trash-2.svg" style="height: 1em; width: 1em; padding: 1em;" onclick="updateExercise('${exercise.id}', false, ${count})" class="btn_logo clickable">
+                <img src="/assets/trash-2.svg" style="height: 1em; width: 1em; padding: 1em;" onclick="updateExercise('${exercise.id}', false, ${count})" class="btn_logo clickable color-invert">
             </div>
 
             <div class="exerciseSubWrapper" id="exercise-sub-${exercise.id}">

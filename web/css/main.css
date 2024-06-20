@@ -24,7 +24,7 @@
     line-height:1.5;
     color:var(--black);
     text-align:left;
-    background-color: var(--white);
+    background-color: var(--lightblue);
     /*background-image: url("../assets/pattern.png");*/
     background-repeat: repeat;
     font-weight: normal;
@@ -126,7 +126,7 @@
     flex-direction:column;
     min-width:0;
     word-wrap:break-word;
-    background-color: var(--eggshell);
+    background-color: var(--mediumblue);
     background-clip:border-box;
     margin-bottom: 25%;
     border-radius: 1em;
@@ -140,15 +140,14 @@
   .card-header{
     padding:.75rem 1.25rem;
     margin-bottom:0;
-    background-color:var(--grey);
-    border-bottom:1px solid rgba(0,0,0,.125);
-    border-top: 0.2em solid var(--grey);
-    border-bottom: 0.2em solid var(--grey);
+    background-color:var(--trans-lightblue);
+    border: 0.2em solid var(--mediumblue);
     text-align: center;
     font-size: 0.8em;
     font-weight:200;
     border-top-right-radius: 1em;
     border-top-left-radius: 1em;
+    color: var(--white);
   }
   
   .content {
@@ -184,7 +183,13 @@
     }
   }
   
-  .card-body{-webkit-box-flex:1;-ms-flex:1 1 auto;flex:1 1 auto;padding:1.25rem}
+  .card-body{
+    -webkit-box-flex:1;
+    -ms-flex:1 1 auto;
+    flex:1 1 auto;
+    padding:1.25rem;
+    color: var(--white);
+  }
  
   .btn{cursor: pointer; display:inline-block;font-weight:400;text-align:center;white-space:nowrap;vertical-align:middle;-webkit-user-select:none;-moz-user-select:none;-ms-user-select:none;user-select:none;border:1px solid transparent;padding:.375rem .75rem;font-size:1rem;line-height:1.5;border-radius:.25rem;transition:color .15s ease-in-out,background-color .15s ease-in-out,border-color .15s ease-in-out,box-shadow .15s ease-in-out}.btn:focus,.btn:hover{text-decoration:none}.btn.focus,.btn:focus{outline:0;box-shadow:0 0 0 .2rem rgba(0,123,255,.25)}
   
@@ -192,11 +197,11 @@
   
   .alert{position:relative;padding:.75rem 1.25rem;margin-bottom:1rem;border:1px solid transparent;border-radius:0.5em}
   .alert-success{color:var(--green);background-color:var(--green-success);border-color:var(--green-success-border)}
-  .alert-info{color:var(--black);background-color:var(--trans-lightblue);border-color:var(--lightblue)}
+  .alert-info{color:var(--mediumblue);background-color: var(--grey); border-color: var(--mediumblue);}
   .alert-danger{color:var(--red);background-color:var(--red-error);border-color:var(--red-error-border)}
   
   .navbar {
-    background-color: var(--eggshell);
+    background-color: var(--mediumblue);
     overflow: hidden;
     top: 0;
     width: 100%;
@@ -205,13 +210,15 @@
     display: block;
     text-align: center;
     z-index: 9;
-    box-shadow: 0 2px 4px 0 rgba(0, 0, 0, 0.2), 0 3px 10px 0 rgba(0, 0, 0, 0.19);
+    /*box-shadow: 0 2px 4px 0 rgba(0, 0, 0, 0.2), 0 3px 10px 0 rgba(0, 0, 0, 0.19);*/
+    border-bottom: var(--trans-lightblue) 0.2em solid;
+    color: var(--white);
   }
   
   .nav-item {
     float: left;
     display: none;
-    color: var(--black);
+    color: var(--white);
     text-align: center;
     padding: 1em;
     text-decoration: none;
@@ -232,7 +239,6 @@
   .nav-title {
     float: left;
     display: inline-block;
-    color: var(--black);
     text-align: center;
     padding: 1em;
     text-decoration: none;
@@ -241,16 +247,17 @@
     height: 2em;
     line-height: 2em;
     max-width: 10em;
+    color: var(--white);
   }
   
   .nav-item:hover, .nav-title:hover{
-    background-color: var(--eggshell);
-    color: var(--black);
+    background-color: var(--darkblue);
+    color: var(--white);
     text-decoration: none;
   }
   
   .nav-item:active {
-    background-color: var(--lightblue);
+    background-color: var(--darkblue);
     color: var(--black);
   }
   
@@ -360,6 +367,7 @@ button {
   border-radius: 5px; 
   border: none;
   background: var(--lightblue); 
+  border: solid 0.1em var(--mediumblue);
   font-size: 1em;
   font-weight: 600;
   color: var(--white);
@@ -373,7 +381,7 @@ button {
 }
 
 button:hover {
-  background: var(--mediumblue);
+  background: var(--trans-lightblue);
 }
 
 button:disabled {
@@ -646,6 +654,7 @@ hr {
   width: 100%;
   width: -webkit-fill-available;
   width: -moz-available;
+  color: var(--black);
 }
 
 .exercises {
@@ -663,6 +672,7 @@ hr {
   max-width: 100%;
   max-width: -webkit-fill-available;
   max-width: -moz-available;
+  color: var(--black);
 }
 
 .week_info {
@@ -686,6 +696,7 @@ hr {
   width: -webkit-fill-available;
   width: -moz-available;
   box-sizing: border-box;
+  transition: 1s;
 }
 
 .form-group {
@@ -713,6 +724,7 @@ hr {
   max-width: 100%;
   max-width: -webkit-fill-available;
   max-width: -moz-available;
+  color: var(--black)
 }
 
 .day-note {
@@ -1009,6 +1021,7 @@ input[type=checkbox]
 }
 
 .season, .current-week, .server-info, .invites, .debt-module, .prize-module, .add-season-module, .correlate-module {
+  color: var(--black);
   width: auto;
   max-width: 100%;
   margin: 1em;
@@ -1037,6 +1050,7 @@ input[type=checkbox]
 }
 
 .leaderboard {
+  color: var(--black);
   width: auto;
   margin: 1em;
   display: flex;
@@ -1077,8 +1091,9 @@ input[type=checkbox]
   width: -webkit-fill-available;
   width: -moz-available;
   height: auto;
-  max-height: 58em;
+  max-height: 45em;
   overflow-y: auto;
+  color: var(--black);
 }
 
 .leaderboard-week {
@@ -1212,6 +1227,7 @@ input[type=checkbox]
   -moz-user-select: none;
   -ms-user-select: none;
   user-select: none;
+  color: var(--black);
 }
 
 .season-object, .goal-object {
@@ -1616,7 +1632,7 @@ input[type=checkbox]
   right: 0;
   opacity: 0;
   transition: .5s ease;
-  background-color: var(--mediumblue);
+  background-color: var(--lightblue);
   margin: 0.5em;
   border-radius: 0.5em;
   display: flex;
@@ -1731,6 +1747,7 @@ input[type=checkbox]
   margin-left: auto; 
   margin-right: auto; 
   width: 100%; /* Need a specific value to work */
+  color: var(--black);
 }
 
 .button-collection {
@@ -1862,7 +1879,7 @@ input[type=checkbox]
   border-radius: 0.5em 0.5em 0 0;
   box-sizing: content-box;
   overflow: hidden;
-  background-color: var(--white);
+  background-color: var(--grey);
   /*box-shadow: 0.1em 0.2em 0.5em rgba(0,0,0,.09);*/
   position: relative;
   box-sizing: border-box;
@@ -1872,7 +1889,7 @@ input[type=checkbox]
 .season-progress-bar, .week-progress-bar {
   height: 2em;
   width: 0;
-  background-color: var(--trans-lightblue);
+  background-color: var(--lightblue);
   box-sizing: inherit;
   overflow: hidden;
   transition: 2s;
@@ -2049,6 +2066,7 @@ input[type=checkbox]
   align-items: center;
   margin: 0 0.5em;
   box-sizing: inherit;
+  color: var(--black);
 }
 
 .operationSetWrapperSub {
@@ -2064,6 +2082,7 @@ input[type=checkbox]
   align-items: center;
   margin: 0;
   box-sizing: inherit;
+  color: var(--black);
 }
 
 .operation-set {
@@ -2253,6 +2272,7 @@ input[type=checkbox]
   max-height: 10em;
   top: 3em;
   overflow-y: scroll;
+  color: var(--black);
 }
 
 .dropdown-action {
@@ -2449,4 +2469,50 @@ label {
   align-content: center;
   justify-content: center;
   align-items: center;
+}
+
+#potentialSeasonsWrapper, #countdownSeasonsWrapper {
+  width: 100%;
+  width: -webkit-fill-available;
+  width: -moz-available;
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-content: center;
+  justify-content: center;
+  align-items: center;
+  margin: 0.75em 0;
+}
+
+.potentialSeasonList, .countdownSeasonList {
+  width: 100%;
+  width: -webkit-fill-available;
+  width: -moz-available;
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-content: center;
+  justify-content: center;
+  align-items: center;
+}
+
+.potentialSeason {
+  width: 100%;
+  width: -webkit-fill-available;
+  width: -moz-available;
+  border-radius: 1em;
+  margin: 0.25em;
+  background-color: var(--lightblue);
+  color: var(--white);
+  height: 2em;
+  display: flex;
+  flex-direction:row;
+  flex-wrap: wrap;
+  align-content: center;
+  justify-content: center;
+  align-items: center;
+}
+
+.countdownSeason {
+
 }

@@ -433,3 +433,17 @@ func GetStravaUsersWithinSeason(seasonID uuid.UUID) (users []models.User, err er
 
 	return
 }
+
+func GetStravaUsers() (users []models.User, err error) {
+	err = nil
+	users = []models.User{}
+
+	record := Instance.Where("`users`.enabled = ?", 1).
+		Where("`users`.strava_code IS NOT NULL").
+		Find(&users)
+	if record.Error != nil {
+		return users, record.Error
+	}
+
+	return
+}
