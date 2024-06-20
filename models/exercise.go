@@ -11,7 +11,7 @@ type ExerciseDay struct {
 	Date    time.Time  `json:"date" gorm:"not null"`
 	Note    string     `json:"note"`
 	Enabled bool       `json:"enabled" gorm:"not null; default: true"`
-	GoalID  *uuid.UUID `json:"" gorm:"type:varchar(100);"`
+	GoalID  *uuid.UUID `json:"" gorm:"type:varchar(100);default: null; null;"`
 	Goal    *Goal      `json:"goal" gorm:""`
 	UserID  *uuid.UUID `json:"" gorm:"type:varchar(100);"`
 	User    *User      `json:"user" gorm:"not null"`

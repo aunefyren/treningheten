@@ -60,14 +60,14 @@ function load_page(result) {
 
     if(result !== false) {
         showLoggedInMenu();
-        get_seasons();
+        getAllExerciseDays();
     } else {
         showLoggedOutMenu();
         invalid_session();
     }
 }
 
-function get_seasons(){
+function getAllExerciseDays(){
 
     var xhttp = new XMLHttpRequest();
     xhttp.onreadystatechange = function() {
@@ -82,78 +82,46 @@ function get_seasons(){
             }
             
             if(result.error) {
-
                 error(result.error);
-
             } else {
-
                 clearResponse();
-                seasons = result.seasons;
+                
+                yearArray = [];
+                for(var i = 0; i < result.exercise.length; i++) {
+                    var date = new Date(Date.parse(result.exercise[i].date));
+                    var year = date.getFullYear();
 
-                get_goals(seasons);
+                    var found = false; 
+                    for(var j = 0; j < yearArray.length; j++) {
+                        if(yearArray[j] == year) {
+                            found = true;
+                            break;
+                        }
+                    }
+                    if(!found) {
+                        yearArray.push(year);
+                    }
+                }
 
+                placeExerciseYears(yearArray)
             }
 
         } else {
-            info("Loading goals...");
+            info("Loading years...");
         }
     };
     xhttp.withCredentials = true;
-    xhttp.open("get", api_url + "auth/seasons");
+    xhttp.open("get", api_url + "auth/exercise-days");
     xhttp.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
     xhttp.setRequestHeader("Authorization", jwt);
     xhttp.send();
     return false;
-
 }
 
-function get_goals(seasonsArray){
+function placeExerciseYears(yearArray) {
 
-    var xhttp = new XMLHttpRequest();
-    xhttp.onreadystatechange = function() {
-        if (this.readyState == 4) {
-            
-            try {
-                result = JSON.parse(this.responseText);
-            } catch(e) {
-                console.log(e +' - Response: ' + this.responseText);
-                error("Could not reach API.");
-                return;
-            }
-            
-            if(result.error) {
-
-                error(result.error);
-
-            } else {
-
-                clearResponse();
-                goals = result.goals;
-
-                console.log(goals);
-
-                console.log("Placing initial goals: ")
-                place_goals(goals, seasonsArray);
-
-            }
-
-        } else {
-            info("Loading goals...");
-        }
-    };
-    xhttp.withCredentials = true;
-    xhttp.open("get", api_url + "auth/goals");
-    xhttp.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
-    xhttp.setRequestHeader("Authorization", jwt);
-    xhttp.send();
-    return false;
-
-}
-
-function place_goals(goals_array, seasonsArray) {
-
-    if(goals_array.length == 0) {
-        info("No goals found.");
+    if(yearArray.length == 0) {
+        info("No exercise found.");
         error_splash_image();
         return;
     } else {
@@ -162,63 +130,23 @@ function place_goals(goals_array, seasonsArray) {
 
     var html = ''
 
-    for(var i = 0; i < goals_array.length; i++) {
-
-        var seasonIndex = 0;
-        var seasonFound = false;
-        for(var j = 0; j < seasonsArray.length; j++) {
-            if(goals_array[i].season == seasonsArray[j].id) {
-                seasonIndex = j;
-                seasonFound = true;
-                break
-            }
-        }
-
-        if(!seasonFound) {
-            continue;
-        }
-
-        if(goals_array[i].exercise_interval) {
-            var compete_string = "Yes"
-        } else {
-            var compete_string = "No"
-        }
-
-        // parse date object
-        try {
-            var date = new Date(Date.parse(goals_array[i].created_at));
-            var date_string = GetDateString(date)
-        } catch {
-            var date_string = "Error"
-        }
+    for(var i = 0; i < yearArray.length; i++) {
 
         html += '<div class="goal-object-wrapper">'
 
             html += '<div class="goal-object">'
             
                 html += '<div id="season-title" class="season-title">';
-                html += seasonsArray[seasonIndex].name
+                html += yearArray[i]
                 html += '</div>';
 
-                html += '<div id="goal-exercise" class="goal-exercise">';
-                html += 'Exercise goal: ' + goals_array[i].exercise_interval
-                html += '</div>';
-
-                html += '<div id="goal-compete" class="goal-compete">';
-                html += 'Competing: ' + compete_string
-                html += '</div>';
-
-                html += '<div id="goal-join-date" class="goal-join-date">';
-                html += '<img src="assets/calendar.svg" class="btn_logo"></img> Joined: ' + date_string
-                html += '</div>';
-
-                html += '<div id="goal-button-expand-' + goals_array[i].id + '" class="goal-button minimized">';
-                    html += `<button type="submit" onclick="get_exercises('${goals_array[i].id}');" id="goal_amount_button" style=""><p2 style="margin: 0 0 0 0.5em;">Expand</p2><img id="goal-button-image-${goals_array[i].id}" src="assets/chevron-right.svg" class="btn_logo color-invert" style="padding: 0; margin: 0 0.5em 0 0;"></button>`;
+                html += '<div id="goal-button-expand-' + yearArray[i] + '" class="goal-button minimized">';
+                    html += `<button type="submit" onclick="get_exercises('${yearArray[i]}');" id="goal_amount_button" style=""><p2 style="margin: 0 0 0 0.5em;">Expand</p2><img id="goal-button-image-${yearArray[i]}" src="assets/chevron-right.svg" class="btn_logo color-invert" style="padding: 0; margin: 0 0.5em 0 0;"></button>`;
                 html += '</div>';
 
             html += '</div>'
 
-            html += '<div class="goal-leaderboard" id="goal-leaderboard-' + goals_array[i].id + '">'
+            html += '<div class="goal-leaderboard" id="goal-leaderboard-' + yearArray[i] + '">'
             html += '</div>'
 
         html += '</div>'
@@ -230,20 +158,20 @@ function place_goals(goals_array, seasonsArray) {
 
 }
 
-function get_exercises(goalID){
+function get_exercises(year){
 
-    button = document.getElementById("goal-button-expand-" + goalID)
+    button = document.getElementById("goal-button-expand-" + year)
 
     if(button.classList.contains("minimized")) {
         button.classList.remove("minimized")
         button.classList.add("expand")
-        document.getElementById("goal-button-image-" + goalID).src = "assets/chevron-down.svg"
+        document.getElementById("goal-button-image-" + year).src = "assets/chevron-down.svg"
     } else {
         button.classList.add("minimized")
         button.classList.remove("expand")
-        document.getElementById("goal-leaderboard-" + goalID).innerHTML = ""
-        document.getElementById("goal-leaderboard-" + goalID).style.margin = "0"
-        document.getElementById("goal-button-image-" + goalID).src = "assets/chevron-right.svg"
+        document.getElementById("goal-leaderboard-" + year).innerHTML = ""
+        document.getElementById("goal-leaderboard-" + year).style.margin = "0"
+        document.getElementById("goal-button-image-" + year).src = "assets/chevron-right.svg"
         return
     }
 
@@ -271,7 +199,7 @@ function get_exercises(goalID){
                 console.log(exercise)
 
                 console.log("Placing exercises: ")
-                place_exercises(exercise, goalID);
+                place_exercises(exercise, year);
                 
             }
 
@@ -280,7 +208,7 @@ function get_exercises(goalID){
         }
     };
     xhttp.withCredentials = true;
-    xhttp.open("get", api_url + "auth/exercise-days?goal=" + goalID);
+    xhttp.open("get", api_url + "auth/exercise-days?year=" + year);
     xhttp.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
     xhttp.setRequestHeader("Authorization", jwt);
     xhttp.send();
@@ -288,7 +216,7 @@ function get_exercises(goalID){
 
 }
 
-function place_exercises(exercise_array, goalID) {
+function place_exercises(exercise_array, year) {
 
     clearResponse();
     exerciseFound = false;
@@ -309,12 +237,10 @@ function place_exercises(exercise_array, goalID) {
             var date_string = GetDayOfTheWeek(date)
             var dateStringDetailed = GetDateString(date, false)
             var week = date.getWeek(1);
-            var year = date.getFullYear()
         } catch {
             var date_string = "Error"
             var dateStringDetailed = "Error"
             var week = "Error"
-            var year = "Error"
         }
 
         if(lastWeek !== week || lastWeek == 0) {
@@ -324,7 +250,7 @@ function place_exercises(exercise_array, goalID) {
                     <div class="exercise-week">
                         <b>Week: ${week}</b>
                     </div>
-                    <div id="exercises-${goalID}-${week}-${year}" class="exercises-group">
+                    <div id="exercises-${week}-${year}" class="exercises-group">
                     </div>
                 `;
         }
@@ -335,8 +261,8 @@ function place_exercises(exercise_array, goalID) {
 
         `;
 
-        document.getElementById("goal-leaderboard-" + goalID).innerHTML += html
-        document.getElementById("goal-leaderboard-" + goalID).style.margin = "1em 0"
+        document.getElementById("goal-leaderboard-" + year).innerHTML += html
+        document.getElementById("goal-leaderboard-" + year).style.margin = "1em 0"
 
         lastWeek = week;
 
@@ -404,15 +330,15 @@ function place_exercises(exercise_array, goalID) {
             </div>
         `;
 
-        var oldHTML = document.getElementById(`exercises-${goalID}-${week}-${year}`).innerHTML
-        document.getElementById(`exercises-${goalID}-${week}-${year}`).innerHTML = html + oldHTML
+        var oldHTML = document.getElementById(`exercises-${week}-${year}`).innerHTML
+        document.getElementById(`exercises-${week}-${year}`).innerHTML = html + oldHTML
 
         exerciseFound = true;
 
     }
 
     if(!exerciseFound) {
-        document.getElementById("goal-leaderboard-" + goalID).innerHTML = `
+        document.getElementById("goal-leaderboard-" + year).innerHTML = `
             <div style="margin: 1em 0">
                 None...
             </div>

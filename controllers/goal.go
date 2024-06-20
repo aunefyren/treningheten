@@ -54,7 +54,7 @@ func APIRegisterGoalToSeason(context *gin.Context) {
 		context.Abort()
 		return
 	} else if season == nil {
-		log.Println("Failed to find season by ID. Error: " + err.Error())
+		log.Println("Failed to find season by ID.")
 		context.JSON(http.StatusBadRequest, gin.H{"error": "Failed to find season by ID."})
 		context.Abort()
 		return

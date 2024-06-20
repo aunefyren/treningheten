@@ -672,6 +672,7 @@ hr {
   max-width: 100%;
   max-width: -webkit-fill-available;
   max-width: -moz-available;
+  color: var(--black);
 }
 
 .week_info {
@@ -695,6 +696,7 @@ hr {
   width: -webkit-fill-available;
   width: -moz-available;
   box-sizing: border-box;
+  transition: 1s;
 }
 
 .form-group {
@@ -722,6 +724,7 @@ hr {
   max-width: 100%;
   max-width: -webkit-fill-available;
   max-width: -moz-available;
+  color: var(--black)
 }
 
 .day-note {
@@ -2063,6 +2066,7 @@ input[type=checkbox]
   align-items: center;
   margin: 0 0.5em;
   box-sizing: inherit;
+  color: var(--black);
 }
 
 .operationSetWrapperSub {
@@ -2268,6 +2272,7 @@ input[type=checkbox]
   max-height: 10em;
   top: 3em;
   overflow-y: scroll;
+  color: var(--black);
 }
 
 .dropdown-action {
@@ -2464,4 +2469,50 @@ label {
   align-content: center;
   justify-content: center;
   align-items: center;
+}
+
+#potentialSeasonsWrapper, #countdownSeasonsWrapper {
+  width: 100%;
+  width: -webkit-fill-available;
+  width: -moz-available;
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-content: center;
+  justify-content: center;
+  align-items: center;
+  margin: 0.75em 0;
+}
+
+.potentialSeasonList, .countdownSeasonList {
+  width: 100%;
+  width: -webkit-fill-available;
+  width: -moz-available;
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-content: center;
+  justify-content: center;
+  align-items: center;
+}
+
+.potentialSeason {
+  width: 100%;
+  width: -webkit-fill-available;
+  width: -moz-available;
+  border-radius: 1em;
+  margin: 0.25em;
+  background-color: var(--lightblue);
+  color: var(--white);
+  height: 2em;
+  display: flex;
+  flex-direction:row;
+  flex-wrap: wrap;
+  align-content: center;
+  justify-content: center;
+  align-items: center;
+}
+
+.countdownSeason {
+
 }

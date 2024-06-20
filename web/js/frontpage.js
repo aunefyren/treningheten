@@ -224,7 +224,7 @@ function load_page(result) {
 
                                     <input type="hidden" value="" id="calendar_user_id">
 
-                                    <button type="submit" onclick="update_exercises(false, 0);" id="goal_amount_button" style="margin-bottom: 0em;"><img src="assets/done.svg" class="btn_logo color-invert"><p2>Save</p2></button>
+                                    <button type="submit" onclick="update_exercises(false, 0);" id="goal_amount_button" style="margin-bottom: 0em; transition: 1s;"><img src="assets/done.svg" class="btn_logo color-invert"><p2>Save</p2></button>
 
                                     <a style="margin: 0.5em; font-size:0.75em;cursor:pointer;" onclick="use_sickleave();">Use sick leave</i></a>
 
@@ -249,6 +249,12 @@ function load_page(result) {
 
                                     <h3 id="season_title">Loading...</h3>
                                     <p id="season_desc" style="text-align: center;">...</p>
+
+                                    <div id="potentialSeasonsWrapper" style="display:none;">
+                                    </div>
+
+                                    <div id="countdownSeasonsWrapper" style="display:none;">
+                                    </div>
 
                                     <p id="season_start_title" style="margin-top: 1em;">Season start: <a id="season_start">...</a></p>
                                     <p id="season_end_title" style="">Season end: <a id="season_end">...</a></p>
@@ -409,12 +415,12 @@ function get_season(user_id, loadingMessage){
                         countdownRedirect()
                     } else if(user_found) {
                         get_calendar(false, user_id, loadingMessage);
-                        place_season(season);
+                        place_season(season, user_id);
                         get_leaderboard(season, goal, true, false);
                     }
                 } else {
                     get_calendar(false, user_id, loadingMessage);
-                    place_season(false);
+                    place_season(false, user_id);
 
                     try {
                         document.getElementById('current-week').outerHTML = ""
@@ -442,7 +448,7 @@ function get_season(user_id, loadingMessage){
 
 }
 
-function place_season(season_object) {
+function place_season(season_object, userID) {
 
     if(season_object) {
         document.getElementById("season_title").innerHTML = season_object.name
@@ -467,6 +473,8 @@ function place_season(season_object) {
     } else {
         document.getElementById("season_title").innerHTML = "No active season"
         document.getElementById("season_desc").innerHTML = "You can join or create a season to start competing."
+        getPotentialSeasons();
+        getCountdownSeasons(userID);
 
         try {
             document.getElementById("season_start_title").outerHTML = ""
@@ -709,6 +717,8 @@ function update_exercises(go_to_exercise, weekDayInt) {
                 error(result.error);
 
             } else {
+                blinkCalendar();
+
                 week = result.week;
 
                 if(go_to_exercise === true) {
@@ -1248,9 +1258,15 @@ function placeWeekProgress(percentage, exercise, exerciseGoal) {
 
 }
 
-function frontPageRedirect() {
+function verifyPageRedirect() {
 
     window.location = '/verify'
+
+}
+
+function frontPageRedirect() {
+
+    window.location = '/'
 
 }
 
@@ -1306,4 +1322,234 @@ function addExercise(exerciseDayID) {
     xhttp.setRequestHeader("Authorization", jwt);
     xhttp.send(form_data);
     return false;
+}
+
+function getPotentialSeasons(user_id){
+
+    var xhttp = new XMLHttpRequest();
+    xhttp.onreadystatechange = function() {
+        if (this.readyState == 4) {
+            
+            try {
+                result = JSON.parse(this.responseText);
+            } catch(e) {
+                console.log(e +' - Response: ' + this.responseText);
+                error("Could not reach API.");
+                return;
+            }
+            
+            if(result.error) {
+                error(result.error);
+                return;
+            } else {
+                placePotentialSeasons(result.seasons);
+            }
+
+        }
+    };
+    xhttp.withCredentials = true;
+    xhttp.open("get", api_url + "auth/seasons?potential=true");
+    xhttp.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
+    xhttp.setRequestHeader("Authorization", jwt);
+    xhttp.send();
+    return false;
+
+}
+
+function placePotentialSeasons(seasonsArray) {
+    try {
+        var html = "Seasons you can join:<br><div class='potentialSeasonList'><hr>";
+        for(var i = 0; i < seasonsArray.length; i++) {
+            html += `
+                <div class="potentialSeason hover clickable" onclick="document.location.href = '/registergoal?season_id=${seasonsArray[i].id}'">
+                    ${seasonsArray[i].name}
+                </div>
+            `
+        }
+        html += '</div>'
+
+        potentialSeasonsWrapper = document.getElementById("potentialSeasonsWrapper");
+        potentialSeasonsWrapper.innerHTML = html;
+        potentialSeasonsWrapper.style.display = "flex";
+    } catch (e) {
+        console.log("Failed to place potential seasons. Error: " + e)
+        error("Failed to place potential seasons.")
+        return;
+    }
+}
+
+function getCountdownSeasons(userID){
+
+    var xhttp = new XMLHttpRequest();
+    xhttp.onreadystatechange = function() {
+        if (this.readyState == 4) {
+            
+            try {
+                result = JSON.parse(this.responseText);
+            } catch(e) {
+                console.log(e +' - Response: ' + this.responseText);
+                error("Could not reach API.");
+                return;
+            }
+            
+            if(result.error) {
+                error(result.error);
+                return;
+            } else {
+                placeCountdownSeasons(result.seasons, userID);
+            }
+
+        }
+    };
+    xhttp.withCredentials = true;
+    xhttp.open("get", api_url + "auth/seasons?countdown=true");
+    xhttp.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
+    xhttp.setRequestHeader("Authorization", jwt);
+    xhttp.send();
+    return false;
+
+}
+
+function placeCountdownSeasons(seasonsArray, userID) {
+    console.log(seasonsArray)
+
+    try {
+        var html = "Seasons you are waiting for:<br><div class='countdownSeasonList'><hr>";
+        for(var i = 0; i < seasonsArray.length; i++) {
+            var goalID = ''
+            for(var j = 0; j < seasonsArray[i].goals.length; j++) {
+                if(seasonsArray[i].goals[j].user.id == userID) {
+                    goalID = seasonsArray[i].goals[j].id;
+                    break;
+                }
+            }
+
+            var date_start = new Date(seasonsArray[i].start);
+            var date_end = new Date(seasonsArray[i].end);
+
+            var joinText = "..."
+            if(seasonsArray[i].join_anytime) {
+                joinText = "<b>You can join at any point in the season.</b>"
+            } else {
+                joinText = "<b>You must join before the start date.</b>"
+            }
+
+            var partici_string = "participants"
+            if(seasonsArray[i].goals.length == 1) {
+                partici_string = "participant"
+            }
+
+            html += `
+                <div class="countdownSeason">
+                    <h3 id="countdown_season_title" style="margin: 0 0 0.5em 0;">${seasonsArray[i].name}</h3>
+                    <p id="countdown_season_start">${GetDateString(date_start, true)}</p>
+                    <p id="countdown_season_end">${GetDateString(date_end, true)}</p>
+                  
+                    <p id="countdown_title" style="margin-top: 0.25em;">${seasonsArray[i].goals.length + " " + partici_string}. Starting in:</p>
+                    
+                    <p style="font-size: 2em; text-align: center;" id="countdown_number_${seasonsArray[i].id}" class="countdown_number">00d 00h 00m 00s</p>
+
+                    <a class="clickable hover" style="margin: 1em 0 0 0; font-size:0.75em;" onclick="deleteGoal('${goalID}');">I changed my mind!</i></a>
+                    <hr>
+                </div>
+            `
+        }
+        html += '</div>'
+
+        countdownSeasonsWrapper = document.getElementById("countdownSeasonsWrapper");
+        countdownSeasonsWrapper.innerHTML = html;
+        countdownSeasonsWrapper.style.display = "flex";
+
+        for(var i = 0; i < seasonsArray.length; i++) {
+            var date_start = new Date(seasonsArray[i].start);
+            activateCountdown(date_start, seasonsArray[i].id);
+        }
+    } catch (e) {
+        console.log("Failed to place countdown seasons. Error: " + e)
+        error("Failed to place countdown seasons.")
+        return;
+    }
+}
+
+function activateCountdown(countdownDate, seasonID){
+
+    // Set the date we're counting down to
+    var countDownDate = countdownDate.getTime();
+
+    // Update the count down every 1 second
+    var x = setInterval(function() {
+
+        // Get today's date
+        var now = new Date();
+
+        // Find the distance between now and the count down date
+        var distance = Math.floor(countDownDate - now.getTime());
+    
+        // Time calculations for days, hours, minutes and seconds
+        var days = Math.floor(distance / (1000 * 60 * 60 * 24));
+        var hours = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+        var minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
+        var seconds = Math.floor((distance % (1000 * 60)) / 1000);
+
+        if (distance > 0) {
+            // Display the result in the element with id="demo"
+            document.getElementById("countdown_number_" + seasonID).innerHTML = padNumber(days, 2) + "d " + padNumber(hours, 2) + "h "
+            + padNumber(minutes, 2) + "m " + padNumber(seconds, 2) + "s ";
+        
+            // If the count down is finished, write some text
+        } else {
+            clearInterval(x);
+            document.getElementById("countdown_number").innerHTML = "...";
+
+            setTimeout(() => {
+                frontPageRedirect();
+            }, 5000);
+              
+        }
+        
+    }, 1000);
+}
+
+function deleteGoal(goalID) {
+    if(!confirm("Are you sure you want to delete your goal? You are free to create another one afterward as long as the season has not started.")) {
+        return
+    }
+
+    var xhttp = new XMLHttpRequest();
+    xhttp.onreadystatechange = function() {
+        if (this.readyState == 4) {
+            
+            try {
+                result = JSON.parse(this.responseText);
+            } catch(e) {
+                console.log(e +' - Response: ' + this.responseText);
+                error("Could not reach API.");
+                return;
+            }
+            
+            if(result.error) {
+                error(result.error);
+            } else {
+                frontPageRedirect();
+            }
+
+        }
+    };
+    xhttp.withCredentials = true;
+    xhttp.open("delete", api_url + "auth/goals/" + goalID);
+    xhttp.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
+    xhttp.setRequestHeader("Authorization", jwt);
+    xhttp.send();
+    return false;
+}
+
+function blinkCalendar() {
+    try {
+        document.getElementById("goal_amount_button").classList.add("blink")
+        setTimeout(function() {
+            document.getElementById("goal_amount_button").classList.remove('blink');
+        }, 2500);
+    } catch (e) {
+        console.log("Failed to blink the calendar. Error: " + e)
+    }
 }

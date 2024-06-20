@@ -324,6 +324,7 @@ func APIGetCurrentSeasonLeaderboard(context *gin.Context) {
 		return
 	}
 
+	var goalObject *models.GoalObject
 	// Verify goal exists within season
 	goal, err := database.GetGoalFromUserWithinSeason(season.ID, userID)
 	if err != nil {
@@ -331,20 +332,16 @@ func APIGetCurrentSeasonLeaderboard(context *gin.Context) {
 		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to verify goal status."})
 		context.Abort()
 		return
-	} else if goal == nil {
-		log.Println("Failed to get goal status. Error: " + err.Error())
-		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get goal status."})
-		context.Abort()
-		return
-	}
-
-	// Convert goal to GoalObject
-	goalObject, err := ConvertGoalToGoalObject(*goal)
-	if err != nil {
-		log.Println("Failed to verify goal status. Error: " + err.Error())
-		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to verify goal status."})
-		context.Abort()
-		return
+	} else if goal != nil {
+		// Convert goal to GoalObject
+		newGoalObject, err := ConvertGoalToGoalObject(*goal)
+		if err != nil {
+			log.Println("Failed to verify goal status. Error: " + err.Error())
+			context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to verify goal status."})
+			context.Abort()
+			return
+		}
+		goalObject = &newGoalObject
 	}
 
 	seasonLeaderboard := models.SeasonLeaderboard{
@@ -558,15 +555,81 @@ func ReverseWeeksArray(input []models.WeekResults) []models.WeekResults {
 
 // Get all enabled seasons
 func APIGetSeasons(context *gin.Context) {
-
+	seasons := []models.Season{}
 	seasonObjects := []models.SeasonObject{}
 
-	seasons, err := database.GetAllEnabledSeasons()
+	// Get user ID
+	userID, err := middlewares.GetAuthUsername(context.GetHeader("Authorization"))
+	if err != nil {
+		context.JSON(http.StatusBadRequest, gin.H{"error": "Failed to get user ID."})
+		context.Abort()
+		return
+	}
+
+	potentialSeasons, err := database.GetAllEnabledSeasons()
 	if err != nil {
 		log.Println("Failed to get seasons from database. Error: " + err.Error())
 		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get seasons from database."})
 		context.Abort()
 		return
+	}
+
+	// Remove non-potential seasons
+	potentialBoolean, okay := context.GetQuery("potential")
+	countdownBoolean, okayTwo := context.GetQuery("countdown")
+	if okay && potentialBoolean == "true" {
+		newSeasons := []models.Season{}
+
+		for _, season := range potentialSeasons {
+			goal, err := database.GetGoalFromUserWithinSeason(season.ID, userID)
+			if err != nil {
+				log.Println("Failed to check for goal within seasons. Error: " + err.Error())
+				context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to check for goal within seasons."})
+				context.Abort()
+				return
+			} else if goal != nil {
+				continue
+			}
+
+			now := time.Now()
+			if now.After(season.Start) && (season.JoinAnytime == nil || *season.JoinAnytime == false) {
+				log.Println(season.JoinAnytime)
+				continue
+			}
+
+			if now.After(season.End) {
+				continue
+			}
+
+			newSeasons = append(newSeasons, season)
+		}
+
+		seasons = newSeasons
+	} else if okayTwo && countdownBoolean == "true" {
+		newSeasons := []models.Season{}
+
+		for _, season := range potentialSeasons {
+			goal, err := database.GetGoalFromUserWithinSeason(season.ID, userID)
+			if err != nil {
+				log.Println("Failed to check for goal within seasons. Error: " + err.Error())
+				context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to check for goal within seasons."})
+				context.Abort()
+				return
+			} else if goal == nil {
+				continue
+			}
+
+			now := time.Now()
+			if now.After(season.Start) {
+				continue
+			}
+
+			newSeasons = append(newSeasons, season)
+		}
+
+		seasons = newSeasons
+	} else {
+		seasons = potentialSeasons
 	}
 
 	for _, season := range seasons {

@@ -194,46 +194,28 @@ func StravaSyncWeekForAllUsers() {
 		return
 	}
 
-	now := time.Now()
-
-	seasons, err := GetOngoingSeasonsFromDB(now)
+	users, err := database.GetStravaUsers()
 	if err != nil {
-		log.Println("Failed to check for ongoing season.")
-		return
-	} else if len(seasons) == 0 {
-		log.Println("No ongoing season found.")
+		log.Println("Failed to get Strava users.")
 		return
 	}
 
-	for _, season := range seasons {
-		users, err := database.GetStravaUsersWithinSeason(season.ID)
+	log.Println("Got '" + strconv.Itoa(len(users)) + "' users.")
+
+	for _, user := range users {
+		err = StravaSyncWeekForUser(user, *configFile, time.Now())
 		if err != nil {
-			log.Println("Failed to get Strava users.")
-			return
-		}
-
-		log.Println("Got '" + strconv.Itoa(len(users)) + "' users.")
-
-		for _, user := range users {
-			err = StravaSyncWeekForUser(user, *configFile, season)
-			if err != nil {
-				log.Println("Sync Strava for user returned error. Error: " + err.Error())
-			}
+			log.Println("Sync Strava for user returned error. Error: " + err.Error())
 		}
 	}
+
 	log.Println("Strava sync task finished.")
 }
 
-func StravaSyncWeekForUser(user models.User, configFile models.ConfigStruct, season models.Season) (err error) {
+func StravaSyncWeekForUser(user models.User, configFile models.ConfigStruct, pointInTime time.Time) (err error) {
 	err = nil
-	now := time.Now()
 	log.Println("Strava sync for user '" + user.FirstName + " " + user.LastName + "'.")
-
-	goal, err := database.GetGoalFromUserWithinSeason(season.ID, user.ID)
-	if err != nil {
-		log.Println("Failed to get goal. ID: " + user.ID.String())
-		return
-	}
+	now := time.Now()
 
 	stravaCodeData := strings.Split(*user.StravaCode, ":")
 
@@ -283,13 +265,13 @@ func StravaSyncWeekForUser(user models.User, configFile models.ConfigStruct, sea
 		return errors.New("Invalid Strava code format for user.")
 	}
 
-	monday, err := utilities.FindEarlierMonday(now)
+	monday, err := utilities.FindEarlierMonday(pointInTime)
 	if err != nil {
 		log.Println("Failed to find monday. ID: " + user.ID.String())
 		return errors.New("Failed to find monday.")
 	}
 
-	sunday, err := utilities.FindNextSunday(now)
+	sunday, err := utilities.FindNextSunday(pointInTime)
 	if err != nil {
 		log.Println("Failed to find sunday. ID: " + user.ID.String())
 		return errors.New("Failed to find sunday.")
@@ -318,7 +300,7 @@ func StravaSyncWeekForUser(user models.User, configFile models.ConfigStruct, sea
 			return errors.New("Failed to get exercise.")
 		} else if exercise == nil {
 			// Get exercise day
-			exerciseDay, err := database.GetExerciseDayByDateAndGoal(goal.ID, activity.StartDate)
+			exerciseDay, err := database.GetExerciseDayByDateAndUserID(user.ID, activity.StartDate)
 			if err != nil {
 				log.Println("Failed to get exercise day. ID: " + user.ID.String())
 				return errors.New("Failed to get exercise day.")

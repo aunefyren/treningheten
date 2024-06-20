@@ -10,6 +10,7 @@ import (
 	"html"
 	"log"
 	"net/http"
+	"strconv"
 	"strings"
 	"time"
 
@@ -767,18 +768,6 @@ func APISetStravaCode(context *gin.Context) {
 		return
 	}
 
-	seasons, err := GetOngoingSeasonsFromDBForUserID(time.Now(), user.ID)
-	if err != nil {
-		log.Println("Failed to get ongoing season. Error: " + err.Error())
-		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get ongoing seasons."})
-		context.Abort()
-		return
-	} else if len(seasons) == 0 {
-		context.JSON(http.StatusBadRequest, gin.H{"error": "No ongoing seasons for user."})
-		context.Abort()
-		return
-	}
-
 	user, err = database.GetAllUserInformation(userID)
 	if err != nil {
 		log.Println("Failed to get user object. Error: " + err.Error())
@@ -798,14 +787,12 @@ func APISetStravaCode(context *gin.Context) {
 		return
 	}
 
-	for _, season := range seasons {
-		err = StravaSyncWeekForUser(user, *configFile, season)
-		if err != nil {
-			log.Println("Failed to sync Strava for user. Error: " + err.Error())
-			context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to sync Strava for user."})
-			context.Abort()
-			return
-		}
+	err = StravaSyncWeekForUser(user, *configFile, time.Now())
+	if err != nil {
+		log.Println("Failed to sync Strava for user. Error: " + err.Error())
+		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to sync Strava for user."})
+		context.Abort()
+		return
 	}
 
 	context.JSON(http.StatusOK, gin.H{"message": "Code updated!"})
@@ -829,23 +816,25 @@ func APISyncStravaForUser(context *gin.Context) {
 		return
 	}
 
+	pointInTime := time.Now()
+	pointInTimeInput, okay := context.GetQuery("pointInTime")
+	if okay {
+		pointInTimeInt, err := strconv.ParseInt(pointInTimeInput, 10, 64)
+		if err != nil {
+			log.Println("Failed to parse UNIX timestamp. Error: " + err.Error())
+			context.JSON(http.StatusBadRequest, gin.H{"error": "Failed to parse UNIX timestamp."})
+			context.Abort()
+			return
+		}
+
+		pointInTime = time.Unix(pointInTimeInt, 0)
+	}
+
 	// Get user ID
 	userID, err := middlewares.GetAuthUsername(context.GetHeader("Authorization"))
 	if err != nil {
 		log.Println("Failed to get user ID. Error: " + err.Error())
 		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get user ID."})
-		context.Abort()
-		return
-	}
-
-	seasons, err := GetOngoingSeasonsFromDBForUserID(time.Now(), userID)
-	if err != nil {
-		log.Println("Failed to get ongoing seasons. Error: " + err.Error())
-		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get ongoing seasons."})
-		context.Abort()
-		return
-	} else if len(seasons) == 0 {
-		context.JSON(http.StatusBadRequest, gin.H{"error": "No ongoing seasons for user."})
 		context.Abort()
 		return
 	}
@@ -864,14 +853,12 @@ func APISyncStravaForUser(context *gin.Context) {
 		return
 	}
 
-	for _, season := range seasons {
-		err = StravaSyncWeekForUser(user, *configFile, season)
-		if err != nil {
-			log.Println("Failed to sync Strava for user. Error: " + err.Error())
-			context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to sync Strava for user."})
-			context.Abort()
-			return
-		}
+	err = StravaSyncWeekForUser(user, *configFile, pointInTime)
+	if err != nil {
+		log.Println("Failed to sync Strava for user. Error: " + err.Error())
+		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to sync Strava for user."})
+		context.Abort()
+		return
 	}
 
 	context.JSON(http.StatusOK, gin.H{"message": "Strava sync started!"})

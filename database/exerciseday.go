@@ -53,6 +53,22 @@ func GetExerciseDayByUserIDAndDate(userID uuid.UUID, date time.Time) (*models.Ex
 	return &exercise, nil
 }
 
+// Get exercise days
+func GetAllExerciseDays() ([]models.ExerciseDay, error) {
+	var exerciseDays []models.ExerciseDay
+
+	records := Instance.Where("`exercise_days`.enabled = ?", 1).
+		Find(&exerciseDays)
+
+	if records.Error != nil {
+		return nil, records.Error
+	} else if records.RowsAffected == 0 {
+		return exerciseDays, nil
+	}
+
+	return exerciseDays, nil
+}
+
 // Create new exercise within goal
 func CreateExerciseDayInDB(exercise models.ExerciseDay) error {
 	record := Instance.Create(&exercise)
@@ -142,7 +158,11 @@ func GetExerciseDaysForUserUsingUserID(userID uuid.UUID) ([]models.ExerciseDay, 
 
 	var exercises []models.ExerciseDay
 
-	exerciserecord := Instance.Order("date desc").Where("`exercise_days`.enabled = ?", 1).Joins("JOIN goals on `exercise_days`.goal_id = `goals`.ID").Where("`goals`.user_id = ?", userID).Where("`goals`.enabled = ?", 1).Find(&exercises)
+	exerciserecord := Instance.Order("date desc").
+		Where("`exercise_days`.enabled = ?", 1).
+		Where("`exercise_days`.user_id = ?", userID).
+		Find(&exercises)
+
 	if exerciserecord.Error != nil {
 		return []models.ExerciseDay{}, exerciserecord.Error
 	} else if exerciserecord.RowsAffected == 0 {
@@ -267,6 +287,28 @@ func GetExerciseDayByDateAndGoal(goalID uuid.UUID, date time.Time) (*models.Exer
 
 	goalrecord := Instance.Where("`exercise_days`.enabled = ?", 1).
 		Where("`exercise_days`.goal_id = ?", goalID).
+		Where("`exercise_days`.Date >= ?", startDayString).
+		Where("`exercise_days`.Date <= ?", endDayString).
+		Find(&exercise)
+
+	if goalrecord.Error != nil {
+		return nil, goalrecord.Error
+	} else if goalrecord.RowsAffected != 1 {
+		return nil, err
+	}
+
+	return &exercise, err
+}
+
+func GetExerciseDayByDateAndUserID(userID uuid.UUID, date time.Time) (*models.ExerciseDay, error) {
+	var exercise models.ExerciseDay
+	var err error
+
+	startDayString := date.Format("2006-01-02") + " 00:00:00.000"
+	endDayString := date.Format("2006-01-02") + " 23:59:59"
+
+	goalrecord := Instance.Where("`exercise_days`.enabled = ?", 1).
+		Where("`exercise_days`.user_id = ?", userID).
 		Where("`exercise_days`.Date >= ?", startDayString).
 		Where("`exercise_days`.Date <= ?", endDayString).
 		Find(&exercise)

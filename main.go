@@ -308,6 +308,8 @@ func initRouter() *gin.Engine {
 
 			admin.GET("/server-info", controllers.APIGetServerInfo)
 
+			admin.GET("/exercise-days", controllers.APIAdminGetExerciseDays)
+
 			admin.POST("/debts", controllers.APIGenerateDebtForWeek)
 
 			admin.GET("/prizes", controllers.APIGetPrizes)

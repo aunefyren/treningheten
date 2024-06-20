@@ -41,9 +41,7 @@ func GetOperationsByUserID(userID uuid.UUID) ([]models.Operation, error) {
 		Where("`exercises`.enabled = ?", 1).
 		Joins("JOIN `exercise_days` on `exercises`.exercise_day_id = `exercise_days`.id").
 		Where("`exercise_days`.enabled = ?", 1).
-		Joins("JOIN `goals` on `exercise_days`.goal_id = `goals`.id").
-		Where("`goals`.enabled = ?", 1).
-		Joins("JOIN `users` on `goals`.user_id = `users`.id").
+		Joins("JOIN `users` on `exercise_days`.user_id = `users`.id").
 		Where("`users`.enabled = ?", 1).
 		Where("`users`.id = ?", userID).
 		Find(&operations)
@@ -65,9 +63,7 @@ func GetOperationByIDAndUserID(operationID uuid.UUID, userID uuid.UUID) (operati
 		Where("`exercises`.enabled = ?", 1).
 		Joins("JOIN `exercise_days` on `exercises`.exercise_day_id = `exercise_days`.id").
 		Where("`exercise_days`.enabled = ?", 1).
-		Joins("JOIN `goals` on `exercise_days`.goal_id = `goals`.id").
-		Where("`goals`.enabled = ?", 1).
-		Joins("JOIN `users` on `goals`.user_id = `users`.id").
+		Joins("JOIN `users` on `exercise_days`.user_id = `users`.id").
 		Where("`users`.enabled = ?", 1).
 		Where("`users`.id = ?", userID).
 		Find(&operation)
@@ -93,9 +89,7 @@ func GetOperationSetsByOperationIDAndUserID(operationID uuid.UUID, userID uuid.U
 		Where("`exercises`.enabled = ?", 1).
 		Joins("JOIN `exercise_days` on `exercises`.exercise_day_id = `exercise_days`.id").
 		Where("`exercise_days`.enabled = ?", 1).
-		Joins("JOIN `goals` on `exercise_days`.goal_id = `goals`.id").
-		Where("`goals`.enabled = ?", 1).
-		Joins("JOIN `users` on `goals`.user_id = `users`.id").
+		Joins("JOIN `users` on `exercise_days`.user_id = `users`.id").
 		Where("`users`.enabled = ?", 1).
 		Where("`users`.id = ?", userID).
 		Find(&operationSets)
@@ -118,9 +112,7 @@ func GetOperationSetsByUserID(userID uuid.UUID) (operationSets []models.Operatio
 		Where("`exercises`.enabled = ?", 1).
 		Joins("JOIN `exercise_days` on `exercises`.exercise_day_id = `exercise_days`.id").
 		Where("`exercise_days`.enabled = ?", 1).
-		Joins("JOIN `goals` on `exercise_days`.goal_id = `goals`.id").
-		Where("`goals`.enabled = ?", 1).
-		Joins("JOIN `users` on `goals`.user_id = `users`.id").
+		Joins("JOIN `users` on `exercise_days`.user_id = `users`.id").
 		Where("`users`.enabled = ?", 1).
 		Where("`users`.id = ?", userID).
 		Find(&operationSets)
@@ -168,9 +160,7 @@ func GetOperationSetByIDAndUserID(operationSetID uuid.UUID, userID uuid.UUID) (o
 		Where("`exercises`.enabled = ?", 1).
 		Joins("JOIN `exercise_days` on `exercises`.exercise_day_id = `exercise_days`.id").
 		Where("`exercise_days`.enabled = ?", 1).
-		Joins("JOIN `goals` on `exercise_days`.goal_id = `goals`.id").
-		Where("`goals`.enabled = ?", 1).
-		Joins("JOIN `users` on `goals`.user_id = `users`.id").
+		Joins("JOIN `users` on `exercise_days`.user_id = `users`.id").
 		Where("`users`.enabled = ?", 1).
 		Where("`users`.id = ?", userID).
 		Find(&operationSet)
@@ -276,9 +266,7 @@ func GetOperationByStravaIDAndUserIDAndExerciseID(userID uuid.UUID, stravaID int
 		Where("`exercises`.id = ?", exerciseID).
 		Joins("JOIN `exercise_days` on `exercises`.exercise_day_id = `exercise_days`.id").
 		Where("`exercise_days`.enabled = ?", 1).
-		Joins("JOIN `goals` on `exercise_days`.goal_id = `goals`.id").
-		Where("`goals`.enabled = ?", 1).
-		Joins("JOIN `users` on `goals`.user_id = `users`.id").
+		Joins("JOIN `users` on `exercise_days`.user_id = `users`.id").
 		Where("`users`.enabled = ?", 1).
 		Where("`users`.id = ?", userID).
 		Find(&operation)
@@ -305,9 +293,7 @@ func GetOperationSetByStravaIDAndUserIDAndOperationID(userID uuid.UUID, stravaID
 		Where("`exercises`.enabled = ?", 1).
 		Joins("JOIN `exercise_days` on `exercises`.exercise_day_id = `exercise_days`.id").
 		Where("`exercise_days`.enabled = ?", 1).
-		Joins("JOIN `goals` on `exercise_days`.goal_id = `goals`.id").
-		Where("`goals`.enabled = ?", 1).
-		Joins("JOIN `users` on `goals`.user_id = `users`.id").
+		Joins("JOIN `users` on `exercise_days`.user_id = `users`.id").
 		Where("`users`.enabled = ?", 1).
 		Where("`users`.id = ?", userID).
 		Find(&operationSet)

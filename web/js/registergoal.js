@@ -18,12 +18,28 @@ function load_page(result) {
         admin = false;
     }
 
+    try {
+        // Get parameters from URL string
+        var url_string = window.location.href
+        var url = new URL(url_string);
+        var seasonID = url.searchParams.get("season_id");
+
+        if(!seasonID) {
+            error("Invalid season chosen...");
+            return
+        }
+    } catch(e) {
+        console.log("Invalid season chosen. Error: " + e);
+        error("Invalid season chosen...");
+        return
+    }
+
     var html = `
         <div class="" id="front-page">
             
             <div class="module" id="registergoal" style="display: none;">
 
-                <div id="season" class="season">
+                <div id="season" class="season" style="max-height: none !important;">
 
                     <h3 id="register_season_title" style="margin: 0 0 0.5em 0;">Loading...</h3>
                     <p id="register_season_start">...</p>
@@ -55,7 +71,7 @@ function load_page(result) {
 
                     <hr style="margin: 1em 0;">
 
-                    <button type="submit" onclick="registerGoal();" id="register_goal_button" style=""><img src="assets/done.svg" class="btn_logo color-invert"><p2>Join season</p2></button>
+                    <button type="submit" onclick="registerGoal('${seasonID}');" id="register_goal_button" style=""><img src="assets/done.svg" class="btn_logo color-invert"><p2>Join season</p2></button>
 
                 </div>
 
@@ -85,14 +101,14 @@ function load_page(result) {
 
     if(result !== false) {
         showLoggedInMenu();
-        getSeason(user_id);
+        getSeason(user_id, seasonID);
     } else {
         showLoggedOutMenu();
         invalid_session();
     }
 }
 
-function getSeason(userID){
+function getSeason(userID, seasonID){
 
     var xhttp = new XMLHttpRequest();
     xhttp.onreadystatechange = function() {
@@ -134,14 +150,19 @@ function getSeason(userID){
                 }
 
                 var date_start = new Date(season.start);
+                var date_end = new Date(season.end);
                 var now = Date.now();
 
-                if(user_found && now < date_start && !season.join_anytime) {
-                    countdownRedirect();
-                } else if(user_found) {
+                if(user_found) {
                     frontPageRedirect();
-                } else {
+                } else if((now > date_start && !season.join_anytime) && now < date_end) {
+                    error("It is too late to join this season.");
+                    return;
+                } else if((now < date_start || season.join_anytime) && now < date_end) {
                     registerGoalModule(season)
+                } else {
+                    error("Logic error :/");
+                    return;
                 }
 
                 getDebtOverview();
@@ -153,7 +174,7 @@ function getSeason(userID){
         }
     };
     xhttp.withCredentials = true;
-    xhttp.open("get", api_url + "auth/seasons/get-on-going");
+    xhttp.open("get", api_url + "auth/seasons/" + seasonID);
     xhttp.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
     xhttp.setRequestHeader("Authorization", jwt);
     xhttp.send();
@@ -194,14 +215,15 @@ function registerGoalModule(season_object) {
     document.getElementById("register-prize-text").innerHTML = season_object.prize.quantity + " " + season_object.prize.name
 }
 
-function registerGoal() {
+function registerGoal(seasonID) {
 
     var exercise_goal = Number(document.getElementById("commitment").innerHTML);
     var goal_compete = document.getElementById("compete").checked
 
     var form_obj = {
         "exercise_interval": exercise_goal,
-        "competing": goal_compete
+        "competing": goal_compete,
+        "season_id": seasonID
 
     };
 
@@ -225,7 +247,7 @@ function registerGoal() {
 
             } else {
 
-                countdownRedirect();
+                frontPageRedirect();
 
             }
 

@@ -439,15 +439,8 @@ func APIGetExerciseDays(context *gin.Context) {
 
 	// Get exercises from user
 	goal, okay := context.GetQuery("goal")
-	if !okay {
-		exerciseDays, err = database.GetExerciseDaysForUserUsingUserID(userID)
-		if err != nil {
-			log.Println("Failed to get exercise. Error: " + err.Error())
-			context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get exercise."})
-			context.Abort()
-			return
-		}
-	} else {
+	year, okayTwo := context.GetQuery("year")
+	if okay {
 		goalID, err := uuid.Parse(goal)
 		if err != nil {
 			context.JSON(http.StatusBadRequest, gin.H{"error": "Failed to parse goal ID."})
@@ -489,6 +482,37 @@ func APIGetExerciseDays(context *gin.Context) {
 		}
 
 		goalObject = &goalObjectTMP
+
+	} else if okayTwo {
+		yearInt, err := strconv.ParseInt(year, 10, 64)
+		if err != nil {
+			log.Println("Failed to convert year string to int. Error: " + err.Error())
+			context.JSON(http.StatusBadRequest, gin.H{"error": "Failed to convert year string to int."})
+			context.Abort()
+			return
+		}
+
+		newExerciseDays, err := database.GetExerciseDaysForUserUsingUserID(userID)
+		if err != nil {
+			log.Println("Failed to get exercise days. Error: " + err.Error())
+			context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get exercise."})
+			context.Abort()
+			return
+		}
+
+		for _, exerciseDay := range newExerciseDays {
+			if int64(exerciseDay.Date.Year()) == yearInt {
+				exerciseDays = append(exerciseDays, exerciseDay)
+			}
+		}
+	} else {
+		exerciseDays, err = database.GetExerciseDaysForUserUsingUserID(userID)
+		if err != nil {
+			log.Println("Failed to get exercise. Error: " + err.Error())
+			context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get exercise."})
+			context.Abort()
+			return
+		}
 	}
 
 	exerciseDayObjects, err := ConvertExerciseDaysToExerciseDayObjects(exerciseDays)
@@ -499,7 +523,30 @@ func APIGetExerciseDays(context *gin.Context) {
 		return
 	}
 
-	context.JSON(http.StatusOK, gin.H{"message": "Exercise retrieved.", "exercise": exerciseDayObjects, "goal": goalObject})
+	context.JSON(http.StatusOK, gin.H{"message": "Exercise days retrieved.", "exercise": exerciseDayObjects, "goal": goalObject})
+}
+
+// Get full workout calender for the week from the database, and return to user
+func APIAdminGetExerciseDays(context *gin.Context) {
+	var exerciseDays = []models.ExerciseDay{}
+
+	exerciseDays, err := database.GetAllExerciseDays()
+	if err != nil {
+		log.Println("Failed to get exercise days. Error: " + err.Error())
+		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get exercise."})
+		context.Abort()
+		return
+	}
+
+	exerciseDayObjects, err := ConvertExerciseDaysToExerciseDayObjects(exerciseDays)
+	if err != nil {
+		log.Println("Failed to get convert exercise days to exercise day objects. Error: " + err.Error())
+		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get convert exercise days to exercise day objects."})
+		context.Abort()
+		return
+	}
+
+	context.JSON(http.StatusOK, gin.H{"message": "Exercise days retrieved.", "exercise": exerciseDayObjects})
 }
 
 // Change exercises to correlate with exercise days
