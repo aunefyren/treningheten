@@ -32,7 +32,7 @@ function load_page(result) {
                     <div class="module">
 
                         <div id="goals-title" class="title" style="display: none;">
-                            Goals:
+                            Years:
                         </div>
 
                         <div id="goals-box" class="goals">

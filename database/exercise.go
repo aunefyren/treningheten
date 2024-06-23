@@ -94,9 +94,7 @@ func GetAllExerciseByIDAndUserID(exerciseID uuid.UUID, userID uuid.UUID) (models
 		Where("`exercises`.id = ?", exerciseID).
 		Joins("JOIN `exercise_days` on `exercises`.exercise_day_id = `exercise_days`.id").
 		Where("`exercise_days`.enabled = ?", 1).
-		Joins("JOIN `goals` on `exercise_days`.goal_id = `goals`.id").
-		Where("`goals`.enabled = ?", 1).
-		Joins("JOIN `users` on `goals`.user_id = `users`.id").
+		Joins("JOIN `users` on `exercise_days`.user_id = `users`.id").
 		Where("`users`.enabled = ?", 1).
 		Where("`users`.id = ?", userID).
 		Find(&exercise)
@@ -136,9 +134,7 @@ func GetExerciseForUserWithStravaID(userID uuid.UUID, stravaID int) (exercise *m
 		Where("`exercises`.strava_id LIKE ?", stravaIDString).
 		Joins("JOIN `exercise_days` on `exercises`.exercise_day_id = `exercise_days`.id").
 		Where("`exercise_days`.enabled = ?", 1).
-		Joins("JOIN `goals` on `exercise_days`.goal_id = `goals`.id").
-		Where("`goals`.enabled = ?", 1).
-		Joins("JOIN `users` on `goals`.user_id = `users`.id").
+		Joins("JOIN `users` on `exercise_days`.user_id = `users`.id").
 		Where("`users`.enabled = ?", 1).
 		Where("`users`.id = ?", userID).
 		Find(&exercise)
