@@ -1174,7 +1174,7 @@ func APICreateExercise(context *gin.Context) {
 	context.JSON(http.StatusCreated, gin.H{"message": "Exercise created.", "exercise": exerciseObject})
 }
 
-func GetExercisesForWeekUsingGoal(timeReq time.Time, goalID uuid.UUID) (exercises []models.Exercise, err error) {
+func GetExercisesForWeekUsingUserID(timeReq time.Time, userID uuid.UUID) (exercises []models.Exercise, err error) {
 	err = nil
 	exercises = []models.Exercise{}
 
@@ -1208,7 +1208,7 @@ func GetExercisesForWeekUsingGoal(timeReq time.Time, goalID uuid.UUID) (exercise
 		return exercises, errors.New("Managed to find dates outside of chosen week.")
 	}
 
-	exercises, err = database.GetValidExercisesBetweenDatesUsingDates(goalID, startTime, endTime)
+	exercises, err = database.GetValidExercisesBetweenDatesUsingDatesByUserID(userID, startTime, endTime)
 	if err != nil {
 		return exercises, err
 	}

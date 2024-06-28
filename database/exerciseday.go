@@ -254,7 +254,7 @@ func UpdateExerciseDayInDB(exerciseDay models.ExerciseDay) (models.ExerciseDay, 
 	return exerciseDay, nil
 }
 
-func GetValidExercisesBetweenDatesUsingDates(goalID uuid.UUID, startDate time.Time, endDate time.Time) ([]models.Exercise, error) {
+func GetValidExercisesBetweenDatesUsingDatesByUserID(userID uuid.UUID, startDate time.Time, endDate time.Time) ([]models.Exercise, error) {
 	var exercises []models.Exercise
 
 	startDayString := startDate.Format("2006-01-02") + " 00:00:00.000"
@@ -265,7 +265,7 @@ func GetValidExercisesBetweenDatesUsingDates(goalID uuid.UUID, startDate time.Ti
 		Where("`exercises`.on = ?", 1).
 		Joins("JOIN `exercise_days` on `exercises`.exercise_day_id = `exercise_days`.id").
 		Where("`exercise_days`.enabled = ?", 1).
-		Where("`exercise_days`.goal_id = ?", goalID).
+		Where("`exercise_days`.user_id = ?", userID).
 		Where("`exercise_days`.Date >= ?", startDayString).
 		Where("`exercise_days`.Date <= ?", endDayString).
 		Where("`exercise_days`.Date <= ?", endDayString).

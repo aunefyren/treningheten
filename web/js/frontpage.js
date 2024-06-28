@@ -1548,7 +1548,7 @@ function blinkCalendar() {
         document.getElementById("goal_amount_button").classList.add("blink")
         setTimeout(function() {
             document.getElementById("goal_amount_button").classList.remove('blink');
-        }, 2500);
+        }, 1500);
     } catch (e) {
         console.log("Failed to blink the calendar. Error: " + e)
     }

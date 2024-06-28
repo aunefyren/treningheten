@@ -451,7 +451,7 @@ func GetWeekResultForGoal(goal models.GoalObject, currentTime time.Time, userStr
 	err = nil
 
 	// Get the exercises from the week
-	exercises, err := GetExercisesForWeekUsingGoal(currentTime, goal.ID)
+	exercises, err := GetExercisesForWeekUsingUserID(currentTime, goal.User.ID)
 	if err != nil {
 		return models.UserWeekResults{}, userStreaks, err
 	}
