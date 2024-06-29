@@ -39,3 +39,8 @@ type AchievementUserObject struct {
 	AchievementDelegation *[]AchievementDelegation `json:"achievement_delegations"`
 	LastGivenAt           *time.Time               `json:"last_given_at"`
 }
+
+type AchievementDelegationCreationRequest struct {
+	AchievementID uuid.UUID  `json:"achievement_id"`
+	GivenAt       *time.Time `json:"given_at"`
+}

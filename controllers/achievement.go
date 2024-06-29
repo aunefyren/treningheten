@@ -1018,3 +1018,40 @@ func GenerateAchievementsForSeason(seasonResults []models.WeekResults) error {
 	return nil
 
 }
+
+func ApiGiveUserAnAchievement(context *gin.Context) {
+	// Create user request
+	var userIDString = context.Param("user_id")
+	var achievementDelegationCreationRequest models.AchievementDelegationCreationRequest
+
+	// Parse creation request
+	if err := context.ShouldBindJSON(&achievementDelegationCreationRequest); err != nil {
+		log.Println("Failed to parse creation request. Error: " + err.Error())
+		context.JSON(http.StatusBadRequest, gin.H{"error": "Failed to parse creation request."})
+		context.Abort()
+		return
+	}
+
+	userID, err := uuid.Parse(userIDString)
+	if err != nil {
+		log.Println("Failed to parse user ID. Error: " + err.Error())
+		context.JSON(http.StatusBadRequest, gin.H{"error": "Failed to parse user ID."})
+		context.Abort()
+		return
+	}
+
+	givenAt := time.Now()
+	if achievementDelegationCreationRequest.GivenAt != nil {
+		givenAt = *achievementDelegationCreationRequest.GivenAt
+	}
+
+	err = GiveUserAnAchievement(userID, achievementDelegationCreationRequest.AchievementID, givenAt)
+	if err != nil {
+		log.Println("Failed to give achievement to user. Error: " + err.Error())
+		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to give achievement to user."})
+		context.Abort()
+		return
+	}
+
+	context.JSON(http.StatusCreated, gin.H{"message": "Achievement given."})
+}

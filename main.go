@@ -312,6 +312,8 @@ func initRouter() *gin.Engine {
 
 			admin.POST("/debts", controllers.APIGenerateDebtForWeek)
 
+			admin.POST("/users/:user_id/achievement-delegations", controllers.ApiGiveUserAnAchievement)
+
 			admin.GET("/prizes", controllers.APIGetPrizes)
 			admin.POST("/prizes", controllers.APIRegisterPrize)
 
