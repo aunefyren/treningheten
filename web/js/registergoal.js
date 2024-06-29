@@ -61,10 +61,10 @@ function load_page(result) {
 
                     <hr style="margin: 1em 0;">
 
-                    <input style="" type="checkbox" id="compete" class="clickable" name="compete" value="compete">
+                    <input style="margin: 0;" type="checkbox" id="compete" class="clickable" name="compete" value="compete">
                     <label for="compete" class="clickable" style="user-select: none; text-align: center;" title="If I fail to complete my goal, I must spin a wheel of fortune and provide a prize to the winner."> I want to compete with others to uphold my workout streak.</label><br>
 
-                    <p id="prize-title" style="margin-top: 1em;">Potential prize:</p>
+                    <p id="prize-title" style="margin-top: 2em;">Potential prize:</p>
                     <div class="prize-wrapper">
                         <div id="register-prize-text" class="prize-text">...</div>
                     </div>
