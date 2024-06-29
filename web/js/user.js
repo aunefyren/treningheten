@@ -54,7 +54,7 @@ function load_page(result) {
 
         </div>
 
-        <div class="module color-invert" id="achievements-hr" style="display: none;">
+        <div class="module" id="achievements-hr" style="display: none;">
             <hr>
         </div>
 

@@ -294,7 +294,7 @@ function load_page(result) {
 
                             <div id="leaderboard" class="leaderboard">
 
-                                <h3 style="margin: 0.5em;">Past weeks</h3>
+                                <h3 style="margin: 0.5em;">All weeks</h3>
 
                                 <div id="leaderboard-weeks" class="leaderboard-weeks">
                                     ...

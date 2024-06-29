@@ -49,7 +49,7 @@ function load_page(result) {
             <p id="join_date" style=""></p>
             <p id="user_admin" style=""></p>
 
-            <div class="module color-invert" id="" style="">
+            <div class="module" id="" style="">
                 <hr>
             </div>
 
@@ -82,7 +82,7 @@ function load_page(result) {
                 </button>
             </div>
 
-            <div class="module color-invert">
+            <div class="module">
                 <hr>
             </div>
 
@@ -124,14 +124,14 @@ function load_page(result) {
 
             </form>
 
-            <div class="module color-invert" id="" style="">
+            <div class="module" id="" style="">
                 <hr>
             </div>
 
             <div class="button-collection" id="strava-button-collection">
             </div>
 
-            <div class="module color-invert" id="" style="">
+            <div class="module" id="" style="">
                 <hr>
             </div>
 

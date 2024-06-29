@@ -457,14 +457,15 @@ func ConvertAchievementDelegationToAchievementUserObject(achievementDelegation m
 		Category:         achievement.Category,
 		CategoryColor:    achievement.CategoryColor,
 		AchievementOrder: achievement.AchievementOrder,
+		LastGivenAt:      nil,
 	}
 	achievementObject.ID = achievement.ID
 
-	for _, achievementDelegation := range achievementDelegations {
-		achievementDelegation.User = user
+	for i := 0; i < len(achievementDelegations); i++ {
+		achievementDelegations[i].User = user
 
-		if achievementObject.LastGivenAt == nil || achievementDelegation.GivenAt.After(*achievementObject.LastGivenAt) {
-			achievementObject.LastGivenAt = &achievementDelegation.GivenAt
+		if achievementObject.LastGivenAt == nil || achievementDelegations[i].GivenAt.After(*achievementObject.LastGivenAt) {
+			achievementObject.LastGivenAt = &achievementDelegations[i].GivenAt
 		}
 	}
 
