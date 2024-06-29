@@ -52,6 +52,9 @@ function load_page(result) {
             <p id="join_date" style=""></p>
             <p id="user_admin" style=""></p>
 
+            <div class="user-links" id="user-links" style="display:none; margin-top: 1em;">
+            </div>
+
         </div>
 
         <div class="module" id="achievements-hr" style="display: none;">
@@ -185,6 +188,18 @@ function PlaceUserData(user_object) {
         var admin_string = "Yes"
     } else {
         var admin_string = "No"
+    }
+
+    if(user_object.strava_id && user_object.strava_public) {
+        userLinks = document.getElementById("user-links")
+        
+        userLinks.style.display = "flex"
+
+        userLinks.innerHTML += `
+            <div onclick="window.open('https://www.strava.com/athletes/${user_object.strava_id}', '_blank');" class="clickable" style="width: 2em; height: 2em;" title="Strava profile">
+                <img src="/assets/strava-logo.svg" style="" class="">
+            </div>
+        `;
     }
 
     document.getElementById("user_admin").innerHTML = "Administrator: " + admin_string

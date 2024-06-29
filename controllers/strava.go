@@ -294,6 +294,17 @@ func StravaSyncWeekForUser(user models.User, configFile models.ConfigStruct, poi
 			log.Println("Sport type is: " + activity.SportType)
 		}
 
+		// Add Strava ID to user if missing
+		if user.StravaID == nil {
+			stravaID := strconv.Itoa(activity.Athlete.ID)
+			user.StravaID = &stravaID
+			user, err = database.UpdateUser(user)
+			if err != nil {
+				log.Println("Failed to update user Strava ID. Error: " + err.Error())
+				return errors.New("Failed to update user Strava ID.")
+			}
+		}
+
 		exercise, err := database.GetExerciseForUserWithStravaID(user.ID, int(activity.ID))
 		if err != nil {
 			log.Println("Failed to get exercise. ID: " + user.ID.String())

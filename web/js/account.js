@@ -424,12 +424,16 @@ function PlaceUserData(user_object, stravaOauth, stravaEnabled) {
         if(user_object.strava_code && user_object.strava_code != "") {
             walksHTML = "";
             padelHTML = "";
+            publicHTML = "";
 
             if(user_object.strava_padel) {
                 padelHTML = "checked"
             }
             if(user_object.strava_walks) {
                 walksHTML = "checked"
+            }
+            if(user_object.strava_public) {
+                publicHTML = "checked"
             }
 
             stravaHTML = `
@@ -448,6 +452,11 @@ function PlaceUserData(user_object, stravaOauth, stravaEnabled) {
                 <div class="strava-option" id="" style="">
                     <input style="" class="clickable" type="checkbox" id="strava_walks" name="strava_walks" value="" onchange="updateStravaValue('strava_walks');" ${walksHTML}>
                     <label for="strava_walks" style="margin: 0;" class="clickable">Ignore walks</label><br>
+                </div>
+
+                <div class="strava-option" id="" style="">
+                    <input style="" class="clickable" type="checkbox" id="strava_public" name="strava_public" value="" onchange="updateStravaValue('strava_public');" ${publicHTML}>
+                    <label for="strava_public" style="margin: 0;" class="clickable">Show my Strava on my profile</label><br>
                 </div>
             `;
         }

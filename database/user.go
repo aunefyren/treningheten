@@ -387,6 +387,11 @@ func CensorUserObject(user models.User) models.User {
 	user.StravaPadel = nil
 	user.StravaWalks = nil
 
+	if user.StravaPublic == nil || !*user.StravaPublic {
+		user.StravaPublic = nil
+		user.StravaID = nil
+	}
+
 	return user
 }
 

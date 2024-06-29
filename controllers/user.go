@@ -902,6 +902,10 @@ func APIConfigureStravaForUser(context *gin.Context) {
 		user.StravaWalks = userStravaConfigurationUpdateRequest.StravaWalks
 	}
 
+	if userStravaConfigurationUpdateRequest.StravaPublic != nil {
+		user.StravaPublic = userStravaConfigurationUpdateRequest.StravaPublic
+	}
+
 	user, err = database.UpdateUser(user)
 	if err != nil {
 		log.Println("Failed to update user object. Error: " + err.Error())
