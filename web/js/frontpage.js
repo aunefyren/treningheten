@@ -223,6 +223,7 @@ function load_page(result) {
                                     </div>
 
                                     <input type="hidden" value="" id="calendar_user_id">
+                                    <input type="hidden" value="" id="calendar_season_id">
 
                                     <button type="submit" onclick="update_exercises(false, 0);" id="goal_amount_button" style="margin-bottom: 0em; transition: 1s;"><img src="assets/done.svg" class="btn_logo color-invert"><p2>Save</p2></button>
 
@@ -451,6 +452,7 @@ function get_season(user_id, loadingMessage){
 function place_season(season_object, userID) {
 
     if(season_object) {
+        document.getElementById("calendar_season_id").value = season_object.id
         document.getElementById("season_title").innerHTML = season_object.name
         document.getElementById("season_desc").innerHTML = season_object.description
         document.getElementById("prize-text").innerHTML = season_object.prize.quantity + " " + season_object.prize.name
@@ -1053,6 +1055,8 @@ function use_sickleave() {
         return
     }
 
+    seasonID = document.getElementById("calendar_season_id").value;
+
     var xhttp = new XMLHttpRequest();
     xhttp.onreadystatechange = function() {
         if (this.readyState == 4) {
@@ -1080,7 +1084,7 @@ function use_sickleave() {
         }
     };
     xhttp.withCredentials = true;
-    xhttp.open("post", api_url + "auth/sickleave");
+    xhttp.open("post", api_url + "auth/sickleave/" + seasonID);
     xhttp.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
     xhttp.setRequestHeader("Authorization", jwt);
     xhttp.send();
