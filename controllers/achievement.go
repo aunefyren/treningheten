@@ -636,7 +636,7 @@ func GenerateAchievementsForWeek(weekResults models.WeekResults) error {
 
 		}
 
-		week, err := GetExerciseDaysForWeekUsingGoal(weekResults.WeekDate, user.GoalID)
+		week, err := GetExerciseDaysForWeekUsingUserID(weekResults.WeekDate, user.UserID)
 		if err != nil {
 			log.Println("Failed to get week exercises for user '" + user.UserID.String() + "'. Returning. Error: " + err.Error())
 			return errors.New("Failed to get week exercises for user.")

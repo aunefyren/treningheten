@@ -666,7 +666,7 @@ func APIGetSeason(context *gin.Context) {
 		context.Abort()
 		return
 	} else if season == nil {
-		log.Println("Failed to find season. Error: " + err.Error())
+		log.Println("Failed to find season.")
 		context.JSON(http.StatusBadRequest, gin.H{"error": "Failed to find season."})
 		context.Abort()
 		return
@@ -773,7 +773,7 @@ func APIGetSeasonWeeksPersonal(context *gin.Context) {
 		context.Abort()
 		return
 	} else if season == nil {
-		log.Println("Failed to find season. Error: " + err.Error())
+		log.Println("Failed to find season.")
 		context.JSON(http.StatusBadRequest, gin.H{"error": "Failed to find season."})
 		context.Abort()
 		return
@@ -790,6 +790,13 @@ func APIGetSeasonWeeksPersonal(context *gin.Context) {
 	now := time.Now()
 
 	weekResults, err := RetrieveWeekResultsFromSeasonWithinTimeframe(season.Start, now, seasonObject)
+	if err != nil {
+		log.Println("Failed get week results. Error: " + err.Error())
+		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed get week results."})
+		context.Abort()
+		return
+	}
+
 	weekResultsPersonal := []models.WeekResultsPersonal{}
 	weekDaysPersonal := models.WeekFrequency{}
 
@@ -818,7 +825,7 @@ func APIGetSeasonWeeksPersonal(context *gin.Context) {
 				userWeekResultPersonal.WeekCompletionInterval = int(float64(result.WeekCompletion) * float64(goal.ExerciseInterval))
 
 				// Get the exercises from the week
-				week, err := GetExerciseDaysForWeekUsingGoal(weekResult.WeekDate, goal.ID)
+				week, err := GetExerciseDaysForWeekUsingUserID(weekResult.WeekDate, goal.UserID)
 				if err != nil {
 					log.Println("Failed to get exercise. Using empty week.")
 					week = models.Week{
