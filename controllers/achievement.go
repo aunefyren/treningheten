@@ -596,9 +596,9 @@ func GenerateAchievementsForWeek(weekResults models.WeekResults) error {
 
 		}
 
-		if user.CurrentStreak >= 2 && user.WeekCompletion >= 1 {
+		if user.CurrentStreak == 3 && user.WeekCompletion >= 1 {
 
-			// Give achievement to user
+			// Give achievement to user for three weeks
 			err := GiveUserAnAchievement(user.UserID, uuid.MustParse("8875597e-d8f5-4514-b96f-c51ecce4eb1f"), sundayDate)
 			if err != nil {
 				log.Println("Failed to give achievement for user '" + user.UserID.String() + "'. Ignoring. Error: " + err.Error())
@@ -606,9 +606,9 @@ func GenerateAchievementsForWeek(weekResults models.WeekResults) error {
 
 		}
 
-		if user.CurrentStreak >= 9 && user.WeekCompletion >= 1 {
+		if user.CurrentStreak == 10 && user.WeekCompletion >= 1 {
 
-			// Give achievement to user
+			// Give achievement to user for ten weeks
 			err := GiveUserAnAchievement(user.UserID, uuid.MustParse("ca6a4692-153b-47a7-8444-457b906d0666"), sundayDate)
 			if err != nil {
 				log.Println("Failed to give achievement for user '" + user.UserID.String() + "'. Ignoring. Error: " + err.Error())
@@ -616,9 +616,9 @@ func GenerateAchievementsForWeek(weekResults models.WeekResults) error {
 
 		}
 
-		if user.CurrentStreak >= 14 && user.WeekCompletion >= 1 {
+		if user.CurrentStreak == 15 && user.WeekCompletion >= 1 {
 
-			// Give achievement to user
+			// Give achievement to user for 15 weeks
 			err := GiveUserAnAchievement(user.UserID, uuid.MustParse("2a84df89-9976-443b-a093-19f8d73b5eff"), sundayDate)
 			if err != nil {
 				log.Println("Failed to give achievement for user '" + user.UserID.String() + "'. Ignoring. Error: " + err.Error())
@@ -626,9 +626,9 @@ func GenerateAchievementsForWeek(weekResults models.WeekResults) error {
 
 		}
 
-		if user.CurrentStreak >= 19 && user.WeekCompletion >= 1 {
+		if user.CurrentStreak == 20 && user.WeekCompletion >= 1 {
 
-			// Give achievement to user
+			// Give achievement to user for 20 weeks
 			err := GiveUserAnAchievement(user.UserID, uuid.MustParse("09da2ab1-393d-4c43-a1d0-daa45520b49f"), sundayDate)
 			if err != nil {
 				log.Println("Failed to give achievement for user '" + user.UserID.String() + "'. Ignoring. Error: " + err.Error())
