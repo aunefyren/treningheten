@@ -16,11 +16,16 @@ import (
 	"github.com/mroth/weightedrand/v2"
 )
 
-// Calcluates a time set one week in the past and generates the debt for that week.
+// Calculate a time set one week in the past and generates the debt for that week.
 func GenerateLastWeeksDebt() {
 
 	// Get a date time in last week
 	lastWeek := time.Now().AddDate(0, 0, -7)
+	lastWeek, err := utilities.FindNextSunday(lastWeek)
+	if err != nil {
+		log.Println("Got error trying to find end of the week. Error: " + err.Error())
+		return
+	}
 
 	// Get ongoing season last week
 	seasons, err := GetOngoingSeasonsFromDB(lastWeek)
@@ -94,12 +99,9 @@ func GenerateLastWeeksDebt() {
 			}
 		}
 	}
-
-	return
-
 }
 
-// Recieves a time and generates resulting debts based on the results of that week. Should be run on weeks after the results are gathered.
+// Receives a time and generates resulting debts based on the results of that week. Should be run on weeks after the results are gathered.
 func GenerateDebtForWeek(givenTime time.Time, season models.Season) (models.WeekResults, error) {
 	// Stop if not within season
 	if season.Start.After(givenTime) || season.End.Before(givenTime) {
@@ -113,12 +115,24 @@ func GenerateDebtForWeek(givenTime time.Time, season models.Season) (models.Week
 		return models.WeekResults{}, errors.New("Failed to convert season to season object.")
 	}
 
-	lastWeekArray, err := RetrieveWeekResultsFromSeasonWithinTimeframe(givenTime.AddDate(0, 0, -7), givenTime, seasonObject)
+	givenTimeMonday, err := utilities.FindEarlierMonday(givenTime)
+	if err != nil {
+		log.Println("Failed to find earliest point in the week. Error: " + err.Error())
+		return models.WeekResults{}, errors.New("Failed to find earliest point in the week.")
+	}
+
+	givenTimeSunday, err := utilities.FindNextSunday(givenTime)
+	if err != nil {
+		log.Println("Failed to find latest point in the week. Error: " + err.Error())
+		return models.WeekResults{}, errors.New("Failed to find latest point in the week.")
+	}
+
+	lastWeekArray, err := RetrieveWeekResultsFromSeasonWithinTimeframe(givenTimeMonday, givenTimeSunday, seasonObject)
 	if err != nil {
 		log.Println("Failed to retrieve last week for season. Returning. Error: " + err.Error())
 		return models.WeekResults{}, errors.New("Failed to retrieve last week for season.")
 	} else if len(lastWeekArray) != 1 {
-		log.Println("Failed to retrieve ONE week for season. Returning. Error: " + err.Error())
+		log.Println("Failed to retrieve ONE week for season. Returning.")
 		return models.WeekResults{}, errors.New("Failed to retrieve ONE week for season.")
 	}
 
@@ -127,22 +141,9 @@ func GenerateDebtForWeek(givenTime time.Time, season models.Season) (models.Week
 	winners := []uuid.UUID{}
 	losers := []uuid.UUID{}
 
-	// Find week start
-	givenTimeWeekStart, err := utilities.FindEarlierMonday(givenTime)
-	if err != nil {
-		log.Println("Failed to find earliest point in given time. Error: " + err.Error())
-		return models.WeekResults{}, errors.New("Failed to find earliest point in given time.")
-	}
-
-	// Clean away time
-	hours, minutes, seconds := givenTimeWeekStart.Clock()
-	if hours != 0 || minutes != 0 || seconds != 0 {
-		givenTimeWeekStart = utilities.SetClockToMinimum(givenTimeWeekStart)
-	}
-
 	// Debug line
 	log.Println("Timeframe week start: ")
-	log.Println(givenTimeWeekStart)
+	log.Println(givenTimeMonday)
 
 	// Find losers and winners
 	for _, user := range lastWeek.UserWeekResults {
@@ -576,15 +577,31 @@ func APIChooseWinnerForDebt(context *gin.Context) {
 		return
 	}
 
+	debtDateMonday, err := utilities.FindEarlierMonday(debtObject.Date)
+	if err != nil {
+		log.Println("Failed to find earlier Monday. Error: " + err.Error())
+		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to find earlier Monday."})
+		context.Abort()
+		return
+	}
+
+	debtDateSunday, err := utilities.FindNextSunday(debtObject.Date)
+	if err != nil {
+		log.Println("Failed to find next Sunday. Error: " + err.Error())
+		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to find next Sunday."})
+		context.Abort()
+		return
+	}
+
 	// Get weeks results
-	lastWeekArray, err := RetrieveWeekResultsFromSeasonWithinTimeframe(debtObject.Date.AddDate(0, 0, -7), debtObject.Date, debtObject.Season)
+	lastWeekArray, err := RetrieveWeekResultsFromSeasonWithinTimeframe(debtDateMonday, debtDateSunday, debtObject.Season)
 	if err != nil {
 		log.Println("Failed to retrieve last week for season. Error: " + err.Error())
 		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed process results."})
 		context.Abort()
 		return
 	} else if len(lastWeekArray) != 1 {
-		log.Println("Failed to retrieve ONE week for season. Error: " + err.Error())
+		log.Println("Failed to retrieve ONE week for season.")
 		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed process results."})
 		context.Abort()
 		return
@@ -883,8 +900,12 @@ func APIGenerateDebtForWeek(context *gin.Context) {
 				if err != nil {
 					log.Println("Returned error converting season to season object: " + err.Error())
 				} else {
+					debtDateSunday, err := utilities.FindNextSunday(debtCreationRequest.Date)
+					if err != nil {
+						log.Println("Failed to find next Sunday. Error: " + err.Error())
+					}
 
-					pastWeeks, err := RetrieveWeekResultsFromSeasonWithinTimeframe(seasonObject.Start, debtCreationRequest.Date, seasonObject)
+					pastWeeks, err := RetrieveWeekResultsFromSeasonWithinTimeframe(seasonObject.Start, debtDateSunday, seasonObject)
 					if err != nil {
 						log.Println("Returned error getting season results: " + err.Error())
 					} else {
