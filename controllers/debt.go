@@ -516,6 +516,15 @@ func APIGetDebt(context *gin.Context) {
 				log.Println("Failed to update wheelview for user '" + userID.String() + "'. Continuing. Error: " + err.Error())
 			}
 			log.Println("Debt marked as viewed for user '" + userID.String() + "'.")
+
+			// If a view was viewed and the viewer was the winner, give the winning achievement.
+			if debtObject.Winner.ID == userID {
+				// Give achievement to winner for winning
+				err = GiveUserAnAchievement(userID, uuid.MustParse("bb964360-6413-47c2-8400-ee87b40365a7"), debtObject.Date)
+				if err != nil {
+					log.Println("Failed to give achievement for user '" + userID.String() + "'. Ignoring. Error: " + err.Error())
+				}
+			}
 		}
 	}
 
@@ -607,7 +616,7 @@ func APIChooseWinnerForDebt(context *gin.Context) {
 		return
 	}
 
-	sundayDate, err := utilities.FindNextSunday(debtObject.Date.AddDate(0, 0, -7))
+	sundayDate, err := utilities.FindNextSunday(debtObject.Date)
 	if err != nil {
 		log.Println("Failed to find next Sunday. Error: " + err.Error())
 		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to find next Sunday."})
@@ -664,12 +673,6 @@ func APIChooseWinnerForDebt(context *gin.Context) {
 
 	// Update winner in DB
 	database.UpdateDebtWinner(debtIDInt, winnerID)
-
-	// Give achievement to winner for winning
-	err = GiveUserAnAchievement(winnerID, uuid.MustParse("bb964360-6413-47c2-8400-ee87b40365a7"), sundayDate)
-	if err != nil {
-		log.Println("Failed to give achievement for user '" + winnerID.String() + "'. Ignoring. Error: " + err.Error())
-	}
 
 	// Give achievement to loser for losing
 	err = GiveUserAnAchievement(userID, uuid.MustParse("d415fffc-ea99-4b27-8929-aeb02ae44da3"), sundayDate)
