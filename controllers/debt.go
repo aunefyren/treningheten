@@ -519,14 +519,8 @@ func APIGetDebt(context *gin.Context) {
 
 			// If a view was viewed and the viewer was the winner, give the winning achievement.
 			if debtObject.Winner.ID == userID {
-				// Find the Sunday for achievement date
-				debtObjectSunday, err := utilities.FindNextSunday(debtObject.Date)
-				if err != nil {
-					log.Println("Failed to find coming sunday on debt date. Ignoring. Error: " + err.Error())
-				}
-
 				// Give achievement to winner for winning
-				err = GiveUserAnAchievement(userID, uuid.MustParse("bb964360-6413-47c2-8400-ee87b40365a7"), debtObjectSunday)
+				err = GiveUserAnAchievement(userID, uuid.MustParse("bb964360-6413-47c2-8400-ee87b40365a7"), time.Now())
 				if err != nil {
 					log.Println("Failed to give achievement for user '" + userID.String() + "'. Ignoring. Error: " + err.Error())
 				}
