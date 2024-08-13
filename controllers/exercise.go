@@ -1260,8 +1260,8 @@ func APIStravaCombine(context *gin.Context) {
 		}
 
 		if exerciseDayID == nil {
-			exerciseDayID = &exercise.ExerciseDay.ID
-		} else if exerciseDayID != &exercise.ExerciseDay.ID {
+			exerciseDayID = &exercise.ExerciseDayID
+		} else if exerciseDayID.String() != exercise.ExerciseDayID.String() {
 			context.JSON(http.StatusBadRequest, gin.H{"error": "Exercises are not on the same day."})
 			context.Abort()
 			return
@@ -1305,9 +1305,13 @@ func APIStravaCombine(context *gin.Context) {
 		stravaIDsString += stravaID
 	}
 
+	var masterExercise = models.Exercise{}
 	for index, exercise := range exercises {
 		if index == 0 {
 			exercise.StravaID = &stravaIDsString
+			masterExercise = exercise
+
+			log.Println(masterExercise.ID)
 
 			_, err := database.UpdateExerciseInDB(exercise)
 			if err != nil {
@@ -1317,8 +1321,35 @@ func APIStravaCombine(context *gin.Context) {
 				return
 			}
 		} else {
+			operations, err := database.GetOperationsByExerciseID(exercise.ID)
+			if err != nil {
+				log.Println("Failed to get operations for exercise. Error: " + err.Error())
+				context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get operations for exercise."})
+				context.Abort()
+				return
+			}
+
+			for _, operation := range operations {
+				log.Println(masterExercise.ID)
+
+				operation.ExerciseID = masterExercise.ID
+				operation.Exercise = masterExercise
+
+				log.Println(operation.ExerciseID)
+
+				operation, err = database.UpdateOperationInDB(operation)
+				if err != nil {
+					log.Println("Failed to update operation in DB. Error: " + err.Error())
+					context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update operation in DB."})
+					context.Abort()
+					return
+				}
+
+				log.Println(operation.ExerciseID)
+			}
+
 			exercise.Enabled = false
-			_, err := database.UpdateExerciseInDB(exercise)
+			_, err = database.UpdateExerciseInDB(exercise)
 			if err != nil {
 				log.Println("Failed to update exercise. Error: " + err.Error())
 				context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update exercise."})
