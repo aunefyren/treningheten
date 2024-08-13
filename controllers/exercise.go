@@ -924,7 +924,7 @@ func APIGetExerciseDay(context *gin.Context) {
 func APIUpdateExerciseDay(context *gin.Context) {
 	// Initialize variables
 	var exerciseDayUpdateRequest models.ExerciseDayUpdateRequest
-	var exerciseDay models.ExerciseDay
+	var exerciseDay *models.ExerciseDay
 	var exerciseDayID = context.Param("exercise_day_id")
 
 	// Parse creation request
@@ -954,11 +954,16 @@ func APIUpdateExerciseDay(context *gin.Context) {
 		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get exercise day."})
 		context.Abort()
 		return
+	} else if exerciseDay == nil {
+		log.Println("Failed to find exercise day. Error: " + err.Error())
+		context.JSON(http.StatusBadRequest, gin.H{"error": "Failed to find exercise day."})
+		context.Abort()
+		return
 	}
 
 	exerciseDay.Note = strings.TrimSpace(exerciseDayUpdateRequest.Note)
 
-	exerciseDay, err = database.UpdateExerciseDayInDatabase(exerciseDay)
+	*exerciseDay, err = database.UpdateExerciseDayInDatabase(*exerciseDay)
 	if err != nil {
 		log.Println("Failed to update exercise day. Error: " + err.Error())
 		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update exercise day."})
@@ -966,7 +971,7 @@ func APIUpdateExerciseDay(context *gin.Context) {
 		return
 	}
 
-	exerciseDayObject, err := ConvertExerciseDayToExerciseDayObject(exerciseDay)
+	exerciseDayObject, err := ConvertExerciseDayToExerciseDayObject(*exerciseDay)
 	if err != nil {
 		log.Println("Failed to convert exercise day to exercise day object. Error: " + err.Error())
 		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to convert exercise day to exercise day object."})
@@ -1221,6 +1226,7 @@ func APIStravaCombine(context *gin.Context) {
 	// Create week request
 	var stravaIDs []string
 	var exercises []models.Exercise
+	var exerciseDayID *uuid.UUID
 
 	// Parse request
 	if err := context.ShouldBindJSON(&stravaIDs); err != nil {
@@ -1253,7 +1259,37 @@ func APIStravaCombine(context *gin.Context) {
 			return
 		}
 
+		if exerciseDayID == nil {
+			exerciseDayID = &exercise.ExerciseDay.ID
+		} else if exerciseDayID != &exercise.ExerciseDay.ID {
+			context.JSON(http.StatusBadRequest, gin.H{"error": "Exercises are not on the same day."})
+			context.Abort()
+			return
+		}
+
 		exercises = append(exercises, *exercise)
+	}
+
+	exerciseDay, err := database.GetExerciseDayByID(*exerciseDayID)
+	if err != nil {
+		log.Println("Failed to get exercise day. Error: " + err.Error())
+		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get exercise day."})
+		context.Abort()
+		return
+	} else if exerciseDay == nil {
+		log.Println("Failed to verify exercise day. Error: " + err.Error())
+		context.JSON(http.StatusBadRequest, gin.H{"error": "Failed to verify exercise day."})
+		context.Abort()
+		return
+	}
+
+	nowYear, nowWeek := time.Now().ISOWeek()
+	exerciseDayYear, exerciseDayWeek := exerciseDay.Date.ISOWeek()
+
+	if (nowYear != exerciseDayYear) || (nowWeek != exerciseDayWeek) {
+		context.JSON(http.StatusBadRequest, gin.H{"error": "You can no longer combine exercises for this day."})
+		context.Abort()
+		return
 	}
 
 	sort.Slice(exercises, func(i, j int) bool {

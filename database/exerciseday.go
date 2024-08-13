@@ -213,14 +213,14 @@ func GetAllEnabledExerciseDays() ([]models.ExerciseDay, error) {
 	return exercises, nil
 }
 
-func GetExerciseDayByID(exerciseDayID uuid.UUID) (models.ExerciseDay, error) {
-	var exerciseDay models.ExerciseDay
+func GetExerciseDayByID(exerciseDayID uuid.UUID) (*models.ExerciseDay, error) {
+	var exerciseDay *models.ExerciseDay
 
 	exerciserecord := Instance.Where("`exercise_days`.enabled = ?", 1).Where("`exercise_days`.id = ?", exerciseDayID).Find(&exerciseDay)
 	if exerciserecord.Error != nil {
-		return models.ExerciseDay{}, exerciserecord.Error
+		return exerciseDay, exerciserecord.Error
 	} else if exerciserecord.RowsAffected == 0 {
-		return models.ExerciseDay{}, nil
+		return exerciseDay, nil
 	}
 
 	return exerciseDay, nil
