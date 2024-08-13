@@ -1160,8 +1160,9 @@ function combineStravaExercises() {
     var stravaIDArray = []
 
     for(var i = 0; i < checkButtons.length; i++) {
-        console.log(checkButtons[i])
-        stravaIDArray.push(checkButtons[i].id)
+        if(checkButtons[i].checked) {
+            stravaIDArray.push(checkButtons[i].id)
+        }
     }
 
     if(stravaIDArray.length < 2) {
