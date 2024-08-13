@@ -57,6 +57,12 @@ function load_page(result) {
                     <img src="/assets/plus.svg" class="button-icon" style="height: 100%; margin: 1em;">
                 </div>
 
+                <div class="top-row" style="margin-top: 5em; display: none;" id="stravaCombineButtonWrapper">
+                    <button type="submit" class="btn btn-primary" style="width: 15em; background-color: salmon;" id="" onclick="combineStravaExercises(); return false;">
+                        Combine Strava exercises
+                    </button>
+                </div>
+
             </div>
 
         </div>
@@ -131,6 +137,12 @@ function placeExercises(exercises) {
     exercisesHTML = "";
     counter = 1; 
 
+    try {
+        document.getElementById('stravaCombineButtonWrapper').style.display = "none";
+    } catch(e) {
+        console.log("Failed to remove Strava button. Error: " + e)
+    }
+
     exercises.forEach(exercise => {
         var exerciseGenerated = generateExerciseHTML(exercise, counter)
         var exerciseHTML = `
@@ -158,8 +170,10 @@ function generateExerciseHTML(exercise, count) {
         }
 
         stravaHTML = ""
+        stravaCombineHTML = ""
         if(exercise.strava_id && exercise.strava_id.length > 0) {
             stravaHTML += `<div class="strava-stack">`
+            stravaIDString = ""
             for(var i = 0; i < exercise.strava_id.length; i++) {
                 stravaHTML += `
                     <p class="strava-text clickable" onclick="window.open('https://www.strava.com/activities/${exercise.strava_id[i]}', '_blank')">
@@ -167,14 +181,32 @@ function generateExerciseHTML(exercise, count) {
                         <img src="/assets/external-link.svg" class="btn_logo" style="width: 1.25em; height: 1.25em; padding: 0; margin: 0.25em 0.5em;">
                     </p>
                 `;
+
+                if(i != 0) {
+                    stravaIDString += ";"
+                }
+                stravaIDString += exercise.strava_id[i]
             }
             stravaHTML += `</div>`
+        
+            stravaCombineHTML += `
+                <div class="top-row">
+                    <input style="margin: 1.2em;" id="${stravaIDString}" class="clickable stravaCombineCheck" type="checkbox" name="" value="">
+                </div>
+            `;
+
+            try {
+                document.getElementById('stravaCombineButtonWrapper').style.display = "flex";
+            } catch(e) {
+                console.log("Failed to show Strava button. Error: " + e)
+            }
         }
 
         exerciseHTML = `
             <div class="top-row">
                 <img src="/assets/trash-2.svg" style="height: 1em; width: 1em; padding: 1em;" onclick="updateExercise('${exercise.id}', false, ${count})" class="btn_logo clickable color-invert">
             </div>
+            ${stravaCombineHTML}
 
             <div class="exerciseSubWrapper" id="exercise-sub-${exercise.id}">
                 ${stravaHTML}
@@ -1120,4 +1152,58 @@ function closeAllLists() {
             updateOperation(operationID)
         }
     }
+}
+
+function combineStravaExercises() {
+    checkButtons = document.getElementsByClassName('stravaCombineCheck')
+
+    var stravaIDArray = []
+
+    for(var i = 0; i < checkButtons.length; i++) {
+        console.log(checkButtons[i])
+        stravaIDArray.push(checkButtons[i].id)
+    }
+
+    if(stravaIDArray.length < 2) {
+        alert("Choose two or more exercises to combine.");
+        return;
+    }
+
+    if(!confirm("Are you sure you want to combine these Strava exercises?")) {
+        return;
+    }
+
+    combineStravaExercisesAPI(stravaIDArray);
+}
+
+function combineStravaExercisesAPI(stravaIDArray) {
+    var form_data = JSON.stringify(stravaIDArray);
+
+    var xhttp = new XMLHttpRequest();
+    xhttp.onreadystatechange = function() {
+        if (this.readyState == 4) {
+            
+            try {
+                result = JSON.parse(this.responseText);
+            } catch(e) {
+                console.log(e +' - Response: ' + this.responseText);
+                error("Could not reach API.");
+                return;
+            }
+            
+            if(result.error) {
+                error(result.error);
+            } else {
+                alert(result.message)
+                location.reload(); 
+            }
+
+        }
+    };
+    xhttp.withCredentials = true;
+    xhttp.open("post", api_url + "auth/exercises/strava-combine");
+    xhttp.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
+    xhttp.setRequestHeader("Authorization", jwt);
+    xhttp.send(form_data);
+    return false;
 }

@@ -9,6 +9,7 @@ import (
 	"html"
 	"log"
 	"net/http"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -1214,4 +1215,82 @@ func GetExercisesForWeekUsingUserID(timeReq time.Time, userID uuid.UUID) (exerci
 	}
 
 	return
+}
+
+func APIStravaCombine(context *gin.Context) {
+	// Create week request
+	var stravaIDs []string
+	var exercises []models.Exercise
+
+	// Parse request
+	if err := context.ShouldBindJSON(&stravaIDs); err != nil {
+		log.Println("Failed to parse request. Error: " + err.Error())
+		context.JSON(http.StatusBadRequest, gin.H{"error": "Failed to parse request."})
+		context.Abort()
+		return
+	}
+
+	// Get user ID
+	userID, err := middlewares.GetAuthUsername(context.GetHeader("Authorization"))
+	if err != nil {
+		log.Println("Failed to verify user ID. Error: " + "Failed to verify user ID.")
+		context.JSON(http.StatusBadRequest, gin.H{"error": "Failed to verify user ID."})
+		context.Abort()
+		return
+	}
+
+	for _, stravaID := range stravaIDs {
+		exercise, err := database.GetExerciseForUserWithStravaID(userID, stravaID)
+		if err != nil {
+			log.Println("Failed to get exercise. Error: " + err.Error())
+			context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get exercise."})
+			context.Abort()
+			return
+		} else if exercise == nil {
+			log.Println("Failed to verify exercise. Error: " + err.Error())
+			context.JSON(http.StatusBadRequest, gin.H{"error": "Failed to verify exercise."})
+			context.Abort()
+			return
+		}
+
+		exercises = append(exercises, *exercise)
+	}
+
+	sort.Slice(exercises, func(i, j int) bool {
+		return exercises[j].CreatedAt.After(exercises[i].CreatedAt)
+	})
+
+	// Build string for Strava IDs
+	stravaIDsString := ""
+	for index, stravaID := range stravaIDs {
+		if index != 0 {
+			stravaIDsString += ";"
+		}
+		stravaIDsString += stravaID
+	}
+
+	for index, exercise := range exercises {
+		if index == 0 {
+			exercise.StravaID = &stravaIDsString
+
+			_, err := database.UpdateExerciseInDB(exercise)
+			if err != nil {
+				log.Println("Failed to update exercise. Error: " + err.Error())
+				context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update exercise."})
+				context.Abort()
+				return
+			}
+		} else {
+			exercise.Enabled = false
+			_, err := database.UpdateExerciseInDB(exercise)
+			if err != nil {
+				log.Println("Failed to update exercise. Error: " + err.Error())
+				context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update exercise."})
+				context.Abort()
+				return
+			}
+		}
+	}
+
+	context.JSON(http.StatusCreated, gin.H{"message": "Exercises combined."})
 }

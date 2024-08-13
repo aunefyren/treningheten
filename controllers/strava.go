@@ -305,7 +305,7 @@ func StravaSyncWeekForUser(user models.User, configFile models.ConfigStruct, poi
 			}
 		}
 
-		exercise, err := database.GetExerciseForUserWithStravaID(user.ID, int(activity.ID))
+		exercise, err := database.GetExerciseForUserWithStravaID(user.ID, strconv.Itoa(int(activity.ID)))
 		if err != nil {
 			log.Println("Failed to get exercise. ID: " + user.ID.String())
 			return errors.New("Failed to get exercise.")
