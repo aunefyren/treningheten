@@ -292,6 +292,7 @@ function place_exercises(exercise_array, year) {
         // parse date object
         try {
             var date = new Date(Date.parse(exercise_array[i].date));
+            var dateFullString = GetDateString(date, false);
             var date_string = GetDayOfTheWeek(date)
             var dateStringDetailed = GetDateString(date, false)
             var week = date.getWeek(1);
@@ -311,7 +312,8 @@ function place_exercises(exercise_array, year) {
 
                     <div class="exercise-date">
                         <img style="width: 100%;" src="assets/calendar.svg" class="btn_logo"></img>
-                        ${date_string}
+                        <div class="exercise-date-string">${dateFullString}</div>
+                        <div class="exercise-date-string"><b>${date_string}</b></div>
                     </div>
 
                     <div class="exercise-details" id="">

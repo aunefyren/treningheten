@@ -503,9 +503,12 @@ func SyncStravaOperationsToExerciseSession(exerciseID uuid.UUID, userID uuid.UUI
 	if err != nil {
 		log.Println("Failed to get exercise object. Error: " + err.Error())
 		return errors.New("Failed to get exercise object.")
+	} else if exercise == nil {
+		log.Println("Failed to find exercise object.")
+		return errors.New("Failed to find exercise object.")
 	}
 
-	exerciseObject, err := ConvertExerciseToExerciseObject(exercise)
+	exerciseObject, err := ConvertExerciseToExerciseObject(*exercise)
 	if err != nil {
 		log.Println("Failed to convert exercise to exercise object. Error: " + err.Error())
 		return errors.New("Failed to convert exercise to exercise object.")
@@ -531,7 +534,7 @@ func SyncStravaOperationsToExerciseSession(exerciseID uuid.UUID, userID uuid.UUI
 	exercise.Duration = &newDuration
 	exercise.Note = newNote
 
-	_, err = database.UpdateExerciseInDB(exercise)
+	_, err = database.UpdateExerciseInDB(*exercise)
 	if err != nil {
 		log.Println("Failed to update exercise. Error: " + err.Error())
 		return errors.New("Failed to update exercise.")

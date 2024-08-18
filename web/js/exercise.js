@@ -57,8 +57,8 @@ function load_page(result) {
                     <img src="/assets/plus.svg" class="button-icon" style="height: 100%; margin: 1em;">
                 </div>
 
-                <div class="top-row" style="margin-top: 5em; display: none;" id="stravaCombineButtonWrapper">
-                    <button type="submit" class="btn btn-primary" style="width: 15em; background-color: salmon;" id="" onclick="combineStravaExercises(); return false;">
+                <div class="" style="margin-top: 5em; display: none;" id="stravaCombineButtonWrapper">
+                    <button type="submit" class="btn btn-primary" style="width: 15em; background-color: salmon; font-size:0.75em;" id="" onclick="combineStravaExercises(); return false;">
                         Combine Strava exercises
                     </button>
                 </div>
@@ -171,6 +171,7 @@ function generateExerciseHTML(exercise, count) {
 
         stravaHTML = ""
         stravaCombineHTML = ""
+        stravaDivide = ""
         if(exercise.strava_id && exercise.strava_id.length > 0) {
             stravaHTML += `<div class="strava-stack">`
             stravaIDString = ""
@@ -188,12 +189,16 @@ function generateExerciseHTML(exercise, count) {
                 stravaIDString += exercise.strava_id[i]
             }
             stravaHTML += `</div>`
-        
+            
             stravaCombineHTML += `
-                <div class="top-row">
-                    <input style="margin: 1.2em;" id="${stravaIDString}" class="clickable stravaCombineCheck" type="checkbox" name="" value="">
-                </div>
+                <input style="margin: 0.5em;" id="${stravaIDString}" class="clickable stravaCombineCheck" type="checkbox" name="" value="">
             `;
+
+            if(exercise.strava_id.length > 1) {
+                stravaDivide += `
+                    <img src="/assets/scissors.svg" style="height: 1em; width: 1em; padding: 1em;" onclick="divideStravaExercises('${exercise.id}')" class="btn_logo clickable color-invert">
+                `;
+            }
 
             try {
                 document.getElementById('stravaCombineButtonWrapper').style.display = "flex";
@@ -204,9 +209,10 @@ function generateExerciseHTML(exercise, count) {
 
         exerciseHTML = `
             <div class="top-row">
+                ${stravaDivide}
+                ${stravaCombineHTML}
                 <img src="/assets/trash-2.svg" style="height: 1em; width: 1em; padding: 1em;" onclick="updateExercise('${exercise.id}', false, ${count})" class="btn_logo clickable color-invert">
             </div>
-            ${stravaCombineHTML}
 
             <div class="exerciseSubWrapper" id="exercise-sub-${exercise.id}">
                 ${stravaHTML}
@@ -1206,5 +1212,39 @@ function combineStravaExercisesAPI(stravaIDArray) {
     xhttp.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
     xhttp.setRequestHeader("Authorization", jwt);
     xhttp.send(form_data);
+    return false;
+}
+
+function divideStravaExercises(exerciseID) {
+    if(!confirm("Are you sure you want to divide all these Strava exercises?")) {
+        return;
+    }
+
+    var xhttp = new XMLHttpRequest();
+    xhttp.onreadystatechange = function() {
+        if (this.readyState == 4) {
+            
+            try {
+                result = JSON.parse(this.responseText);
+            } catch(e) {
+                console.log(e +' - Response: ' + this.responseText);
+                error("Could not reach API.");
+                return;
+            }
+            
+            if(result.error) {
+                error(result.error);
+            } else {
+                alert(result.message)
+                location.reload(); 
+            }
+
+        }
+    };
+    xhttp.withCredentials = true;
+    xhttp.open("post", api_url + "auth/exercises/" + exerciseID + "/strava-divide");
+    xhttp.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
+    xhttp.setRequestHeader("Authorization", jwt);
+    xhttp.send();
     return false;
 }

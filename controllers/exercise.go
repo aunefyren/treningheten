@@ -1277,7 +1277,7 @@ func APIStravaCombine(context *gin.Context) {
 		context.Abort()
 		return
 	} else if exerciseDay == nil {
-		log.Println("Failed to verify exercise day. Error: " + err.Error())
+		log.Println("Failed to verify exercise day.")
 		context.JSON(http.StatusBadRequest, gin.H{"error": "Failed to verify exercise day."})
 		context.Abort()
 		return
@@ -1360,4 +1360,95 @@ func APIStravaCombine(context *gin.Context) {
 	}
 
 	context.JSON(http.StatusCreated, gin.H{"message": "Exercises combined."})
+}
+
+func APIStravaDivide(context *gin.Context) {
+	var exerciseIDString = context.Param("exercise_id")
+	exerciseID, err := uuid.Parse(exerciseIDString)
+	if err != nil {
+		log.Println("Failed to verify exercise ID. Error: " + err.Error())
+		context.JSON(http.StatusBadRequest, gin.H{"error": "Failed to verify exercise ID."})
+		context.Abort()
+		return
+	}
+
+	return
+
+	// Get user ID
+	userID, err := middlewares.GetAuthUsername(context.GetHeader("Authorization"))
+	if err != nil {
+		log.Println("Failed to verify user ID. Error: " + "Failed to verify user ID.")
+		context.JSON(http.StatusBadRequest, gin.H{"error": "Failed to verify user ID."})
+		context.Abort()
+		return
+	}
+
+	exercise, err := database.GetExerciseByIDAndUserID(exerciseID, userID)
+	if err != nil {
+		log.Println("Failed to get exercise. Error: " + err.Error())
+		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get exercise."})
+		context.Abort()
+		return
+	} else if exercise == nil {
+		log.Println("Failed to verify exercise.")
+		context.JSON(http.StatusBadRequest, gin.H{"error": "Failed to verify exercise."})
+		context.Abort()
+		return
+	}
+
+	exerciseObject, err := ConvertExerciseToExerciseObject(*exercise)
+	if err != nil {
+		log.Println("Failed to get exercise object. Error: " + err.Error())
+		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get exercise object."})
+		context.Abort()
+		return
+	}
+
+	exerciseDay, err := database.GetExerciseDayByID(exercise.ExerciseDayID)
+	if err != nil {
+		log.Println("Failed to get exercise day. Error: " + err.Error())
+		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get exercise day."})
+		context.Abort()
+		return
+	} else if exerciseDay == nil {
+		log.Println("Failed to verify exercise day.")
+		context.JSON(http.StatusBadRequest, gin.H{"error": "Failed to verify exercise day."})
+		context.Abort()
+		return
+	}
+
+	now := time.Now()
+	nowYear, nowWeek := now.ISOWeek()
+	exerciseDayYear, exerciseDayWeek := exerciseDay.Date.ISOWeek()
+
+	if (nowYear != exerciseDayYear) || (nowWeek != exerciseDayWeek) {
+		context.JSON(http.StatusBadRequest, gin.H{"error": "You can no longer divide exercises for this day."})
+		context.Abort()
+		return
+	}
+
+	newExercises := []models.Exercise{}
+	for index, stravaID := range exerciseObject.StravaID {
+		var currentExercise *models.Exercise
+		if index != 0 {
+			currentExercise = &models.Exercise{}
+			currentExercise.ID = uuid.New()
+			currentExercise.CreatedAt = now
+			currentExercise.UpdatedAt = now
+			currentExercise.ExerciseDayID = exerciseDay.ID
+		} else {
+			currentExercise = exercise
+		}
+
+		currentExercise.StravaID = &stravaID
+
+		// REMOVE LATER
+		newExercises = append(newExercises, *currentExercise)
+
+		for _, exerciseOperation := range exerciseObject.Operations {
+			if exerciseOperation.StravaID == &stravaID {
+
+			}
+		}
+	}
 }

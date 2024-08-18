@@ -63,8 +63,8 @@ func UpdateExerciseByTurningOffByExerciseID(exerciseID uuid.UUID) error {
 }
 
 // Return exercises that are enabled and on
-func GetExerciseByIDAndUserID(exerciseID uuid.UUID, userID uuid.UUID) (models.Exercise, error) {
-	var exercise models.Exercise
+func GetExerciseByIDAndUserID(exerciseID uuid.UUID, userID uuid.UUID) (*models.Exercise, error) {
+	var exercise *models.Exercise
 
 	record := Instance.Where("`exercises`.enabled = ?", 1).
 		Where("`exercises`.id = ?", exerciseID).
@@ -77,9 +77,9 @@ func GetExerciseByIDAndUserID(exerciseID uuid.UUID, userID uuid.UUID) (models.Ex
 		Find(&exercise)
 
 	if record.Error != nil {
-		return models.Exercise{}, record.Error
+		return exercise, record.Error
 	} else if record.RowsAffected != 1 {
-		return models.Exercise{}, errors.New("No exercise found.")
+		return exercise, nil
 	}
 
 	return exercise, nil

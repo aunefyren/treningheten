@@ -1008,7 +1008,7 @@ input[type=number]
 
 input[type=checkbox]
 {
-  margin: 1em;
+  margin: 0.5em;
 }
 
 .modules {
@@ -1490,7 +1490,7 @@ input[type=checkbox]
   display: flex;
   flex-direction: row;
   flex-wrap: wrap;
-  align-content: center;
+  align-content: space-between;
   justify-content: space-evenly;
   align-items: center;
   box-sizing: border-box;
@@ -1518,9 +1518,6 @@ input[type=checkbox]
   box-sizing: inherit;
   padding: 0 0.5em;
   margin: 0;
-  height: 100%;
-  height: -webkit-fill-available;
-  height: -moz-available;
 }
 
 .exercise-date {
@@ -1536,6 +1533,12 @@ input[type=checkbox]
   align-items: center;
   text-align: center;
   font-size: 0.8em;
+}
+
+.exercise-date-string {
+  width: 100%;
+  width: -webkit-fill-available;
+  width: -moz-available;
 }
 
 .exercise-week {
