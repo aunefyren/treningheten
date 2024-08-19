@@ -1372,8 +1372,6 @@ func APIStravaDivide(context *gin.Context) {
 		return
 	}
 
-	return
-
 	// Get user ID
 	userID, err := middlewares.GetAuthUsername(context.GetHeader("Authorization"))
 	if err != nil {
@@ -1427,7 +1425,6 @@ func APIStravaDivide(context *gin.Context) {
 		return
 	}
 
-	newExercises := []models.Exercise{}
 	for index, stravaID := range exerciseObject.StravaID {
 		var currentExercise *models.Exercise
 		if index != 0 {
@@ -1442,13 +1439,54 @@ func APIStravaDivide(context *gin.Context) {
 
 		currentExercise.StravaID = &stravaID
 
-		// REMOVE LATER
-		newExercises = append(newExercises, *currentExercise)
+		if index != 0 {
+			_, err := database.CreateExerciseInDB(*currentExercise)
+			if err != nil {
+				log.Println("Failed to create new exercises in DB. Error: " + err.Error())
+				context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create new exercises in DB."})
+				context.Abort()
+				return
+			}
+		}
 
 		for _, exerciseOperation := range exerciseObject.Operations {
-			if exerciseOperation.StravaID == &stravaID {
+			log.Println("Operation")
+			log.Println(exerciseOperation.ID)
+			log.Println(string(*exerciseOperation.StravaID))
 
+			if exerciseOperation.StravaID != nil && string(*exerciseOperation.StravaID) == stravaID {
+				log.Println(currentExercise.ID)
+
+				operation, err := database.GetOperationByIDAndUserID(exerciseOperation.ID, userID)
+				if err != nil {
+					log.Println("Failed to get operation in DB. Error: " + err.Error())
+					context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get operation in DB."})
+					context.Abort()
+					return
+				}
+
+				operation.ExerciseID = currentExercise.ID
+
+				_, err = database.UpdateOperationInDB(operation)
+				if err != nil {
+					log.Println("Failed to update operation in DB. Error: " + err.Error())
+					context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update operation in DB."})
+					context.Abort()
+					return
+				}
+			}
+		}
+
+		if index == 0 {
+			_, err := database.UpdateExerciseInDB(*currentExercise)
+			if err != nil {
+				log.Println("Failed to update exercises in DB. Error: " + err.Error())
+				context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update exercise in DB."})
+				context.Abort()
+				return
 			}
 		}
 	}
+
+	context.JSON(http.StatusCreated, gin.H{"message": "Exercises divided."})
 }

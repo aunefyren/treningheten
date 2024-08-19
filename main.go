@@ -253,7 +253,7 @@ func initRouter() *gin.Engine {
 			auth.GET("/exercises/week", controllers.APIGetWeek)
 			auth.POST("/exercises", controllers.APICreateExercise)
 			auth.PUT("/exercises/:exercise_id", controllers.APIUpdateExercise)
-			auth.PUT("/exercises/:exercise_id/strava-divide", controllers.APIStravaDivide)
+			auth.POST("/exercises/:exercise_id/strava-divide", controllers.APIStravaDivide)
 			auth.POST("/exercises/strava-combine", controllers.APIStravaCombine)
 
 			auth.GET("/operations", controllers.APIGetOperationsForUser)
