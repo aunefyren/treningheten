@@ -240,6 +240,7 @@ func initRouter() *gin.Engine {
 			auth.GET("/seasons/:season_id/weeks-personal", controllers.APIGetSeasonWeeksPersonal)
 			auth.GET("/seasons/get-on-going", controllers.APIGetOngoingSeasons)
 			auth.GET("/seasons/:season_id/leaderboard", controllers.APIGetCurrentSeasonLeaderboard)
+			auth.GET("/seasons/:season_id/activities", controllers.APIGetCurrentSeasonActivities)
 
 			auth.POST("/goals", controllers.APIRegisterGoalToSeason)
 			auth.DELETE("/goals/:goal_id", controllers.APIDeleteGoalToSeason)
@@ -278,10 +279,10 @@ func initRouter() *gin.Engine {
 			auth.GET("/users/:user_id", controllers.GetUser)
 			auth.POST("/users/:user_id/strava", controllers.APISetStravaCode)
 			auth.POST("/users/:user_id/strava-sync", controllers.APISyncStravaForUser)
-			auth.POST("/users/:user_id/strava-configuration", controllers.APIConfigureStravaForUser)
 			auth.GET("/users/:user_id/image", controllers.APIGetUserProfileImage)
 			auth.GET("/users", controllers.GetUsers)
 			auth.POST("/users/:user_id", controllers.UpdateUser)
+			auth.PATCH("/users/:user_id", controllers.APIPartialUpdateUser)
 
 			auth.GET("/debts/unchosen", controllers.APIGetUnchosenDebt)
 			auth.GET("/debts/:debt_id", controllers.APIGetDebt)
@@ -329,7 +330,7 @@ func initRouter() *gin.Engine {
 	router.Use(cors.New(cors.Config{
 		AllowOrigins: []string{"*"},
 		// AllowAllOrigins:  true,
-		AllowMethods:     []string{"GET", "POST"},
+		AllowMethods:     []string{"GET", "POST", "PATCH"},
 		AllowHeaders:     []string{"Origin", "Content-Type", "Authorization", "Access-Control-Allow-Origin"},
 		ExposeHeaders:    []string{"Content-Length"},
 		AllowCredentials: true,

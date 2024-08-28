@@ -1450,9 +1450,6 @@ func APIStravaDivide(context *gin.Context) {
 		}
 
 		for _, exerciseOperation := range exerciseObject.Operations {
-			log.Println("Operation")
-			log.Println(exerciseOperation.ID)
-			log.Println(string(*exerciseOperation.StravaID))
 
 			if exerciseOperation.StravaID != nil && string(*exerciseOperation.StravaID) == stravaID {
 				log.Println(currentExercise.ID)

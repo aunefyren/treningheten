@@ -26,6 +26,7 @@ type User struct {
 	StravaWalks                *bool      `json:"strava_walks" gorm:"default: true"`
 	StravaID                   *string    `json:"strava_id" gorm:"default: null"`
 	StravaPublic               *bool      `json:"strava_public" gorm:"default: true"`
+	ShareActivities            *bool      `json:"share_activities" gorm:"default: false"`
 }
 
 type UserCreationRequest struct {
@@ -38,13 +39,20 @@ type UserCreationRequest struct {
 }
 
 type UserUpdateRequest struct {
-	Email          string     `json:"email"`
-	Password       string     `json:"password"`
-	PasswordRepeat string     `json:"password_repeat"`
-	SundayAlert    bool       `json:"sunday_alert"`
-	ProfileImage   string     `json:"profile_image"`
-	OldPassword    string     `json:"password_old"`
-	BirthDate      *time.Time `json:"birth_date"`
+	Email           string     `json:"email"`
+	Password        string     `json:"password"`
+	PasswordRepeat  string     `json:"password_repeat"`
+	ProfileImage    string     `json:"profile_image"`
+	OldPassword     string     `json:"password_old"`
+	BirthDate       *time.Time `json:"birth_date"`
+	ShareActivities *bool      `json:"share_activities"`
+}
+
+type UserPartialUpdateRequest struct {
+	SundayAlert  *bool `json:"sunday_alert"`
+	StravaPadel  *bool `json:"strava_padel"`
+	StravaWalks  *bool `json:"strava_walks"`
+	StravaPublic *bool `json:"strava_public"`
 }
 
 type UserUpdatePasswordRequest struct {
@@ -55,12 +63,6 @@ type UserUpdatePasswordRequest struct {
 
 type UserStravaCodeUpdateRequest struct {
 	StravaCode string `json:"strava_code"`
-}
-
-type UserStravaConfigurationUpdateRequest struct {
-	StravaPadel  *bool `json:"strava_padel"`
-	StravaWalks  *bool `json:"strava_walks"`
-	StravaPublic *bool `json:"strava_public"`
 }
 
 type UserWithTickets struct {

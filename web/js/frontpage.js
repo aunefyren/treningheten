@@ -291,14 +291,28 @@ function load_page(result) {
                                 </div>
 
                             </div>
-                            
 
-                            <div id="leaderboard" class="leaderboard">
+                            <div class="module-two">
 
-                                <h3 style="margin: 0.5em;">All weeks</h3>
+                                <div id="activities" class="activities">
 
-                                <div id="leaderboard-weeks" class="leaderboard-weeks">
-                                    ...
+                                    <h3 style="margin: 0.5em;">Activities</h3>
+
+                                    <div id="activities-week" class="activities-week">
+                                        <p style="margin-bottom: 0.5em; text-align:center;">No public activities yet this week...</p>
+                                    </div>
+
+                                </div>
+                                
+
+                                <div id="leaderboard" class="leaderboard">
+
+                                    <h3 style="margin: 0.5em;">All weeks</h3>
+
+                                    <div id="leaderboard-weeks" class="leaderboard-weeks">
+                                        ...
+                                    </div>
+
                                 </div>
 
                             </div>
@@ -418,6 +432,7 @@ function get_season(user_id, loadingMessage){
                         get_calendar(false, user_id, loadingMessage);
                         place_season(season, user_id);
                         get_leaderboard(season, goal, true, false);
+                        getActivities(season);
                     }
                 } else {
                     get_calendar(false, user_id, loadingMessage);
@@ -616,7 +631,12 @@ function place_week(week, fireworks, user_id) {
 
     // Place editing icon for exercise
     for(var i = 1; i <= day; i++) {
-        document.getElementById("day_" + i + "_buttons").style.display = "flex" // Disabled because not ready
+        document.getElementById("day_" + i + "_buttons").style.display = "flex" 
+        console.log("index: " + i)
+        let checkObject = document.getElementById(`day_${i}_check`)
+        let dayInteger = i;
+        checkObject.onclick = function(){EditExercise(dayInteger)};
+        checkObject.classList.add('clickable')
     }
 
     document.getElementById("workout_this_week").innerText  = fireworks_int
@@ -999,7 +1019,7 @@ function place_current_week(week_array) {
         `;
 
         currentWeekUsers.innerHTML += week_html
-        GetProfileImagesForCurrentWeek(week_array.users[i].user_id, i)
+        GetProfileImagesForCurrentWeek(week_array.users[i].user_id, i);
     }
 
     return
@@ -1556,4 +1576,183 @@ function blinkCalendar() {
     } catch (e) {
         console.log("Failed to blink the calendar. Error: " + e)
     }
+}
+
+function getActivities(season){
+    var xhttp = new XMLHttpRequest();
+    xhttp.onreadystatechange = function() {
+        if (this.readyState == 4) {
+            
+            try {
+                result = JSON.parse(this.responseText);
+            } catch(e) {
+                console.log(e +' - Response: ' + this.responseText);
+                error("Could not reach API.");
+                return;
+            }
+            
+            if(result.error) {
+                error(result.error);
+            } else {
+                placeActivities(result.activities);
+            }
+
+        }
+    };
+    xhttp.withCredentials = true;
+    xhttp.open("get", api_url + "auth/seasons/" + season.id + "/activities");
+    xhttp.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
+    xhttp.setRequestHeader("Authorization", jwt);
+    xhttp.send();
+    return false;
+}
+
+function placeActivities(activitiesArray) {
+    if(activitiesArray.length < 1) {
+        return
+    }
+
+    var usersToGetArray = [];
+    var activitiesHTML = `
+        <div class="activityWrapper">
+    `;
+
+    activitiesArray.forEach(activity => {
+        activityHTML = generateActivityHTML(activity);
+        activitiesHTML += activityHTML;
+        usersToGetArray.push({"userID": activity.user.id, "activityID": activity.id});
+    });
+
+    
+    activitiesHTML += `
+        </div>
+    `;
+
+    try {
+        document.getElementById("activities-week").innerHTML = activitiesHTML
+    } catch (error) {
+        console.log(error)
+    }
+
+    console.log("yoo: " + usersToGetArray.length)
+    for(var i = 0; i < usersToGetArray.length; i++) {
+        console.log(i)
+        GetProfileImageForActivity(usersToGetArray[i].userID, usersToGetArray[i].activityID);
+    }
+}
+
+function generateActivityHTML(activity) {
+    var activitySentence = "worked out!";
+    if(activity.actions && activity.actions.length == 1) {
+        if(activity.actions[0].past_tense_verb && activity.actions[0].past_tense_verb != "") {
+            activitySentence = activity.actions[0].past_tense_verb;
+        }
+    } else if(activity.actions && activity.actions.length > 1) {
+        activitySentence = "did a range of workouts!"
+    }
+
+    var activityLogoBarHTML = "";
+    if(activity.actions) {
+        activity.actions.forEach(action => {
+            if(action.has_logo) {
+                activityLogoBarHTML += `
+                    <div class="activity-logo">
+                        <img style="width: 100%;" src="assets/actions/${action.name}.svg" class="" title="${action.name}"></img>
+                    </div>
+                `;
+            }
+        });
+    }
+
+    var activityStravaHTML = "";
+    if(activity.strava_ids && activity.strava_ids.length > 0) {
+        activity.strava_ids.forEach(stravaID => {
+            activityStravaHTML += `
+                <img class="strava-logo-img clickable" src="/assets/strava-logo.svg" onclick="window.open('https://www.strava.com/activities/${stravaID}', '_blank')">
+                </img>
+            `;
+        });
+    }
+
+    
+
+    var dateObject = new Date(activity.time)
+
+    activityHTML = `
+        <div class="activity">
+
+            <div class="activity-date">
+                ${GetDateString(dateObject, true)}
+            </div>
+
+            <div class="activity-sections">
+                <div class="activity-photo-wrapper">
+                    <div class="activity-user-photo" title="` + activity.user.first_name + ` ` + activity.user.last_name + `" onclick="location.href='/users/${activity.user.id}'">
+                        <img style="width: 100%; height: 100%; border-radius: 100%;" class="activity-user-photo-img" id="activity-user-photo-` + activity.user.id + `-` + activity.id + `" src="/assets/images/barbell.gif">
+                    </div>
+                </div>
+
+                <div class="activity-details">
+                    <div>
+                        ${activity.user.first_name} ${activitySentence}
+                    </div>
+
+                    <div class="activity-logo-wrapper">
+                        ${activityLogoBarHTML}
+                    </div>
+
+                </div>
+
+                <div class="activity-strava-wrapper">
+                    ${activityStravaHTML}
+                </div>
+
+            </div>
+        </div>
+    `;
+
+    return activityHTML;
+}
+
+function GetProfileImageForActivity(userID, index) {
+    console.log(index)
+    var xhttp = new XMLHttpRequest();
+    xhttp.onreadystatechange = function() {
+        if (this.readyState == 4) {
+            
+            try {
+                result = JSON.parse(this.responseText);
+            } catch(e) {
+                console.log(e +' - Response: ' + this.responseText);
+                error("Could not reach API.");
+                return;
+            }
+            
+            if(result.error) {
+
+                error(result.error);
+
+            } else {
+
+                PlaceProfileImageForActivity(result.image, userID, index)
+                
+            }
+
+        } else {
+            // info("Loading week...");
+        }
+    };
+    xhttp.withCredentials = true;
+    xhttp.open("get", api_url + "auth/users/" + userID + "/image?thumbnail=true");
+    xhttp.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
+    xhttp.setRequestHeader("Authorization", jwt);
+    xhttp.send();
+
+    return;
+
+}
+
+function PlaceProfileImageForActivity(imageBase64, userID, index) {
+    console.log("efdf")
+    document.getElementById("activity-user-photo-" + userID + "-" + index).src = imageBase64
 }

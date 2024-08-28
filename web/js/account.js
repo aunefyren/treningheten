@@ -49,87 +49,122 @@ function load_page(result) {
             <p id="join_date" style=""></p>
             <p id="user_admin" style=""></p>
 
-            <div class="module" id="" style="">
-                <hr>
-            </div>
+            <div class="account-section-wrapper">
 
-            <div class="title" style="margin-bottom: 1em;">
-                Notifications
-            </div>
+                <div class="account-section" style="">
 
-            <div class="notification-options" id="" style="">
+                    <div class="account-section-tab clickable" onclick="toggleSection('notifications-wrapper', 'section-button-notifications')">
+                        <div class="">Device Notifications</div>
+                        <img id="section-button-notifications"  src="assets/chevron-right.svg" class="color-invert" style="margin: 0.5em;">
+                    </div>
 
-                <div class="notification-option" id="" style="">
-                    <input style="" class="clickable" type="checkbox" id="notification-reminder-toggle" name="notification-reminder-toggle" value="">
-                    <label for="notification-reminder-toggle" style="margin: 0;" class="clickable">Logging reminders</label><br>
+                    <div id="notifications-wrapper" class="notifications-wrapper minimized">
+                        <div class="notification-options" id="" style="">
+                            <div class="notification-option" id="" style="">
+                                <input style="" class="clickable" type="checkbox" id="notification-reminder-toggle" name="notification-reminder-toggle" value="">
+                                <label for="notification-reminder-toggle" style="margin: 0;" class="clickable">Logging reminders</label><br>
+                            </div>
+
+                            <div class="notification-option" id="" style="">
+                                <input style="" class="clickable" type="checkbox" id="notification-achievement-toggle" name="notification-achievement-toggle" value="">
+                                <label for="notification-achievement-toggle" style="margin: 0;" class="clickable">Achievements</label><br>
+                            </div>
+
+                            <div class="notification-option" id="" style="">
+                                <input style="" class="clickable" type="checkbox" id="notification-news-toggle" name="notification-news-toggle" value="">
+                                <label for="notification-news-toggle" style="margin: 0;" class="clickable">News</label><br>
+                            </div>
+                        
+                        </div>
+
+                        <div id="notification_button_div" style="margin-top: 2em; display: flex; height: 3em; flex-direction: row; flex-wrap: nowrap; align-content: center; justify-content: center;align-items: center;">
+                            <button type="submit" class="btn btn-primary" style="float: none !important;" id="" onclick="create_push('${vapid_public_key}'); return false;">
+                                Notify me on this device
+                            </button>
+                        </div>
+                    </div>
                 </div>
 
-                <div class="notification-option" id="" style="">
-                    <input style="" class="clickable" type="checkbox" id="notification-achievement-toggle" name="notification-achievement-toggle" value="">
-                    <label for="notification-achievement-toggle" style="margin: 0;" class="clickable">Achievements</label><br>
+                <div class="account-section" style="">
+
+                    <div class="account-section-tab clickable" onclick="toggleSection('mail-notifications-wrapper', 'section-button-mail-notifications')">
+                        <div class="">E-mail Notifications</div>
+                        <img id="section-button-mail-notifications" src="assets/chevron-right.svg" class="color-invert" style="margin: 0.5em;">
+                    </div>
+
+                    <div id="mail-notifications-wrapper" class="mail-notifications-wrapper minimized">
+                        
+                        <div class="notification-options" id="" style="">
+
+                            <div class="notification-option" id="" style="">
+                                <input style="margin-top: 3em;" class="clickable" type="checkbox" id="sunday_alert" name="sunday_alert" value="sunday_alert" onchange="updateAccountValue('sunday_alert');">
+                                <label for="sunday_alert" style="margin: 0;" class="clickable">Send me e-mail logging reminders on Sundays.</label><br>
+                            </div>
+
+                        </div>
+
+                    </div>
                 </div>
 
-                <div class="notification-option" id="" style="">
-                    <input style="" class="clickable" type="checkbox" id="notification-news-toggle" name="notification-news-toggle" value="">
-                    <label for="notification-news-toggle" style="margin: 0;" class="clickable">News</label><br>
+                <div class="account-section" style="">
+
+                    <div class="account-section-tab clickable" style="" onclick="toggleSection('settings-wrapper', 'section-button-settings')">
+                        <div class="">Account Settings</div>
+                        <img id="section-button-settings" src="assets/chevron-right.svg" class="color-invert" style="margin: 0.5em;">
+                    </div>
+                    
+                    <div id="settings-wrapper" class="settings-wrapper minimized">
+                        <form action="" style="margin: 0;" onsubmit="event.preventDefault(); send_update('${user_id}');">
+
+                            <label id="form-input-icon" for="email">Replace email:</label>
+                            <input type="email" name="email" id="email" placeholder="Email" value="" required/>
+
+                            <label id="form-input-icon" for="birth_date">Birth date:</label>
+                            <input type="date" name="birth_date" id="birth_date" placeholder="dd-mm-yyyy" value="" />
+
+                            <label id="form-input-icon" for="new_profile_image" style="margin-top: 2em;">Replace profile image:</label>
+                            <input type="file" name="new_profile_image" id="new_profile_image" placeholder="" value="" accept="image/png, image/jpeg" />
+
+                            <input onclick="change_password_toggle();" style="margin-top: 3em;" class="clickable" type="checkbox" id="password-toggle" name="confirm" value="confirm" >
+                            <label for="password-toggle" style="margin: 0;" class="clickable">Change my password.</label><br>
+
+                            <div id="change-password-box" style="display:none;">
+
+                                <label id="form-input-icon" style="" for="password"></label>
+                                <input type="password" name="password" id="password" placeholder="New password" />
+
+                                <label id="form-input-icon" for="password_repeat"></label>
+                                <input type="password" name="password_repeat" id="password_repeat" placeholder="Repeat the password" />
+
+                            </div>
+
+                            <input style="margin-top: 3em;" class="clickable" type="checkbox" id="share_activities" name="share_activities" value="share_activities">
+                            <label for="share_activities" style="margin: 0;" class="clickable">Share my activities on the activity feed.</label><br>
+
+                            <label style="margin-top: 5em;" id="form-input-icon" for="password_old">Current password:</label>
+                            <input type="password" name="password_old" id="password_old" placeholder="To save your changes, type your current password." required />
+
+                            <button id="update-button" style="margin-top: 2em;" type="submit" href="/">Update account</button>
+
+                        </form>
+                    </div>
+
                 </div>
-            
-            </div>
 
-            <div id="notification_button_div" style="margin-top: 2em; display: flex; height: 3em; flex-direction: row; flex-wrap: nowrap; align-content: center; justify-content: center;align-items: center;">
-                <button type="submit" class="btn btn-primary" style="float: none !important;" id="" onclick="create_push('${vapid_public_key}'); return false;">
-                    Notify me on this device
-                </button>
-            </div>
+                <div class="account-section" style="display: none;" id="strava-section">
 
-            <div class="module">
-                <hr>
-            </div>
-
-            <div class="title" style="margin-bottom: 1em;">
-                Account Settings
-            </div>
-
-            <form action="" onsubmit="event.preventDefault(); send_update('${user_id}');">
-
-                <label id="form-input-icon" for="email">Replace email:</label>
-                <input type="email" name="email" id="email" placeholder="Email" value="" required/>
-
-                <label id="form-input-icon" for="birth_date">Birth date:</label>
-                <input type="date" name="birth_date" id="birth_date" placeholder="dd-mm-yyyy" value="" />
-
-                <label id="form-input-icon" for="new_profile_image" style="margin-top: 2em;">Replace profile image:</label>
-                <input type="file" name="new_profile_image" id="new_profile_image" placeholder="" value="" accept="image/png, image/jpeg" />
-
-                <input onclick="change_password_toggle();" style="margin-top: 3em;" class="clickable" type="checkbox" id="password-toggle" name="confirm" value="confirm" >
-                <label for="password-toggle" style="margin: 0;" class="clickable">Change my password.</label><br>
-
-                <div id="change-password-box" style="display:none;">
-
-                    <label id="form-input-icon" style="" for="password"></label>
-                    <input type="password" name="password" id="password" placeholder="New password" />
-
-                    <label id="form-input-icon" for="password_repeat"></label>
-                    <input type="password" name="password_repeat" id="password_repeat" placeholder="Repeat the password" />
-
+                    <div class="account-section-tab clickable" style="" onclick="toggleSection('strava-wrapper', 'section-button-strava')">
+                        <div class="">Strava</div>
+                        <img id="section-button-strava" src="assets/chevron-right.svg" class="color-invert" style="margin: 0.5em;">
+                    </div>
+                    
+                    <div id="strava-wrapper" class="strava-wrapper minimized">
+                    </div>
                 </div>
 
-                <input style="margin-top: 3em;" class="clickable" type="checkbox" id="reminder-toggle" name="reminder-toggle" value="reminder-toggle">
-                <label for="reminder-toggle" style="margin: 0;" class="clickable">Send me e-mail logging reminders on Sundays.</label><br>
 
-                <label style="margin-top: 5em;" id="form-input-icon" for="password_old">Current password:</label>
-                <input type="password" name="password_old" id="password_old" placeholder="To save your changes, type your current password." required />
-
-                <button id="update-button" style="margin-top: 2em;" type="submit" href="/">Update account</button>
-
-            </form>
-
-            <div class="module" id="" style="">
-                <hr>
             </div>
 
-            <div class="button-collection" id="strava-button-collection">
-            </div>
 
             <div class="module" id="" style="">
                 <hr>
@@ -187,7 +222,7 @@ function send_update(user_id) {
     
     var email = document.getElementById("email").value;
     var password_old = document.getElementById("password_old").value;
-    var sunday_alert = document.getElementById("reminder-toggle").checked;
+    var share_activities = document.getElementById("share_activities").checked;
     var new_profile_image = document.getElementById('new_profile_image').files[0];
     var birth_date = document.getElementById('birth_date').value;
 
@@ -217,10 +252,10 @@ function send_update(user_id) {
                 "email" : email,
                 "password" : password,
                 "password_repeat": password_repeat,
-                "sunday_alert": sunday_alert,
                 "profile_image": result,
                 "password_old": password_old,
-                "birth_date": birth_date_string
+                "birth_date": birth_date_string,
+                "share_activities": share_activities
             };
 
             var form_data = JSON.stringify(form_obj);
@@ -236,10 +271,10 @@ function send_update(user_id) {
             "email" : email,
             "password" : password,
             "password_repeat": password_repeat,
-            "sunday_alert": sunday_alert,
             "profile_image": "",
             "password_old": password_old,
-            "birth_date": birth_date_string
+            "birth_date": birth_date_string,
+            "share_activities": share_activities
         };
 
         var form_data = JSON.stringify(form_obj);
@@ -409,7 +444,11 @@ function PlaceUserData(user_object, stravaOauth, stravaEnabled) {
     document.getElementById("user_admin").innerHTML = "Administrator: " + admin_string
 
     if(user_object.sunday_alert) {
-        document.getElementById("reminder-toggle").checked = true;
+        document.getElementById("sunday_alert").checked = true;
+    }
+
+    if(user_object.share_activities) {
+        document.getElementById("share_activities").checked = true;
     }
 
     if(stravaEnabled) {
@@ -441,27 +480,32 @@ function PlaceUserData(user_object, stravaOauth, stravaEnabled) {
                     Strava exercises sync automatically every hour. Be careful to only log your sessions to either Strava or Treningheten.
                 </p>
 
-                <button onclick="window.location.href='${stravaOauth}';" class="" style="width: 12em;" type="submit" href="">Connect Strava again</button>
-                <button onclick="syncStrava('${user_object.id}');" class="" style="width: 12em;" type="submit" href="">Sync Strava now</button>
-
-                <div class="strava-option" id="" style="">
-                    <input style="" class="clickable" type="checkbox" id="strava_padel" name="strava_padel" value="" onchange="updateStravaValue('strava_padel');" ${padelHTML}>
-                    <label for="strava_padel" style="margin: 0;" class="clickable">Convert Pickleball to Padel</label><br>
+                <div class="notification-options" id="" style="">
+                    <button onclick="window.location.href='${stravaOauth}';" class="" style="width: 12em;" type="submit" href="">Connect Strava again</button>
+                    <button onclick="syncStrava('${user_object.id}');" class="" style="width: 12em;" type="submit" href="">Sync Strava now</button>
                 </div>
 
-                <div class="strava-option" id="" style="">
-                    <input style="" class="clickable" type="checkbox" id="strava_walks" name="strava_walks" value="" onchange="updateStravaValue('strava_walks');" ${walksHTML}>
-                    <label for="strava_walks" style="margin: 0;" class="clickable">Ignore walks</label><br>
-                </div>
+                <div class="notification-options" id="" style="">
+                    <div class="strava-option" id="" style="">
+                        <input style="" class="clickable" type="checkbox" id="strava_padel" name="strava_padel" value="" onchange="updateAccountValue('strava_padel');" ${padelHTML}>
+                        <label for="strava_padel" style="margin: 0;" class="clickable">Convert Pickleball to Padel</label><br>
+                    </div>
 
-                <div class="strava-option" id="" style="">
-                    <input style="" class="clickable" type="checkbox" id="strava_public" name="strava_public" value="" onchange="updateStravaValue('strava_public');" ${publicHTML}>
-                    <label for="strava_public" style="margin: 0;" class="clickable">Show my Strava on my profile</label><br>
+                    <div class="strava-option" id="" style="">
+                        <input style="" class="clickable" type="checkbox" id="strava_walks" name="strava_walks" value="" onchange="updateAccountValue('strava_walks');" ${walksHTML}>
+                        <label for="strava_walks" style="margin: 0;" class="clickable">Ignore walks</label><br>
+                    </div>
+
+                    <div class="strava-option" id="" style="">
+                        <input style="" class="clickable" type="checkbox" id="strava_public" name="strava_public" value="" onchange="updateAccountValue('strava_public');" ${publicHTML}>
+                        <label for="strava_public" style="margin: 0;" class="clickable">Show my Strava on my profile</label><br>
+                    </div>
                 </div>
             `;
         }
 
-        document.getElementById("strava-button-collection").innerHTML = stravaHTML
+        document.getElementById("strava-wrapper").innerHTML = stravaHTML
+        document.getElementById('strava-section').style.display = 'flex'
     }
 }
 
@@ -510,7 +554,24 @@ function syncStrava(user_id) {
     return false;
 }
 
-function updateStravaValue(property) {
+function toggleSection(divID, buttonID) {
+    section = document.getElementById(divID)
+
+    if(section.classList.contains("minimized")) {
+        section.classList.remove("minimized")
+        section.classList.add("expand")
+        section.style.display = 'flex';
+        document.getElementById(buttonID).src = "assets/chevron-down.svg"
+    } else {
+        section.classList.add("minimized")
+        section.classList.remove("expand")
+        section.style.display = 'none';
+        document.getElementById(buttonID).src = "assets/chevron-right.svg"
+        return
+    }
+}
+
+function updateAccountValue(property) {
     var value = document.getElementById(property).checked;
 
     var form_obj = {};
@@ -535,7 +596,7 @@ function updateStravaValue(property) {
         }
     };
     xhttp.withCredentials = true;
-    xhttp.open("post", api_url + "auth/users/" + user_id + "/strava-configuration");
+    xhttp.open("PATCH", api_url + "auth/users/" + user_id);
     xhttp.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
     xhttp.setRequestHeader("Authorization", jwt);
     xhttp.send(form_data);

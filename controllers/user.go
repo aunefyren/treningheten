@@ -435,8 +435,8 @@ func UpdateUser(context *gin.Context) {
 		}
 	}
 
-	// Transfer alert value
-	userOriginal.SundayAlert = userUpdateRequest.SundayAlert
+	// Transfer share activity value
+	userOriginal.ShareActivities = userUpdateRequest.ShareActivities
 
 	// Update profile image
 	if userUpdateRequest.ProfileImage != "" {
@@ -465,23 +465,14 @@ func UpdateUser(context *gin.Context) {
 		}
 	}
 
+	// Transfer birth date
 	userOriginal.BirthDate = userUpdateRequest.BirthDate
 
 	// Update user in database
-	err = database.UpdateUserValuesByUserID(userOriginal.ID, userOriginal.Email, userOriginal.Password, userOriginal.SundayAlert, userOriginal.BirthDate)
+	user, err := database.UpdateUser(userOriginal)
 	if err != nil {
-		log.Println("Failed to update database. Error: " + err.Error())
-		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update database."})
-		context.Abort()
-		return
-	}
-
-	// Get updated user object
-	var user models.User
-	record = database.Instance.Where("ID = ?", userID).First(&user)
-	if record.Error != nil {
-		log.Println("Invalid credentials. Error: " + record.Error.Error())
-		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get user details."})
+		log.Println("Failed to update user in the database. Error: " + err.Error())
+		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update user in the database."})
 		context.Abort()
 		return
 	}
@@ -864,15 +855,16 @@ func APISyncStravaForUser(context *gin.Context) {
 	context.JSON(http.StatusOK, gin.H{"message": "Strava sync started!"})
 }
 
-func APIConfigureStravaForUser(context *gin.Context) {
+func APIPartialUpdateUser(context *gin.Context) {
 	// Initialize variables
-	var user models.User
-	var userStravaConfigurationUpdateRequest models.UserStravaConfigurationUpdateRequest
+	var userUpdateRequest models.UserPartialUpdateRequest
+	var err error
 
 	// Parse creation request
-	err := context.ShouldBindJSON(&userStravaConfigurationUpdateRequest)
+	err = context.ShouldBindJSON(&userUpdateRequest)
 	if err != nil {
-		context.JSON(http.StatusBadRequest, gin.H{"error": "Failed to parse request."})
+		log.Println("Failed to parse update request. Error: " + err.Error())
+		context.JSON(http.StatusBadRequest, gin.H{"error": "Failed to parse update request."})
 		context.Abort()
 		return
 	}
@@ -880,39 +872,45 @@ func APIConfigureStravaForUser(context *gin.Context) {
 	// Get user ID
 	userID, err := middlewares.GetAuthUsername(context.GetHeader("Authorization"))
 	if err != nil {
-		log.Println("Failed to get user ID. Error: " + err.Error())
-		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get user ID."})
+		log.Println("Failed to get user from header. Error: " + err.Error())
+		context.JSON(http.StatusBadRequest, gin.H{"error": "Failed to get user from header."})
 		context.Abort()
 		return
 	}
 
-	user, err = database.GetAllUserInformation(userID)
+	userObject, err := database.GetAllUserInformation(userID)
 	if err != nil {
-		log.Println("Failed to get user object. Error: " + err.Error())
-		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get user object."})
+		log.Println("Failed to get user information. Error: " + err.Error())
+		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get user information."})
 		context.Abort()
 		return
 	}
 
-	if userStravaConfigurationUpdateRequest.StravaPadel != nil {
-		user.StravaPadel = userStravaConfigurationUpdateRequest.StravaPadel
+	if userUpdateRequest.SundayAlert != nil {
+		userObject.SundayAlert = *userUpdateRequest.SundayAlert
 	}
 
-	if userStravaConfigurationUpdateRequest.StravaWalks != nil {
-		user.StravaWalks = userStravaConfigurationUpdateRequest.StravaWalks
+	if userUpdateRequest.StravaPadel != nil {
+		userObject.StravaPadel = userUpdateRequest.StravaPadel
 	}
 
-	if userStravaConfigurationUpdateRequest.StravaPublic != nil {
-		user.StravaPublic = userStravaConfigurationUpdateRequest.StravaPublic
+	if userUpdateRequest.StravaWalks != nil {
+		userObject.StravaWalks = userUpdateRequest.StravaWalks
 	}
 
-	user, err = database.UpdateUser(user)
+	if userUpdateRequest.StravaPublic != nil {
+		userObject.StravaPublic = userUpdateRequest.StravaPublic
+	}
+
+	// Update user in database
+	_, err = database.UpdateUser(userObject)
 	if err != nil {
-		log.Println("Failed to update user object. Error: " + err.Error())
-		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update user object."})
+		log.Println("Failed to update user in the database. Error: " + err.Error())
+		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update user in the database."})
 		context.Abort()
 		return
 	}
 
-	context.JSON(http.StatusOK, gin.H{"message": "Code updated!", "user": user})
+	// Reply
+	context.JSON(http.StatusOK, gin.H{"message": "Account updated."})
 }

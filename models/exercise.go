@@ -104,3 +104,11 @@ type WeekResult struct {
 	SickLeave             bool        `json:"sick_leave"`
 	FullWeekParticipation bool        `json:"full_week_participation"`
 }
+
+type Activity struct {
+	ExerciseID uuid.UUID `json:"id"`
+	User       User      `json:"user"`
+	Time       time.Time `json:"time"`
+	StravaIDs  []string  `json:"strava_ids"`
+	Actions    []Action  `json:"actions"`
+}

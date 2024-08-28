@@ -5,9 +5,11 @@ import (
 	"aunefyren/treningheten/database"
 	"aunefyren/treningheten/middlewares"
 	"aunefyren/treningheten/models"
+	"aunefyren/treningheten/utilities"
 	"errors"
 	"log"
 	"net/http"
+	"sort"
 	"strings"
 	"time"
 
@@ -906,5 +908,155 @@ func APIGetSeasonWeeksPersonal(context *gin.Context) {
 
 	// Return seasons
 	context.JSON(http.StatusOK, gin.H{"leaderboard": weekResultsPersonal, "weekdays": weekDaysPersonal, "message": "Season weeks retrieved.", "wheel_statistics": wheelStatisticsStruct})
+}
 
+func APIGetCurrentSeasonActivities(context *gin.Context) {
+	// Create user request
+	var seasonID = context.Param("season_id")
+	seasonIDParsed, err := uuid.Parse(seasonID)
+	if err != nil {
+		log.Println("Failed to parse season ID. Error: " + err.Error())
+		context.JSON(http.StatusBadRequest, gin.H{"error": "Failed to parse season ID."})
+		context.Abort()
+		return
+	}
+
+	// Get current time
+	now := time.Now()
+	mondayStart, err := utilities.FindEarlierMonday(now)
+	if err != nil {
+		log.Println("Failed to find Monday. Error: " + err.Error())
+		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to find Monday."})
+		context.Abort()
+		return
+	}
+
+	sundayEnd, err := utilities.FindNextSunday(now)
+	if err != nil {
+		log.Println("Failed to find Sunday. Error: " + err.Error())
+		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to find Sunday."})
+		context.Abort()
+		return
+	}
+
+	// Verify user membership to group
+	season, err := database.GetSeasonByID(seasonIDParsed)
+	if err != nil {
+		log.Println("Failed to check ongoing season. Error: " + err.Error())
+		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to check ongoing season."})
+		context.Abort()
+		return
+	} else if season == nil {
+		context.JSON(http.StatusBadRequest, gin.H{"error": "Season not found."})
+		context.Abort()
+		return
+	}
+
+	// Get user ID
+	userID, err := middlewares.GetAuthUsername(context.GetHeader("Authorization"))
+	if err != nil {
+		log.Println("Failed to be user from header. Error: " + err.Error())
+		context.JSON(http.StatusBadRequest, gin.H{"error": "Failed to be user from header."})
+		context.Abort()
+		return
+	}
+
+	// Verify goal exists within season
+	goal, err := database.GetGoalFromUserWithinSeason(season.ID, userID)
+	if err != nil {
+		log.Println("Failed to verify goal status. Error: " + err.Error())
+		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to verify goal status."})
+		context.Abort()
+		return
+	} else if goal == nil {
+		context.JSON(http.StatusInternalServerError, gin.H{"error": "You must be a part of the season to see the activities."})
+		context.Abort()
+		return
+	}
+
+	allExerciseDays, err := database.GetExerciseDaysForSharingUsersUsingDates(mondayStart, sundayEnd)
+	if err != nil {
+		log.Println("Failed to get exercise days from time frame. Error: " + err.Error())
+		context.JSON(http.StatusBadRequest, gin.H{"error": "Failed to get exercise days from time frame."})
+		context.Abort()
+		return
+	}
+
+	filteredExerciseDays := []models.ExerciseDay{}
+	validatedUsers := []uuid.UUID{}
+	for _, exerciseDay := range allExerciseDays {
+		if exerciseDay.UserID == nil {
+			continue
+		}
+
+		foundInCache := false
+		for _, validatedUserID := range validatedUsers {
+			if validatedUserID == *exerciseDay.UserID {
+				foundInCache = true
+				break
+			}
+		}
+
+		if foundInCache {
+			filteredExerciseDays = append(filteredExerciseDays, exerciseDay)
+			continue
+		} else {
+			// Verify goal exists within season
+			goal, err := database.GetGoalFromUserWithinSeason(season.ID, *exerciseDay.UserID)
+			if err != nil {
+				log.Println("Failed to verify goal status for '" + exerciseDay.UserID.String() + "'. Error: " + err.Error())
+				context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to verify goal status."})
+				context.Abort()
+				return
+			}
+
+			if goal != nil {
+				filteredExerciseDays = append(filteredExerciseDays, exerciseDay)
+				validatedUsers = append(validatedUsers, *exerciseDay.UserID)
+				continue
+			}
+		}
+	}
+
+	exerciseDayObjects, err := ConvertExerciseDaysToExerciseDayObjects(filteredExerciseDays)
+	if err != nil {
+		log.Println("Failed to convert exercise day to exercise day objects. Error: " + err.Error())
+		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to convert exercise day to exercise day objects."})
+		context.Abort()
+		return
+	}
+
+	allActivities := []models.Activity{}
+	for _, exerciseDayObject := range exerciseDayObjects {
+		for _, exercise := range exerciseDayObject.Exercises {
+			if exercise.On && exercise.Enabled {
+				newActivity := models.Activity{}
+				newActivity.ExerciseID = exercise.ID
+				newActivity.User = exerciseDayObject.User
+				newActivity.Time = exerciseDayObject.Date
+				newActivity.Actions = []models.Action{}
+
+				if exerciseDayObject.User.StravaPublic != nil && *exerciseDayObject.User.StravaPublic {
+					newActivity.StravaIDs = exercise.StravaID
+				} else {
+					newActivity.StravaIDs = []string{}
+				}
+
+				for _, operation := range exercise.Operations {
+					if operation.Action != nil {
+						newActivity.Actions = append(newActivity.Actions, *operation.Action)
+					}
+				}
+
+				allActivities = append(allActivities, newActivity)
+			}
+		}
+	}
+
+	sort.Slice(allActivities, func(i, j int) bool {
+		return allActivities[j].Time.Before(allActivities[i].Time)
+	})
+
+	// Return activities
+	context.JSON(http.StatusOK, gin.H{"activities": allActivities})
 }

@@ -321,3 +321,27 @@ func GetExerciseDayByDateAndUserID(userID uuid.UUID, date time.Time) (*models.Ex
 
 	return &exercise, err
 }
+
+func GetExerciseDaysForSharingUsersUsingDates(startDate time.Time, endDate time.Time) ([]models.ExerciseDay, error) {
+	var exercises []models.ExerciseDay
+
+	startDayString := startDate.Format("2006-01-02") + " 00:00:00.000"
+	endDayString := endDate.Format("2006-01-02") + " 23:59:59"
+
+	exerciserecord := Instance.
+		Where("`exercise_days`.enabled = ?", 1).
+		Where("`exercise_days`.Date >= ?", startDayString).
+		Where("`exercise_days`.Date <= ?", endDayString).
+		Joins("JOIN `users` on `exercise_days`.user_id = `users`.id").
+		Where("`users`.enabled = ?", 1).
+		Where("`users`.share_activities = ?", 1).
+		Find(&exercises)
+
+	if exerciserecord.Error != nil {
+		return []models.ExerciseDay{}, exerciserecord.Error
+	} else if exerciserecord.RowsAffected == 0 {
+		return []models.ExerciseDay{}, nil
+	}
+
+	return exercises, nil
+}

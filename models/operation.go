@@ -94,13 +94,15 @@ type OperationSetObject struct {
 
 type Action struct {
 	GormModel
-	Enabled       bool   `json:"enabled" gorm:"not null; default: true;"`
-	Name          string `json:"name"`
-	NorwegianName string `json:"norwegian_name"`
-	Description   string `json:"description"`
-	Type          string `json:"type"`
-	BodyPart      string `json:"body_part"`
-	StravaName    string `json:"strava_name"`
+	Enabled       bool    `json:"enabled" gorm:"not null; default: true;"`
+	Name          string  `json:"name"`
+	NorwegianName string  `json:"norwegian_name"`
+	Description   string  `json:"description"`
+	Type          string  `json:"type"`
+	BodyPart      string  `json:"body_part"`
+	StravaName    string  `json:"strava_name"`
+	PastTenseVerb *string `json:"past_tense_verb"`
+	HasLogo       bool    `json:"has_logo" gorm:"not null; default: false;"`
 }
 
 type ActionCreationRequest struct {
