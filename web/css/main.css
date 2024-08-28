@@ -2421,6 +2421,7 @@ label {
   box-sizing: border-box;
   margin: 0 2em;
   width: auto;
+  color: var(--black);
 }
 
 .strava-text {
