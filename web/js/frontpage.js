@@ -1642,13 +1642,13 @@ function placeActivities(activitiesArray) {
 }
 
 function generateActivityHTML(activity) {
-    var activitySentence = "worked out!";
+    var activitySentence = "worked out";
     if(activity.actions && activity.actions.length == 1) {
         if(activity.actions[0].past_tense_verb && activity.actions[0].past_tense_verb != "") {
             activitySentence = activity.actions[0].past_tense_verb;
         }
     } else if(activity.actions && activity.actions.length > 1) {
-        activitySentence = "did a range of workouts!"
+        activitySentence = "did a range of workouts"
     }
 
     var activityLogoBarHTML = "";
@@ -1694,7 +1694,7 @@ function generateActivityHTML(activity) {
 
                 <div class="activity-details">
                     <div>
-                        ${activity.user.first_name} ${activitySentence}
+                        ${activity.user.first_name} ${activitySentence}!
                     </div>
 
                     <div class="activity-logo-wrapper">
