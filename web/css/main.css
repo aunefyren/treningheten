@@ -1094,6 +1094,7 @@ input[type=checkbox]
   max-height: 45em;
   overflow-y: auto;
   color: var(--black);
+  border-top: 0.15em solid var(--trans-lightblue);
 }
 
 .leaderboard-week {
@@ -1107,10 +1108,9 @@ input[type=checkbox]
   width: 100%;
   width: -webkit-fill-available;
   width: -moz-available;
-  padding: 0.5em;
-  border: solid 0.2em var(--lightblue);
-  border-radius: 0.5em;
-  margin: 0.25em;
+  padding: 0.25em;
+  border-bottom: 0.15em solid var(--trans-lightblue);
+  margin-bottom: 0.5em;
 }
 
 .leaderboard-week-number {
@@ -1283,9 +1283,8 @@ input[type=checkbox]
   width: -webkit-fill-available;
   width: -moz-available;
   padding: 0.5em;
-  border: solid 0.2em var(--lightblue);
-  border-radius: 0.5em;
-  margin: 0.5em;
+  border-bottom: 0.15em solid var(--trans-lightblue);
+  margin: 0;
 }
 
 .invitation-object {
@@ -1425,7 +1424,7 @@ input[type=checkbox]
   width: -moz-available;
   height: auto;
   max-height: 30em;
-  margin: 0 1em 1em 1em;
+  border-bottom: 0.15em solid var(--trans-lightblue);
 }
 
 .leaderboard-week-member {
@@ -2732,4 +2731,8 @@ label {
   width: -webkit-fill-available;
   width: -moz-available;
   margin: 1em 0;
+}
+
+.season-leaderboard {
+  border-top: 0.15em solid var(--trans-lightblue);
 }

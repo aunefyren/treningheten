@@ -1687,7 +1687,7 @@ function generateActivityHTML(activity) {
             <div class="activity-sections">
                 <div class="activity-photo-wrapper">
                     <div class="activity-user-photo" title="` + activity.user.first_name + ` ` + activity.user.last_name + `" onclick="location.href='/users/${activity.user.id}'">
-                        <img style="width: 100%; height: 100%; border-radius: 100%;" class="activity-user-photo-img" id="activity-user-photo-` + activity.user.id + `-` + activity.id + `" src="/assets/images/barbell.gif">
+                        <img style="width: 100%; height: 100%; border-radius: 100%; object-fit: cover; overflow: hidden;" class="activity-user-photo-img" id="activity-user-photo-` + activity.user.id + `-` + activity.id + `" src="/assets/images/barbell.gif">
                     </div>
                 </div>
 
@@ -1728,17 +1728,11 @@ function GetProfileImageForActivity(userID, index) {
             }
             
             if(result.error) {
-
                 error(result.error);
-
             } else {
-
                 PlaceProfileImageForActivity(result.image, userID, index)
-                
             }
 
-        } else {
-            // info("Loading week...");
         }
     };
     xhttp.withCredentials = true;
@@ -1752,6 +1746,5 @@ function GetProfileImageForActivity(userID, index) {
 }
 
 function PlaceProfileImageForActivity(imageBase64, userID, index) {
-    console.log("efdf")
     document.getElementById("activity-user-photo-" + userID + "-" + index).src = imageBase64
 }
