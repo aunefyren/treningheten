@@ -3,6 +3,7 @@ package controllers
 import (
 	"aunefyren/treningheten/database"
 	"aunefyren/treningheten/models"
+	"errors"
 	"log"
 )
 
@@ -24,7 +25,7 @@ func ConvertWheelviewToWheelviewObject(wheelview models.Wheelview) (models.Wheel
 		return models.WheelviewObject{}, err
 	} else if !debtFound {
 		log.Println("Failed to find debt for debt '" + wheelview.DebtID.String() + "'. Returning.")
-		return models.WheelviewObject{}, err
+		return models.WheelviewObject{}, errors.New("Failed to find debt for debt '" + wheelview.DebtID.String() + "'.")
 	}
 
 	debtObject, err := ConvertDebtToDebtObject(debt)
