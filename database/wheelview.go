@@ -34,10 +34,16 @@ func GetUnviewedWheelviewByDebtIDAndUserID(userID uuid.UUID, debtID uuid.UUID) (
 
 // Get wheel view for debt and user
 func GetUnviewedWheelviewByUserID(userID uuid.UUID) ([]models.Wheelview, bool, error) {
-
 	var wheelStruct []models.Wheelview
 
-	wheelviewRecord := Instance.Where("`wheelviews`.enabled = ?", 1).Where("`wheelviews`.user_id = ?", userID).Where("`wheelviews`.viewed = ?", 0).Find(&wheelStruct)
+	wheelviewRecord := Instance.
+		Where("`wheelviews`.enabled = ?", 1).
+		Where("`wheelviews`.user_id = ?", userID).
+		Where("`wheelviews`.viewed = ?", 0).
+		Joins("JOIN debts on `wheelviews`.debt_id = `debts`.ID").
+		Where("`debts`.enabled = ?", 1).
+		Find(&wheelStruct)
+
 	if wheelviewRecord.Error != nil {
 		return []models.Wheelview{}, false, wheelviewRecord.Error
 	} else if wheelviewRecord.RowsAffected == 0 {
@@ -45,7 +51,6 @@ func GetUnviewedWheelviewByUserID(userID uuid.UUID) ([]models.Wheelview, bool, e
 	}
 
 	return wheelStruct, true, nil
-
 }
 
 // Set wheelview to viewed by ID
