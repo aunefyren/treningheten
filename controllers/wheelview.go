@@ -23,7 +23,7 @@ func ConvertWheelviewToWheelviewObject(wheelview models.Wheelview) (models.Wheel
 		log.Println("Failed to get debt for debt '" + wheelview.DebtID.String() + "'. Returning. Error: " + err.Error())
 		return models.WheelviewObject{}, err
 	} else if !debtFound {
-		log.Println("Failed to find debt for debt '" + wheelview.DebtID.String() + "'. Returning. Error: " + err.Error())
+		log.Println("Failed to find debt for debt '" + wheelview.DebtID.String() + "'. Returning.")
 		return models.WheelviewObject{}, err
 	}
 
