@@ -251,12 +251,6 @@ function load_page(result) {
                                     <h3 id="season_title">Loading...</h3>
                                     <p id="season_desc" style="text-align: center;">...</p>
 
-                                    <div id="potentialSeasonsWrapper" style="display:none;">
-                                    </div>
-
-                                    <div id="countdownSeasonsWrapper" style="display:none;">
-                                    </div>
-
                                     <p id="season_start_title" style="margin-top: 1em;">Season start: <a id="season_start">...</a></p>
                                     <p id="season_end_title" style="">Season end: <a id="season_end">...</a></p>
 
@@ -266,6 +260,14 @@ function load_page(result) {
                                     <p id="prize-title" style="margin-top: 1em;">Potential prize:</p>
                                     <div class="prize-wrapper" id="prize-wrapper">
                                         <div id="prize-text" class="prize-text">...</div>
+                                    </div>
+
+                                    <hr id="seasonDivider" style="display:none;">
+
+                                    <div id="potentialSeasonsWrapper" style="display:none;">
+                                    </div>
+
+                                    <div id="countdownSeasonsWrapper" style="display:none;">
                                     </div>
 
                                 </div>
@@ -465,7 +467,6 @@ function get_season(user_id, loadingMessage){
 }
 
 function place_season(season_object, userID) {
-
     if(season_object) {
         document.getElementById("calendar_season_id").value = season_object.id
         document.getElementById("season_title").innerHTML = season_object.name
@@ -487,6 +488,8 @@ function place_season(season_object, userID) {
         document.getElementById("season_end").innerHTML = date_end_string
     
         placeSeasonProgress(date_start, date_end);
+        getPotentialSeasons();
+        getCountdownSeasons(userID);
     } else {
         document.getElementById("season_title").innerHTML = "No active season"
         document.getElementById("season_desc").innerHTML = "You can join or create a season to start competing."
@@ -510,7 +513,6 @@ function place_season(season_object, userID) {
 
         placeSeasonProgress(startOfYear, endOfYear);
     }
-
 }
 
 function get_calendar(fireworks, user_id, loadingMessage){
@@ -1381,6 +1383,10 @@ function getPotentialSeasons(user_id){
 
 function placePotentialSeasons(seasonsArray) {
     try {
+        if(!seasonsArray || seasonsArray.length == 0) {
+            return;
+        }
+
         var html = "Seasons you can join:<br><div class='potentialSeasonList'><hr>";
         for(var i = 0; i < seasonsArray.length; i++) {
             html += `
@@ -1394,6 +1400,7 @@ function placePotentialSeasons(seasonsArray) {
         potentialSeasonsWrapper = document.getElementById("potentialSeasonsWrapper");
         potentialSeasonsWrapper.innerHTML = html;
         potentialSeasonsWrapper.style.display = "flex";
+        document.getElementById("seasonDivider").style.display = "flex";
     } catch (e) {
         console.log("Failed to place potential seasons. Error: " + e)
         error("Failed to place potential seasons.")
@@ -1437,6 +1444,10 @@ function placeCountdownSeasons(seasonsArray, userID) {
     console.log(seasonsArray)
 
     try {
+        if(!seasonsArray || seasonsArray.length == 0) {
+            return;
+        }
+
         var html = "Seasons you are waiting for:<br><div class='countdownSeasonList'><hr>";
         for(var i = 0; i < seasonsArray.length; i++) {
             var goalID = ''
@@ -1487,6 +1498,8 @@ function placeCountdownSeasons(seasonsArray, userID) {
             var date_start = new Date(seasonsArray[i].start);
             activateCountdown(date_start, seasonsArray[i].id);
         }
+
+        document.getElementById("seasonDivider").style.display = "flex";
     } catch (e) {
         console.log("Failed to place countdown seasons. Error: " + e)
         error("Failed to place countdown seasons.")
