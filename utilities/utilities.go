@@ -152,7 +152,7 @@ func SetClockToMaximum(pointInTime time.Time) (newPointInTime time.Time) {
 }
 
 func SetClockToTime(pointInTime time.Time, hours int, minutes int, seconds int, nanoSeconds int) (newPointInTime time.Time) {
-	newPointInTime = time.Date(pointInTime.Year(), pointInTime.Month(), pointInTime.Day(), hours, minutes, seconds, nanoSeconds, pointInTime.Location())
+	newPointInTime = time.Date(pointInTime.Year(), pointInTime.Month(), pointInTime.Day(), hours, minutes, seconds, nanoSeconds, time.Now().Location())
 	return
 }
 
