@@ -183,12 +183,12 @@ func main() {
 	}
 
 	_, err = taskScheduler.ScheduleWithCron(func(ctx context.Context) {
-		log.Println("Monday competition task executing.")
+		log.Println("Generating results for last week.")
 		controllers.GenerateLastWeeksDebt()
 	}, "0 0 8 * * 1")
 
 	if err != nil {
-		log.Println("Monday competition task was not scheduled successfully.")
+		log.Println("Generating results for last week task was not scheduled successfully.")
 	}
 
 	if Config.StravaEnabled {

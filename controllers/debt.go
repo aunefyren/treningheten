@@ -18,7 +18,6 @@ import (
 
 // Calculate a time set one week in the past and generates the debt for that week.
 func GenerateLastWeeksDebt() {
-
 	// Get a date time in last week
 	lastWeek := time.Now().AddDate(0, 0, -7)
 	lastWeek, err := utilities.FindNextSunday(lastWeek)
@@ -26,50 +25,26 @@ func GenerateLastWeeksDebt() {
 		log.Println("Got error trying to find end of the week. Error: " + err.Error())
 		return
 	}
+	lastWeekYear, lastWeekWeek := lastWeek.ISOWeek()
+
+	log.Println("Last week was:")
+	log.Println(lastWeekWeek)
+	log.Println(lastWeekYear)
+	log.Println("________________")
 
 	// Get ongoing season last week
 	seasons, err := GetOngoingSeasonsFromDB(lastWeek)
+	log.Println("Found number of seasons active last week:")
+	log.Println(len(seasons))
+	log.Println("________________")
+
 	if err != nil {
 		log.Println("Returned error getting last weeks season: " + err.Error())
 	} else {
 		for _, season := range seasons {
-			// Get results for last week
-			weekResults, err := GenerateDebtForWeek(lastWeek, season)
+			err = ProcessWeekOfSeason(season, lastWeek, true, true)
 			if err != nil {
-				log.Println("Returned error generating last weeks debt: " + err.Error())
-			}
-
-			// Generate week achievements for last week
-			err = GenerateAchievementsForWeek(weekResults)
-			if err != nil {
-				log.Println("Returned error generating weeks achievements: " + err.Error())
-			}
-
-			_, lastWeekWeek := lastWeek.ISOWeek()
-			_, seasonEndWeek := season.End.ISOWeek()
-
-			if lastWeekWeek == seasonEndWeek {
-
-				log.Println("Season over, checking for achievements.")
-
-				seasonObject, err := ConvertSeasonToSeasonObject(season)
-				if err != nil {
-					log.Println("Returned error converting season to season object: " + err.Error())
-				} else {
-
-					pastWeeks, err := RetrieveWeekResultsFromSeasonWithinTimeframe(seasonObject.Start, lastWeek, seasonObject)
-					if err != nil {
-						log.Println("Returned error getting season results: " + err.Error())
-					} else {
-
-						err = GenerateAchievementsForSeason(pastWeeks)
-						if err != nil {
-							log.Println("Returned error generating weeks achievements: " + err.Error())
-						}
-
-					}
-
-				}
+				log.Println("Returned error processing week for season. Error: " + err.Error())
 			}
 		}
 	}
@@ -95,10 +70,62 @@ func GenerateLastWeeksDebt() {
 						log.Println("Returned error sending season start e-mail: " + err.Error())
 					}
 				}
-
 			}
 		}
 	}
+
+	log.Println("Done generating results for last week.")
+}
+
+func ProcessWeekOfSeason(season models.Season, pointInTime time.Time, generateDebt bool, generateAchievements bool) (err error) {
+	err = nil
+	log.Println("Processing week of season: " + season.Name)
+
+	// Get results for time given
+	if generateDebt {
+		weekResults, err := GenerateDebtForWeek(pointInTime, season)
+		if err != nil {
+			log.Println("Got error generating last weeks debt. Error: " + err.Error())
+			return errors.New("Got error generating last weeks debt.")
+		}
+
+		// Generate week achievements for point in time
+		if generateAchievements {
+			err := GenerateAchievementsForWeek(weekResults)
+			if err != nil {
+				log.Println("Got error generating weeks achievements. Error: " + err.Error())
+				return errors.New("Got error generating weeks achievements.")
+			}
+		}
+	}
+
+	seasonEndYear, seasonEndWeek := season.End.ISOWeek()
+	pointInTimeYear, pointInTimeWeek := pointInTime.ISOWeek()
+
+	if pointInTimeWeek == seasonEndWeek && pointInTimeYear == seasonEndYear {
+		log.Println("Season over, checking for achievements.")
+
+		seasonObject, err := ConvertSeasonToSeasonObject(season)
+		if err != nil {
+			log.Println("Got error converting season to season object. Error: " + err.Error())
+			return errors.New("Got error converting season to season object.")
+		} else {
+
+			pastWeeks, err := RetrieveWeekResultsFromSeasonWithinTimeframe(seasonObject.Start, pointInTime, seasonObject)
+			if err != nil {
+				log.Println("Got error getting season results. Error: " + err.Error())
+				return errors.New("Got error getting season results.")
+			} else {
+				err = GenerateAchievementsForSeason(pastWeeks)
+				if err != nil {
+					log.Println("Got error generating weeks achievements. Error: " + err.Error())
+					return errors.New("Got error generating weeks achievements.")
+				}
+			}
+		}
+	}
+
+	return
 }
 
 // Receives a time and generates resulting debts based on the results of that week. Should be run on weeks after the results are gathered.
@@ -862,7 +889,6 @@ func APISetPrizeReceived(context *gin.Context) {
 }
 
 func APIGenerateDebtForWeek(context *gin.Context) {
-
 	var debtCreationRequest models.DebtCreationRequest
 
 	// Bind the incoming request body to the GenerateDebtRequest model
@@ -876,55 +902,21 @@ func APIGenerateDebtForWeek(context *gin.Context) {
 
 	seasons, err := GetOngoingSeasonsFromDB(debtCreationRequest.Date)
 	if err != nil {
-		log.Println("Returned error getting last weeks season: " + err.Error())
+		log.Println("Got error getting seasons from timeframe. Error: " + err.Error())
+		context.JSON(http.StatusInternalServerError, gin.H{"error": "Got error getting seasons from timeframe."})
+		context.Abort()
+		return
 	} else {
 		for _, season := range seasons {
-			weekResults, err := GenerateDebtForWeek(debtCreationRequest.Date, season)
+			err = ProcessWeekOfSeason(season, debtCreationRequest.Date, true, true)
 			if err != nil {
-				log.Println("Failed to generate debt. Error: " + err.Error())
-				context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to generate debt. Error: " + err.Error()})
+				log.Println("Got error processing week for season. Error: " + err.Error())
+				context.JSON(http.StatusInternalServerError, gin.H{"error": "Got error processing week for season."})
 				context.Abort()
 				return
-			}
-
-			err = GenerateAchievementsForWeek(weekResults)
-			if err != nil {
-				log.Println("Returned error generating weeks achievements: " + err.Error())
-			}
-
-			_, lastWeekWeek := debtCreationRequest.Date.ISOWeek()
-			_, seasonEndWeek := season.End.ISOWeek()
-
-			if lastWeekWeek == seasonEndWeek {
-
-				log.Println("Season over, checking for achievements.")
-
-				seasonObject, err := ConvertSeasonToSeasonObject(season)
-				if err != nil {
-					log.Println("Returned error converting season to season object: " + err.Error())
-				} else {
-					debtDateSunday, err := utilities.FindNextSunday(debtCreationRequest.Date)
-					if err != nil {
-						log.Println("Failed to find next Sunday. Error: " + err.Error())
-					}
-
-					pastWeeks, err := RetrieveWeekResultsFromSeasonWithinTimeframe(seasonObject.Start, debtDateSunday, seasonObject)
-					if err != nil {
-						log.Println("Returned error getting season results: " + err.Error())
-					} else {
-
-						err = GenerateAchievementsForSeason(pastWeeks)
-						if err != nil {
-							log.Println("Returned error generating weeks achievements: " + err.Error())
-						}
-
-					}
-
-				}
 			}
 		}
 	}
 
 	context.JSON(http.StatusOK, gin.H{"message": "Debt generated."})
-
 }
