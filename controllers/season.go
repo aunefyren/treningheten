@@ -383,6 +383,9 @@ func APIGetCurrentSeasonLeaderboard(context *gin.Context) {
 
 func RetrieveWeekResultsFromSeasonWithinTimeframe(firstPointInTime time.Time, lastPointInTime time.Time, season models.SeasonObject) ([]models.WeekResults, error) {
 	var weeksResults []models.WeekResults
+	log.Println("Retrieving week results from season within timeframe.")
+	log.Println("First point in time: " + firstPointInTime.String())
+	log.Println("Last point in time: " + lastPointInTime.String())
 
 	// Season has not started, return zero weeks
 	if lastPointInTime.Before(firstPointInTime) {
@@ -394,7 +397,6 @@ func RetrieveWeekResultsFromSeasonWithinTimeframe(firstPointInTime time.Time, la
 	finished := false
 	userStreaks := []models.UserStreak{}
 	for !finished {
-
 		// New week
 		weekResult := models.WeekResults{
 			UserWeekResults: []models.UserWeekResults{},
@@ -404,8 +406,12 @@ func RetrieveWeekResultsFromSeasonWithinTimeframe(firstPointInTime time.Time, la
 		weekResult.WeekYear, weekResult.WeekNumber = currentTime.ISOWeek()
 		weekResult.WeekDate = currentTime
 
+		log.Println("Processing new week: " + currentTime.String())
+		log.Println("Starting on goals...")
+
 		// Go through all goals
 		for _, goal := range season.Goals {
+			log.Println("Processing new goal '" + goal.ID.String() + "' for user '" + goal.User.FirstName + " " + goal.User.LastName + "'")
 
 			// Get Week result for goal
 			weekResultForGoal, newUserStreaks, err := GetWeekResultForGoal(goal, currentTime, userStreaks)
@@ -430,9 +436,11 @@ func RetrieveWeekResultsFromSeasonWithinTimeframe(firstPointInTime time.Time, la
 	}
 
 	// Remove weeks from before selected starting point
+	log.Println("Removing weeks outside of given time frame.")
 	newWeeksResults := []models.WeekResults{}
 	for _, weeksResult := range weeksResults {
 		if weeksResult.WeekDate.Before(firstPointInTime) || weeksResult.WeekDate.After(lastPointInTime) {
+			log.Println("Removing week: " + weeksResult.WeekDate.String())
 			continue
 		}
 
@@ -441,6 +449,8 @@ func RetrieveWeekResultsFromSeasonWithinTimeframe(firstPointInTime time.Time, la
 
 	// Reverse array
 	newWeeksResults = ReverseWeeksArray(newWeeksResults)
+
+	log.Println("Returning week results from season within timeframe.")
 
 	return newWeeksResults, nil
 }

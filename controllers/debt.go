@@ -164,6 +164,8 @@ func GenerateDebtForWeek(givenTime time.Time, season models.Season) (models.Week
 		log.Println("Got this: ")
 		log.Println(lastWeekArray)
 		log.Println("________________")
+		log.Println("Given time Monday: " + givenTimeMonday.String())
+		log.Println("Given time Sunday: " + givenTimeSunday.String())
 		return models.WeekResults{}, errors.New("Failed to retrieve ONE week for season.")
 	}
 
