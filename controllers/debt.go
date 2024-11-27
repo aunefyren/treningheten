@@ -161,6 +161,9 @@ func GenerateDebtForWeek(givenTime time.Time, season models.Season) (models.Week
 		return models.WeekResults{}, errors.New("Failed to retrieve last week for season.")
 	} else if len(lastWeekArray) != 1 {
 		log.Println("Failed to retrieve ONE week for season. Returning.")
+		log.Println("Got this: ")
+		log.Println(lastWeekArray)
+		log.Println("________________")
 		return models.WeekResults{}, errors.New("Failed to retrieve ONE week for season.")
 	}
 
