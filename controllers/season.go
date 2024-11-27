@@ -382,7 +382,6 @@ func APIGetCurrentSeasonLeaderboard(context *gin.Context) {
 }
 
 func RetrieveWeekResultsFromSeasonWithinTimeframe(firstPointInTime time.Time, lastPointInTime time.Time, season models.SeasonObject) ([]models.WeekResults, error) {
-
 	var weeksResults []models.WeekResults
 
 	// Season has not started, return zero weeks
@@ -419,7 +418,6 @@ func RetrieveWeekResultsFromSeasonWithinTimeframe(firstPointInTime time.Time, la
 
 			// Append to array
 			weekResult.UserWeekResults = append(weekResult.UserWeekResults, weekResultForGoal)
-
 		}
 
 		weeksResults = append(weeksResults, weekResult)

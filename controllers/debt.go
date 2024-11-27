@@ -80,6 +80,7 @@ func GenerateLastWeeksDebt() {
 func ProcessWeekOfSeason(season models.Season, pointInTime time.Time, generateDebt bool, generateAchievements bool) (err error) {
 	err = nil
 	log.Println("Processing week of season: " + season.Name)
+	log.Println("Point in time: " + pointInTime.String())
 
 	// Get results for time given
 	if generateDebt {
