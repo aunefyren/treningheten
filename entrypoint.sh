@@ -1,7 +1,7 @@
 #!/bin/sh
 
 # Initialize the command with the binary
-CMD="/app/poenskelisten"
+CMD="/app/treningheten"
 
 # Add the --port flag if the PORT environment variable is set
 if [ -n "$port" ]; then
