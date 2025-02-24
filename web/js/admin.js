@@ -53,6 +53,10 @@ function load_page(result) {
                                 <label for="debt-week" class="clickable">Week with debt</label><br>
                                 <input style="" class="" type="date" id="debt-week" name="debt-week" value="" required>
 
+                                <select id="selectUser" class="form-control" onchange="">
+                                    <option value="null">Choose optional user</option>
+                                </select>
+
                                 <button type="submit" onclick="" id="generate-debt-button" style=""><img src="assets/plus.svg" class="btn_logo color-invert"><p2>Generate debt</p2></button>
 
                             </form>
@@ -250,6 +254,7 @@ function place_invites(invites_array) {
                             Used by: ` + invites_array[i].recipient.first_name + ` ` + invites_array[i].recipient.last_name + `
                         </div>
                     `;
+                addUserToDebtSelection(invites_array[i].recipient)
             } else {
                 html += `
                         <div class="leaderboard-object-user">
@@ -347,12 +352,16 @@ function delete_invite(invite_id) {
 }
 
 function generate_debt() {
-
     if(!confirm("Are you sure you want to generate debt for the chosen week?")) {
         return
     }
 
     var debt_week = document.getElementById("debt-week").value;
+    var debtTargetUser = document.getElementById("selectUser").value;
+
+    if(debtTargetUser == "null") {
+        debtTargetUser = null
+    }
 
     try {
         var debt_week_object = new Date(debt_week);
@@ -365,7 +374,8 @@ function generate_debt() {
     }
 
     var form_obj = { 
-            "date" : debt_week_string
+            "date" : debt_week_string,
+            "target_user": debtTargetUser
         };
 
     var form_data = JSON.stringify(form_obj);
@@ -647,4 +657,12 @@ function correlate_exercises() {
     xhttp.send();
     return false;
 
+}
+
+function addUserToDebtSelection(user) {
+    select = document.getElementById('selectUser');
+    var opt = document.createElement('option');
+    opt.value = user.id;
+    opt.innerHTML = user.first_name + " " + user.last_name;
+    select.appendChild(opt);
 }

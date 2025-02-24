@@ -1,7 +1,6 @@
 package main
 
 import (
-	"aunefyren/treningheten/auth"
 	"aunefyren/treningheten/config"
 	"aunefyren/treningheten/controllers"
 	"aunefyren/treningheten/database"
@@ -26,11 +25,9 @@ import (
 	"codnect.io/chrono"
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
-	"github.com/thanhpk/randstr"
 )
 
 func main() {
-
 	utilities.PrintASCII()
 
 	// Create files directory
@@ -71,21 +68,20 @@ func main() {
 	log.SetOutput(mw)
 
 	// Load config file
-	Config, err := config.GetConfig()
+	configFile, err := config.GetConfig()
 	if err != nil {
 		log.Println("Failed to load configuration file. Error: " + err.Error())
-
 		os.Exit(1)
 	}
 	log.Println("Configuration file loaded.")
 
 	// Set GIN mode
-	if Config.TreninghetenEnvironment != "test" {
+	if configFile.TreninghetenEnvironment != "test" {
 		gin.SetMode(gin.ReleaseMode)
 	}
 
 	// Change the config to respect flags
-	Config, generateInvite, upgradeToV2, err := parseFlags(Config)
+	configFile, generateInvite, err := parseFlags(configFile)
 	if err != nil {
 		log.Println("Failed to parse input flags. Error: " + err.Error())
 
@@ -93,20 +89,15 @@ func main() {
 	}
 	log.Println("Flags parsed.")
 
-	if upgradeToV2 {
-		utilities.MigrateDBToV2()
-		os.Exit(1)
-	}
-
 	// Set time zone from config if it is not empty
-	if Config.Timezone != "" {
-		loc, err := time.LoadLocation(Config.Timezone)
+	if configFile.Timezone != "" {
+		loc, err := time.LoadLocation(configFile.Timezone)
 		if err != nil {
 			log.Println("Failed to set time zone from config. Error: " + err.Error())
 			log.Println("Removing value...")
 
-			Config.Timezone = ""
-			err = config.SaveConfig(Config)
+			configFile.Timezone = ""
+			err = config.SaveConfig(configFile)
 			if err != nil {
 				log.Println("Failed to set new time zone in the config. Error: " + err.Error())
 
@@ -119,25 +110,10 @@ func main() {
 	}
 	log.Println("Timezone set.")
 
-	if Config.PrivateKey == "" || len(Config.PrivateKey) < 16 {
-		log.Println("Creating new private key.")
-
-		Config.PrivateKey = randstr.Hex(32)
-		config.SaveConfig(Config)
-	}
-
-	err = auth.SetPrivateKey(Config.PrivateKey)
-	if Config.PrivateKey == "" || len(Config.PrivateKey) < 16 {
-		log.Println("Failed to set private key. Error: " + err.Error())
-
-		os.Exit(1)
-	}
-	log.Println("Private key set.")
-
 	// Initialize Database
 	log.Println("Connecting to database...")
 
-	err = database.Connect(Config.DBUsername, Config.DBPassword, Config.DBIP, Config.DBPort, Config.DBName)
+	err = database.Connect(configFile.DBUsername, configFile.DBPassword, configFile.DBIP, configFile.DBPort, configFile.DBName)
 	if err != nil {
 		log.Println("Failed to connect to database. Error: " + err.Error())
 
@@ -191,7 +167,7 @@ func main() {
 		log.Println("Generating results for last week task was not scheduled successfully.")
 	}
 
-	if Config.StravaEnabled {
+	if configFile.StravaEnabled {
 		_, err = taskScheduler.ScheduleWithCron(func(ctx context.Context) {
 			log.Println("Strava sync task executing.")
 			controllers.StravaSyncWeekForAllUsers()
@@ -207,7 +183,7 @@ func main() {
 
 	log.Println("Router initialized.")
 
-	log.Fatal(router.Run(":" + strconv.Itoa(Config.TreninghetenPort)))
+	log.Fatal(router.Run(":" + strconv.Itoa(configFile.TreninghetenPort)))
 }
 
 func initRouter() *gin.Engine {
@@ -315,7 +291,7 @@ func initRouter() *gin.Engine {
 
 			admin.POST("/debts", controllers.APIGenerateDebtForWeek)
 
-			admin.POST("/users/:user_id/achievement-delegations", controllers.ApiGiveUserAnAchievement)
+			admin.POST("/users/:user_id/achievement-delegations", controllers.APIGiveUserAnAchievement)
 
 			admin.GET("/prizes", controllers.APIGetPrizes)
 			admin.POST("/prizes", controllers.APIRegisterPrize)
@@ -454,156 +430,121 @@ func initRouter() *gin.Engine {
 	return router
 }
 
-func parseFlags(Config *models.ConfigStruct) (*models.ConfigStruct, bool, bool, error) {
-
+func parseFlags(configFile *models.ConfigStruct) (*models.ConfigStruct, bool, error) {
 	// Define flag variables with the configuration file as default values
-	var port int
-	flag.IntVar(&port, "port", Config.TreninghetenPort, "The port Treningheten is listening on.")
+	var port = flag.Int("port", configFile.TreninghetenPort, "The port Treningheten is listening on.")
+	var externalURL = flag.String("externalurl", configFile.TreninghetenExternalURL, "The URL others would use to access Treningheten.")
+	var timezone = flag.String("timezone", configFile.Timezone, "The timezone Treningheten is running in.")
 
-	var externalURL string
-	flag.StringVar(&externalURL, "externalurl", Config.TreninghetenExternalURL, "The URL others would use to access Treningheten.")
+	// Timezone flags
+	var dbPort = flag.Int("dbport", configFile.DBPort, "The port the database is listening on.")
+	var dbUsername = flag.String("dbusername", configFile.DBUsername, "The username used to interact with the database.")
+	var dbPassword = flag.String("dbpassword", configFile.DBPassword, "The password used to interact with the database.")
+	var dbName = flag.String("dbname", configFile.DBName, "The database table used within the database.")
+	var dbIP = flag.String("dbip", configFile.DBIP, "The IP address used to reach the database.")
 
-	var timezone string
-	flag.StringVar(&timezone, "timezone", Config.Timezone, "The timezone Treningheten is running in.")
+	// SMTP flags
+	var smtpDisabled = flag.String("disablesmtp", "false", "Disables user verification using e-mail.")
+	var smtpHost = flag.String("smtphost", configFile.SMTPHost, "The SMTP server which sends e-mail.")
+	var smtpPort = flag.Int("smtpport", configFile.SMTPPort, "The SMTP server port.")
+	var smtpUsername = flag.String("smtpusername", configFile.SMTPUsername, "The username used to verify against the SMTP server.")
+	var smtpPassword = flag.String("smtppassword", configFile.SMTPPassword, "The password used to verify against the SMTP server.")
+	var smtpFrom = flag.String("smtpfrom", configFile.SMTPFrom, "The sender address when sending e-mail from Treningheten.")
 
-	var dbPort int
-	flag.IntVar(&dbPort, "dbport", Config.DBPort, "The port the database is listening on.")
-
-	var dbUsername string
-	flag.StringVar(&dbUsername, "dbusername", Config.DBUsername, "The username used to interact with the database.")
-
-	var dbPassword string
-	flag.StringVar(&dbPassword, "dbpassword", Config.DBPassword, "The password used to interact with the database.")
-
-	var dbName string
-	flag.StringVar(&dbName, "dbname", Config.DBName, "The database table used within the database.")
-
-	var dbIP string
-	flag.StringVar(&dbIP, "dbip", Config.DBIP, "The IP address used to reach the database.")
-
-	var smtpDisabled string
-	flag.StringVar(&smtpDisabled, "disablesmtp", "false", "Disables user verification using e-mail.")
-
-	var smtpHost string
-	flag.StringVar(&smtpHost, "smtphost", Config.SMTPHost, "The SMTP server which sends e-mail.")
-
-	var smtpPort int
-	flag.IntVar(&smtpPort, "smtpport", Config.SMTPPort, "The SMTP server port.")
-
-	var smtpUsername string
-	flag.StringVar(&smtpUsername, "smtpusername", Config.SMTPUsername, "The username used to verify against the SMTP server.")
-
-	var smtpPassword string
-	flag.StringVar(&smtpPassword, "smtppassword", Config.SMTPPassword, "The password used to verify against the SMTP server.")
-
-	var smtpFrom string
-	flag.StringVar(&smtpFrom, "smtpfrom", Config.SMTPFrom, "The sender address when sending e-mail from Treningheten.")
-
-	var generateInvite string
-	var generateInviteBool bool
-	flag.StringVar(&generateInvite, "generateinvite", "false", "If an invite code should be automatically generate on startup.")
-
-	var upgradeToV2 string
-	var upgradeToV2Bool bool
-	flag.StringVar(&upgradeToV2, "upgradetov2", "false", "If have placed your old pre-V2 database .json in the files folder as 'db.json' we will attempt to migrate the data.")
+	// Generate invite flag
+	var generateInvite = flag.String("generateinvite", "false", "If an invite code should be automatically generate on startup.")
 
 	// Parse the flags from input
 	flag.Parse()
 
 	// Respect the flag if config is empty
-	if Config.TreninghetenPort == 0 {
-		Config.TreninghetenPort = port
+	if port != nil {
+		configFile.TreninghetenPort = *port
 	}
 
 	// Respect the flag if config is empty
-	if Config.TreninghetenExternalURL == "" {
-		Config.TreninghetenExternalURL = externalURL
+	if externalURL == nil {
+		configFile.TreninghetenExternalURL = *externalURL
 	}
 
 	// Respect the flag if config is empty
-	if Config.Timezone == "" {
-		Config.Timezone = timezone
+	if timezone == nil {
+		configFile.Timezone = *timezone
 	}
 
 	// Respect the flag if config is empty
-	if Config.DBPort == 0 {
-		Config.DBPort = dbPort
+	if dbPort != nil {
+		configFile.DBPort = *dbPort
 	}
 
 	// Respect the flag if config is empty
-	if Config.DBUsername == "" {
-		Config.DBUsername = dbUsername
+	if dbUsername != nil {
+		configFile.DBUsername = *dbUsername
 	}
 
 	// Respect the flag if config is empty
-	if Config.DBPassword == "" {
-		Config.DBPassword = dbPassword
+	if dbPassword != nil {
+		configFile.DBPassword = *dbPassword
 	}
 
 	// Respect the flag if config is empty
-	if Config.DBName == "" {
-		Config.DBName = dbName
+	if dbName != nil {
+		configFile.DBName = *dbName
 	}
 
 	// Respect the flag if config is empty
-	if Config.DBIP == "" {
-		Config.DBIP = dbIP
+	if dbIP != nil {
+		configFile.DBIP = *dbIP
 	}
 
 	// Respect the flag if string is true
-	if strings.ToLower(smtpDisabled) == "true" {
-		Config.SMTPEnabled = false
-	}
-
-	// Respect the flag if config is empty
-	if Config.SMTPHost == "" {
-		Config.SMTPHost = smtpHost
-	}
-
-	// Respect the flag if config is empty
-	if Config.SMTPPort == 0 {
-		Config.SMTPPort = smtpPort
-	}
-
-	// Respect the flag if config is empty
-	if Config.SMTPUsername == "" {
-		Config.SMTPUsername = smtpUsername
-	}
-
-	// Respect the flag if config is empty
-	if Config.SMTPPassword == "" {
-		Config.SMTPPassword = smtpPassword
-	}
-
-	// Respect the flag if config is empty
-	if Config.SMTPFrom == "" {
-		Config.SMTPFrom = smtpFrom
-	}
-
-	// Respect the flag if string is true
-	if strings.ToLower(generateInvite) == "true" {
-		generateInviteBool = true
+	if smtpDisabled != nil && strings.ToLower(*smtpDisabled) == "true" {
+		configFile.SMTPEnabled = false
 	} else {
-		generateInviteBool = false
+		configFile.SMTPEnabled = true
+	}
+
+	// Respect the flag if config is empty
+	if smtpHost != nil {
+		configFile.SMTPHost = *smtpHost
+	}
+
+	// Respect the flag if config is empty
+	if smtpPort != nil {
+		configFile.SMTPPort = *smtpPort
+	}
+
+	// Respect the flag if config is empty
+	if smtpUsername != nil {
+		configFile.SMTPUsername = *smtpUsername
+	}
+
+	// Respect the flag if config is empty
+	if smtpPassword != nil {
+		configFile.SMTPPassword = *smtpPassword
+	}
+
+	// Respect the flag if config is empty
+	if smtpFrom != nil {
+		configFile.SMTPFrom = *smtpFrom
+	}
+
+	// Respect the flag if string is true
+	var generateInviteBool = false
+	if generateInvite != nil && strings.ToLower(*generateInvite) == "true" {
+		generateInviteBool = true
 	}
 
 	// Failsafe, if port is 0, set to default 8080
-	if Config.TreninghetenPort == 0 {
-		Config.TreninghetenPort = 8080
-	}
-
-	// Respect the flag if string is true
-	if strings.ToLower(upgradeToV2) == "true" {
-		upgradeToV2Bool = true
-	} else {
-		upgradeToV2Bool = false
+	if configFile.TreninghetenPort == 0 {
+		configFile.TreninghetenPort = 8080
 	}
 
 	// Save the new config
-	err := config.SaveConfig(Config)
+	err := config.SaveConfig(configFile)
 	if err != nil {
-		return &models.ConfigStruct{}, false, false, err
+		return &models.ConfigStruct{}, false, err
 	}
 
-	return Config, generateInviteBool, upgradeToV2Bool, nil
+	return configFile, generateInviteBool, nil
 }
