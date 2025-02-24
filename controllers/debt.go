@@ -42,7 +42,7 @@ func GenerateLastWeeksDebt() {
 		log.Println("Returned error getting last weeks season: " + err.Error())
 	} else {
 		for _, season := range seasons {
-			err = ProcessWeekOfSeason(season, lastWeek, true, true)
+			err = ProcessWeekOfSeason(season, lastWeek, true, true, nil)
 			if err != nil {
 				log.Println("Returned error processing week for season. Error: " + err.Error())
 			}
@@ -77,14 +77,14 @@ func GenerateLastWeeksDebt() {
 	log.Println("Done generating results for last week.")
 }
 
-func ProcessWeekOfSeason(season models.Season, pointInTime time.Time, generateDebt bool, generateAchievements bool) (err error) {
+func ProcessWeekOfSeason(season models.Season, pointInTime time.Time, generateDebt bool, generateAchievements bool, targetUser *uuid.UUID) (err error) {
 	err = nil
 	log.Println("Processing week of season: " + season.Name)
 	log.Println("Point in time: " + pointInTime.String())
 
 	// Get results for time given
 	if generateDebt {
-		weekResults, err := GenerateDebtForWeek(pointInTime, season)
+		weekResults, err := GenerateDebtForWeek(pointInTime, season, targetUser)
 		if err != nil {
 			log.Println("Got error generating last weeks debt. Error: " + err.Error())
 			return errors.New("Got error generating last weeks debt.")
@@ -92,7 +92,7 @@ func ProcessWeekOfSeason(season models.Season, pointInTime time.Time, generateDe
 
 		// Generate week achievements for point in time
 		if generateAchievements {
-			err := GenerateAchievementsForWeek(weekResults)
+			err := GenerateAchievementsForWeek(weekResults, targetUser)
 			if err != nil {
 				log.Println("Got error generating weeks achievements. Error: " + err.Error())
 				return errors.New("Got error generating weeks achievements.")
@@ -117,7 +117,7 @@ func ProcessWeekOfSeason(season models.Season, pointInTime time.Time, generateDe
 				log.Println("Got error getting season results. Error: " + err.Error())
 				return errors.New("Got error getting season results.")
 			} else {
-				err = GenerateAchievementsForSeason(pastWeeks)
+				err = GenerateAchievementsForSeason(pastWeeks, targetUser)
 				if err != nil {
 					log.Println("Got error generating weeks achievements. Error: " + err.Error())
 					return errors.New("Got error generating weeks achievements.")
@@ -130,7 +130,7 @@ func ProcessWeekOfSeason(season models.Season, pointInTime time.Time, generateDe
 }
 
 // Receives a time and generates resulting debts based on the results of that week. Should be run on weeks after the results are gathered.
-func GenerateDebtForWeek(givenTime time.Time, season models.Season) (models.WeekResults, error) {
+func GenerateDebtForWeek(givenTime time.Time, season models.Season, targetUser *uuid.UUID) (models.WeekResults, error) {
 	// Stop if not within season
 	if season.Start.After(givenTime) || season.End.Before(givenTime) {
 		log.Println("Not in the middle of a season. Returning.")
@@ -209,6 +209,10 @@ func GenerateDebtForWeek(givenTime time.Time, season models.Season) (models.Week
 	_, weekNumber := givenTime.ISOWeek()
 
 	for _, user := range losers {
+		if targetUser != nil && user != *targetUser {
+			log.Println("Function was called with a target user. This weeks loser is not the target user. Skipping...")
+			continue
+		}
 
 		_, debtFound, err := database.GetDebtForWeekForUserInSeasonID(givenTime, user, seasonObject.ID)
 		if err != nil {
@@ -914,7 +918,7 @@ func APIGenerateDebtForWeek(context *gin.Context) {
 		return
 	} else {
 		for _, season := range seasons {
-			err = ProcessWeekOfSeason(season, debtCreationRequest.Date, true, true)
+			err = ProcessWeekOfSeason(season, debtCreationRequest.Date, true, true, debtCreationRequest.TargetUser)
 			if err != nil {
 				log.Println("Got error processing week for season. Error: " + err.Error())
 				context.JSON(http.StatusInternalServerError, gin.H{"error": "Got error processing week for season."})

@@ -2,6 +2,8 @@ package config
 
 import (
 	"aunefyren/treningheten/models"
+	"crypto/rand"
+	"encoding/base64"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -45,6 +47,17 @@ func GetConfig() (*models.ConfigStruct, error) {
 
 	anythingChanged := false
 
+	if config.PrivateKey == "" {
+		// Set new value
+		newKey, err := GenerateSecureKey(64)
+		if err != nil {
+			return nil, errors.New("Failed to generate secure key. Error: " + err.Error())
+		}
+		config.PrivateKey = newKey
+		anythingChanged = true
+		log.Println("New private key set.")
+	}
+
 	if config.TreninghetenName == "" {
 		// Set new value
 		config.TreninghetenName = "Treningheten"
@@ -54,6 +67,12 @@ func GetConfig() (*models.ConfigStruct, error) {
 	if config.TreninghetenEnvironment == "" {
 		// Set new value
 		config.TreninghetenEnvironment = "prod"
+		anythingChanged = true
+	}
+
+	if config.Timezone == "" {
+		// Set new value
+		config.Timezone = "Europe/Paris"
 		anythingChanged = true
 	}
 
@@ -95,7 +114,6 @@ func GetConfig() (*models.ConfigStruct, error) {
 
 // Creates empty config.json
 func CreateConfigFile() error {
-
 	var config models.ConfigStruct
 
 	config.TreninghetenPort = 8080
@@ -111,6 +129,14 @@ func CreateConfigFile() error {
 		return errors.New("Failed to add Vapid keys to config.")
 	}
 
+	privateKey, err := GenerateSecureKey(64)
+	if err != nil {
+		log.Println("Failed to generate private key. Error: " + err.Error())
+		fmt.Println("Failed to generate private key. Error: " + err.Error())
+		return err
+	}
+	config.PrivateKey = privateKey
+
 	err = SaveConfig(&config)
 	if err != nil {
 		log.Println("Create config file threw error trying to save the file.")
@@ -119,7 +145,6 @@ func CreateConfigFile() error {
 	}
 
 	return nil
-
 }
 
 // Saves the given config struct as config.json
@@ -145,7 +170,6 @@ func SaveConfig(config *models.ConfigStruct) error {
 }
 
 func AddVapidKeysToConfig(config models.ConfigStruct) (models.ConfigStruct, error) {
-
 	privateKey, publicKey, err := webpush.GenerateVAPIDKeys()
 	if err != nil {
 		log.Println("Failed to create Vapid key pair. Error: " + err.Error())
@@ -156,5 +180,55 @@ func AddVapidKeysToConfig(config models.ConfigStruct) (models.ConfigStruct, erro
 	config.VAPIDSecretKey = privateKey
 
 	return config, nil
+}
 
+func GetPrivateKey(epoch int) []byte {
+	if epoch > 5 {
+		log.Println("Failed to load private key. Exiting...")
+		os.Exit(1)
+	}
+
+	configFile, err := GetConfig()
+	if err != nil {
+		log.Println("Failed to load config for private key. Exiting...")
+		os.Exit(1)
+	}
+
+	secretKey, err := base64.StdEncoding.DecodeString(configFile.PrivateKey)
+	if err != nil {
+		ResetSecureKey()
+		return GetPrivateKey(epoch + 1)
+	}
+
+	return secretKey
+}
+
+// GenerateSecureKey creates a cryptographically secure random key of the given length (in bytes).
+func GenerateSecureKey(length int) (string, error) {
+	key := make([]byte, length)
+	_, err := rand.Read(key)
+	if err != nil {
+		return "", err
+	}
+	// Encode to Base64 to make it easy to store
+	return base64.StdEncoding.EncodeToString(key), nil
+}
+
+func ResetSecureKey() {
+	configFile, err := GetConfig()
+	if err != nil {
+		log.Println("Failed to load config for private key. Exiting...")
+		os.Exit(1)
+	}
+	configFile.PrivateKey, err = GenerateSecureKey(64)
+	if err != nil {
+		log.Println("Failed to generate new secret key. Exiting...")
+		os.Exit(1)
+	}
+	SaveConfig(configFile)
+	if err != nil {
+		log.Println("Failed to save new config. Exiting...")
+		os.Exit(1)
+	}
+	log.Println("New private key set.")
 }

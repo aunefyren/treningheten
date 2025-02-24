@@ -562,7 +562,7 @@ func GiveUserAnAchievement(userID uuid.UUID, achievementID uuid.UUID, achievemen
 	return nil
 }
 
-func GenerateAchievementsForWeek(weekResults models.WeekResults) error {
+func GenerateAchievementsForWeek(weekResults models.WeekResults, targetUser *uuid.UUID) error {
 	sundayDate, err := utilities.FindNextSunday(weekResults.WeekDate)
 	if err != nil {
 		log.Println("Failed to find next Sunday. Error: " + err.Error())
@@ -586,7 +586,7 @@ func GenerateAchievementsForWeek(weekResults models.WeekResults) error {
 			loserUserIDs = append(loserUserIDs, user.UserID)
 		}
 
-		if user.WeekCompletion > 1.0 {
+		if user.WeekCompletion > 1.0 && (targetUser == nil || *targetUser == user.UserID) {
 
 			// Give achievement to user
 			err := GiveUserAnAchievement(user.UserID, uuid.MustParse("f7fad558-3e59-4812-9b13-4c30a91c04b9"), sundayDate)
@@ -596,7 +596,7 @@ func GenerateAchievementsForWeek(weekResults models.WeekResults) error {
 
 		}
 
-		if user.CurrentStreak == 3 && user.WeekCompletion >= 1 {
+		if user.CurrentStreak == 3 && user.WeekCompletion >= 1 && (targetUser == nil || *targetUser == user.UserID) {
 
 			// Give achievement to user for three weeks
 			err := GiveUserAnAchievement(user.UserID, uuid.MustParse("8875597e-d8f5-4514-b96f-c51ecce4eb1f"), sundayDate)
@@ -606,7 +606,7 @@ func GenerateAchievementsForWeek(weekResults models.WeekResults) error {
 
 		}
 
-		if user.CurrentStreak == 10 && user.WeekCompletion >= 1 {
+		if user.CurrentStreak == 10 && user.WeekCompletion >= 1 && (targetUser == nil || *targetUser == user.UserID) {
 
 			// Give achievement to user for ten weeks
 			err := GiveUserAnAchievement(user.UserID, uuid.MustParse("ca6a4692-153b-47a7-8444-457b906d0666"), sundayDate)
@@ -616,7 +616,7 @@ func GenerateAchievementsForWeek(weekResults models.WeekResults) error {
 
 		}
 
-		if user.CurrentStreak == 15 && user.WeekCompletion >= 1 {
+		if user.CurrentStreak == 15 && user.WeekCompletion >= 1 && (targetUser == nil || *targetUser == user.UserID) {
 
 			// Give achievement to user for 15 weeks
 			err := GiveUserAnAchievement(user.UserID, uuid.MustParse("2a84df89-9976-443b-a093-19f8d73b5eff"), sundayDate)
@@ -626,7 +626,7 @@ func GenerateAchievementsForWeek(weekResults models.WeekResults) error {
 
 		}
 
-		if user.CurrentStreak == 20 && user.WeekCompletion >= 1 {
+		if user.CurrentStreak == 20 && user.WeekCompletion >= 1 && (targetUser == nil || *targetUser == user.UserID) {
 
 			// Give achievement to user for 20 weeks
 			err := GiveUserAnAchievement(user.UserID, uuid.MustParse("09da2ab1-393d-4c43-a1d0-daa45520b49f"), sundayDate)
@@ -664,7 +664,7 @@ func GenerateAchievementsForWeek(weekResults models.WeekResults) error {
 			daySecondSundayAdvent := dayLastSundayAdvent.AddDate(0, 0, -14)
 			dayFirstSundayAdvent := dayLastSundayAdvent.AddDate(0, 0, -21)
 
-			if dayDate == 17 && dayMonth == 5 && day.ExerciseInterval > 0 {
+			if dayDate == 17 && dayMonth == 5 && day.ExerciseInterval > 0 && (targetUser == nil || *targetUser == user.UserID) {
 
 				// Give achievement to user for 17. of may
 				err := GiveUserAnAchievement(user.UserID, uuid.MustParse("ab0b1bf0-c57b-469f-a6ba-5d195f1b896d"), day.Date)
@@ -674,7 +674,7 @@ func GenerateAchievementsForWeek(weekResults models.WeekResults) error {
 
 			}
 
-			if day.Date == dayFirstSundayAdvent && day.ExerciseInterval > 0 {
+			if day.Date == dayFirstSundayAdvent && day.ExerciseInterval > 0 && (targetUser == nil || *targetUser == user.UserID) {
 
 				// Give achievement to user for first advent
 				err := GiveUserAnAchievement(user.UserID, uuid.MustParse("5276382c-fdae-410b-a298-5107a3ff3089"), day.Date)
@@ -684,7 +684,7 @@ func GenerateAchievementsForWeek(weekResults models.WeekResults) error {
 
 			}
 
-			if day.Date == daySecondSundayAdvent && day.ExerciseInterval > 0 {
+			if day.Date == daySecondSundayAdvent && day.ExerciseInterval > 0 && (targetUser == nil || *targetUser == user.UserID) {
 
 				// Give achievement to user for second advent
 				err := GiveUserAnAchievement(user.UserID, uuid.MustParse("6c991ba6-d0ae-4022-9410-6558e376ec5e"), day.Date)
@@ -694,7 +694,7 @@ func GenerateAchievementsForWeek(weekResults models.WeekResults) error {
 
 			}
 
-			if day.Date == dayThirdSundayAdvent && day.ExerciseInterval > 0 {
+			if day.Date == dayThirdSundayAdvent && day.ExerciseInterval > 0 && (targetUser == nil || *targetUser == user.UserID) {
 
 				// Give achievement to user for third advent
 				err := GiveUserAnAchievement(user.UserID, uuid.MustParse("7ef923b5-21aa-4478-a658-68078f499620"), day.Date)
@@ -704,7 +704,7 @@ func GenerateAchievementsForWeek(weekResults models.WeekResults) error {
 
 			}
 
-			if day.Date == dayLastSundayAdvent && day.ExerciseInterval > 0 {
+			if day.Date == dayLastSundayAdvent && day.ExerciseInterval > 0 && (targetUser == nil || *targetUser == user.UserID) {
 
 				// Give achievement to user for last advent
 				err := GiveUserAnAchievement(user.UserID, uuid.MustParse("720b036c-7d24-418f-88e6-a0e84147efda"), day.Date)
@@ -714,7 +714,7 @@ func GenerateAchievementsForWeek(weekResults models.WeekResults) error {
 
 			}
 
-			if dayDate == 24 && dayMonth == 12 && day.ExerciseInterval > 0 {
+			if dayDate == 24 && dayMonth == 12 && day.ExerciseInterval > 0 && (targetUser == nil || *targetUser == user.UserID) {
 
 				// Give achievement to user for 24 dec
 				err := GiveUserAnAchievement(user.UserID, uuid.MustParse("c4a131a6-2aa6-49fb-98e5-fa797152a9a4"), day.Date)
@@ -724,7 +724,11 @@ func GenerateAchievementsForWeek(weekResults models.WeekResults) error {
 
 			}
 
-			if userObject.BirthDate != nil && (dayDate == userObject.BirthDate.Day() && dayMonth == userObject.BirthDate.Month() && day.ExerciseInterval > 0) {
+			if userObject.BirthDate != nil &&
+				(dayDate == userObject.BirthDate.Day() &&
+					dayMonth == userObject.BirthDate.Month() &&
+					day.ExerciseInterval > 0) &&
+				(targetUser == nil || *targetUser == user.UserID) {
 
 				// Give achievement to user
 				err := GiveUserAnAchievement(user.UserID, uuid.MustParse("5e0f5605-b3e5-4350-a408-1c9f5b5a99a4"), day.Date)
@@ -734,7 +738,7 @@ func GenerateAchievementsForWeek(weekResults models.WeekResults) error {
 
 			}
 
-			if len(day.Note) > 59 {
+			if len(day.Note) > 59 && (targetUser == nil || *targetUser == user.UserID) {
 
 				// Give achievement to user for long note
 				err := GiveUserAnAchievement(user.UserID, uuid.MustParse("ae27d8bf-dfc8-4be1-b7a9-01183b375ebf"), day.Date)
@@ -744,7 +748,7 @@ func GenerateAchievementsForWeek(weekResults models.WeekResults) error {
 
 			}
 
-			if day.ExerciseInterval > 1 {
+			if day.ExerciseInterval > 1 && (targetUser == nil || *targetUser == user.UserID) {
 
 				// Give achievement to user
 				err := GiveUserAnAchievement(user.UserID, uuid.MustParse("51c48b42-4429-4b82-8fb2-d2bb2bfe907a"), day.Date)
@@ -754,7 +758,7 @@ func GenerateAchievementsForWeek(weekResults models.WeekResults) error {
 
 			}
 
-			if day.ExerciseInterval == 3 {
+			if day.ExerciseInterval == 3 && (targetUser == nil || *targetUser == user.UserID) {
 
 				// Give achievement to user
 				err := GiveUserAnAchievement(user.UserID, uuid.MustParse("c92178b4-753a-4624-a7f6-ae5afd0a9ca3"), day.Date)
@@ -765,7 +769,7 @@ func GenerateAchievementsForWeek(weekResults models.WeekResults) error {
 			}
 
 			// If Monday, give Monday achievement
-			if dayWeekday == 1 && day.ExerciseInterval >= 1 {
+			if dayWeekday == 1 && day.ExerciseInterval >= 1 && (targetUser == nil || *targetUser == user.UserID) {
 				// Give achievement to user
 				err := GiveUserAnAchievement(user.UserID, uuid.MustParse("47f04b1f-4e19-40fe-ace3-3afa18378751"), day.Date)
 				if err != nil {
@@ -789,7 +793,7 @@ func GenerateAchievementsForWeek(weekResults models.WeekResults) error {
 
 		}
 
-		if everyday {
+		if everyday && (targetUser == nil || *targetUser == user.UserID) {
 
 			// Give achievement to user for exercising everyday
 			err := GiveUserAnAchievement(user.UserID, uuid.MustParse("a8c62293-6090-4b16-a070-ad65404836ae"), sundayDate)
@@ -800,7 +804,7 @@ func GenerateAchievementsForWeek(weekResults models.WeekResults) error {
 		}
 
 		// If exercise occurred on a weekend, and not a weekday
-		if !weekday && weekend {
+		if !weekday && weekend && (targetUser == nil || *targetUser == user.UserID) {
 
 			// Give achievement to user for only exercising on the weekend
 			err := GiveUserAnAchievement(user.UserID, uuid.MustParse("31fa2681-eec7-43e4-bc69-35dee352eaee"), sundayDate)
@@ -811,7 +815,7 @@ func GenerateAchievementsForWeek(weekResults models.WeekResults) error {
 		}
 
 		// If the sum of exercise is more than 7
-		if exerciseSum > 7 {
+		if exerciseSum > 7 && (targetUser == nil || *targetUser == user.UserID) {
 
 			// Give achievement to user
 			err := GiveUserAnAchievement(user.UserID, uuid.MustParse("e7ee36d4-f39e-40a3-af92-2f7e1f707d07"), sundayDate)
@@ -824,7 +828,7 @@ func GenerateAchievementsForWeek(weekResults models.WeekResults) error {
 	}
 
 	// If there is one winner, give achievement
-	if len(winnerUserIDs) == 1 && len(loserUserIDs) > 0 {
+	if len(winnerUserIDs) == 1 && len(loserUserIDs) > 0 && (targetUser == nil || *targetUser == winnerUserIDs[0]) {
 		// Give achievement to user
 		err := GiveUserAnAchievement(winnerUserIDs[0], uuid.MustParse("6cc0f1b0-c894-4b12-a9ed-569cdfde3b16"), sundayDate)
 		if err != nil {
@@ -836,7 +840,7 @@ func GenerateAchievementsForWeek(weekResults models.WeekResults) error {
 
 }
 
-func GenerateAchievementsForSeason(seasonResults []models.WeekResults) error {
+func GenerateAchievementsForSeason(seasonResults []models.WeekResults, targetUser *uuid.UUID) error {
 	type UserTally struct {
 		UserID     uuid.UUID
 		LoseAmount int
@@ -929,7 +933,7 @@ func GenerateAchievementsForSeason(seasonResults []models.WeekResults) error {
 				} else {
 
 					// If week is won, and user has lost more than one week in a row
-					if userTally[foundIndex].LoseStreak > 1 {
+					if userTally[foundIndex].LoseStreak > 1 && (targetUser == nil || *targetUser == userTally[foundIndex].UserID) {
 
 						// Give achievement to user
 						err := GiveUserAnAchievement(userTally[foundIndex].UserID, uuid.MustParse("38524a0a-f0b6-4cbf-b221-05ebfa0797f7"), seasonSunday)
@@ -940,7 +944,7 @@ func GenerateAchievementsForSeason(seasonResults []models.WeekResults) error {
 					}
 
 					// If week is won, and user has been sick one week or more
-					if userTally[foundIndex].SickStreak > 0 {
+					if userTally[foundIndex].SickStreak > 0 && (targetUser == nil || *targetUser == userTally[foundIndex].UserID) {
 
 						// Give achievement to user
 						err := GiveUserAnAchievement(userTally[foundIndex].UserID, uuid.MustParse("b342cd1b-1812-4384-967f-51d2be772eab"), seasonSunday)
@@ -996,7 +1000,7 @@ func GenerateAchievementsForSeason(seasonResults []models.WeekResults) error {
 	for _, user := range userTally {
 
 		// If win amount is more than zero, and lose amount is zero
-		if user.LoseAmount == 0 && user.WinAmount > 0 {
+		if user.LoseAmount == 0 && user.WinAmount > 0 && (targetUser == nil || *targetUser == user.UserID) {
 			// Give achievement to user
 			err := GiveUserAnAchievement(user.UserID, uuid.MustParse("01dc9c4b-cf65-4d3c-9596-1417b67bd86f"), seasonSunday)
 			if err != nil {
@@ -1005,7 +1009,7 @@ func GenerateAchievementsForSeason(seasonResults []models.WeekResults) error {
 		}
 
 		// If sick leave amount is zero
-		if user.SickAmount == 0 {
+		if user.SickAmount == 0 && (targetUser == nil || *targetUser == user.UserID) {
 			// Give achievement to user
 			err := GiveUserAnAchievement(user.UserID, uuid.MustParse("b566e486-d476-40f1-a9f2-28035bb43f37"), seasonSunday)
 			if err != nil {
@@ -1016,10 +1020,9 @@ func GenerateAchievementsForSeason(seasonResults []models.WeekResults) error {
 	}
 
 	return nil
-
 }
 
-func ApiGiveUserAnAchievement(context *gin.Context) {
+func APIGiveUserAnAchievement(context *gin.Context) {
 	// Create user request
 	var userIDString = context.Param("user_id")
 	var achievementDelegationCreationRequest models.AchievementDelegationCreationRequest

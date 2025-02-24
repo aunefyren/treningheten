@@ -12,26 +12,15 @@ RUN GO111MODULE=on CGO_ENABLED=0 GOOS=${TARGETOS} GOARCH=${TARGETARCH} go build
 FROM debian:bullseye-slim as runtime
 
 LABEL org.opencontainers.image.source=https://github.com/aunefyren/treningheten
-
-ENV port=8080
-ENV timezone=Europe/Oslo
-ENV dbip=localhost
-ENV dbport=3306
-ENV dbname=treningheten
-ENV dbusername=root
-ENV dbpassword=root
-ENV generateinvite=false
-ENV disablesmtp=false
-ENV smtphost=smtp.gmail.com
-ENV smtpport=25
-ENV smtpusername=mycoolusernameformysmtpserver@justanexample.org
-ENV smtppassword=password123
-
+ARG DEBIAN_FRONTEND=noninteractive
 WORKDIR /app
 
 COPY --from=builder /app .
 
+RUN rm /var/lib/dpkg/info/libc-bin.*
+RUN apt clean
 RUN apt update
-RUN apt install -y curl
+RUN apt install -y ca-certificates curl
+RUN chmod +x /app/treningheten /app/entrypoint.sh
 
-ENTRYPOINT /app/treningheten -port ${port} -timezone ${timezone} -generateinvite ${generateinvite} -dbip ${dbip} -dbport ${dbport} -dbname ${dbname} -dbusername ${dbusername} -dbpassword ${dbpassword} -disablesmtp ${disablesmtp} -smtphost ${smtphost} -smtpport ${smtpport} -smtpusername ${smtpusername} -smtppassword ${smtppassword}
+ENTRYPOINT /app/entrypoint.sh

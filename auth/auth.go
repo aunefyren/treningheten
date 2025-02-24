@@ -1,6 +1,7 @@
 package auth
 
 import (
+	"aunefyren/treningheten/config"
 	"aunefyren/treningheten/database"
 	"errors"
 	"time"
@@ -9,21 +10,10 @@ import (
 	"github.com/google/uuid"
 )
 
-var jwtKey = []byte("supersecretkey")
-
 type JWTClaim struct {
 	UserID uuid.UUID `json:"id"`
 	Admin  bool      `json:"admin"`
 	jwt.RegisteredClaims
-}
-
-func SetPrivateKey(PrivateKey string) error {
-	if len(PrivateKey) < 16 {
-		return errors.New("Private key must be atleast 16 characters.")
-	}
-
-	jwtKey = []byte(PrivateKey)
-	return nil
 }
 
 func GenerateJWT(userID uuid.UUID) (tokenString string, err error) {
@@ -38,6 +28,7 @@ func GenerateJWT(userID uuid.UUID) (tokenString string, err error) {
 		},
 	}
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+	jwtKey := config.GetPrivateKey(1)
 	tokenString, err = token.SignedString(jwtKey)
 	if err != nil {
 		return "", err
@@ -47,11 +38,13 @@ func GenerateJWT(userID uuid.UUID) (tokenString string, err error) {
 
 func GenerateJWTFromClaims(claims *JWTClaim) (tokenString string, err error) {
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+	jwtKey := config.GetPrivateKey(1)
 	tokenString, err = token.SignedString(jwtKey)
 	return
 }
 
 func ValidateToken(signedToken string, admin bool) (err error) {
+	jwtKey := config.GetPrivateKey(1)
 	token, err := jwt.ParseWithClaims(
 		signedToken,
 		&JWTClaim{},
@@ -96,7 +89,7 @@ func ValidateToken(signedToken string, admin bool) (err error) {
 }
 
 func ParseToken(signedToken string) (*JWTClaim, error) {
-
+	jwtKey := config.GetPrivateKey(1)
 	token, err := jwt.ParseWithClaims(
 		signedToken,
 		&JWTClaim{},
