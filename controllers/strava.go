@@ -285,6 +285,12 @@ func StravaSyncWeekForUser(user models.User, configFile models.ConfigStruct, poi
 
 	log.Println("Got '" + strconv.Itoa((len(activities))) + "' activities for user.")
 
+	// Give user achievements
+	err = GiveUserAnAchievement(user.ID, uuid.MustParse("fb4f6c1f-dfad-4df7-8007-4cfd6f351b17"), time.Now())
+	if err != nil {
+		log.Println("Failed to give achievement for user '" + user.ID.String() + "'. Ignoring. Error: " + err.Error())
+	}
+
 	for _, activity := range activities {
 		// Skip walks if enabled
 		if user.StravaWalks != nil && *user.StravaWalks && strings.ToLower(activity.SportType) == "walk" {

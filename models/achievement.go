@@ -15,6 +15,7 @@ type Achievement struct {
 	CategoryColor       string `json:"category_color" gorm:"default: #778da9;"`
 	AchievementOrder    int    `json:"achievement_order" gorm:"default: 1;"`
 	MultipleDelegations *bool  `json:"multiple_delegations" gorm:"default: 0;"`
+	HiddenDescription   *bool  `json:"hidden_description" gorm:"default: 0;"`
 }
 
 type AchievementDelegation struct {
@@ -36,6 +37,8 @@ type AchievementUserObject struct {
 	Category              string                   `json:"category"`
 	CategoryColor         string                   `json:"category_color"`
 	AchievementOrder      int                      `json:"achievement_order"`
+	MultipleDelegations   *bool                    `json:"multiple_delegations"`
+	HiddenDescription     *bool                    `json:"hidden_description"`
 	AchievementDelegation *[]AchievementDelegation `json:"achievement_delegations"`
 	LastGivenAt           *time.Time               `json:"last_given_at"`
 }

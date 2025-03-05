@@ -17,7 +17,7 @@ import (
 )
 
 // Calculate a time set one week in the past and generates the debt for that week.
-func GenerateLastWeeksDebt() {
+func ProcessLastWeek() {
 	// Get a date time in last week
 	lastWeek := time.Now().AddDate(0, 0, -7)
 	lastWeek, err := utilities.FindNextSunday(lastWeek)

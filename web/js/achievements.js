@@ -177,9 +177,15 @@ function PlaceUserAchievements(achievementArrayPersonal, achievementArray, userI
             `;
         }
 
+        alternativeDescription = achievementArray[i].description
         if(achieved) {
-
             achieved_sum += 1
+
+            try {
+                alternativeDescription = achievementArrayPersonal[achievedIndex].description
+            } catch (error) {
+                console.log("Failed to change achievement description. Error: " + e)
+            }
 
             // parse date object
             try {
@@ -243,7 +249,7 @@ function PlaceUserAchievements(achievementArrayPersonal, achievementArray, userI
                     <div style="margin-bottom: 0.5em;"> 
                         ${achievementArray[i].name}
                     </div>
-                    <div style="" class="achievement-description"> 
+                    <div style="" class="achievement-description" id="achievement-description-${achievementArray[i].id}"> 
                         ${achievementArray[i].description}
                     </div>
                 </div>
@@ -255,8 +261,9 @@ function PlaceUserAchievements(achievementArrayPersonal, achievementArray, userI
         document.getElementById("achievements-box").innerHTML += html
 
         if(achieved) {
-            document.getElementById("achievement-img-" + achievementArray[i].id).style.padding  = "0"
-            document.getElementById("achievement-img-" + achievementArray[i].id).style.borderRadius  = "10em"
+            document.getElementById("achievement-img-" + achievementArray[i].id).style.padding = "0"
+            document.getElementById("achievement-img-" + achievementArray[i].id).style.borderRadius = "10em"
+            document.getElementById("achievement-description-" + achievementArray[i].id).innerHTML = alternativeDescription
             GetAchievementImage(achievementArray[i].id)
         } else {
             document.getElementById("achievement-img-" + achievementArray[i].id).src  = "/assets/lock.svg"

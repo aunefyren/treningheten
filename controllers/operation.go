@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"sort"
 	"strings"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
@@ -330,6 +331,12 @@ func APICreateOperationForUser(context *gin.Context) {
 		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get convert operation to operation object."})
 		context.Abort()
 		return
+	}
+
+	// Give achievement to user for three weeks
+	err = GiveUserAnAchievement(userID, uuid.MustParse("3d745d3a-b4b8-4194-bc72-653cfe4c351b"), time.Now())
+	if err != nil {
+		log.Println("Failed to give achievement for user '" + userID.String() + "'. Ignoring. Error: " + err.Error())
 	}
 
 	context.JSON(http.StatusCreated, gin.H{"message": "Operation created.", "operation": operationObject})

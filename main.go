@@ -123,17 +123,10 @@ func main() {
 
 	log.Println("Database connected.")
 
-	achievementsFound, err := controllers.CheckIfAchievementsExist()
+	err = controllers.ValidateAchievements()
 	if err != nil {
-		log.Println("Failed to check achievements. Error: " + err.Error())
-		return
-	} else if !achievementsFound {
-		log.Println("No achievements, creating default.")
-		err = controllers.CreateDefaultAchievements()
-		if err != nil {
-			log.Println("Failed to create achievements. Error: " + err.Error())
-			return
-		}
+		log.Println("Failed to validate achievements. Error: " + err.Error())
+		os.Exit(1)
 	}
 
 	if generateInvite {
@@ -160,7 +153,7 @@ func main() {
 
 	_, err = taskScheduler.ScheduleWithCron(func(ctx context.Context) {
 		log.Println("Generating results for last week.")
-		controllers.GenerateLastWeeksDebt()
+		controllers.ProcessLastWeek()
 	}, "0 0 8 * * 1")
 
 	if err != nil {

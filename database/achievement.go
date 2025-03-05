@@ -102,6 +102,18 @@ func RegisterAchievementInDB(achievement models.Achievement) (models.Achievement
 	return achievement, nil
 }
 
+func SaveAchievementInDB(achievement models.Achievement) (models.Achievement, error) {
+	dbRecord := Instance.Save(&achievement)
+
+	if dbRecord.Error != nil {
+		return models.Achievement{}, dbRecord.Error
+	} else if dbRecord.RowsAffected != 1 {
+		return models.Achievement{}, errors.New("Failed to update DB.")
+	}
+
+	return achievement, nil
+}
+
 // Get achievement by ID
 func GetAchievementByID(achievementID uuid.UUID) (models.Achievement, error) {
 
@@ -116,6 +128,18 @@ func GetAchievementByID(achievementID uuid.UUID) (models.Achievement, error) {
 
 	return achievementStruct, nil
 
+}
+
+// Get all achievements, enabled or disabled
+func GetAllAchievements() ([]models.Achievement, error) {
+	var achievementStruct = []models.Achievement{}
+
+	achievementRecord := Instance.Find(&achievementStruct)
+	if achievementRecord.Error != nil {
+		return achievementStruct, achievementRecord.Error
+	}
+
+	return achievementStruct, nil
 }
 
 func RegisterAchievementDelegationInDB(achievementDelegation models.AchievementDelegation) (models.AchievementDelegation, error) {
@@ -161,4 +185,25 @@ func SetAchievementsToSeenForUser(userID uuid.UUID) (updates int64, err error) {
 	}
 
 	return achievementRecord.RowsAffected, err
+}
+
+func VerifyIfAchievedByUser(achievementID uuid.UUID, userID uuid.UUID) (bool, error) {
+	achievementDelegations := []models.AchievementDelegation{}
+
+	achievementRecord := Instance.
+		Where("`achievement_delegations`.enabled = ?", 1).
+		Where("`achievement_delegations`.user_id = ?", userID).
+		Joins("JOIN users on `achievement_delegations`.user_id = `users`.ID").
+		Where("`users`.enabled = ?", 1).
+		Where("`users`.id = ?", userID).
+		Joins("JOIN achievements on `achievement_delegations`.achievement_id = `achievements`.ID").
+		Where("`achievements`.enabled = ?", 1).
+		Where("`achievements`.ID = ?", achievementID).
+		Find(&achievementDelegations)
+
+	if achievementRecord.Error != nil {
+		return false, achievementRecord.Error
+	}
+
+	return (len(achievementDelegations) > 0), nil
 }
