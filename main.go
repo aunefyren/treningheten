@@ -205,7 +205,7 @@ func initRouter() *gin.Engine {
 
 			auth.GET("/seasons", controllers.APIGetSeasons)
 			auth.GET("/seasons/:season_id", controllers.APIGetSeason)
-			auth.GET("/seasons/:season_id/weeks/", controllers.APIGetSeasonWeeks)
+			auth.GET("/seasons/:season_id/weeks", controllers.APIGetSeasonWeeks)
 			auth.GET("/seasons/:season_id/weeks-personal", controllers.APIGetSeasonWeeksPersonal)
 			auth.GET("/seasons/get-on-going", controllers.APIGetOngoingSeasons)
 			auth.GET("/seasons/:season_id/leaderboard", controllers.APIGetCurrentSeasonLeaderboard)
@@ -259,7 +259,7 @@ func initRouter() *gin.Engine {
 			auth.GET("/debts", controllers.APIGetDebtOverview)
 			auth.POST("/debts/:debt_id/received", controllers.APISetPrizeReceived)
 
-			auth.GET("/achievements/", controllers.APIGetAchievements)
+			auth.GET("/achievements", controllers.APIGetAchievements)
 			auth.GET("/achievements/:achievement_id/image", controllers.APIGetAchievementsImage)
 
 			auth.POST("/notifications/subscribe", controllers.APISubscribeToNotification)
