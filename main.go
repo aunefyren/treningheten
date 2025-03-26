@@ -4,12 +4,14 @@ import (
 	"aunefyren/treningheten/config"
 	"aunefyren/treningheten/controllers"
 	"aunefyren/treningheten/database"
+	"aunefyren/treningheten/logger"
 	"aunefyren/treningheten/middlewares"
 	"aunefyren/treningheten/models"
 	"aunefyren/treningheten/utilities"
 	"context"
 	"flag"
 	"fmt"
+	"log"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -33,21 +35,20 @@ func main() {
 	err := os.MkdirAll(newPath, os.ModePerm)
 	if err != nil {
 		fmt.Println("Failed to create 'files' directory. Error: " + err.Error())
-
 		os.Exit(1)
 	}
 	fmt.Println("Directory 'files' valid.")
 
-	// Create and define file for logging
-	logger.initLogger()
-
 	// Load config file
 	configFile, err := config.GetConfig()
 	if err != nil {
-		log.Info("Failed to load configuration file. Error: " + err.Error())
+		fmt.Println("Failed to load configuration file. Error: " + err.Error())
 		os.Exit(1)
 	}
-	log.Info("Configuration file loaded.")
+	fmt.Println("Configuration file loaded.")
+
+	// Create and define file for logging
+	logger.InitLogger(configFile)
 
 	// Set GIN mode
 	if configFile.TreninghetenEnvironment != "test" {
@@ -57,24 +58,22 @@ func main() {
 	// Change the config to respect flags
 	configFile, generateInvite, err := parseFlags(configFile)
 	if err != nil {
-		log.Info("Failed to parse input flags. Error: " + err.Error())
-
+		logger.Log.Fatal("Failed to parse input flags. Error: " + err.Error())
 		os.Exit(1)
 	}
-	log.Info("Flags parsed.")
+	logger.Log.Info("Flags parsed.")
 
 	// Set time zone from config if it is not empty
 	if configFile.Timezone != "" {
 		loc, err := time.LoadLocation(configFile.Timezone)
 		if err != nil {
-			log.Info("Failed to set time zone from config. Error: " + err.Error())
-			log.Info("Removing value...")
+			logger.Log.Info("Failed to set time zone from config. Error: " + err.Error())
+			logger.Log.Info("Removing value...")
 
 			configFile.Timezone = ""
 			err = config.SaveConfig(configFile)
 			if err != nil {
-				log.Info("Failed to set new time zone in the config. Error: " + err.Error())
-
+				logger.Log.Fatal("Failed to set new time zone in the config. Error: " + err.Error())
 				os.Exit(1)
 			}
 
@@ -82,73 +81,71 @@ func main() {
 			time.Local = loc
 		}
 	}
-	log.Info("Timezone set.")
+	logger.Log.Info("Timezone set.")
 
 	// Initialize Database
-	log.Info("Connecting to database...")
+	logger.Log.Info("Connecting to database...")
 
 	err = database.Connect(configFile.DBUsername, configFile.DBPassword, configFile.DBIP, configFile.DBPort, configFile.DBName)
 	if err != nil {
-		log.Info("Failed to connect to database. Error: " + err.Error())
-
+		logger.Log.Fatal("Failed to connect to database. Error: " + err.Error())
 		os.Exit(1)
 	}
 	database.Migrate()
 
-	log.Info("Database connected.")
+	logger.Log.Info("Database connected.")
 
 	err = controllers.ValidateAchievements()
 	if err != nil {
-		log.Info("Failed to validate achievements. Error: " + err.Error())
+		logger.Log.Info("Failed to validate achievements. Error: " + err.Error())
 		os.Exit(1)
 	}
 
 	if generateInvite {
 		invite, err := database.GenerateRandomInvite()
 		if err != nil {
-			log.Info("Failed to generate random invitation code. Error: " + err.Error())
-
+			logger.Log.Fatal("Failed to generate random invitation code. Error: " + err.Error())
 			os.Exit(1)
 		}
-		log.Info("Generated new invite code. Code: " + invite)
+		logger.Log.Info("Generated new invite code. Code: " + invite)
 	}
 
 	// Create task scheduler for sunday reminders
 	taskScheduler := chrono.NewDefaultTaskScheduler()
 
 	_, err = taskScheduler.ScheduleWithCron(func(ctx context.Context) {
-		log.Info("Sunday reminder task executing.")
+		logger.Log.Info("Sunday reminder task executing.")
 		controllers.SendSundayReminders()
 	}, "0 0 18 * * 7")
 
 	if err != nil {
-		log.Info("Sunday reminder task was not scheduled successfully.")
+		logger.Log.Info("Sunday reminder task was not scheduled successfully.")
 	}
 
 	_, err = taskScheduler.ScheduleWithCron(func(ctx context.Context) {
-		log.Info("Generating results for last week.")
+		logger.Log.Info("Generating results for last week.")
 		controllers.ProcessLastWeek()
 	}, "0 0 8 * * 1")
 
 	if err != nil {
-		log.Info("Generating results for last week task was not scheduled successfully.")
+		logger.Log.Info("Generating results for last week task was not scheduled successfully.")
 	}
 
 	if configFile.StravaEnabled {
 		_, err = taskScheduler.ScheduleWithCron(func(ctx context.Context) {
-			log.Info("Strava sync task executing.")
+			logger.Log.Info("Strava sync task executing.")
 			controllers.StravaSyncWeekForAllUsers()
 		}, "0 0 * * * *")
 
 		if err != nil {
-			log.Info("Strava sync task was not scheduled successfully. Error: " + err.Error())
+			logger.Log.Info("Strava sync task was not scheduled successfully. Error: " + err.Error())
 		}
 	}
 
 	// Initialize Router
 	router := initRouter()
 
-	log.Info("Router initialized.")
+	logger.Log.Info("Router initialized.")
 
 	log.Fatal(router.Run(":" + strconv.Itoa(configFile.TreninghetenPort)))
 }
@@ -371,7 +368,7 @@ func initRouter() *gin.Engine {
 	router.GET("/service-worker.js", func(c *gin.Context) {
 		JSfile, err := os.ReadFile("./web/js/service-worker.js")
 		if err != nil {
-			log.Info("Reading service-worker threw error trying to open the file. Error: " + err.Error())
+			logger.Log.Info("Reading service-worker threw error trying to open the file. Error: " + err.Error())
 		}
 		c.Data(http.StatusOK, "text/javascript", JSfile)
 	})
@@ -380,7 +377,7 @@ func initRouter() *gin.Engine {
 	router.GET("/manifest.json", func(c *gin.Context) {
 		JSONfile, err := os.ReadFile("./web/json/manifest.json")
 		if err != nil {
-			log.Info("Reading manifest threw error trying to open the file. Error: " + err.Error())
+			logger.Log.Info("Reading manifest threw error trying to open the file. Error: " + err.Error())
 		}
 		c.Data(http.StatusOK, "text/json", JSONfile)
 	})
@@ -389,7 +386,7 @@ func initRouter() *gin.Engine {
 	router.GET("/robots.txt", func(c *gin.Context) {
 		TXTfile, err := os.ReadFile("./web/txt/robots.txt")
 		if err != nil {
-			log.Info("Reading manifest threw error trying to open the file. Error: " + err.Error())
+			logger.Log.Info("Reading manifest threw error trying to open the file. Error: " + err.Error())
 		}
 		c.Data(http.StatusOK, "text/plain", TXTfile)
 	})
@@ -397,7 +394,7 @@ func initRouter() *gin.Engine {
 	return router
 }
 
-func parseFlags(configFile *models.ConfigStruct) (*models.ConfigStruct, bool, error) {
+func parseFlags(configFile models.ConfigStruct) (models.ConfigStruct, bool, error) {
 	// Define flag variables with the configuration file as default values
 	var port = flag.Int("port", configFile.TreninghetenPort, "The port Treningheten is listening on.")
 	var externalURL = flag.String("externalurl", configFile.TreninghetenExternalURL, "The URL others would use to access Treningheten.")
@@ -510,7 +507,7 @@ func parseFlags(configFile *models.ConfigStruct) (*models.ConfigStruct, bool, er
 	// Save the new config
 	err := config.SaveConfig(configFile)
 	if err != nil {
-		return &models.ConfigStruct{}, false, err
+		return models.ConfigStruct{}, false, err
 	}
 
 	return configFile, generateInviteBool, nil

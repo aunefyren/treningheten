@@ -1,6 +1,7 @@
 package logger
 
 import (
+	"aunefyren/treningheten/models"
 	"io"
 	"os"
 
@@ -9,7 +10,7 @@ import (
 
 var Log *logrus.Logger
 
-func InitLogger() {
+func InitLogger(configFile models.ConfigStruct) {
 	Log = logrus.New()
 
 	// Define log file
@@ -18,15 +19,21 @@ func InitLogger() {
 		logrus.Fatalf("Failed to load log file: %v", err)
 	}
 
-	// Set log format
-	Log.SetFormatter(&logrus.TextFormatter{
-		FullTimestamp: true,
-	})
+	// Set a plain text format with old-style timestamp
+	Log.SetFormatter(&logrus.JSONFormatter{})
 
 	// Output to both stdout and log file
 	mw := io.MultiWriter(os.Stdout, logFile)
 	Log.SetOutput(mw)
 
-	// Set log level (adjust as needed)
-	Log.SetLevel(logrus.InfoLevel)
+	// Set log level
+	level, err := logrus.ParseLevel(configFile.TreninghetenLogLevel)
+	if err != nil {
+		logrus.Error("Failed to load log file: %v", err)
+		level = logrus.InfoLevel
+	}
+
+	Log.SetLevel(level)
+
+	Log.Info("Log level set to: " + level.String())
 }

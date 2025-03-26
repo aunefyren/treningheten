@@ -2,8 +2,8 @@ package controllers
 
 import (
 	"aunefyren/treningheten/database"
+	"aunefyren/treningheten/logger"
 	"aunefyren/treningheten/models"
-	"log"
 	"net/http"
 	"strings"
 
@@ -15,7 +15,7 @@ func APIGetPrizes(context *gin.Context) {
 
 	prizes, _, err := database.GetPrizes()
 	if err != nil {
-		log.Info("Failed to load prizes. Error: " + err.Error())
+		logger.Log.Info("Failed to load prizes. Error: " + err.Error())
 		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to load prizes."})
 		context.Abort()
 		return
@@ -33,7 +33,7 @@ func APIRegisterPrize(context *gin.Context) {
 
 	// Parse request
 	if err := context.ShouldBindJSON(&prize); err != nil {
-		log.Info("Failed to parse request. Error: " + err.Error())
+		logger.Log.Info("Failed to parse request. Error: " + err.Error())
 		context.JSON(http.StatusBadRequest, gin.H{"error": "Failed to parse request."})
 		context.Abort()
 		return
@@ -50,7 +50,7 @@ func APIRegisterPrize(context *gin.Context) {
 	// Verify unique prize name and quantity
 	_, prizeFound, err := database.GetPrizeByNameAndQuantity(prize.Name, prize.Quantity)
 	if err != nil {
-		log.Info("Failed to check prizes. Error: " + err.Error())
+		logger.Log.Info("Failed to check prizes. Error: " + err.Error())
 		context.JSON(http.StatusBadRequest, gin.H{"error": "Failed to check prizes."})
 		context.Abort()
 		return
@@ -69,7 +69,7 @@ func APIRegisterPrize(context *gin.Context) {
 	// Create prize in DB
 	err = database.CreatePrizeInDB(prizeDB)
 	if err != nil {
-		log.Info("Failed to register prize in database. Error: " + err.Error())
+		logger.Log.Info("Failed to register prize in database. Error: " + err.Error())
 		context.JSON(http.StatusBadRequest, gin.H{"error": "Failed to register prize in database."})
 		context.Abort()
 		return

@@ -1,10 +1,10 @@
 package database
 
 import (
+	"aunefyren/treningheten/logger"
 	"aunefyren/treningheten/models"
 	"database/sql"
 	"fmt"
-	"log"
 	"strconv"
 	"strings"
 
@@ -38,9 +38,7 @@ func Connect(dbUsername string, dbPassword string, dbIP string, dbPort int, dbNa
 		}
 	}
 
-	log.Info("Connected to database.")
-	fmt.Println("Connected to database.")
-
+	logger.Log.Info("Connected to database.")
 	return nil
 }
 
@@ -79,5 +77,5 @@ func Migrate() {
 	Instance.AutoMigrate(&models.OperationSet{})
 	Instance.AutoMigrate(&models.Action{})
 
-	log.Info("Database Migration Completed!")
+	logger.Log.Info("Database migration completed.")
 }

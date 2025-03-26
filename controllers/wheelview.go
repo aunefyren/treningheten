@@ -2,9 +2,9 @@ package controllers
 
 import (
 	"aunefyren/treningheten/database"
+	"aunefyren/treningheten/logger"
 	"aunefyren/treningheten/models"
 	"errors"
-	"log"
 )
 
 func ConvertWheelviewToWheelviewObject(wheelview models.Wheelview) (models.WheelviewObject, error) {
@@ -13,7 +13,7 @@ func ConvertWheelviewToWheelviewObject(wheelview models.Wheelview) (models.Wheel
 
 	user, err := database.GetUserInformation(wheelview.UserID)
 	if err != nil {
-		log.Info("Failed to get user information for user '" + wheelview.UserID.String() + "'. Returning. Error: " + err.Error())
+		logger.Log.Info("Failed to get user information for user '" + wheelview.UserID.String() + "'. Returning. Error: " + err.Error())
 		return models.WheelviewObject{}, err
 	}
 
@@ -21,16 +21,16 @@ func ConvertWheelviewToWheelviewObject(wheelview models.Wheelview) (models.Wheel
 
 	debt, debtFound, err := database.GetDebtByDebtID(wheelview.DebtID)
 	if err != nil {
-		log.Info("Failed to get debt for debt '" + wheelview.DebtID.String() + "'. Returning. Error: " + err.Error())
+		logger.Log.Info("Failed to get debt for debt '" + wheelview.DebtID.String() + "'. Returning. Error: " + err.Error())
 		return models.WheelviewObject{}, err
 	} else if !debtFound {
-		log.Info("Failed to find debt for debt '" + wheelview.DebtID.String() + "'. Returning.")
+		logger.Log.Info("Failed to find debt for debt '" + wheelview.DebtID.String() + "'. Returning.")
 		return models.WheelviewObject{}, errors.New("Failed to find debt for debt '" + wheelview.DebtID.String() + "'.")
 	}
 
 	debtObject, err := ConvertDebtToDebtObject(debt)
 	if err != nil {
-		log.Info("Failed to convert debt to debt object for debt '" + wheelview.DebtID.String() + "'. Returning. Error: " + err.Error())
+		logger.Log.Info("Failed to convert debt to debt object for debt '" + wheelview.DebtID.String() + "'. Returning. Error: " + err.Error())
 		return models.WheelviewObject{}, err
 	}
 
@@ -54,7 +54,7 @@ func ConvertWheelviewsToWheelviewObjects(wheelviews []models.Wheelview) ([]model
 	for _, wheelview := range wheelviews {
 		wheelviewObject, err := ConvertWheelviewToWheelviewObject(wheelview)
 		if err != nil {
-			log.Info("Failed to convert debt to debt object for debt '" + wheelview.Debt.ID.String() + "'. Returning. Error: " + err.Error())
+			logger.Log.Info("Failed to convert debt to debt object for debt '" + wheelview.Debt.ID.String() + "'. Returning. Error: " + err.Error())
 			return []models.WheelviewObject{}, err
 		}
 		wheelviewObjects = append(wheelviewObjects, wheelviewObject)

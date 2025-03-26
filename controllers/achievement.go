@@ -2,11 +2,11 @@ package controllers
 
 import (
 	"aunefyren/treningheten/database"
+	"aunefyren/treningheten/logger"
 	"aunefyren/treningheten/middlewares"
 	"aunefyren/treningheten/models"
 	"aunefyren/treningheten/utilities"
 	"errors"
-	"log"
 	"net/http"
 	"sort"
 	"time"
@@ -23,7 +23,7 @@ func APIGetAchievements(context *gin.Context) {
 	// Get user ID
 	userID, err := middlewares.GetAuthUsername(context.GetHeader("Authorization"))
 	if err != nil {
-		log.Info("Failed to verify user ID. Error: " + "Failed to verify user ID.")
+		logger.Log.Info("Failed to verify user ID. Error: " + "Failed to verify user ID.")
 		context.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		context.Abort()
 		return
@@ -33,7 +33,7 @@ func APIGetAchievements(context *gin.Context) {
 	if !okay {
 		achievementsArray, err := database.GetAllEnabledAchievements()
 		if err != nil {
-			log.Info("Failed to get achievements. Error: " + err.Error())
+			logger.Log.Info("Failed to get achievements. Error: " + err.Error())
 			context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get achievements."})
 			context.Abort()
 			return
@@ -41,7 +41,7 @@ func APIGetAchievements(context *gin.Context) {
 
 		achievementObjectsArray, err = ConvertAchievementsToAchievementUserObjects(achievementsArray, &userID)
 		if err != nil {
-			log.Info("Failed to convert to achievement objects. Error: " + err.Error())
+			logger.Log.Info("Failed to convert to achievement objects. Error: " + err.Error())
 			context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to convert to achievement objects."})
 			context.Abort()
 			return
@@ -49,7 +49,7 @@ func APIGetAchievements(context *gin.Context) {
 	} else {
 		requestedUserNew, err := uuid.Parse(user)
 		if err != nil {
-			log.Info("Failed to parse user ID. Error: " + err.Error())
+			logger.Log.Info("Failed to parse user ID. Error: " + err.Error())
 			context.JSON(http.StatusBadRequest, gin.H{"error": "Failed to parse user ID."})
 			context.Abort()
 			return
@@ -58,7 +58,7 @@ func APIGetAchievements(context *gin.Context) {
 
 		achievementsArray, _, err := database.GetDistinctDelegatedAchievementsByUserID(*requestedUser)
 		if err != nil {
-			log.Info("Failed to get achievements. Error: " + err.Error())
+			logger.Log.Info("Failed to get achievements. Error: " + err.Error())
 			context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get achievements."})
 			context.Abort()
 			return
@@ -66,7 +66,7 @@ func APIGetAchievements(context *gin.Context) {
 
 		achievementObjectsArray, err = ConvertAchievementDelegationsToAchievementUserObjects(achievementsArray, &userID)
 		if err != nil {
-			log.Info("Failed to convert to achievement objects. Error: " + err.Error())
+			logger.Log.Info("Failed to convert to achievement objects. Error: " + err.Error())
 			context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to convert to achievement objects."})
 			context.Abort()
 			return
@@ -83,7 +83,7 @@ func APIGetAchievements(context *gin.Context) {
 	if requestedUser != nil && userID == *requestedUser {
 		_, err = database.SetAchievementsToSeenForUser(userID)
 		if err != nil {
-			log.Info("Failed to set achievements to seen for user. Error: " + err.Error())
+			logger.Log.Info("Failed to set achievements to seen for user. Error: " + err.Error())
 		}
 	}
 }
@@ -454,20 +454,20 @@ func ValidateAchievements() error {
 
 	achievementsOld, err := database.GetAllAchievements()
 	if err != nil {
-		log.Info("Failed to get all achievements. Error: " + err.Error())
+		logger.Log.Info("Failed to get all achievements. Error: " + err.Error())
 		return errors.New("Failed to get all achievements.")
 	}
 
 	achievementsFinal, err := MergeAchievements(achievementsOld, achievements)
 	if err != nil {
-		log.Info("Failed to create/update achievement. Error: " + err.Error())
+		logger.Log.Info("Failed to create/update achievement. Error: " + err.Error())
 		return errors.New("Failed to merge achievement lists.")
 	}
 
 	for _, achievement := range achievementsFinal {
 		_, err := database.SaveAchievementInDB(achievement)
 		if err != nil {
-			log.Info("Failed to create/update achievement. Error: " + err.Error())
+			logger.Log.Info("Failed to create/update achievement. Error: " + err.Error())
 			return errors.New("Failed to create/update achievement.")
 		}
 	}
@@ -499,7 +499,7 @@ func MergeAchievements(primaryAchievements []models.Achievement, otherAchievemen
 
 		if !found {
 			finalAchievements = append(finalAchievements, newAchievement)
-			log.Info("Added achievement '" + newAchievement.Name + "'.")
+			logger.Log.Info("Added achievement '" + newAchievement.Name + "'.")
 		}
 	}
 
@@ -523,19 +523,19 @@ func MergeAchievements(primaryAchievements []models.Achievement, otherAchievemen
 func ConvertAchievementDelegationToAchievementUserObject(achievementDelegation models.AchievementDelegation, userChecking *uuid.UUID) (models.AchievementUserObject, error) {
 	achievement, err := database.GetAchievementByID(achievementDelegation.AchievementID)
 	if err != nil {
-		log.Info("Failed to get achievement. Error: " + err.Error())
+		logger.Log.Info("Failed to get achievement. Error: " + err.Error())
 		return models.AchievementUserObject{}, errors.New("Failed to get achievement. Returning...")
 	}
 
 	user, err := database.GetUserInformation(achievementDelegation.UserID)
 	if err != nil {
-		log.Info("Failed to get user. Error: " + err.Error())
+		logger.Log.Info("Failed to get user. Error: " + err.Error())
 		return models.AchievementUserObject{}, errors.New("Failed to get user. Returning...")
 	}
 
 	achievementDelegations, err := database.GetAchievementDelegationByAchievementIDAndUserID(achievementDelegation.UserID, achievementDelegation.AchievementID)
 	if err != nil {
-		log.Info("Failed to get achievement delegations. Error: " + err.Error())
+		logger.Log.Info("Failed to get achievement delegations. Error: " + err.Error())
 		return models.AchievementUserObject{}, errors.New("Failed to get achievement delegations. Returning...")
 	}
 
@@ -564,11 +564,11 @@ func ConvertAchievementDelegationToAchievementUserObject(achievementDelegation m
 		achievedByUser, err := database.VerifyIfAchievedByUser(achievement.ID, *userChecking)
 		achievedByUserChecking = achievedByUser
 		if err != nil {
-			log.Info("Failed to verify if user has achievement. Error: " + err.Error())
+			logger.Log.Info("Failed to verify if user has achievement. Error: " + err.Error())
 		}
 
 		if achievement.ID.String() == "cbd81cd0-4caf-438b-989b-b5ca7e76605d" {
-			log.Info(achievedByUserChecking)
+			logger.Log.Info(achievedByUserChecking)
 		}
 	}
 
@@ -606,7 +606,7 @@ func ConvertAchievementDelegationsToAchievementUserObjects(achievementDelegation
 
 		achievementObject, err := ConvertAchievementDelegationToAchievementUserObject(achievementDelegation, userChecking)
 		if err != nil {
-			log.Info("Failed to convert achievement delegation to achievement object. Skipping...")
+			logger.Log.Info("Failed to convert achievement delegation to achievement object. Skipping...")
 			continue
 		}
 
@@ -635,11 +635,11 @@ func ConvertAchievementToAchievementUserObject(achievement models.Achievement, u
 		achievedByUser, err := database.VerifyIfAchievedByUser(achievement.ID, *userChecking)
 		achievedByUserChecking = achievedByUser
 		if err != nil {
-			log.Info("Failed to verify if user has achievement. Error: " + err.Error())
+			logger.Log.Info("Failed to verify if user has achievement. Error: " + err.Error())
 		}
 
 		if achievement.ID.String() == "cbd81cd0-4caf-438b-989b-b5ca7e76605d" {
-			log.Info(achievedByUserChecking)
+			logger.Log.Info(achievedByUserChecking)
 		}
 	}
 
@@ -657,7 +657,7 @@ func ConvertAchievementsToAchievementUserObjects(achievements []models.Achieveme
 
 		achievementObject, err := ConvertAchievementToAchievementUserObject(achievement, userChecking)
 		if err != nil {
-			log.Info("Failed to convert achievement delegation to achievement object. Skipping...")
+			logger.Log.Info("Failed to convert achievement delegation to achievement object. Skipping...")
 			continue
 		}
 
@@ -671,15 +671,16 @@ func ConvertAchievementsToAchievementUserObjects(achievements []models.Achieveme
 func GiveUserAnAchievement(userID uuid.UUID, achievementID uuid.UUID, achievementTime time.Time) error {
 	achievement, err := database.GetAchievementByID(achievementID)
 	if err != nil {
-		log.Info("Failed to get achievement. Error: " + err.Error())
+		logger.Log.Info("Failed to get achievement. Error: " + err.Error())
 		return errors.New("Failed to get achievement.")
 	}
 
 	achievementDelegations, err := database.GetAchievementDelegationByAchievementIDAndUserID(userID, achievementID)
 	if err != nil {
-		log.Info("Failed to check achievement delegation. Error: " + err.Error())
+		logger.Log.Info("Failed to check achievement delegation. Error: " + err.Error())
 		return errors.New("Failed to check achievement delegation.")
 	} else if len(achievementDelegations) > 0 && (achievement.MultipleDelegations == nil || !*achievement.MultipleDelegations) {
+		logger.Log.Debug("User already has achievement.")
 		return nil
 	}
 
@@ -692,13 +693,13 @@ func GiveUserAnAchievement(userID uuid.UUID, achievementID uuid.UUID, achievemen
 
 	_, err = database.RegisterAchievementDelegationInDB(delegation)
 	if err != nil {
-		log.Info("Failed to give achievement. Error: " + err.Error())
+		logger.Log.Info("Failed to give achievement. Error: " + err.Error())
 		return errors.New("Failed to give achievement.")
 	}
 
 	err = PushNotificationsForAchievements(userID)
 	if err != nil {
-		log.Info("Failed to give achievement notification. Error: " + err.Error())
+		logger.Log.Info("Failed to give achievement notification. Error: " + err.Error())
 	}
 
 	return nil
@@ -707,7 +708,7 @@ func GiveUserAnAchievement(userID uuid.UUID, achievementID uuid.UUID, achievemen
 func GenerateAchievementsForWeek(weekResults models.WeekResults, targetUser *uuid.UUID) error {
 	sundayDate, err := utilities.FindNextSunday(weekResults.WeekDate)
 	if err != nil {
-		log.Info("Failed to find next Sunday. Error: " + err.Error())
+		logger.Log.Info("Failed to find next Sunday. Error: " + err.Error())
 		return errors.New("Failed to find next Sunday.")
 	}
 
@@ -717,7 +718,7 @@ func GenerateAchievementsForWeek(weekResults models.WeekResults, targetUser *uui
 	for _, user := range weekResults.UserWeekResults {
 		userObject, err := database.GetUserInformation(user.UserID)
 		if err != nil {
-			log.Info("Failed to get user object. Error: " + err.Error())
+			logger.Log.Info("Failed to get user object. Error: " + err.Error())
 			return errors.New("Failed to get user object.")
 		}
 
@@ -733,7 +734,7 @@ func GenerateAchievementsForWeek(weekResults models.WeekResults, targetUser *uui
 			// Give achievement to user
 			err := GiveUserAnAchievement(user.UserID, uuid.MustParse("f7fad558-3e59-4812-9b13-4c30a91c04b9"), sundayDate)
 			if err != nil {
-				log.Info("Failed to give achievement for user '" + user.UserID.String() + "'. Ignoring. Error: " + err.Error())
+				logger.Log.Info("Failed to give achievement for user '" + user.UserID.String() + "'. Ignoring. Error: " + err.Error())
 			}
 
 		}
@@ -743,7 +744,7 @@ func GenerateAchievementsForWeek(weekResults models.WeekResults, targetUser *uui
 			// Give achievement to user for three weeks
 			err := GiveUserAnAchievement(user.UserID, uuid.MustParse("8875597e-d8f5-4514-b96f-c51ecce4eb1f"), sundayDate)
 			if err != nil {
-				log.Info("Failed to give achievement for user '" + user.UserID.String() + "'. Ignoring. Error: " + err.Error())
+				logger.Log.Info("Failed to give achievement for user '" + user.UserID.String() + "'. Ignoring. Error: " + err.Error())
 			}
 
 		}
@@ -753,7 +754,7 @@ func GenerateAchievementsForWeek(weekResults models.WeekResults, targetUser *uui
 			// Give achievement to user for ten weeks
 			err := GiveUserAnAchievement(user.UserID, uuid.MustParse("ca6a4692-153b-47a7-8444-457b906d0666"), sundayDate)
 			if err != nil {
-				log.Info("Failed to give achievement for user '" + user.UserID.String() + "'. Ignoring. Error: " + err.Error())
+				logger.Log.Info("Failed to give achievement for user '" + user.UserID.String() + "'. Ignoring. Error: " + err.Error())
 			}
 
 		}
@@ -763,7 +764,7 @@ func GenerateAchievementsForWeek(weekResults models.WeekResults, targetUser *uui
 			// Give achievement to user for 15 weeks
 			err := GiveUserAnAchievement(user.UserID, uuid.MustParse("2a84df89-9976-443b-a093-19f8d73b5eff"), sundayDate)
 			if err != nil {
-				log.Info("Failed to give achievement for user '" + user.UserID.String() + "'. Ignoring. Error: " + err.Error())
+				logger.Log.Info("Failed to give achievement for user '" + user.UserID.String() + "'. Ignoring. Error: " + err.Error())
 			}
 
 		}
@@ -773,14 +774,14 @@ func GenerateAchievementsForWeek(weekResults models.WeekResults, targetUser *uui
 			// Give achievement to user for 20 weeks
 			err := GiveUserAnAchievement(user.UserID, uuid.MustParse("09da2ab1-393d-4c43-a1d0-daa45520b49f"), sundayDate)
 			if err != nil {
-				log.Info("Failed to give achievement for user '" + user.UserID.String() + "'. Ignoring. Error: " + err.Error())
+				logger.Log.Info("Failed to give achievement for user '" + user.UserID.String() + "'. Ignoring. Error: " + err.Error())
 			}
 
 		}
 
 		week, err := GetExerciseDaysForWeekUsingUserID(weekResults.WeekDate, user.UserID)
 		if err != nil {
-			log.Info("Failed to get week exercises for user '" + user.UserID.String() + "'. Returning. Error: " + err.Error())
+			logger.Log.Info("Failed to get week exercises for user '" + user.UserID.String() + "'. Returning. Error: " + err.Error())
 			return errors.New("Failed to get week exercises for user.")
 		}
 
@@ -799,7 +800,7 @@ func GenerateAchievementsForWeek(weekResults models.WeekResults, targetUser *uui
 			christmasDate := time.Date(now.Year(), 12, 24, 0, 0, 0, 0, time.Local)
 			dayLastSundayAdvent, err := utilities.FindEarlierSunday(christmasDate)
 			if err != nil {
-				log.Info("Failed to get previous sunday for date. Error: " + err.Error())
+				logger.Log.Info("Failed to get previous sunday for date. Error: " + err.Error())
 				return errors.New("Failed to get previous sunday for date.")
 			}
 			dayThirdSundayAdvent := dayLastSundayAdvent.AddDate(0, 0, -7)
@@ -811,7 +812,7 @@ func GenerateAchievementsForWeek(weekResults models.WeekResults, targetUser *uui
 				// Give achievement to user for 17. of may
 				err := GiveUserAnAchievement(user.UserID, uuid.MustParse("ab0b1bf0-c57b-469f-a6ba-5d195f1b896d"), day.Date)
 				if err != nil {
-					log.Info("Failed to give achievement for user '" + user.UserID.String() + "'. Ignoring. Error: " + err.Error())
+					logger.Log.Info("Failed to give achievement for user '" + user.UserID.String() + "'. Ignoring. Error: " + err.Error())
 				}
 
 			}
@@ -821,7 +822,7 @@ func GenerateAchievementsForWeek(weekResults models.WeekResults, targetUser *uui
 				// Give achievement to user for first advent
 				err := GiveUserAnAchievement(user.UserID, uuid.MustParse("5276382c-fdae-410b-a298-5107a3ff3089"), day.Date)
 				if err != nil {
-					log.Info("Failed to give achievement for user '" + user.UserID.String() + "'. Ignoring. Error: " + err.Error())
+					logger.Log.Info("Failed to give achievement for user '" + user.UserID.String() + "'. Ignoring. Error: " + err.Error())
 				}
 
 			}
@@ -831,7 +832,7 @@ func GenerateAchievementsForWeek(weekResults models.WeekResults, targetUser *uui
 				// Give achievement to user for second advent
 				err := GiveUserAnAchievement(user.UserID, uuid.MustParse("6c991ba6-d0ae-4022-9410-6558e376ec5e"), day.Date)
 				if err != nil {
-					log.Info("Failed to give achievement for user '" + user.UserID.String() + "'. Ignoring. Error: " + err.Error())
+					logger.Log.Info("Failed to give achievement for user '" + user.UserID.String() + "'. Ignoring. Error: " + err.Error())
 				}
 
 			}
@@ -841,7 +842,7 @@ func GenerateAchievementsForWeek(weekResults models.WeekResults, targetUser *uui
 				// Give achievement to user for third advent
 				err := GiveUserAnAchievement(user.UserID, uuid.MustParse("7ef923b5-21aa-4478-a658-68078f499620"), day.Date)
 				if err != nil {
-					log.Info("Failed to give achievement for user '" + user.UserID.String() + "'. Ignoring. Error: " + err.Error())
+					logger.Log.Info("Failed to give achievement for user '" + user.UserID.String() + "'. Ignoring. Error: " + err.Error())
 				}
 
 			}
@@ -851,7 +852,7 @@ func GenerateAchievementsForWeek(weekResults models.WeekResults, targetUser *uui
 				// Give achievement to user for last advent
 				err := GiveUserAnAchievement(user.UserID, uuid.MustParse("720b036c-7d24-418f-88e6-a0e84147efda"), day.Date)
 				if err != nil {
-					log.Info("Failed to give achievement for user '" + user.UserID.String() + "'. Ignoring. Error: " + err.Error())
+					logger.Log.Info("Failed to give achievement for user '" + user.UserID.String() + "'. Ignoring. Error: " + err.Error())
 				}
 
 			}
@@ -861,7 +862,7 @@ func GenerateAchievementsForWeek(weekResults models.WeekResults, targetUser *uui
 				// Give achievement to user for 24 dec
 				err := GiveUserAnAchievement(user.UserID, uuid.MustParse("c4a131a6-2aa6-49fb-98e5-fa797152a9a4"), day.Date)
 				if err != nil {
-					log.Info("Failed to give achievement for user '" + user.UserID.String() + "'. Ignoring. Error: " + err.Error())
+					logger.Log.Info("Failed to give achievement for user '" + user.UserID.String() + "'. Ignoring. Error: " + err.Error())
 				}
 
 			}
@@ -875,7 +876,7 @@ func GenerateAchievementsForWeek(weekResults models.WeekResults, targetUser *uui
 				// Give achievement to user
 				err := GiveUserAnAchievement(user.UserID, uuid.MustParse("5e0f5605-b3e5-4350-a408-1c9f5b5a99a4"), day.Date)
 				if err != nil {
-					log.Info("Failed to give achievement for user '" + user.UserID.String() + "'. Ignoring. Error: " + err.Error())
+					logger.Log.Info("Failed to give achievement for user '" + user.UserID.String() + "'. Ignoring. Error: " + err.Error())
 				}
 
 			}
@@ -885,7 +886,7 @@ func GenerateAchievementsForWeek(weekResults models.WeekResults, targetUser *uui
 				// Give achievement to user for long note
 				err := GiveUserAnAchievement(user.UserID, uuid.MustParse("ae27d8bf-dfc8-4be1-b7a9-01183b375ebf"), day.Date)
 				if err != nil {
-					log.Info("Failed to give achievement for user '" + user.UserID.String() + "'. Ignoring. Error: " + err.Error())
+					logger.Log.Info("Failed to give achievement for user '" + user.UserID.String() + "'. Ignoring. Error: " + err.Error())
 				}
 
 			}
@@ -895,7 +896,7 @@ func GenerateAchievementsForWeek(weekResults models.WeekResults, targetUser *uui
 				// Give achievement to user
 				err := GiveUserAnAchievement(user.UserID, uuid.MustParse("51c48b42-4429-4b82-8fb2-d2bb2bfe907a"), day.Date)
 				if err != nil {
-					log.Info("Failed to give achievement for user '" + user.UserID.String() + "'. Ignoring. Error: " + err.Error())
+					logger.Log.Info("Failed to give achievement for user '" + user.UserID.String() + "'. Ignoring. Error: " + err.Error())
 				}
 
 			}
@@ -905,7 +906,7 @@ func GenerateAchievementsForWeek(weekResults models.WeekResults, targetUser *uui
 				// Give achievement to user
 				err := GiveUserAnAchievement(user.UserID, uuid.MustParse("c92178b4-753a-4624-a7f6-ae5afd0a9ca3"), day.Date)
 				if err != nil {
-					log.Info("Failed to give achievement for user '" + user.UserID.String() + "'. Ignoring. Error: " + err.Error())
+					logger.Log.Info("Failed to give achievement for user '" + user.UserID.String() + "'. Ignoring. Error: " + err.Error())
 				}
 
 			}
@@ -915,7 +916,7 @@ func GenerateAchievementsForWeek(weekResults models.WeekResults, targetUser *uui
 				// Give achievement to user
 				err := GiveUserAnAchievement(user.UserID, uuid.MustParse("47f04b1f-4e19-40fe-ace3-3afa18378751"), day.Date)
 				if err != nil {
-					log.Info("Failed to give achievement for user '" + user.UserID.String() + "'. Ignoring. Error: " + err.Error())
+					logger.Log.Info("Failed to give achievement for user '" + user.UserID.String() + "'. Ignoring. Error: " + err.Error())
 				}
 			}
 
@@ -940,7 +941,7 @@ func GenerateAchievementsForWeek(weekResults models.WeekResults, targetUser *uui
 			// Give achievement to user for exercising everyday
 			err := GiveUserAnAchievement(user.UserID, uuid.MustParse("a8c62293-6090-4b16-a070-ad65404836ae"), sundayDate)
 			if err != nil {
-				log.Info("Failed to give achievement for user '" + user.UserID.String() + "'. Ignoring. Error: " + err.Error())
+				logger.Log.Info("Failed to give achievement for user '" + user.UserID.String() + "'. Ignoring. Error: " + err.Error())
 			}
 
 		}
@@ -951,7 +952,7 @@ func GenerateAchievementsForWeek(weekResults models.WeekResults, targetUser *uui
 			// Give achievement to user for only exercising on the weekend
 			err := GiveUserAnAchievement(user.UserID, uuid.MustParse("31fa2681-eec7-43e4-bc69-35dee352eaee"), sundayDate)
 			if err != nil {
-				log.Info("Failed to give achievement for user '" + user.UserID.String() + "'. Ignoring. Error: " + err.Error())
+				logger.Log.Info("Failed to give achievement for user '" + user.UserID.String() + "'. Ignoring. Error: " + err.Error())
 			}
 
 		}
@@ -962,7 +963,7 @@ func GenerateAchievementsForWeek(weekResults models.WeekResults, targetUser *uui
 			// Give achievement to user
 			err := GiveUserAnAchievement(user.UserID, uuid.MustParse("e7ee36d4-f39e-40a3-af92-2f7e1f707d07"), sundayDate)
 			if err != nil {
-				log.Info("Failed to give achievement for user '" + user.UserID.String() + "'. Ignoring. Error: " + err.Error())
+				logger.Log.Info("Failed to give achievement for user '" + user.UserID.String() + "'. Ignoring. Error: " + err.Error())
 			}
 
 		}
@@ -973,7 +974,7 @@ func GenerateAchievementsForWeek(weekResults models.WeekResults, targetUser *uui
 		// Give achievement to user
 		err := GiveUserAnAchievement(winnerUserIDs[0], uuid.MustParse("6cc0f1b0-c894-4b12-a9ed-569cdfde3b16"), sundayDate)
 		if err != nil {
-			log.Info("Failed to give achievement for user '" + winnerUserIDs[0].String() + "'. Ignoring. Error: " + err.Error())
+			logger.Log.Info("Failed to give achievement for user '" + winnerUserIDs[0].String() + "'. Ignoring. Error: " + err.Error())
 		}
 	}
 
@@ -1079,7 +1080,7 @@ func GenerateAchievementsForSeason(seasonResults []models.WeekResults, targetUse
 						// Give achievement to user
 						err := GiveUserAnAchievement(userTally[foundIndex].UserID, uuid.MustParse("38524a0a-f0b6-4cbf-b221-05ebfa0797f7"), seasonSunday)
 						if err != nil {
-							log.Info("Failed to give achievement for user '" + userTally[foundIndex].UserID.String() + "'. Ignoring. Error: " + err.Error())
+							logger.Log.Info("Failed to give achievement for user '" + userTally[foundIndex].UserID.String() + "'. Ignoring. Error: " + err.Error())
 						}
 
 					}
@@ -1090,7 +1091,7 @@ func GenerateAchievementsForSeason(seasonResults []models.WeekResults, targetUse
 						// Give achievement to user
 						err := GiveUserAnAchievement(userTally[foundIndex].UserID, uuid.MustParse("b342cd1b-1812-4384-967f-51d2be772eab"), seasonSunday)
 						if err != nil {
-							log.Info("Failed to give achievement for user '" + userTally[foundIndex].UserID.String() + "'. Ignoring. Error: " + err.Error())
+							logger.Log.Info("Failed to give achievement for user '" + userTally[foundIndex].UserID.String() + "'. Ignoring. Error: " + err.Error())
 						}
 
 					}
@@ -1145,7 +1146,7 @@ func GenerateAchievementsForSeason(seasonResults []models.WeekResults, targetUse
 			// Give achievement to user
 			err := GiveUserAnAchievement(user.UserID, uuid.MustParse("01dc9c4b-cf65-4d3c-9596-1417b67bd86f"), seasonSunday)
 			if err != nil {
-				log.Info("Failed to give achievement for user '" + user.UserID.String() + "'. Ignoring. Error: " + err.Error())
+				logger.Log.Info("Failed to give achievement for user '" + user.UserID.String() + "'. Ignoring. Error: " + err.Error())
 			}
 		}
 
@@ -1154,7 +1155,7 @@ func GenerateAchievementsForSeason(seasonResults []models.WeekResults, targetUse
 			// Give achievement to user
 			err := GiveUserAnAchievement(user.UserID, uuid.MustParse("b566e486-d476-40f1-a9f2-28035bb43f37"), seasonSunday)
 			if err != nil {
-				log.Info("Failed to give achievement for user '" + user.UserID.String() + "'. Ignoring. Error: " + err.Error())
+				logger.Log.Info("Failed to give achievement for user '" + user.UserID.String() + "'. Ignoring. Error: " + err.Error())
 			}
 		}
 
@@ -1170,7 +1171,7 @@ func APIGiveUserAnAchievement(context *gin.Context) {
 
 	// Parse creation request
 	if err := context.ShouldBindJSON(&achievementDelegationCreationRequest); err != nil {
-		log.Info("Failed to parse creation request. Error: " + err.Error())
+		logger.Log.Info("Failed to parse creation request. Error: " + err.Error())
 		context.JSON(http.StatusBadRequest, gin.H{"error": "Failed to parse creation request."})
 		context.Abort()
 		return
@@ -1178,7 +1179,7 @@ func APIGiveUserAnAchievement(context *gin.Context) {
 
 	userID, err := uuid.Parse(userIDString)
 	if err != nil {
-		log.Info("Failed to parse user ID. Error: " + err.Error())
+		logger.Log.Info("Failed to parse user ID. Error: " + err.Error())
 		context.JSON(http.StatusBadRequest, gin.H{"error": "Failed to parse user ID."})
 		context.Abort()
 		return
@@ -1191,7 +1192,7 @@ func APIGiveUserAnAchievement(context *gin.Context) {
 
 	err = GiveUserAnAchievement(userID, achievementDelegationCreationRequest.AchievementID, givenAt)
 	if err != nil {
-		log.Info("Failed to give achievement to user. Error: " + err.Error())
+		logger.Log.Info("Failed to give achievement to user. Error: " + err.Error())
 		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to give achievement to user."})
 		context.Abort()
 		return

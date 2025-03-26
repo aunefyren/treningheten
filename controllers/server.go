@@ -2,8 +2,8 @@ package controllers
 
 import (
 	"aunefyren/treningheten/config"
+	"aunefyren/treningheten/logger"
 	"aunefyren/treningheten/models"
-	"log"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -13,7 +13,7 @@ func APIGetServerInfo(context *gin.Context) {
 
 	config, err := config.GetConfig()
 	if err != nil {
-		log.Info("Failed to get config. Error: " + err.Error())
+		logger.Log.Info("Failed to get config. Error: " + err.Error())
 		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get config."})
 		context.Abort()
 		return

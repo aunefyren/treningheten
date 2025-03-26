@@ -4,9 +4,9 @@ import (
 	"aunefyren/treningheten/auth"
 	"aunefyren/treningheten/config"
 	"aunefyren/treningheten/database"
+	"aunefyren/treningheten/logger"
 	"aunefyren/treningheten/middlewares"
 	"aunefyren/treningheten/models"
-	"log"
 	"net/http"
 	"time"
 
@@ -24,7 +24,7 @@ func GenerateToken(context *gin.Context) {
 
 	var user models.User
 	if err := context.ShouldBindJSON(&request); err != nil {
-		log.Info("Failed to parse request. Error: " + err.Error())
+		logger.Log.Info("Failed to parse request. Error: " + err.Error())
 		context.JSON(http.StatusBadRequest, gin.H{"error": "Invalid credentials."})
 		context.Abort()
 		return
@@ -33,7 +33,7 @@ func GenerateToken(context *gin.Context) {
 	// check if email exists and password is correct
 	record := database.Instance.Where("email = ?", request.Email).First(&user)
 	if record.Error != nil {
-		log.Info("Invalid credentials. Error: " + record.Error.Error())
+		logger.Log.Info("Invalid credentials. Error: " + record.Error.Error())
 		context.JSON(http.StatusInternalServerError, gin.H{"error": "Invalid credentials."})
 		context.Abort()
 		return
@@ -41,7 +41,7 @@ func GenerateToken(context *gin.Context) {
 
 	credentialError := user.CheckPassword(request.Password)
 	if credentialError != nil {
-		log.Info("Invalid credentials. Error: " + credentialError.Error())
+		logger.Log.Info("Invalid credentials. Error: " + credentialError.Error())
 		context.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid credentials."})
 		context.Abort()
 		return
@@ -64,7 +64,7 @@ func ValidateToken(context *gin.Context) {
 
 	claims, err := middlewares.GetTokenClaims(context.GetHeader("Authorization"))
 	if err != nil {
-		log.Info("Failed to validate session. Error: " + err.Error())
+		logger.Log.Info("Failed to validate session. Error: " + err.Error())
 		context.JSON(http.StatusBadRequest, gin.H{"error": "Invalid session. Please log in again."})
 		context.Abort()
 		return
@@ -90,7 +90,7 @@ func ValidateToken(context *gin.Context) {
 			// Get user object by ID and check and update admin status
 			userObject, userErr := database.GetUserInformation(claims.UserID)
 			if userErr != nil {
-				log.Info("Failed to check admin status during token refresh.")
+				logger.Log.Info("Failed to check admin status during token refresh.")
 				context.JSON(http.StatusBadRequest, gin.H{"error": "Invalid session. Please log in again."})
 				context.Abort()
 				return
@@ -101,7 +101,7 @@ func ValidateToken(context *gin.Context) {
 			// Re-generate token with updated claims
 			token, err = auth.GenerateJWTFromClaims(claims)
 			if err != nil {
-				log.Info("Failed to re-sign JWT from claims. Error: " + err.Error())
+				logger.Log.Info("Failed to re-sign JWT from claims. Error: " + err.Error())
 				token = ""
 			}
 		}
@@ -111,12 +111,12 @@ func ValidateToken(context *gin.Context) {
 	// Get public VAPID key
 	VAPIDSettings, err := GetVAPIDSettings()
 	if err != nil {
-		log.Info("Failed to get public VAPID key from config. Error: " + err.Error())
+		logger.Log.Info("Failed to get public VAPID key from config. Error: " + err.Error())
 	}
 
 	configFile, err := config.GetConfig()
 	if err != nil {
-		log.Info("Failed to get config. Error: " + err.Error())
+		logger.Log.Info("Failed to get config. Error: " + err.Error())
 		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get config."})
 		context.Abort()
 		return

@@ -2,8 +2,8 @@ package controllers
 
 import (
 	"aunefyren/treningheten/database"
+	"aunefyren/treningheten/logger"
 	"aunefyren/treningheten/middlewares"
-	"log"
 	"net/http"
 	"time"
 
@@ -25,7 +25,7 @@ func APIRegisterSickleave(context *gin.Context) {
 	// Get user ID
 	userID, err := middlewares.GetAuthUsername(context.GetHeader("Authorization"))
 	if err != nil {
-		log.Info("Failed to verify user ID. Error: " + "Failed to verify user ID.")
+		logger.Log.Info("Failed to verify user ID. Error: " + "Failed to verify user ID.")
 		context.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		context.Abort()
 		return
@@ -34,12 +34,12 @@ func APIRegisterSickleave(context *gin.Context) {
 	// Get current season
 	season, err := database.GetSeasonByID(seasonIDUUIID)
 	if err != nil {
-		log.Info("Failed to verify current season status. Error: " + err.Error())
+		logger.Log.Info("Failed to verify current season status. Error: " + err.Error())
 		context.JSON(http.StatusBadRequest, gin.H{"error": "Failed to verify current season status."})
 		context.Abort()
 		return
 	} else if season == nil {
-		log.Info("Failed to verify current season status. Error: No active or future seasons found.")
+		logger.Log.Info("Failed to verify current season status. Error: No active or future seasons found.")
 		context.JSON(http.StatusBadRequest, gin.H{"error": "Failed to verify current season status."})
 		context.Abort()
 	}
@@ -57,12 +57,12 @@ func APIRegisterSickleave(context *gin.Context) {
 	// Verify goal doesn't exist within season
 	goalStatus, goalID, err := database.VerifyUserGoalInSeason(userID, season.ID)
 	if err != nil {
-		log.Info("Failed to verify goal status. Error: " + err.Error())
+		logger.Log.Info("Failed to verify goal status. Error: " + err.Error())
 		context.JSON(http.StatusBadRequest, gin.H{"error": "Failed to verify goal status."})
 		context.Abort()
 		return
 	} else if !goalStatus {
-		log.Info("User does not have a goal for season: " + season.ID.String())
+		logger.Log.Info("User does not have a goal for season: " + season.ID.String())
 		context.JSON(http.StatusBadRequest, gin.H{"error": "You don't have a goal set for this season."})
 		context.Abort()
 		return
@@ -71,7 +71,7 @@ func APIRegisterSickleave(context *gin.Context) {
 	// Check for sickleave left
 	sickleaveArray, sickleaveFound, err := database.GetUnusedSickleaveForGoalWithinWeek(goalID)
 	if err != nil {
-		log.Info("Failed to verify sick leave. Error: " + err.Error())
+		logger.Log.Info("Failed to verify sick leave. Error: " + err.Error())
 		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to verify sick leave."})
 		context.Abort()
 		return
@@ -84,7 +84,7 @@ func APIRegisterSickleave(context *gin.Context) {
 	// Check if week is already sickleave
 	sickLeave, err := database.GetUsedSickleaveForGoalWithinWeek(now, goalID)
 	if err != nil {
-		log.Info("Failed to verify sick leave. Error: " + err.Error())
+		logger.Log.Info("Failed to verify sick leave. Error: " + err.Error())
 		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to verify sick leave."})
 		context.Abort()
 		return
@@ -96,7 +96,7 @@ func APIRegisterSickleave(context *gin.Context) {
 
 	err = database.SetSickleaveToUsedByID(sickleaveArray[0].ID)
 	if err != nil {
-		log.Info("Failed to update sick leave. Error: " + err.Error())
+		logger.Log.Info("Failed to update sick leave. Error: " + err.Error())
 		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update sick leave."})
 		context.Abort()
 		return
@@ -105,7 +105,7 @@ func APIRegisterSickleave(context *gin.Context) {
 	// Give achievement to user
 	err = GiveUserAnAchievement(userID, uuid.MustParse("420b020c-2cad-4898-bb94-d86dc0031203"), now)
 	if err != nil {
-		log.Info("Failed to give achievement for user '" + userID.String() + "'. Ignoring. Error: " + err.Error())
+		logger.Log.Info("Failed to give achievement for user '" + userID.String() + "'. Ignoring. Error: " + err.Error())
 	}
 
 	context.JSON(http.StatusOK, gin.H{"message": "Sick leave used."})

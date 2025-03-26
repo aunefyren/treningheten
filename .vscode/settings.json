@@ -3,6 +3,7 @@
         "chrono",
         "leaderboard",
         "lightgreen",
+        "logrus",
         "Padel",
         "Pickleball",
         "randstr",

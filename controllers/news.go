@@ -2,8 +2,8 @@ package controllers
 
 import (
 	"aunefyren/treningheten/database"
+	"aunefyren/treningheten/logger"
 	"aunefyren/treningheten/models"
-	"log"
 	"net/http"
 	"strings"
 	"time"
@@ -59,7 +59,7 @@ func RegisterNewsPost(context *gin.Context) {
 	// Bind the incoming request body to the NewsCreationRequest model
 	if err := context.ShouldBindJSON(&newsCreationRequest); err != nil {
 		// If there is an error binding the request, return a Bad Request response
-		log.Info("Failed to parse request. Error: " + err.Error())
+		logger.Log.Info("Failed to parse request. Error: " + err.Error())
 		context.JSON(http.StatusBadRequest, gin.H{"error": "Failed to parse request."})
 		context.Abort()
 		return
@@ -106,7 +106,7 @@ func RegisterNewsPost(context *gin.Context) {
 
 	err = PushNotificationsForNews()
 	if err != nil {
-		log.Info("Failed to push notifications for news post.")
+		logger.Log.Info("Failed to push notifications for news post.")
 	}
 
 	// Return a response indicating that the group was created, along with the updated list of groups

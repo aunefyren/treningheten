@@ -4,8 +4,8 @@ import (
 	"aunefyren/treningheten/auth"
 	"aunefyren/treningheten/config"
 	"aunefyren/treningheten/database"
+	"aunefyren/treningheten/logger"
 	"errors"
-	"log"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -23,7 +23,7 @@ func Auth(admin bool) gin.HandlerFunc {
 
 		err := auth.ValidateToken(tokenString, admin)
 		if err != nil {
-			log.Info("Failed to validate token. Error: " + err.Error())
+			logger.Log.Info("Failed to validate token. Error: " + err.Error())
 			context.JSON(401, gin.H{"error": "Failed to validate token."})
 			context.Abort()
 			return
@@ -32,7 +32,7 @@ func Auth(admin bool) gin.HandlerFunc {
 		// Get configuration
 		config, err := config.GetConfig()
 		if err != nil {
-			log.Info("Failed to get config. Error: " + err.Error())
+			logger.Log.Info("Failed to get config. Error: " + err.Error())
 			context.JSON(401, gin.H{"error": "Failed to validate token."})
 			context.Abort()
 			return
@@ -50,7 +50,7 @@ func Auth(admin bool) gin.HandlerFunc {
 		enabled, err := database.VerifyUserIsEnabled(userID)
 		if err != nil {
 
-			log.Info("Failed to check account. Error: " + err.Error())
+			logger.Log.Info("Failed to check account. Error: " + err.Error())
 			context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to check account."})
 			context.Abort()
 			return
@@ -69,7 +69,7 @@ func Auth(admin bool) gin.HandlerFunc {
 			verified, err := database.VerifyUserIsVerified(userID)
 			if err != nil {
 
-				log.Info("Failed to check verification. Error: " + err.Error())
+				logger.Log.Info("Failed to check verification. Error: " + err.Error())
 				context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to check verification."})
 				context.Abort()
 				return

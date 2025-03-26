@@ -2,11 +2,11 @@ package controllers
 
 import (
 	"aunefyren/treningheten/database"
+	"aunefyren/treningheten/logger"
 	"aunefyren/treningheten/middlewares"
 	"aunefyren/treningheten/models"
 	"aunefyren/treningheten/utilities"
 	"errors"
-	"log"
 	"net/http"
 	"strconv"
 	"time"
@@ -22,29 +22,29 @@ func ProcessLastWeek() {
 	lastWeek := time.Now().AddDate(0, 0, -7)
 	lastWeek, err := utilities.FindNextSunday(lastWeek)
 	if err != nil {
-		log.Info("Got error trying to find end of the week. Error: " + err.Error())
+		logger.Log.Info("Got error trying to find end of the week. Error: " + err.Error())
 		return
 	}
 	lastWeekYear, lastWeekWeek := lastWeek.ISOWeek()
 
-	log.Info("Last week was:")
-	log.Info(lastWeekWeek)
-	log.Info(lastWeekYear)
-	log.Info("________________")
+	logger.Log.Info("Last week was:")
+	logger.Log.Info(lastWeekWeek)
+	logger.Log.Info(lastWeekYear)
+	logger.Log.Info("________________")
 
 	// Get ongoing season last week
 	seasons, err := GetOngoingSeasonsFromDB(lastWeek)
-	log.Info("Found number of seasons active last week:")
-	log.Info(len(seasons))
-	log.Info("________________")
+	logger.Log.Info("Found number of seasons active last week:")
+	logger.Log.Info(len(seasons))
+	logger.Log.Info("________________")
 
 	if err != nil {
-		log.Info("Returned error getting last weeks season: " + err.Error())
+		logger.Log.Info("Returned error getting last weeks season: " + err.Error())
 	} else {
 		for _, season := range seasons {
 			err = ProcessWeekOfSeason(season, lastWeek, true, true, nil)
 			if err != nil {
-				log.Info("Returned error processing week for season. Error: " + err.Error())
+				logger.Log.Info("Returned error processing week for season. Error: " + err.Error())
 			}
 		}
 	}
@@ -54,7 +54,7 @@ func ProcessLastWeek() {
 	now := time.Now()
 	seasonsNow, err := GetOngoingSeasonsFromDB(now)
 	if err != nil {
-		log.Info("Returned error getting this weeks season: " + err.Error())
+		logger.Log.Info("Returned error getting this weeks season: " + err.Error())
 	} else {
 		for _, seasonNow := range seasonsNow {
 			seasonNowYear, seasonNowWeek := seasonNow.Start.ISOWeek()
@@ -63,30 +63,30 @@ func ProcessLastWeek() {
 
 				seasonObject, err := ConvertSeasonToSeasonObject(seasonNow)
 				if err != nil {
-					log.Info("Returned error converting season to season object: " + err.Error())
+					logger.Log.Info("Returned error converting season to season object: " + err.Error())
 				} else {
 					err = utilities.SendSMTPSeasonStartEmail(seasonObject)
 					if err != nil {
-						log.Info("Returned error sending season start e-mail: " + err.Error())
+						logger.Log.Info("Returned error sending season start e-mail: " + err.Error())
 					}
 				}
 			}
 		}
 	}
 
-	log.Info("Done generating results for last week.")
+	logger.Log.Info("Done generating results for last week.")
 }
 
 func ProcessWeekOfSeason(season models.Season, pointInTime time.Time, generateDebt bool, generateAchievements bool, targetUser *uuid.UUID) (err error) {
 	err = nil
-	log.Info("Processing week of season: " + season.Name)
-	log.Info("Point in time: " + pointInTime.String())
+	logger.Log.Info("Processing week of season: " + season.Name)
+	logger.Log.Info("Point in time: " + pointInTime.String())
 
 	// Get results for time given
 	if generateDebt {
 		weekResults, err := GenerateDebtForWeek(pointInTime, season, targetUser)
 		if err != nil {
-			log.Info("Got error generating last weeks debt. Error: " + err.Error())
+			logger.Log.Info("Got error generating last weeks debt. Error: " + err.Error())
 			return errors.New("Got error generating last weeks debt.")
 		}
 
@@ -94,7 +94,7 @@ func ProcessWeekOfSeason(season models.Season, pointInTime time.Time, generateDe
 		if generateAchievements {
 			err := GenerateAchievementsForWeek(weekResults, targetUser)
 			if err != nil {
-				log.Info("Got error generating weeks achievements. Error: " + err.Error())
+				logger.Log.Info("Got error generating weeks achievements. Error: " + err.Error())
 				return errors.New("Got error generating weeks achievements.")
 			}
 		}
@@ -104,22 +104,22 @@ func ProcessWeekOfSeason(season models.Season, pointInTime time.Time, generateDe
 	pointInTimeYear, pointInTimeWeek := pointInTime.ISOWeek()
 
 	if pointInTimeWeek == seasonEndWeek && pointInTimeYear == seasonEndYear {
-		log.Info("Season over, checking for achievements.")
+		logger.Log.Info("Season over, checking for achievements.")
 
 		seasonObject, err := ConvertSeasonToSeasonObject(season)
 		if err != nil {
-			log.Info("Got error converting season to season object. Error: " + err.Error())
+			logger.Log.Info("Got error converting season to season object. Error: " + err.Error())
 			return errors.New("Got error converting season to season object.")
 		} else {
 
 			pastWeeks, err := RetrieveWeekResultsFromSeasonWithinTimeframe(seasonObject.Start, pointInTime, seasonObject)
 			if err != nil {
-				log.Info("Got error getting season results. Error: " + err.Error())
+				logger.Log.Info("Got error getting season results. Error: " + err.Error())
 				return errors.New("Got error getting season results.")
 			} else {
 				err = GenerateAchievementsForSeason(pastWeeks, targetUser)
 				if err != nil {
-					log.Info("Got error generating weeks achievements. Error: " + err.Error())
+					logger.Log.Info("Got error generating weeks achievements. Error: " + err.Error())
 					return errors.New("Got error generating weeks achievements.")
 				}
 			}
@@ -133,39 +133,39 @@ func ProcessWeekOfSeason(season models.Season, pointInTime time.Time, generateDe
 func GenerateDebtForWeek(givenTime time.Time, season models.Season, targetUser *uuid.UUID) (models.WeekResults, error) {
 	// Stop if not within season
 	if season.Start.After(givenTime) || season.End.Before(givenTime) {
-		log.Info("Not in the middle of a season. Returning.")
+		logger.Log.Info("Not in the middle of a season. Returning.")
 		return models.WeekResults{}, errors.New("Not in the middle of a season.")
 	}
 
 	seasonObject, err := ConvertSeasonToSeasonObject(season)
 	if err != nil {
-		log.Info("Failed to convert season to season object. Returning. Error: " + err.Error())
+		logger.Log.Info("Failed to convert season to season object. Returning. Error: " + err.Error())
 		return models.WeekResults{}, errors.New("Failed to convert season to season object.")
 	}
 
 	givenTimeMonday, err := utilities.FindEarlierMonday(givenTime)
 	if err != nil {
-		log.Info("Failed to find earliest point in the week. Error: " + err.Error())
+		logger.Log.Info("Failed to find earliest point in the week. Error: " + err.Error())
 		return models.WeekResults{}, errors.New("Failed to find earliest point in the week.")
 	}
 
 	givenTimeSunday, err := utilities.FindNextSunday(givenTime)
 	if err != nil {
-		log.Info("Failed to find latest point in the week. Error: " + err.Error())
+		logger.Log.Info("Failed to find latest point in the week. Error: " + err.Error())
 		return models.WeekResults{}, errors.New("Failed to find latest point in the week.")
 	}
 
 	lastWeekArray, err := RetrieveWeekResultsFromSeasonWithinTimeframe(givenTimeMonday, givenTimeSunday, seasonObject)
 	if err != nil {
-		log.Info("Failed to retrieve last week for season. Returning. Error: " + err.Error())
+		logger.Log.Info("Failed to retrieve last week for season. Returning. Error: " + err.Error())
 		return models.WeekResults{}, errors.New("Failed to retrieve last week for season.")
 	} else if len(lastWeekArray) != 1 {
-		log.Info("Failed to retrieve ONE week for season. Returning.")
-		log.Info("Got this: ")
-		log.Info(lastWeekArray)
-		log.Info("________________")
-		log.Info("Given time Monday: " + givenTimeMonday.String())
-		log.Info("Given time Sunday: " + givenTimeSunday.String())
+		logger.Log.Info("Failed to retrieve ONE week for season. Returning.")
+		logger.Log.Info("Got this: ")
+		logger.Log.Info(lastWeekArray)
+		logger.Log.Info("________________")
+		logger.Log.Info("Given time Monday: " + givenTimeMonday.String())
+		logger.Log.Info("Given time Sunday: " + givenTimeSunday.String())
 		return models.WeekResults{}, errors.New("Failed to retrieve ONE week for season.")
 	}
 
@@ -175,14 +175,14 @@ func GenerateDebtForWeek(givenTime time.Time, season models.Season, targetUser *
 	losers := []uuid.UUID{}
 
 	// Debug line
-	log.Info("Timeframe week start: ")
-	log.Info(givenTimeMonday)
+	logger.Log.Info("Timeframe week start: ")
+	logger.Log.Info(givenTimeMonday)
 
 	// Find losers and winners
 	for _, user := range lastWeek.UserWeekResults {
 		// Debug log message
-		log.Info("Potential winner/loser: ")
-		log.Info(user)
+		logger.Log.Info("Potential winner/loser: ")
+		logger.Log.Info(user)
 
 		if user.Competing && user.WeekCompletion < 1 && !user.SickLeave && user.FullWeekParticipation {
 			losers = append(losers, user.UserID)
@@ -195,12 +195,12 @@ func GenerateDebtForWeek(givenTime time.Time, season models.Season, targetUser *
 	winner = nil
 
 	if len(losers) == 0 {
-		log.Info("No losers this week. Returning.")
+		logger.Log.Info("No losers this week. Returning.")
 		return lastWeek, nil
 	}
 
 	if len(winners) == 0 {
-		log.Info("No winners this week. Returning.")
+		logger.Log.Info("No winners this week. Returning.")
 		return lastWeek, nil
 	} else if len(winners) == 1 {
 		winner = &winners[0]
@@ -210,16 +210,16 @@ func GenerateDebtForWeek(givenTime time.Time, season models.Season, targetUser *
 
 	for _, user := range losers {
 		if targetUser != nil && user != *targetUser {
-			log.Info("Function was called with a target user. This weeks loser is not the target user. Skipping...")
+			logger.Log.Info("Function was called with a target user. This weeks loser is not the target user. Skipping...")
 			continue
 		}
 
 		_, debtFound, err := database.GetDebtForWeekForUserInSeasonID(givenTime, user, seasonObject.ID)
 		if err != nil {
-			log.Info("Failed check for debt for '" + user.String() + "'. Skipping.")
+			logger.Log.Info("Failed check for debt for '" + user.String() + "'. Skipping.")
 			continue
 		} else if debtFound {
-			log.Info("Debt found for '" + user.String() + "'. Skipping.")
+			logger.Log.Info("Debt found for '" + user.String() + "'. Skipping.")
 			continue
 		}
 
@@ -230,11 +230,11 @@ func GenerateDebtForWeek(givenTime time.Time, season models.Season, targetUser *
 		debt.SeasonID = season.ID
 		debt.ID = uuid.New()
 
-		log.Info("Creating debt for '" + user.String() + "'.")
+		logger.Log.Info("Creating debt for '" + user.String() + "'.")
 
 		err = database.RegisterDebtInDB(debt)
 		if err != nil {
-			log.Info("Failed to log debt for '" + user.String() + "'. Skipping.")
+			logger.Log.Info("Failed to log debt for '" + user.String() + "'. Skipping.")
 			continue
 		}
 
@@ -242,31 +242,31 @@ func GenerateDebtForWeek(givenTime time.Time, season models.Season, targetUser *
 
 			nextSunday, err := utilities.FindNextSunday(givenTime)
 			if err != nil {
-				log.Info("Failed to find next Sunday for date. Skipping.")
+				logger.Log.Info("Failed to find next Sunday for date. Skipping.")
 			} else {
 
 				// Give achievement to winner for winning
 				err = GiveUserAnAchievement(*winner, uuid.MustParse("bb964360-6413-47c2-8400-ee87b40365a7"), nextSunday)
 				if err != nil {
-					log.Info("Failed to give achievement for user '" + winner.String() + "'. Ignoring. Error: " + err.Error())
+					logger.Log.Info("Failed to give achievement for user '" + winner.String() + "'. Ignoring. Error: " + err.Error())
 				}
 
 				// Give achievement to loser for spinning wheel
 				err = GiveUserAnAchievement(user, uuid.MustParse("d415fffc-ea99-4b27-8929-aeb02ae44da3"), nextSunday)
 				if err != nil {
-					log.Info("Failed to give achievement for user '" + user.String() + "'. Ignoring. Error: " + err.Error())
+					logger.Log.Info("Failed to give achievement for user '" + user.String() + "'. Ignoring. Error: " + err.Error())
 				}
 
 				// Get loser object
 				loserObject, err := database.GetAllUserInformation(user)
 				if err != nil {
-					log.Info("Failed to get object for user '" + user.String() + "'. Ignoring. Error: " + err.Error())
+					logger.Log.Info("Failed to get object for user '" + user.String() + "'. Ignoring. Error: " + err.Error())
 				} else {
 
 					// Notify loser by e-mail
 					err = utilities.SendSMTPForWeekLost(loserObject, weekNumber)
 					if err != nil {
-						log.Info("Failed to notify user '" + user.String() + "' by e-mail. Ignoring. Error: " + err.Error())
+						logger.Log.Info("Failed to notify user '" + user.String() + "' by e-mail. Ignoring. Error: " + err.Error())
 					}
 
 				}
@@ -274,19 +274,19 @@ func GenerateDebtForWeek(givenTime time.Time, season models.Season, targetUser *
 				// Notify loser by push
 				err = PushNotificationsForWeekLost(user)
 				if err != nil {
-					log.Info("Failed to notify user '" + user.String() + "' by push. Ignoring. Error: " + err.Error())
+					logger.Log.Info("Failed to notify user '" + user.String() + "' by push. Ignoring. Error: " + err.Error())
 				}
 
 				// Get winner object
 				winnerObject, err := database.GetAllUserInformation(*winner)
 				if err != nil {
-					log.Info("Failed to get object for user '" + user.String() + "'. Ignoring. Error: " + err.Error())
+					logger.Log.Info("Failed to get object for user '" + user.String() + "'. Ignoring. Error: " + err.Error())
 				} else {
 
 					// Notify winner by e-mail
 					err = utilities.SendSMTPForWheelSpinWin(winnerObject, weekNumber)
 					if err != nil {
-						log.Info("Failed to notify user '" + user.String() + "' by e-mail. Ignoring. Error: " + err.Error())
+						logger.Log.Info("Failed to notify user '" + user.String() + "' by e-mail. Ignoring. Error: " + err.Error())
 					}
 
 				}
@@ -294,7 +294,7 @@ func GenerateDebtForWeek(givenTime time.Time, season models.Season, targetUser *
 				// Notify winner by push
 				err = PushNotificationsForWheelSpinWin(*winner)
 				if err != nil {
-					log.Info("Failed to notify user '" + user.String() + "' by push. Ignoring. Error: " + err.Error())
+					logger.Log.Info("Failed to notify user '" + user.String() + "' by push. Ignoring. Error: " + err.Error())
 				}
 
 			}
@@ -304,13 +304,13 @@ func GenerateDebtForWeek(givenTime time.Time, season models.Season, targetUser *
 			// Get loser object
 			loserObject, err := database.GetAllUserInformation(user)
 			if err != nil {
-				log.Info("Failed to get object for user '" + user.String() + "'. Ignoring. Error: " + err.Error())
+				logger.Log.Info("Failed to get object for user '" + user.String() + "'. Ignoring. Error: " + err.Error())
 			} else {
 
 				// Notify loser by e-mail
 				err = utilities.SendSMTPForWheelSpin(loserObject, weekNumber)
 				if err != nil {
-					log.Info("Failed to notify user '" + user.String() + "' by e-mail. Ignoring. Error: " + err.Error())
+					logger.Log.Info("Failed to notify user '" + user.String() + "' by e-mail. Ignoring. Error: " + err.Error())
 				}
 
 			}
@@ -318,13 +318,13 @@ func GenerateDebtForWeek(givenTime time.Time, season models.Season, targetUser *
 			// Notify loser by push
 			err = PushNotificationsForWheelSpin(user)
 			if err != nil {
-				log.Info("Failed to notify user '" + user.String() + "' by push. Ignoring. Error: " + err.Error())
+				logger.Log.Info("Failed to notify user '" + user.String() + "' by push. Ignoring. Error: " + err.Error())
 			}
 
 		}
 	}
 
-	log.Info("Done logging debt. Returning.")
+	logger.Log.Info("Done logging debt. Returning.")
 	return lastWeek, nil
 }
 
@@ -333,7 +333,7 @@ func APIGetUnchosenDebt(context *gin.Context) {
 	// Get user ID
 	userID, err := middlewares.GetAuthUsername(context.GetHeader("Authorization"))
 	if err != nil {
-		log.Info("Failed to parse session details. Error: " + err.Error())
+		logger.Log.Info("Failed to parse session details. Error: " + err.Error())
 		context.JSON(http.StatusBadRequest, gin.H{"error": "Failed to parse session details."})
 		context.Abort()
 		return
@@ -341,7 +341,7 @@ func APIGetUnchosenDebt(context *gin.Context) {
 
 	debts, debtFound, err := database.GetUnchosenDebtForUserByUserID(userID)
 	if err != nil {
-		log.Info("Failed to check for debt. Error: " + err.Error())
+		logger.Log.Info("Failed to check for debt. Error: " + err.Error())
 		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to check for debt."})
 		context.Abort()
 		return
@@ -349,7 +349,7 @@ func APIGetUnchosenDebt(context *gin.Context) {
 
 	debtObjects, err := ConvertDebtsToDebtObjects(debts)
 	if err != nil {
-		log.Info("Failed to convert debt to debt objects. Error: " + err.Error())
+		logger.Log.Info("Failed to convert debt to debt objects. Error: " + err.Error())
 		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to convert debt to debt objects."})
 		context.Abort()
 		return
@@ -371,7 +371,7 @@ func ConvertDebtToDebtObject(debt models.Debt) (models.DebtObject, error) {
 	if debt.WinnerID != nil {
 		user, err := database.GetUserInformation(*debt.WinnerID)
 		if err != nil {
-			log.Info("Failed to get user information for user '" + debt.Winner.ID.String() + "'. Creating blank user. Error: " + err.Error())
+			logger.Log.Info("Failed to get user information for user '" + debt.Winner.ID.String() + "'. Creating blank user. Error: " + err.Error())
 			user = models.User{
 				FirstName: "Deleted",
 				LastName:  "Deleted",
@@ -386,7 +386,7 @@ func ConvertDebtToDebtObject(debt models.Debt) (models.DebtObject, error) {
 
 	user, err := database.GetUserInformation(debt.LoserID)
 	if err != nil {
-		log.Info("Failed to get user information for user '" + debt.Loser.ID.String() + "'. Creating blank user. Error: " + err.Error())
+		logger.Log.Info("Failed to get user information for user '" + debt.Loser.ID.String() + "'. Creating blank user. Error: " + err.Error())
 		user = models.User{
 			FirstName: "Deleted",
 			LastName:  "Deleted",
@@ -398,16 +398,16 @@ func ConvertDebtToDebtObject(debt models.Debt) (models.DebtObject, error) {
 
 	season, err := database.GetSeasonByID(debt.SeasonID)
 	if err != nil {
-		log.Info("Failed to get season '" + debt.Season.ID.String() + "' in database. Returning. Error: " + err.Error())
+		logger.Log.Info("Failed to get season '" + debt.Season.ID.String() + "' in database. Returning. Error: " + err.Error())
 		return models.DebtObject{}, err
 	} else if season == nil {
-		log.Info("Failed to find season '" + debt.Season.ID.String() + "' in database. Returning. Error: " + err.Error())
+		logger.Log.Info("Failed to find season '" + debt.Season.ID.String() + "' in database. Returning. Error: " + err.Error())
 		return models.DebtObject{}, err
 	}
 
 	seasonObject, err := ConvertSeasonToSeasonObject(*season)
 	if err != nil {
-		log.Info("Failed to convert season '" + debt.Season.ID.String() + "' to season object. Returning. Error: " + err.Error())
+		logger.Log.Info("Failed to convert season '" + debt.Season.ID.String() + "' to season object. Returning. Error: " + err.Error())
 		return models.DebtObject{}, err
 	}
 	debtObject.Season = seasonObject
@@ -431,7 +431,7 @@ func ConvertDebtsToDebtObjects(debts []models.Debt) ([]models.DebtObject, error)
 	for _, debt := range debts {
 		debtObject, err := ConvertDebtToDebtObject(debt)
 		if err != nil {
-			log.Info("Failed to convert debt to debt object. Returning. Error: " + err.Error())
+			logger.Log.Info("Failed to convert debt to debt object. Returning. Error: " + err.Error())
 			return []models.DebtObject{}, err
 		}
 		debtObjects = append(debtObjects, debtObject)
@@ -449,7 +449,7 @@ func APIGetDebt(context *gin.Context) {
 	// Parse group id
 	debtIDInt, err := uuid.Parse(debtID)
 	if err != nil {
-		log.Info("Failed to parse debt ID. Error: " + err.Error())
+		logger.Log.Info("Failed to parse debt ID. Error: " + err.Error())
 		context.JSON(http.StatusBadRequest, gin.H{"error": "Failed to parse Debt ID."})
 		context.Abort()
 		return
@@ -458,7 +458,7 @@ func APIGetDebt(context *gin.Context) {
 	// Get user ID
 	userID, err := middlewares.GetAuthUsername(context.GetHeader("Authorization"))
 	if err != nil {
-		log.Info("Failed to parse session details. Error: " + err.Error())
+		logger.Log.Info("Failed to parse session details. Error: " + err.Error())
 		context.JSON(http.StatusBadRequest, gin.H{"error": "Failed to parse session details."})
 		context.Abort()
 		return
@@ -466,7 +466,7 @@ func APIGetDebt(context *gin.Context) {
 
 	debt, debtFound, err := database.GetDebtByDebtID(debtIDInt)
 	if err != nil {
-		log.Info("Failed to get debt. Error: " + err.Error())
+		logger.Log.Info("Failed to get debt. Error: " + err.Error())
 		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get debt."})
 		context.Abort()
 		return
@@ -478,7 +478,7 @@ func APIGetDebt(context *gin.Context) {
 
 	debtObject, err := ConvertDebtToDebtObject(debt)
 	if err != nil {
-		log.Info("Failed to convert debt to debt object. Error: " + err.Error())
+		logger.Log.Info("Failed to convert debt to debt object. Error: " + err.Error())
 		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to convert debt to debt object."})
 		context.Abort()
 		return
@@ -486,7 +486,7 @@ func APIGetDebt(context *gin.Context) {
 
 	debtDateMonday, err := utilities.FindEarlierMonday(debtObject.Date)
 	if err != nil {
-		log.Info("Failed to find earlier Monday. Error: " + err.Error())
+		logger.Log.Info("Failed to find earlier Monday. Error: " + err.Error())
 		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to find earlier Monday."})
 		context.Abort()
 		return
@@ -494,7 +494,7 @@ func APIGetDebt(context *gin.Context) {
 
 	debtDateSunday, err := utilities.FindNextSunday(debtObject.Date)
 	if err != nil {
-		log.Info("Failed to find next Sunday. Error: " + err.Error())
+		logger.Log.Info("Failed to find next Sunday. Error: " + err.Error())
 		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to find next Sunday."})
 		context.Abort()
 		return
@@ -502,12 +502,12 @@ func APIGetDebt(context *gin.Context) {
 
 	lastWeekArray, err := RetrieveWeekResultsFromSeasonWithinTimeframe(debtDateMonday, debtDateSunday, debtObject.Season)
 	if err != nil {
-		log.Info("Failed to retrieve week for debt. Error: " + err.Error())
+		logger.Log.Info("Failed to retrieve week for debt. Error: " + err.Error())
 		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to retrieve week for debt."})
 		context.Abort()
 		return
 	} else if len(lastWeekArray) != 1 {
-		log.Info("Failed to retrieve ONE week for debt. Got: '" + strconv.Itoa(len(lastWeekArray)) + "'.")
+		logger.Log.Info("Failed to retrieve ONE week for debt. Got: '" + strconv.Itoa(len(lastWeekArray)) + "'.")
 		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to retrieve ONE week for debt."})
 		context.Abort()
 		return
@@ -515,7 +515,7 @@ func APIGetDebt(context *gin.Context) {
 
 	lastWeek := lastWeekArray[0]
 
-	log.Info("Week result for debt have the date: " + lastWeek.WeekDate.String())
+	logger.Log.Info("Week result for debt have the date: " + lastWeek.WeekDate.String())
 
 	winners := []models.UserWithTickets{}
 
@@ -524,7 +524,7 @@ func APIGetDebt(context *gin.Context) {
 		if user.Competing && user.WeekCompletion >= 1.0 && !user.SickLeave && user.FullWeekParticipation {
 			userObject, err := database.GetAllUserInformation(user.UserID)
 			if err != nil {
-				log.Info("Failed to get user object. Error: " + err.Error())
+				logger.Log.Info("Failed to get user object. Error: " + err.Error())
 				context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get user object."})
 				context.Abort()
 				return
@@ -542,24 +542,24 @@ func APIGetDebt(context *gin.Context) {
 	// Check for wheelviews and mark them as viewed if matching
 	if debtObject.Winner != nil {
 
-		log.Info("Checking for debt views for user '" + userID.String() + "'.")
+		logger.Log.Info("Checking for debt views for user '" + userID.String() + "'.")
 
 		wheelview, wheelviewFound, err := database.GetUnviewedWheelviewByDebtIDAndUserID(userID, debtObject.ID)
 		if err != nil {
-			log.Info("Failed to retrieve wheelview for user '" + userID.String() + "'. Continuing. Error: " + err.Error())
+			logger.Log.Info("Failed to retrieve wheelview for user '" + userID.String() + "'. Continuing. Error: " + err.Error())
 		} else if wheelviewFound {
 			err = database.SetWheelviewToViewedByID(wheelview.ID)
 			if err != nil {
-				log.Info("Failed to update wheelview for user '" + userID.String() + "'. Continuing. Error: " + err.Error())
+				logger.Log.Info("Failed to update wheelview for user '" + userID.String() + "'. Continuing. Error: " + err.Error())
 			}
-			log.Info("Debt marked as viewed for user '" + userID.String() + "'.")
+			logger.Log.Info("Debt marked as viewed for user '" + userID.String() + "'.")
 
 			// If a view was viewed and the viewer was the winner, give the winning achievement.
 			if debtObject.Winner.ID == userID {
 				// Give achievement to winner for winning
 				err = GiveUserAnAchievement(userID, uuid.MustParse("bb964360-6413-47c2-8400-ee87b40365a7"), time.Now())
 				if err != nil {
-					log.Info("Failed to give achievement for user '" + userID.String() + "'. Ignoring. Error: " + err.Error())
+					logger.Log.Info("Failed to give achievement for user '" + userID.String() + "'. Ignoring. Error: " + err.Error())
 				}
 			}
 		}
@@ -577,7 +577,7 @@ func APIChooseWinnerForDebt(context *gin.Context) {
 	// Parse group id
 	debtIDInt, err := uuid.Parse(debtID)
 	if err != nil {
-		log.Info("Failed to parse debt ID. Error: " + err.Error())
+		logger.Log.Info("Failed to parse debt ID. Error: " + err.Error())
 		context.JSON(http.StatusBadRequest, gin.H{"error": "Failed to parse Debt ID."})
 		context.Abort()
 		return
@@ -586,7 +586,7 @@ func APIChooseWinnerForDebt(context *gin.Context) {
 	// Get user ID
 	userID, err := middlewares.GetAuthUsername(context.GetHeader("Authorization"))
 	if err != nil {
-		log.Info("Failed to parse session details. Error: " + err.Error())
+		logger.Log.Info("Failed to parse session details. Error: " + err.Error())
 		context.JSON(http.StatusBadRequest, gin.H{"error": "Failed to parse session details."})
 		context.Abort()
 		return
@@ -594,7 +594,7 @@ func APIChooseWinnerForDebt(context *gin.Context) {
 
 	debt, debtFound, err := database.GetDebtByDebtID(debtIDInt)
 	if err != nil {
-		log.Info("Failed to get debt. Error: " + err.Error())
+		logger.Log.Info("Failed to get debt. Error: " + err.Error())
 		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get debt."})
 		context.Abort()
 		return
@@ -617,7 +617,7 @@ func APIChooseWinnerForDebt(context *gin.Context) {
 	// Convert to debt object
 	debtObject, err := ConvertDebtToDebtObject(debt)
 	if err != nil {
-		log.Info("Failed to convert debt to debt object. Error: " + err.Error())
+		logger.Log.Info("Failed to convert debt to debt object. Error: " + err.Error())
 		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to convert debt to debt object."})
 		context.Abort()
 		return
@@ -625,7 +625,7 @@ func APIChooseWinnerForDebt(context *gin.Context) {
 
 	debtDateMonday, err := utilities.FindEarlierMonday(debtObject.Date)
 	if err != nil {
-		log.Info("Failed to find earlier Monday. Error: " + err.Error())
+		logger.Log.Info("Failed to find earlier Monday. Error: " + err.Error())
 		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to find earlier Monday."})
 		context.Abort()
 		return
@@ -633,7 +633,7 @@ func APIChooseWinnerForDebt(context *gin.Context) {
 
 	debtDateSunday, err := utilities.FindNextSunday(debtObject.Date)
 	if err != nil {
-		log.Info("Failed to find next Sunday. Error: " + err.Error())
+		logger.Log.Info("Failed to find next Sunday. Error: " + err.Error())
 		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to find next Sunday."})
 		context.Abort()
 		return
@@ -642,12 +642,12 @@ func APIChooseWinnerForDebt(context *gin.Context) {
 	// Get weeks results
 	lastWeekArray, err := RetrieveWeekResultsFromSeasonWithinTimeframe(debtDateMonday, debtDateSunday, debtObject.Season)
 	if err != nil {
-		log.Info("Failed to retrieve last week for season. Error: " + err.Error())
+		logger.Log.Info("Failed to retrieve last week for season. Error: " + err.Error())
 		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed process results."})
 		context.Abort()
 		return
 	} else if len(lastWeekArray) != 1 {
-		log.Info("Failed to retrieve ONE week for season.")
+		logger.Log.Info("Failed to retrieve ONE week for season.")
 		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed process results."})
 		context.Abort()
 		return
@@ -655,7 +655,7 @@ func APIChooseWinnerForDebt(context *gin.Context) {
 
 	sundayDate, err := utilities.FindNextSunday(debtObject.Date)
 	if err != nil {
-		log.Info("Failed to find next Sunday. Error: " + err.Error())
+		logger.Log.Info("Failed to find next Sunday. Error: " + err.Error())
 		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to find next Sunday."})
 		context.Abort()
 		return
@@ -670,7 +670,7 @@ func APIChooseWinnerForDebt(context *gin.Context) {
 		if user.Competing && user.WeekCompletion >= 1 && !user.SickLeave {
 			userObject, err := database.GetAllUserInformation(user.UserID)
 			if err != nil {
-				log.Info("Failed to get user object. Error: " + err.Error())
+				logger.Log.Info("Failed to get user object. Error: " + err.Error())
 				context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get user object."})
 				context.Abort()
 				return
@@ -681,7 +681,7 @@ func APIChooseWinnerForDebt(context *gin.Context) {
 				Tickets: user.CurrentStreak + 1,
 			}
 			winners = append(winners, userWithTickets)
-			log.Info("Contestant '" + userObject.FirstName + " " + userObject.LastName + "' with '" + strconv.Itoa(user.CurrentStreak+1) + "' tickets added.")
+			logger.Log.Info("Contestant '" + userObject.FirstName + " " + userObject.LastName + "' with '" + strconv.Itoa(user.CurrentStreak+1) + "' tickets added.")
 		}
 
 	}
@@ -699,7 +699,7 @@ func APIChooseWinnerForDebt(context *gin.Context) {
 	// Create chooser
 	chooser, err := weightedrand.NewChooser(choices...)
 	if err != nil {
-		log.Info("Failed start randomizer. Error: " + err.Error())
+		logger.Log.Info("Failed start randomizer. Error: " + err.Error())
 		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed start randomizer."})
 		context.Abort()
 		return
@@ -714,7 +714,7 @@ func APIChooseWinnerForDebt(context *gin.Context) {
 	// Give achievement to loser for losing
 	err = GiveUserAnAchievement(userID, uuid.MustParse("d415fffc-ea99-4b27-8929-aeb02ae44da3"), sundayDate)
 	if err != nil {
-		log.Info("Failed to give achievement for user '" + userID.String() + "'. Ignoring. Error: " + err.Error())
+		logger.Log.Info("Failed to give achievement for user '" + userID.String() + "'. Ignoring. Error: " + err.Error())
 	}
 
 	// Get user object
@@ -730,13 +730,13 @@ func APIChooseWinnerForDebt(context *gin.Context) {
 		wheelview.ID = uuid.New()
 		err = database.CreateWheelview(wheelview)
 		if err != nil {
-			log.Info("Create wheelview for user '" + user.User.ID.String() + "'. Error: " + err.Error())
+			logger.Log.Info("Create wheelview for user '" + user.User.ID.String() + "'. Error: " + err.Error())
 		}
 
 		// Notify winner by e-mail
 		winnerObject, err := database.GetAllUserInformation(user.User.ID)
 		if err != nil {
-			log.Info("Failed to get object for user '" + user.User.ID.String() + "'. Ignoring. Error: " + err.Error())
+			logger.Log.Info("Failed to get object for user '" + user.User.ID.String() + "'. Ignoring. Error: " + err.Error())
 		} else {
 
 			_, weekNumber := debtObject.Date.ISOWeek()
@@ -744,7 +744,7 @@ func APIChooseWinnerForDebt(context *gin.Context) {
 			// Notify winner by e-mail
 			err = utilities.SendSMTPForWheelSpinCheck(winnerObject, weekNumber)
 			if err != nil {
-				log.Info("Failed to notify user '" + user.User.ID.String() + "' by e-mail. Ignoring. Error: " + err.Error())
+				logger.Log.Info("Failed to notify user '" + user.User.ID.String() + "' by e-mail. Ignoring. Error: " + err.Error())
 			}
 
 		}
@@ -752,7 +752,7 @@ func APIChooseWinnerForDebt(context *gin.Context) {
 		// Notify winner by push
 		err = PushNotificationsForWheelSpinCheck(user.User.ID)
 		if err != nil {
-			log.Info("Failed to notify user '" + user.User.ID.String() + "' by push. Ignoring. Error: " + err.Error())
+			logger.Log.Info("Failed to notify user '" + user.User.ID.String() + "' by push. Ignoring. Error: " + err.Error())
 		}
 	}
 
@@ -773,7 +773,7 @@ func APIGetDebtOverview(context *gin.Context) {
 	// Get user ID
 	userID, err := middlewares.GetAuthUsername(context.GetHeader("Authorization"))
 	if err != nil {
-		log.Info("Failed to parse session details. Error: " + err.Error())
+		logger.Log.Info("Failed to parse session details. Error: " + err.Error())
 		context.JSON(http.StatusBadRequest, gin.H{"error": "Failed to parse session details."})
 		context.Abort()
 		return
@@ -781,14 +781,14 @@ func APIGetDebtOverview(context *gin.Context) {
 
 	wheelviews, wheelviewsFound, err := database.GetUnviewedWheelviewByUserID(userID)
 	if err != nil {
-		log.Info("Failed to get unviewed spins. Error: " + err.Error())
+		logger.Log.Info("Failed to get unviewed spins. Error: " + err.Error())
 		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get unviewed spins."})
 		context.Abort()
 		return
 	} else if wheelviewsFound {
 		wheelviewObjects, err := ConvertWheelviewsToWheelviewObjects(wheelviews)
 		if err != nil {
-			log.Info("Failed to convert wheelviews to wheelview objects. Error: " + err.Error())
+			logger.Log.Info("Failed to convert wheelviews to wheelview objects. Error: " + err.Error())
 			context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to convert wheelviews to wheelview objects."})
 			context.Abort()
 			return
@@ -798,14 +798,14 @@ func APIGetDebtOverview(context *gin.Context) {
 
 	debts, debtsFound, err := database.GetUnreceivedDebtByUserID(userID)
 	if err != nil {
-		log.Info("Failed to get unreceived debts. Error: " + err.Error())
+		logger.Log.Info("Failed to get unreceived debts. Error: " + err.Error())
 		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get unviewed spins."})
 		context.Abort()
 		return
 	} else if debtsFound {
 		debtObjects, err := ConvertDebtsToDebtObjects(debts)
 		if err != nil {
-			log.Info("Failed to convert debts to debt objects. Error: " + err.Error())
+			logger.Log.Info("Failed to convert debts to debt objects. Error: " + err.Error())
 			context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to convert debts to debt objects."})
 			context.Abort()
 			return
@@ -815,7 +815,7 @@ func APIGetDebtOverview(context *gin.Context) {
 		for _, debt := range debtObjects {
 			wheelview, wheelviewFound, err := database.GetWheelviewByDebtIDAndUserID(userID, debt.ID)
 			if err != nil {
-				log.Info("Failed to get wheelview for debt. Error: " + err.Error())
+				logger.Log.Info("Failed to get wheelview for debt. Error: " + err.Error())
 				context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get wheelview for debt."})
 				context.Abort()
 				return
@@ -827,14 +827,14 @@ func APIGetDebtOverview(context *gin.Context) {
 
 	debts, debtsFound, err = database.GetUnchosenDebtForUserByUserID(userID)
 	if err != nil {
-		log.Info("Failed to get unreceived debts. Error: " + err.Error())
+		logger.Log.Info("Failed to get unreceived debts. Error: " + err.Error())
 		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get unpsun spins."})
 		context.Abort()
 		return
 	} else if debtsFound {
 		debtObjects, err := ConvertDebtsToDebtObjects(debts)
 		if err != nil {
-			log.Info("Failed to convert debts to debt objects. Error: " + err.Error())
+			logger.Log.Info("Failed to convert debts to debt objects. Error: " + err.Error())
 			context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to convert debts to debt objects."})
 			context.Abort()
 			return
@@ -844,14 +844,14 @@ func APIGetDebtOverview(context *gin.Context) {
 
 	debts, debtsFound, err = database.GetUnpaidDebtForUser(userID)
 	if err != nil {
-		log.Info("Failed to get unreceived debts. Error: " + err.Error())
+		logger.Log.Info("Failed to get unreceived debts. Error: " + err.Error())
 		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get unpaid debt."})
 		context.Abort()
 		return
 	} else if debtsFound {
 		debtObjects, err := ConvertDebtsToDebtObjects(debts)
 		if err != nil {
-			log.Info("Failed to convert debts to debt objects. Error: " + err.Error())
+			logger.Log.Info("Failed to convert debts to debt objects. Error: " + err.Error())
 			context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to convert debts to debt objects."})
 			context.Abort()
 			return
@@ -871,7 +871,7 @@ func APISetPrizeReceived(context *gin.Context) {
 	// Parse group id
 	debtIDInt, err := uuid.Parse(debtID)
 	if err != nil {
-		log.Info("Failed to parse debt ID. Error: " + err.Error())
+		logger.Log.Info("Failed to parse debt ID. Error: " + err.Error())
 		context.JSON(http.StatusBadRequest, gin.H{"error": "Failed to parse Debt ID."})
 		context.Abort()
 		return
@@ -880,7 +880,7 @@ func APISetPrizeReceived(context *gin.Context) {
 	// Get user ID
 	userID, err := middlewares.GetAuthUsername(context.GetHeader("Authorization"))
 	if err != nil {
-		log.Info("Failed to parse session details. Error: " + err.Error())
+		logger.Log.Info("Failed to parse session details. Error: " + err.Error())
 		context.JSON(http.StatusBadRequest, gin.H{"error": "Failed to parse session details."})
 		context.Abort()
 		return
@@ -888,7 +888,7 @@ func APISetPrizeReceived(context *gin.Context) {
 
 	err = database.UpdateDebtPaidStatus(debtIDInt, userID)
 	if err != nil {
-		log.Info("Failed to update payment status. Error: " + err.Error())
+		logger.Log.Info("Failed to update payment status. Error: " + err.Error())
 		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update payment status."})
 		context.Abort()
 		return
@@ -904,7 +904,7 @@ func APIGenerateDebtForWeek(context *gin.Context) {
 	// Bind the incoming request body to the GenerateDebtRequest model
 	if err := context.ShouldBindJSON(&debtCreationRequest); err != nil {
 		// If there is an error binding the request, return a Bad Request response
-		log.Info("Failed to parse request. Error: " + err.Error())
+		logger.Log.Info("Failed to parse request. Error: " + err.Error())
 		context.JSON(http.StatusBadRequest, gin.H{"error": "Failed to parse request."})
 		context.Abort()
 		return
@@ -912,7 +912,7 @@ func APIGenerateDebtForWeek(context *gin.Context) {
 
 	seasons, err := GetOngoingSeasonsFromDB(debtCreationRequest.Date)
 	if err != nil {
-		log.Info("Got error getting seasons from timeframe. Error: " + err.Error())
+		logger.Log.Info("Got error getting seasons from timeframe. Error: " + err.Error())
 		context.JSON(http.StatusInternalServerError, gin.H{"error": "Got error getting seasons from timeframe."})
 		context.Abort()
 		return
@@ -920,7 +920,7 @@ func APIGenerateDebtForWeek(context *gin.Context) {
 		for _, season := range seasons {
 			err = ProcessWeekOfSeason(season, debtCreationRequest.Date, true, true, debtCreationRequest.TargetUser)
 			if err != nil {
-				log.Info("Got error processing week for season. Error: " + err.Error())
+				logger.Log.Info("Got error processing week for season. Error: " + err.Error())
 				context.JSON(http.StatusInternalServerError, gin.H{"error": "Got error processing week for season."})
 				context.Abort()
 				return

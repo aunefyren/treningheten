@@ -3,12 +3,12 @@ package controllers
 import (
 	"aunefyren/treningheten/config"
 	"aunefyren/treningheten/database"
+	"aunefyren/treningheten/logger"
 	"aunefyren/treningheten/middlewares"
 	"aunefyren/treningheten/models"
 	"bytes"
 	"encoding/json"
 	"errors"
-	"log"
 	"net/http"
 	"strings"
 
@@ -20,7 +20,7 @@ import (
 func PushNotificationToSubscriptions(notificationType string, notificationBody string, notificationTitle string, subscriptions []models.Subscription) (int, error) {
 	vapidSettings, err := GetVAPIDSettings()
 	if err != nil {
-		log.Info("Failed to get VAPID settings. Error: " + err.Error())
+		logger.Log.Info("Failed to get VAPID settings. Error: " + err.Error())
 		return 0, errors.New("Failed to get VAPID settings.")
 	}
 
@@ -36,7 +36,7 @@ func PushNotificationToSubscriptions(notificationType string, notificationBody s
 
 	dataBuffer := &bytes.Buffer{}
 	if err = json.Compact(dataBuffer, []byte(notificationData)); err != nil {
-		log.Info("Failed to compact JSON data. Error: " + err.Error())
+		logger.Log.Info("Failed to compact JSON data. Error: " + err.Error())
 		return 0, errors.New("Failed to compact JSON data.")
 	}
 
@@ -59,18 +59,18 @@ func PushNotificationToSubscriptions(notificationType string, notificationBody s
 		})
 
 		if err != nil {
-			log.Info("Failed to push notification. Error: " + err.Error())
+			logger.Log.Info("Failed to push notification. Error: " + err.Error())
 			return notificationSum, errors.New("Failed to push notification.")
 		}
 
-		log.Info("Pushed notification, got status code: " + string(response.Status))
+		logger.Log.Info("Pushed notification, got status code: " + string(response.Status))
 
 		// Disable "gone" endpoints
 		if response.StatusCode == 410 {
 			subscription.Enabled = false
 			_, err := database.UpdateSubscription(subscription)
 			if err != nil {
-				log.Info("Failed to disable subscription. Error: " + err.Error())
+				logger.Log.Info("Failed to disable subscription. Error: " + err.Error())
 			}
 		}
 
@@ -86,7 +86,7 @@ func GetVAPIDSettings() (models.VAPIDSettings, error) {
 
 	config, err := config.GetConfig()
 	if err != nil {
-		log.Info("Failed to get config file. Error: " + err.Error())
+		logger.Log.Info("Failed to get config file. Error: " + err.Error())
 		return vapidSettings, errors.New("Failed to get config file.")
 	}
 
@@ -105,7 +105,7 @@ func APISubscribeToNotification(context *gin.Context) {
 	var subscription models.Subscription
 
 	if err := context.ShouldBindJSON(&subscriptionRequest); err != nil {
-		log.Info("Failed to parse request. Error: " + err.Error())
+		logger.Log.Info("Failed to parse request. Error: " + err.Error())
 		context.JSON(http.StatusBadRequest, gin.H{"error": "Failed to parse request."})
 		context.Abort()
 		return
@@ -114,7 +114,7 @@ func APISubscribeToNotification(context *gin.Context) {
 	// Get user ID
 	userID, err := middlewares.GetAuthUsername(context.GetHeader("Authorization"))
 	if err != nil {
-		log.Info("Failed to get User ID from token. Error: " + err.Error())
+		logger.Log.Info("Failed to get User ID from token. Error: " + err.Error())
 		context.JSON(http.StatusBadRequest, gin.H{"error": "Failed to get User ID from token."})
 		context.Abort()
 		return
@@ -132,7 +132,7 @@ func APISubscribeToNotification(context *gin.Context) {
 
 	_, err = database.CreateSubscriptionInDB(subscription)
 	if err != nil {
-		log.Info("Failed to create subscription in database. Error: " + err.Error())
+		logger.Log.Info("Failed to create subscription in database. Error: " + err.Error())
 		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create subscription in database."})
 		context.Abort()
 		return
@@ -148,7 +148,7 @@ func APIPushNotificationToAllDevicesForUser(context *gin.Context) {
 	var notificationRequest models.NotificationCreationRequest
 
 	if err := context.ShouldBindJSON(&notificationRequest); err != nil {
-		log.Info("Failed to parse request. Error: " + err.Error())
+		logger.Log.Info("Failed to parse request. Error: " + err.Error())
 		context.JSON(http.StatusBadRequest, gin.H{"error": "Failed to parse request."})
 		context.Abort()
 		return
@@ -156,7 +156,7 @@ func APIPushNotificationToAllDevicesForUser(context *gin.Context) {
 
 	subscriptions, err := database.GetAllSubscriptionsForUserByUserID(notificationRequest.UserID)
 	if err != nil {
-		log.Info("Failed to get subscriptions for user. Error: " + err.Error())
+		logger.Log.Info("Failed to get subscriptions for user. Error: " + err.Error())
 		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get subscriptions for user."})
 		context.Abort()
 		return
@@ -164,7 +164,7 @@ func APIPushNotificationToAllDevicesForUser(context *gin.Context) {
 
 	pushedAmount, err := PushNotificationToSubscriptions(notificationRequest.Category, notificationRequest.Body, notificationRequest.Title, subscriptions)
 	if err != nil {
-		log.Info("Failed to push notification. Error: " + err.Error())
+		logger.Log.Info("Failed to push notification. Error: " + err.Error())
 		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to push notification."})
 		context.Abort()
 		return
@@ -180,7 +180,7 @@ func APIGetSubscriptionForEndpoint(context *gin.Context) {
 	var subscriptionRequest models.SubscriptionGetRequest
 
 	if err := context.ShouldBindJSON(&subscriptionRequest); err != nil {
-		log.Info("Failed to parse request. Error: " + err.Error())
+		logger.Log.Info("Failed to parse request. Error: " + err.Error())
 		context.JSON(http.StatusBadRequest, gin.H{"error": "Failed to parse request."})
 		context.Abort()
 		return
@@ -189,7 +189,7 @@ func APIGetSubscriptionForEndpoint(context *gin.Context) {
 	// Get user ID
 	userID, err := middlewares.GetAuthUsername(context.GetHeader("Authorization"))
 	if err != nil {
-		log.Info("Failed to get User ID from token. Error: " + err.Error())
+		logger.Log.Info("Failed to get User ID from token. Error: " + err.Error())
 		context.JSON(http.StatusBadRequest, gin.H{"error": "Failed to get User ID from token."})
 		context.Abort()
 		return
@@ -197,7 +197,7 @@ func APIGetSubscriptionForEndpoint(context *gin.Context) {
 
 	subscription, subFound, err := database.GetAllSubscriptionForUserByUserIDAndEndpoint(userID, subscriptionRequest.Endpoint)
 	if err != nil {
-		log.Info("Failed to get subscription from database. Error: " + err.Error())
+		logger.Log.Info("Failed to get subscription from database. Error: " + err.Error())
 		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get subscription from database."})
 		context.Abort()
 		return
@@ -217,7 +217,7 @@ func APIUpdateSubscriptionForEndpoint(context *gin.Context) {
 	var subscriptionUpdateRequest models.SubscriptionUpdateRequest
 
 	if err := context.ShouldBindJSON(&subscriptionUpdateRequest); err != nil {
-		log.Info("Failed to parse request. Error: " + err.Error())
+		logger.Log.Info("Failed to parse request. Error: " + err.Error())
 		context.JSON(http.StatusBadRequest, gin.H{"error": "Failed to parse request."})
 		context.Abort()
 		return
@@ -226,7 +226,7 @@ func APIUpdateSubscriptionForEndpoint(context *gin.Context) {
 	// Get user ID
 	userID, err := middlewares.GetAuthUsername(context.GetHeader("Authorization"))
 	if err != nil {
-		log.Info("Failed to get User ID from token. Error: " + err.Error())
+		logger.Log.Info("Failed to get User ID from token. Error: " + err.Error())
 		context.JSON(http.StatusBadRequest, gin.H{"error": "Failed to get User ID from token."})
 		context.Abort()
 		return
@@ -234,7 +234,7 @@ func APIUpdateSubscriptionForEndpoint(context *gin.Context) {
 
 	err = database.UpdateSubscriptionForUserByUserIDAndEndpoint(userID, subscriptionUpdateRequest.Endpoint, subscriptionUpdateRequest.SundayAlert, subscriptionUpdateRequest.AchievementAlert, subscriptionUpdateRequest.NewsAlert)
 	if err != nil {
-		log.Info("Failed to update subscription in database. Error: " + err.Error())
+		logger.Log.Info("Failed to update subscription in database. Error: " + err.Error())
 		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update subscription in database."})
 		context.Abort()
 		return
@@ -260,10 +260,10 @@ func PushNotificationsForAchievements(userID uuid.UUID) (err error) {
 
 	subscriptions, subscriptionsFound, err := database.GetAllSubscriptionsForAchievementsForUserID(userID)
 	if err != nil {
-		log.Info("Failed to get subscriptions from database. Error: " + err.Error())
+		logger.Log.Info("Failed to get subscriptions from database. Error: " + err.Error())
 		return errors.New("Failed to get subscriptions from database.")
 	} else if !subscriptionsFound {
-		log.Info("No subscriptions found for achievements.")
+		logger.Log.Info("No subscriptions found for achievements.")
 		return nil
 	}
 
@@ -273,7 +273,7 @@ func PushNotificationsForAchievements(userID uuid.UUID) (err error) {
 
 	_, err = PushNotificationToSubscriptions(category, body, title, subscriptions)
 	if err != nil {
-		log.Info("Failed to push notification(s). Error: " + err.Error())
+		logger.Log.Info("Failed to push notification(s). Error: " + err.Error())
 		return errors.New("Failed to push notification(s).")
 	}
 
@@ -297,10 +297,10 @@ func PushNotificationsForNews() (err error) {
 
 	subscriptions, subscriptionsFound, err := database.GetAllSubscriptionsForNews()
 	if err != nil {
-		log.Info("Failed to get subscriptions from database. Error: " + err.Error())
+		logger.Log.Info("Failed to get subscriptions from database. Error: " + err.Error())
 		return errors.New("Failed to get subscriptions from database.")
 	} else if !subscriptionsFound {
-		log.Info("No subscriptions found for achievements.")
+		logger.Log.Info("No subscriptions found for achievements.")
 		return nil
 	}
 
@@ -310,7 +310,7 @@ func PushNotificationsForNews() (err error) {
 
 	_, err = PushNotificationToSubscriptions(category, body, title, subscriptions)
 	if err != nil {
-		log.Info("Failed to push notification(s). Error: " + err.Error())
+		logger.Log.Info("Failed to push notification(s). Error: " + err.Error())
 		return errors.New("Failed to push notification(s).")
 	}
 
@@ -334,10 +334,10 @@ func PushNotificationsForSundayAlerts() (err error) {
 
 	subscriptions, subscriptionsFound, err := database.GetAllSubscriptionsForSundayAlerts()
 	if err != nil {
-		log.Info("Failed to get subscriptions from database. Error: " + err.Error())
+		logger.Log.Info("Failed to get subscriptions from database. Error: " + err.Error())
 		return errors.New("Failed to get subscriptions from database.")
 	} else if !subscriptionsFound {
-		log.Info("No subscriptions found for achievements.")
+		logger.Log.Info("No subscriptions found for achievements.")
 		return nil
 	}
 
@@ -347,7 +347,7 @@ func PushNotificationsForSundayAlerts() (err error) {
 
 	_, err = PushNotificationToSubscriptions(category, body, title, subscriptions)
 	if err != nil {
-		log.Info("Failed to push notification(s). Error: " + err.Error())
+		logger.Log.Info("Failed to push notification(s). Error: " + err.Error())
 		return errors.New("Failed to push notification(s).")
 	}
 
@@ -371,10 +371,10 @@ func PushNotificationsForWeekLost(userId uuid.UUID) (err error) {
 
 	subscriptions, err := database.GetAllSubscriptionsForUserByUserID(userId)
 	if err != nil {
-		log.Info("Failed to get subscriptions from database. Error: " + err.Error())
+		logger.Log.Info("Failed to get subscriptions from database. Error: " + err.Error())
 		return errors.New("Failed to get subscriptions from database.")
 	} else if len(subscriptions) == 0 {
-		log.Info("No subscriptions found for user.")
+		logger.Log.Info("No subscriptions found for user.")
 		return nil
 	}
 
@@ -384,7 +384,7 @@ func PushNotificationsForWeekLost(userId uuid.UUID) (err error) {
 
 	_, err = PushNotificationToSubscriptions(category, body, title, subscriptions)
 	if err != nil {
-		log.Info("Failed to push notification(s). Error: " + err.Error())
+		logger.Log.Info("Failed to push notification(s). Error: " + err.Error())
 		return errors.New("Failed to push notification(s).")
 	}
 
@@ -408,10 +408,10 @@ func PushNotificationsForWheelSpin(userId uuid.UUID) (err error) {
 
 	subscriptions, err := database.GetAllSubscriptionsForUserByUserID(userId)
 	if err != nil {
-		log.Info("Failed to get subscriptions from database. Error: " + err.Error())
+		logger.Log.Info("Failed to get subscriptions from database. Error: " + err.Error())
 		return errors.New("Failed to get subscriptions from database.")
 	} else if len(subscriptions) == 0 {
-		log.Info("No subscriptions found for user.")
+		logger.Log.Info("No subscriptions found for user.")
 		return nil
 	}
 
@@ -421,7 +421,7 @@ func PushNotificationsForWheelSpin(userId uuid.UUID) (err error) {
 
 	_, err = PushNotificationToSubscriptions(category, body, title, subscriptions)
 	if err != nil {
-		log.Info("Failed to push notification(s). Error: " + err.Error())
+		logger.Log.Info("Failed to push notification(s). Error: " + err.Error())
 		return errors.New("Failed to push notification(s).")
 	}
 
@@ -445,10 +445,10 @@ func PushNotificationsForWheelSpinCheck(userId uuid.UUID) (err error) {
 
 	subscriptions, err := database.GetAllSubscriptionsForUserByUserID(userId)
 	if err != nil {
-		log.Info("Failed to get subscriptions from database. Error: " + err.Error())
+		logger.Log.Info("Failed to get subscriptions from database. Error: " + err.Error())
 		return errors.New("Failed to get subscriptions from database.")
 	} else if len(subscriptions) == 0 {
-		log.Info("No subscriptions found for user.")
+		logger.Log.Info("No subscriptions found for user.")
 		return nil
 	}
 
@@ -458,7 +458,7 @@ func PushNotificationsForWheelSpinCheck(userId uuid.UUID) (err error) {
 
 	_, err = PushNotificationToSubscriptions(category, body, title, subscriptions)
 	if err != nil {
-		log.Info("Failed to push notification(s). Error: " + err.Error())
+		logger.Log.Info("Failed to push notification(s). Error: " + err.Error())
 		return errors.New("Failed to push notification(s).")
 	}
 
@@ -482,10 +482,10 @@ func PushNotificationsForWheelSpinWin(userId uuid.UUID) (err error) {
 
 	subscriptions, err := database.GetAllSubscriptionsForUserByUserID(userId)
 	if err != nil {
-		log.Info("Failed to get subscriptions from database. Error: " + err.Error())
+		logger.Log.Info("Failed to get subscriptions from database. Error: " + err.Error())
 		return errors.New("Failed to get subscriptions from database.")
 	} else if len(subscriptions) == 0 {
-		log.Info("No subscriptions found for user.")
+		logger.Log.Info("No subscriptions found for user.")
 		return nil
 	}
 
@@ -495,7 +495,7 @@ func PushNotificationsForWheelSpinWin(userId uuid.UUID) (err error) {
 
 	_, err = PushNotificationToSubscriptions(category, body, title, subscriptions)
 	if err != nil {
-		log.Info("Failed to push notification(s). Error: " + err.Error())
+		logger.Log.Info("Failed to push notification(s). Error: " + err.Error())
 		return errors.New("Failed to push notification(s).")
 	}
 

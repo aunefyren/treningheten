@@ -3,8 +3,8 @@ package utilities
 import (
 	"aunefyren/treningheten/config"
 	"aunefyren/treningheten/database"
+	"aunefyren/treningheten/logger"
 	"aunefyren/treningheten/models"
-	"log"
 	"strconv"
 	"strings"
 	"time"
@@ -24,7 +24,7 @@ func SendSMTPVerificationEmail(user models.User) error {
 		user.Email = config.TreninghetenTestEmail
 	}
 
-	log.Info("Sending e-mail to: " + user.Email + ".")
+	logger.Log.Info("Sending e-mail to: " + user.Email + ".")
 
 	m := mail.NewMessage()
 	m.SetAddressHeader("From", config.SMTPFrom, config.TreninghetenName)
@@ -56,7 +56,7 @@ func SendSMTPResetEmail(user models.User) error {
 		user.Email = config.TreninghetenTestEmail
 	}
 
-	log.Info("Sending e-mail to: " + user.Email + ".")
+	logger.Log.Info("Sending e-mail to: " + user.Email + ".")
 
 	link := config.TreninghetenExternalURL + "/login?reset_code=" + *user.ResetCode
 
@@ -90,7 +90,7 @@ func SendSMTPSundayReminderEmail(user models.User, season models.Season, timeSta
 		user.Email = config.TreninghetenTestEmail
 	}
 
-	log.Info("Sending e-mail to: " + user.Email + ".")
+	logger.Log.Info("Sending e-mail to: " + user.Email + ".")
 
 	link := config.TreninghetenExternalURL
 	_, weekNumber := timeStamp.ISOWeek()
@@ -125,10 +125,10 @@ func SendSMTPSeasonStartEmail(season models.SeasonObject) error {
 
 		email, emailFound, err := database.GetUserEmailByUserID(goal.User.ID)
 		if err != nil {
-			log.Info("Failed to get e-mail for user. Error: " + err.Error())
+			logger.Log.Info("Failed to get e-mail for user. Error: " + err.Error())
 			continue
 		} else if !emailFound {
-			log.Info("User e-mail not found. Error: " + err.Error())
+			logger.Log.Info("User e-mail not found. Error: " + err.Error())
 			continue
 		}
 
@@ -136,7 +136,7 @@ func SendSMTPSeasonStartEmail(season models.SeasonObject) error {
 			email = config.TreninghetenTestEmail
 		}
 
-		log.Info("Sending e-mail to: " + email + ".")
+		logger.Log.Info("Sending e-mail to: " + email + ".")
 
 		link := config.TreninghetenExternalURL
 
@@ -151,7 +151,7 @@ func SendSMTPSeasonStartEmail(season models.SeasonObject) error {
 		// Send the email
 		err = d.DialAndSend(m)
 		if err != nil {
-			log.Info("Failed to send e-mail. Error: " + err.Error())
+			logger.Log.Info("Failed to send e-mail. Error: " + err.Error())
 			continue
 		}
 
@@ -173,7 +173,7 @@ func SendSMTPForWeekLost(user models.User, weekNumber int) error {
 		user.Email = config.TreninghetenTestEmail
 	}
 
-	log.Info("Sending e-mail to: " + user.Email + ".")
+	logger.Log.Info("Sending e-mail to: " + user.Email + ".")
 
 	link := config.TreninghetenExternalURL
 
@@ -207,7 +207,7 @@ func SendSMTPForWheelSpin(user models.User, weekNumber int) error {
 		user.Email = config.TreninghetenTestEmail
 	}
 
-	log.Info("Sending e-mail to: " + user.Email + ".")
+	logger.Log.Info("Sending e-mail to: " + user.Email + ".")
 
 	link := config.TreninghetenExternalURL
 
@@ -241,7 +241,7 @@ func SendSMTPForWheelSpinCheck(user models.User, weekNumber int) error {
 		user.Email = config.TreninghetenTestEmail
 	}
 
-	log.Info("Sending e-mail to: " + user.Email + ".")
+	logger.Log.Info("Sending e-mail to: " + user.Email + ".")
 
 	link := config.TreninghetenExternalURL
 
@@ -275,7 +275,7 @@ func SendSMTPForWheelSpinWin(user models.User, weekNumber int) error {
 		user.Email = config.TreninghetenTestEmail
 	}
 
-	log.Info("Sending e-mail to: " + user.Email + ".")
+	logger.Log.Info("Sending e-mail to: " + user.Email + ".")
 
 	link := config.TreninghetenExternalURL
 
