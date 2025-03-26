@@ -26,7 +26,7 @@ func APIRegisterWeek(context *gin.Context) {
 
 	// Parse request
 	if err := context.ShouldBindJSON(&week); err != nil {
-		log.Println("Failed to parse request. Error: " + err.Error())
+		log.Info("Failed to parse request. Error: " + err.Error())
 		context.JSON(http.StatusBadRequest, gin.H{"error": "Failed to parse request."})
 		context.Abort()
 		return
@@ -35,7 +35,7 @@ func APIRegisterWeek(context *gin.Context) {
 	// Get user ID
 	userID, err := middlewares.GetAuthUsername(context.GetHeader("Authorization"))
 	if err != nil {
-		log.Println("Failed to verify user ID. Error: " + "Failed to verify user ID.")
+		log.Info("Failed to verify user ID. Error: " + "Failed to verify user ID.")
 		context.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		context.Abort()
 		return
@@ -43,7 +43,7 @@ func APIRegisterWeek(context *gin.Context) {
 
 	requestLocation, err := time.LoadLocation(week.TimeZone)
 	if err != nil {
-		log.Println("Failed to parse time zone. Error: " + err.Error())
+		log.Info("Failed to parse time zone. Error: " + err.Error())
 		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to parse time zone."})
 		context.Abort()
 		return
@@ -56,7 +56,7 @@ func APIRegisterWeek(context *gin.Context) {
 	// Check if any debt is unspun
 	_, debtsFound, err := database.GetUnchosenDebtForUserByUserID(userID)
 	if err != nil {
-		log.Println("Failed to get unspun spins. Error: " + err.Error())
+		log.Info("Failed to get unspun spins. Error: " + err.Error())
 		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get unviewed spins."})
 		context.Abort()
 		return
@@ -145,7 +145,7 @@ func APIRegisterWeek(context *gin.Context) {
 
 		exerciseDayDB, err := database.GetExerciseDayByUserIDAndDate(userID, day.Date)
 		if err != nil {
-			log.Println("Failed to verify exercise status. Error: " + err.Error())
+			log.Info("Failed to verify exercise status. Error: " + err.Error())
 			context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to verify exercise status."})
 			context.Abort()
 			return
@@ -156,7 +156,7 @@ func APIRegisterWeek(context *gin.Context) {
 
 			exerciseDay, err := ConvertExerciseDayToExerciseDayObject(*exerciseDayDB)
 			if err != nil {
-				log.Println("Failed to convert exercise day to exercise day object. Error: " + err.Error())
+				log.Info("Failed to convert exercise day to exercise day object. Error: " + err.Error())
 				context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to convert exercise day to exercise day object."})
 				context.Abort()
 				return
@@ -169,7 +169,7 @@ func APIRegisterWeek(context *gin.Context) {
 
 				*exerciseDayDB, err = database.UpdateExerciseDayInDatabase(*exerciseDayDB)
 				if err != nil {
-					log.Println("Failed to update exercise-day in database. Error: " + err.Error())
+					log.Info("Failed to update exercise-day in database. Error: " + err.Error())
 					context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update exercise-day in database."})
 					context.Abort()
 					return
@@ -177,7 +177,7 @@ func APIRegisterWeek(context *gin.Context) {
 
 				exerciseDay, err := ConvertExerciseDayToExerciseDayObject(*exerciseDayDB)
 				if err != nil {
-					log.Println("Failed to convert exercise day to exercise day object. Error: " + err.Error())
+					log.Info("Failed to convert exercise day to exercise day object. Error: " + err.Error())
 					context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to convert exercise day to exercise day object."})
 					context.Abort()
 					return
@@ -186,7 +186,7 @@ func APIRegisterWeek(context *gin.Context) {
 				// If the exercise-interval has changed, correlate the exercise table
 				err = CorrelateExerciseWithExerciseDay(exerciseDay.ID, day.ExerciseInterval)
 				if err != nil {
-					log.Println("Failed to update exercises for exercise-day. Error: " + err.Error())
+					log.Info("Failed to update exercises for exercise-day. Error: " + err.Error())
 					context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update exercises for exercise-day."})
 					context.Abort()
 					return
@@ -206,7 +206,7 @@ func APIRegisterWeek(context *gin.Context) {
 
 			exerciseDayID, err := database.CreateExerciseDayForGoalInDatabase(exerciseDay)
 			if err != nil {
-				log.Println("Failed to save exercise-day in database. Error: " + err.Error())
+				log.Info("Failed to save exercise-day in database. Error: " + err.Error())
 				context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to save exercise-day in database."})
 				context.Abort()
 				return
@@ -220,7 +220,7 @@ func APIRegisterWeek(context *gin.Context) {
 
 				err = database.CreateExerciseForExerciseDayInDatabase(newExercise)
 				if err != nil {
-					log.Println("Failed to update exercise in database. Error: " + err.Error())
+					log.Info("Failed to update exercise in database. Error: " + err.Error())
 					context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update exercise in database."})
 					context.Abort()
 					return
@@ -232,7 +232,7 @@ func APIRegisterWeek(context *gin.Context) {
 	// Get week for goal using current time
 	weekReturn, err := GetExerciseDaysForWeekUsingUserID(now, userID)
 	if err != nil {
-		log.Println("Failed to get calendar. Error: " + err.Error())
+		log.Info("Failed to get calendar. Error: " + err.Error())
 		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get calender."})
 		context.Abort()
 		return
@@ -248,7 +248,7 @@ func APIGetWeek(context *gin.Context) {
 	// Get user ID
 	userID, err := middlewares.GetAuthUsername(context.GetHeader("Authorization"))
 	if err != nil {
-		log.Println("Failed to verify user ID. Error: " + "Failed to verify user ID.")
+		log.Info("Failed to verify user ID. Error: " + "Failed to verify user ID.")
 		context.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		context.Abort()
 		return
@@ -260,7 +260,7 @@ func APIGetWeek(context *gin.Context) {
 	// Get week for goal using current time
 	week, err := GetExerciseDaysForWeekUsingUserID(now, userID)
 	if err != nil {
-		log.Println("Failed to get calendar. Error: " + err.Error())
+		log.Info("Failed to get calendar. Error: " + err.Error())
 		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get calendar."})
 		context.Abort()
 		return
@@ -281,7 +281,7 @@ func GetExerciseDaysForWeekUsingGoal(timeReq time.Time, goalID uuid.UUID) (model
 	// Find monday
 	startTime, err := utilities.FindEarlierMonday(timeReq)
 	if err != nil {
-		log.Println("Failed to find earlier Monday for date. Error: " + err.Error())
+		log.Info("Failed to find earlier Monday for date. Error: " + err.Error())
 		return models.Week{}, errors.New("Failed to find earlier Monday for date.")
 	}
 	_, startTimeWeek = startTime.ISOWeek()
@@ -289,16 +289,16 @@ func GetExerciseDaysForWeekUsingGoal(timeReq time.Time, goalID uuid.UUID) (model
 	// Find sunday
 	endTime, err = utilities.FindNextSunday(timeReq)
 	if err != nil {
-		log.Println("Failed to find next Sunday for date. Error: " + err.Error())
+		log.Info("Failed to find next Sunday for date. Error: " + err.Error())
 		return models.Week{}, errors.New("Failed to find next Sunday for date.")
 	}
 	_, endTimeWeek = endTime.ISOWeek()
 
 	// Verify all dates are the same week
 	if timeReqWeek != startTimeWeek || timeReqWeek != endTimeWeek {
-		log.Println("Required time week: " + strconv.Itoa(timeReqWeek))
-		log.Println("Start time week: " + strconv.Itoa(startTimeWeek))
-		log.Println("End time week: " + strconv.Itoa(endTimeWeek))
+		log.Info("Required time week: " + strconv.Itoa(timeReqWeek))
+		log.Info("Start time week: " + strconv.Itoa(startTimeWeek))
+		log.Info("End time week: " + strconv.Itoa(endTimeWeek))
 		return models.Week{}, errors.New("Managed to find dates outside of chosen week.")
 	}
 
@@ -318,7 +318,7 @@ func GetExerciseDaysForWeekUsingGoal(timeReq time.Time, goalID uuid.UUID) (model
 
 				exerciseDayObject, err := ConvertExerciseDayToExerciseDayObject(exercise)
 				if err != nil {
-					log.Println("Failed to convert exercise day to exercise day object. Error: " + err.Error())
+					log.Info("Failed to convert exercise day to exercise day object. Error: " + err.Error())
 					return models.Week{}, errors.New("Failed to convert exercise day to exercise day object.")
 				}
 
@@ -353,7 +353,7 @@ func GetExerciseDaysForWeekUsingUserID(timeReq time.Time, userID uuid.UUID) (mod
 	// Find monday
 	startTime, err := utilities.FindEarlierMonday(timeReq)
 	if err != nil {
-		log.Println("Failed to find earlier Monday for date. Error: " + err.Error())
+		log.Info("Failed to find earlier Monday for date. Error: " + err.Error())
 		return models.Week{}, errors.New("Failed to find earlier Monday for date.")
 	}
 	_, startTimeWeek = startTime.ISOWeek()
@@ -361,16 +361,16 @@ func GetExerciseDaysForWeekUsingUserID(timeReq time.Time, userID uuid.UUID) (mod
 	// Find sunday
 	endTime, err = utilities.FindNextSunday(timeReq)
 	if err != nil {
-		log.Println("Failed to find next Sunday for date. Error: " + err.Error())
+		log.Info("Failed to find next Sunday for date. Error: " + err.Error())
 		return models.Week{}, errors.New("Failed to find next Sunday for date.")
 	}
 	_, endTimeWeek = endTime.ISOWeek()
 
 	// Verify all dates are the same week
 	if timeReqWeek != startTimeWeek || timeReqWeek != endTimeWeek {
-		log.Println("Required time week: " + strconv.Itoa(timeReqWeek))
-		log.Println("Start time week: " + strconv.Itoa(startTimeWeek))
-		log.Println("End time week: " + strconv.Itoa(endTimeWeek))
+		log.Info("Required time week: " + strconv.Itoa(timeReqWeek))
+		log.Info("Start time week: " + strconv.Itoa(startTimeWeek))
+		log.Info("End time week: " + strconv.Itoa(endTimeWeek))
 		return models.Week{}, errors.New("Managed to find dates outside of chosen week.")
 	}
 
@@ -390,7 +390,7 @@ func GetExerciseDaysForWeekUsingUserID(timeReq time.Time, userID uuid.UUID) (mod
 
 				exerciseDayObject, err := ConvertExerciseDayToExerciseDayObject(exercise)
 				if err != nil {
-					log.Println("Failed to convert exercise day to exercise day object. Error: " + err.Error())
+					log.Info("Failed to convert exercise day to exercise day object. Error: " + err.Error())
 					return models.Week{}, errors.New("Failed to convert exercise day to exercise day object.")
 				}
 
@@ -415,7 +415,7 @@ func GetExerciseDaysForWeekUsingUserID(timeReq time.Time, userID uuid.UUID) (mod
 	timeString := utilities.TimeToMySQLTimestamp(timeReq)
 	activeGoals, err := database.GetActiveGoalsForUserIDAndDate(userID, timeString)
 	if err != nil {
-		log.Println("Failed to get active goals. Error: " + err.Error())
+		log.Info("Failed to get active goals. Error: " + err.Error())
 	} else {
 		week.Goals = activeGoals
 	}
@@ -430,7 +430,7 @@ func APIGetExerciseDays(context *gin.Context) {
 	// Get user ID
 	userID, err := middlewares.GetAuthUsername(context.GetHeader("Authorization"))
 	if err != nil {
-		log.Println("Failed to verify user ID. Error: " + "Failed to verify user ID.")
+		log.Info("Failed to verify user ID. Error: " + "Failed to verify user ID.")
 		context.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		context.Abort()
 		return
@@ -451,7 +451,7 @@ func APIGetExerciseDays(context *gin.Context) {
 
 		goalTMP, err := database.GetGoalUsingGoalID(goalID)
 		if err != nil {
-			log.Println("Failed to get goal. Error: " + err.Error())
+			log.Info("Failed to get goal. Error: " + err.Error())
 			context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get goal."})
 			context.Abort()
 			return
@@ -468,7 +468,7 @@ func APIGetExerciseDays(context *gin.Context) {
 		// Get exercises from user
 		exerciseDays, err = database.GetExerciseDaysForUserUsingUserIDAndGoalID(userID, goalID)
 		if err != nil {
-			log.Println("Failed to get exercise. Error: " + err.Error())
+			log.Info("Failed to get exercise. Error: " + err.Error())
 			context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get exercise."})
 			context.Abort()
 			return
@@ -476,7 +476,7 @@ func APIGetExerciseDays(context *gin.Context) {
 
 		goalObjectTMP, err := ConvertGoalToGoalObject(*goalTMP)
 		if err != nil {
-			log.Println("Failed to convert goal to goal object. Error: " + err.Error())
+			log.Info("Failed to convert goal to goal object. Error: " + err.Error())
 			context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to convert goal to goal object."})
 			context.Abort()
 			return
@@ -487,7 +487,7 @@ func APIGetExerciseDays(context *gin.Context) {
 	} else if okayTwo {
 		yearInt, err := strconv.ParseInt(year, 10, 64)
 		if err != nil {
-			log.Println("Failed to convert year string to int. Error: " + err.Error())
+			log.Info("Failed to convert year string to int. Error: " + err.Error())
 			context.JSON(http.StatusBadRequest, gin.H{"error": "Failed to convert year string to int."})
 			context.Abort()
 			return
@@ -495,7 +495,7 @@ func APIGetExerciseDays(context *gin.Context) {
 
 		newExerciseDays, err := database.GetExerciseDaysForUserUsingUserID(userID)
 		if err != nil {
-			log.Println("Failed to get exercise days. Error: " + err.Error())
+			log.Info("Failed to get exercise days. Error: " + err.Error())
 			context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get exercise."})
 			context.Abort()
 			return
@@ -509,7 +509,7 @@ func APIGetExerciseDays(context *gin.Context) {
 	} else {
 		exerciseDays, err = database.GetExerciseDaysForUserUsingUserID(userID)
 		if err != nil {
-			log.Println("Failed to get exercise. Error: " + err.Error())
+			log.Info("Failed to get exercise. Error: " + err.Error())
 			context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get exercise."})
 			context.Abort()
 			return
@@ -518,7 +518,7 @@ func APIGetExerciseDays(context *gin.Context) {
 
 	exerciseDayObjects, err := ConvertExerciseDaysToExerciseDayObjects(exerciseDays)
 	if err != nil {
-		log.Println("Failed to get convert exercise days to exercise day objects. Error: " + err.Error())
+		log.Info("Failed to get convert exercise days to exercise day objects. Error: " + err.Error())
 		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get convert exercise days to exercise day objects."})
 		context.Abort()
 		return
@@ -533,7 +533,7 @@ func APIAdminGetExerciseDays(context *gin.Context) {
 
 	exerciseDays, err := database.GetAllExerciseDays()
 	if err != nil {
-		log.Println("Failed to get exercise days. Error: " + err.Error())
+		log.Info("Failed to get exercise days. Error: " + err.Error())
 		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get exercise."})
 		context.Abort()
 		return
@@ -541,7 +541,7 @@ func APIAdminGetExerciseDays(context *gin.Context) {
 
 	exerciseDayObjects, err := ConvertExerciseDaysToExerciseDayObjects(exerciseDays)
 	if err != nil {
-		log.Println("Failed to get convert exercise days to exercise day objects. Error: " + err.Error())
+		log.Info("Failed to get convert exercise days to exercise day objects. Error: " + err.Error())
 		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get convert exercise days to exercise day objects."})
 		context.Abort()
 		return
@@ -555,7 +555,7 @@ func CorrelateExerciseWithExerciseDay(exerciseDayID uuid.UUID, exerciseDayExerci
 
 	exercises, err := database.GetExerciseByExerciseDayID(exerciseDayID)
 	if err != nil {
-		log.Println("Failed to get exercises for exercise-day. Error: " + err.Error())
+		log.Info("Failed to get exercises for exercise-day. Error: " + err.Error())
 		return errors.New("Failed to get exercises for exercise-day.")
 	}
 
@@ -574,7 +574,7 @@ func CorrelateExerciseWithExerciseDay(exerciseDayID uuid.UUID, exerciseDayExerci
 		differential := onExercisesSum - exerciseDayExerciseInterval
 		changed, err := TurnOffExercisesForExerciseDayByAmount(differential, exerciseDayID)
 		if err != nil {
-			log.Println("Failed to turn off exercises for exercise day. Error: " + err.Error())
+			log.Info("Failed to turn off exercises for exercise day. Error: " + err.Error())
 			return errors.New("Failed to turn off exercises for exercise day.")
 		}
 
@@ -591,7 +591,7 @@ func CorrelateExerciseWithExerciseDay(exerciseDayID uuid.UUID, exerciseDayExerci
 		differential := exerciseDayExerciseInterval - onExercisesSum
 		changed, err := TurnOnExercisesForExerciseDayByAmount(differential, exerciseDayID)
 		if err != nil {
-			log.Println("Failed to turn off exercises for exercise day. Error: " + err.Error())
+			log.Info("Failed to turn off exercises for exercise day. Error: " + err.Error())
 			return errors.New("Failed to turn off exercises for exercise day.")
 		}
 
@@ -609,7 +609,7 @@ func CorrelateExerciseWithExerciseDay(exerciseDayID uuid.UUID, exerciseDayExerci
 
 			err = database.CreateExerciseForExerciseDayInDatabase(newExercise)
 			if err != nil {
-				log.Println("Failed to create exercise in database. Error: " + err.Error())
+				log.Info("Failed to create exercise in database. Error: " + err.Error())
 				return errors.New("Failed to create exercise in database.")
 			}
 		}
@@ -630,7 +630,7 @@ func TurnOnExercisesForExerciseDayByAmount(amount int, exerciseDayID uuid.UUID) 
 
 	exercises, err := database.GetExerciseByExerciseDayID(exerciseDayID)
 	if err != nil {
-		log.Println("Failed to get exercises for exercise-day. Error: " + err.Error())
+		log.Info("Failed to get exercises for exercise-day. Error: " + err.Error())
 		return 0, errors.New("Failed to get exercises for exercise-day.")
 	}
 
@@ -639,7 +639,7 @@ func TurnOnExercisesForExerciseDayByAmount(amount int, exerciseDayID uuid.UUID) 
 		if !exercise.On {
 			err = database.UpdateExerciseByTurningOnByExerciseID(exercise.ID)
 			if err != nil {
-				log.Println("Failed to turn on exercise. Error: " + err.Error())
+				log.Info("Failed to turn on exercise. Error: " + err.Error())
 				return 0, errors.New("Failed to turn on exercise.")
 			}
 
@@ -666,7 +666,7 @@ func TurnOffExercisesForExerciseDayByAmount(amount int, exerciseDayID uuid.UUID)
 
 	exercises, err := database.GetExerciseByExerciseDayID(exerciseDayID)
 	if err != nil {
-		log.Println("Failed to get exercises for exercise-day. Error: " + err.Error())
+		log.Info("Failed to get exercises for exercise-day. Error: " + err.Error())
 		return 0, errors.New("Failed to get exercises for exercise-day.")
 	}
 
@@ -675,7 +675,7 @@ func TurnOffExercisesForExerciseDayByAmount(amount int, exerciseDayID uuid.UUID)
 		if exercise.On {
 			err = database.UpdateExerciseByTurningOffByExerciseID(exercise.ID)
 			if err != nil {
-				log.Println("Failed to turn on exercise. Error: " + err.Error())
+				log.Info("Failed to turn on exercise. Error: " + err.Error())
 				return 0, errors.New("Failed to turn on exercise.")
 			}
 
@@ -696,20 +696,20 @@ func CorrelateAllExercises() error {
 
 	exerciseDays, err := database.GetAllEnabledExerciseDays()
 	if err != nil {
-		log.Println("Failed to get enabled exercises. Error: " + err.Error())
+		log.Info("Failed to get enabled exercises. Error: " + err.Error())
 		return errors.New("Failed to get enabled exercises.")
 	}
 
 	for _, exerciseDay := range exerciseDays {
 		exerciseDayObject, err := ConvertExerciseDayToExerciseDayObject(exerciseDay)
 		if err != nil {
-			log.Println("Failed to convert exercise day to exercise day object. Error: " + err.Error())
+			log.Info("Failed to convert exercise day to exercise day object. Error: " + err.Error())
 			return errors.New("Failed to convert exercise day to exercise day object.")
 		}
 
 		err = CorrelateExerciseWithExerciseDay(exerciseDay.ID, exerciseDayObject.ExerciseInterval)
 		if err != nil {
-			log.Println("Failed to correlate exercise. Error: " + err.Error())
+			log.Info("Failed to correlate exercise. Error: " + err.Error())
 			return errors.New("Failed to correlate exercise.")
 		}
 	}
@@ -721,7 +721,7 @@ func APICorrelateAllExercises(context *gin.Context) {
 
 	err := CorrelateAllExercises()
 	if err != nil {
-		log.Println("Failed to correlate all exercises. Error: " + err.Error())
+		log.Info("Failed to correlate all exercises. Error: " + err.Error())
 		context.JSON(http.StatusBadRequest, gin.H{"error": "Failed to correlate all exercises."})
 		context.Abort()
 		return
@@ -739,26 +739,26 @@ func ConvertExerciseDayToExerciseDayObject(exerciseDay models.ExerciseDay) (exer
 	if exerciseDay.UserID == nil && exerciseDay.GoalID != nil {
 		goal, err := database.GetGoalUsingGoalID(*exerciseDay.GoalID)
 		if err != nil {
-			log.Println("Failed to get goal using goal ID. Error: " + err.Error())
+			log.Info("Failed to get goal using goal ID. Error: " + err.Error())
 			return exerciseDayObject, errors.New("Failed to get goal using goal ID.")
 		}
 		exerciseDay.UserID = &goal.UserID
 		exerciseDay, err = database.UpdateExerciseDayInDB(exerciseDay)
 		if err != nil {
-			log.Println("Failed to save new exercise day. Error: " + err.Error())
+			log.Info("Failed to save new exercise day. Error: " + err.Error())
 			return exerciseDayObject, errors.New("Failed to save new exercise day.")
 		}
-		log.Println("Converted exercise day to new format.")
+		log.Info("Converted exercise day to new format.")
 	}
 
 	if exerciseDay.UserID == nil {
-		log.Println("Exercise day conversion error.")
+		log.Info("Exercise day conversion error.")
 		return exerciseDayObject, errors.New("Exercise day conversion error.")
 	}
 
 	user, err := database.GetUserInformation(*exerciseDay.UserID)
 	if err != nil {
-		log.Println("Failed to get user using user ID. Error: " + err.Error())
+		log.Info("Failed to get user using user ID. Error: " + err.Error())
 		return exerciseDayObject, errors.New("Failed to get user using user ID.")
 	}
 
@@ -766,13 +766,13 @@ func ConvertExerciseDayToExerciseDayObject(exerciseDay models.ExerciseDay) (exer
 
 	exercises, err := database.GetExerciseByExerciseDayID(exerciseDay.ID)
 	if err != nil {
-		log.Println("Failed to get exercises for day. Error: " + err.Error())
+		log.Info("Failed to get exercises for day. Error: " + err.Error())
 		return exerciseDayObject, errors.New("Failed to get exercises for day.")
 	}
 
 	exerciseObjects, err := ConvertExercisesToExerciseObjects(exercises)
 	if err != nil {
-		log.Println("Failed to convert exercises to exercise objects. Error: " + err.Error())
+		log.Info("Failed to convert exercises to exercise objects. Error: " + err.Error())
 		return exerciseDayObject, errors.New("Failed to convert exercises to exercise objects.")
 	}
 
@@ -803,7 +803,7 @@ func ConvertExerciseDaysToExerciseDayObjects(exerciseDays []models.ExerciseDay) 
 	for _, exerciseDay := range exerciseDays {
 		exerciseDayObject, err := ConvertExerciseDayToExerciseDayObject(exerciseDay)
 		if err != nil {
-			log.Println("Failed to convert exercise day to exercise day object. Ignoring... Error: " + err.Error())
+			log.Info("Failed to convert exercise day to exercise day object. Ignoring... Error: " + err.Error())
 			continue
 		}
 		exerciseDayObjects = append(exerciseDayObjects, exerciseDayObject)
@@ -818,13 +818,13 @@ func ConvertExerciseToExerciseObject(exercise models.Exercise) (exerciseObject m
 
 	operations, err := database.GetOperationsByExerciseID(exercise.ID)
 	if err != nil {
-		log.Println("Failed to get operations using exercise ID. Error: " + err.Error())
+		log.Info("Failed to get operations using exercise ID. Error: " + err.Error())
 		return exerciseObject, errors.New("Failed to get operations using exercise ID.")
 	}
 
 	operationObjects, err := ConvertOperationsToOperationObjects(operations)
 	if err != nil {
-		log.Println("Failed to convert operations to operation objects. Error: " + err.Error())
+		log.Info("Failed to convert operations to operation objects. Error: " + err.Error())
 		return exerciseObject, errors.New("Failed to convert operations to operation objects.")
 	}
 
@@ -869,7 +869,7 @@ func ConvertExercisesToExerciseObjects(exercises []models.Exercise) (exerciseObj
 	for _, exercise := range exercises {
 		exerciseObject, err := ConvertExerciseToExerciseObject(exercise)
 		if err != nil {
-			log.Println("Failed to convert exercise to exercise object. Ignoring... Error: " + err.Error())
+			log.Info("Failed to convert exercise to exercise object. Ignoring... Error: " + err.Error())
 			continue
 		}
 		exerciseObjects = append(exerciseObjects, exerciseObject)
@@ -891,7 +891,7 @@ func APIGetExerciseDay(context *gin.Context) {
 	// Get user ID
 	userID, err := middlewares.GetAuthUsername(context.GetHeader("Authorization"))
 	if err != nil {
-		log.Println("Failed to verify user ID. Error: " + "Failed to verify user ID.")
+		log.Info("Failed to verify user ID. Error: " + "Failed to verify user ID.")
 		context.JSON(http.StatusBadRequest, gin.H{"error": "Failed to verify user ID."})
 		context.Abort()
 		return
@@ -899,7 +899,7 @@ func APIGetExerciseDay(context *gin.Context) {
 
 	exerciseDay, err := database.GetExerciseDayByIDAndUserID(exerciseIDUUIID, userID)
 	if err != nil {
-		log.Println("Failed to get exercise day. Error: " + err.Error())
+		log.Info("Failed to get exercise day. Error: " + err.Error())
 		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get exercise day."})
 		context.Abort()
 		return
@@ -911,7 +911,7 @@ func APIGetExerciseDay(context *gin.Context) {
 
 	exerciseDayObject, err := ConvertExerciseDayToExerciseDayObject(*exerciseDay)
 	if err != nil {
-		log.Println("Failed to get convert exercise day to exercise day object. Error: " + err.Error())
+		log.Info("Failed to get convert exercise day to exercise day object. Error: " + err.Error())
 		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get convert exercise day to exercise day object."})
 		context.Abort()
 		return
@@ -929,7 +929,7 @@ func APIUpdateExerciseDay(context *gin.Context) {
 
 	// Parse creation request
 	if err := context.ShouldBindJSON(&exerciseDayUpdateRequest); err != nil {
-		log.Println("Failed to parse update request. Error: " + err.Error())
+		log.Info("Failed to parse update request. Error: " + err.Error())
 		context.JSON(http.StatusBadRequest, gin.H{"error": "Failed to parse update request."})
 		context.Abort()
 		return
@@ -950,12 +950,12 @@ func APIUpdateExerciseDay(context *gin.Context) {
 
 	exerciseDay, err = database.GetExerciseDayByID(exerciseDayIDUUID)
 	if err != nil {
-		log.Println("Failed to get exercise day. Error: " + err.Error())
+		log.Info("Failed to get exercise day. Error: " + err.Error())
 		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get exercise day."})
 		context.Abort()
 		return
 	} else if exerciseDay == nil {
-		log.Println("Failed to find exercise day. Error: " + err.Error())
+		log.Info("Failed to find exercise day. Error: " + err.Error())
 		context.JSON(http.StatusBadRequest, gin.H{"error": "Failed to find exercise day."})
 		context.Abort()
 		return
@@ -965,7 +965,7 @@ func APIUpdateExerciseDay(context *gin.Context) {
 
 	*exerciseDay, err = database.UpdateExerciseDayInDatabase(*exerciseDay)
 	if err != nil {
-		log.Println("Failed to update exercise day. Error: " + err.Error())
+		log.Info("Failed to update exercise day. Error: " + err.Error())
 		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update exercise day."})
 		context.Abort()
 		return
@@ -973,7 +973,7 @@ func APIUpdateExerciseDay(context *gin.Context) {
 
 	exerciseDayObject, err := ConvertExerciseDayToExerciseDayObject(*exerciseDay)
 	if err != nil {
-		log.Println("Failed to convert exercise day to exercise day object. Error: " + err.Error())
+		log.Info("Failed to convert exercise day to exercise day object. Error: " + err.Error())
 		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to convert exercise day to exercise day object."})
 		context.Abort()
 		return
@@ -990,7 +990,7 @@ func APIUpdateExercise(context *gin.Context) {
 	// Get user ID
 	userID, err := middlewares.GetAuthUsername(context.GetHeader("Authorization"))
 	if err != nil {
-		log.Println("Failed to verify user ID. Error: " + err.Error())
+		log.Info("Failed to verify user ID. Error: " + err.Error())
 		context.JSON(http.StatusBadRequest, gin.H{"error": "Failed to verify user ID."})
 		context.Abort()
 		return
@@ -999,7 +999,7 @@ func APIUpdateExercise(context *gin.Context) {
 	var exerciseID = context.Param("exercise_id")
 	exerciseIDUUID, err := uuid.Parse(exerciseID)
 	if err != nil {
-		log.Println("Failed to verify exercise ID. Error: " + err.Error())
+		log.Info("Failed to verify exercise ID. Error: " + err.Error())
 		context.JSON(http.StatusBadRequest, gin.H{"error": "Failed to verify exercise ID."})
 		context.Abort()
 		return
@@ -1007,7 +1007,7 @@ func APIUpdateExercise(context *gin.Context) {
 
 	// Parse update request
 	if err := context.ShouldBindJSON(&exerciseUpdateRequest); err != nil {
-		log.Println("Failed to parse update request. Error: " + err.Error())
+		log.Info("Failed to parse update request. Error: " + err.Error())
 		context.JSON(http.StatusBadRequest, gin.H{"error": "Failed to parse update request."})
 		context.Abort()
 		return
@@ -1015,7 +1015,7 @@ func APIUpdateExercise(context *gin.Context) {
 
 	exercise, err = database.GetAllExerciseByIDAndUserID(exerciseIDUUID, userID)
 	if err != nil {
-		log.Println("Failed to get exercise. Error: " + err.Error())
+		log.Info("Failed to get exercise. Error: " + err.Error())
 		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get exercise."})
 		context.Abort()
 		return
@@ -1031,7 +1031,7 @@ func APIUpdateExercise(context *gin.Context) {
 
 	exerciseDay, err := database.GetExerciseDayByIDAndUserID(exercise.ExerciseDayID, userID)
 	if err != nil {
-		log.Println("Failed to get exercise day. Error: " + err.Error())
+		log.Info("Failed to get exercise day. Error: " + err.Error())
 		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get exercise day."})
 		context.Abort()
 		return
@@ -1043,7 +1043,7 @@ func APIUpdateExercise(context *gin.Context) {
 
 	exerciseDayObject, err := ConvertExerciseDayToExerciseDayObject(*exerciseDay)
 	if err != nil {
-		log.Println("Failed to convert exercise day to exercise day object. Error: " + err.Error())
+		log.Info("Failed to convert exercise day to exercise day object. Error: " + err.Error())
 		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to convert exercise day to exercise day object."})
 		context.Abort()
 		return
@@ -1075,7 +1075,7 @@ func APIUpdateExercise(context *gin.Context) {
 
 	exercise, err = database.UpdateExerciseInDB(exercise)
 	if err != nil {
-		log.Println("Failed to update exercise. Error: " + err.Error())
+		log.Info("Failed to update exercise. Error: " + err.Error())
 		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update exercise."})
 		context.Abort()
 		return
@@ -1083,7 +1083,7 @@ func APIUpdateExercise(context *gin.Context) {
 
 	exerciseObject, err := ConvertExerciseToExerciseObject(exercise)
 	if err != nil {
-		log.Println("Failed to get convert exercise to exercise object. Error: " + err.Error())
+		log.Info("Failed to get convert exercise to exercise object. Error: " + err.Error())
 		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get convert exercise to exercise object."})
 		context.Abort()
 		return
@@ -1100,7 +1100,7 @@ func APICreateExercise(context *gin.Context) {
 	// Get user ID
 	userID, err := middlewares.GetAuthUsername(context.GetHeader("Authorization"))
 	if err != nil {
-		log.Println("Failed to verify user ID. Error: " + err.Error())
+		log.Info("Failed to verify user ID. Error: " + err.Error())
 		context.JSON(http.StatusBadRequest, gin.H{"error": "Failed to verify user ID."})
 		context.Abort()
 		return
@@ -1108,7 +1108,7 @@ func APICreateExercise(context *gin.Context) {
 
 	// Parse creation request
 	if err := context.ShouldBindJSON(&exerciseCreationRequest); err != nil {
-		log.Println("Failed to parse creation request. Error: " + err.Error())
+		log.Info("Failed to parse creation request. Error: " + err.Error())
 		context.JSON(http.StatusBadRequest, gin.H{"error": "Failed to parse creation request."})
 		context.Abort()
 		return
@@ -1116,7 +1116,7 @@ func APICreateExercise(context *gin.Context) {
 
 	exerciseDay, err := database.GetExerciseDayByIDAndUserID(exerciseCreationRequest.ExerciseDayID, userID)
 	if err != nil {
-		log.Println("Failed to verify exercise day. Error: " + err.Error())
+		log.Info("Failed to verify exercise day. Error: " + err.Error())
 		context.JSON(http.StatusBadRequest, gin.H{"error": "Failed to verify exercise day."})
 		context.Abort()
 		return
@@ -1128,7 +1128,7 @@ func APICreateExercise(context *gin.Context) {
 
 	exerciseDayObject, err := ConvertExerciseDayToExerciseDayObject(*exerciseDay)
 	if err != nil {
-		log.Println("Failed to convert exercise day to exercise day object. Error: " + err.Error())
+		log.Info("Failed to convert exercise day to exercise day object. Error: " + err.Error())
 		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to convert exercise day to exercise day object."})
 		context.Abort()
 		return
@@ -1163,7 +1163,7 @@ func APICreateExercise(context *gin.Context) {
 
 	exercise, err = database.CreateExerciseInDB(exercise)
 	if err != nil {
-		log.Println("Failed to create exercise. Error: " + err.Error())
+		log.Info("Failed to create exercise. Error: " + err.Error())
 		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create exercise."})
 		context.Abort()
 		return
@@ -1171,7 +1171,7 @@ func APICreateExercise(context *gin.Context) {
 
 	exerciseObject, err := ConvertExerciseToExerciseObject(exercise)
 	if err != nil {
-		log.Println("Failed to get convert exercise to exercise object. Error: " + err.Error())
+		log.Info("Failed to get convert exercise to exercise object. Error: " + err.Error())
 		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get convert exercise to exercise object."})
 		context.Abort()
 		return
@@ -1193,7 +1193,7 @@ func GetExercisesForWeekUsingUserID(timeReq time.Time, userID uuid.UUID) (exerci
 	// Find monday
 	startTime, err = utilities.FindEarlierMonday(timeReq)
 	if err != nil {
-		log.Println("Failed to find earlier Monday for date. Error: " + err.Error())
+		log.Info("Failed to find earlier Monday for date. Error: " + err.Error())
 		return exercises, errors.New("Failed to find earlier Monday for date.")
 	}
 	_, startTimeWeek = startTime.ISOWeek()
@@ -1201,16 +1201,16 @@ func GetExercisesForWeekUsingUserID(timeReq time.Time, userID uuid.UUID) (exerci
 	// Find sunday
 	endTime, err = utilities.FindNextSunday(timeReq)
 	if err != nil {
-		log.Println("Failed to find next Sunday for date. Error: " + err.Error())
+		log.Info("Failed to find next Sunday for date. Error: " + err.Error())
 		return exercises, errors.New("Failed to find next Sunday for date.")
 	}
 	_, endTimeWeek = endTime.ISOWeek()
 
 	// Verify all dates are the same week
 	if timeReqWeek != startTimeWeek || timeReqWeek != endTimeWeek {
-		log.Println("Required time week: " + strconv.Itoa(timeReqWeek))
-		log.Println("Start time week: " + strconv.Itoa(startTimeWeek))
-		log.Println("End time week: " + strconv.Itoa(endTimeWeek))
+		log.Info("Required time week: " + strconv.Itoa(timeReqWeek))
+		log.Info("Start time week: " + strconv.Itoa(startTimeWeek))
+		log.Info("End time week: " + strconv.Itoa(endTimeWeek))
 		return exercises, errors.New("Managed to find dates outside of chosen week.")
 	}
 
@@ -1230,7 +1230,7 @@ func APIStravaCombine(context *gin.Context) {
 
 	// Parse request
 	if err := context.ShouldBindJSON(&stravaIDs); err != nil {
-		log.Println("Failed to parse request. Error: " + err.Error())
+		log.Info("Failed to parse request. Error: " + err.Error())
 		context.JSON(http.StatusBadRequest, gin.H{"error": "Failed to parse request."})
 		context.Abort()
 		return
@@ -1239,7 +1239,7 @@ func APIStravaCombine(context *gin.Context) {
 	// Get user ID
 	userID, err := middlewares.GetAuthUsername(context.GetHeader("Authorization"))
 	if err != nil {
-		log.Println("Failed to verify user ID. Error: " + "Failed to verify user ID.")
+		log.Info("Failed to verify user ID. Error: " + "Failed to verify user ID.")
 		context.JSON(http.StatusBadRequest, gin.H{"error": "Failed to verify user ID."})
 		context.Abort()
 		return
@@ -1248,12 +1248,12 @@ func APIStravaCombine(context *gin.Context) {
 	for _, stravaID := range stravaIDs {
 		exercise, err := database.GetExerciseForUserWithStravaID(userID, stravaID)
 		if err != nil {
-			log.Println("Failed to get exercise. Error: " + err.Error())
+			log.Info("Failed to get exercise. Error: " + err.Error())
 			context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get exercise."})
 			context.Abort()
 			return
 		} else if exercise == nil {
-			log.Println("Failed to verify exercise. Error: " + err.Error())
+			log.Info("Failed to verify exercise. Error: " + err.Error())
 			context.JSON(http.StatusBadRequest, gin.H{"error": "Failed to verify exercise."})
 			context.Abort()
 			return
@@ -1272,12 +1272,12 @@ func APIStravaCombine(context *gin.Context) {
 
 	exerciseDay, err := database.GetExerciseDayByID(*exerciseDayID)
 	if err != nil {
-		log.Println("Failed to get exercise day. Error: " + err.Error())
+		log.Info("Failed to get exercise day. Error: " + err.Error())
 		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get exercise day."})
 		context.Abort()
 		return
 	} else if exerciseDay == nil {
-		log.Println("Failed to verify exercise day.")
+		log.Info("Failed to verify exercise day.")
 		context.JSON(http.StatusBadRequest, gin.H{"error": "Failed to verify exercise day."})
 		context.Abort()
 		return
@@ -1311,11 +1311,11 @@ func APIStravaCombine(context *gin.Context) {
 			exercise.StravaID = &stravaIDsString
 			masterExercise = exercise
 
-			log.Println(masterExercise.ID)
+			log.Info(masterExercise.ID)
 
 			_, err := database.UpdateExerciseInDB(exercise)
 			if err != nil {
-				log.Println("Failed to update exercise. Error: " + err.Error())
+				log.Info("Failed to update exercise. Error: " + err.Error())
 				context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update exercise."})
 				context.Abort()
 				return
@@ -1323,35 +1323,35 @@ func APIStravaCombine(context *gin.Context) {
 		} else {
 			operations, err := database.GetOperationsByExerciseID(exercise.ID)
 			if err != nil {
-				log.Println("Failed to get operations for exercise. Error: " + err.Error())
+				log.Info("Failed to get operations for exercise. Error: " + err.Error())
 				context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get operations for exercise."})
 				context.Abort()
 				return
 			}
 
 			for _, operation := range operations {
-				log.Println(masterExercise.ID)
+				log.Info(masterExercise.ID)
 
 				operation.ExerciseID = masterExercise.ID
 				operation.Exercise = masterExercise
 
-				log.Println(operation.ExerciseID)
+				log.Info(operation.ExerciseID)
 
 				operation, err = database.UpdateOperationInDB(operation)
 				if err != nil {
-					log.Println("Failed to update operation in DB. Error: " + err.Error())
+					log.Info("Failed to update operation in DB. Error: " + err.Error())
 					context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update operation in DB."})
 					context.Abort()
 					return
 				}
 
-				log.Println(operation.ExerciseID)
+				log.Info(operation.ExerciseID)
 			}
 
 			exercise.Enabled = false
 			_, err = database.UpdateExerciseInDB(exercise)
 			if err != nil {
-				log.Println("Failed to update exercise. Error: " + err.Error())
+				log.Info("Failed to update exercise. Error: " + err.Error())
 				context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update exercise."})
 				context.Abort()
 				return
@@ -1366,7 +1366,7 @@ func APIStravaDivide(context *gin.Context) {
 	var exerciseIDString = context.Param("exercise_id")
 	exerciseID, err := uuid.Parse(exerciseIDString)
 	if err != nil {
-		log.Println("Failed to verify exercise ID. Error: " + err.Error())
+		log.Info("Failed to verify exercise ID. Error: " + err.Error())
 		context.JSON(http.StatusBadRequest, gin.H{"error": "Failed to verify exercise ID."})
 		context.Abort()
 		return
@@ -1375,7 +1375,7 @@ func APIStravaDivide(context *gin.Context) {
 	// Get user ID
 	userID, err := middlewares.GetAuthUsername(context.GetHeader("Authorization"))
 	if err != nil {
-		log.Println("Failed to verify user ID. Error: " + "Failed to verify user ID.")
+		log.Info("Failed to verify user ID. Error: " + "Failed to verify user ID.")
 		context.JSON(http.StatusBadRequest, gin.H{"error": "Failed to verify user ID."})
 		context.Abort()
 		return
@@ -1383,12 +1383,12 @@ func APIStravaDivide(context *gin.Context) {
 
 	exercise, err := database.GetExerciseByIDAndUserID(exerciseID, userID)
 	if err != nil {
-		log.Println("Failed to get exercise. Error: " + err.Error())
+		log.Info("Failed to get exercise. Error: " + err.Error())
 		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get exercise."})
 		context.Abort()
 		return
 	} else if exercise == nil {
-		log.Println("Failed to verify exercise.")
+		log.Info("Failed to verify exercise.")
 		context.JSON(http.StatusBadRequest, gin.H{"error": "Failed to verify exercise."})
 		context.Abort()
 		return
@@ -1396,7 +1396,7 @@ func APIStravaDivide(context *gin.Context) {
 
 	exerciseObject, err := ConvertExerciseToExerciseObject(*exercise)
 	if err != nil {
-		log.Println("Failed to get exercise object. Error: " + err.Error())
+		log.Info("Failed to get exercise object. Error: " + err.Error())
 		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get exercise object."})
 		context.Abort()
 		return
@@ -1404,12 +1404,12 @@ func APIStravaDivide(context *gin.Context) {
 
 	exerciseDay, err := database.GetExerciseDayByID(exercise.ExerciseDayID)
 	if err != nil {
-		log.Println("Failed to get exercise day. Error: " + err.Error())
+		log.Info("Failed to get exercise day. Error: " + err.Error())
 		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get exercise day."})
 		context.Abort()
 		return
 	} else if exerciseDay == nil {
-		log.Println("Failed to verify exercise day.")
+		log.Info("Failed to verify exercise day.")
 		context.JSON(http.StatusBadRequest, gin.H{"error": "Failed to verify exercise day."})
 		context.Abort()
 		return
@@ -1442,7 +1442,7 @@ func APIStravaDivide(context *gin.Context) {
 		if index != 0 {
 			_, err := database.CreateExerciseInDB(*currentExercise)
 			if err != nil {
-				log.Println("Failed to create new exercises in DB. Error: " + err.Error())
+				log.Info("Failed to create new exercises in DB. Error: " + err.Error())
 				context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create new exercises in DB."})
 				context.Abort()
 				return
@@ -1452,11 +1452,11 @@ func APIStravaDivide(context *gin.Context) {
 		for _, exerciseOperation := range exerciseObject.Operations {
 
 			if exerciseOperation.StravaID != nil && string(*exerciseOperation.StravaID) == stravaID {
-				log.Println(currentExercise.ID)
+				log.Info(currentExercise.ID)
 
 				operation, err := database.GetOperationByIDAndUserID(exerciseOperation.ID, userID)
 				if err != nil {
-					log.Println("Failed to get operation in DB. Error: " + err.Error())
+					log.Info("Failed to get operation in DB. Error: " + err.Error())
 					context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get operation in DB."})
 					context.Abort()
 					return
@@ -1466,7 +1466,7 @@ func APIStravaDivide(context *gin.Context) {
 
 				_, err = database.UpdateOperationInDB(operation)
 				if err != nil {
-					log.Println("Failed to update operation in DB. Error: " + err.Error())
+					log.Info("Failed to update operation in DB. Error: " + err.Error())
 					context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update operation in DB."})
 					context.Abort()
 					return
@@ -1477,7 +1477,7 @@ func APIStravaDivide(context *gin.Context) {
 		if index == 0 {
 			_, err := database.UpdateExerciseInDB(*currentExercise)
 			if err != nil {
-				log.Println("Failed to update exercises in DB. Error: " + err.Error())
+				log.Info("Failed to update exercises in DB. Error: " + err.Error())
 				context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update exercise in DB."})
 				context.Abort()
 				return

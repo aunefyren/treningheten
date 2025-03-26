@@ -28,7 +28,7 @@ func StravaAuthorize(config models.ConfigStruct, code string) (authorization mod
 	var jsonStr = []byte(``)
 	req, err := http.NewRequest("POST", url, bytes.NewBuffer(jsonStr))
 	if err != nil {
-		log.Println("URL request generation threw error. Error: " + err.Error())
+		log.Info("URL request generation threw error. Error: " + err.Error())
 		return authorization, errors.New("URL request generation threw error.")
 	}
 
@@ -47,27 +47,27 @@ func StravaAuthorize(config models.ConfigStruct, code string) (authorization mod
 
 	resp, err := client.Do(req)
 	if err != nil {
-		log.Println("URL request threw error. Error: " + err.Error())
+		log.Info("URL request threw error. Error: " + err.Error())
 		return authorization, errors.New("URL request threw error.")
 	}
 	defer resp.Body.Close()
 
-	log.Println("Authorize gave HTTP code: " + resp.Status)
+	log.Info("Authorize gave HTTP code: " + resp.Status)
 
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
-		log.Println("Failed to read reply body. Error: " + err.Error())
+		log.Info("Failed to read reply body. Error: " + err.Error())
 		return authorization, errors.New("Failed to read reply body.")
 	}
 
 	if resp.StatusCode != 200 {
-		log.Println("HTTP code was not 200. Body:")
-		log.Println(string(body))
+		log.Info("HTTP code was not 200. Body:")
+		log.Info(string(body))
 	}
 
 	err = json.Unmarshal(body, &authorization)
 	if err != nil {
-		log.Println("Failed to parse reply body. Error: " + err.Error())
+		log.Info("Failed to parse reply body. Error: " + err.Error())
 		return authorization, errors.New("Failed to parse reply body.")
 	}
 
@@ -82,7 +82,7 @@ func StravaReauthorize(config models.ConfigStruct, code string) (authorization m
 	var jsonStr = []byte(``)
 	req, err := http.NewRequest("POST", url, bytes.NewBuffer(jsonStr))
 	if err != nil {
-		log.Println("URL request generation threw error. Error: " + err.Error())
+		log.Info("URL request generation threw error. Error: " + err.Error())
 		return authorization, errors.New("URL request generation threw error.")
 	}
 
@@ -101,27 +101,27 @@ func StravaReauthorize(config models.ConfigStruct, code string) (authorization m
 
 	resp, err := client.Do(req)
 	if err != nil {
-		log.Println("URL request threw error. Error: " + err.Error())
+		log.Info("URL request threw error. Error: " + err.Error())
 		return authorization, errors.New("URL request threw error.")
 	}
 	defer resp.Body.Close()
 
-	log.Println("Reauthorize gave HTTP code: " + resp.Status)
+	log.Info("Reauthorize gave HTTP code: " + resp.Status)
 
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
-		log.Println("Failed to read reply body. Error: " + err.Error())
+		log.Info("Failed to read reply body. Error: " + err.Error())
 		return authorization, errors.New("Failed to read reply body.")
 	}
 
 	if resp.StatusCode != 200 {
-		log.Println("HTTP code was not 200. Body:")
-		log.Println(string(body))
+		log.Info("HTTP code was not 200. Body:")
+		log.Info(string(body))
 	}
 
 	err = json.Unmarshal(body, &authorization)
 	if err != nil {
-		log.Println("Failed to parse reply body. Error: " + err.Error())
+		log.Info("Failed to parse reply body. Error: " + err.Error())
 		return authorization, errors.New("Failed to parse reply body.")
 	}
 
@@ -136,13 +136,13 @@ func StravaGetActivities(config models.ConfigStruct, token string, before int, a
 	var jsonStr = []byte(``)
 	req, err := http.NewRequest("GET", url, bytes.NewBuffer(jsonStr))
 	if err != nil {
-		log.Println("URL request generation threw error. Error: " + err.Error())
+		log.Info("URL request generation threw error. Error: " + err.Error())
 		return activities, errors.New("URL request generation threw error.")
 	}
 
 	// Debug lines
-	// log.Println(strconv.Itoa(before))
-	// log.Println(strconv.Itoa(after))
+	// log.Info(strconv.Itoa(before))
+	// log.Info(strconv.Itoa(after))
 
 	// Headers
 	req.Header.Set("Content-Type", "application/json")
@@ -160,27 +160,27 @@ func StravaGetActivities(config models.ConfigStruct, token string, before int, a
 
 	resp, err := client.Do(req)
 	if err != nil {
-		log.Println("URL request threw error. Error: " + err.Error())
+		log.Info("URL request threw error. Error: " + err.Error())
 		return activities, errors.New("URL request threw error.")
 	}
 	defer resp.Body.Close()
 
-	log.Println("Get activities gave HTTP code: " + resp.Status)
+	log.Info("Get activities gave HTTP code: " + resp.Status)
 
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
-		log.Println("Failed to read reply body. Error: " + err.Error())
+		log.Info("Failed to read reply body. Error: " + err.Error())
 		return activities, errors.New("Failed to read reply body.")
 	}
 
 	if resp.StatusCode != 200 {
-		log.Println("HTTP code was not 200. Body:")
-		log.Println(string(body))
+		log.Info("HTTP code was not 200. Body:")
+		log.Info(string(body))
 	}
 
 	err = json.Unmarshal(body, &activities)
 	if err != nil {
-		log.Println("Failed to parse reply body. Error: " + err.Error())
+		log.Info("Failed to parse reply body. Error: " + err.Error())
 		return activities, errors.New("Failed to parse reply body.")
 	}
 
@@ -190,37 +190,37 @@ func StravaGetActivities(config models.ConfigStruct, token string, before int, a
 func StravaSyncWeekForAllUsers() {
 	configFile, err := config.GetConfig()
 	if err != nil {
-		log.Println("Failed to get config file. Error: " + err.Error())
+		log.Info("Failed to get config file. Error: " + err.Error())
 		return
 	}
 
 	users, err := database.GetStravaUsers()
 	if err != nil {
-		log.Println("Failed to get Strava users.")
+		log.Info("Failed to get Strava users.")
 		return
 	}
 
-	log.Println("Got '" + strconv.Itoa(len(users)) + "' users.")
+	log.Info("Got '" + strconv.Itoa(len(users)) + "' users.")
 
 	for _, user := range users {
 		err = StravaSyncWeekForUser(user, *configFile, time.Now())
 		if err != nil {
-			log.Println("Sync Strava for user returned error. Error: " + err.Error())
+			log.Info("Sync Strava for user returned error. Error: " + err.Error())
 		}
 	}
 
-	log.Println("Strava sync task finished.")
+	log.Info("Strava sync task finished.")
 }
 
 func StravaSyncWeekForUser(user models.User, configFile models.ConfigStruct, pointInTime time.Time) (err error) {
 	err = nil
-	log.Println("Strava sync for user '" + user.FirstName + " " + user.LastName + "'.")
+	log.Info("Strava sync for user '" + user.FirstName + " " + user.LastName + "'.")
 	now := time.Now()
 
 	stravaCodeData := strings.Split(*user.StravaCode, ":")
 
 	if len(stravaCodeData) != 2 {
-		log.Println("Invalid Strava code format for user. ID: " + string(user.ID.String()))
+		log.Info("Invalid Strava code format for user. ID: " + string(user.ID.String()))
 		return errors.New("Invalid Strava code format for user.")
 	}
 
@@ -230,7 +230,7 @@ func StravaSyncWeekForUser(user models.User, configFile models.ConfigStruct, poi
 	if stravaCodeData[0] == "c" {
 		authorization, err := StravaAuthorize(configFile, stravaCodeData[1])
 		if err != nil {
-			log.Println("Failed to authorize user. ID: " + user.ID.String())
+			log.Info("Failed to authorize user. ID: " + user.ID.String())
 			return errors.New("Failed to authorize user.")
 		}
 
@@ -238,7 +238,7 @@ func StravaSyncWeekForUser(user models.User, configFile models.ConfigStruct, poi
 		user.StravaCode = &newCode
 		user, err = database.UpdateUser(user)
 		if err != nil {
-			log.Println("Failed to update user. ID: " + user.ID.String())
+			log.Info("Failed to update user. ID: " + user.ID.String())
 			return errors.New("Failed to update user.")
 		}
 
@@ -247,7 +247,7 @@ func StravaSyncWeekForUser(user models.User, configFile models.ConfigStruct, poi
 	} else if stravaCodeData[0] == "r" {
 		authorization, err := StravaReauthorize(configFile, stravaCodeData[1])
 		if err != nil {
-			log.Println("Failed to re-authorize user. ID: " + user.ID.String())
+			log.Info("Failed to re-authorize user. ID: " + user.ID.String())
 			return errors.New("Failed to re-authorize user.")
 		}
 
@@ -255,49 +255,50 @@ func StravaSyncWeekForUser(user models.User, configFile models.ConfigStruct, poi
 		user.StravaCode = &newCode
 		user, err = database.UpdateUser(user)
 		if err != nil {
-			log.Println("Failed to update user. ID: " + user.ID.String())
+			log.Info("Failed to update user. ID: " + user.ID.String())
 			return errors.New("Failed to update user.")
 		}
 
 		token = authorization.AccessToken
 	} else {
-		log.Println("Invalid Strava code format for user. ID: " + string(user.ID.String()))
+		log.Info("Invalid Strava code format for user. ID: " + string(user.ID.String()))
 		return errors.New("Invalid Strava code format for user.")
 	}
 
 	monday, err := utilities.FindEarlierMonday(pointInTime)
 	if err != nil {
-		log.Println("Failed to find monday. ID: " + user.ID.String())
+		log.Info("Failed to find monday. ID: " + user.ID.String())
 		return errors.New("Failed to find monday.")
 	}
 
 	sunday, err := utilities.FindNextSunday(pointInTime)
 	if err != nil {
-		log.Println("Failed to find sunday. ID: " + user.ID.String())
+		log.Info("Failed to find sunday. ID: " + user.ID.String())
 		return errors.New("Failed to find sunday.")
 	}
 
 	activities, err := StravaGetActivities(configFile, token, int(sunday.Unix()), int(monday.Unix()))
 	if err != nil {
-		log.Println("Failed to get activities. ID: " + user.ID.String())
+		log.Info("Failed to get activities. ID: " + user.ID.String())
 		return errors.New("Failed to get activities.")
 	}
 
-	log.Println("Got '" + strconv.Itoa((len(activities))) + "' activities for user.")
+	log.Info("Got '" + strconv.Itoa((len(activities))) + "' activities for user.")
 
 	// Give user achievements
 	err = GiveUserAnAchievement(user.ID, uuid.MustParse("fb4f6c1f-dfad-4df7-8007-4cfd6f351b17"), time.Now())
 	if err != nil {
-		log.Println("Failed to give achievement for user '" + user.ID.String() + "'. Ignoring. Error: " + err.Error())
+		log.Info("Failed to give achievement for user '" + user.ID.String() + "'. Ignoring. Error: " + err.Error())
+		err = nil
 	}
 
 	for _, activity := range activities {
 		// Skip walks if enabled
 		if user.StravaWalks != nil && *user.StravaWalks && strings.ToLower(activity.SportType) == "walk" {
-			log.Println("Skipping activity because user has 'ignore walks' enabled.")
+			log.Info("Skipping activity because user has 'ignore walks' enabled.")
 			continue
 		} else {
-			log.Println("Sport type is: " + activity.SportType)
+			log.Info("Sport type is: " + activity.SportType)
 		}
 
 		// Add Strava ID to user if missing
@@ -306,23 +307,23 @@ func StravaSyncWeekForUser(user models.User, configFile models.ConfigStruct, poi
 			user.StravaID = &stravaID
 			user, err = database.UpdateUser(user)
 			if err != nil {
-				log.Println("Failed to update user Strava ID. Error: " + err.Error())
+				log.Info("Failed to update user Strava ID. Error: " + err.Error())
 				return errors.New("Failed to update user Strava ID.")
 			}
 		}
 
 		exercise, err := database.GetExerciseForUserWithStravaID(user.ID, strconv.Itoa(int(activity.ID)))
 		if err != nil {
-			log.Println("Failed to get exercise. ID: " + user.ID.String())
+			log.Info("Failed to get exercise. ID: " + user.ID.String())
 			return errors.New("Failed to get exercise.")
 		} else if exercise == nil {
 			// Get exercise day
 			exerciseDay, err := database.GetExerciseDayByDateAndUserID(user.ID, activity.StartDate)
 			if err != nil {
-				log.Println("Failed to get exercise day. ID: " + user.ID.String())
+				log.Info("Failed to get exercise day. ID: " + user.ID.String())
 				return errors.New("Failed to get exercise day.")
 			} else if exerciseDay == nil {
-				log.Println("Creating new exercise day.")
+				log.Info("Creating new exercise day.")
 
 				exerciseDay = &models.ExerciseDay{}
 				exerciseDay.ID = uuid.New()
@@ -336,11 +337,11 @@ func StravaSyncWeekForUser(user models.User, configFile models.ConfigStruct, poi
 
 				err = database.CreateExerciseDayInDB(*exerciseDay)
 				if err != nil {
-					log.Println("Failed to create exercise day. ID: " + user.ID.String())
+					log.Info("Failed to create exercise day. ID: " + user.ID.String())
 					return errors.New("Failed to create exercise day.")
 				}
 			}
-			log.Println("Creating new exercise.")
+			log.Info("Creating new exercise.")
 
 			exercise = &models.Exercise{}
 			exercise.ID = uuid.New()
@@ -388,22 +389,22 @@ func StravaSyncWeekForUser(user models.User, configFile models.ConfigStruct, poi
 
 		finalExercise, err := database.UpdateExerciseInDB(*exercise)
 		if err != nil {
-			log.Println("Failed to get exercise. ID: " + user.ID.String())
+			log.Info("Failed to get exercise. ID: " + user.ID.String())
 			return errors.New("Failed to get exercise.")
 		}
 
-		log.Println("Updated exercise.")
+		log.Info("Updated exercise.")
 
 		operation, err := StravaSyncOperationForActivity(activity, user, finalExercise)
 		if err != nil {
-			log.Println("Failed to sync operation. Error: " + err.Error())
-			log.Println("Sport type was: " + activity.SportType)
+			log.Info("Failed to sync operation. Error: " + err.Error())
+			log.Info("Sport type was: " + activity.SportType)
 		} else if operation == nil {
-			log.Println("Failed to sync operation. No error.")
-			log.Println("Sport type was: " + activity.SportType)
+			log.Info("Failed to sync operation. No error.")
+			log.Info("Sport type was: " + activity.SportType)
 		}
 
-		log.Println("Synced operations.")
+		log.Info("Synced operations.")
 	}
 
 	return
@@ -431,11 +432,11 @@ func StravaSyncOperationForActivity(activity models.StravaGetActivitiesRequestRe
 	if err != nil {
 		return finalOperation, err
 	} else if oldOperation == nil {
-		log.Println("Creating new operation.")
+		log.Info("Creating new operation.")
 		operation = models.Operation{}
 		operation.ID = uuid.New()
 	} else {
-		log.Println("Updating operation.")
+		log.Info("Updating operation.")
 		operation = *oldOperation
 	}
 
@@ -453,7 +454,7 @@ func StravaSyncOperationForActivity(activity models.StravaGetActivitiesRequestRe
 		return finalOperation, err
 	}
 
-	log.Println("Updated operation.")
+	log.Info("Updated operation.")
 
 	finalOperation = &newOperation
 
@@ -463,11 +464,11 @@ func StravaSyncOperationForActivity(activity models.StravaGetActivitiesRequestRe
 	if err != nil {
 		return finalOperation, err
 	} else if oldOperationSet == nil {
-		log.Println("Creating new operation set.")
+		log.Info("Creating new operation set.")
 		operationSet = models.OperationSet{}
 		operationSet.ID = uuid.New()
 	} else {
-		log.Println("Updating operation set.")
+		log.Info("Updating operation set.")
 		operationSet = *oldOperationSet
 	}
 
@@ -489,7 +490,7 @@ func StravaSyncOperationForActivity(activity models.StravaGetActivitiesRequestRe
 		return finalOperation, err
 	}
 
-	log.Println("Updated operation set.")
+	log.Info("Updated operation set.")
 
 	// Sync duration of operations to exercise
 	err = SyncStravaOperationsToExerciseSession(exercise.ID, user.ID)
@@ -503,20 +504,20 @@ func StravaSyncOperationForActivity(activity models.StravaGetActivitiesRequestRe
 func SyncStravaOperationsToExerciseSession(exerciseID uuid.UUID, userID uuid.UUID) (err error) {
 	err = nil
 
-	log.Println("Syncing Strava operations to exercise.")
+	log.Info("Syncing Strava operations to exercise.")
 
 	exercise, err := database.GetExerciseByIDAndUserID(exerciseID, userID)
 	if err != nil {
-		log.Println("Failed to get exercise object. Error: " + err.Error())
+		log.Info("Failed to get exercise object. Error: " + err.Error())
 		return errors.New("Failed to get exercise object.")
 	} else if exercise == nil {
-		log.Println("Failed to find exercise object.")
+		log.Info("Failed to find exercise object.")
 		return errors.New("Failed to find exercise object.")
 	}
 
 	exerciseObject, err := ConvertExerciseToExerciseObject(*exercise)
 	if err != nil {
-		log.Println("Failed to convert exercise to exercise object. Error: " + err.Error())
+		log.Info("Failed to convert exercise to exercise object. Error: " + err.Error())
 		return errors.New("Failed to convert exercise to exercise object.")
 	}
 
@@ -542,11 +543,11 @@ func SyncStravaOperationsToExerciseSession(exerciseID uuid.UUID, userID uuid.UUI
 
 	_, err = database.UpdateExerciseInDB(*exercise)
 	if err != nil {
-		log.Println("Failed to update exercise. Error: " + err.Error())
+		log.Info("Failed to update exercise. Error: " + err.Error())
 		return errors.New("Failed to update exercise.")
 	}
 
-	log.Println("Updated exercise with operations.")
+	log.Info("Updated exercise with operations.")
 
 	return
 }

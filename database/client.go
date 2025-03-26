@@ -38,7 +38,7 @@ func Connect(dbUsername string, dbPassword string, dbIP string, dbPort int, dbNa
 		}
 	}
 
-	log.Println("Connected to database.")
+	log.Info("Connected to database.")
 	fmt.Println("Connected to database.")
 
 	return nil
@@ -79,5 +79,5 @@ func Migrate() {
 	Instance.AutoMigrate(&models.OperationSet{})
 	Instance.AutoMigrate(&models.Action{})
 
-	log.Println("Database Migration Completed!")
+	log.Info("Database Migration Completed!")
 }

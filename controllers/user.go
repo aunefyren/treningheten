@@ -42,7 +42,7 @@ func RegisterUser(context *gin.Context) {
 	// Make password is strong enough
 	valid, requirements, err := utilities.ValidatePasswordFormat(userCreationRequest.Password)
 	if err != nil {
-		log.Println("Failed to verify password quality. Error: " + err.Error())
+		log.Info("Failed to verify password quality. Error: " + err.Error())
 		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to verify password quality."})
 		context.Abort()
 		return
@@ -123,7 +123,7 @@ func RegisterUser(context *gin.Context) {
 	// Create user in DB
 	user, err = database.RegisterUserInDB(user)
 	if err != nil {
-		log.Println("Failed to save user in database. Error: " + err.Error())
+		log.Info("Failed to save user in database. Error: " + err.Error())
 		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to save user in database."})
 		context.Abort()
 		return
@@ -140,7 +140,7 @@ func RegisterUser(context *gin.Context) {
 	// If user is not verified and SMTP is enabled, send verification e-mail
 	if !user.Verified && config.SMTPEnabled {
 
-		log.Println("Sending verification e-mail to new user: " + user.FirstName + " " + user.LastName + ".")
+		log.Info("Sending verification e-mail to new user: " + user.FirstName + " " + user.LastName + ".")
 
 		err = utilities.SendSMTPVerificationEmail(user)
 		if err != nil {
@@ -172,7 +172,7 @@ func GetUser(context *gin.Context) {
 	// Get user ID from requestor
 	requesterUserID, err := middlewares.GetAuthUsername(context.GetHeader("Authorization"))
 	if err != nil {
-		log.Println("Failed to get requesting user ID. Error: " + err.Error())
+		log.Info("Failed to get requesting user ID. Error: " + err.Error())
 		context.JSON(http.StatusBadRequest, gin.H{"error": "Failed to get requesting user ID."})
 		context.Abort()
 		return
@@ -181,7 +181,7 @@ func GetUser(context *gin.Context) {
 	if requesterUserID == user_id_int {
 		userObject, err = database.GetAllUserInformation(requesterUserID)
 		if err != nil {
-			log.Println("Failed to get user details. Error: " + err.Error())
+			log.Info("Failed to get user details. Error: " + err.Error())
 			context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get user details."})
 			context.Abort()
 			return
@@ -189,7 +189,7 @@ func GetUser(context *gin.Context) {
 	} else {
 		userObject, err = database.GetUserInformation(user_id_int)
 		if err != nil {
-			log.Println("Failed to get user. Error: " + err.Error())
+			log.Info("Failed to get user. Error: " + err.Error())
 			context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get user."})
 			context.Abort()
 			return
@@ -198,7 +198,7 @@ func GetUser(context *gin.Context) {
 		// Give achievement for visiting another user's profile
 		err := GiveUserAnAchievement(requesterUserID, uuid.MustParse("cbd81cd0-4caf-438b-989b-b5ca7e76605d"), time.Now())
 		if err != nil {
-			log.Println("Failed to give achievement for user '" + requesterUserID.String() + "'. Ignoring. Error: " + err.Error())
+			log.Info("Failed to give achievement for user '" + requesterUserID.String() + "'. Ignoring. Error: " + err.Error())
 		}
 	}
 
@@ -211,7 +211,7 @@ func GetUsers(context *gin.Context) {
 	// Get users from DB
 	users, err := database.GetUsersInformation()
 	if err != nil {
-		log.Println("Failed to get users. Error: " + err.Error())
+		log.Info("Failed to get users. Error: " + err.Error())
 		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get users."})
 		context.Abort()
 		return
@@ -272,7 +272,7 @@ func VerifyUser(context *gin.Context) {
 	var user models.User
 	record := database.Instance.Where("ID = ?", userID).First(&user)
 	if record.Error != nil {
-		log.Println("Invalid credentials. Error: " + record.Error.Error())
+		log.Info("Invalid credentials. Error: " + record.Error.Error())
 		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get user details."})
 		context.Abort()
 		return
@@ -338,7 +338,7 @@ func UpdateUser(context *gin.Context) {
 
 	// Parse creation request
 	if err := context.ShouldBindJSON(&userUpdateRequest); err != nil {
-		log.Println("Failed to prase update request. Error: " + err.Error())
+		log.Info("Failed to prase update request. Error: " + err.Error())
 		context.JSON(http.StatusBadRequest, gin.H{"error": "Failed to prase update request."})
 		context.Abort()
 		return
@@ -354,7 +354,7 @@ func UpdateUser(context *gin.Context) {
 
 	userObject, err := database.GetAllUserInformation(userID)
 	if err != nil {
-		log.Println("Failed to get user information. Error: " + err.Error())
+		log.Info("Failed to get user information. Error: " + err.Error())
 		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get user information."})
 		context.Abort()
 		return
@@ -362,7 +362,7 @@ func UpdateUser(context *gin.Context) {
 
 	credentialError := userObject.CheckPassword(userUpdateRequest.OldPassword)
 	if credentialError != nil {
-		log.Println("Invalid credentials. Error: " + credentialError.Error())
+		log.Info("Invalid credentials. Error: " + credentialError.Error())
 		context.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid credentials."})
 		context.Abort()
 		return
@@ -378,7 +378,7 @@ func UpdateUser(context *gin.Context) {
 	// Make password is strong enough
 	valid, requirements, err := utilities.ValidatePasswordFormat(userUpdateRequest.Password)
 	if err != nil {
-		log.Println("Failed to verify password quality. Error: " + err.Error())
+		log.Info("Failed to verify password quality. Error: " + err.Error())
 		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to verify password quality."})
 		context.Abort()
 		return
@@ -392,7 +392,7 @@ func UpdateUser(context *gin.Context) {
 	var userOriginal models.User
 	record := database.Instance.Where("ID = ?", userID).First(&userOriginal)
 	if record.Error != nil {
-		log.Println("Invalid credentials. Error: " + record.Error.Error())
+		log.Info("Invalid credentials. Error: " + record.Error.Error())
 		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get user details."})
 		context.Abort()
 		return
@@ -442,7 +442,7 @@ func UpdateUser(context *gin.Context) {
 	if userUpdateRequest.ProfileImage != "" {
 		err = UpdateUserProfileImage(userOriginal.ID, userUpdateRequest.ProfileImage)
 		if err != nil {
-			log.Println("Failed to update profile image. Error: " + err.Error())
+			log.Info("Failed to update profile image. Error: " + err.Error())
 			context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update profile image."})
 			context.Abort()
 			return
@@ -451,7 +451,7 @@ func UpdateUser(context *gin.Context) {
 		// Give achievement to user for changing profile photo
 		err := GiveUserAnAchievement(userOriginal.ID, uuid.MustParse("05a3579f-aa8d-4814-b28f-5824a2d904ec"), time.Now())
 		if err != nil {
-			log.Println("Failed to give achievement for user '" + userOriginal.ID.String() + "'. Ignoring. Error: " + err.Error())
+			log.Info("Failed to give achievement for user '" + userOriginal.ID.String() + "'. Ignoring. Error: " + err.Error())
 		}
 	}
 
@@ -471,7 +471,7 @@ func UpdateUser(context *gin.Context) {
 	// Update user in database
 	user, err := database.UpdateUser(userOriginal)
 	if err != nil {
-		log.Println("Failed to update user in the database. Error: " + err.Error())
+		log.Info("Failed to update user in the database. Error: " + err.Error())
 		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update user in the database."})
 		context.Abort()
 		return
@@ -505,7 +505,7 @@ func UpdateUser(context *gin.Context) {
 
 		user.VerificationCode = &verificationCode
 
-		log.Println("Sending verification e-mail to new user: " + user.FirstName + " " + user.LastName + ".")
+		log.Info("Sending verification e-mail to new user: " + user.FirstName + " " + user.LastName + ".")
 
 		err = utilities.SendSMTPVerificationEmail(user)
 		if err != nil {
@@ -557,7 +557,7 @@ func APIResetPassword(context *gin.Context) {
 
 	user, err := database.GetUserInformationByEmail(resetRequestVar.Email)
 	if err != nil {
-		log.Println("Failed to find user using email during password reset. Replied with okay 200. Error: " + err.Error())
+		log.Info("Failed to find user using email during password reset. Replied with okay 200. Error: " + err.Error())
 		context.JSON(http.StatusOK, gin.H{"message": "If the user exists, an email with a password reset has been sent."})
 		context.Abort()
 		return
@@ -565,7 +565,7 @@ func APIResetPassword(context *gin.Context) {
 
 	_, err = database.GenerateRandomResetCodeForUser(user.ID)
 	if err != nil {
-		log.Println("Failed to generate reset code for user during password reset. Error: " + err.Error())
+		log.Info("Failed to generate reset code for user during password reset. Error: " + err.Error())
 		context.JSON(http.StatusInternalServerError, gin.H{"message": "Error."})
 		context.Abort()
 		return
@@ -573,7 +573,7 @@ func APIResetPassword(context *gin.Context) {
 
 	user, err = database.GetAllUserInformation(user.ID)
 	if err != nil {
-		log.Println("Failed to retrieve data for user during password reset. Error: " + err.Error())
+		log.Info("Failed to retrieve data for user during password reset. Error: " + err.Error())
 		context.JSON(http.StatusInternalServerError, gin.H{"message": "Error."})
 		context.Abort()
 		return
@@ -581,7 +581,7 @@ func APIResetPassword(context *gin.Context) {
 
 	err = utilities.SendSMTPResetEmail(user)
 	if err != nil {
-		log.Println("Failed to send email to user during password reset. Error: " + err.Error())
+		log.Info("Failed to send email to user during password reset. Error: " + err.Error())
 		context.JSON(http.StatusInternalServerError, gin.H{"message": "Error."})
 		context.Abort()
 		return
@@ -614,7 +614,7 @@ func APIChangePassword(context *gin.Context) {
 	// Make password is strong enough
 	valid, requirements, err := utilities.ValidatePasswordFormat(userUpdatePasswordRequest.Password)
 	if err != nil {
-		log.Println("Failed to verify password quality. Error: " + err.Error())
+		log.Info("Failed to verify password quality. Error: " + err.Error())
 		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to verify password quality."})
 		context.Abort()
 		return
@@ -627,7 +627,7 @@ func APIChangePassword(context *gin.Context) {
 	// Get user object using reset code
 	user, err = database.GetAllUserInformationByResetCode(userUpdatePasswordRequest.ResetCode)
 	if err != nil {
-		log.Println("Failed to retrieve user using reset code. Error: " + err.Error())
+		log.Info("Failed to retrieve user using reset code. Error: " + err.Error())
 		context.JSON(http.StatusBadRequest, gin.H{"error": "Reset code has expired."})
 		context.Abort()
 		return
@@ -644,7 +644,7 @@ func APIChangePassword(context *gin.Context) {
 
 	// Hash the selected password
 	if err = user.HashPassword(userUpdatePasswordRequest.Password); err != nil {
-		log.Println("Failed to hash password. Error: " + err.Error())
+		log.Info("Failed to hash password. Error: " + err.Error())
 		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to process password."})
 		context.Abort()
 		return
@@ -653,7 +653,7 @@ func APIChangePassword(context *gin.Context) {
 	// Save new password
 	err = database.UpdateUserValuesByUserID(user.ID, user.Email, user.Password, user.SundayAlert, user.BirthDate)
 	if err != nil {
-		log.Println("Failed to update password. Error: " + err.Error())
+		log.Info("Failed to update password. Error: " + err.Error())
 		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update password."})
 		context.Abort()
 		return
@@ -662,7 +662,7 @@ func APIChangePassword(context *gin.Context) {
 	// Change the reset code
 	_, err = database.GenerateRandomResetCodeForUser(user.ID)
 	if err != nil {
-		log.Println("Failed to generate reset code for user during password reset. Error: " + err.Error())
+		log.Info("Failed to generate reset code for user during password reset. Error: " + err.Error())
 		context.JSON(http.StatusInternalServerError, gin.H{"message": "Error."})
 		context.Abort()
 		return
@@ -679,22 +679,22 @@ func SendSundayReminders() {
 	// Get current season
 	seasons, err := GetOngoingSeasonsFromDB(now)
 	if err != nil {
-		log.Println("Failed to verify current season status. Returning. Error: " + err.Error())
+		log.Info("Failed to verify current season status. Returning. Error: " + err.Error())
 		return
 	} else if len(seasons) == 0 {
-		log.Println("Failed to verify current season status. Returning. Error: No active or future seasons found.")
+		log.Info("Failed to verify current season status. Returning. Error: No active or future seasons found.")
 		return
 	}
 
 	for _, season := range seasons {
 		if season.Start.After(now) || season.End.Before(now) {
-			log.Println("Not in the middle of a season. Returning.")
+			log.Info("Not in the middle of a season. Returning.")
 			return
 		}
 
 		usersWithAlerts, err := database.GetAllUsersWithSundayAlertsEnabled()
 		if err != nil {
-			log.Println("Failed to get users with alerts enabled. Returning. Error: " + err.Error())
+			log.Info("Failed to get users with alerts enabled. Returning. Error: " + err.Error())
 			return
 		}
 
@@ -704,7 +704,7 @@ func SendSundayReminders() {
 
 			goalStatus, _, err := database.VerifyUserGoalInSeason(user.ID, season.ID)
 			if err != nil {
-				log.Println("Failed to verify user '" + user.ID.String() + "'. Skipping.")
+				log.Info("Failed to verify user '" + user.ID.String() + "'. Skipping.")
 			} else if goalStatus {
 				usersToAlert = append(usersToAlert, user)
 			}
@@ -718,7 +718,7 @@ func SendSundayReminders() {
 		// Send push notifications
 		err = PushNotificationsForSundayAlerts()
 		if err != nil {
-			log.Println("Failed to send push notifications for Sunday reminders.")
+			log.Info("Failed to send push notifications for Sunday reminders.")
 		}
 	}
 }
@@ -738,7 +738,7 @@ func APISetStravaCode(context *gin.Context) {
 
 	configFile, err := config.GetConfig()
 	if err != nil {
-		log.Println("Failed to get config. Error: " + err.Error())
+		log.Info("Failed to get config. Error: " + err.Error())
 		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get config."})
 		context.Abort()
 		return
@@ -753,7 +753,7 @@ func APISetStravaCode(context *gin.Context) {
 	// Get user ID
 	userID, err := middlewares.GetAuthUsername(context.GetHeader("Authorization"))
 	if err != nil {
-		log.Println("Failed to get user ID. Error: " + err.Error())
+		log.Info("Failed to get user ID. Error: " + err.Error())
 		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get user ID."})
 		context.Abort()
 		return
@@ -761,7 +761,7 @@ func APISetStravaCode(context *gin.Context) {
 
 	user, err = database.GetAllUserInformation(userID)
 	if err != nil {
-		log.Println("Failed to get user object. Error: " + err.Error())
+		log.Info("Failed to get user object. Error: " + err.Error())
 		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get user object."})
 		context.Abort()
 		return
@@ -772,7 +772,7 @@ func APISetStravaCode(context *gin.Context) {
 
 	_, err = database.UpdateUser(user)
 	if err != nil {
-		log.Println("Failed to update user object. Error: " + err.Error())
+		log.Info("Failed to update user object. Error: " + err.Error())
 		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update user object."})
 		context.Abort()
 		return
@@ -780,7 +780,7 @@ func APISetStravaCode(context *gin.Context) {
 
 	err = StravaSyncWeekForUser(user, *configFile, time.Now())
 	if err != nil {
-		log.Println("Failed to sync Strava for user. Error: " + err.Error())
+		log.Info("Failed to sync Strava for user. Error: " + err.Error())
 		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to sync Strava for user."})
 		context.Abort()
 		return
@@ -795,7 +795,7 @@ func APISyncStravaForUser(context *gin.Context) {
 
 	configFile, err := config.GetConfig()
 	if err != nil {
-		log.Println("Failed to get config. Error: " + err.Error())
+		log.Info("Failed to get config. Error: " + err.Error())
 		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get config."})
 		context.Abort()
 		return
@@ -812,7 +812,7 @@ func APISyncStravaForUser(context *gin.Context) {
 	if okay {
 		pointInTimeInt, err := strconv.ParseInt(pointInTimeInput, 10, 64)
 		if err != nil {
-			log.Println("Failed to parse UNIX timestamp. Error: " + err.Error())
+			log.Info("Failed to parse UNIX timestamp. Error: " + err.Error())
 			context.JSON(http.StatusBadRequest, gin.H{"error": "Failed to parse UNIX timestamp."})
 			context.Abort()
 			return
@@ -824,7 +824,7 @@ func APISyncStravaForUser(context *gin.Context) {
 	// Get user ID
 	userID, err := middlewares.GetAuthUsername(context.GetHeader("Authorization"))
 	if err != nil {
-		log.Println("Failed to get user ID. Error: " + err.Error())
+		log.Info("Failed to get user ID. Error: " + err.Error())
 		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get user ID."})
 		context.Abort()
 		return
@@ -832,7 +832,7 @@ func APISyncStravaForUser(context *gin.Context) {
 
 	user, err = database.GetAllUserInformation(userID)
 	if err != nil {
-		log.Println("Failed to get user object. Error: " + err.Error())
+		log.Info("Failed to get user object. Error: " + err.Error())
 		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get user object."})
 		context.Abort()
 		return
@@ -846,7 +846,7 @@ func APISyncStravaForUser(context *gin.Context) {
 
 	err = StravaSyncWeekForUser(user, *configFile, pointInTime)
 	if err != nil {
-		log.Println("Failed to sync Strava for user. Error: " + err.Error())
+		log.Info("Failed to sync Strava for user. Error: " + err.Error())
 		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to sync Strava for user."})
 		context.Abort()
 		return
@@ -863,7 +863,7 @@ func APIPartialUpdateUser(context *gin.Context) {
 	// Parse creation request
 	err = context.ShouldBindJSON(&userUpdateRequest)
 	if err != nil {
-		log.Println("Failed to parse update request. Error: " + err.Error())
+		log.Info("Failed to parse update request. Error: " + err.Error())
 		context.JSON(http.StatusBadRequest, gin.H{"error": "Failed to parse update request."})
 		context.Abort()
 		return
@@ -872,7 +872,7 @@ func APIPartialUpdateUser(context *gin.Context) {
 	// Get user ID
 	userID, err := middlewares.GetAuthUsername(context.GetHeader("Authorization"))
 	if err != nil {
-		log.Println("Failed to get user from header. Error: " + err.Error())
+		log.Info("Failed to get user from header. Error: " + err.Error())
 		context.JSON(http.StatusBadRequest, gin.H{"error": "Failed to get user from header."})
 		context.Abort()
 		return
@@ -880,7 +880,7 @@ func APIPartialUpdateUser(context *gin.Context) {
 
 	userObject, err := database.GetAllUserInformation(userID)
 	if err != nil {
-		log.Println("Failed to get user information. Error: " + err.Error())
+		log.Info("Failed to get user information. Error: " + err.Error())
 		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get user information."})
 		context.Abort()
 		return
@@ -905,7 +905,7 @@ func APIPartialUpdateUser(context *gin.Context) {
 	// Update user in database
 	_, err = database.UpdateUser(userObject)
 	if err != nil {
-		log.Println("Failed to update user in the database. Error: " + err.Error())
+		log.Info("Failed to update user in the database. Error: " + err.Error())
 		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update user in the database."})
 		context.Abort()
 		return

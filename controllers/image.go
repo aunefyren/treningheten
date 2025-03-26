@@ -47,7 +47,7 @@ func APIGetUserProfileImage(context *gin.Context) {
 	// Parse user id
 	userID, err := uuid.Parse(userIDString)
 	if err != nil {
-		log.Println("Failed to parse user ID. Error: " + err.Error())
+		log.Info("Failed to parse user ID. Error: " + err.Error())
 		context.JSON(http.StatusBadRequest, gin.H{"error": "Failed to parse user ID."})
 		context.Abort()
 		return
@@ -56,7 +56,7 @@ func APIGetUserProfileImage(context *gin.Context) {
 	// Check if user exists
 	_, err = database.GetUserInformation(userID)
 	if err != nil {
-		log.Println("Failed to find user. Error: " + err.Error())
+		log.Info("Failed to find user. Error: " + err.Error())
 		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to find user."})
 		context.Abort()
 		return
@@ -68,11 +68,11 @@ func APIGetUserProfileImage(context *gin.Context) {
 	resize := true
 	if err != nil {
 		// Debug line
-		// log.Println("Failed to find profile image. Loading default.")
+		// log.Info("Failed to find profile image. Loading default.")
 
 		imageBytes, err = LoadDefaultProfileImage()
 		if err != nil {
-			log.Println("Failed to load default profile image. Error: " + err.Error())
+			log.Info("Failed to load default profile image. Error: " + err.Error())
 			context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to load default profile image."})
 			context.Abort()
 			return
@@ -83,7 +83,7 @@ func APIGetUserProfileImage(context *gin.Context) {
 	if resize {
 		imageBytes, err = ResizeImage(imageWidth, imageHeight, imageBytes)
 		if err != nil {
-			log.Println("Failed to resize image. Error: " + err.Error())
+			log.Info("Failed to resize image. Error: " + err.Error())
 			context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to resize image."})
 			context.Abort()
 			return
@@ -92,7 +92,7 @@ func APIGetUserProfileImage(context *gin.Context) {
 
 	base64, err := ImageBytesToBase64(imageBytes)
 	if err != nil {
-		log.Println("Failed to convert image file to Base64. Error: " + err.Error())
+		log.Info("Failed to convert image file to Base64. Error: " + err.Error())
 		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to convert image file to Base64."})
 		context.Abort()
 		return
@@ -109,7 +109,7 @@ func LoadImageFile(filePath string) ([]byte, error) {
 	imageBytes, err := ioutil.ReadFile(filePath)
 	if err != nil {
 		// Debug line
-		// log.Println("Failed to read file. Returning.")
+		// log.Info("Failed to read file. Returning.")
 
 		return nil, errors.New("Failed to read file.")
 	}
@@ -122,18 +122,18 @@ func SaveImageFile(filePath string, fileName string, imageFile image.Image) erro
 
 	err := os.MkdirAll(filePath, 0755)
 	if err != nil {
-		log.Println("Failed to create directory for image. Error: " + err.Error())
+		log.Info("Failed to create directory for image. Error: " + err.Error())
 		return errors.New("Failed to create directory for image.")
 	}
 
 	file, err := os.Create(filePath + "/" + fileName)
 	if err != nil {
-		log.Println("Failed to create file for image. Error: " + err.Error())
+		log.Info("Failed to create file for image. Error: " + err.Error())
 		return errors.New("Failed to create file for image.")
 	}
 	defer file.Close()
 	if err = jpeg.Encode(file, imageFile, nil); err != nil {
-		log.Println("Failed to encode file for image. Error: " + err.Error())
+		log.Info("Failed to encode file for image. Error: " + err.Error())
 		return errors.New("Failed to encode file for image.")
 	}
 
@@ -189,7 +189,7 @@ func Base64ToImageBytes(base64String string) ([]byte, string, error) {
 	// Append the base64 encoded output
 	imageBytes, err := base64.StdEncoding.DecodeString(b64Data)
 	if err != nil {
-		log.Println("Failed to convert Base64 string to byte array. Returning. Error: " + err.Error())
+		log.Info("Failed to convert Base64 string to byte array. Returning. Error: " + err.Error())
 		return nil, "", errors.New("Invalid Base64 string.")
 	}
 
@@ -201,7 +201,7 @@ func LoadDefaultProfileImage() ([]byte, error) {
 
 	imageBytes, err := LoadImageFile(default_profile_image_path)
 	if err != nil {
-		log.Println("Failed to load default profile image. Error: " + err.Error() + ". Returning.")
+		log.Info("Failed to load default profile image. Error: " + err.Error() + ". Returning.")
 		return nil, errors.New("Failed to load default profile image.")
 	}
 
@@ -214,7 +214,7 @@ func ResizeImage(maxWidth uint, maxHeight uint, imageBytes []byte) ([]byte, erro
 	// decode jpeg into image.Image
 	img, _, err := image.Decode(bytes.NewReader(imageBytes))
 	if err != nil {
-		log.Println("Failed to convert bytes to image object. Error: " + err.Error() + ". Returning.")
+		log.Info("Failed to convert bytes to image object. Error: " + err.Error() + ". Returning.")
 		return nil, errors.New("Failed to convert bytes to image object.")
 	}
 
@@ -225,7 +225,7 @@ func ResizeImage(maxWidth uint, maxHeight uint, imageBytes []byte) ([]byte, erro
 	buf := new(bytes.Buffer)
 	err = jpeg.Encode(buf, resizedImage, nil)
 	if err != nil {
-		log.Println("Failed to convert resized image file to bytes. Error: " + err.Error() + ". Returning.")
+		log.Info("Failed to convert resized image file to bytes. Error: " + err.Error() + ". Returning.")
 		return nil, errors.New("Failed to convert resized image file to bytes.")
 	}
 	resizedImageBytes := buf.Bytes()
@@ -237,7 +237,7 @@ func UpdateUserProfileImage(userID uuid.UUID, base64String string) error {
 
 	imageBytes, mimeType, err := Base64ToImageBytes(base64String)
 	if err != nil {
-		log.Println("Failed to convert Base64 String to bytes. Error: " + err.Error())
+		log.Info("Failed to convert Base64 String to bytes. Error: " + err.Error())
 		return errors.New("Invalid Base64 string.")
 	}
 
@@ -254,17 +254,17 @@ func UpdateUserProfileImage(userID uuid.UUID, base64String string) error {
 	if mimeType == "image/jpeg" {
 		imageObject, err = jpeg.Decode(bytes.NewReader(imageBytes))
 		if err != nil {
-			log.Println("Failed to create image from byte array. Returning. Error: " + err.Error())
+			log.Info("Failed to create image from byte array. Returning. Error: " + err.Error())
 			return errors.New("Failed to create image from, byte array.")
 		}
 	} else if mimeType == "image/png" {
 		imageObject, err = png.Decode(bytes.NewReader(imageBytes))
 		if err != nil {
-			log.Println("Failed to create image from byte array. Returning. Error: " + err.Error())
+			log.Info("Failed to create image from byte array. Returning. Error: " + err.Error())
 			return errors.New("Failed to create image from, byte array.")
 		}
 	} else {
-		log.Println("Invalid mime type for image. Type: " + mimeType)
+		log.Info("Invalid mime type for image. Type: " + mimeType)
 		return errors.New("Invalid image type.")
 	}
 
@@ -272,7 +272,7 @@ func UpdateUserProfileImage(userID uuid.UUID, base64String string) error {
 
 	err = SaveImageFile(profile_image_path, userIDString+".jpg", imageObject)
 	if err != nil {
-		log.Println("Failed to save image to disk. Returning. Error: " + err.Error())
+		log.Info("Failed to save image to disk. Returning. Error: " + err.Error())
 		return errors.New("Failed to save image to disk.")
 	}
 
@@ -299,7 +299,7 @@ func APIGetAchievementsImage(context *gin.Context) {
 	// Parse achievement id
 	achievementID, err := uuid.Parse(achievementIDString)
 	if err != nil {
-		log.Println("Failed to parse achievement ID. Error: " + err.Error())
+		log.Info("Failed to parse achievement ID. Error: " + err.Error())
 		context.JSON(http.StatusBadRequest, gin.H{"error": "Failed to parse achievement ID."})
 		context.Abort()
 		return
@@ -308,7 +308,7 @@ func APIGetAchievementsImage(context *gin.Context) {
 	// Check if achievement exists
 	_, err = database.GetAchievementByID(achievementID)
 	if err != nil {
-		log.Println("Failed to find achievement. Error: " + err.Error())
+		log.Info("Failed to find achievement. Error: " + err.Error())
 		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to find achievement."})
 		context.Abort()
 		return
@@ -319,7 +319,7 @@ func APIGetAchievementsImage(context *gin.Context) {
 	imageBytes, err := LoadImageFile(filePath)
 	resize := true
 	if err != nil {
-		log.Println("Failed to find achievement image. Error: " + err.Error())
+		log.Info("Failed to find achievement image. Error: " + err.Error())
 		context.JSON(http.StatusBadRequest, gin.H{"error": "Failed to find achievement image."})
 		context.Abort()
 		return
@@ -328,7 +328,7 @@ func APIGetAchievementsImage(context *gin.Context) {
 	if resize {
 		imageBytes, err = ResizeImage(imageWidth, imageHeight, imageBytes)
 		if err != nil {
-			log.Println("Failed to resize image. Error: " + err.Error())
+			log.Info("Failed to resize image. Error: " + err.Error())
 			context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to resize image."})
 			context.Abort()
 			return
@@ -337,7 +337,7 @@ func APIGetAchievementsImage(context *gin.Context) {
 
 	base64, err := ImageBytesToBase64(imageBytes)
 	if err != nil {
-		log.Println("Failed to convert image file to Base64. Error: " + err.Error())
+		log.Info("Failed to convert image file to Base64. Error: " + err.Error())
 		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to convert image file to Base64."})
 		context.Abort()
 		return

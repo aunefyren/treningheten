@@ -37,7 +37,7 @@ func APIGetOngoingSeasons(context *gin.Context) {
 
 	seasonObjects, err := ConvertSeasonsToSeasonObjects(seasons)
 	if err != nil {
-		log.Println("Failed to convert season to season object. Error: " + err.Error())
+		log.Info("Failed to convert season to season object. Error: " + err.Error())
 		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to convert season to season object."})
 		context.Abort()
 		return
@@ -55,7 +55,7 @@ func APIGetOngoingSeasons(context *gin.Context) {
 	// Get configuration
 	config, err := config.GetConfig()
 	if err != nil {
-		log.Println("Failed to get config. Error: " + err.Error())
+		log.Info("Failed to get config. Error: " + err.Error())
 		context.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		context.Abort()
 		return
@@ -102,7 +102,7 @@ func GetOngoingSeasonsFromDBForUserID(givenTime time.Time, userID uuid.UUID) (cu
 	for _, season := range tempSeasons {
 		goalFound, _, err := database.VerifyUserGoalInSeason(userID, season.ID)
 		if err != nil {
-			log.Println("Failed to verify if goal in season. Skipping...")
+			log.Info("Failed to verify if goal in season. Skipping...")
 			continue
 		} else if goalFound {
 			currentSeasons = append(currentSeasons, season)
@@ -119,7 +119,7 @@ func ConvertSeasonToSeasonObject(season models.Season) (models.SeasonObject, err
 
 	goals, err := database.GetGoalsFromWithinSeason(season.ID)
 	if err != nil {
-		log.Println("Failed to get goals within season. Ignoring.")
+		log.Info("Failed to get goals within season. Ignoring.")
 		return models.SeasonObject{}, err
 	}
 
@@ -127,7 +127,7 @@ func ConvertSeasonToSeasonObject(season models.Season) (models.SeasonObject, err
 
 		goalObject, err := ConvertGoalToGoalObject(goal)
 		if err != nil {
-			log.Println("Failed to convert goal to goal object. Error: " + err.Error() + ". Skipping goal...")
+			log.Info("Failed to convert goal to goal object. Error: " + err.Error() + ". Skipping goal...")
 			continue
 		}
 
@@ -137,7 +137,7 @@ func ConvertSeasonToSeasonObject(season models.Season) (models.SeasonObject, err
 
 	prize, _, err := database.GetPrizeByID(season.PrizeID)
 	if err != nil {
-		log.Println("Failed to find prize by ID. Error: " + err.Error() + ". Returning.")
+		log.Info("Failed to find prize by ID. Error: " + err.Error() + ". Returning.")
 		return models.SeasonObject{}, errors.New("Failed to find prize by ID.")
 	}
 
@@ -165,7 +165,7 @@ func ConvertSeasonsToSeasonObjects(seasons []models.Season) (seasonObjects []mod
 	for _, season := range seasons {
 		seasonObject, err := ConvertSeasonToSeasonObject(season)
 		if err != nil {
-			log.Println("Failed to convert season to season object. Returning. Error: " + err.Error())
+			log.Info("Failed to convert season to season object. Returning. Error: " + err.Error())
 			return []models.SeasonObject{}, err
 		}
 		seasonObjects = append(seasonObjects, seasonObject)
@@ -181,7 +181,7 @@ func APIRegisterSeason(context *gin.Context) {
 	var seasonDB models.Season
 
 	if err := context.ShouldBindJSON(&season); err != nil {
-		log.Println("Failed to parse request. Error: " + err.Error())
+		log.Info("Failed to parse request. Error: " + err.Error())
 		context.JSON(http.StatusBadRequest, gin.H{"error": "Failed to parse request."})
 		context.Abort()
 		return
@@ -189,7 +189,7 @@ func APIRegisterSeason(context *gin.Context) {
 
 	seasonLocation, err := time.LoadLocation(season.TimeZone)
 	if err != nil {
-		log.Println("Failed to parse time zone. Error: " + err.Error())
+		log.Info("Failed to parse time zone. Error: " + err.Error())
 		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to parse time zone."})
 		context.Abort()
 		return
@@ -234,7 +234,7 @@ func APIRegisterSeason(context *gin.Context) {
 	// Verify unique season name
 	uniqueSeasonName, err := database.VerifyUniqueSeasonName(season.Name)
 	if err != nil {
-		log.Println("Failed to verify unique season name. Error: " + err.Error())
+		log.Info("Failed to verify unique season name. Error: " + err.Error())
 		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to verify unique season name."})
 		context.Abort()
 		return
@@ -247,7 +247,7 @@ func APIRegisterSeason(context *gin.Context) {
 	// Verify prize ID
 	_, prizeFound, err := database.GetPrizeByID(season.Prize)
 	if err != nil {
-		log.Println("Failed to verify prize ID. Error: " + err.Error())
+		log.Info("Failed to verify prize ID. Error: " + err.Error())
 		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to verify prize ID."})
 		context.Abort()
 		return
@@ -270,7 +270,7 @@ func APIRegisterSeason(context *gin.Context) {
 	// Register season in DB
 	err = database.CreateSeasonInDB(seasonDB)
 	if err != nil {
-		log.Println("Failed to verify create season in database. Error: " + err.Error())
+		log.Info("Failed to verify create season in database. Error: " + err.Error())
 		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to verify create season in database."})
 		context.Abort()
 		return
@@ -289,7 +289,7 @@ func APIGetCurrentSeasonLeaderboard(context *gin.Context) {
 	var seasonID = context.Param("season_id")
 	seasonIDParsed, err := uuid.Parse(seasonID)
 	if err != nil {
-		log.Println("Failed to parse season ID. Error: " + err.Error())
+		log.Info("Failed to parse season ID. Error: " + err.Error())
 		context.JSON(http.StatusBadRequest, gin.H{"error": "Failed to parse season ID."})
 		context.Abort()
 		return
@@ -301,7 +301,7 @@ func APIGetCurrentSeasonLeaderboard(context *gin.Context) {
 	// Verify user membership to group
 	season, err := database.GetSeasonByID(seasonIDParsed)
 	if err != nil {
-		log.Println("Failed to check ongoing season. Error: " + err.Error())
+		log.Info("Failed to check ongoing season. Error: " + err.Error())
 		context.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		context.Abort()
 		return
@@ -330,7 +330,7 @@ func APIGetCurrentSeasonLeaderboard(context *gin.Context) {
 	// Verify goal exists within season
 	goal, err := database.GetGoalFromUserWithinSeason(season.ID, userID)
 	if err != nil {
-		log.Println("Failed to verify goal status. Error: " + err.Error())
+		log.Info("Failed to verify goal status. Error: " + err.Error())
 		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to verify goal status."})
 		context.Abort()
 		return
@@ -338,7 +338,7 @@ func APIGetCurrentSeasonLeaderboard(context *gin.Context) {
 		// Convert goal to GoalObject
 		newGoalObject, err := ConvertGoalToGoalObject(*goal)
 		if err != nil {
-			log.Println("Failed to verify goal status. Error: " + err.Error())
+			log.Info("Failed to verify goal status. Error: " + err.Error())
 			context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to verify goal status."})
 			context.Abort()
 			return
@@ -353,7 +353,7 @@ func APIGetCurrentSeasonLeaderboard(context *gin.Context) {
 
 	seasonLeaderboard.PastWeeks, err = RetrieveWeekResultsFromSeasonWithinTimeframe(seasonObject.Start, now.AddDate(0, 0, -7), seasonObject)
 	if err != nil {
-		log.Println("Failed to retrieve past weeks for season. Error: " + err.Error())
+		log.Info("Failed to retrieve past weeks for season. Error: " + err.Error())
 		context.JSON(http.StatusBadRequest, gin.H{"error": "Failed to retrieve weeks for season."})
 		context.Abort()
 		return
@@ -362,12 +362,12 @@ func APIGetCurrentSeasonLeaderboard(context *gin.Context) {
 	if now.Before(season.End) && now.After(season.Start) {
 		thisWeek, err := RetrieveWeekResultsFromSeasonWithinTimeframe(now.AddDate(0, 0, -7), now, seasonObject)
 		if err != nil {
-			log.Println("Failed to retrieve current week for season. Error: " + err.Error())
+			log.Info("Failed to retrieve current week for season. Error: " + err.Error())
 			context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to retrieve current week for season."})
 			context.Abort()
 			return
 		} else if len(thisWeek) != 1 {
-			log.Println("Got more than one week for current week.")
+			log.Info("Got more than one week for current week.")
 			context.JSON(http.StatusInternalServerError, gin.H{"error": "Got more than one week for current week."})
 			context.Abort()
 			return
@@ -383,13 +383,13 @@ func APIGetCurrentSeasonLeaderboard(context *gin.Context) {
 
 func RetrieveWeekResultsFromSeasonWithinTimeframe(firstPointInTime time.Time, lastPointInTime time.Time, season models.SeasonObject) ([]models.WeekResults, error) {
 	var weeksResults []models.WeekResults
-	log.Println("Retrieving week results from season within timeframe.")
-	log.Println("First point in time: " + firstPointInTime.String())
-	log.Println("Last point in time: " + lastPointInTime.String())
+	log.Info("Retrieving week results from season within timeframe.")
+	log.Info("First point in time: " + firstPointInTime.String())
+	log.Info("Last point in time: " + lastPointInTime.String())
 
 	// Season has not started, return zero weeks
 	if lastPointInTime.Before(firstPointInTime) {
-		log.Println("lastPointInTime is before firstPointInTime. Returning nothing.")
+		log.Info("lastPointInTime is before firstPointInTime. Returning nothing.")
 		return []models.WeekResults{}, nil
 	}
 
@@ -406,17 +406,17 @@ func RetrieveWeekResultsFromSeasonWithinTimeframe(firstPointInTime time.Time, la
 		weekResult.WeekYear, weekResult.WeekNumber = currentTime.ISOWeek()
 		weekResult.WeekDate = currentTime
 
-		log.Println("Processing new week: " + currentTime.String())
-		log.Println("Starting on goals...")
+		log.Info("Processing new week: " + currentTime.String())
+		log.Info("Starting on goals...")
 
 		// Go through all goals
 		for _, goal := range season.Goals {
-			log.Println("Processing new goal '" + goal.ID.String() + "' for user '" + goal.User.FirstName + " " + goal.User.LastName + "'")
+			log.Info("Processing new goal '" + goal.ID.String() + "' for user '" + goal.User.FirstName + " " + goal.User.LastName + "'")
 
 			// Get Week result for goal
 			weekResultForGoal, newUserStreaks, err := GetWeekResultForGoal(goal, currentTime, userStreaks)
 			if err != nil {
-				log.Println("Failed to get week results for user. Goal: " + goal.ID.String() + ". Error: " + err.Error() + ". Creating blank user.")
+				log.Info("Failed to get week results for user. Goal: " + goal.ID.String() + ". Error: " + err.Error() + ". Creating blank user.")
 				continue
 			}
 
@@ -436,11 +436,11 @@ func RetrieveWeekResultsFromSeasonWithinTimeframe(firstPointInTime time.Time, la
 	}
 
 	// Remove weeks from before selected starting point
-	log.Println("Removing weeks outside of given time frame.")
+	log.Info("Removing weeks outside of given time frame.")
 	newWeeksResults := []models.WeekResults{}
 	for _, weeksResult := range weeksResults {
 		if weeksResult.WeekDate.Before(firstPointInTime) || weeksResult.WeekDate.After(lastPointInTime) {
-			log.Println("Removing week: " + weeksResult.WeekDate.String())
+			log.Info("Removing week: " + weeksResult.WeekDate.String())
 			continue
 		}
 
@@ -450,7 +450,7 @@ func RetrieveWeekResultsFromSeasonWithinTimeframe(firstPointInTime time.Time, la
 	// Reverse array
 	newWeeksResults = ReverseWeeksArray(newWeeksResults)
 
-	log.Println("Returning week results from season within timeframe.")
+	log.Info("Returning week results from season within timeframe.")
 
 	return newWeeksResults, nil
 }
@@ -487,11 +487,11 @@ func GetWeekResultForGoal(goal models.GoalObject, currentTime time.Time, userStr
 	// Check for debt for week
 	debt, debtFound, err := database.GetDebtForWeekForUser(currentTime, goal.User.ID)
 	if err != nil {
-		log.Println("Failed to check for debt for user '" + goal.User.ID.String() + "'. Debt will be null.")
+		log.Info("Failed to check for debt for user '" + goal.User.ID.String() + "'. Debt will be null.")
 	} else if debtFound {
 		debtObject, err := ConvertDebtToDebtObject(debt)
 		if err != nil {
-			log.Println("Failed to convert debt to debt object for user '" + goal.User.ID.String() + "'. Debt will be null.")
+			log.Info("Failed to convert debt to debt object for user '" + goal.User.ID.String() + "'. Debt will be null.")
 		} else {
 			newResult.Debt = &debtObject
 		}
@@ -534,7 +534,7 @@ func GetWeekResultForGoal(goal models.GoalObject, currentTime time.Time, userStr
 
 	sickLeave, err := database.GetUsedSickleaveForGoalWithinWeek(currentTime, goal.ID)
 	if err != nil {
-		log.Println("Failed to process sickleave. Returning.")
+		log.Info("Failed to process sickleave. Returning.")
 		return models.UserWeekResults{}, userStreaks, errors.New("Failed to process sick leave.")
 	}
 
@@ -578,7 +578,7 @@ func APIGetSeasons(context *gin.Context) {
 
 	potentialSeasons, err := database.GetAllEnabledSeasons()
 	if err != nil {
-		log.Println("Failed to get seasons from database. Error: " + err.Error())
+		log.Info("Failed to get seasons from database. Error: " + err.Error())
 		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get seasons from database."})
 		context.Abort()
 		return
@@ -593,7 +593,7 @@ func APIGetSeasons(context *gin.Context) {
 		for _, season := range potentialSeasons {
 			goal, err := database.GetGoalFromUserWithinSeason(season.ID, userID)
 			if err != nil {
-				log.Println("Failed to check for goal within seasons. Error: " + err.Error())
+				log.Info("Failed to check for goal within seasons. Error: " + err.Error())
 				context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to check for goal within seasons."})
 				context.Abort()
 				return
@@ -603,7 +603,7 @@ func APIGetSeasons(context *gin.Context) {
 
 			now := time.Now()
 			if now.After(season.Start) && (season.JoinAnytime == nil || *season.JoinAnytime == false) {
-				log.Println(season.JoinAnytime)
+				log.Info(season.JoinAnytime)
 				continue
 			}
 
@@ -621,7 +621,7 @@ func APIGetSeasons(context *gin.Context) {
 		for _, season := range potentialSeasons {
 			goal, err := database.GetGoalFromUserWithinSeason(season.ID, userID)
 			if err != nil {
-				log.Println("Failed to check for goal within seasons. Error: " + err.Error())
+				log.Info("Failed to check for goal within seasons. Error: " + err.Error())
 				context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to check for goal within seasons."})
 				context.Abort()
 				return
@@ -645,7 +645,7 @@ func APIGetSeasons(context *gin.Context) {
 	for _, season := range seasons {
 		seasonObject, err := ConvertSeasonToSeasonObject(season)
 		if err != nil {
-			log.Println("Failed process season. Error: " + err.Error())
+			log.Info("Failed process season. Error: " + err.Error())
 			context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed process season."})
 			context.Abort()
 			return
@@ -671,12 +671,12 @@ func APIGetSeason(context *gin.Context) {
 
 	season, err := database.GetSeasonByID(seasonIDUUIID)
 	if err != nil {
-		log.Println("Failed to get season from database. Error: " + err.Error())
+		log.Info("Failed to get season from database. Error: " + err.Error())
 		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get season from database."})
 		context.Abort()
 		return
 	} else if season == nil {
-		log.Println("Failed to find season.")
+		log.Info("Failed to find season.")
 		context.JSON(http.StatusBadRequest, gin.H{"error": "Failed to find season."})
 		context.Abort()
 		return
@@ -684,7 +684,7 @@ func APIGetSeason(context *gin.Context) {
 
 	seasonObject, err := ConvertSeasonToSeasonObject(*season)
 	if err != nil {
-		log.Println("Failed process season. Error: " + err.Error())
+		log.Info("Failed process season. Error: " + err.Error())
 		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed process season."})
 		context.Abort()
 		return
@@ -716,12 +716,12 @@ func APIGetSeasonWeeks(context *gin.Context) {
 
 	season, err := database.GetSeasonByID(seasonIDInt)
 	if err != nil {
-		log.Println("Failed to get season from database. Error: " + err.Error())
+		log.Info("Failed to get season from database. Error: " + err.Error())
 		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get season from database."})
 		context.Abort()
 		return
 	} else if season == nil {
-		log.Println("Failed to find season. Error: " + err.Error())
+		log.Info("Failed to find season. Error: " + err.Error())
 		context.JSON(http.StatusBadRequest, gin.H{"error": "Failed to find season."})
 		context.Abort()
 		return
@@ -729,7 +729,7 @@ func APIGetSeasonWeeks(context *gin.Context) {
 
 	seasonObject, err := ConvertSeasonToSeasonObject(*season)
 	if err != nil {
-		log.Println("Failed process season. Error: " + err.Error())
+		log.Info("Failed process season. Error: " + err.Error())
 		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed process season."})
 		context.Abort()
 		return
@@ -761,7 +761,7 @@ func APIGetSeasonWeeksPersonal(context *gin.Context) {
 	// Get user ID
 	userID, err := middlewares.GetAuthUsername(context.GetHeader("Authorization"))
 	if err != nil {
-		log.Println("Failed to get user ID. Error: " + err.Error())
+		log.Info("Failed to get user ID. Error: " + err.Error())
 		context.JSON(http.StatusBadRequest, gin.H{"error": "Failed to get user ID."})
 		context.Abort()
 		return
@@ -770,7 +770,7 @@ func APIGetSeasonWeeksPersonal(context *gin.Context) {
 	// Verify goal exists within season
 	goal, err := database.GetGoalFromUserWithinSeason(seasonIDInt, userID)
 	if err != nil {
-		log.Println("Failed to verify goal status. Error: " + err.Error())
+		log.Info("Failed to verify goal status. Error: " + err.Error())
 		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to verify goal status."})
 		context.Abort()
 		return
@@ -778,12 +778,12 @@ func APIGetSeasonWeeksPersonal(context *gin.Context) {
 
 	season, err := database.GetSeasonByID(seasonIDInt)
 	if err != nil {
-		log.Println("Failed to get season from database. Error: " + err.Error())
+		log.Info("Failed to get season from database. Error: " + err.Error())
 		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get season from database."})
 		context.Abort()
 		return
 	} else if season == nil {
-		log.Println("Failed to find season.")
+		log.Info("Failed to find season.")
 		context.JSON(http.StatusBadRequest, gin.H{"error": "Failed to find season."})
 		context.Abort()
 		return
@@ -791,7 +791,7 @@ func APIGetSeasonWeeksPersonal(context *gin.Context) {
 
 	seasonObject, err := ConvertSeasonToSeasonObject(*season)
 	if err != nil {
-		log.Println("Failed process season. Error: " + err.Error())
+		log.Info("Failed process season. Error: " + err.Error())
 		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed process season."})
 		context.Abort()
 		return
@@ -801,7 +801,7 @@ func APIGetSeasonWeeksPersonal(context *gin.Context) {
 
 	weekResults, err := RetrieveWeekResultsFromSeasonWithinTimeframe(season.Start, now, seasonObject)
 	if err != nil {
-		log.Println("Failed get week results. Error: " + err.Error())
+		log.Info("Failed get week results. Error: " + err.Error())
 		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed get week results."})
 		context.Abort()
 		return
@@ -837,7 +837,7 @@ func APIGetSeasonWeeksPersonal(context *gin.Context) {
 				// Get the exercises from the week
 				week, err := GetExerciseDaysForWeekUsingUserID(weekResult.WeekDate, goal.UserID)
 				if err != nil {
-					log.Println("Failed to get exercise. Using empty week.")
+					log.Info("Failed to get exercise. Using empty week.")
 					week = models.Week{
 						Days: []models.ExerciseDayObject{},
 					}
@@ -886,7 +886,7 @@ func APIGetSeasonWeeksPersonal(context *gin.Context) {
 
 	debts, _, err := database.GetDebtInSeasonLostByUserID(seasonIDInt, userID)
 	if err != nil {
-		log.Println("Failed process wheel spins. Error: " + err.Error())
+		log.Info("Failed process wheel spins. Error: " + err.Error())
 		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed process wheel spins."})
 		context.Abort()
 		return
@@ -896,7 +896,7 @@ func APIGetSeasonWeeksPersonal(context *gin.Context) {
 
 	wins, _, err := database.GetDebtInSeasonWonByUserID(seasonIDInt, userID)
 	if err != nil {
-		log.Println("Failed process wheel spin wins. Error: " + err.Error())
+		log.Info("Failed process wheel spin wins. Error: " + err.Error())
 		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed process wheel spin wins."})
 		context.Abort()
 		return
@@ -923,7 +923,7 @@ func APIGetCurrentSeasonActivities(context *gin.Context) {
 	var seasonID = context.Param("season_id")
 	seasonIDParsed, err := uuid.Parse(seasonID)
 	if err != nil {
-		log.Println("Failed to parse season ID. Error: " + err.Error())
+		log.Info("Failed to parse season ID. Error: " + err.Error())
 		context.JSON(http.StatusBadRequest, gin.H{"error": "Failed to parse season ID."})
 		context.Abort()
 		return
@@ -933,7 +933,7 @@ func APIGetCurrentSeasonActivities(context *gin.Context) {
 	now := time.Now()
 	mondayStart, err := utilities.FindEarlierMonday(now)
 	if err != nil {
-		log.Println("Failed to find Monday. Error: " + err.Error())
+		log.Info("Failed to find Monday. Error: " + err.Error())
 		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to find Monday."})
 		context.Abort()
 		return
@@ -941,7 +941,7 @@ func APIGetCurrentSeasonActivities(context *gin.Context) {
 
 	sundayEnd, err := utilities.FindNextSunday(now)
 	if err != nil {
-		log.Println("Failed to find Sunday. Error: " + err.Error())
+		log.Info("Failed to find Sunday. Error: " + err.Error())
 		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to find Sunday."})
 		context.Abort()
 		return
@@ -950,7 +950,7 @@ func APIGetCurrentSeasonActivities(context *gin.Context) {
 	// Verify user membership to group
 	season, err := database.GetSeasonByID(seasonIDParsed)
 	if err != nil {
-		log.Println("Failed to check ongoing season. Error: " + err.Error())
+		log.Info("Failed to check ongoing season. Error: " + err.Error())
 		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to check ongoing season."})
 		context.Abort()
 		return
@@ -963,7 +963,7 @@ func APIGetCurrentSeasonActivities(context *gin.Context) {
 	// Get user ID
 	userID, err := middlewares.GetAuthUsername(context.GetHeader("Authorization"))
 	if err != nil {
-		log.Println("Failed to be user from header. Error: " + err.Error())
+		log.Info("Failed to be user from header. Error: " + err.Error())
 		context.JSON(http.StatusBadRequest, gin.H{"error": "Failed to be user from header."})
 		context.Abort()
 		return
@@ -972,7 +972,7 @@ func APIGetCurrentSeasonActivities(context *gin.Context) {
 	// Verify goal exists within season
 	goal, err := database.GetGoalFromUserWithinSeason(season.ID, userID)
 	if err != nil {
-		log.Println("Failed to verify goal status. Error: " + err.Error())
+		log.Info("Failed to verify goal status. Error: " + err.Error())
 		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to verify goal status."})
 		context.Abort()
 		return
@@ -984,7 +984,7 @@ func APIGetCurrentSeasonActivities(context *gin.Context) {
 
 	allExerciseDays, err := database.GetExerciseDaysForSharingUsersUsingDates(mondayStart, sundayEnd)
 	if err != nil {
-		log.Println("Failed to get exercise days from time frame. Error: " + err.Error())
+		log.Info("Failed to get exercise days from time frame. Error: " + err.Error())
 		context.JSON(http.StatusBadRequest, gin.H{"error": "Failed to get exercise days from time frame."})
 		context.Abort()
 		return
@@ -1012,7 +1012,7 @@ func APIGetCurrentSeasonActivities(context *gin.Context) {
 			// Verify goal exists within season
 			goal, err := database.GetGoalFromUserWithinSeason(season.ID, *exerciseDay.UserID)
 			if err != nil {
-				log.Println("Failed to verify goal status for '" + exerciseDay.UserID.String() + "'. Error: " + err.Error())
+				log.Info("Failed to verify goal status for '" + exerciseDay.UserID.String() + "'. Error: " + err.Error())
 				context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to verify goal status."})
 				context.Abort()
 				return
@@ -1028,7 +1028,7 @@ func APIGetCurrentSeasonActivities(context *gin.Context) {
 
 	exerciseDayObjects, err := ConvertExerciseDaysToExerciseDayObjects(filteredExerciseDays)
 	if err != nil {
-		log.Println("Failed to convert exercise day to exercise day objects. Error: " + err.Error())
+		log.Info("Failed to convert exercise day to exercise day objects. Error: " + err.Error())
 		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to convert exercise day to exercise day objects."})
 		context.Abort()
 		return

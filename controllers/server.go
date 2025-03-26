@@ -13,7 +13,7 @@ func APIGetServerInfo(context *gin.Context) {
 
 	config, err := config.GetConfig()
 	if err != nil {
-		log.Println("Failed to get config. Error: " + err.Error())
+		log.Info("Failed to get config. Error: " + err.Error())
 		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get config."})
 		context.Abort()
 		return
