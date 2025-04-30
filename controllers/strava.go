@@ -386,6 +386,7 @@ func StravaSyncWeekForUser(user models.User, configFile models.ConfigStruct, poi
 		exercise.Duration = &elapsedTime
 		exercise.On = true
 		exercise.StravaID = &newStravaID
+		exercise.Time = &activity.StartDate
 
 		finalExercise, err := database.UpdateExerciseInDB(*exercise)
 		if err != nil {

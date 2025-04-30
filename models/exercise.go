@@ -41,6 +41,7 @@ type Exercise struct {
 	ExerciseDayID uuid.UUID      `json:"" gorm:"type:varchar(100);"`
 	ExerciseDay   ExerciseDay    `json:"exercise_day" gorm:"not null"`
 	StravaID      *string        `json:"strava_id" gorm:"default: null;"`
+	Time          *time.Time     `json:"time"`
 }
 
 type ExerciseUpdateRequest struct {
@@ -65,6 +66,7 @@ type ExerciseObject struct {
 	ExerciseDay uuid.UUID         `json:"exercise_day"`
 	Operations  []OperationObject `json:"operations"`
 	StravaID    []string          `json:"strava_id"`
+	Time        time.Time         `json:"time"`
 }
 
 type ExerciseDayCreationRequest struct {

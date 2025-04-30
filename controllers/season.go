@@ -1041,7 +1041,7 @@ func APIGetCurrentSeasonActivities(context *gin.Context) {
 				newActivity := models.Activity{}
 				newActivity.ExerciseID = exercise.ID
 				newActivity.User = exerciseDayObject.User
-				newActivity.Time = exerciseDayObject.Date
+				newActivity.Time = exercise.Time
 				newActivity.Actions = []models.Action{}
 
 				if exerciseDayObject.User.StravaPublic != nil && *exerciseDayObject.User.StravaPublic {

@@ -218,10 +218,16 @@ func APIRegisterWeek(context *gin.Context) {
 				}
 				newExercise.ID = uuid.New()
 
+				if now.Format("2006-01-02") == exerciseDay.Date.Format("2006-01-02") {
+					newExercise.Time = &now
+				} else {
+					newExercise.Time = &exerciseDay.Date
+				}
+
 				err = database.CreateExerciseForExerciseDayInDatabase(newExercise)
 				if err != nil {
-					logger.Log.Info("Failed to update exercise in database. Error: " + err.Error())
-					context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update exercise in database."})
+					logger.Log.Info("Failed to create exercise in database. Error: " + err.Error())
+					context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create exercise in database."})
 					context.Abort()
 					return
 				}
@@ -552,6 +558,11 @@ func APIAdminGetExerciseDays(context *gin.Context) {
 
 // Change exercises to correlate with exercise days
 func CorrelateExerciseWithExerciseDay(exerciseDayID uuid.UUID, exerciseDayExerciseInterval int) error {
+	exerciseDay, err := database.GetExerciseDayByID(exerciseDayID)
+	if err != nil {
+		logger.Log.Error("Failed to get exercise-day. Error: " + err.Error())
+		return errors.New("Failed to get exercise-day.")
+	}
 
 	exercises, err := database.GetExerciseByExerciseDayID(exerciseDayID)
 	if err != nil {
@@ -606,6 +617,13 @@ func CorrelateExerciseWithExerciseDay(exerciseDayID uuid.UUID, exerciseDayExerci
 				ExerciseDayID: exerciseDayID,
 			}
 			newExercise.ID = uuid.New()
+
+			now := time.Now()
+			if now.Format("2006-01-02") == exerciseDay.Date.Format("2006-01-02") {
+				newExercise.Time = &now
+			} else {
+				newExercise.Time = &exerciseDay.Date
+			}
 
 			err = database.CreateExerciseForExerciseDayInDatabase(newExercise)
 			if err != nil {
@@ -847,6 +865,19 @@ func ConvertExerciseToExerciseObject(exercise models.Exercise) (exerciseObject m
 		}
 	} else {
 		exerciseObject.StravaID = nil
+	}
+
+	if exercise.Time == nil {
+		exerciseDay, err := database.GetExerciseDayByID(exercise.ExerciseDayID)
+		if err != nil {
+			logger.Log.Warn("Failed to get exercise day. Setting exercise time to now. Error: " + err.Error())
+			now := time.Now()
+			exerciseObject.Time = now
+		} else {
+			exerciseObject.Time = exerciseDay.Date
+		}
+	} else {
+		exerciseObject.Time = *exercise.Time
 	}
 
 	exerciseObject.CreatedAt = exercise.CreatedAt
