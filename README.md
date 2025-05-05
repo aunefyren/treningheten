@@ -22,7 +22,7 @@ Treningheten is a web-based platform for tracking workouts. A workout season is 
 <br>
 <br>
 
-![Image showing the wishlist section of Pønskelisten.](https://raw.githubusercontent.com/aunefyren/treningheten/main/web/assets/images/dashboard_example.png?raw=true)
+![Image showing the wishlist section of Treningheten.](https://raw.githubusercontent.com/aunefyren/treningheten/main/web/assets/images/dashboard_example.png?raw=true)
 
 <br>
 <br>

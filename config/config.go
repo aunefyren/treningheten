@@ -23,7 +23,6 @@ func GetConfig() (config models.ConfigStruct, err error) {
 
 	// Create config.json if it doesn't exist
 	if _, err := os.Stat(config_path); errors.Is(err, os.ErrNotExist) {
-		logger.Log.Info("Config file does not exist. Creating...")
 		fmt.Println("Config file does not exist. Creating...")
 
 		err := CreateConfigFile()
@@ -34,7 +33,6 @@ func GetConfig() (config models.ConfigStruct, err error) {
 
 	file, err := os.Open(config_path)
 	if err != nil {
-		logger.Log.Info("Get config file threw error trying to open the file.")
 		fmt.Println("Get config file threw error trying to open the file.")
 		return config, err
 	}
@@ -43,7 +41,6 @@ func GetConfig() (config models.ConfigStruct, err error) {
 
 	err = decoder.Decode(&config)
 	if err != nil {
-		logger.Log.Info("Get config file threw error trying to parse the file.")
 		fmt.Println("Get config file threw error trying to parse the file.")
 		return config, err
 	}
@@ -94,7 +91,6 @@ func GetConfig() (config models.ConfigStruct, err error) {
 	if config.VAPIDPublicKey == "" || config.VAPIDSecretKey == "" {
 		config, err = AddVapidKeysToConfig(config)
 		if err != nil {
-			logger.Log.Info("Failed to add Vapid keys to config. Error: " + err.Error())
 			return config, errors.New("Failed to add Vapid keys to config.")
 		}
 		anythingChanged = true
@@ -107,7 +103,6 @@ func GetConfig() (config models.ConfigStruct, err error) {
 	} else {
 		_, err := logrus.ParseLevel(config.TreninghetenLogLevel)
 		if err != nil {
-			logrus.Error("Failed to load log level: %v", err)
 			level := logrus.InfoLevel
 			config.TreninghetenLogLevel = level.String()
 			anythingChanged = true
@@ -126,7 +121,6 @@ func GetConfig() (config models.ConfigStruct, err error) {
 
 	// Return config object
 	return config, nil
-
 }
 
 // Creates empty config.json
