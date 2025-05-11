@@ -210,6 +210,9 @@ function showLoggedInMenu() {
     document.getElementById('exercises-tab').classList.add('enabled');
     document.getElementById('exercises-tab').classList.remove('disabled');
 
+    document.getElementById('statistics-tab').classList.add('enabled');
+    document.getElementById('statistics-tab').classList.remove('disabled');
+
     document.getElementById('achievements-tab').classList.add('enabled');
     document.getElementById('achievements-tab').classList.remove('disabled');
 
@@ -236,6 +239,9 @@ function showLoggedOutMenu() {
 
     document.getElementById('exercises-tab').classList.add('disabled');
     document.getElementById('exercises-tab').classList.remove('enabled');
+
+    document.getElementById('statistics-tab').classList.add('disabled');
+    document.getElementById('statistics-tab').classList.remove('enabled');
 
     document.getElementById('achievements-tab').classList.add('disabled');
     document.getElementById('achievements-tab').classList.remove('enabled');
@@ -286,6 +292,12 @@ function toggle_navbar() {
 
 // Toggle navbar if clicked outside
 document.addEventListener('click', function(event) {
+    var myModal = document.getElementById("myModal")
+    if(myModal && myModal.classList.contains("open") && (event.target.id == "myModal" || event.target.id == "caption")) {
+        toggleModal();
+        return;
+    }
+    
     var isClickInsideElement = ignoreNav.contains(event.target);
     if (!isClickInsideElement) {
         var nav_classlist = document.getElementById('navbar').classList;
@@ -752,4 +764,35 @@ function verifyPageRedirect() {
         return true
     }
     return false
+}
+
+function toggleModal(modalHTML) {
+    var x = document.getElementById("myModal");
+    if(x) {
+        if (x.classList.contains("closed") && modalHTML) {
+            x.classList.add("open");
+            x.classList.remove("closed");
+            x.style.display = "block";
+            freezerScrolling(true);
+        } else if(!modalHTML){
+            x.classList.add("closed");
+            x.classList.remove("open");
+            x.style.display = "none";
+            freezerScrolling(false);
+        }
+        
+        if(modalHTML) {
+            document.getElementById("modalContent").innerHTML = modalHTML
+        }
+    } else {
+        freezerScrolling(false);
+    }
+}
+
+function freezerScrolling(freeze) {
+    if(freeze) {
+        document.getElementsByTagName("BODY")[0].style.overflow = 'hidden';
+    } else {
+        document.getElementsByTagName("BODY")[0].style.overflow = 'scroll';
+    }
 }

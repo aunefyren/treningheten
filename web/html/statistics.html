@@ -12,8 +12,9 @@
         <!-- Custom CSS -->
         <link rel="stylesheet" type="text/css" href="/css/main.css">
         <link rel="manifest" href="manifest.json" />
-        <script src="/js/exercises.js"></script>
+        <script src="/js/statistics.js"></script>
         <script src="/js/functions.js"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.9.4/Chart.js"></script>
                 
         <!-- Fonts -->
         <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -118,6 +119,7 @@
             var ignoreNav = document.getElementById('nav');
             var groups;
             var jwt;
+            var userList = {}
             info('Loading...');
             showLoggedOutMenu();
             jwt = get_cookie('treningheten');

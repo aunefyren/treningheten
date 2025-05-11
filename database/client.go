@@ -76,6 +76,7 @@ func Migrate() {
 	Instance.AutoMigrate(&models.Operation{})
 	Instance.AutoMigrate(&models.OperationSet{})
 	Instance.AutoMigrate(&models.Action{})
+	Instance.AutoMigrate(&models.WeightValue{})
 
 	logger.Log.Info("Database migration completed.")
 }

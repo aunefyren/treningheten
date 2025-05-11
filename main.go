@@ -211,6 +211,11 @@ func initRouter() *gin.Engine {
 			auth.PUT("/operation-sets/:operation_set_id", controllers.APIUpdateOperationSet)
 			auth.DELETE("/operation-sets/:operation_set_id", controllers.APIDeleteOperationSet)
 
+			auth.GET("/weights", controllers.APIGetWeightsForUser)
+			auth.GET("/weights/:weight_id", controllers.APIGetWeightForUser)
+			auth.POST("/weights", controllers.APICreateWeightForUser)
+			auth.DELETE("/weights/:weight_id", controllers.APIDeleteWeightForUser)
+
 			auth.POST("/sickleave/:season_id", controllers.APIRegisterSickleave)
 
 			auth.GET("/news", controllers.GetNews)
@@ -322,6 +327,11 @@ func initRouter() *gin.Engine {
 	// Static endpoint for seeing exercises
 	router.GET("/exercises", func(c *gin.Context) {
 		c.HTML(http.StatusOK, "exercises.html", nil)
+	})
+
+	// Static endpoint for seeing statistics
+	router.GET("/statistics", func(c *gin.Context) {
+		c.HTML(http.StatusOK, "statistics.html", nil)
 	})
 
 	// Static endpoint for seeing achievements
