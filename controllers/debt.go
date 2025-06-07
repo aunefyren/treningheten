@@ -232,7 +232,7 @@ func GenerateDebtForWeek(givenTime time.Time, season models.Season, targetUser *
 
 		logger.Log.Info("Creating debt for '" + user.String() + "'.")
 
-		err = database.RegisterDebtInDB(debt)
+		debtObject, err := database.RegisterDebtInDB(debt)
 		if err != nil {
 			logger.Log.Info("Failed to log debt for '" + user.String() + "'. Skipping.")
 			continue
@@ -292,7 +292,7 @@ func GenerateDebtForWeek(givenTime time.Time, season models.Season, targetUser *
 				}
 
 				// Notify winner by push
-				err = PushNotificationsForWheelSpinWin(*winner)
+				err = PushNotificationsForWheelSpinWin(*winner, debt)
 				if err != nil {
 					logger.Log.Info("Failed to notify user '" + user.String() + "' by push. Ignoring. Error: " + err.Error())
 				}
@@ -316,7 +316,7 @@ func GenerateDebtForWeek(givenTime time.Time, season models.Season, targetUser *
 			}
 
 			// Notify loser by push
-			err = PushNotificationsForWheelSpin(user)
+			err = PushNotificationsForWheelSpin(user, debtObject)
 			if err != nil {
 				logger.Log.Info("Failed to notify user '" + user.String() + "' by push. Ignoring. Error: " + err.Error())
 			}
@@ -750,7 +750,7 @@ func APIChooseWinnerForDebt(context *gin.Context) {
 		}
 
 		// Notify winner by push
-		err = PushNotificationsForWheelSpinCheck(user.User.ID)
+		err = PushNotificationsForWheelSpinCheck(user.User.ID, debt)
 		if err != nil {
 			logger.Log.Info("Failed to notify user '" + user.User.ID.String() + "' by push. Ignoring. Error: " + err.Error())
 		}

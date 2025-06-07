@@ -9,16 +9,16 @@ import (
 )
 
 // receive a user strcut and save it in the database
-func RegisterDebtInDB(debt models.Debt) error {
+func RegisterDebtInDB(debt models.Debt) (models.Debt, error) {
 	dbRecord := Instance.Create(&debt)
 
 	if dbRecord.Error != nil {
-		return dbRecord.Error
+		return debt, dbRecord.Error
 	} else if dbRecord.RowsAffected != 1 {
-		return errors.New("Failed to update DB.")
+		return debt, errors.New("Failed to update DB.")
 	}
 
-	return nil
+	return debt, nil
 }
 
 // Retrieve debt for user for a week

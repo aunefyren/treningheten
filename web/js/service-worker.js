@@ -165,6 +165,9 @@ self.addEventListener('push', function(event) {
         } else if(jsonData.category == "news") {
             url = "/news"
             action = "Read"
+        } else if(jsonData.category == "debt") {
+            url = "/wheel?debt_id=" + jsonData.additional_data
+            action = "Spin"
         } else {
             url = "/"
             action = "Visit"

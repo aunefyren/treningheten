@@ -41,10 +41,11 @@ type SubscriptionCreationRequest struct {
 }
 
 type NotificationCreationRequest struct {
-	Title    string    `json:"title"`
-	Body     string    `json:"body"`
-	UserID   uuid.UUID `json:"user"`
-	Category string    `json:"category"`
+	Title          string    `json:"title"`
+	Body           string    `json:"body"`
+	UserID         uuid.UUID `json:"user"`
+	AdditionalData *string   `json:"additional_data"`
+	Category       string    `json:"category"`
 }
 
 type SubscriptionGetRequest struct {

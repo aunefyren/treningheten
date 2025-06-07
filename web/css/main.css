@@ -334,14 +334,13 @@ input[type=text], input[type=password], input[type=email], input[type=date], inp
   width: 100%;
   width: -webkit-fill-available;
   width: -moz-available;
-  height: 3em;
-  padding: 0.5em;
+  height: 2.5em;
+  padding: 0.25em 0.5em;
   margin: 1em;
-  background: var(--white); 
-  box-sizing: border-box;
+  background: var(--white);
   box-sizing: inherit;
   border-radius: 0.5em;
-  font-size: 0.8 em;
+  font-size: 1em;
   border: solid 0.2em var(--grey); 
   resize: vertical;
   min-height: 2em;
@@ -754,7 +753,7 @@ hr {
   width: 100%;
   width: -webkit-fill-available;
   width: -moz-available;
-  height: 3em !important;
+  height: 2.5em !important;
   padding: 0.5em !important;
 }
 
@@ -2177,6 +2176,7 @@ input[type=checkbox]
 
 .addActionWrapper {
   width: 1.5em;
+  height: 1.5em;
   box-sizing: inherit;
   display: flex;
   flex-direction: row;

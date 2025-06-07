@@ -123,7 +123,7 @@ function load_page(result) {
                             <input type="date" name="birth_date" id="birth_date" placeholder="dd-mm-yyyy" value="" />
 
                             <label id="form-input-icon" for="new_profile_image" style="margin-top: 2em;">Replace profile image:</label>
-                            <input type="file" name="new_profile_image" id="new_profile_image" placeholder="" value="" accept="image/png, image/jpeg" />
+                            <input type="file" name="new_profile_image" id="new_profile_image" style="height:2.5em;" placeholder="" value="" accept="image/png, image/jpeg" />
 
                             <input onclick="change_password_toggle();" style="margin-top: 3em;" class="clickable" type="checkbox" id="password-toggle" name="confirm" value="confirm" >
                             <label for="password-toggle" style="margin: 0;" class="clickable">Change my password.</label><br>

@@ -17,7 +17,7 @@ import (
 	"github.com/google/uuid"
 )
 
-func PushNotificationToSubscriptions(notificationType string, notificationBody string, notificationTitle string, subscriptions []models.Subscription) (int, error) {
+func PushNotificationToSubscriptions(notificationType string, notificationBody string, notificationTitle string, subscriptions []models.Subscription, notificationAdditionalData *string) (int, error) {
 	vapidSettings, err := GetVAPIDSettings()
 	if err != nil {
 		logger.Log.Info("Failed to get VAPID settings. Error: " + err.Error())
@@ -26,10 +26,16 @@ func PushNotificationToSubscriptions(notificationType string, notificationBody s
 
 	notificationSum := 0
 
+	notificationAdditionalDataString := "null"
+	if notificationAdditionalData != nil {
+		notificationAdditionalDataString = "\"" + *notificationAdditionalData + "\""
+	}
+
 	notificationData := `
 		{
 			"title": "` + notificationTitle + `",
 			"body": "` + notificationBody + `",
+			"additional_data": ` + notificationAdditionalDataString + `,
 			"category": "` + notificationType + `"
 		}
 	`
@@ -162,7 +168,7 @@ func APIPushNotificationToAllDevicesForUser(context *gin.Context) {
 		return
 	}
 
-	pushedAmount, err := PushNotificationToSubscriptions(notificationRequest.Category, notificationRequest.Body, notificationRequest.Title, subscriptions)
+	pushedAmount, err := PushNotificationToSubscriptions(notificationRequest.Category, notificationRequest.Body, notificationRequest.Title, subscriptions, notificationRequest.AdditionalData)
 	if err != nil {
 		logger.Log.Info("Failed to push notification. Error: " + err.Error())
 		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to push notification."})
@@ -271,7 +277,7 @@ func PushNotificationsForAchievements(userID uuid.UUID) (err error) {
 	body := "You just got a new achievement 🏆"
 	category := "achievement"
 
-	_, err = PushNotificationToSubscriptions(category, body, title, subscriptions)
+	_, err = PushNotificationToSubscriptions(category, body, title, subscriptions, nil)
 	if err != nil {
 		logger.Log.Info("Failed to push notification(s). Error: " + err.Error())
 		return errors.New("Failed to push notification(s).")
@@ -308,7 +314,7 @@ func PushNotificationsForNews() (err error) {
 	body := "A news post was just published 📰"
 	category := "news"
 
-	_, err = PushNotificationToSubscriptions(category, body, title, subscriptions)
+	_, err = PushNotificationToSubscriptions(category, body, title, subscriptions, nil)
 	if err != nil {
 		logger.Log.Info("Failed to push notification(s). Error: " + err.Error())
 		return errors.New("Failed to push notification(s).")
@@ -345,7 +351,7 @@ func PushNotificationsForSundayAlerts() (err error) {
 	body := "It's Sunday, remember to log your workouts 🔔"
 	category := "alert"
 
-	_, err = PushNotificationToSubscriptions(category, body, title, subscriptions)
+	_, err = PushNotificationToSubscriptions(category, body, title, subscriptions, nil)
 	if err != nil {
 		logger.Log.Info("Failed to push notification(s). Error: " + err.Error())
 		return errors.New("Failed to push notification(s).")
@@ -382,7 +388,7 @@ func PushNotificationsForWeekLost(userId uuid.UUID) (err error) {
 	body := "You didn't hit your goal this week 😢"
 	category := "alert"
 
-	_, err = PushNotificationToSubscriptions(category, body, title, subscriptions)
+	_, err = PushNotificationToSubscriptions(category, body, title, subscriptions, nil)
 	if err != nil {
 		logger.Log.Info("Failed to push notification(s). Error: " + err.Error())
 		return errors.New("Failed to push notification(s).")
@@ -392,7 +398,7 @@ func PushNotificationsForWeekLost(userId uuid.UUID) (err error) {
 
 }
 
-func PushNotificationsForWheelSpin(userId uuid.UUID) (err error) {
+func PushNotificationsForWheelSpin(userId uuid.UUID, debt models.Debt) (err error) {
 	err = nil
 
 	// Get configuration
@@ -417,9 +423,10 @@ func PushNotificationsForWheelSpin(userId uuid.UUID) (err error) {
 
 	title := "Treningheten"
 	body := "You have a wheel to spin 🎡"
-	category := "alert"
+	category := "debt"
+	additionalDataString := debt.ID.String()
 
-	_, err = PushNotificationToSubscriptions(category, body, title, subscriptions)
+	_, err = PushNotificationToSubscriptions(category, body, title, subscriptions, &additionalDataString)
 	if err != nil {
 		logger.Log.Info("Failed to push notification(s). Error: " + err.Error())
 		return errors.New("Failed to push notification(s).")
@@ -429,7 +436,7 @@ func PushNotificationsForWheelSpin(userId uuid.UUID) (err error) {
 
 }
 
-func PushNotificationsForWheelSpinCheck(userId uuid.UUID) (err error) {
+func PushNotificationsForWheelSpinCheck(userId uuid.UUID, debt models.Debt) (err error) {
 	err = nil
 
 	// Get configuration
@@ -454,9 +461,10 @@ func PushNotificationsForWheelSpinCheck(userId uuid.UUID) (err error) {
 
 	title := "Treningheten"
 	body := "Someone spun the wheel, check if you won 🏆"
-	category := "alert"
+	category := "debt"
+	additionalDataString := debt.ID.String()
 
-	_, err = PushNotificationToSubscriptions(category, body, title, subscriptions)
+	_, err = PushNotificationToSubscriptions(category, body, title, subscriptions, &additionalDataString)
 	if err != nil {
 		logger.Log.Info("Failed to push notification(s). Error: " + err.Error())
 		return errors.New("Failed to push notification(s).")
@@ -466,7 +474,7 @@ func PushNotificationsForWheelSpinCheck(userId uuid.UUID) (err error) {
 
 }
 
-func PushNotificationsForWheelSpinWin(userId uuid.UUID) (err error) {
+func PushNotificationsForWheelSpinWin(userId uuid.UUID, debt models.Debt) (err error) {
 	err = nil
 
 	// Get configuration
@@ -491,9 +499,10 @@ func PushNotificationsForWheelSpinWin(userId uuid.UUID) (err error) {
 
 	title := "Treningheten"
 	body := "Someone didn't hit their goal, and you won 🏆"
-	category := "alert"
+	category := "debt"
+	additionalDataString := debt.ID.String()
 
-	_, err = PushNotificationToSubscriptions(category, body, title, subscriptions)
+	_, err = PushNotificationToSubscriptions(category, body, title, subscriptions, &additionalDataString)
 	if err != nil {
 		logger.Log.Info("Failed to push notification(s). Error: " + err.Error())
 		return errors.New("Failed to push notification(s).")
