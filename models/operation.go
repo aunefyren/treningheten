@@ -112,3 +112,37 @@ type ActionCreationRequest struct {
 	Type          string `json:"type"`
 	BodyPart      string `json:"body_part"`
 }
+
+type ActionStatistics struct {
+	Action     Action                `json:"action"`
+	Statistics StatisticsCompilation `json:"statistics"`
+	Operations []OperationObject     `json:"operations"`
+}
+
+type StatisticsCompilation struct {
+	Sums     StatisticsSumCompilation     `json:"sums"`
+	Averages StatisticsAverageCompilation `json:"averages"`
+	Tops     StatisticsTopCompilation     `json:"tops"`
+}
+
+type StatisticsSumCompilation struct {
+	Distance   float64       `json:"distance"`
+	Time       time.Duration `json:"time"`
+	Repetition float64       `json:"repetition"`
+	Weight     float64       `json:"weight"`
+	Operations int64         `json:"operations"`
+}
+
+type StatisticsAverageCompilation struct {
+	Distance   float64 `json:"distance"`
+	Time       int     `json:"time"`
+	Repetition float64 `json:"repetition"`
+	Weight     float64 `json:"weight"`
+}
+
+type StatisticsTopCompilation struct {
+	Distance   *OperationObject `json:"distance"`
+	Time       *OperationObject `json:"time"`
+	Repetition *OperationObject `json:"repetition"`
+	Weight     *OperationObject `json:"weight"`
+}

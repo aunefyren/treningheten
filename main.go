@@ -205,6 +205,7 @@ func initRouter() *gin.Engine {
 
 			auth.GET("/actions", controllers.APIGetActions)
 			auth.POST("/actions", controllers.APICreateAction)
+			auth.GET("/actions/:action_id/statistics", controllers.APIGetActionStatistics)
 
 			auth.GET("/operation-sets", controllers.APIGetOperationSets)
 			auth.POST("/operation-sets", controllers.APICreateOperationSetForUser)

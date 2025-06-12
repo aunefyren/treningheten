@@ -96,7 +96,7 @@ function load_page(result) {
     `;
 
     document.getElementById('content').innerHTML = html;
-    document.getElementById('card-header').innerHTML = 'The archive.';
+    document.getElementById('card-header').innerHTML = 'Math and stuff.';
     clearResponse();
 
     if(result !== false) {
@@ -569,11 +569,11 @@ function placeWeights(weightsArray) {
             scales: {
                 yAxes: [
                     {
-                        beginAtZero: true,
-                        min: 0,
                         ticks: {
                             beginAtZero: true,
-                            precision: 0
+                            precision: 0,
+                            //suggestedMin: 50,
+                            beginAtZero: false,
                         }
                     }
                 ]
@@ -593,7 +593,7 @@ function viewWeight(weights) {
         weightsHTML += `
             <div class="weight-value">
                 <div style="width: 8em;"><div style="font-size: 0.75em;">${timeString}</div></div>
-                <div style="width: 3em;">${weight.weight} KG</div>
+                <div style="width: 5em;">${weight.weight} KG</div>
                 <div style="width: 8em; display: flex; justify-content: flex-end;">
                     <div class="addActionWrapper clickable hover" id="" title="Weight data" onclick="deleteWeight('${weight.id}');" style="">
                         <img src="/assets/trash-2.svg" class="button-icon" style="width: 100%; margin: 0.25em;">
@@ -658,7 +658,7 @@ function addWeight() {
     var weightTimeString = document.getElementById("weightTime").value;
 
     try {
-        weightValue = parseInt(weightValueString)
+        weightValue = parseFloat(weightValueString)
         weightDate = new Date(weightTimeString)
         weightTimeString = weightDate.toISOString()
     } catch (error) {

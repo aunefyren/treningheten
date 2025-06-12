@@ -780,3 +780,197 @@ func APICreateAction(context *gin.Context) {
 
 	context.JSON(http.StatusCreated, gin.H{"message": "Action created.", "action": action})
 }
+
+func APIGetActionStatistics(context *gin.Context) {
+	var actionIDString = context.Param("action_id")
+	layout := "2006-01-02T15:04:05Z"
+
+	actionID, err := uuid.Parse(actionIDString)
+	if err != nil {
+		context.JSON(http.StatusBadRequest, gin.H{"error": "Failed to parse ID."})
+		context.Abort()
+		return
+	}
+
+	action, err := database.GetActionByID(actionID)
+	if err != nil {
+		logger.Log.Error("Failed to get action by ID. Error: " + err.Error())
+		context.JSON(http.StatusBadRequest, gin.H{"error": "Failed to get action by ID."})
+		context.Abort()
+		return
+	}
+
+	// Get user ID
+	userID, err := middlewares.GetAuthUsername(context.GetHeader("Authorization"))
+	if err != nil {
+		logger.Log.Error("Failed to verify user ID. Error: " + "Failed to verify user ID.")
+		context.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		context.Abort()
+		return
+	}
+
+	startTimeString, okay := context.GetQuery("start")
+	if !okay {
+		context.JSON(http.StatusBadRequest, gin.H{"error": "Start query is missing."})
+		context.Abort()
+		return
+	}
+	startTime, err := time.Parse(layout, startTimeString)
+	if err != nil {
+		logger.Log.Error("Failed to parse start time string. Error: " + err.Error())
+		context.JSON(http.StatusBadRequest, gin.H{"error": "Failed to parse start time string."})
+		context.Abort()
+		return
+	}
+
+	endTimeString, okay := context.GetQuery("end")
+	if !okay {
+		context.JSON(http.StatusBadRequest, gin.H{"error": "End query is missing."})
+		context.Abort()
+		return
+	}
+	endTime, err := time.Parse(layout, endTimeString)
+	if err != nil {
+		logger.Log.Error("Failed to parse end time string. Error: " + err.Error())
+		context.JSON(http.StatusBadRequest, gin.H{"error": "Failed to parse end time string."})
+		context.Abort()
+		return
+	}
+
+	exerciseDays, err := database.GetExerciseDaysBetweenDatesUsingDatesAndUserID(userID, startTime, endTime)
+	if err != nil {
+		logger.Log.Error("Failed to get exercise days. Error: " + err.Error())
+		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get exercise days."})
+		context.Abort()
+		return
+	}
+
+	finalOperationObjects := []models.OperationObject{}
+	actionStatistics := models.ActionStatistics{}
+	actionStatisticsCompilation := models.StatisticsCompilation{}
+
+	for _, exerciseDay := range exerciseDays {
+		if exerciseDay.Enabled {
+			finalExercises := []models.Exercise{}
+			exercises, err := database.GetExerciseByExerciseDayID(exerciseDay.ID)
+			if err != nil {
+				logger.Log.Warn("Failed to get exercises for day. Error: " + err.Error())
+				continue
+			}
+
+			for _, exercise := range exercises {
+				if exercise.Enabled && exercise.On {
+					finalExercises = append(finalExercises, exercise)
+				}
+			}
+
+			for _, exercise := range finalExercises {
+				operations, err := database.GetOperationsByExerciseID(exercise.ID)
+				if err != nil {
+					logger.Log.Warn("Failed to get operations for exercise. Error: " + err.Error())
+					continue
+				}
+
+				operationObjects, err := ConvertOperationsToOperationObjects(operations)
+				if err != nil {
+					logger.Log.Warn("Failed to convert operations to operation objects. Error: " + err.Error())
+					continue
+				}
+
+				for _, operationObject := range operationObjects {
+					if operationObject.Action.ID == actionID {
+						finalOperationObjects = append(finalOperationObjects, operationObject)
+					}
+				}
+
+			}
+		}
+	}
+
+	statisticsTops := models.StatisticsTopCompilation{}
+	distanceTop := 0.0
+	repetitionTop := 0.0
+	timeTop := 0
+	weightTop := 0.0
+
+	statisticsSums := models.StatisticsSumCompilation{}
+	statisticsSums.Distance = 0.0
+	statisticsSums.Repetition = 0.0
+	statisticsSums.Operations = 0
+	statisticsSums.Time = 0
+	statisticsSums.Weight = 0.0
+
+	for _, operation := range finalOperationObjects {
+		if !operation.Enabled {
+			continue
+		}
+
+		statisticsSums.Operations += 1
+		distance := 0.0
+		repetition := 0.0
+		timeSum := 0
+		weight := 0.0
+
+		for _, set := range operation.OperationSets {
+			if !set.Enabled {
+				continue
+			}
+
+			if set.Repetitions != nil {
+				repetition += *set.Repetitions
+			}
+			if set.Time != nil {
+				timeSum += int(*set.Time)
+			}
+			if set.Weight != nil {
+				weight += *set.Weight
+			}
+			if set.Distance != nil {
+				distance = *set.Distance
+			}
+		}
+
+		statisticsSums.Repetition += repetition
+		statisticsSums.Time += time.Duration(timeSum)
+		statisticsSums.Weight += weight
+		statisticsSums.Distance += distance
+
+		if (statisticsTops.Distance == nil || distance > distanceTop) && distance != 0.0 {
+			statisticsTops.Distance = &operation
+			distanceTop = distance
+		}
+
+		if (statisticsTops.Repetition == nil || repetition > repetitionTop) && repetition != 0.0 {
+			statisticsTops.Repetition = &operation
+			repetitionTop = repetition
+		}
+
+		if (statisticsTops.Time == nil || timeSum > timeTop) && timeSum != 0 {
+			statisticsTops.Time = &operation
+			timeTop = timeSum
+		}
+
+		if (statisticsTops.Weight == nil || weight > weightTop) && weight != 0.0 {
+			statisticsTops.Weight = &operation
+			weightTop = weight
+		}
+	}
+
+	actionStatisticsCompilation.Sums = statisticsSums
+
+	statisticsAverages := models.StatisticsAverageCompilation{
+		Distance:   (statisticsSums.Distance / float64(statisticsSums.Operations)),
+		Time:       int(statisticsSums.Time.Nanoseconds() / statisticsSums.Operations),
+		Repetition: (statisticsSums.Repetition / float64(statisticsSums.Operations)),
+		Weight:     (statisticsSums.Weight / float64(statisticsSums.Operations)),
+	}
+
+	actionStatisticsCompilation.Averages = statisticsAverages
+	actionStatisticsCompilation.Tops = statisticsTops
+
+	actionStatistics.Statistics = actionStatisticsCompilation
+	actionStatistics.Operations = finalOperationObjects
+	actionStatistics.Action = action
+
+	context.JSON(http.StatusOK, gin.H{"message": "Action statistics retrieved.", "statistics": actionStatistics})
+}
