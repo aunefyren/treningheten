@@ -80,6 +80,42 @@ function load_page(result) {
                     <hr>
                 </div>
 
+                <div class="module" id="stats_module">
+
+                    <div class="title">
+                        Activity statistics
+                    </div>
+
+                    <div class="form-group">
+                        <select id='select_activity' class='form-control' onchange="chooseActivity()">
+                            <option value="null">Choose activity</option>
+                        </select>
+
+                        <input style="" class="" type="date" id="activityStartTime" name="activityStartTime" value="" onchange="chooseActivity()" required>
+                        <input style="" class="" type="date" id="activityEndTime" name="activityEndTime" value="" onchange="chooseActivity()" required>
+                    </div>
+
+                    <div>
+
+                        <div class="module" id="loading-dumbbell-activities" style="display: none;">
+                            <img src="/assets/images/barbell.gif">
+                        </div>
+
+                        <div id="activity-statistics-element-wrapper-div" class="season-statistics-element-wrapper-div">
+                        </div>
+
+                        <div id="chart-canvas-div-activity" style="max-width: 40em; margin: 1em auto; padding: 0 0.5em; background-color: var(--white); border-radius: 1em;">
+                            <canvas id="myActivityChart" style="max-width: 100%; width: 1000px; display:none;"></canvas>
+                        </div>
+
+                    </div>
+
+                </div>
+
+                <div class="module color-invert">
+                    <hr>
+                </div>
+
                 <div class="module" id="weight_module">
                     <div class="title">
                         Weight statistics
@@ -103,6 +139,8 @@ function load_page(result) {
         showLoggedInMenu();
         getSeasons();
         getWeights();
+        getActivities();
+        placeDefaultDates();
     } else {
         showLoggedOutMenu();
         invalid_session();
@@ -698,4 +736,130 @@ function addWeight() {
     xhttp.setRequestHeader("Authorization", jwt);
     xhttp.send(form_data);
     return false;
+}
+
+function getActivities(){
+    var xhttp = new XMLHttpRequest();
+    xhttp.onreadystatechange = function() {
+        if (this.readyState == 4) {
+            try {
+                result = JSON.parse(this.responseText);
+            } catch(e) {
+                console.log(e +' - Response: ' + this.responseText);
+                error("Could not reach API.");
+                return;
+            }
+            
+            if(result.error) {
+                error(result.error);
+            } else {
+                placeActivitiesInput(result.actions);
+            }
+        }
+    };
+    xhttp.withCredentials = true;
+    xhttp.open("get", api_url + "auth/actions?experienced=true");
+    xhttp.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
+    xhttp.setRequestHeader("Authorization", jwt);
+    xhttp.send();
+    return false;
+}
+
+function placeActivitiesInput(actionsArray) {
+    var selectActivity = document.getElementById("select_activity");
+    for(var i = 0; i < actionsArray.length; i++) {
+        var option = document.createElement("option");
+        option.text = actionsArray[i].name
+        option.value = actionsArray[i].id
+        selectActivity.add(option); 
+    }
+}
+
+function chooseActivity() {
+    var selectActivity = document.getElementById("select_activity");
+    var activityStartTime = document.getElementById("activityStartTime").value;
+    var activityEndTime = document.getElementById("activityEndTime").value;
+
+    if(!activityStartTime || activityStartTime == "" || !activityEndTime || activityEndTime == "") {
+        // Show loading gif
+        document.getElementById("loading-dumbbell").style.display = "none";
+
+        var myChartElement = document.getElementById("myActivityChart");
+        myChartElement.style.display = "none"
+        return
+    }
+
+    console.log(activityStartTime)
+    const date = new Date(activityStartTime);
+    const activityStartTimeString = date.toISOString();
+    const dateTwo = new Date(activityEndTime);
+    const activityEndTimeString = dateTwo.toISOString();
+
+    // Show loading gif
+    document.getElementById("loading-dumbbell-activities").style.display = "inline-block";
+
+    // Purge data
+    canvas_div = document.getElementById("chart-canvas-div-activity");
+    canvas_div.innerHTML = "";
+    canvas_div.innerHTML = '<canvas id="myActivityChart" style="max-width: 100%; width: 1000px; display:none;"></canvas>';
+
+    document.getElementById("activity-statistics-element-wrapper-div").innerHTML = "";
+
+    if(selectActivity.value == null || selectActivity.value == 0 || selectActivity.value == "null") {
+        // Show loading gif
+        document.getElementById("loading-dumbbell-activities").style.display = "none";
+
+        var myChartElement = document.getElementById("myActivityChart");
+        myChartElement.style.display = "none"
+    } else {
+        getActivityStatistics(selectActivity.value, activityStartTimeString, activityEndTimeString)
+    }
+}
+
+function getActivityStatistics(activityID, startTime, endTime){
+    var xhttp = new XMLHttpRequest();
+    xhttp.onreadystatechange = function() {
+        if (this.readyState == 4) {
+            try {
+                result = JSON.parse(this.responseText);
+            } catch(e) {
+                console.log(e +' - Response: ' + this.responseText);
+                error("Could not reach API.");
+                return;
+            }
+            
+            if(result.error) {
+                error(result.error);
+            } else {
+                placeActivityStatistics(result.statistics);
+            }
+        }
+    };
+    xhttp.withCredentials = true;
+    xhttp.open("get", api_url + "auth/actions/" + activityID + "/statistics?start=" + startTime + "&end=" + endTime);
+    xhttp.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
+    xhttp.setRequestHeader("Authorization", jwt);
+    xhttp.send();
+    return false;
+}
+
+function placeActivityStatistics(statistics) {
+    console.log(statistics)
+}
+
+function placeDefaultDates() {
+    // Get today's date
+    const today = new Date();
+
+    // Format to YYYY-MM-DD
+    const todayStr = today.toISOString().split('T')[0];
+
+    // Get a date one week ago
+    const weekAgo = new Date();
+    weekAgo.setDate(today.getDate() - 7);
+    const weekAgoStr = weekAgo.toISOString().split('T')[0];
+
+    // Set the input values
+    document.getElementById('activityEndTime').value = todayStr;
+    document.getElementById('activityStartTime').value = weekAgoStr;
 }

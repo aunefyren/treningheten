@@ -10,6 +10,7 @@ import (
 	"errors"
 	"net/http"
 	"sort"
+	"strconv"
 	"strings"
 	"time"
 
@@ -411,12 +412,12 @@ func RetrieveWeekResultsFromSeasonWithinTimeframe(firstPointInTime time.Time, la
 
 		// Go through all goals
 		for _, goal := range season.Goals {
-			logger.Log.Info("Processing new goal '" + goal.ID.String() + "' for user '" + goal.User.FirstName + " " + goal.User.LastName + "'")
+			logger.Log.Debug("Processing new goal '" + goal.ID.String() + "' for user '" + goal.User.FirstName + " " + goal.User.LastName + "'")
 
 			// Get Week result for goal
 			weekResultForGoal, newUserStreaks, err := GetWeekResultForGoal(goal, currentTime, userStreaks)
 			if err != nil {
-				logger.Log.Info("Failed to get week results for user. Goal: " + goal.ID.String() + ". Error: " + err.Error() + ". Creating blank user.")
+				logger.Log.Warn("Failed to get week results for user. Goal: " + goal.ID.String() + ". Error: " + err.Error() + ". Creating blank user.")
 				continue
 			}
 
@@ -469,6 +470,8 @@ func GetWeekResultForGoal(goal models.GoalObject, currentTime time.Time, userStr
 	// Define exercise sum
 	exerciseSum := len(exercises)
 
+	logger.Log.Trace("processing exercises for point in time: " + currentTime.String() + ". Exercises: " + strconv.Itoa(len(exercises)) + ". Goal exercise: " + strconv.Itoa(goal.ExerciseInterval))
+
 	// Add details to week result for goal
 	newResult.UserID = goal.User.ID
 	newResult.WeekCompletion = (float64(exerciseSum) / float64(goal.ExerciseInterval))
@@ -476,6 +479,8 @@ func GetWeekResultForGoal(goal models.GoalObject, currentTime time.Time, userStr
 	newResult.Competing = goal.Competing
 	newResult.GoalID = goal.ID
 	newResult.FullWeekParticipation = true
+
+	logger.Log.Trace("week completion: " + strconv.FormatFloat(newResult.WeekCompletion, 'f', -1, 64))
 
 	currentTimeYear, currentTimeWeek := currentTime.ISOWeek()
 	joinYear, joinWeek := goal.CreatedAt.ISOWeek()
@@ -552,6 +557,9 @@ func GetWeekResultForGoal(goal models.GoalObject, currentTime time.Time, userStr
 		newResult.CurrentStreak = userStreaks[userIndex].Streak
 		userStreaks[userIndex].Streak = 0
 	}
+
+	logger.Log.Trace("streak is now: " + strconv.Itoa(userStreaks[userIndex].Streak))
+	logger.Log.Trace("streak is now on week results: " + strconv.Itoa(newResult.CurrentStreak))
 
 	return newResult, userStreaks, nil
 }

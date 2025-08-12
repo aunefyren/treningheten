@@ -84,6 +84,7 @@ func ProcessWeekOfSeason(season models.Season, pointInTime time.Time, generateDe
 
 	// Get results for time given
 	if generateDebt {
+		logger.Log.Trace("generating debt for week results for point in time: " + pointInTime.String())
 		weekResults, err := GenerateDebtForWeek(pointInTime, season, targetUser)
 		if err != nil {
 			logger.Log.Info("Got error generating last weeks debt. Error: " + err.Error())
@@ -92,6 +93,7 @@ func ProcessWeekOfSeason(season models.Season, pointInTime time.Time, generateDe
 
 		// Generate week achievements for point in time
 		if generateAchievements {
+			logger.Log.Debug("generating achievements for week")
 			err := GenerateAchievementsForWeek(weekResults, targetUser)
 			if err != nil {
 				logger.Log.Info("Got error generating weeks achievements. Error: " + err.Error())
@@ -112,11 +114,13 @@ func ProcessWeekOfSeason(season models.Season, pointInTime time.Time, generateDe
 			return errors.New("Got error converting season to season object.")
 		} else {
 
+			logger.Log.Trace("generating week results for point in time: " + pointInTime.String())
 			pastWeeks, err := RetrieveWeekResultsFromSeasonWithinTimeframe(seasonObject.Start, pointInTime, seasonObject)
 			if err != nil {
 				logger.Log.Info("Got error getting season results. Error: " + err.Error())
 				return errors.New("Got error getting season results.")
 			} else {
+				logger.Log.Debug("generating achievements for season")
 				err = GenerateAchievementsForSeason(pastWeeks, targetUser)
 				if err != nil {
 					logger.Log.Info("Got error generating weeks achievements. Error: " + err.Error())
@@ -170,6 +174,10 @@ func GenerateDebtForWeek(givenTime time.Time, season models.Season, targetUser *
 	}
 
 	lastWeek := lastWeekArray[0]
+
+	for _, userWeekResults := range lastWeek.UserWeekResults {
+		logger.Log.Trace("week results for week: " + strconv.FormatFloat(userWeekResults.WeekCompletion, 'f', -1, 64) + " for user: " + userWeekResults.UserID.String())
+	}
 
 	winners := []uuid.UUID{}
 	losers := []uuid.UUID{}

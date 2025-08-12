@@ -716,12 +716,35 @@ func APIDeleteOperationSet(context *gin.Context) {
 }
 
 func APIGetActions(context *gin.Context) {
-	actions, err := database.GetAllEnabledActions()
+	actions := []models.Action{}
+	var err error
+
+	// Get user ID
+	userID, err := middlewares.GetAuthUsername(context.GetHeader("Authorization"))
 	if err != nil {
-		logger.Log.Info("Failed to get actions. Error: " + err.Error())
-		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get actions."})
+		logger.Log.Info("Failed to verify user ID. Error: " + "Failed to verify user ID.")
+		context.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		context.Abort()
 		return
+	}
+
+	experiencedString, okay := context.GetQuery("experienced")
+	if !okay || strings.ToLower(experiencedString) != "true" {
+		actions, err = database.GetAllEnabledActions()
+		if err != nil {
+			logger.Log.Info("Failed to get actions. Error: " + err.Error())
+			context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get actions."})
+			context.Abort()
+			return
+		}
+	} else {
+		actions, err = database.GetActionsDoneUsingUserID(userID)
+		if err != nil {
+			logger.Log.Info("Failed to get actions done by user. Error: " + err.Error())
+			context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get actions done by user."})
+			context.Abort()
+			return
+		}
 	}
 
 	context.JSON(http.StatusOK, gin.H{"message": "Actions retrieved.", "actions": actions})
@@ -958,14 +981,16 @@ func APIGetActionStatistics(context *gin.Context) {
 
 	actionStatisticsCompilation.Sums = statisticsSums
 
-	statisticsAverages := models.StatisticsAverageCompilation{
-		Distance:   (statisticsSums.Distance / float64(statisticsSums.Operations)),
-		Time:       int(statisticsSums.Time.Nanoseconds() / statisticsSums.Operations),
-		Repetition: (statisticsSums.Repetition / float64(statisticsSums.Operations)),
-		Weight:     (statisticsSums.Weight / float64(statisticsSums.Operations)),
+	if statisticsSums.Operations > 0 {
+		statisticsAverages := models.StatisticsAverageCompilation{
+			Distance:   (statisticsSums.Distance / float64(statisticsSums.Operations)),
+			Time:       int(statisticsSums.Time.Nanoseconds() / statisticsSums.Operations),
+			Repetition: (statisticsSums.Repetition / float64(statisticsSums.Operations)),
+			Weight:     (statisticsSums.Weight / float64(statisticsSums.Operations)),
+		}
+		actionStatisticsCompilation.Averages = statisticsAverages
 	}
 
-	actionStatisticsCompilation.Averages = statisticsAverages
 	actionStatisticsCompilation.Tops = statisticsTops
 
 	actionStatistics.Statistics = actionStatisticsCompilation

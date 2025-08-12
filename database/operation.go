@@ -306,3 +306,28 @@ func GetOperationSetByStravaIDAndUserIDAndOperationID(userID uuid.UUID, stravaID
 
 	return
 }
+
+func GetActionsDoneUsingUserID(userID uuid.UUID) (actions []models.Action, err error) {
+	actions = []models.Action{}
+	err = nil
+
+	record := Instance.Distinct().
+		Where("`actions`.enabled = ?", 1).
+		Joins("JOIN `operations` on `operations`.action_id = `actions`.id").
+		Where("`operations`.enabled = ?", 1).
+		Joins("JOIN `exercises` on `operations`.exercise_id = `exercises`.id").
+		Where("`exercises`.enabled = ?", 1).
+		Where("`exercises`.on = ?", 1).
+		Joins("JOIN `exercise_days` on `exercises`.exercise_day_id = `exercise_days`.id").
+		Where("`exercise_days`.enabled = ?", 1).
+		Joins("JOIN `users` on `exercise_days`.user_id = `users`.id").
+		Where("`users`.enabled = ?", 1).
+		Where("`users`.id = ?", userID).
+		Find(&actions)
+
+	if record.Error != nil {
+		return actions, record.Error
+	}
+
+	return
+}
