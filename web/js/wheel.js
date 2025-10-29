@@ -63,7 +63,7 @@ function load_page(result) {
             <div id="spinner-info" class="spinner-info">
             </div>
 
-            <div style="overflow: hidden; max-width: 40em;">
+            <div style="overflow: hidden; max-width: 35em;">
                 <canvas id='canvas' width='1000' height='1000' style="max-width: 100%;">
                     Canvas not supported, use another browser.
                 </canvas>

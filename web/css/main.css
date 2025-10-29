@@ -1332,6 +1332,7 @@ input[type=checkbox]
   width: 100%;
   width: -webkit-fill-available;
   width: -moz-available;
+  text-align: center;
 }
 
 .spinner-info {

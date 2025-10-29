@@ -708,7 +708,7 @@ func APIGetSeason(context *gin.Context) {
 
 }
 
-// Get all enabled seasons
+// Get weeks from season
 func APIGetSeasonWeeks(context *gin.Context) {
 
 	// Create user request
@@ -744,12 +744,25 @@ func APIGetSeasonWeeks(context *gin.Context) {
 	}
 
 	now := time.Now()
+	lastSunday, err := utilities.FindEarlierSunday(now)
+	if err != nil {
+		logger.Log.Info("Failed to find last Sunday. Error: " + err.Error())
+		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to find last Sunday."})
+		context.Abort()
+		return
+	}
+	lastSunday = utilities.SetClockToMaximum(lastSunday)
 
-	weekResults, err := RetrieveWeekResultsFromSeasonWithinTimeframe(season.Start, now, seasonObject)
+	weekResults, err := RetrieveWeekResultsFromSeasonWithinTimeframe(season.Start, lastSunday, seasonObject)
+	if err != nil {
+		logger.Log.Info("Failed to retrieve results. Error: " + err.Error())
+		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to retrieve results."})
+		context.Abort()
+		return
+	}
 
-	// Return seasons
+	// Return season weeks
 	context.JSON(http.StatusOK, gin.H{"leaderboard": weekResults, "message": "Season leaderboard retrieved."})
-
 }
 
 // Get all weeks from within season with actual exercise intervals
