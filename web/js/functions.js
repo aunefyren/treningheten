@@ -766,6 +766,14 @@ function verifyPageRedirect() {
     return false
 }
 
+function frontPageRedirect(refresh) {
+    if(window.location.pathname !== "/" || refresh) {
+        window.location = '/';
+        return true
+    }
+    return false
+}
+
 function toggleModal(modalHTML) {
     var x = document.getElementById("myModal");
     if(x) {

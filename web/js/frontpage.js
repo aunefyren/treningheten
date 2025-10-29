@@ -802,7 +802,12 @@ function get_leaderboard(season, goal, refresh, fireworks){
                 }
                 
                 this_week = result.leaderboard[0];
-                past_weeks = result.leaderboard.splice(0,1);
+
+                if(result.leaderboard.length > 1) {
+                    past_weeks = result.leaderboard.splice(1, result.leaderboard.length-1);
+                } else {
+                    past_weeks = [];
+                }
 
                 place_current_week(this_week);
 
@@ -1283,12 +1288,6 @@ function verifyPageRedirect() {
 
 }
 
-function frontPageRedirect() {
-
-    window.location = '/'
-
-}
-
 function countdownRedirect() {
 
     window.location = '/countdown'
@@ -1532,7 +1531,7 @@ function activateCountdown(countdownDate, seasonID){
             document.getElementById("countdown_number").innerHTML = "...";
 
             setTimeout(() => {
-                frontPageRedirect();
+                frontPageRedirect(true);
             }, 5000);
               
         }
@@ -1560,7 +1559,7 @@ function deleteGoal(goalID) {
             if(result.error) {
                 error(result.error);
             } else {
-                frontPageRedirect();
+                frontPageRedirect(true);
             }
 
         }

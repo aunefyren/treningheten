@@ -55,7 +55,7 @@ func GetConfig() (config models.ConfigStruct, err error) {
 		}
 		config.PrivateKey = newKey
 		anythingChanged = true
-		logger.Log.Info("New private key set.")
+		fmt.Println("New private key set.")
 	}
 
 	if config.TreninghetenName == "" {

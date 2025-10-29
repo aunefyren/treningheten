@@ -194,9 +194,9 @@ function send_log_in(){
     var user_password = document.getElementById("password").value;
 
     var form_obj = { 
-                                    "email" : user_email,
-                                    "password" : user_password
-                                };
+        "email" : user_email,
+        "password" : user_password
+    };
 
     var form_data = JSON.stringify(form_obj);
 
@@ -229,7 +229,7 @@ function send_log_in(){
                 clear_data();
                 disable_login_button();
 
-                window.location.href = '/';
+                frontPageRedirect();
 
             }
 
