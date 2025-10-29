@@ -744,16 +744,8 @@ func APIGetSeasonWeeks(context *gin.Context) {
 	}
 
 	now := time.Now()
-	lastSunday, err := utilities.FindEarlierSunday(now)
-	if err != nil {
-		logger.Log.Info("Failed to find last Sunday. Error: " + err.Error())
-		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to find last Sunday."})
-		context.Abort()
-		return
-	}
-	lastSunday = utilities.SetClockToMaximum(lastSunday)
 
-	weekResults, err := RetrieveWeekResultsFromSeasonWithinTimeframe(season.Start, lastSunday, seasonObject)
+	weekResults, err := RetrieveWeekResultsFromSeasonWithinTimeframe(season.Start, now, seasonObject)
 	if err != nil {
 		logger.Log.Info("Failed to retrieve results. Error: " + err.Error())
 		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to retrieve results."})

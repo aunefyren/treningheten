@@ -782,7 +782,6 @@ function update_exercises(go_to_exercise, weekDayInt) {
 }
 
 function get_leaderboard(season, goal, refresh, fireworks){
-
     var xhttp = new XMLHttpRequest();
     xhttp.onreadystatechange = function() {
         if (this.readyState == 4) {
@@ -796,16 +795,15 @@ function get_leaderboard(season, goal, refresh, fireworks){
             }
             
             if(result.error) {
-
                 error(result.error);
-
             } else {
-
-                //clearResponse();
-                past_weeks = result.leaderboard;
+                if(result.leaderboard.length() < 1) {
+                    return;
+                }
+                
                 this_week = result.leaderboard[0];
+                past_weeks = result.leaderboard.splice(0,1);
 
-                console.log("Placing weeks: ")
                 place_current_week(this_week);
 
                 if(refresh) {
@@ -813,9 +811,6 @@ function get_leaderboard(season, goal, refresh, fireworks){
                     place_leaderboard(past_weeks);
                 }
             }
-
-        } else {
-            // info("Loading week...");
         }
     };
     xhttp.withCredentials = true;
@@ -824,7 +819,6 @@ function get_leaderboard(season, goal, refresh, fireworks){
     xhttp.setRequestHeader("Authorization", jwt);
     xhttp.send();
     return false;
-
 }
 
 function place_leaderboard(weeks_array) {
