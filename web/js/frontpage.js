@@ -797,7 +797,7 @@ function get_leaderboard(season, goal, refresh, fireworks){
             if(result.error) {
                 error(result.error);
             } else {
-                if(result.leaderboard.length() < 1) {
+                if(result.leaderboard.length < 1) {
                     return;
                 }
                 
