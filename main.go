@@ -164,6 +164,7 @@ func initRouter() *gin.Engine {
 
 			open.POST("/users", controllers.RegisterUser)
 			open.POST("/users/reset", controllers.APIResetPassword)
+			open.GET("/users/reset/:resetCode", controllers.APIVerifyResetCode)
 			open.POST("/users/password", controllers.APIChangePassword)
 
 			open.POST("/users/verify/:code", controllers.VerifyUser)

@@ -34,7 +34,7 @@ require (
 require (
 	github.com/SherClockHolmes/webpush-go v1.4.0
 	github.com/bytedance/sonic v1.14.2 // indirect
-	github.com/gabriel-vasile/mimetype v1.4.10 // indirect
+	github.com/gabriel-vasile/mimetype v1.4.11 // indirect
 	github.com/gin-contrib/sse v1.1.0 // indirect
 	github.com/go-playground/locales v0.14.1 // indirect
 	github.com/go-playground/universal-translator v0.18.1 // indirect

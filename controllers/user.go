@@ -563,7 +563,7 @@ func APIResetPassword(context *gin.Context) {
 		return
 	}
 
-	_, err = database.GenerateRandomResetCodeForUser(user.ID)
+	_, err = database.GenerateRandomResetCodeForUser(user.ID, true)
 	if err != nil {
 		logger.Log.Info("Failed to generate reset code for user during password reset. Error: " + err.Error())
 		context.JSON(http.StatusInternalServerError, gin.H{"message": "Error."})
@@ -591,6 +591,38 @@ func APIResetPassword(context *gin.Context) {
 
 }
 
+func APIVerifyResetCode(context *gin.Context) {
+	// Get code from URL
+	var resetCode = context.Param("resetCode")
+
+	// Parse creation request
+	if resetCode == "" {
+		context.JSON(http.StatusBadRequest, gin.H{"error": "Failed to parse request."})
+		context.Abort()
+		return
+	}
+
+	// Get user object using reset code
+	user, err := database.GetAllUserInformationByResetCode(resetCode)
+	if err != nil {
+		logger.Log.Error("Failed to retrieve user using reset code. Error: " + err.Error())
+		context.JSON(http.StatusOK, gin.H{"message": "Reset code retrieved.", "expired": true})
+		context.Abort()
+		return
+	}
+
+	now := time.Now()
+
+	// Check if code has expired
+	if user.ResetExpiration.Before(now) {
+		context.JSON(http.StatusOK, gin.H{"message": "Reset code retrieved.", "expired": true})
+		context.Abort()
+		return
+	}
+
+	context.JSON(http.StatusOK, gin.H{"message": "Reset code retrieved.", "expired": false})
+}
+
 func APIChangePassword(context *gin.Context) {
 
 	// Initialize variables
@@ -598,8 +630,28 @@ func APIChangePassword(context *gin.Context) {
 	var userUpdatePasswordRequest models.UserUpdatePasswordRequest
 
 	// Parse creation request
-	if err := context.ShouldBindJSON(&userUpdatePasswordRequest); err != nil {
-		context.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+	err := context.ShouldBindJSON(&userUpdatePasswordRequest)
+	if err != nil {
+		logger.Log.Info("Failed to parse request. Error: " + err.Error())
+		context.JSON(http.StatusBadRequest, gin.H{"error": "Failed to parse request."})
+		context.Abort()
+		return
+	}
+
+	// Get user object using reset code
+	user, err = database.GetAllUserInformationByResetCode(userUpdatePasswordRequest.ResetCode)
+	if err != nil {
+		logger.Log.Info("Failed to retrieve user using reset code. Error: " + err.Error())
+		context.JSON(http.StatusBadRequest, gin.H{"error": "Reset code has expired."})
+		context.Abort()
+		return
+	}
+
+	now := time.Now()
+
+	// Check if code has expired
+	if user.ResetExpiration.Before(now) {
+		context.JSON(http.StatusBadRequest, gin.H{"error": "Reset code has expired."})
 		context.Abort()
 		return
 	}
@@ -624,24 +676,6 @@ func APIChangePassword(context *gin.Context) {
 		return
 	}
 
-	// Get user object using reset code
-	user, err = database.GetAllUserInformationByResetCode(userUpdatePasswordRequest.ResetCode)
-	if err != nil {
-		logger.Log.Info("Failed to retrieve user using reset code. Error: " + err.Error())
-		context.JSON(http.StatusBadRequest, gin.H{"error": "Reset code has expired."})
-		context.Abort()
-		return
-	}
-
-	now := time.Now()
-
-	// Check if code has expired
-	if user.ResetExpiration.Before(now) {
-		context.JSON(http.StatusBadRequest, gin.H{"error": "Reset code has expired."})
-		context.Abort()
-		return
-	}
-
 	// Hash the selected password
 	if err = user.HashPassword(userUpdatePasswordRequest.Password); err != nil {
 		logger.Log.Info("Failed to hash password. Error: " + err.Error())
@@ -660,7 +694,7 @@ func APIChangePassword(context *gin.Context) {
 	}
 
 	// Change the reset code
-	_, err = database.GenerateRandomResetCodeForUser(user.ID)
+	_, err = database.GenerateRandomResetCodeForUser(user.ID, false)
 	if err != nil {
 		logger.Log.Info("Failed to generate reset code for user during password reset. Error: " + err.Error())
 		context.JSON(http.StatusInternalServerError, gin.H{"message": "Error."})

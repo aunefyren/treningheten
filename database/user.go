@@ -345,12 +345,14 @@ func GetAllUserInformationByResetCode(resetCode string) (models.User, error) {
 }
 
 // Generate a random reset code and return it
-func GenerateRandomResetCodeForUser(userID uuid.UUID) (string, error) {
-
-	randomString := randstr.String(8)
+func GenerateRandomResetCodeForUser(userID uuid.UUID, valid bool) (string, error) {
+	randomString := randstr.String(16)
 	resetCode := strings.ToUpper(randomString)
 
-	expirationDate := time.Now().Add(time.Hour * 24 * 2)
+	expirationDate := time.Now()
+	if valid {
+		expirationDate = expirationDate.AddDate(0, 0, 1)
+	}
 
 	var user models.User
 	userrecord := Instance.Model(user).Where("`users`.enabled = ?", 1).Where("`users`.ID = ?", userID).Update("reset_code", resetCode)
