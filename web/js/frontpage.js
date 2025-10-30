@@ -309,7 +309,7 @@ function load_page(result) {
 
                                 <div id="leaderboard" class="leaderboard">
 
-                                    <h3 style="margin: 0.5em;">All weeks</h3>
+                                    <h3 style="margin: 0.5em;">Previous weeks</h3>
 
                                     <div id="leaderboard-weeks" class="leaderboard-weeks">
                                         ...
@@ -852,6 +852,9 @@ function place_leaderboard(weeks_array) {
 
             var results_html = "";
 
+            // Sort users
+            week_array[i].users = week_array[i].users.sort((a,b) => b.user_id.localeCompare(a.user_id));
+
             for(var j = 0; j < weeks_array[i].users.length; j++) {
                 var completion = "❌"
 
@@ -954,6 +957,8 @@ function place_current_week(week_array) {
     
     // Remove initial data
     currentWeekUsers.innerHTML = ""
+
+    document.getElementById('current-week-title').innerHTML = `Current week (${week_array.week_number})`
 
     for(var i = 0; i < week_array.users.length; i++) {
 
