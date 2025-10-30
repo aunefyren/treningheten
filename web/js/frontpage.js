@@ -853,7 +853,7 @@ function place_leaderboard(weeks_array) {
             var results_html = "";
 
             // Sort users
-            week_array[i].users = week_array[i].users.sort((a,b) => b.user_id.localeCompare(a.user_id));
+            weeks_array[i].users = weeks_array[i].users.sort((a,b) => b.user_id.localeCompare(a.user_id));
 
             for(var j = 0; j < weeks_array[i].users.length; j++) {
                 var completion = "❌"
