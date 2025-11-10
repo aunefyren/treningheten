@@ -276,9 +276,18 @@ function PlaceUserAchievements(achievementArray) {
         var categoryText = ""
         if(achievementArray[i].category !== "Default") {
             categoryText = `
-            <div style="font-size: 0.70em; margin-bottom: 1em;"> 
+            <div style="font-size: 0.70em; margin-bottom: 1em; border: solid 0.12rem; border-radius: 0.5em; width: auto; padding: 0.12rem 0.25rem;"> 
                 ${achievementArray[i].category}
             </div>
+            `;
+        }
+
+        var stackableHTML = ``
+        if(achievementArray[i].multiple_delegations) {
+            stackableHTML = `
+                <div style="font-size: 0.70em; margin-top: 1em; border: solid 0.12rem; border-radius: 0.5em; width: auto; padding: 0.12rem 0.25rem;"> 
+                    Stackable
+                </div>
             `;
         }
 
@@ -324,6 +333,7 @@ function PlaceUserAchievements(achievementArray) {
                     <div style="" class="achievement-description"> 
                         ${achievementArray[i].description}
                     </div>
+                    ${stackableHTML}
                 </div>
             </div>
 

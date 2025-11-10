@@ -1652,7 +1652,15 @@ input[type=checkbox]
   text-align: center;
   box-sizing: content-box;
   overflow-y: auto;
-  margin: auto;
+  display: flex;
+  flex-direction: column;
+  flex-wrap: wrap;
+  align-content: center;
+  justify-content: space-around;
+  align-items: center;
+  height: -webkit-fill-available;
+  height: -moz-available;
+  height: 100%;
 }
 
 .achievement-description {

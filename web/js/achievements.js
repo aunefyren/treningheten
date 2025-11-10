@@ -171,9 +171,18 @@ function PlaceUserAchievements(achievementArrayPersonal, achievementArray, userI
         var categoryText = ""
         if(achievementArray[i].category !== "Default") {
             categoryText = `
-            <div style="font-size: 0.70em; margin-bottom: 1em;"> 
+            <div style="font-size: 0.70em; margin-bottom: 1em; border: solid 0.12rem; border-radius: 0.5em; width: auto; padding: 0.12rem 0.25rem;"> 
                 ${achievementArray[i].category}
             </div>
+            `;
+        }
+
+        var stackableHTML = ``
+        if(achievementArray[i].multiple_delegations) {
+            stackableHTML = `
+                <div style="font-size: 0.70em; margin-top: 1em; border: solid 0.12rem; border-radius: 0.5em; width: auto; padding: 0.12rem 0.25rem;"> 
+                    Stackable
+                </div>
             `;
         }
 
@@ -214,7 +223,6 @@ function PlaceUserAchievements(achievementArrayPersonal, achievementArray, userI
                     </div>
                 `;
             }
-
         } else {
             var date_string_html = "Locked";
             var class_string_html = "transparent"
@@ -252,6 +260,7 @@ function PlaceUserAchievements(achievementArrayPersonal, achievementArray, userI
                     <div style="" class="achievement-description" id="achievement-description-${achievementArray[i].id}"> 
                         ${achievementArray[i].description}
                     </div>
+                    ${stackableHTML}
                 </div>
             </div>
 
