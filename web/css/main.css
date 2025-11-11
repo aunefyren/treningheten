@@ -39,7 +39,7 @@
     width: -webkit-fill-available;
     width: -moz-available;
     height: 100%;
-    min-height: 2em;
+    min-height: 2rem;
     line-height: 120%;
     display: inline-block;
     word-wrap: break-word;
@@ -48,41 +48,41 @@
   
   p {
     margin: 0;
-    font-size: 1em;
+    font-size: 1rem;
   }
   h1 {
-    font-size: 2.5em;
+    font-size: 2.5rem;
     margin: auto;
   }
   
   h2 {
-    font-size: 2em;
+    font-size: 2rem;
     margin: auto;
   }
   
   h3 {
-    font-size: 1.25em;
+    font-size: 1.25rem;
     margin: 0;
   }
   
   h4 {
-    font-size: 1.5em;
+    font-size: 1.5rem;
     margin: auto;
   }
   
   h5 {
-    font-size: 1.25em;
+    font-size: 1.25rem;
     margin: auto;
   }
   
   .profile {
-    width: 20em;
+    width: 20rem;
     max-width: 100% !important;
     height: 100%;
     display: inline-block;
     box-sizing: border-box;
     margin: 0;
-    padding: 1em;
+    padding: 1rem;
     margin: auto;
   }
 
@@ -93,7 +93,7 @@
     display: inline-block;
     margin: auto;
     object-fit: cover;
-    height: 20em;
+    height: 20rem;
     box-sizing: inherit;
   }
   
@@ -129,7 +129,7 @@
     background-color: var(--mediumblue);
     background-clip:border-box;
     margin-bottom: 25%;
-    border-radius: 1em;
+    border-radius: 1rem;
     /*
     border: 2px solid var(--grey);
     border-radius: 0.25rem;
@@ -141,22 +141,22 @@
     padding:.75rem 1.25rem;
     margin-bottom:0;
     background-color:var(--trans-lightblue);
-    border: 0.2em solid var(--mediumblue);
+    border: 0.2rem solid var(--mediumblue);
     text-align: center;
-    font-size: 0.8em;
+    font-size: 0.8rem;
     font-weight:200;
-    border-top-right-radius: 1em;
-    border-top-left-radius: 1em;
+    border-top-right-radius: 1rem;
+    border-top-left-radius: 1rem;
     color: var(--white);
   }
   
   .content {
-    border-bottom-right-radius: 1em;
-    border-bottom-left-radius: 1em;
+    border-bottom-right-radius: 1rem;
+    border-bottom-left-radius: 1rem;
   }
 
   .container{
-    padding-top: 5em !important;
+    padding-top: 5rem !important;
     width: -webkit-fill-available;
     margin-right:auto;
     margin-left:auto;
@@ -206,12 +206,12 @@
     top: 0;
     width: 100%;
     position: relative;
-    padding: 0em;
+    padding: 0rem;
     display: block;
     text-align: center;
     z-index: 9;
     /*box-shadow: 0 2px 4px 0 rgba(0, 0, 0, 0.2), 0 3px 10px 0 rgba(0, 0, 0, 0.19);*/
-    border-bottom: var(--trans-lightblue) 0.2em solid;
+    border-bottom: var(--trans-lightblue) 0.2rem solid;
     color: var(--white);
   }
   
@@ -220,12 +220,12 @@
     display: none;
     color: var(--white);
     text-align: center;
-    padding: 1em;
+    padding: 1rem;
     text-decoration: none;
-    font-size: 1em;
+    font-size: 1rem;
     margin: auto;
-    height: 2em;
-    line-height: 2em;
+    height: 2rem;
+    line-height: 2rem;
   }
   
   .nav-item.enabled {
@@ -240,13 +240,13 @@
     float: left;
     display: inline-block;
     text-align: center;
-    padding: 1em;
+    padding: 1rem;
     text-decoration: none;
-    font-size: 1em;
+    font-size: 1rem;
     margin: auto;
-    height: 2em;
-    line-height: 2em;
-    max-width: 10em;
+    height: 2rem;
+    line-height: 2rem;
+    max-width: 10rem;
     color: var(--white);
   }
   
@@ -264,8 +264,8 @@
   .nav-icon {
     display: none;
     margin: 0;
-    padding: 0.5em;
-    height: 4em;
+    padding: 0.5rem;
+    height: 4rem;
     position: fixed;
     top: 0;
     float: right;
@@ -275,8 +275,8 @@
   .nav-logo {
     display: block;
     margin: auto;
-    padding: 0em;
-    height: 4em;
+    padding: 0rem;
+    height: 4rem;
     float: left;
     box-sizing: border-box;
     position: relative;
@@ -306,14 +306,14 @@
   width: 100%;
   width: -webkit-fill-available;
   width: -moz-available;
-  margin: 2em 0;
+  margin: 2rem 0;
 }
 
 .action-block {
   width: 100%;
   width: -webkit-fill-available;
   width: -moz-available;
-  margin: 1em;
+  margin: 1rem;
 }
 
 form {
@@ -327,47 +327,48 @@ form {
   width: 100%;
   width: -webkit-fill-available;
   width: -moz-available;
-  margin: 1em 0;
+  margin: 1rem 0;
 }
 
 input[type=text], input[type=password], input[type=email], input[type=date], input[type=file], input[type=number], select {
   width: 100%;
   width: -webkit-fill-available;
   width: -moz-available;
-  height: 2.5em;
-  padding: 0.25em 0.5em;
-  margin: 1em;
+  height: 2rem;
+  padding: 0.25rem 0.5rem;
+  margin: 0.5rem 1rem 1rem 1rem;
   background: var(--white);
   box-sizing: inherit;
-  border-radius: 0.5em;
-  font-size: 1em;
-  border: solid 0.2em var(--grey); 
+  border-radius: 0.5rem;
+  font-size: 1rem;
+  border: solid 0.2rem var(--grey); 
   resize: vertical;
-  min-height: 2em;
-  max-height: 25em;
+  min-height: 2rem;
+  max-height: 25rem;
   font-family: Roboto,Noto,sans-serif;
+  box-sizing: content-box;
 }
 
 select {
-  height: 10em;
+  height: 10rem;
   overflow-y: scroll;
 }
 
 .btn-block {
-  margin-top: 1em;
+  margin-top: 1rem;
   text-align: center;
 }
 button {
   width: 100%;
   width: -webkit-fill-available;
   width: -moz-available;
-  padding: 0.75em 0;
-  margin: 1em;
+  padding: 0.75rem 0;
+  margin: 1rem;
   border-radius: 5px; 
   border: none;
   background: var(--lightblue); 
-  border: solid 0.1em var(--mediumblue);
-  font-size: 1em;
+  border: solid 0.1rem var(--mediumblue);
+  font-size: 1rem;
   font-weight: 600;
   color: var(--white);
   cursor: pointer;
@@ -398,10 +399,10 @@ button:disabled {
   width: 100%;
   width: -webkit-fill-available;
   width: -moz-available;
-  padding: 0.5em;
-  border: 0.2em solid var(--eggshell);
-  margin: 1em 1em;
-  border-radius: 1em;
+  padding: 0.5rem;
+  border: 0.2rem solid var(--eggshell);
+  margin: 1rem 1rem;
+  border-radius: 1rem;
   background-color: var(--mediumblue);
   display: flex;
   flex-direction: row;
@@ -431,12 +432,12 @@ button:disabled {
 }
 
 .grey-underline {
-  border-bottom: solid 0.1em var(--eggshell);
+  border-bottom: solid 0.1rem var(--eggshell);
 }
 
 .group-title, .wishlist-title, .wish-title {
   max-width: 50%;
-  margin: 0.5em 0;
+  margin: 0.5rem 0;
   display: flex;
   flex-direction: row;
   flex-wrap: wrap;
@@ -447,7 +448,7 @@ button:disabled {
 
 .wish-title, .group-title, .wishlist-title {
   margin: 0 !important;
-  padding: 0.5em 0 !important;
+  padding: 0.5rem 0 !important;
 }
 
 .wish, .group, .wishlist {
@@ -469,15 +470,15 @@ button:disabled {
 }
  .profile-name {
   max-width: 75%;
-  margin: 0 0.5em;
+  margin: 0 0.5rem;
  }
 
 .profile-icon {
-  margin: 0 0.5em;
+  margin: 0 0.5rem;
   border-radius: 100%;
-  border: 0.15em solid white;
-  width: 2em;
-  height: 2em;
+  border: 0.15rem solid white;
+  width: 2rem;
+  height: 2rem;
   display: flex;
   flex-direction: row;
   flex-wrap: wrap;
@@ -501,9 +502,9 @@ button:disabled {
   justify-content: space-between;
   align-items: center;
   align-content: center;
-  margin: 1em 1em;
-  border: 0.2em solid var(--eggshell);
-  border-radius: 1em;
+  margin: 1rem 1rem;
+  border: 0.2rem solid var(--eggshell);
+  border-radius: 1rem;
   background-color: var(--lightblue);
   transition: 2s;
 }
@@ -514,8 +515,8 @@ button:disabled {
   width: -webkit-fill-available;
   width: -moz-available;
   padding: 0;
-  margin: 0.5em;
-  border-radius: 0 0 1em 1em;
+  margin: 0.5rem;
+  border-radius: 0 0 1rem 1rem;
   transition: 2s;
 }
 
@@ -526,7 +527,7 @@ button:disabled {
   justify-content: space-between;;
   align-items: center;
   align-content: center;
-  border-radius: 1em;
+  border-radius: 1rem;
 }
 
 .group-member:hover {
@@ -539,7 +540,7 @@ button:disabled {
   width: 100%;
   width: -webkit-fill-available;
   width: -moz-available;
-  margin: 5em 1em 1em 1em;
+  margin: 5rem 1rem 1rem 1rem;
 }
 
 .group-input, .wishlist-input {
@@ -548,19 +549,19 @@ button:disabled {
 
 .text-body{
   text-align: center;
-  margin: 0.5em 1em;
+  margin: 0.5rem 1rem;
 }
 
 .text-date{
   text-align: center;
   margin: 0;
   text-align: end;
-  font-size: 0.75em;
+  font-size: 0.75rem;
 }
 
 .title{
   font-weight: 200;
-  font-size: 1.25em;
+  font-size: 1.25rem;
   text-align: center;
 }
 
@@ -615,11 +616,11 @@ button:disabled {
 }
 
 .wishlist-info, .group-info {
-  border-radius: 1em;
-  padding: 1em;
-  margin: 0 1em 2em 1em;
+  border-radius: 1rem;
+  padding: 1rem;
+  margin: 0 1rem 2rem 1rem;
   background-color: var(--mediumblue);
-  border: 0.2em solid var(--eggshell);
+  border: 0.2rem solid var(--eggshell);
   width: 100%;
   width: -webkit-fill-available;
   width: -moz-available;
@@ -627,13 +628,13 @@ button:disabled {
 
 
 hr {
-  border: 0.025em solid var(--eggshell);
+  border: 0.025rem solid var(--eggshell);
   background-color: var(--eggshell);
   width: 100%;
   width: -webkit-fill-available;
   width: -moz-available;
   opacity: 0.5;
-  border-radius: 1em;
+  border-radius: 1rem;
 }
 
 .divider {
@@ -643,10 +644,10 @@ hr {
 }
 
 .news-post {
-  margin: 2em 0;
-  padding: 0.5em;
+  margin: 2rem 0;
+  padding: 0.5rem;
   background-color: var(--white);
-  border-radius: 1em;
+  border-radius: 1rem;
 }
 
 .news, .seasons, .goals {
@@ -659,15 +660,15 @@ hr {
 .exercises {
   width: auto;
   max-width: 100%;
-  margin: 1em;
+  margin: 1rem;
   display: flex;
   flex-direction: column;
   flex-wrap: nowrap;
   justify-content: center;
   align-content: center;
   align-items: center;
-  border-radius: 0.5em;
-  width: 20em;
+  border-radius: 0.5rem;
+  width: 20rem;
   max-width: 100%;
   max-width: -webkit-fill-available;
   max-width: -moz-available;
@@ -678,8 +679,8 @@ hr {
   background-color: var(--lightblue);
   width: -webkit-fill-available;
   text-align: center;
-  border-radius: 0.5em 0.5em 0 0;
-  padding: 0.25em;
+  border-radius: 0.5rem 0.5rem 0 0;
+  padding: 0.25rem;
 }
 
 .week_days {
@@ -690,7 +691,7 @@ hr {
   justify-content: space-between;
   align-items: center;
   background-color: var(--white);
-  border-radius: 0.5em;
+  border-radius: 0.5rem;
   width: 100%;
   width: -webkit-fill-available;
   width: -moz-available;
@@ -705,7 +706,7 @@ hr {
   align-content: center;
   justify-content: space-between;
   align-items: center;
-  padding: 0.5em;
+  padding: 0.5rem;
   box-sizing: inherit;
   width: 100%;
   width: -webkit-fill-available;
@@ -719,7 +720,7 @@ hr {
   justify-content: space-between;
   align-items: center;
   display: flex;
-  width: 6em;
+  width: 6rem;
   max-width: 100%;
   max-width: -webkit-fill-available;
   max-width: -moz-available;
@@ -729,23 +730,23 @@ hr {
 .day-note {
   width: auto;
   box-sizing: inherit;
-  width: 12em;
+  width: 12rem;
   overflow: auto;
 }
 
 .day-note-area, .new-action-description-input {
   box-sizing: inherit;
-  border-radius: 0.5em;
-  font-size: 1em;
+  border-radius: 0.5rem;
+  font-size: 1rem;
   width: 100%;
   width: -webkit-fill-available;
   width: -moz-available;
-  margin: 0.5em;
-  /*box-shadow: 0.1em 0.2em 0.5em rgba(0,0,0,.09);*/
+  margin: 0.5rem;
+  /*box-shadow: 0.1rem 0.2rem 0.5rem rgba(0,0,0,.09);*/
   border: solid 2px var(--grey); 
   resize: vertical;
-  min-height: 2em;
-  max-height: 25em;
+  min-height: 2rem;
+  max-height: 25rem;
   font-family: Roboto,Noto,sans-serif;
 }
 
@@ -753,19 +754,21 @@ hr {
   width: 100%;
   width: -webkit-fill-available;
   width: -moz-available;
-  height: 2.5em !important;
-  padding: 0.5em !important;
+  height: 2rem !important;
+  padding: 0.5rem !important;
+  margin: 1rem;
+  box-sizing: content-box;
 }
 
 .form-control-small{
-  width: 2.5em;
+  width: 2.5rem;
 }
 
 .btn_logo {
-  width: 1em;
-  height: 1em;
+  width: 1rem;
+  height: 1rem;
   margin: 0;
-  padding: 0 0.5em 0 0;
+  padding: 0 0.5rem 0 0;
 }
 
 /* Start of fireworks */
@@ -777,7 +780,7 @@ hr {
   width: 100%;
   width: -webkit-fill-available;
   width: -moz-available;
-  margin-top: 5em;
+  margin-top: 5rem;
   pointer-events: none;
 }
 
@@ -964,21 +967,21 @@ hr {
 /* End of fireworks */
 
 .small-button-icon {
-  width: 1.75em;
-  height: 1.75em;
-  margin: 0.25em;
-  padding: 0.25em;
+  width: 1.75rem;
+  height: 1.75rem;
+  margin: 0.25rem;
+  padding: 0.25rem;
   cursor: pointer;
   background-color: var(--trans-lightblue);
   box-sizing: border-box;
-  border-radius: 0.25em;
+  border-radius: 0.25rem;
 }
 
 .smaller-button-icon {
-  width: 1em;
-  height: 1em;
+  width: 1rem;
+  height: 1rem;
   margin: 0;
-  padding: 0 0.12em;
+  padding: 0 0.12rem;
   cursor: pointer;
 }
 
@@ -998,8 +1001,8 @@ input[type=number]
   -webkit-appearance: none;
   text-align: center;
   width: auto;
-  font-size: 1em;
-  height: 3em;
+  font-size: 1rem;
+  height: 3rem;
   padding: 0;
   margin: 0;
 }
@@ -1007,7 +1010,7 @@ input[type=number]
 
 input[type=checkbox]
 {
-  margin: 0.5em;
+  margin: 0.5rem;
 }
 
 .modules {
@@ -1023,48 +1026,48 @@ input[type=checkbox]
   color: var(--black);
   width: auto;
   max-width: 100%;
-  margin: 1em;
+  margin: 1rem;
   display: flex;
   flex-direction: column;
   flex-wrap: nowrap;
   justify-content: center;
   align-content: center;
   align-items: center;
-  border-radius: 0.5em;
-  width: 20em;
+  border-radius: 0.5rem;
+  width: 20rem;
   height: auto;
-  padding: 1em;
-  max-height: 50em;
+  padding: 1rem;
+  max-height: 50rem;
   max-width: 100%;
   max-width: -webkit-fill-available;
   max-width: -moz-available;
   background-color: var(--white);
-  border-radius: 0.5em;
+  border-radius: 0.5rem;
   box-sizing: border-box;
   text-align: center;
 }
 
 .add-season-module {
-  max-height: 50em !important;
+  max-height: 50rem !important;
 }
 
 .leaderboard {
   color: var(--black);
   width: auto;
-  margin: 1em;
+  margin: 1rem;
   display: flex;
   flex-direction: column;
   flex-wrap: nowrap;
   justify-content: center;
   align-content: center;
   align-items: center;
-  width: 20em;
+  width: 20rem;
   height: auto;
   max-width: 100%;
   max-width: -webkit-fill-available;
   max-width: -moz-available;
   background-color: var(--white);
-  border-radius: 0.5em;
+  border-radius: 0.5rem;
 }
 
 .module-two{
@@ -1090,10 +1093,10 @@ input[type=checkbox]
   width: -webkit-fill-available;
   width: -moz-available;
   height: auto;
-  max-height: 45em;
+  max-height: 45rem;
   overflow-y: auto;
   color: var(--black);
-  border-top: 0.15em solid var(--trans-lightblue);
+  border-top: 0.15rem solid var(--trans-lightblue);
 }
 
 .leaderboard-week {
@@ -1107,15 +1110,15 @@ input[type=checkbox]
   width: 100%;
   width: -webkit-fill-available;
   width: -moz-available;
-  padding: 0.25em;
-  border-bottom: 0.15em solid var(--trans-lightblue);
-  margin-bottom: 0.5em;
+  padding: 0.25rem;
+  border-bottom: 0.15rem solid var(--trans-lightblue);
+  margin-bottom: 0.5rem;
 }
 
 .leaderboard-week-number {
   box-sizing: border-box;
   width: 20%;
-  font-size: 0.8em;
+  font-size: 0.8rem;
   font-weight: bold;
   text-align: center;
 }
@@ -1141,13 +1144,13 @@ input[type=checkbox]
   justify-content: space-between;
   align-items: center;
   box-sizing: border-box;
-  padding: 0.25em 0.25em;
-  width: 4.5em;
+  padding: 0.25rem 0.25rem;
+  width: 4.5rem;
   overflow: hidden;
 }
 
 .leaderboard-week-result-user {
-  border-bottom: solid 0.1em var(--eggshell);
+  border-bottom: solid 0.1rem var(--eggshell);
 }
 
 .current-week-users {
@@ -1163,7 +1166,7 @@ input[type=checkbox]
   width: -moz-available;
   height: auto;
   overflow-y: auto;
-  margin-top: 0.5em;
+  margin-top: 0.5rem;
 }
 
 .current-week-user {
@@ -1174,12 +1177,12 @@ input[type=checkbox]
   justify-content: space-evenly;
   align-items: center;
   box-sizing: border-box;
-  min-width: 5em;
+  min-width: 5rem;
   height: auto;
   overflow-y: auto;
-  border-radius: 0.5em;
-  padding: 0.25em;
-  margin: 0.25em;
+  border-radius: 0.5rem;
+  padding: 0.25rem;
+  margin: 0.25rem;
 }
 
 .current-week-user:hover {
@@ -1198,28 +1201,28 @@ input[type=checkbox]
   width: auto;
   height: auto;
   overflow-y: auto;
-  font-size: 0.9em;
+  font-size: 0.9rem;
 }
 
 .current-week-user-completion {
-  margin: 0.20em;
+  margin: 0.20rem;
 }
 
 .number-box {
   text-align: center;
-  margin: 0.25em;
-  font-size: 1.25em;
+  margin: 0.25rem;
+  font-size: 1.25rem;
   background-color: var(--eggshell);
-  padding: 0.5em;
-  width: 1.5em;
-  height: 1.5em;
+  padding: 0.5rem;
+  width: 1.5rem;
+  height: 1.5rem;
   display: flex;
   flex-direction: row;
   flex-wrap: wrap;
   align-content: center;
   justify-content: center;
   align-items: center;
-  border-radius: 0.5em;
+  border-radius: 0.5rem;
   -webkit-touch-callout: none;
   -webkit-user-select: none;
   -khtml-user-select: none;
@@ -1230,7 +1233,7 @@ input[type=checkbox]
 }
 
 .season-object, .goal-object {
-  padding: 1em;
+  padding: 1rem;
   display: flex;
   flex-direction: row;
   flex-wrap: wrap;
@@ -1241,18 +1244,18 @@ input[type=checkbox]
   width: -webkit-fill-available;
   width: -moz-available;
   background-color: var(--white);
-  border-radius: 1em;
+  border-radius: 1rem;
 }
 
 .season-object-wrapper, .goal-object-wrapper {
   background-color: var(--white);
-  border-radius: 1em;
-  border: solid 0.2em var(--lightblue); 
-  margin: 1em 0;
+  border-radius: 1rem;
+  border: solid 0.2rem var(--lightblue); 
+  margin: 1rem 0;
 }
 
 .season-title, .goals-title, .season-body, .season-date, .goal-exercise, .goal-compete, .goal-join-date, .goal-exercises {
-  margin: 0.5em;
+  margin: 0.5rem;
   display: flex;
   flex-direction: row;
   flex-wrap: wrap;
@@ -1263,7 +1266,7 @@ input[type=checkbox]
 }
 
 .season-title, .goals-title {
-  font-size: 1.25em;
+  font-size: 1.25rem;
   font-weight: bold;
   width: 100%;
   width: -webkit-fill-available;
@@ -1281,8 +1284,8 @@ input[type=checkbox]
   width: 100%;
   width: -webkit-fill-available;
   width: -moz-available;
-  padding: 0.5em;
-  border-bottom: 0.15em solid var(--trans-lightblue);
+  padding: 0.5rem;
+  border-bottom: 0.15rem solid var(--trans-lightblue);
   margin: 0;
 }
 
@@ -1297,10 +1300,10 @@ input[type=checkbox]
   width: 100%;
   width: -webkit-fill-available;
   width: -moz-available;
-  border: solid 0.2em var(--lightblue);
-  border-radius: 0.5em;
-  padding: 0.5em;
-  margin: 0.5em;
+  border: solid 0.2rem var(--lightblue);
+  border-radius: 0.5rem;
+  padding: 0.5rem;
+  margin: 0.5rem;
 }
 
 .invite-list {
@@ -1336,8 +1339,8 @@ input[type=checkbox]
 }
 
 .spinner-info {
-  margin: 1em;
-  font-size: 1.2em;
+  margin: 1rem;
+  font-size: 1.2rem;
 }
 
 #unspun-wheel {
@@ -1356,19 +1359,19 @@ input[type=checkbox]
   width: -webkit-fill-available;
   width: -moz-available;
   height: auto;
-  max-height: 23em;
+  max-height: 23rem;
   overflow-y: auto;
 }
 
 .debt-module-notification-view, .debt-module-notification-prize, .debt-module-notification-debt {
-  border: solid 0.2em var(--lightblue);
-  border-radius: 0.5em;
-  margin: 0.25em;
-  padding: 0.5em;
+  border: solid 0.2rem var(--lightblue);
+  border-radius: 0.5rem;
+  margin: 0.25rem;
+  padding: 0.5rem;
 }
 
 .debt-module-notification-debt {
-  border: solid 0.2em var(--red) !important;
+  border: solid 0.2rem var(--red) !important;
   background-color: var(--eggshell) !important;
 }
 
@@ -1383,17 +1386,17 @@ input[type=checkbox]
 }
 
 .current-week-user-photo, .leaderboard-week-member-image {
-  border-radius: 10em;
+  border-radius: 10rem;
   margin: auto;
-  width: 3em;
-  height: 3em;
-  border: solid 0.2em var(--lightblue);
+  width: 3rem;
+  height: 3rem;
+  border: solid 0.2rem var(--lightblue);
   background-color: var(--white);
   cursor: pointer;
 }
 
 .current-week-user-photo-img, .user-active-profile-photo-img, .leaderboard-week-member-image-img, .achievement-img, .user-photo-img {
-  border-radius: 10em;
+  border-radius: 10rem;
   object-fit: cover;
   overflow: hidden;
   background-image: var(--white);
@@ -1401,13 +1404,13 @@ input[type=checkbox]
 }
 
 .user-active-profile-photo {
-  border-radius: 10em;
+  border-radius: 10rem;
   margin: auto;
-  width: 10em;
-  height: 10em;
+  width: 10rem;
+  height: 10rem;
   max-width: 100%;
   max-height: 100%;
-  border: solid 0.2em var(--lightblue);
+  border: solid 0.2rem var(--lightblue);
   background-color: var(--white);
 }
 
@@ -1423,20 +1426,20 @@ input[type=checkbox]
   width: -webkit-fill-available;
   width: -moz-available;
   height: auto;
-  max-height: 30em;
-  border-bottom: 0.15em solid var(--trans-lightblue);
+  max-height: 30rem;
+  border-bottom: 0.15rem solid var(--trans-lightblue);
 }
 
 .leaderboard-week-member {
-  margin: 0.5em;
-  padding: 0.5em;
+  margin: 0.5rem;
+  padding: 0.5rem;
   display: flex;
   flex-direction: column;
   flex-wrap: wrap;
   align-content: center;
   justify-content: center;
   align-items: center;
-  border-radius: 0.5em;
+  border-radius: 0.5rem;
   cursor: pointer;
 }
 
@@ -1461,14 +1464,14 @@ input[type=checkbox]
   align-content: center;
   justify-content: center;
   align-items: center;
-  margin: 1em 0;
+  margin: 1rem 0;
 }
 
 .season-statistics-element {
-  border-radius: 10em;
-  margin: 0.5em;
+  border-radius: 10rem;
+  margin: 0.5rem;
   background-color: rgba(119, 141, 169, 0.5);
-  padding: 0.5em 1em;
+  padding: 0.5rem 1rem;
 }
 
 .season-statistics-element:hover {
@@ -1493,12 +1496,12 @@ input[type=checkbox]
   justify-content: space-evenly;
   align-items: center;
   box-sizing: border-box;
-  width: 8em;
-  height: 8em;
-  padding: 0.5em;
-  border: solid 0.2em var(--lightblue);
-  border-radius: 0.5em;
-  margin: 0.5em;
+  width: 8rem;
+  height: 8rem;
+  padding: 0.5rem;
+  border: solid 0.2rem var(--lightblue);
+  border-radius: 0.5rem;
+  margin: 0.5rem;
   overflow: hidden;
   box-sizing: content-box;
 }
@@ -1515,7 +1518,7 @@ input[type=checkbox]
   justify-content: center;
   align-items: center;
   box-sizing: inherit;
-  padding: 0 0.5em;
+  padding: 0 0.5rem;
   margin: 0;
 }
 
@@ -1531,7 +1534,7 @@ input[type=checkbox]
   justify-content: center;
   align-items: center;
   text-align: center;
-  font-size: 0.8em;
+  font-size: 0.8rem;
 }
 
 .exercise-date-string {
@@ -1541,8 +1544,8 @@ input[type=checkbox]
 }
 
 .exercise-week {
-  font-size: 1em;
-  margin: 0.5em 1em;
+  font-size: 1rem;
+  margin: 0.5rem 1rem;
   width: 100%;
   width: -webkit-fill-available;
   width: -moz-available;
@@ -1550,8 +1553,8 @@ input[type=checkbox]
 }
 
 .exercise-exercise-number {
-  font-size: 0.8em;
-  margin: 0.25em 0;
+  font-size: 0.8rem;
+  margin: 0.25rem 0;
   width: 100%;
   width: -webkit-fill-available;
   width: -moz-available;
@@ -1561,25 +1564,25 @@ input[type=checkbox]
 
 .exercise-notes {
   box-sizing: inherit;
-  margin: 0.25em;
-  padding: 0.25em 0.5em;
+  margin: 0.25rem;
+  padding: 0.25rem 0.5rem;
   overflow-y: auto;
   text-align: center;
-  border: solid 0.2em var(--lightblue);
-  border-radius: 0.5em;
-  font-size: 0.75em;
+  border: solid 0.2rem var(--lightblue);
+  border-radius: 0.5rem;
+  font-size: 0.75rem;
 }
 
 .achievement-image {
-  border-radius: 10em;
+  border-radius: 10rem;
   margin: 0;
-  width: 6em;
-  height: 6em;
+  width: 6rem;
+  height: 6rem;
   background-color: var(--white);
 }
 
 .achievement-season {
-  border: solid 0.2em var(--yellow-light);
+  border: solid 0.2rem var(--yellow-light);
 }
 
 .achievements-box {
@@ -1596,15 +1599,15 @@ input[type=checkbox]
 }
 
 .achievement-title {
-  margin: 0.25em;
-  font-size: 0.8em;
+  margin: 0.25rem;
+  font-size: 0.8rem;
   text-align: center;
 }
 
 .achievement-date {
-  font-size: 0.60em;
+  font-size: 0.60rem;
   text-align: center;
-  margin: 0.25em;
+  margin: 0.25rem;
   font-style: italic;
 }
 
@@ -1635,20 +1638,20 @@ input[type=checkbox]
   opacity: 0;
   transition: .5s ease;
   background-color: var(--lightblue);
-  margin: 0.5em;
-  border-radius: 0.5em;
+  margin: 0.5rem;
+  border-radius: 0.5rem;
   display: flex;
   flex-direction: column;
   flex-wrap: wrap;
   align-content: center;
   justify-content: flex-start;
   align-items: center;
-  padding: 0.5em;
+  padding: 0.5rem;
 }
 
 .text-achievement {
   color: var(--white);
-  font-size: 0.9em;
+  font-size: 0.9rem;
   text-align: center;
   box-sizing: content-box;
   overflow-y: auto;
@@ -1664,12 +1667,12 @@ input[type=checkbox]
 }
 
 .achievement-description {
-  font-size: 0.8em;
+  font-size: 0.8rem;
 }
 
 .text-exercise {
   color: var(--white);
-  font-size: 0.75em;
+  font-size: 0.75rem;
   text-align: center;
   box-sizing: content-box;
   overflow-y: auto;
@@ -1677,10 +1680,10 @@ input[type=checkbox]
 }
 
 .achievement-base {
-  margin: 0.5em;
-  width: 8em;
-  max-height: 15em;
-  min-height: 12em;
+  margin: 0.5rem;
+  width: 8rem;
+  max-height: 15rem;
+  min-height: 12rem;
   display: flex;
   flex-direction: column;
   flex-wrap: wrap;
@@ -1688,30 +1691,30 @@ input[type=checkbox]
   justify-content: space-evenly;
   align-items: center;
   box-sizing: border-box;
-  border-radius: 0.5em;
-  padding: 0.5em;
+  border-radius: 0.5rem;
+  padding: 0.5rem;
   background-color: rgba(119, 141, 169, 0.25);
   transition: 1s;
   cursor: pointer;
 }
 
 .progress-bar-wrapper {
-  width: 50em;
+  width: 50rem;
   max-width: 100%;
   max-width: -webkit-fill-available;
   max-width: -moz-available;
-  border: solid 0.1em var(--lightblue);
-  border-radius: 0.5em;
+  border: solid 0.1rem var(--lightblue);
+  border-radius: 0.5rem;
   box-sizing: content-box;
   overflow: hidden;
   background-color: var(--white);
-  box-shadow: 0.1em 0.2em 0.5em rgba(0,0,0,.09);
+  box-shadow: 0.1rem 0.2rem 0.5rem rgba(0,0,0,.09);
   position: relative;
-  margin: 0 1em;
+  margin: 0 1rem;
 }
 
 .progress-bar {
-  height: 2em;
+  height: 2rem;
   width: 0;
   background-color: var(--lightblue);
   box-sizing: inherit;
@@ -1726,17 +1729,17 @@ input[type=checkbox]
 
 .prize-wrapper {
   text-align: center;
-  margin: 0.25em;
-  font-size: 1.25em;
+  margin: 0.25rem;
+  font-size: 1.25rem;
   background-color: var(--eggshell);
-  padding: 0.5em;
+  padding: 0.5rem;
   display: flex;
   flex-direction: row;
   flex-wrap: wrap;
   align-content: center;
   justify-content: center;
   align-items: center;
-  border-radius: 0.5em;
+  border-radius: 0.5rem;
   -webkit-touch-callout: none;
   -webkit-user-select: none;
   -khtml-user-select: none;
@@ -1750,7 +1753,7 @@ input[type=checkbox]
 }
 
 .calender_status {
-  margin-top: 0.25em;
+  margin-top: 0.25rem;
   position: absolute;
   left: 0; 
   right: 0; 
@@ -1770,11 +1773,11 @@ input[type=checkbox]
 }
 
 .danger-button {
-  margin: 1em 2em;
-  padding: 0.5em 0.25em;
+  margin: 1rem 2rem;
+  padding: 0.5rem 0.25rem;
   background-color: var(--red);
-  width: 10em;
-  font-size: 0.8em;
+  width: 10rem;
+  font-size: 0.8rem;
 }
 
 .danger-button:hover {
@@ -1800,8 +1803,8 @@ input[type=checkbox]
   align-content: center;
   justify-content: center;
   align-items: center;
-  margin: 1em;
-  width: 10em;
+  margin: 1rem;
+  width: 10rem;
 }
 
 @keyframes shine{
@@ -1820,7 +1823,7 @@ input[type=checkbox]
 
 @keyframes slide {
   from {height: 0;}
-  to {height: 30em;}
+  to {height: 30rem;}
 }
 
 .spinner-winner-image-wrapper {
@@ -1844,16 +1847,16 @@ input[type=checkbox]
 }
 
 .spinner-winner-image-div {
-  margin: 2em;
+  margin: 2rem;
   padding: 0;
   position:relative;
   overflow:hidden;
   background-color: var(--white);
   border-radius: 10%;
   cursor: pointer;
-  border: solid 0.2em var(--lightblue);
-  width: 20em;
-  height: 20em;
+  border: solid 0.2rem var(--lightblue);
+  width: 20rem;
+  height: 20rem;
   max-width: 100%;
   max-height: 100%;
 }
@@ -1885,19 +1888,19 @@ input[type=checkbox]
   width: 100%;
   width: -webkit-fill-available;
   width: -moz-available;
-  /*border: solid 0.1em var(--lightblue);*/
-  border-radius: 0.5em 0.5em 0 0;
+  /*border: solid 0.1rem var(--lightblue);*/
+  border-radius: 0.5rem 0.5rem 0 0;
   box-sizing: content-box;
   overflow: hidden;
   background-color: var(--grey);
-  /*box-shadow: 0.1em 0.2em 0.5em rgba(0,0,0,.09);*/
+  /*box-shadow: 0.1rem 0.2rem 0.5rem rgba(0,0,0,.09);*/
   position: relative;
   box-sizing: border-box;
-  border-bottom: solid 0.1em var(--eggshell);
+  border-bottom: solid 0.1rem var(--eggshell);
 }
 
 .season-progress-bar, .week-progress-bar {
-  height: 2em;
+  height: 2rem;
   width: 0;
   background-color: var(--lightblue);
   box-sizing: inherit;
@@ -1923,7 +1926,7 @@ input[type=checkbox]
 }
 
 .new-achievement {
-  border: solid  0.2em var(--lightblue);
+  border: solid  0.2rem var(--lightblue);
   /* background-color: var(--white) !important; */
   box-shadow: 0 2px 4px 0 rgba(0, 0, 0, 0.2), 0 3px 10px 0 rgba(0, 0, 0, 0.19);
 }
@@ -1955,8 +1958,8 @@ input[type=checkbox]
 }
 
 .addExerciseWrapper {
-  width: 6em;
-  height: 6em;
+  width: 6rem;
+  height: 6rem;
   background-color: var(--trans-lightblue);
   border-radius: 10%;
   display: flex;
@@ -2013,7 +2016,7 @@ input[type=checkbox]
   align-content: center;
   justify-content: start;
   align-items: center;
-  margin: 1em;
+  margin: 1rem;
   box-sizing: border-box;
 }
 
@@ -2027,17 +2030,17 @@ input[type=checkbox]
   align-content: center;
   justify-content: center;
   align-items: center;
-  margin: 1em;
+  margin: 1rem;
   box-sizing: border-box;
 }
 
 .operationWrapper {
-  width: 20em;
-  min-height: 20em;
-  max-height: 30em;
+  width: 20rem;
+  min-height: 20rem;
+  max-height: 30rem;
   background-color: var(--white);
   border-radius: 10%;
-  margin: 0.5em;
+  margin: 0.5rem;
   display: flex;
   flex-direction: column;
   flex-wrap: nowrap;
@@ -2049,8 +2052,8 @@ input[type=checkbox]
 }
 
 .addOperationWrapper{
-  width: 4em;
-  height: 4em;
+  width: 4rem;
+  height: 4rem;
   background-color: var(--trans-lightblue);
   border-radius: 10%;
   display: flex;
@@ -2066,7 +2069,7 @@ input[type=checkbox]
   width: 100%;
   width: -webkit-fill-available;
   width: -moz-available;
-  min-width: 12em;
+  min-width: 12rem;
   padding: 0;
   display: flex;
   flex-direction: row;
@@ -2074,7 +2077,7 @@ input[type=checkbox]
   align-content: center;
   justify-content: space-between;
   align-items: center;
-  margin: 0 0.5em;
+  margin: 0 0.5rem;
   box-sizing: inherit;
   color: var(--black);
 }
@@ -2097,18 +2100,18 @@ input[type=checkbox]
 
 .operation-set {
   background-color: var(--eggshell);
-  padding: 0.25em 0.5em;
-  margin: 0.12em;
-  border-radius: 1em;
-  height: 1.5em;
-  width: 3em;
+  padding: 0.25rem 0.5rem;
+  margin: 0.12rem;
+  border-radius: 1rem;
+  height: 1.5rem;
+  width: 3rem;
   text-align: center;
   overflow: hidden;
 }
 
 .addOperationSetWrapper {
-  width: 2em;
-  height: 2em;
+  width: 2rem;
+  height: 2rem;
   background-color: var(--trans-lightblue);
   border-radius: 10%;
   display: flex;
@@ -2144,24 +2147,24 @@ input[type=checkbox]
   justify-content: space-around;
   align-items: center;
   box-sizing: content-box;
-  padding: 0 0.75em;
+  padding: 0 0.75rem;
   box-sizing: border-box;
 }
 
 .operation-action-input, .operation-type-input, .operation-tech-input, .operation-equipment-input {
-  height: 0.5em !important;
-  padding: 0.12em 0.25em !important;
-  margin: 0.5em 0.25em !important;
+  height: 0.5rem !important;
+  padding: 0.12rem 0.25rem !important;
+  margin: 0.5rem 0.25rem !important;
   width: 100%;
   width: -webkit-fill-available;
   width: -moz-available;
-  font-size: 1em !important;
-  border: solid 0.1em var(--grey) !important;
-  font-size: 0.9em !important;
+  font-size: 1rem !important;
+  border: solid 0.1rem var(--grey) !important;
+  font-size: 0.9rem !important;
 }
 
 .operationAction {
-  width: 8em;
+  width: 8rem;
   box-sizing: inherit;
   display: flex;
   flex-direction: column;
@@ -2174,18 +2177,18 @@ input[type=checkbox]
 }
 
 .operationType {
-  width: 3em;
+  width: 4rem;
   box-sizing: inherit;
 }
 
 .operationEquipment {
-  width: 5em;
+  width: 5rem;
   box-sizing: inherit;
 }
 
 .addActionWrapper {
-  width: 1.5em;
-  height: 1.5em;
+  width: 1.5rem;
+  height: 1.5rem;
   box-sizing: inherit;
   display: flex;
   flex-direction: row;
@@ -2203,31 +2206,31 @@ input[type=checkbox]
   width: -moz-available;
   background-color: var(--eggshell) !important;
   padding: 0 !important;
-  margin: 0.12em !important;
-  border-radius: 1em !important;
-  height: 1.5em !important;
-  font-size: 1em !important;
+  margin: 0.12rem !important;
+  border-radius: 1rem !important;
+  height: 1.5rem !important;
+  font-size: 1rem !important;
   text-align: center !important;
   border: none !important;
 }
 
 .exercise-time-input {
-  border: solid 0.1em var(--grey) !important;
+  border: solid 0.1rem var(--grey) !important;
 }
 
 .operation-set-input-wide {
-  width: 6em !important;
+  width: 6rem !important;
 }
 
 .operation-set-input {
-  width: 5em;
+  width: 5rem;
 }
 
 .operation-set-title {
   background-color: none;
   padding: 0;
-  margin: 0 0.5em;
-  font-size: 0.75em;
+  margin: 0 0.5rem;
+  font-size: 0.75rem;
   font-weight: 200;
 }
 
@@ -2237,7 +2240,7 @@ input[type=checkbox]
 
 .exercise-time-input {
   background-color: var(--white) !important;
-  border: solid 0.2em var(--grey);
+  border: solid 0.2rem var(--grey);
 }
 
 .bottom-row {
@@ -2276,24 +2279,24 @@ input[type=checkbox]
   align-items: center;
   position: absolute;
   background: var(--white);
-  width: 12em;
-  border: solid 0.1em var(--grey);
-  border-radius: 1em;
-  padding: 0 0.5em;
-  max-height: 10em;
-  top: 3em;
+  width: 12rem;
+  border: solid 0.1rem var(--grey);
+  border-radius: 1rem;
+  padding: 0 0.5rem;
+  max-height: 10rem;
+  top: 3rem;
   overflow-y: scroll;
   color: var(--black);
 }
 
 .dropdown-action {
   text-align: start;
-  padding: 0.25em 0;
+  padding: 0.25rem 0;
   width: 100%;
   width: -webkit-fill-available;
   width: -moz-available;
-  font-size: 0.8em;
-  border-bottom: 0.1em solid var(--grey);
+  font-size: 0.8rem;
+  border-bottom: 0.1rem solid var(--grey);
   position: relative;
 }
 
@@ -2402,7 +2405,7 @@ label {
   align-content: center;
   justify-content: center;
   align-items: center;
-  margin: 1em;
+  margin: 1rem;
   box-sizing: border-box;
 }
 
@@ -2419,27 +2422,27 @@ label {
 }
 
 .add-new-exercise-name {
-  margin: 1em;
+  margin: 1rem;
   text-align: center;
 }
 
 .modal-content {
-  padding: 1em;
-  border-radius: 1em;
+  padding: 1rem;
+  border-radius: 1rem;
   box-sizing: border-box;
-  margin: 0 2em;
+  margin: 0 2rem;
   width: auto;
   color: var(--black);
 }
 
 .strava-text {
-  font-size: 0.75em; 
-  margin: 1em; 
+  font-size: 0.75rem; 
+  margin: 1rem; 
   color: var(--black); 
-  border: 0.15em solid salmon;
+  border: 0.15rem solid salmon;
   background-color: var(--white);
-  border-radius: 1em;
-  padding: 0.5em;
+  border-radius: 1rem;
+  padding: 0.5rem;
   display: flex;
   flex-direction: row;
   flex-wrap: wrap;
@@ -2455,18 +2458,18 @@ label {
   align-content: center;
   justify-content: center;
   align-items: center;
-  margin: 1em;
+  margin: 1rem;
 }
 
 .achievement-delegation-sum {
   position: absolute;
-  top: 1em;
-  right: 1em;
-  border: 0.15em solid var(--lightblue);
+  top: 1rem;
+  right: 1rem;
+  border: 0.15rem solid var(--lightblue);
   background-color: var(--yellow);
   border-radius: 100%;
-  width: 2em;
-  height: 2em;
+  width: 2rem;
+  height: 2rem;
   display: flex;
   flex-direction: row;
   flex-wrap: wrap;
@@ -2495,7 +2498,7 @@ label {
   align-content: center;
   justify-content: center;
   align-items: center;
-  margin: 0.75em 0;
+  margin: 0.75rem 0;
 }
 
 .potentialSeasonList, .countdownSeasonList {
@@ -2514,11 +2517,11 @@ label {
   width: 100%;
   width: -webkit-fill-available;
   width: -moz-available;
-  border-radius: 1em;
-  margin: 0.25em;
+  border-radius: 1rem;
+  margin: 0.25rem;
   background-color: var(--lightblue);
   color: var(--white);
-  height: 2em;
+  height: 2rem;
   display: flex;
   flex-direction:row;
   flex-wrap: wrap;
@@ -2540,21 +2543,21 @@ label {
 .activities {
   color: var(--black);
   width: auto;
-  margin: 1em;
+  margin: 1rem;
   display: flex;
   flex-direction: column;
   flex-wrap: nowrap;
   justify-content: center;
   align-content: center;
   align-items: center;
-  width: 20em;
+  width: 20rem;
   height: auto;
   max-width: 100%;
   max-width: -webkit-fill-available;
   max-width: -moz-available;
   background-color: var(--white);
-  border-radius: 0.5em;
-  padding-bottom: 0.5em;
+  border-radius: 0.5rem;
+  padding-bottom: 0.5rem;
 }
 
 .activity {
@@ -2567,8 +2570,8 @@ label {
   width: 100%;
   width: -webkit-fill-available;
   width: -moz-available;
-  padding: 0.5em 0;
-  border-bottom: 0.15em solid var(--trans-lightblue);
+  padding: 0.5rem 0;
+  border-bottom: 0.15rem solid var(--trans-lightblue);
 }
 
 .activities-weeks {
@@ -2583,7 +2586,7 @@ label {
   width: -webkit-fill-available;
   width: -moz-available;
   height: auto;
-  max-height: 45em;
+  max-height: 45rem;
   overflow-y: auto;
   color: var(--black);
 }
@@ -2592,9 +2595,9 @@ label {
   width: 100%;
   width: -webkit-fill-available;
   width: -moz-available;
-  max-height: 35em;
+  max-height: 35rem;
   overflow-y: auto;
-  border-top: 0.15em solid var(--trans-lightblue);
+  border-top: 0.15rem solid var(--trans-lightblue);
 }
 
 .activity-sections {
@@ -2608,29 +2611,29 @@ label {
   width: -webkit-fill-available;
   width: -moz-available;
   box-sizing: border-box;
-  margin: 0 2em;
-  padding-bottom: 0.5em;
+  margin: 0 2rem;
+  padding-bottom: 0.5rem;
 }
 
 .activity-details {
   width: 70%;
   text-align: center;
-  margin: 0 0.25em;
+  margin: 0 0.25rem;
 }
 
 .activity-user-photo {
-  border-radius: 10em;
-  width: 3em;
-  height: 3em;
-  border: solid 0.2em var(--lightblue);
+  border-radius: 10rem;
+  width: 3rem;
+  height: 3rem;
+  border: solid 0.2rem var(--lightblue);
   background-color: var(--white);
   cursor: pointer;
   box-sizing: inherit;
 }
 
 .activity-date {
-  font-size: 0.7em;
-  padding-bottom: 0.5em;
+  font-size: 0.7rem;
+  padding-bottom: 0.5rem;
   font-style: italic;
 }
 
@@ -2648,16 +2651,16 @@ label {
 }
 
 .activity-logo {
-  width: 1em;
-  height: 1em;
-  padding: 0 0.25em 0 0.25em;
+  width: 1rem;
+  height: 1rem;
+  padding: 0 0.25rem 0 0.25rem;
 }
 
 .activity-photo-wrapper {
-  width: 3em;
-  height: 3em;
+  width: 3rem;
+  height: 3rem;
   box-sizing: inherit;
-  margin: 0 0.25em;
+  margin: 0 0.25rem;
 }
 
 .activity-strava-wrapper {
@@ -2670,7 +2673,7 @@ label {
   justify-content: center;
   align-content: center;
   align-items: center;
-  margin: 0 0.25em;
+  margin: 0 0.25rem;
 }
 
 .activity-user-photo-img{
@@ -2683,9 +2686,9 @@ label {
 }
 
 .strava-logo-img {
-  width: 1.5em;
-  height: 1.5em;
-  margin: 0.25em;
+  width: 1.5rem;
+  height: 1.5rem;
+  margin: 0.25rem;
 }
 
 .account-section {
@@ -2698,8 +2701,8 @@ label {
   width: 100%;
   width: -webkit-fill-available;
   width: -moz-available;
-  padding: 0 1em;
-  border-bottom: 0.15em solid var(--trans-lightblue);
+  padding: 0 1rem;
+  border-bottom: 0.15rem solid var(--trans-lightblue);
 }
 
 .account-section-tab {
@@ -2712,7 +2715,7 @@ label {
   width: 100%;
   width: -webkit-fill-available;
   width: -moz-available;
-  padding: 0 1em;
+  padding: 0 1rem;
 }
 
 .notifications-wrapper, .settings-wrapper, .strava-wrapper, .mail-notifications-wrapper {
@@ -2722,14 +2725,14 @@ label {
   justify-content: center;
   align-content: center;
   align-items: center;
-  padding: 1em 1em 2em 1em;
+  padding: 1rem 1rem 2rem 1rem;
   width: 100%;
   width: -webkit-fill-available;
   width: -moz-available;
 }
 
 .account-section-wrapper {
-  border-top: 0.15em solid var(--trans-lightblue);
+  border-top: 0.15rem solid var(--trans-lightblue);
   display: flex;
   flex-direction: column;
   flex-wrap: wrap;
@@ -2739,17 +2742,17 @@ label {
   width: 100%;
   width: -webkit-fill-available;
   width: -moz-available;
-  margin: 1em 0;
+  margin: 1rem 0;
 }
 
 .season-leaderboard {
-  border-top: 0.15em solid var(--trans-lightblue);
+  border-top: 0.15rem solid var(--trans-lightblue);
 }
 
 /* Modal Content (image) */
 .modalContent {
   margin: auto;
-  padding: 0.5em;
+  padding: 0.5rem;
   display: block;
   width: 80%;
   max-width: 700px;
@@ -2761,7 +2764,7 @@ label {
   justify-content: start;
   align-items: center;
   box-sizing: inherit;
-  border-radius: 0.5em;
+  border-radius: 0.5rem;
   background-color: var(--eggshell);
   overflow: auto;
   color: var(--black);
@@ -2801,5 +2804,5 @@ label {
   width: 100%;
   width: -webkit-fill-available;
   width: -moz-available;
-  margin: 0.25em 0;
+  margin: 0.25rem 0;
 }

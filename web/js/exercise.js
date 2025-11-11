@@ -328,7 +328,7 @@ function generateOperationHTML(operation) {
     var operationHTML = `
         <div class="operation-selectors">
             <div class="operationType" id="operation-type-${operation.id}">
-                <select class="operation-type-input" type="text" id="operation-type-text-${operation.id}" name="operation-type-text" style="text-align: center; font-size: 0.9em !important; min-height: 2em; min-width: 3em;" onchange="updateOperation('${operation.id}')">
+                <select class="operation-type-input" type="text" id="operation-type-text-${operation.id}" name="operation-type-text" style="text-align: center; font-size: 0.9em !important; min-height: 2em; min-width: 3em; height: 100% !important;" onchange="updateOperation('${operation.id}')">
                     <option value="lifting" ${liftingHTML}>💪</option>
                     <option value="moving" ${movingHTML}>🏃‍♂️</option>
                     <option value="timing" ${timingHTML}>⏱️</option>
@@ -1058,7 +1058,7 @@ function addAction(operationID) {
 
             <b style="margin-top: 1em;">Sets, distance or time-based?</b>
             <div class="operationType" id="new-action-type-${operationID}">
-                <select class="new-action-type-input" type="text" id="new-action-type-input-${operationID}" name="new-action-type-input" style="text-align: center; font-size: 0.9em !important; min-height: 2em; min-width: 3em;">
+                <select class="new-action-type-input" type="text" id="new-action-type-input-${operationID}" name="new-action-type-input" style="text-align: center; font-size: 0.9em !important; min-height: 2em; min-width: 3em; height: 100% !important;">
                     <option value="lifting">💪</option>
                     <option value="moving">🏃‍♂️</option>
                     <option value="timing">⏱️</option>
