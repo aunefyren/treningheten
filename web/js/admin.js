@@ -114,7 +114,7 @@ function load_page(result) {
                                 <input style="" class="" type="date" id="season-end" name="season-end" value="" required>
                                 
                                 <input style="" class="" type="text" id="season-name" name="season-name" value="" placeholder="Name" autocomplete="off" required>
-                                <input style="" class="" type="text" id="season-desc" name="season-desc" value="" placeholder="Description" autocomplete="off" required>
+                                <textarea style="" class="" type="text" id="season-desc" name="season-desc" value="" placeholder="Description" autocomplete="off" required></textarea>
 
                                 <label for="season-sickleave" class="clickable">Season sick leave</label><br>
                                 <input style="" class="" type="number" id="season-sickleave" name="season-sickleave" value="0" min="0" max="99" placeholder="" autocomplete="off" required>

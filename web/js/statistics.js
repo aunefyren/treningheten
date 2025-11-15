@@ -553,68 +553,71 @@ function getWeights(path) {
 }
 
 function placeWeights(weightsArray) {
-    var myChartElement = document.getElementById("myChartWeights");
-    myChartElement.style.display = "inline-block"
+    var canvas = document.getElementById("myChartWeights");
+    canvas.style.display = "inline-block";
 
+    // New: build an array of points { t: Date, y: number }
+    var points = [];
+
+    // Reverse so newest is last, same as before
     weightsArray = weightsArray.reverse();
 
-    var xValues = [];
-    var yValues = [];
-    var pointBackgroundColorArray = [];
-    var borderColorArray = [];
-
-    // Look through array of data
     for (var i = 0; i < weightsArray.length; i++) {
         try {
-            var dateObject = new Date(weightsArray[i].date)
-            var isoString = dateObject.toISOString();
-            // Split at the "T" character to get the date part
-            var formattedDate = isoString.split("T")[0];
-        } catch (error) {
-            continue
-        }
+            var dateObject = new Date(weightsArray[i].date);
+            if (isNaN(dateObject.getTime())) continue; // skip bad dates
 
-        xValues.push(formattedDate);
-        yValues.push(weightsArray[i].weight);
-        pointBackgroundColorArray.push("rgba(119,141,169,1)")
-        borderColorArray.push("rgba(119,141,169,1)")
+            points.push({
+                t: dateObject,                 // time value
+                y: weightsArray[i].weight      // weight
+            });
+        } catch (error) {
+            continue;
+        }
     }
 
-    const lineChart = new Chart("myChartWeights", {
+    // variable used inside the tick callback
+    var lastLabel = null;
+
+    new Chart(canvas, {
         type: "line",
         data: {
-            labels: xValues,
-            datasets: [
-                {
-                    fill: true,
-                    borderColor: borderColorArray,
-                    pointBackgroundColor: pointBackgroundColorArray,
-                    backgroundColor: "rgba(119,141,169,0.5)",
-                    responsive: true,
-                    data: yValues,
-                    tension: 0,
-                    label: "Weight in KG",
-                }
-            ]
-        },    
+            datasets: [{
+                label: "Weight in KG",
+                data: points,
+                fill: true,
+                borderColor: "rgba(119,141,169,1)",
+                pointBackgroundColor: "rgba(119,141,169,1)",
+                backgroundColor: "rgba(119,141,169,0.5)",
+                tension: 0
+            }]
+        },
         options: {
-            legend: {display: false},
-            title: {
-                display: true,
-                text: "Weight over time",
-                fontSize: 16
-            },
             scales: {
-                yAxes: [
-                    {
-                        ticks: {
-                            beginAtZero: true,
-                            precision: 0,
-                            //suggestedMin: 50,
-                            beginAtZero: false,
+                xAxes: [{
+                    type: "time",
+                    distribution: "linear",
+                    time: {
+                        unit: "month",
+                        tooltipFormat: "YYYY-MM-DD",
+                        displayFormats: { month: "MMM YYYY" }
+                    },
+                    ticks: {
+                        source: "data",
+                        autoSkip: true,
+                        callback: function(value, index, ticks) {
+                            // hide duplicates (same formatted label)
+                            if (value === lastLabel) {
+                                return "";
+                            }
+                            lastLabel = value;
+                            return value;
                         }
                     }
-                ]
+                }],
+                yAxes: [{
+                    ticks: { beginAtZero: false, precision: 0 }
+                }]
             }
         }
     });
@@ -844,7 +847,135 @@ function getActivityStatistics(activityID, startTime, endTime){
 }
 
 function placeActivityStatistics(statistics) {
-    console.log(statistics)
+    // Sums
+    if(statistics.statistics.sums.distance) {
+        document.getElementById("activity-statistics-element-wrapper-div").innerHTML += `
+            <div class="season-statistics-element unselectable">
+                Distance in period: ${statistics.statistics.sums.distance} ${statistics.operations[0].distance_unit}
+            </div>
+        `;
+    }
+
+    if(statistics.statistics.sums.time) {
+        document.getElementById("activity-statistics-element-wrapper-div").innerHTML += `
+            <div class="season-statistics-element unselectable">
+                Time spent in period: ${secondsToDurationString(statistics.statistics.sums.time)}
+            </div>
+        `;
+    }
+
+    if(statistics.statistics.sums.repetition) {
+        document.getElementById("activity-statistics-element-wrapper-div").innerHTML += `
+            <div class="season-statistics-element unselectable">
+                Repetitions in period: ${statistics.statistics.sums.repetition}
+            </div>
+        `;
+    }
+
+    if(statistics.statistics.sums.weight) {
+        document.getElementById("activity-statistics-element-wrapper-div").innerHTML += `
+            <div class="season-statistics-element unselectable">
+                Weight in period: ${statistics.statistics.sums.weight} ${statistics.operations[0].weight_unit}
+            </div>
+        `;
+    }
+
+    if(statistics.statistics.sums.operations) {
+        document.getElementById("activity-statistics-element-wrapper-div").innerHTML += `
+            <div class="season-statistics-element unselectable">
+                Amount in period: ${statistics.statistics.sums.operations}
+            </div>
+        `;
+    }
+
+    // Averages
+    if(statistics.statistics.averages.distance) {
+        document.getElementById("activity-statistics-element-wrapper-div").innerHTML += `
+            <div class="season-statistics-element unselectable">
+                Average distance: ${statistics.statistics.averages.distance} ${statistics.operations[0].distance_unit}
+            </div>
+        `;
+    }
+
+    if(statistics.statistics.averages.time) {
+        document.getElementById("activity-statistics-element-wrapper-div").innerHTML += `
+            <div class="season-statistics-element unselectable">
+                Average time: ${secondsToDurationString(statistics.statistics.averages.time)}
+            </div>
+        `;
+    }
+
+    if(statistics.statistics.averages.repetition) {
+        document.getElementById("activity-statistics-element-wrapper-div").innerHTML += `
+            <div class="season-statistics-element unselectable">
+                Average repetitions: ${statistics.statistics.averages.repetition}
+            </div>
+        `;
+    }
+
+    if(statistics.statistics.averages.weight) {
+        document.getElementById("activity-statistics-element-wrapper-div").innerHTML += `
+            <div class="season-statistics-element unselectable">
+                Average weight: ${statistics.statistics.averages.weight} ${statistics.operations[0].weight_unit}
+            </div>
+        `;
+    }
+
+    // Tops
+    if(statistics.statistics.tops.distance) {
+        distance = 0;
+        statistics.statistics.tops.distance.operation_sets.forEach(operationSet => {
+            distance += operationSet.distance;
+        });
+
+        document.getElementById("activity-statistics-element-wrapper-div").innerHTML += `
+            <div class="season-statistics-element unselectable">
+                Furthest activity: ${distance} ${statistics.statistics.tops.distance.distance_unit}
+            </div>
+        `;
+    }
+
+    if(statistics.statistics.tops.time) {
+        time = 0;
+        statistics.statistics.tops.time.operation_sets.forEach(operationSet => {
+            time += operationSet.time;
+        });
+
+        document.getElementById("activity-statistics-element-wrapper-div").innerHTML += `
+            <div class="season-statistics-element unselectable">
+                Longest activity: ${secondsToDurationString(time)}
+            </div>
+        `;
+    }
+
+    if(statistics.statistics.tops.repetition) {
+        repetitions = 0;
+        statistics.statistics.tops.repetition.operation_sets.forEach(operationSet => {
+            repetitions += operationSet.repetitions;
+        });
+
+        document.getElementById("activity-statistics-element-wrapper-div").innerHTML += `
+            <div class="season-statistics-element unselectable">
+                Most repetitions: ${repetitions}
+            </div>
+        `;
+    }
+
+    if(statistics.statistics.tops.weight) {
+        weight = 0;
+        statistics.statistics.tops.weight.operation_sets.forEach(operationSet => {
+            weight += operationSet.weight;
+        });
+
+        document.getElementById("activity-statistics-element-wrapper-div").innerHTML += `
+            <div class="season-statistics-element unselectable">
+                Highest weight: ${weight} ${statistics.operations[0].weight_unit}
+            </div>
+        `;
+    }
+
+    // Remove loading gif
+    document.getElementById("loading-dumbbell-activities").style.display = "none";
 }
 
 function placeDefaultDates() {
