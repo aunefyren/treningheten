@@ -901,7 +901,7 @@ func APIGetActionStatistics(context *gin.Context) {
 				}
 
 				for _, operationObject := range operationObjects {
-					if operationObject.Action.ID == actionID {
+					if operationObject.Action != nil && operationObject.Action.ID == actionID {
 						finalOperationObjects = append(finalOperationObjects, operationObject)
 					}
 				}
