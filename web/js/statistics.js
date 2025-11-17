@@ -851,7 +851,7 @@ function placeActivityStatistics(statistics) {
     if(statistics.statistics.sums.distance) {
         document.getElementById("activity-statistics-element-wrapper-div").innerHTML += `
             <div class="season-statistics-element unselectable">
-                Distance in period: ${statistics.statistics.sums.distance} ${statistics.operations[0].distance_unit}
+                Distance in period: ${float_num.toFixed(statistics.statistics.sums.distance)} ${statistics.operations[0].distance_unit}
             </div>
         `;
     }
@@ -875,7 +875,7 @@ function placeActivityStatistics(statistics) {
     if(statistics.statistics.sums.weight) {
         document.getElementById("activity-statistics-element-wrapper-div").innerHTML += `
             <div class="season-statistics-element unselectable">
-                Weight in period: ${statistics.statistics.sums.weight} ${statistics.operations[0].weight_unit}
+                Weight in period: ${float_num.toFixed(statistics.statistics.sums.weight)} ${statistics.operations[0].weight_unit}
             </div>
         `;
     }
@@ -892,7 +892,7 @@ function placeActivityStatistics(statistics) {
     if(statistics.statistics.averages.distance) {
         document.getElementById("activity-statistics-element-wrapper-div").innerHTML += `
             <div class="season-statistics-element unselectable">
-                Average distance: ${statistics.statistics.averages.distance} ${statistics.operations[0].distance_unit}
+                Average distance: ${float_num.toFixed(statistics.statistics.averages.distance)} ${statistics.operations[0].distance_unit}
             </div>
         `;
     }
@@ -916,7 +916,7 @@ function placeActivityStatistics(statistics) {
     if(statistics.statistics.averages.weight) {
         document.getElementById("activity-statistics-element-wrapper-div").innerHTML += `
             <div class="season-statistics-element unselectable">
-                Average weight: ${statistics.statistics.averages.weight} ${statistics.operations[0].weight_unit}
+                Average weight: ${float_num.toFixed(statistics.statistics.averages.weight)} ${statistics.operations[0].weight_unit}
             </div>
         `;
     }
@@ -930,7 +930,7 @@ function placeActivityStatistics(statistics) {
 
         document.getElementById("activity-statistics-element-wrapper-div").innerHTML += `
             <div class="season-statistics-element unselectable">
-                Furthest activity: ${distance} ${statistics.statistics.tops.distance.distance_unit}
+                Furthest activity: ${float_num.toFixed(distance)} ${statistics.statistics.tops.distance.distance_unit}
             </div>
         `;
     }
@@ -969,7 +969,7 @@ function placeActivityStatistics(statistics) {
 
         document.getElementById("activity-statistics-element-wrapper-div").innerHTML += `
             <div class="season-statistics-element unselectable">
-                Highest weight: ${weight} ${statistics.operations[0].weight_unit}
+                Highest weight: ${float_num.toFixed(weight)} ${statistics.operations[0].weight_unit}
             </div>
         `;
     }
