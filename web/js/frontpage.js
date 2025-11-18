@@ -335,9 +335,20 @@ function load_page(result) {
     document.getElementById('card-header').innerHTML = 'Welcome to the frontpage!';
     clearResponse();
 
+    // Check URL for parameters
+    var activeSeason = null;
+    const query_string = window.location.search;
+    parameters = get_url_parameters(query_string)
+    console.log(parameters)
+    if(parameters != false && "season" in parameters) {
+        activeSeason = decodeURI(parameters.season)
+    } else {
+        console.log("Season not found in parameters.")
+    }
+
     if(result !== false) {
         showLoggedInMenu();
-        get_season(user_id, true);
+        get_season(user_id, true, activeSeason);
         document.getElementById('front-page-text').innerHTML = 'Remember to log your workouts.';
     } else {
         showLoggedOutMenu();
@@ -346,7 +357,7 @@ function load_page(result) {
     }
 }
 
-function get_season(user_id, loadingMessage){
+function get_season(user_id, loadingMessage, activeSeason){
 
     var xhttp = new XMLHttpRequest();
     xhttp.onreadystatechange = function() {
@@ -409,7 +420,36 @@ function get_season(user_id, loadingMessage){
                 
                 // If one or more seasons were found
                 if(result.seasons.length > 0) {
-                    var season = result.seasons[0];
+                    var season = null;
+                    var seasonAlternatives = [];
+                    var activeSeasonFound = false;
+
+                    if(activeSeason) {
+                        result.seasons.forEach(currentSeason => {
+                            if(currentSeason.id === activeSeason) {
+                                season = currentSeason;
+                                activeSeasonFound = true;
+                            } else {
+                                seasonAlternatives.push(currentSeason)
+                            }
+                        });
+                    }
+                    if(!activeSeasonFound) {
+                        season = null;
+                        seasonAlternatives = [];
+                        for (let index = 0; index < result.seasons.length; index++) {
+                            if(index == 0) {
+                                season = result.seasons[index];
+                            } else {
+                                seasonAlternatives.push(result.seasons[index])
+                            }
+                        }
+                    }
+
+                    const url = new URL(window.location.href);
+                    url.searchParams.set('season', encodeURI(season.id)); // Set or update ?name=John
+                    window.history.replaceState({}, '', url);
+                    
                     var goal = null;
 
                     var user_found = false;
@@ -432,13 +472,13 @@ function get_season(user_id, loadingMessage){
                         countdownRedirect()
                     } else if(user_found) {
                         get_calendar(false, user_id, loadingMessage);
-                        place_season(season, user_id);
+                        place_season(season, user_id, seasonAlternatives);
                         get_leaderboard(season, goal, true, false);
                         getActivities(season);
                     }
                 } else {
                     get_calendar(false, user_id, loadingMessage);
-                    place_season(false, user_id);
+                    place_season(false, user_id, null);
 
                     try {
                         document.getElementById('current-week').outerHTML = ""
@@ -466,12 +506,15 @@ function get_season(user_id, loadingMessage){
 
 }
 
-function place_season(season_object, userID) {
+function place_season(season_object, userID, alternatives) {
     if(season_object) {
         document.getElementById("calendar_season_id").value = season_object.id
-        document.getElementById("season_title").innerHTML = season_object.name
         document.getElementById("season_desc").innerHTML = season_object.description
         document.getElementById("prize-text").innerHTML = season_object.prize.quantity + " " + season_object.prize.name
+
+        document.getElementById("season_title").outerHTML = `<h3 id="season_title">${season_object.name}</h3>`;
+
+        placeSeasonAlternatives(season_object, userID, alternatives);
 
         try {
             var date_start = new Date(season_object.start);
@@ -1758,4 +1801,31 @@ function GetProfileImageForActivity(userID, index) {
 
 function PlaceProfileImageForActivity(imageBase64, userID, index) {
     document.getElementById("activity-user-photo-" + userID + "-" + index).src = imageBase64
+}
+
+function placeSeasonAlternatives(seasonObject, userID, alternatives) {
+    if(alternatives == null || alternatives.length < 1) {
+        return
+    }
+
+    titleObject = document.getElementById('season_title');
+    
+    var html = `
+        <select name="selectedSeason" id="season_title" style="height: 2rem; font-weight: bold;" onchange="switchSeason('${userID}');">
+            <option value="${seasonObject.id}">${seasonObject.name}</option>
+    `;
+
+    alternatives.forEach(seasonAlternative => {
+        html += `<option value="${seasonAlternative.id}">${seasonAlternative.name}</option>`
+    });
+
+    html += `</select>`;
+
+    titleObject.outerHTML = html;
+}
+
+function switchSeason(userID) {
+    console.log("Changing season.")
+    var seasonID = document.getElementById('season_title').value;
+    get_season(userID, true, seasonID)
 }

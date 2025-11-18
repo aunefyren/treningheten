@@ -847,6 +847,16 @@ function getActivityStatistics(activityID, startTime, endTime){
 }
 
 function placeActivityStatistics(statistics) {
+    if(statistics.statistics.sums.operations == 0) {
+        // Remove loading gif
+        document.getElementById("loading-dumbbell-activities").style.display = "none";
+        document.getElementById("activity-statistics-element-wrapper-div").innerHTML += `
+            <div class="season-statistics-element unselectable">
+                No activities in period :(
+            </div>
+        `;
+    }
+
     // Sums
     if(statistics.statistics.sums.distance) {
         document.getElementById("activity-statistics-element-wrapper-div").innerHTML += `
