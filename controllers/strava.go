@@ -190,22 +190,22 @@ func StravaGetActivities(config models.ConfigStruct, token string, before int, a
 func StravaSyncWeekForAllUsers() {
 	configFile, err := config.GetConfig()
 	if err != nil {
-		logger.Log.Info("Failed to get config file. Error: " + err.Error())
+		logger.Log.Error("Failed to get config file. Error: " + err.Error())
 		return
 	}
 
 	users, err := database.GetStravaUsers()
 	if err != nil {
-		logger.Log.Info("Failed to get Strava users.")
+		logger.Log.Error("Failed to get Strava users.")
 		return
 	}
 
-	logger.Log.Info("Got '" + strconv.Itoa(len(users)) + "' users.")
+	logger.Log.Debug("Got '" + strconv.Itoa(len(users)) + "' users.")
 
 	for _, user := range users {
 		err = StravaSyncWeekForUser(user, configFile, time.Now())
 		if err != nil {
-			logger.Log.Info("Sync Strava for user returned error. Error: " + err.Error())
+			logger.Log.Error("Sync Strava for user returned error. Error: " + err.Error())
 		}
 	}
 

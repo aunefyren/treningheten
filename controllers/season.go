@@ -384,9 +384,9 @@ func APIGetCurrentSeasonLeaderboard(context *gin.Context) {
 
 func RetrieveWeekResultsFromSeasonWithinTimeframe(firstPointInTime time.Time, lastPointInTime time.Time, season models.SeasonObject) ([]models.WeekResults, error) {
 	var weeksResults []models.WeekResults
-	logger.Log.Info("Retrieving week results from season within timeframe.")
-	logger.Log.Info("First point in time: " + firstPointInTime.String())
-	logger.Log.Info("Last point in time: " + lastPointInTime.String())
+	logger.Log.Debug("Retrieving week results from season within timeframe.")
+	logger.Log.Debug("First point in time: " + firstPointInTime.String())
+	logger.Log.Debug("Last point in time: " + lastPointInTime.String())
 
 	// Season has not started, return zero weeks
 	if lastPointInTime.Before(firstPointInTime) {
@@ -407,8 +407,8 @@ func RetrieveWeekResultsFromSeasonWithinTimeframe(firstPointInTime time.Time, la
 		weekResult.WeekYear, weekResult.WeekNumber = currentTime.ISOWeek()
 		weekResult.WeekDate = currentTime
 
-		logger.Log.Info("Processing new week: " + currentTime.String())
-		logger.Log.Info("Starting on goals...")
+		logger.Log.Debug("Processing new week: " + currentTime.String())
+		logger.Log.Debug("Starting on goals...")
 
 		// Go through all goals
 		for _, goal := range season.Goals {
