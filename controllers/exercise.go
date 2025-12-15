@@ -41,7 +41,7 @@ func APIRegisterWeek(context *gin.Context) {
 		return
 	}
 
-	requestLocation, err := time.LoadLocation(week.TimeZone)
+	_, err = time.LoadLocation(week.TimeZone)
 	if err != nil {
 		logger.Log.Info("Failed to parse time zone. Error: " + err.Error())
 		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to parse time zone."})
@@ -198,7 +198,7 @@ func APIRegisterWeek(context *gin.Context) {
 
 			// Create new exercise day
 			exerciseDay := models.ExerciseDay{
-				Date:   time.Date(day.Date.Year(), day.Date.Month(), day.Date.Day(), 00, 00, 00, 00, requestLocation),
+				Date:   time.Date(day.Date.Year(), day.Date.Month(), day.Date.Day(), 00, 00, 00, 00, time.Local),
 				Note:   day.Note,
 				UserID: &userID,
 			}

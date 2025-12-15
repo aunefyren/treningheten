@@ -318,7 +318,7 @@ func StravaSyncWeekForUser(user models.User, configFile models.ConfigStruct, poi
 			return errors.New("Failed to get exercise.")
 		} else if exercise == nil {
 			// Get exercise day
-			exerciseDay, err := database.GetExerciseDayByDateAndUserID(user.ID, activity.StartDate)
+			exerciseDay, err := database.GetExerciseDayByDateAndUserID(user.ID, activity.StartDateLocal)
 			if err != nil {
 				logger.Log.Error("Failed to get exercise day. ID: " + user.ID.String())
 				return errors.New("Failed to get exercise day.")
@@ -332,8 +332,12 @@ func StravaSyncWeekForUser(user models.User, configFile models.ConfigStruct, poi
 				exerciseDay.UpdatedAt = now
 				exerciseDay.UserID = &user.ID
 
-				dateObject := time.Date(activity.StartDate.Year(), activity.StartDate.Month(), activity.StartDate.Day(), 0, 0, 0, activity.StartDate.Nanosecond(), activity.StartDate.Location())
+				logger.Log.Trace("activity start: " + activity.StartDateLocal.String())
+
+				dateObject := time.Date(activity.StartDateLocal.Year(), activity.StartDateLocal.Month(), activity.StartDateLocal.Day(), 0, 0, 0, 0, time.Local)
 				exerciseDay.Date = dateObject
+
+				logger.Log.Trace("exercise day date: " + dateObject.String())
 
 				err = database.CreateExerciseDayInDB(*exerciseDay)
 				if err != nil {

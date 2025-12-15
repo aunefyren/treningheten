@@ -812,10 +812,15 @@ func GenerateAchievementsForWeek(weekResults models.WeekResults, targetUser *uui
 		for _, day := range week.Days {
 			logger.Log.Trace("doing day from week: " + day.Date.String())
 
+			// ensure time is midnight
+			day.Date = utilities.SetClockToMinimum(day.Date)
+
+			// get date values for calculation
 			dayDate := day.Date.Day()
 			dayMonth := day.Date.Month()
 			dayWeekday := day.Date.Weekday()
 
+			// get different dates for calculations
 			christmasDate := time.Date(now.Year(), 12, 24, 0, 0, 0, 0, time.Local)
 			logger.Log.Trace("Christmas date: " + christmasDate.String())
 
