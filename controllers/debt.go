@@ -174,8 +174,7 @@ func GenerateDebtForWeek(givenTime time.Time, season models.Season, targetUser *
 	losers := []uuid.UUID{}
 
 	// Debug line
-	logger.Log.Info("Timeframe week start: ")
-	logger.Log.Info(givenTimeMonday)
+	logger.Log.Info("Timeframe week start: " + givenTimeMonday.String())
 
 	// Find losers and winners
 	for _, user := range lastWeek.UserWeekResults {
