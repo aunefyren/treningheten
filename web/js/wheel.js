@@ -210,7 +210,7 @@ function placeWheel(candidateArray) {
     console.log("GCD: " + GCD)
 
     // Divide all tickets by GCD
-    if(GCD > 1) {
+    if(GCD != null && GCD > 1) {
         console.log("Dividing tickets by GCD.");
         for(var i = 0; i < candidateArray.length; i++) {
             candidateArray[i].tickets = Math.floor(candidateArray[i].tickets / GCD)
@@ -249,7 +249,6 @@ function placeWheel(candidateArray) {
 
     // Usual pointer drawing code.
     drawTriangle();
-
 }
 
 // Function with formula to work out stopAngle before spinning animation.
