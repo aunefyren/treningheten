@@ -519,7 +519,7 @@ func APIGetDebt(context *gin.Context) {
 
 	for _, user := range lastWeek.UserWeekResults {
 
-		if user.Competing && user.WeekCompletion >= 1.0 && !user.SickLeave && user.FullWeekParticipation {
+		if user.Competing && user.WeekCompletion >= 1.0 && !user.SickLeave {
 			userObject, err := database.GetAllUserInformation(user.UserID)
 			if err != nil {
 				logger.Log.Info("Failed to get user object. Error: " + err.Error())
@@ -532,6 +532,7 @@ func APIGetDebt(context *gin.Context) {
 				User:    userObject,
 				Tickets: user.CurrentStreak + 1,
 			}
+
 			winners = append(winners, userWithTickets)
 		}
 

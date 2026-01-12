@@ -217,6 +217,7 @@ function placeWheel(candidateArray) {
         }
     }
 
+    console.log(candidateArray.length + " candidates for wheel")
     // Add tickets to wheel dict
     for(var i = 0; i < candidateArray.length; i++) {
         for(var j = 0; j < candidateArray[i].tickets; j++) {
