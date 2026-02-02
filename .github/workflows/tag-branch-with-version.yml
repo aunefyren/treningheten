@@ -27,14 +27,14 @@ jobs:
       - name: Check if file already contains the tag
         id: check-tag
         run: |
-          if grep -q "${TAG_NAME}" config/config.go; then
+          if grep -q "${TAG_NAME}" files/config.go; then
             echo "Tag already present. Skipping commit."
             echo "SKIP_COMMIT=true" >> $GITHUB_ENV
           fi
 
       - name: Replace template string in file
         if: env.SKIP_COMMIT != 'true'
-        run: sed -i "s/{{RELEASE_TAG}}/${TAG_NAME}/g" config/config.go
+        run: sed -i "s/{{RELEASE_TAG}}/${TAG_NAME}/g" files/config.go
 
       - name: Commit and push changes
         if: env.SKIP_COMMIT != 'true'
