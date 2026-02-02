@@ -262,7 +262,7 @@ func GetValidExercisesBetweenDatesUsingDatesByUserID(userID uuid.UUID, startDate
 
 	exerciserecord := Instance.
 		Where("`exercises`.enabled = ?", 1).
-		Where("`exercises`.on = ?", 1).
+		Where("`exercises`.is_on = ?", 1).
 		Joins("JOIN `exercise_days` on `exercises`.exercise_day_id = `exercise_days`.id").
 		Where("`exercise_days`.enabled = ?", 1).
 		Where("`exercise_days`.user_id = ?", userID).

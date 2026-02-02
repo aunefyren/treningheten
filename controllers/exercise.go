@@ -573,7 +573,7 @@ func CorrelateExerciseWithExerciseDay(exerciseDayID uuid.UUID, exerciseDayExerci
 	onExercisesSum := 0
 
 	for _, exercise := range exercises {
-		if exercise.On {
+		if exercise.IsOn {
 			onExercisesSum += 1
 		}
 	}
@@ -654,7 +654,7 @@ func TurnOnExercisesForExerciseDayByAmount(amount int, exerciseDayID uuid.UUID) 
 
 	for _, exercise := range exercises {
 
-		if !exercise.On {
+		if !exercise.IsOn {
 			err = database.UpdateExerciseByTurningOnByExerciseID(exercise.ID)
 			if err != nil {
 				logger.Log.Info("Failed to turn on exercise. Error: " + err.Error())
@@ -690,7 +690,7 @@ func TurnOffExercisesForExerciseDayByAmount(amount int, exerciseDayID uuid.UUID)
 
 	for _, exercise := range exercises {
 
-		if exercise.On {
+		if exercise.IsOn {
 			err = database.UpdateExerciseByTurningOffByExerciseID(exercise.ID)
 			if err != nil {
 				logger.Log.Info("Failed to turn on exercise. Error: " + err.Error())
@@ -798,7 +798,7 @@ func ConvertExerciseDayToExerciseDayObject(exerciseDay models.ExerciseDay) (exer
 
 	exerciseDayObject.ExerciseInterval = 0
 	for _, exerciseObject := range exerciseObjects {
-		if exerciseObject.On {
+		if exerciseObject.IsOn {
 			exerciseDayObject.ExerciseInterval += 1
 		}
 	}
@@ -886,7 +886,7 @@ func ConvertExerciseToExerciseObject(exercise models.Exercise) (exerciseObject m
 	exerciseObject.ExerciseDay = exercise.ExerciseDayID
 	exerciseObject.ID = exercise.ID
 	exerciseObject.Note = exercise.Note
-	exerciseObject.On = exercise.On
+	exerciseObject.IsOn = exercise.IsOn
 	exerciseObject.UpdatedAt = exercise.UpdatedAt
 	exerciseObject.Duration = exercise.Duration
 
@@ -1054,9 +1054,9 @@ func APIUpdateExercise(context *gin.Context) {
 
 	turnedOn := false
 	turnedOff := false
-	if !exercise.On && exerciseUpdateRequest.On {
+	if !exercise.IsOn && exerciseUpdateRequest.IsOn {
 		turnedOn = true
-	} else if exercise.On && !exerciseUpdateRequest.On {
+	} else if exercise.IsOn && !exerciseUpdateRequest.IsOn {
 		turnedOff = true
 	}
 
@@ -1095,7 +1095,7 @@ func APIUpdateExercise(context *gin.Context) {
 	}
 
 	exercise.Note = strings.TrimSpace(exerciseUpdateRequest.Note)
-	exercise.On = exerciseUpdateRequest.On
+	exercise.IsOn = exerciseUpdateRequest.IsOn
 	exercise.Duration = exerciseUpdateRequest.Duration
 
 	if len(exercise.Note) > 255 {
@@ -1186,7 +1186,7 @@ func APICreateExercise(context *gin.Context) {
 		return
 	}
 
-	exercise.On = exerciseCreationRequest.On
+	exercise.IsOn = exerciseCreationRequest.IsOn
 	exercise.Duration = exerciseCreationRequest.Duration
 	exercise.Note = strings.TrimSpace(exerciseCreationRequest.Note)
 	exercise.ExerciseDayID = exerciseCreationRequest.ExerciseDayID

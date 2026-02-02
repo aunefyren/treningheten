@@ -882,7 +882,7 @@ func APIGetActionStatistics(context *gin.Context) {
 			}
 
 			for _, exercise := range exercises {
-				if exercise.Enabled && exercise.On {
+				if exercise.Enabled && exercise.IsOn {
 					finalExercises = append(finalExercises, exercise)
 				}
 			}

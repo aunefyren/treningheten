@@ -382,7 +382,7 @@ func StravaSyncWeekForUser(user models.User, pointInTime time.Time) (err error) 
 		exercise.Note = activity.Name
 		elapsedTime := time.Duration(activity.ElapsedTime)
 		exercise.Duration = &elapsedTime
-		exercise.On = true
+		exercise.IsOn = true
 		exercise.StravaID = &newStravaID
 		exercise.Time = &activity.StartDate
 

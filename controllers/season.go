@@ -1041,7 +1041,7 @@ func APIGetCurrentSeasonActivities(context *gin.Context) {
 	allActivities := []models.Activity{}
 	for _, exerciseDayObject := range exerciseDayObjects {
 		for _, exercise := range exerciseDayObject.Exercises {
-			if exercise.On && exercise.Enabled {
+			if exercise.IsOn && exercise.Enabled {
 				newActivity := models.Activity{}
 				newActivity.ExerciseID = exercise.ID
 				newActivity.User = exerciseDayObject.User

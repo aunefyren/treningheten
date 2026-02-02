@@ -163,7 +163,7 @@ function placeExercises(exercises) {
 function generateExerciseHTML(exercise, count) {
     var exerciseHTML = null;
 
-    if(exercise.on) {
+    if(exercise.is_on) {
         durationHTML = ""
         if(exercise.duration) {
             durationHTML = secondsToDurationString(exercise.duration)

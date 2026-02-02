@@ -317,7 +317,7 @@ func GetActionsDoneUsingUserID(userID uuid.UUID) (actions []models.Action, err e
 		Where("`operations`.enabled = ?", 1).
 		Joins("JOIN `exercises` on `operations`.exercise_id = `exercises`.id").
 		Where("`exercises`.enabled = ?", 1).
-		Where("`exercises`.on = ?", 1).
+		Where("`exercises`.is_on = ?", 1).
 		Joins("JOIN `exercise_days` on `exercises`.exercise_day_id = `exercise_days`.id").
 		Where("`exercise_days`.enabled = ?", 1).
 		Joins("JOIN `users` on `exercise_days`.user_id = `users`.id").
