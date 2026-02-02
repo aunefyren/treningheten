@@ -9,7 +9,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/aunefyren/treningheten/files"
+	files "github.com/aunefyren/treningheten/files"
 	"github.com/aunefyren/treningheten/logger"
 	"github.com/aunefyren/treningheten/models"
 
