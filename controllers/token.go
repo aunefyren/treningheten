@@ -1,14 +1,15 @@
 package controllers
 
 import (
-	"aunefyren/treningheten/auth"
-	"aunefyren/treningheten/database"
-	"aunefyren/treningheten/files"
-	"aunefyren/treningheten/logger"
-	"aunefyren/treningheten/middlewares"
-	"aunefyren/treningheten/models"
 	"net/http"
 	"time"
+
+	"github.com/aunefyren/treningheten/auth"
+	"github.com/aunefyren/treningheten/database"
+	"github.com/aunefyren/treningheten/files"
+	"github.com/aunefyren/treningheten/logger"
+	"github.com/aunefyren/treningheten/middlewares"
+	"github.com/aunefyren/treningheten/models"
 
 	"github.com/gin-gonic/gin"
 )

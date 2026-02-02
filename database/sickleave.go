@@ -1,9 +1,10 @@
 package database
 
 import (
-	"aunefyren/treningheten/models"
 	"errors"
 	"time"
+
+	"github.com/aunefyren/treningheten/models"
 
 	"github.com/google/uuid"
 )

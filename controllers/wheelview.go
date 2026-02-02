@@ -1,10 +1,11 @@
 package controllers
 
 import (
-	"aunefyren/treningheten/database"
-	"aunefyren/treningheten/logger"
-	"aunefyren/treningheten/models"
 	"errors"
+
+	"github.com/aunefyren/treningheten/database"
+	"github.com/aunefyren/treningheten/logger"
+	"github.com/aunefyren/treningheten/models"
 )
 
 func ConvertWheelviewToWheelviewObject(wheelview models.Wheelview) (models.WheelviewObject, error) {

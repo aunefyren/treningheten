@@ -1,8 +1,6 @@
 package files
 
 import (
-	"aunefyren/treningheten/logger"
-	"aunefyren/treningheten/models"
 	"crypto/rand"
 	"encoding/base64"
 	"encoding/json"
@@ -11,6 +9,9 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+
+	"github.com/aunefyren/treningheten/logger"
+	"github.com/aunefyren/treningheten/models"
 
 	"github.com/SherClockHolmes/webpush-go"
 	"github.com/sirupsen/logrus"

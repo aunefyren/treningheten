@@ -1,16 +1,17 @@
 package controllers
 
 import (
-	"aunefyren/treningheten/database"
-	"aunefyren/treningheten/files"
-	"aunefyren/treningheten/logger"
-	"aunefyren/treningheten/middlewares"
-	"aunefyren/treningheten/models"
 	"bytes"
 	"encoding/json"
 	"errors"
 	"net/http"
 	"strings"
+
+	"github.com/aunefyren/treningheten/database"
+	"github.com/aunefyren/treningheten/files"
+	"github.com/aunefyren/treningheten/logger"
+	"github.com/aunefyren/treningheten/middlewares"
+	"github.com/aunefyren/treningheten/models"
 
 	"github.com/SherClockHolmes/webpush-go"
 	"github.com/gin-gonic/gin"

@@ -1,10 +1,11 @@
 package auth
 
 import (
-	"aunefyren/treningheten/database"
-	"aunefyren/treningheten/files"
 	"errors"
 	"time"
+
+	"github.com/aunefyren/treningheten/database"
+	"github.com/aunefyren/treningheten/files"
 
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"

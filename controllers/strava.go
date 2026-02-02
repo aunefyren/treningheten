@@ -1,11 +1,6 @@
 package controllers
 
 import (
-	"aunefyren/treningheten/database"
-	"aunefyren/treningheten/files"
-	"aunefyren/treningheten/logger"
-	"aunefyren/treningheten/models"
-	"aunefyren/treningheten/utilities"
 	"bytes"
 	"encoding/json"
 	"errors"
@@ -14,6 +9,12 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/aunefyren/treningheten/database"
+	"github.com/aunefyren/treningheten/files"
+	"github.com/aunefyren/treningheten/logger"
+	"github.com/aunefyren/treningheten/models"
+	"github.com/aunefyren/treningheten/utilities"
 
 	"github.com/google/uuid"
 )

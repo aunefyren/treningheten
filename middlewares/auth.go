@@ -1,12 +1,13 @@
 package middlewares
 
 import (
-	"aunefyren/treningheten/auth"
-	"aunefyren/treningheten/database"
-	"aunefyren/treningheten/files"
-	"aunefyren/treningheten/logger"
 	"errors"
 	"net/http"
+
+	"github.com/aunefyren/treningheten/auth"
+	"github.com/aunefyren/treningheten/database"
+	"github.com/aunefyren/treningheten/files"
+	"github.com/aunefyren/treningheten/logger"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"

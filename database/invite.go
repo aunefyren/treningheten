@@ -1,9 +1,10 @@
 package database
 
 import (
-	"aunefyren/treningheten/models"
 	"errors"
 	"strings"
+
+	"github.com/aunefyren/treningheten/models"
 
 	"github.com/google/uuid"
 	"github.com/thanhpk/randstr"

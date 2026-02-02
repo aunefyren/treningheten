@@ -1,7 +1,7 @@
 package database
 
 import (
-	"aunefyren/treningheten/models"
+	"github.com/aunefyren/treningheten/models"
 
 	"github.com/google/uuid"
 )

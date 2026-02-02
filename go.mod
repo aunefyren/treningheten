@@ -1,4 +1,4 @@
-module aunefyren/treningheten
+module github.com/aunefyren/treningheten
 
 go 1.24.0
 

@@ -1,13 +1,14 @@
 package utilities
 
 import (
-	"aunefyren/treningheten/database"
-	"aunefyren/treningheten/files"
-	"aunefyren/treningheten/logger"
-	"aunefyren/treningheten/models"
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/aunefyren/treningheten/database"
+	"github.com/aunefyren/treningheten/files"
+	"github.com/aunefyren/treningheten/logger"
+	"github.com/aunefyren/treningheten/models"
 
 	"github.com/go-mail/mail"
 )

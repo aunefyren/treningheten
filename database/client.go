@@ -1,9 +1,6 @@
 package database
 
 import (
-	"aunefyren/treningheten/files"
-	"aunefyren/treningheten/logger"
-	"aunefyren/treningheten/models"
 	"database/sql"
 	"errors"
 	"fmt"
@@ -11,6 +8,10 @@ import (
 	"os"
 	"strconv"
 	"strings"
+
+	"github.com/aunefyren/treningheten/files"
+	"github.com/aunefyren/treningheten/logger"
+	"github.com/aunefyren/treningheten/models"
 
 	"gorm.io/driver/mysql"
 	"gorm.io/driver/postgres"

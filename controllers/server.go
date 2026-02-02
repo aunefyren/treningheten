@@ -1,9 +1,10 @@
 package controllers
 
 import (
-	"aunefyren/treningheten/files"
-	"aunefyren/treningheten/models"
 	"net/http"
+
+	"github.com/aunefyren/treningheten/files"
+	"github.com/aunefyren/treningheten/models"
 
 	"github.com/gin-gonic/gin"
 )

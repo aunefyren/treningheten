@@ -1,13 +1,6 @@
 package main
 
 import (
-	"aunefyren/treningheten/controllers"
-	"aunefyren/treningheten/database"
-	"aunefyren/treningheten/files"
-	"aunefyren/treningheten/logger"
-	"aunefyren/treningheten/middlewares"
-	"aunefyren/treningheten/models"
-	"aunefyren/treningheten/utilities"
 	"context"
 	"flag"
 	"fmt"
@@ -16,6 +9,14 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+
+	"github.com/aunefyren/treningheten/controllers"
+	"github.com/aunefyren/treningheten/database"
+	"github.com/aunefyren/treningheten/files"
+	"github.com/aunefyren/treningheten/logger"
+	"github.com/aunefyren/treningheten/middlewares"
+	"github.com/aunefyren/treningheten/models"
+	"github.com/aunefyren/treningheten/utilities"
 
 	"strconv"
 	"time"

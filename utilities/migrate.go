@@ -1,11 +1,12 @@
 package utilities
 
 import (
-	"aunefyren/treningheten/logger"
 	"bufio"
 	"os"
 	"regexp"
 	"strings"
+
+	"github.com/aunefyren/treningheten/logger"
 
 	"github.com/google/uuid"
 )

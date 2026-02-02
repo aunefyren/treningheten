@@ -1,8 +1,6 @@
 package controllers
 
 import (
-	"aunefyren/treningheten/database"
-	"aunefyren/treningheten/logger"
 	"bytes"
 	"encoding/base64"
 	"errors"
@@ -14,6 +12,9 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+
+	"github.com/aunefyren/treningheten/database"
+	"github.com/aunefyren/treningheten/logger"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"

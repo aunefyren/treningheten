@@ -1,10 +1,11 @@
 package controllers
 
 import (
-	"aunefyren/treningheten/database"
-	"aunefyren/treningheten/logger"
-	"aunefyren/treningheten/models"
 	"net/http"
+
+	"github.com/aunefyren/treningheten/database"
+	"github.com/aunefyren/treningheten/logger"
+	"github.com/aunefyren/treningheten/models"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
