@@ -92,7 +92,7 @@ function get_login(cookie) {
                 verifyPageRedirect();
                 return;
             } else if(result.error && result.error.toLowerCase().includes("you must verify your account") && window.location.pathname == "/verify") {
-                load_page(false);
+                load_page(this.responseText);
                 return;
             } else if(result.error) {
                 error(result.error)
