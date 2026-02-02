@@ -1,8 +1,7 @@
 package controllers
 
 import (
-	"aunefyren/treningheten/config"
-	"aunefyren/treningheten/logger"
+	"aunefyren/treningheten/files"
 	"aunefyren/treningheten/models"
 	"net/http"
 
@@ -10,18 +9,9 @@ import (
 )
 
 func APIGetServerInfo(context *gin.Context) {
-
-	config, err := config.GetConfig()
-	if err != nil {
-		logger.Log.Info("Failed to get config. Error: " + err.Error())
-		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get config."})
-		context.Abort()
-		return
-	}
-
 	serverInfo := models.ServerInfoReply{
-		Timezone:            config.Timezone,
-		TreninghetenVersion: config.TreninghetenVersion,
+		Timezone:            files.ConfigFile.Timezone,
+		TreninghetenVersion: files.ConfigFile.TreninghetenVersion,
 	}
 
 	// Reply

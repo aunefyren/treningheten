@@ -2,8 +2,8 @@ package middlewares
 
 import (
 	"aunefyren/treningheten/auth"
-	"aunefyren/treningheten/config"
 	"aunefyren/treningheten/database"
+	"aunefyren/treningheten/files"
 	"aunefyren/treningheten/logger"
 	"errors"
 	"net/http"
@@ -16,24 +16,15 @@ func Auth(admin bool) gin.HandlerFunc {
 	return func(context *gin.Context) {
 		tokenString := context.GetHeader("Authorization")
 		if tokenString == "" {
-			context.JSON(401, gin.H{"error": "Request does not contain an access token"})
+			context.JSON(401, gin.H{"error": "request does not contain an access token"})
 			context.Abort()
 			return
 		}
 
 		err := auth.ValidateToken(tokenString, admin)
 		if err != nil {
-			logger.Log.Info("Failed to validate token. Error: " + err.Error())
-			context.JSON(401, gin.H{"error": "Failed to validate token."})
-			context.Abort()
-			return
-		}
-
-		// Get configuration
-		config, err := config.GetConfig()
-		if err != nil {
-			logger.Log.Info("Failed to get config. Error: " + err.Error())
-			context.JSON(401, gin.H{"error": "Failed to validate token."})
+			logger.Log.Info("failed to validate token. error: " + err.Error())
+			context.JSON(401, gin.H{"error": "failed to validate token"})
 			context.Abort()
 			return
 		}
@@ -41,7 +32,7 @@ func Auth(admin bool) gin.HandlerFunc {
 		// Get userID from header
 		userID, err := GetAuthUsername(context.GetHeader("Authorization"))
 		if err != nil {
-			context.JSON(401, gin.H{"error": "Failed to validate token."})
+			context.JSON(401, gin.H{"error": "failed to validate token"})
 			context.Abort()
 			return
 		}
@@ -50,27 +41,27 @@ func Auth(admin bool) gin.HandlerFunc {
 		enabled, err := database.VerifyUserIsEnabled(userID)
 		if err != nil {
 
-			logger.Log.Info("Failed to check account. Error: " + err.Error())
-			context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to check account."})
+			logger.Log.Info("failed to check account. error: " + err.Error())
+			context.JSON(http.StatusInternalServerError, gin.H{"error": "failed to check account"})
 			context.Abort()
 			return
 
 		} else if !enabled {
 
-			context.JSON(http.StatusInternalServerError, gin.H{"error": "Account disabled."})
+			context.JSON(http.StatusForbidden, gin.H{"error": "account disabled"})
 			context.Abort()
 			return
 
 		}
 		// If SMTP is enabled, verify if user is enabled
-		if config.SMTPEnabled {
+		if files.ConfigFile.SMTPEnabled {
 
 			// Check if the user is verified
 			verified, err := database.VerifyUserIsVerified(userID)
 			if err != nil {
 
-				logger.Log.Info("Failed to check verification. Error: " + err.Error())
-				context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to check verification."})
+				logger.Log.Info("failed to check verification. error: " + err.Error())
+				context.JSON(http.StatusInternalServerError, gin.H{"error": "failed to check verification"})
 				context.Abort()
 				return
 
@@ -79,7 +70,7 @@ func Auth(admin bool) gin.HandlerFunc {
 				// Verify user has verification code
 				hasVerificationCode, err := database.VerifyUserHasVerificationCode(userID)
 				if err != nil {
-					context.JSON(401, gin.H{"error": "Failed to validate token."})
+					context.JSON(401, gin.H{"error": "failed to validate token"})
 					context.Abort()
 					return
 				}
@@ -88,14 +79,14 @@ func Auth(admin bool) gin.HandlerFunc {
 				if !hasVerificationCode {
 					_, err := database.GenerateRandomVerificationCodeForUser(userID)
 					if err != nil {
-						context.JSON(401, gin.H{"error": "Failed to validate token."})
+						context.JSON(401, gin.H{"error": "failed to validate token"})
 						context.Abort()
 						return
 					}
 				}
 
 				// Return error
-				context.JSON(http.StatusForbidden, gin.H{"error": "You must verify your account."})
+				context.JSON(http.StatusForbidden, gin.H{"error": "you must verify your account"})
 				context.Abort()
 				return
 			}
@@ -109,7 +100,7 @@ func Auth(admin bool) gin.HandlerFunc {
 func GetAuthUsername(tokenString string) (uuid.UUID, error) {
 
 	if tokenString == "" {
-		return uuid.UUID{}, errors.New("No Authorization header given.")
+		return uuid.UUID{}, errors.New("no Authorization header given")
 	}
 	claims, err := auth.ParseToken(tokenString)
 	if err != nil {
@@ -121,7 +112,7 @@ func GetAuthUsername(tokenString string) (uuid.UUID, error) {
 func GetTokenClaims(tokenString string) (*auth.JWTClaim, error) {
 
 	if tokenString == "" {
-		return &auth.JWTClaim{}, errors.New("No Authorization header given.")
+		return &auth.JWTClaim{}, errors.New("no Authorization header given")
 	}
 	claims, err := auth.ParseToken(tokenString)
 	if err != nil {

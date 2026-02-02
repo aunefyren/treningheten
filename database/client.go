@@ -1,44 +1,100 @@
 package database
 
 import (
+	"aunefyren/treningheten/files"
 	"aunefyren/treningheten/logger"
 	"aunefyren/treningheten/models"
 	"database/sql"
+	"errors"
 	"fmt"
+	"io/fs"
+	"os"
 	"strconv"
 	"strings"
 
 	"gorm.io/driver/mysql"
+	"gorm.io/driver/postgres"
+	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
+	_ "modernc.org/sqlite"
 )
 
 var Instance *gorm.DB
 var dbError error
 
-func Connect(dbUsername string, dbPassword string, dbIP string, dbPort int, dbName string) error {
+func Connect(dbType string, timezone string, dbUsername string, dbPassword string, dbIP string, dbPort int, dbName string, dbSSL bool, dbLocation string) error {
 
-	connStrDb := dbUsername + ":" + dbPassword + "@tcp(" + dbIP + ":" + strconv.Itoa(dbPort) + ")/" + dbName + "?parseTime=True&loc=Local&charset=utf8mb4"
+	if strings.ToLower(dbType) == "postgres" {
+		logger.Log.Debug("attempting to connect to postgres database")
 
-	// Connect to DB without DB Name
-	Instance, dbError = gorm.Open(mysql.Open(connStrDb), &gorm.Config{})
-	if dbError != nil {
-
-		if strings.Contains(dbError.Error(), "Unknown database '"+dbName+"'") {
-			err := CreateTable(dbUsername, dbPassword, dbIP, dbPort, dbName)
-			if err != nil {
-				return err
-			} else {
-				Instance, dbError = gorm.Open(mysql.Open(connStrDb), &gorm.Config{})
-				if dbError != nil {
-					return dbError
-				}
-			}
-		} else {
-			return dbError
+		var sslString = "disable"
+		if dbSSL {
+			sslString = "enabled"
 		}
+
+		connStrDb := "host=" + dbIP + " user=" + dbUsername + " password=" + dbPassword + " dbname=" + dbName + " port=" + strconv.Itoa(dbPort) + " sslmode=" + sslString + " TimeZone=" + timezone
+		Instance, dbError = gorm.Open(postgres.New(postgres.Config{
+			DSN:                  connStrDb,
+			PreferSimpleProtocol: true,
+		}), &gorm.Config{
+			PrepareStmt: true,
+		})
+		if dbError != nil {
+			logger.Log.Error("failed to connect to database. error: " + dbError.Error())
+			return errors.New("failed to connect to database")
+		}
+	} else if strings.ToLower(dbType) == "sqlite" {
+		logger.Log.Debug("attempting to connect to sqlite database")
+
+		_, err := os.Stat(files.ConfigFile.DBLocation)
+		if errors.Is(err, fs.ErrNotExist) {
+			err = InitializeSQLiteDB()
+			if err != nil {
+				return errors.New("failed to initialize SQLite file")
+			}
+		} else if err != nil {
+			return errors.New("failed to verify SQLite file")
+		}
+
+		dbSQL, err := sql.Open("sqlite", "file:"+files.ConfigFile.DBLocation+"?_pragma=busy_timeout(5000)")
+		if err != nil {
+			logger.Log.Error("failed to open database. error: " + err.Error())
+			return errors.New("failed to open database")
+		}
+
+		Instance, dbError = gorm.Open(sqlite.Dialector{Conn: dbSQL}, &gorm.Config{})
+		if dbError != nil {
+			logger.Log.Error("failed to connect to database. error: " + dbError.Error())
+			return errors.New("failed to connect to database")
+		}
+	} else if strings.ToLower(dbType) == "mysql" {
+		logger.Log.Debug("attempting to connect to mysql database")
+
+		connStrDb := dbUsername + ":" + dbPassword + "@tcp(" + dbIP + ":" + strconv.Itoa(dbPort) + ")/" + dbName + "?parseTime=True&loc=Local&charset=utf8mb4"
+
+		// Connect to DB without DB Name
+		Instance, dbError = gorm.Open(mysql.Open(connStrDb), &gorm.Config{})
+		if dbError != nil {
+
+			if strings.Contains(dbError.Error(), "Unknown database '"+dbName+"'") {
+				err := CreateTable(dbUsername, dbPassword, dbIP, dbPort, dbName)
+				if err != nil {
+					return err
+				} else {
+					Instance, dbError = gorm.Open(mysql.Open(connStrDb), &gorm.Config{})
+					if dbError != nil {
+						return dbError
+					}
+				}
+			} else {
+				logger.Log.Error("failed to connect to database. error: " + dbError.Error())
+				return errors.New("failed to connect to database")
+			}
+		}
+	} else {
+		return errors.New("database type not recognized")
 	}
 
-	logger.Log.Info("Connected to database.")
 	return nil
 }
 
@@ -79,4 +135,14 @@ func Migrate() {
 	Instance.AutoMigrate(&models.WeightValue{})
 
 	logger.Log.Info("Database migration completed.")
+}
+
+func InitializeSQLiteDB() error {
+	logger.Log.Info("initializing new SQLite file at: " + files.ConfigFile.DBLocation)
+	_, err := os.Create(files.ConfigFile.DBLocation)
+	if err != nil {
+		logger.Log.Error("failed to create DB file. error: " + err.Error())
+		return errors.New("failed to create DB file")
+	}
+	return nil
 }

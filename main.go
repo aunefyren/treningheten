@@ -1,9 +1,9 @@
 package main
 
 import (
-	"aunefyren/treningheten/config"
 	"aunefyren/treningheten/controllers"
 	"aunefyren/treningheten/database"
+	"aunefyren/treningheten/files"
 	"aunefyren/treningheten/logger"
 	"aunefyren/treningheten/middlewares"
 	"aunefyren/treningheten/models"
@@ -31,49 +31,57 @@ func main() {
 	utilities.PrintASCII()
 
 	// Create files directory
-	newPath := filepath.Join(".", "files")
+	newPath := filepath.Join(".", "config")
 	err := os.MkdirAll(newPath, os.ModePerm)
 	if err != nil {
-		fmt.Println("Failed to create 'files' directory. Error: " + err.Error())
+		fmt.Println("failed to create 'files' directory. error: " + err.Error())
 		os.Exit(1)
 	}
-	fmt.Println("Directory 'files' valid.")
+	fmt.Println("directory 'files' valid")
 
 	// Load config file
-	configFile, err := config.GetConfig()
+	err = files.LoadConfig()
 	if err != nil {
-		fmt.Println("Failed to load configuration file. Error: " + err.Error())
+		fmt.Println("failed to load configuration file. error: " + err.Error())
 		os.Exit(1)
 	}
-	fmt.Println("Configuration file loaded.")
+	fmt.Println("configuration file loaded")
 
 	// Create and define file for logging
-	logger.InitLogger(configFile)
+	logger.InitLogger(files.ConfigFile.TreninghetenLogLevel)
 
 	// Set GIN mode
-	if configFile.TreninghetenEnvironment != "test" {
+	if files.ConfigFile.TreninghetenEnvironment != "test" {
 		gin.SetMode(gin.ReleaseMode)
 	}
 
 	// Change the config to respect flags
-	configFile, generateInvite, err := parseFlags(configFile)
+	generateInvite := false
+	files.ConfigFile, generateInvite, err = parseFlags(files.ConfigFile)
 	if err != nil {
-		logger.Log.Fatal("Failed to parse input flags. Error: " + err.Error())
+		logger.Log.Fatal("failed to parse input flags. error: " + err.Error())
 		os.Exit(1)
 	}
-	logger.Log.Info("Flags parsed.")
+	logger.Log.Info("flags parsed")
+
+	// save new version of config
+	err = files.SaveConfig()
+	if err != nil {
+		logger.Log.Error("failed to save new config. error: " + err.Error())
+		os.Exit(1)
+	}
 
 	// Set time zone from config if it is not empty
-	if configFile.Timezone != "" {
-		loc, err := time.LoadLocation(configFile.Timezone)
+	if files.ConfigFile.Timezone != "" {
+		loc, err := time.LoadLocation(files.ConfigFile.Timezone)
 		if err != nil {
-			logger.Log.Info("Failed to set time zone from config. Error: " + err.Error())
-			logger.Log.Info("Removing value...")
+			logger.Log.Info("failed to set time zone from config. error: " + err.Error())
+			logger.Log.Info("removing value...")
 
-			configFile.Timezone = ""
-			err = config.SaveConfig(configFile)
+			files.ConfigFile.Timezone = ""
+			err = files.SaveConfig()
 			if err != nil {
-				logger.Log.Fatal("Failed to set new time zone in the config. Error: " + err.Error())
+				logger.Log.Fatal("failed to set new time zone in the config. error: " + err.Error())
 				os.Exit(1)
 			}
 
@@ -81,64 +89,73 @@ func main() {
 			time.Local = loc
 		}
 	}
-	logger.Log.Info("Timezone set.")
+	logger.Log.Info("timezone set")
 
 	// Initialize Database
-	logger.Log.Info("Connecting to database...")
+	logger.Log.Info("connecting to database...")
 
-	err = database.Connect(configFile.DBUsername, configFile.DBPassword, configFile.DBIP, configFile.DBPort, configFile.DBName)
+	err = database.Connect(
+		files.ConfigFile.DBType,
+		files.ConfigFile.Timezone,
+		files.ConfigFile.DBUsername,
+		files.ConfigFile.DBPassword,
+		files.ConfigFile.DBIP,
+		files.ConfigFile.DBPort,
+		files.ConfigFile.DBName,
+		files.ConfigFile.DBSSL,
+		files.ConfigFile.DBLocation)
 	if err != nil {
-		logger.Log.Fatal("Failed to connect to database. Error: " + err.Error())
+		logger.Log.Fatal("failed to connect to database. error: " + err.Error())
 		os.Exit(1)
 	}
 	database.Migrate()
 
-	logger.Log.Info("Database connected.")
+	logger.Log.Info("database connected")
 
 	err = controllers.ValidateAchievements()
 	if err != nil {
-		logger.Log.Info("Failed to validate achievements. Error: " + err.Error())
+		logger.Log.Info("failed to validate achievements. error: " + err.Error())
 		os.Exit(1)
 	}
 
 	if generateInvite {
 		invite, err := database.GenerateRandomInvite()
 		if err != nil {
-			logger.Log.Fatal("Failed to generate random invitation code. Error: " + err.Error())
+			logger.Log.Fatal("failed to generate random invitation code. error: " + err.Error())
 			os.Exit(1)
 		}
-		logger.Log.Info("Generated new invite code. Code: " + invite)
+		logger.Log.Info("generated new invite code. code: " + invite)
 	}
 
 	// Create task scheduler for sunday reminders
 	taskScheduler := chrono.NewDefaultTaskScheduler()
 
 	_, err = taskScheduler.ScheduleWithCron(func(ctx context.Context) {
-		logger.Log.Info("Sunday reminder task executing.")
+		logger.Log.Info("sunday reminder task executing")
 		controllers.SendSundayReminders()
 	}, "0 0 18 * * 7")
 
 	if err != nil {
-		logger.Log.Info("Sunday reminder task was not scheduled successfully.")
+		logger.Log.Info("sunday reminder task was not scheduled successfully")
 	}
 
 	_, err = taskScheduler.ScheduleWithCron(func(ctx context.Context) {
-		logger.Log.Info("Generating results for last week.")
+		logger.Log.Info("generating results for last week")
 		controllers.ProcessLastWeek()
 	}, "0 0 8 * * 1")
 
 	if err != nil {
-		logger.Log.Info("Generating results for last week task was not scheduled successfully.")
+		logger.Log.Info("generating results for last week task was not scheduled successfully")
 	}
 
-	if configFile.StravaEnabled {
+	if files.ConfigFile.StravaEnabled {
 		_, err = taskScheduler.ScheduleWithCron(func(ctx context.Context) {
-			logger.Log.Info("Strava sync task executing.")
+			logger.Log.Info("strava sync task executing")
 			controllers.StravaSyncWeekForAllUsers()
 		}, "0 0 * * * *")
 
 		if err != nil {
-			logger.Log.Info("Strava sync task was not scheduled successfully. Error: " + err.Error())
+			logger.Log.Info("strava sync task was not scheduled successfully. error: " + err.Error())
 		}
 	}
 
@@ -147,7 +164,7 @@ func main() {
 
 	logger.Log.Info("Router initialized.")
 
-	log.Fatal(router.Run(":" + strconv.Itoa(configFile.TreninghetenPort)))
+	log.Fatal(router.Run(":" + strconv.Itoa(files.ConfigFile.TreninghetenPort)))
 }
 
 func initRouter() *gin.Engine {
@@ -514,12 +531,6 @@ func parseFlags(configFile models.ConfigStruct) (models.ConfigStruct, bool, erro
 	// Failsafe, if port is 0, set to default 8080
 	if configFile.TreninghetenPort == 0 {
 		configFile.TreninghetenPort = 8080
-	}
-
-	// Save the new config
-	err := config.SaveConfig(configFile)
-	if err != nil {
-		return models.ConfigStruct{}, false, err
 	}
 
 	return configFile, generateInviteBool, nil

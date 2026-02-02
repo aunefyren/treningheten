@@ -8,6 +8,9 @@ type ConfigStruct struct {
 	DBName                  string `json:"db_name"`
 	DBIP                    string `json:"db_ip"`
 	DBPort                  int    `json:"db_port"`
+	DBSSL                   bool   `json:"db_ssl"`
+	DBLocation              string `json:"db_location"`
+	DBType                  string `json:"db_type"`
 	TreninghetenPort        int    `json:"treningheten_port"`
 	TreninghetenName        string `json:"treningheten_name"`
 	TreninghetenExternalURL string `json:"treningheten_external_url"`

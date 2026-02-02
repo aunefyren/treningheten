@@ -2,8 +2,8 @@ package controllers
 
 import (
 	"aunefyren/treningheten/auth"
-	"aunefyren/treningheten/config"
 	"aunefyren/treningheten/database"
+	"aunefyren/treningheten/files"
 	"aunefyren/treningheten/logger"
 	"aunefyren/treningheten/middlewares"
 	"aunefyren/treningheten/models"
@@ -52,6 +52,8 @@ func RegisterUser(context *gin.Context) {
 		return
 	}
 
+	var trueVariable = true
+
 	// Move values from request to object
 	user.Email = html.EscapeString(strings.TrimSpace(userCreationRequest.Email))
 	user.Password = userCreationRequest.Password
@@ -74,19 +76,23 @@ func RegisterUser(context *gin.Context) {
 	timeResetExp := time.Now()
 	user.ResetExpiration = &timeResetExp
 
-	// Get configuration
-	config, err := config.GetConfig()
-	if err != nil {
-		context.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		context.Abort()
-		return
-	}
-
 	// If SMTP is disabled, create the user as verified
-	if config.SMTPEnabled {
+	if files.ConfigFile.SMTPEnabled {
 		user.Verified = false
 	} else {
 		user.Verified = true
+	}
+
+	// Check if any users exist, if not, make new user admin
+	userAmount, err := database.GetAmountOfEnabledUsers()
+	if err != nil {
+		logger.Log.Error("failed to verify user amount. error: " + err.Error())
+		context.JSON(http.StatusInternalServerError, gin.H{"error": "failed to verify user amount"})
+		context.Abort()
+		return
+	} else if userAmount == 0 {
+		user.Admin = &trueVariable
+		logger.Log.Info("No other users found. New user is set to admin.")
 	}
 
 	// Hash the selected password
@@ -138,7 +144,7 @@ func RegisterUser(context *gin.Context) {
 	}
 
 	// If user is not verified and SMTP is enabled, send verification e-mail
-	if !user.Verified && config.SMTPEnabled {
+	if !user.Verified && files.ConfigFile.SMTPEnabled {
 
 		logger.Log.Info("Sending verification e-mail to new user: " + user.FirstName + " " + user.LastName + ".")
 
@@ -485,16 +491,8 @@ func UpdateUser(context *gin.Context) {
 		return
 	}
 
-	// Get configuration
-	config, err := config.GetConfig()
-	if err != nil {
-		context.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		context.Abort()
-		return
-	}
-
 	// If user is not verified and SMTP is enabled, send verification e-mail
-	if config.SMTPEnabled && !user.Verified {
+	if files.ConfigFile.SMTPEnabled && !user.Verified {
 
 		verificationCode, err := database.GenerateRandomVerificationCodeForUser(userID)
 		if err != nil {
@@ -521,22 +519,13 @@ func UpdateUser(context *gin.Context) {
 }
 
 func APIResetPassword(context *gin.Context) {
-
-	// Get configuration
-	config, err := config.GetConfig()
-	if err != nil {
-		context.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		context.Abort()
-		return
-	}
-
-	if !config.SMTPEnabled {
+	if !files.ConfigFile.SMTPEnabled {
 		context.JSON(http.StatusBadRequest, gin.H{"error": "The website administrator has not enabled SMTP."})
 		context.Abort()
 		return
 	}
 
-	if config.TreninghetenExternalURL == "" {
+	if files.ConfigFile.TreninghetenExternalURL == "" {
 		context.JSON(http.StatusBadRequest, gin.H{"error": "The website administrator has not setup an external website URL."})
 		context.Abort()
 		return
@@ -770,15 +759,7 @@ func APISetStravaCode(context *gin.Context) {
 		return
 	}
 
-	configFile, err := config.GetConfig()
-	if err != nil {
-		logger.Log.Info("Failed to get config. Error: " + err.Error())
-		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get config."})
-		context.Abort()
-		return
-	}
-
-	if !configFile.StravaEnabled {
+	if !files.ConfigFile.StravaEnabled {
 		context.JSON(http.StatusBadRequest, gin.H{"error": "Strava is not enabled."})
 		context.Abort()
 		return
@@ -812,7 +793,7 @@ func APISetStravaCode(context *gin.Context) {
 		return
 	}
 
-	err = StravaSyncWeekForUser(user, configFile, time.Now())
+	err = StravaSyncWeekForUser(user, time.Now())
 	if err != nil {
 		logger.Log.Info("Failed to sync Strava for user. Error: " + err.Error())
 		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to sync Strava for user."})
@@ -827,15 +808,7 @@ func APISyncStravaForUser(context *gin.Context) {
 	// Initialize variables
 	var user models.User
 
-	configFile, err := config.GetConfig()
-	if err != nil {
-		logger.Log.Info("Failed to get config. Error: " + err.Error())
-		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get config."})
-		context.Abort()
-		return
-	}
-
-	if !configFile.StravaEnabled {
+	if !files.ConfigFile.StravaEnabled {
 		context.JSON(http.StatusBadRequest, gin.H{"error": "Strava is not enabled."})
 		context.Abort()
 		return
@@ -878,7 +851,7 @@ func APISyncStravaForUser(context *gin.Context) {
 		return
 	}
 
-	err = StravaSyncWeekForUser(user, configFile, pointInTime)
+	err = StravaSyncWeekForUser(user, pointInTime)
 	if err != nil {
 		logger.Log.Info("Failed to sync Strava for user. Error: " + err.Error())
 		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to sync Strava for user."})

@@ -1,8 +1,8 @@
 package controllers
 
 import (
-	"aunefyren/treningheten/config"
 	"aunefyren/treningheten/database"
+	"aunefyren/treningheten/files"
 	"aunefyren/treningheten/logger"
 	"aunefyren/treningheten/models"
 	"aunefyren/treningheten/utilities"
@@ -20,7 +20,7 @@ import (
 
 const stravaAPIBaseURL = "https://www.strava.com/api/v3"
 
-func StravaAuthorize(config models.ConfigStruct, code string) (authorization models.StravaAuthorizeRequestReply, err error) {
+func StravaAuthorize(code string) (authorization models.StravaAuthorizeRequestReply, err error) {
 	err = nil
 	authorization = models.StravaAuthorizeRequestReply{}
 	url := stravaAPIBaseURL + "/oauth/token"
@@ -37,8 +37,8 @@ func StravaAuthorize(config models.ConfigStruct, code string) (authorization mod
 
 	// Params
 	q := req.URL.Query()
-	q.Add("client_id", config.StravaClientID)
-	q.Add("client_secret", config.StravaClientSecret)
+	q.Add("client_id", files.ConfigFile.StravaClientID)
+	q.Add("client_secret", files.ConfigFile.StravaClientSecret)
 	q.Add("code", code)
 	q.Add("grant_type", "authorization_code")
 	req.URL.RawQuery = q.Encode()
@@ -74,7 +74,7 @@ func StravaAuthorize(config models.ConfigStruct, code string) (authorization mod
 	return
 }
 
-func StravaReauthorize(config models.ConfigStruct, code string) (authorization models.StravaReauthorizationRequestReply, err error) {
+func StravaReauthorize(code string) (authorization models.StravaReauthorizationRequestReply, err error) {
 	err = nil
 	authorization = models.StravaReauthorizationRequestReply{}
 	url := stravaAPIBaseURL + "/oauth/token"
@@ -91,8 +91,8 @@ func StravaReauthorize(config models.ConfigStruct, code string) (authorization m
 
 	// Params
 	q := req.URL.Query()
-	q.Add("client_id", config.StravaClientID)
-	q.Add("client_secret", config.StravaClientSecret)
+	q.Add("client_id", files.ConfigFile.StravaClientID)
+	q.Add("client_secret", files.ConfigFile.StravaClientSecret)
 	q.Add("refresh_token", code)
 	q.Add("grant_type", "refresh_token")
 	req.URL.RawQuery = q.Encode()
@@ -128,7 +128,7 @@ func StravaReauthorize(config models.ConfigStruct, code string) (authorization m
 	return
 }
 
-func StravaGetActivities(config models.ConfigStruct, token string, before int, after int) (activities []models.StravaGetActivitiesRequestReply, err error) {
+func StravaGetActivities(token string, before int, after int) (activities []models.StravaGetActivitiesRequestReply, err error) {
 	err = nil
 	activities = []models.StravaGetActivitiesRequestReply{}
 	url := stravaAPIBaseURL + "/athlete/activities"
@@ -188,12 +188,6 @@ func StravaGetActivities(config models.ConfigStruct, token string, before int, a
 }
 
 func StravaSyncWeekForAllUsers() {
-	configFile, err := config.GetConfig()
-	if err != nil {
-		logger.Log.Error("Failed to get config file. Error: " + err.Error())
-		return
-	}
-
 	users, err := database.GetStravaUsers()
 	if err != nil {
 		logger.Log.Error("Failed to get Strava users.")
@@ -203,7 +197,7 @@ func StravaSyncWeekForAllUsers() {
 	logger.Log.Debug("Got '" + strconv.Itoa(len(users)) + "' users.")
 
 	for _, user := range users {
-		err = StravaSyncWeekForUser(user, configFile, time.Now())
+		err = StravaSyncWeekForUser(user, time.Now())
 		if err != nil {
 			logger.Log.Error("Sync Strava for user returned error. Error: " + err.Error())
 		}
@@ -212,7 +206,7 @@ func StravaSyncWeekForAllUsers() {
 	logger.Log.Info("Strava sync task finished.")
 }
 
-func StravaSyncWeekForUser(user models.User, configFile models.ConfigStruct, pointInTime time.Time) (err error) {
+func StravaSyncWeekForUser(user models.User, pointInTime time.Time) (err error) {
 	err = nil
 	logger.Log.Debug("Strava sync for user '" + user.FirstName + " " + user.LastName + "'.")
 	now := time.Now()
@@ -228,7 +222,7 @@ func StravaSyncWeekForUser(user models.User, configFile models.ConfigStruct, poi
 
 	// If totally new authorization
 	if stravaCodeData[0] == "c" {
-		authorization, err := StravaAuthorize(configFile, stravaCodeData[1])
+		authorization, err := StravaAuthorize(stravaCodeData[1])
 		if err != nil {
 			logger.Log.Error("Failed to authorize user. ID: " + user.ID.String())
 			return errors.New("Failed to authorize user.")
@@ -245,7 +239,7 @@ func StravaSyncWeekForUser(user models.User, configFile models.ConfigStruct, poi
 		token = authorization.AccessToken
 		// If re-authorization
 	} else if stravaCodeData[0] == "r" {
-		authorization, err := StravaReauthorize(configFile, stravaCodeData[1])
+		authorization, err := StravaReauthorize(stravaCodeData[1])
 		if err != nil {
 			logger.Log.Error("Failed to re-authorize user. ID: " + user.ID.String())
 			return errors.New("Failed to re-authorize user.")
@@ -277,7 +271,7 @@ func StravaSyncWeekForUser(user models.User, configFile models.ConfigStruct, poi
 		return errors.New("Failed to find sunday.")
 	}
 
-	activities, err := StravaGetActivities(configFile, token, int(sunday.Unix()), int(monday.Unix()))
+	activities, err := StravaGetActivities(token, int(sunday.Unix()), int(monday.Unix()))
 	if err != nil {
 		logger.Log.Error("Failed to get activities. ID: " + user.ID.String())
 		return errors.New("Failed to get activities.")

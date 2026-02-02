@@ -78,32 +78,35 @@ function get_login(cookie) {
         if (this.readyState == 4) {
 
             // Try to parse API response
+            var result;
             try {
                 result = JSON.parse(this.responseText);
             } catch(e) {
-                console.log(e +' - Response: ' + this.responseText);
+                console.log("Failed to parse JSON. Error: " + e);
                 error("Could not reach API.");
-                return;
+                load_page(false);
             }
             
-            if(result.error === "You must verify your account." && window.location.pathname !== "/verify") {
+            // If the error is to verify, allow loading page anyways
+            if(result.error && result.error.toLowerCase().includes("you must verify your account") && window.location.pathname !== "/verify") {
                 verifyPageRedirect();
                 return;
-            } else if(result.error === "Failed to validate token.") {
+            } else if(result.error && result.error.toLowerCase().includes("you must verify your account") && window.location.pathname == "/verify") {
+                load_page(false);
+                return;
+            } else if(result.error) {
+                error(result.error)
+                set_cookie("treningheten", "", 7);
                 jwt = "";
                 if(window.location.pathname !== "/login") {
-                    logInPageRedirect();
+                    console.log("login page redirect")
+                    logInPageRedirect(result.error);
                     return;
                 } else {
+                    console.log("loading page")
                     load_page(false);
                 }
-            } else if (result.error && result.error !== "You must verify your account.") {
-                error(result.error)
-                showLoggedOutMenu();
-                return;
-                
             } else {
-
                 // If new token, save it
                 if(result.token != null && result.token != "") {
                     // store jwt to cookie
@@ -113,7 +116,6 @@ function get_login(cookie) {
 
                 // Load page
                 load_page(this.responseText)
-                
             }
 
         }
@@ -750,9 +752,14 @@ function filterFunction(operationID) {
     toggleActionBorder(operationID, 'none');
 }
 
-function logInPageRedirect() {
+function logInPageRedirect(errorMessage) {
     if(window.location.pathname !== "/login") {
-        window.location = '/login';
+        url = '/login'
+        if(errorMessage) {
+            url += '?error=' + encodeURI(errorMessage)
+        }
+
+        window.location = url;
         return true
     }
     return false

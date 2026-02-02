@@ -1,8 +1,8 @@
 package controllers
 
 import (
-	"aunefyren/treningheten/config"
 	"aunefyren/treningheten/database"
+	"aunefyren/treningheten/files"
 	"aunefyren/treningheten/logger"
 	"aunefyren/treningheten/middlewares"
 	"aunefyren/treningheten/models"
@@ -87,18 +87,11 @@ func PushNotificationToSubscriptions(notificationType string, notificationBody s
 }
 
 func GetVAPIDSettings() (models.VAPIDSettings, error) {
-
 	vapidSettings := models.VAPIDSettings{}
 
-	config, err := config.GetConfig()
-	if err != nil {
-		logger.Log.Info("Failed to get config file. Error: " + err.Error())
-		return vapidSettings, errors.New("Failed to get config file.")
-	}
-
-	vapidSettings.VAPIDContact = config.VAPIDContact
-	vapidSettings.VAPIDPublicKey = config.VAPIDPublicKey
-	vapidSettings.VAPIDSecretKey = config.VAPIDSecretKey
+	vapidSettings.VAPIDContact = files.ConfigFile.VAPIDContact
+	vapidSettings.VAPIDPublicKey = files.ConfigFile.VAPIDPublicKey
+	vapidSettings.VAPIDSecretKey = files.ConfigFile.VAPIDSecretKey
 
 	return vapidSettings, nil
 
@@ -253,14 +246,8 @@ func APIUpdateSubscriptionForEndpoint(context *gin.Context) {
 func PushNotificationsForAchievements(userID uuid.UUID) (err error) {
 	err = nil
 
-	// Get configuration
-	config, err := config.GetConfig()
-	if err != nil {
-		return err
-	}
-
 	// Return if in test environment
-	if strings.ToLower(config.TreninghetenEnvironment) == "test" {
+	if strings.ToLower(files.ConfigFile.TreninghetenEnvironment) == "test" {
 		return nil
 	}
 
@@ -290,14 +277,8 @@ func PushNotificationsForAchievements(userID uuid.UUID) (err error) {
 func PushNotificationsForNews() (err error) {
 	err = nil
 
-	// Get configuration
-	config, err := config.GetConfig()
-	if err != nil {
-		return err
-	}
-
 	// Return if in test environment
-	if strings.ToLower(config.TreninghetenEnvironment) == "test" {
+	if strings.ToLower(files.ConfigFile.TreninghetenEnvironment) == "test" {
 		return nil
 	}
 
@@ -327,14 +308,8 @@ func PushNotificationsForNews() (err error) {
 func PushNotificationsForSundayAlerts() (err error) {
 	err = nil
 
-	// Get configuration
-	config, err := config.GetConfig()
-	if err != nil {
-		return err
-	}
-
 	// Return if in test environment
-	if strings.ToLower(config.TreninghetenEnvironment) == "test" {
+	if strings.ToLower(files.ConfigFile.TreninghetenEnvironment) == "test" {
 		return nil
 	}
 
@@ -364,14 +339,8 @@ func PushNotificationsForSundayAlerts() (err error) {
 func PushNotificationsForWeekLost(userId uuid.UUID) (err error) {
 	err = nil
 
-	// Get configuration
-	config, err := config.GetConfig()
-	if err != nil {
-		return err
-	}
-
 	// Return if in test environment
-	if strings.ToLower(config.TreninghetenEnvironment) == "test" {
+	if strings.ToLower(files.ConfigFile.TreninghetenEnvironment) == "test" {
 		return nil
 	}
 
@@ -401,14 +370,8 @@ func PushNotificationsForWeekLost(userId uuid.UUID) (err error) {
 func PushNotificationsForWheelSpin(userId uuid.UUID, debt models.Debt) (err error) {
 	err = nil
 
-	// Get configuration
-	config, err := config.GetConfig()
-	if err != nil {
-		return err
-	}
-
 	// Return if in test environment
-	if strings.ToLower(config.TreninghetenEnvironment) == "test" {
+	if strings.ToLower(files.ConfigFile.TreninghetenEnvironment) == "test" {
 		return nil
 	}
 
@@ -439,14 +402,8 @@ func PushNotificationsForWheelSpin(userId uuid.UUID, debt models.Debt) (err erro
 func PushNotificationsForWheelSpinCheck(userId uuid.UUID, debt models.Debt) (err error) {
 	err = nil
 
-	// Get configuration
-	config, err := config.GetConfig()
-	if err != nil {
-		return err
-	}
-
 	// Return if in test environment
-	if strings.ToLower(config.TreninghetenEnvironment) == "test" {
+	if strings.ToLower(files.ConfigFile.TreninghetenEnvironment) == "test" {
 		return nil
 	}
 
@@ -477,14 +434,8 @@ func PushNotificationsForWheelSpinCheck(userId uuid.UUID, debt models.Debt) (err
 func PushNotificationsForWheelSpinWin(userId uuid.UUID, debt models.Debt) (err error) {
 	err = nil
 
-	// Get configuration
-	config, err := config.GetConfig()
-	if err != nil {
-		return err
-	}
-
 	// Return if in test environment
-	if strings.ToLower(config.TreninghetenEnvironment) == "test" {
+	if strings.ToLower(files.ConfigFile.TreninghetenEnvironment) == "test" {
 		return nil
 	}
 

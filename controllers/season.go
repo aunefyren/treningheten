@@ -1,8 +1,8 @@
 package controllers
 
 import (
-	"aunefyren/treningheten/config"
 	"aunefyren/treningheten/database"
+	"aunefyren/treningheten/files"
 	"aunefyren/treningheten/logger"
 	"aunefyren/treningheten/middlewares"
 	"aunefyren/treningheten/models"
@@ -53,17 +53,8 @@ func APIGetOngoingSeasons(context *gin.Context) {
 		}
 	}
 
-	// Get configuration
-	config, err := config.GetConfig()
-	if err != nil {
-		logger.Log.Info("Failed to get config. Error: " + err.Error())
-		context.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		context.Abort()
-		return
-	}
-
 	// Return group with owner and success message
-	context.JSON(http.StatusOK, gin.H{"seasons": seasonObjects, "message": "Seasons retrieved.", "timezone": config.Timezone})
+	context.JSON(http.StatusOK, gin.H{"seasons": seasonObjects, "message": "Seasons retrieved.", "timezone": files.ConfigFile.Timezone})
 }
 
 func GetOngoingSeasonsFromDB(givenTime time.Time) (currentSeasons []models.Season, err error) {

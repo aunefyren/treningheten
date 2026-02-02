@@ -1,7 +1,6 @@
 package logger
 
 import (
-	"aunefyren/treningheten/models"
 	"io"
 	"os"
 
@@ -10,11 +9,11 @@ import (
 
 var Log *logrus.Logger
 
-func InitLogger(configFile models.ConfigStruct) {
+func InitLogger(logLevel string) {
 	Log = logrus.New()
 
 	// Define log file
-	logFile, err := os.OpenFile("files/treningheten.log", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0666)
+	logFile, err := os.OpenFile("config/treningheten.log", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0666)
 	if err != nil {
 		logrus.Fatalf("Failed to load log file: %v", err)
 	}
@@ -27,7 +26,7 @@ func InitLogger(configFile models.ConfigStruct) {
 	Log.SetOutput(mw)
 
 	// Set log level
-	level, err := logrus.ParseLevel(configFile.TreninghetenLogLevel)
+	level, err := logrus.ParseLevel(logLevel)
 	if err != nil {
 		logrus.Error("Failed to load log file: %v", err)
 		level = logrus.InfoLevel
