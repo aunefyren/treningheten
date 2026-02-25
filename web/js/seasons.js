@@ -24,7 +24,7 @@ function load_page(result) {
                     <div class="module">
                     
                         <div class="text-body" style="text-align: center;">
-                            Here are all the seasons of Treningheten.
+                            Here are all the seasons of {{.appName}}.
                         </div>
 
                     </div>

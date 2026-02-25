@@ -280,12 +280,8 @@ func StravaSyncWeekForUser(user models.User, pointInTime time.Time) (err error) 
 
 	logger.Log.Debug("Got '" + strconv.Itoa((len(activities))) + "' activities for user.")
 
-	// Give user achievements
-	err = GiveUserAnAchievement(user.ID, uuid.MustParse("fb4f6c1f-dfad-4df7-8007-4cfd6f351b17"), time.Now())
-	if err != nil {
-		logger.Log.Warn("Failed to give achievement for user '" + user.ID.String() + "'. Ignoring. Error: " + err.Error())
-		err = nil
-	}
+	// Give user achievement for connecting Strava, ignore outcome
+	go GiveUserAnAchievement(user.ID, uuid.MustParse("fb4f6c1f-dfad-4df7-8007-4cfd6f351b17"), time.Now(), 5)
 
 	for _, activity := range activities {
 		// Skip walks if enabled

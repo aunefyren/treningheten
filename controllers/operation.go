@@ -334,11 +334,8 @@ func APICreateOperationForUser(context *gin.Context) {
 		return
 	}
 
-	// Give achievement to user for three weeks
-	err = GiveUserAnAchievement(userID, uuid.MustParse("3d745d3a-b4b8-4194-bc72-653cfe4c351b"), time.Now())
-	if err != nil {
-		logger.Log.Info("Failed to give achievement for user '" + userID.String() + "'. Ignoring. Error: " + err.Error())
-	}
+	// Give achievement to user for adding operation to exercise, ignore outcome
+	go GiveUserAnAchievement(userID, uuid.MustParse("3d745d3a-b4b8-4194-bc72-653cfe4c351b"), time.Now(), 5)
 
 	context.JSON(http.StatusCreated, gin.H{"message": "Operation created.", "operation": operationObject})
 }

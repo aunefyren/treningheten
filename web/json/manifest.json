@@ -1,9 +1,8 @@
 {
   "lang": "en",
   "dir": "ltr",
-  "name": "Treningheten",
-  "short_name": "Trening",
-  "description": "Track workouts.",
+  "name": "{{.appName}}",
+  "description": "{{.appDescription}}",
   "theme_color": "#e0e1dd",
   "background_color": "#ffffff",
   "display": "standalone",

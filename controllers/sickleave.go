@@ -103,11 +103,8 @@ func APIRegisterSickleave(context *gin.Context) {
 		return
 	}
 
-	// Give achievement to user
-	err = GiveUserAnAchievement(userID, uuid.MustParse("420b020c-2cad-4898-bb94-d86dc0031203"), now)
-	if err != nil {
-		logger.Log.Info("Failed to give achievement for user '" + userID.String() + "'. Ignoring. Error: " + err.Error())
-	}
+	// Give achievement to user for using sick leave, ignore outcome
+	go GiveUserAnAchievement(userID, uuid.MustParse("420b020c-2cad-4898-bb94-d86dc0031203"), now, 5)
 
 	context.JSON(http.StatusOK, gin.H{"message": "Sick leave used."})
 

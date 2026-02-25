@@ -13,6 +13,7 @@ type ConfigStruct struct {
 	DBType                  string `json:"db_type"`
 	TreninghetenPort        int    `json:"treningheten_port"`
 	TreninghetenName        string `json:"treningheten_name"`
+	TreninghetenDescription string `json:"treningheten_description"`
 	TreninghetenExternalURL string `json:"treningheten_external_url"`
 	TreninghetenVersion     string `json:"treningheten_version"`
 	TreninghetenEnvironment string `json:"treningheten_environment"`

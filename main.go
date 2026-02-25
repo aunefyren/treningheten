@@ -316,8 +316,12 @@ func initRouter(configFile models.ConfigStruct) *gin.Engine {
 
 	// Create template for HTML variables
 	templateData := gin.H{
-		"appName":        configFile.TreninghetenName,
-		"appDescription": configFile.TreninghetenName,
+		"appName":           configFile.TreninghetenName,
+		"appDescription":    configFile.TreninghetenDescription,
+		"appVersion":        configFile.TreninghetenVersion,
+		"vapidPublicKey":    configFile.VAPIDPublicKey,
+		"timezone":          configFile.Timezone,
+		"stravaRedirectURI": configFile.StravaRedirectURI,
 	}
 
 	// endpoint handler building for JS

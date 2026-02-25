@@ -2806,3 +2806,20 @@ label {
   width: -moz-available;
   margin: 0.25rem 0;
 }
+
+.footer-wrapper {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: nowrap;
+  align-content: center;
+  justify-content: center;
+  align-items: center;
+  box-sizing: inherit;
+  font-size: 0.75rem;
+  color: var(--grey);
+  width: 100%;
+  width: -webkit-fill-available;
+  width: -moz-available;
+  margin: 0.5rem 0;
+  text-align: center;
+}

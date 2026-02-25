@@ -245,13 +245,13 @@ func GenerateDebtForWeek(givenTime time.Time, season models.Season, targetUser *
 			} else {
 
 				// Give achievement to winner for winning
-				err = GiveUserAnAchievement(*winner, uuid.MustParse("bb964360-6413-47c2-8400-ee87b40365a7"), nextSunday)
+				err = GiveUserAnAchievement(*winner, uuid.MustParse("bb964360-6413-47c2-8400-ee87b40365a7"), nextSunday, 0)
 				if err != nil {
 					logger.Log.Info("Failed to give achievement for user '" + winner.String() + "'. Ignoring. Error: " + err.Error())
 				}
 
 				// Give achievement to loser for spinning wheel
-				err = GiveUserAnAchievement(user, uuid.MustParse("d415fffc-ea99-4b27-8929-aeb02ae44da3"), nextSunday)
+				err = GiveUserAnAchievement(user, uuid.MustParse("d415fffc-ea99-4b27-8929-aeb02ae44da3"), nextSunday, 0)
 				if err != nil {
 					logger.Log.Info("Failed to give achievement for user '" + user.String() + "'. Ignoring. Error: " + err.Error())
 				}
@@ -556,11 +556,8 @@ func APIGetDebt(context *gin.Context) {
 
 			// If a view was viewed and the viewer was the winner, give the winning achievement.
 			if debtObject.Winner.ID == userID {
-				// Give achievement to winner for winning
-				err = GiveUserAnAchievement(userID, uuid.MustParse("bb964360-6413-47c2-8400-ee87b40365a7"), time.Now())
-				if err != nil {
-					logger.Log.Info("Failed to give achievement for user '" + userID.String() + "'. Ignoring. Error: " + err.Error())
-				}
+				// Give achievement to winner for winning, ignore outcome
+				go GiveUserAnAchievement(userID, uuid.MustParse("bb964360-6413-47c2-8400-ee87b40365a7"), time.Now(), 10)
 			}
 		}
 	}
@@ -711,11 +708,8 @@ func APIChooseWinnerForDebt(context *gin.Context) {
 	// Update winner in DB
 	database.UpdateDebtWinner(debtIDInt, winnerID)
 
-	// Give achievement to loser for losing
-	err = GiveUserAnAchievement(userID, uuid.MustParse("d415fffc-ea99-4b27-8929-aeb02ae44da3"), sundayDate)
-	if err != nil {
-		logger.Log.Info("Failed to give achievement for user '" + userID.String() + "'. Ignoring. Error: " + err.Error())
-	}
+	// Give achievement to loser for losing, ignore outcome
+	go GiveUserAnAchievement(userID, uuid.MustParse("d415fffc-ea99-4b27-8929-aeb02ae44da3"), sundayDate, 10)
 
 	// Get user object
 	winnerUser, err := database.GetUserInformation(winnerID)

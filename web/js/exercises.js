@@ -24,7 +24,7 @@ function load_page(result) {
                     <div class="module">
                     
                         <div class="text-body" style="text-align: center;">
-                            Here is your participation data from Treningheten.
+                            Here is your participation data from {{.appName}}.
                         </div>
 
                     </div>

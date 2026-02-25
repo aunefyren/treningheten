@@ -202,11 +202,8 @@ func GetUser(context *gin.Context) {
 			return
 		}
 
-		// Give achievement for visiting another user's profile
-		err := GiveUserAnAchievement(requesterUserID, uuid.MustParse("cbd81cd0-4caf-438b-989b-b5ca7e76605d"), time.Now())
-		if err != nil {
-			logger.Log.Info("Failed to give achievement for user '" + requesterUserID.String() + "'. Ignoring. Error: " + err.Error())
-		}
+		// Give achievement for visiting another user's profile, ignore outcome
+		go GiveUserAnAchievement(requesterUserID, uuid.MustParse("cbd81cd0-4caf-438b-989b-b5ca7e76605d"), time.Now(), 5)
 	}
 
 	// Reply
@@ -455,11 +452,8 @@ func UpdateUser(context *gin.Context) {
 			return
 		}
 
-		// Give achievement to user for changing profile photo
-		err := GiveUserAnAchievement(userOriginal.ID, uuid.MustParse("05a3579f-aa8d-4814-b28f-5824a2d904ec"), time.Now())
-		if err != nil {
-			logger.Log.Info("Failed to give achievement for user '" + userOriginal.ID.String() + "'. Ignoring. Error: " + err.Error())
-		}
+		// Give achievement to user for changing profile photo, ignore outcome
+		go GiveUserAnAchievement(userOriginal.ID, uuid.MustParse("05a3579f-aa8d-4814-b28f-5824a2d904ec"), time.Now(), 5)
 	}
 
 	// Validate birth date

@@ -16,7 +16,7 @@ function load_page(result) {
                     <div class="module">
                     
                         <div class="title">
-                            Treningheten
+                            {{.appName}}
                         </div>
 
                         <div class="text-body" style="text-align: center;">

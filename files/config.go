@@ -67,6 +67,12 @@ func LoadConfig() (err error) {
 		anythingChanged = true
 	}
 
+	if ConfigFile.TreninghetenDescription == "" {
+		// Set new value
+		ConfigFile.TreninghetenDescription = "Keep track of workouts and reach your goals."
+		anythingChanged = true
+	}
+
 	if ConfigFile.TreninghetenEnvironment == "" {
 		// Set new value
 		ConfigFile.TreninghetenEnvironment = "production"
@@ -146,6 +152,7 @@ func CreateConfigFile() error {
 
 	ConfigFile.TreninghetenPort = 8080
 	ConfigFile.TreninghetenName = "Treningheten"
+	ConfigFile.TreninghetenDescription = "Keep track of workouts and reach your goals."
 	ConfigFile.TreninghetenEnvironment = "production"
 	ConfigFile.DBPort = 3306
 	ConfigFile.DBType = "sqlite"

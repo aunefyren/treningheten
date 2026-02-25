@@ -32,7 +32,7 @@ function load_page(result) {
                     <div class="module" id="top-module">
                     
                         <div class="title">
-                            Treningheten
+                            {{.appName}}
                         </div>
 
                         <div class="text-body" id="front-page-text" style="text-align: center;">
@@ -377,7 +377,7 @@ function get_season(user_id, loadingMessage, activeSeason){
                 document.getElementById('top-module').innerHTML = `
                 <div class="module">
                     <div class="title">
-                        Treningheten
+                        {{.appName}}
                     </div>
 
                     <div class="picture-box" style="height: 12em; width: 12em; margin: 1em 0;">
@@ -386,9 +386,9 @@ function get_season(user_id, loadingMessage, activeSeason){
                 
 
                     <div class="text-body" id="front-page-text" style="text-align: center;">
-                        <b>There currently is no season of Treningheten planned or ongoing.</b>
+                        <b>There currently is no season of {{.appName}} planned or ongoing.</b>
                         <br><br>
-                        Contact your local Treningheten administrator to plan a new season.
+                        Contact your local {{.appName}} administrator to plan a new season.
                         <br><br>
                         Meanwhile, feel free to check out the <a href="/seasons">past seasons and your statistics</a>.
                         <br><br>

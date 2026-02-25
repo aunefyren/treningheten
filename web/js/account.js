@@ -454,7 +454,7 @@ function PlaceUserData(user_object, stravaOauth, stravaEnabled) {
     if(stravaEnabled) {
         var stravaHTML = `
             <p style="width: 100%; text-align: center;">
-                Strava exercises sync automatically every hour. Be careful to only log your sessions to either Strava or Treningheten.
+                Strava exercises sync automatically every hour. Be careful to only log your sessions to either Strava or {{.appName}}.
             </p>
 
             <button onclick="window.location.href='${stravaOauth}';" class="" style="width: 10em;" type="submit" href="">Connect Strava</button>
@@ -477,7 +477,7 @@ function PlaceUserData(user_object, stravaOauth, stravaEnabled) {
 
             stravaHTML = `
                 <p style="width: 100%; text-align: center;">
-                    Strava exercises sync automatically every hour. Be careful to only log your sessions to either Strava or Treningheten.
+                    Strava exercises sync automatically every hour. Be careful to only log your sessions to either Strava or {{.appName}}.
                 </p>
 
                 <div class="notification-options" id="" style="">
