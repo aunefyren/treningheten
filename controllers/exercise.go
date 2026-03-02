@@ -1095,6 +1095,12 @@ func APIUpdateExercise(context *gin.Context) {
 		return
 	}
 
+	//exerciseTime := exercise.Time
+	if exerciseUpdateRequest.Time != "" {
+		logger.Log.Tracef("new clock time %s", exerciseUpdateRequest.Time)
+		//exerciseTime.Clock()
+	}
+
 	exercise.Note = strings.TrimSpace(exerciseUpdateRequest.Note)
 	exercise.IsOn = exerciseUpdateRequest.IsOn
 	exercise.Duration = exerciseUpdateRequest.Duration

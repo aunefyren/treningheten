@@ -169,6 +169,17 @@ function generateExerciseHTML(exercise, count) {
             durationHTML = secondsToDurationString(exercise.duration)
         }
 
+        timeHTML = ""
+        if(exercise.time) {
+            // Parse and extract HH:MM in local time
+            const date = new Date(exercise.time);
+            timeHTML = date.toLocaleTimeString('en-GB', {
+                hour: '2-digit',
+                minute: '2-digit',
+                hour12: false
+            });
+        }
+
         stravaHTML = ""
         stravaCombineHTML = ""
         stravaDivide = ""
@@ -220,6 +231,7 @@ function generateExerciseHTML(exercise, count) {
                 <h2 style="">Session ${count}</h2>
                 
                 <div class="exercise-input" id="exercise-time-${exercise.id}">
+                    <input style="" class="exercise-time-input" type="time" id="exercise-timeofday-input-${exercise.id}" name="exercise-timeofday-input" placeholder="hh:mm" value="${timeHTML}" onchange="updateExercise('${exercise.id}', true, ${count})">
                     <input style="" class="exercise-time-input" type="text" id="exercise-time-input-${exercise.id}" name="exercise-time-input" pattern="[0-9:]{0,}" placeholder="hh:mm:ss" value="${durationHTML}" onchange="updateExercise('${exercise.id}', true, ${count})">
                 </div>
 
@@ -799,11 +811,13 @@ function updateExercise(exerciseID, on, count) {
 
     var note = document.getElementById('exercise-note-' + exerciseID).value
     var time = document.getElementById('exercise-time-input-' + exerciseID).value
+    var timeOfDay = document.getElementById('exercise-timeofday-input-' + exerciseID).value
 
     var form_obj = {
         "note": note,
-        "on": on,
-        "duration": parseDurationStringToSeconds(time)
+        "is_on": on,
+        "duration": parseDurationStringToSeconds(time),
+        "time": timeOfDay
     };
 
     var form_data = JSON.stringify(form_obj);

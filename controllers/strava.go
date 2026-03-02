@@ -383,6 +383,9 @@ func StravaSyncWeekForUser(user models.User, pointInTime time.Time) (err error) 
 		exercise.StravaID = &newStravaID
 		exercise.Time = &activity.StartDate
 
+		logger.Log.Tracef("Strava activity start time %s for Strava ID %s", activity.StartDate, newStravaID)
+		logger.Log.Tracef("Strava activity local start time %s for Strava ID %s", activity.StartDateLocal, newStravaID)
+
 		finalExercise, err := database.UpdateExerciseInDB(*exercise)
 		if err != nil {
 			logger.Log.Error("Failed to get exercise. ID: " + user.ID.String())

@@ -48,6 +48,7 @@ type ExerciseUpdateRequest struct {
 	Note     string         `json:"note"`
 	IsOn     bool           `json:"is_on"`
 	Duration *time.Duration `json:"duration"`
+	Time     string         `json:"time"`
 }
 
 type ExerciseCreationRequest struct {

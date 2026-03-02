@@ -7,7 +7,9 @@ const CACHE_NAME = 'treningheten-cache';
 // Customize this with a different URL if needed.
 const urlsToCache = [
     '/',
-    '/json/manifest.json',
+    '/manifest.json',
+    '/service-worker.js',
+    '/robots.txt',
     'assets/favicons/favicon.ico'
 ];
 

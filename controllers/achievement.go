@@ -1121,6 +1121,8 @@ func GenerateAchievementsForSeason(seasonResults []models.WeekResults, targetUse
 
 					}
 
+					logger.Log.Tracef("user %s has been sick from %d weeks", userTally[foundIndex].UserID.String(), userTally[foundIndex].SickStreak)
+
 					// If week is won, and user has been sick one week or more
 					if userTally[foundIndex].SickStreak > 0 && (targetUser == nil || *targetUser == userTally[foundIndex].UserID) {
 

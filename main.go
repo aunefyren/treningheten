@@ -482,6 +482,7 @@ func registerTemplatedStaticFilesForDirectory(
 	filePathTableList := map[string]*filePathTable{}
 	filePathTableList["frontpage.html"] = &filePathTable{urlPath: "/"}
 	filePathTableList["user.html"] = &filePathTable{urlPath: "/users/:user_id"}
+	filePathTableList["exercise.html"] = &filePathTable{urlPath: "/exercises/:exercise_id"}
 	filePathTableList["manifest.json"] = &filePathTable{urlPath: "/manifest.json"}
 	filePathTableList["service-worker.js"] = &filePathTable{urlPath: "/service-worker.js"}
 	filePathTableList["robots.txt"] = &filePathTable{urlPath: "/robots.txt"}
