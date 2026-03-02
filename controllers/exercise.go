@@ -795,6 +795,9 @@ func ConvertExerciseDayToExerciseDayObject(exerciseDay models.ExerciseDay) (exer
 		return exerciseDayObject, errors.New("Failed to convert exercises to exercise objects.")
 	}
 
+	sort.Slice(exerciseObjects, func(i, j int) bool {
+		return exerciseObjects[i].Time.Before(*&exerciseObjects[j].Time)
+	})
 	exerciseDayObject.Exercises = exerciseObjects
 
 	exerciseDayObject.ExerciseInterval = 0
@@ -1095,10 +1098,27 @@ func APIUpdateExercise(context *gin.Context) {
 		return
 	}
 
-	//exerciseTime := exercise.Time
 	if exerciseUpdateRequest.Time != "" {
-		logger.Log.Tracef("new clock time %s", exerciseUpdateRequest.Time)
-		//exerciseTime.Clock()
+		newExerciseTime, err := time.Parse(time.RFC3339, exerciseUpdateRequest.Time)
+		if err != nil {
+			context.JSON(http.StatusBadRequest, gin.H{"error": "failed to parse new exercise time"})
+			context.Abort()
+			return
+		}
+
+		// compare dates in the timezone the user actually sent
+		zone := newExerciseTime.Location()
+		exerciseDay := exerciseDayObject.Date.In(zone)
+
+		if newExerciseTime.Format("2006-01-02") != exerciseDay.Format("2006-01-02") {
+			context.JSON(http.StatusBadRequest, gin.H{"error": "time of exercise is another day than exercise day"})
+			context.Abort()
+			return
+		}
+
+		// store in UTC
+		utcTime := newExerciseTime.UTC()
+		exercise.Time = &utcTime
 	}
 
 	exercise.Note = strings.TrimSpace(exerciseUpdateRequest.Note)
@@ -1191,6 +1211,12 @@ func APICreateExercise(context *gin.Context) {
 		context.JSON(http.StatusBadRequest, gin.H{"error": "You can't create exercises on days in the future."})
 		context.Abort()
 		return
+	}
+
+	if now.Format("2006-01-02") == exerciseDayObject.Date.Format("2006-01-02") {
+		exercise.Time = &now
+	} else {
+		exercise.Time = &exerciseDay.Date
 	}
 
 	exercise.IsOn = exerciseCreationRequest.IsOn

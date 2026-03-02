@@ -330,7 +330,7 @@ form {
   margin: 1rem 0;
 }
 
-input[type=text], input[type=password], input[type=email], input[type=date], input[type=file], input[type=number], select {
+input[type=text], input[type=password], input[type=email], input[type=date], input[type=file], input[type=number], input[type=time], select {
   width: 100%;
   width: -webkit-fill-available;
   width: -moz-available;
@@ -2822,4 +2822,15 @@ label {
   width: -moz-available;
   margin: 0.5rem 0;
   text-align: center;
+}
+
+.exercise-input {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-content: center;
+  justify-content: center;
+  align-items: center;
+  box-sizing: inherit;
+  margin: 0.25rem;
 }

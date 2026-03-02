@@ -222,7 +222,7 @@ function generateExerciseHTML(exercise, count) {
             <div class="top-row">
                 ${stravaDivide}
                 ${stravaCombineHTML}
-                <img src="/assets/trash-2.svg" style="height: 1em; width: 1em; padding: 1em;" onclick="updateExercise('${exercise.id}', false, ${count})" class="btn_logo clickable color-invert">
+                <img src="/assets/trash-2.svg" style="height: 1em; width: 1em; padding: 1em;" onclick="updateExercise('${exercise.id}', false, ${count}, '${exercise.time}')" class="btn_logo clickable color-invert">
             </div>
 
             <div class="exerciseSubWrapper" id="exercise-sub-${exercise.id}">
@@ -230,12 +230,16 @@ function generateExerciseHTML(exercise, count) {
 
                 <h2 style="">Session ${count}</h2>
                 
+                <div class="exercise-input" id="exercise-timeofday-${exercise.id}">
+                    <label style="margin: 0;" for="exercise-timeofday-input-${exercise.id}"" title="Time of day">Time</label>
+                    <input style="" class="exercise-time-input" type="time" id="exercise-timeofday-input-${exercise.id}" name="exercise-timeofday-input" placeholder="hh:mm" value="${timeHTML}" onchange="updateExercise('${exercise.id}', true, ${count}, '${exercise.time}')">
+                </div>
                 <div class="exercise-input" id="exercise-time-${exercise.id}">
-                    <input style="" class="exercise-time-input" type="time" id="exercise-timeofday-input-${exercise.id}" name="exercise-timeofday-input" placeholder="hh:mm" value="${timeHTML}" onchange="updateExercise('${exercise.id}', true, ${count})">
-                    <input style="" class="exercise-time-input" type="text" id="exercise-time-input-${exercise.id}" name="exercise-time-input" pattern="[0-9:]{0,}" placeholder="hh:mm:ss" value="${durationHTML}" onchange="updateExercise('${exercise.id}', true, ${count})">
+                    <label style="margin: 0;" for="exercise-time-input-${exercise.id}"" title="Total session duration">Duration</label>
+                    <input style="" class="exercise-time-input" type="text" id="exercise-time-input-${exercise.id}" name="exercise-time-input" pattern="[0-9:]{0,}" placeholder="hh:mm:ss" value="${durationHTML}" onchange="updateExercise('${exercise.id}', true, ${count}, '${exercise.time}')">
                 </div>
 
-                <textarea class="day-note-area" id="exercise-note-${exercise.id}" name="exercise-exercise-note" rows="3" cols="33" placeholder="Notes" style="margin-top: 1em; width: 20em;" onchange="updateExercise('${exercise.id}', true, ${count})">${exercise.note}</textarea>
+                <textarea class="day-note-area" id="exercise-note-${exercise.id}" name="exercise-exercise-note" rows="3" cols="33" placeholder="Notes" style="margin-top: 1em; width: 20em;" onchange="updateExercise('${exercise.id}', true, ${count}, '${exercise.time}')">${exercise.note}</textarea>
 
                 <div class="operationsWrapper" id="operationsWrapper-${exercise.id}">
                     ${generateOperationsHTML(exercise.operations, exercise.id)}
@@ -256,7 +260,7 @@ function generateExerciseHTML(exercise, count) {
                 <input style="" class="exercise-time-input" type="hidden" id="exercise-time-input-${exercise.id}" name="exercise-time-input" pattern="[0-9:]{0,}" placeholder="hh:mm:ss" value="${secondsToDurationString(exercise.duration)}">
                 <textarea class="day-note-area" id="exercise-note-${exercise.id}" name="exercise-exercise-note" rows="3" cols="33" placeholder="Notes" style="margin-top: 1em; width: 20em; display: none;">${exercise.note}</textarea>
 
-                <button type="submit" onclick="updateExercise('${exercise.id}', true, ${count});" id="restore-exercise-button-${exercise.id}" style="margin-bottom: 0em; width: 8em;"><img src="/assets/refresh-cw.svg" class="btn_logo color-invert"><p2>Restore</p2></button>
+                <button type="submit" onclick="updateExercise('${exercise.id}', true, ${count}, '${exercise.time});" id="restore-exercise-button-${exercise.id}" style="margin-bottom: 0em; width: 8em;"><img src="/assets/refresh-cw.svg" class="btn_logo color-invert"><p2>Restore</p2></button>
 
                 <hr class="invert" style="border: 0.025em solid var(--white); margin: 4em 0;">
             </div>
@@ -804,20 +808,32 @@ function placeOperationSet(operationSet, operation, setCount) {
     document.getElementById('operation-set-' + operationSet.id).innerHTML = operationSetHTML
 }
 
-function updateExercise(exerciseID, on, count) {
+function updateExercise(exerciseID, on, count, originalTimeString) {
     if(!on && !confirm("Are you sure you want to delete this session?")) {
         return;
     }
 
     var note = document.getElementById('exercise-note-' + exerciseID).value
     var time = document.getElementById('exercise-time-input-' + exerciseID).value
-    var timeOfDay = document.getElementById('exercise-timeofday-input-' + exerciseID).value
+    var newIso = ""
+
+    try {
+        var timeOfDay = document.getElementById('exercise-timeofday-input-' + exerciseID).value
+
+        const localDate = new Date(originalTimeString);
+        const [hours, minutes] = timeOfDay.split(':').map(Number);
+        localDate.setHours(hours, minutes, 0, 0);
+        newIso = toLocalISOString(localDate);
+    } catch(e) {
+        console.log("failed to parse original time ISO. error: " + e)
+        return
+    }
 
     var form_obj = {
         "note": note,
         "is_on": on,
         "duration": parseDurationStringToSeconds(time),
-        "time": timeOfDay
+        "time": newIso
     };
 
     var form_data = JSON.stringify(form_obj);

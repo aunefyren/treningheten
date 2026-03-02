@@ -811,3 +811,15 @@ function freezerScrolling(freeze) {
         document.getElementsByTagName("BODY")[0].style.overflow = 'scroll';
     }
 }
+
+function toLocalISOString(date) {
+    const pad = n => String(n).padStart(2, '0');
+    const offset = -date.getTimezoneOffset(); // in minutes
+    const sign = offset >= 0 ? '+' : '-';
+    const absH = pad(Math.floor(Math.abs(offset) / 60));
+    const absM = pad(Math.abs(offset) % 60);
+
+    return `${date.getFullYear()}-${pad(date.getMonth()+1)}-${pad(date.getDate())}` +
+           `T${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}` +
+           `${sign}${absH}:${absM}`;
+}
