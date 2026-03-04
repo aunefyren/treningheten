@@ -303,6 +303,15 @@ func StravaSyncWeekForUser(user models.User, pointInTime time.Time) (err error) 
 			}
 		}
 
+		// check for data streams
+		var stravaStreams *models.StravaActivityStreams
+		stravaActivityStreams, err := StravaGetActivityStreams(token, strconv.FormatInt(activity.ID, 10))
+		if err != nil {
+			logger.Log.Warn("Failed to get activity streams. Error: " + err.Error())
+		} else {
+			stravaStreams = &stravaActivityStreams
+		}
+
 		exercise, err := database.GetExerciseForUserWithStravaID(user.ID, strconv.Itoa(int(activity.ID)))
 		if err != nil {
 			logger.Log.Error("Failed to get exercise. ID: " + user.ID.String())
@@ -394,7 +403,7 @@ func StravaSyncWeekForUser(user models.User, pointInTime time.Time) (err error) 
 
 		logger.Log.Trace("Updated exercise.")
 
-		operation, err := StravaSyncOperationForActivity(activity, user, finalExercise)
+		operation, err := StravaSyncOperationForActivity(activity, user, finalExercise, stravaStreams)
 		if err != nil {
 			logger.Log.Error("Failed to sync operation. Error: " + err.Error())
 			logger.Log.Error("Sport type was: " + activity.SportType)
@@ -409,7 +418,7 @@ func StravaSyncWeekForUser(user models.User, pointInTime time.Time) (err error) 
 	return
 }
 
-func StravaSyncOperationForActivity(activity models.StravaGetActivitiesRequestReply, user models.User, exercise models.Exercise) (finalOperation *models.Operation, err error) {
+func StravaSyncOperationForActivity(activity models.StravaGetActivitiesRequestReply, user models.User, exercise models.Exercise, streams *models.StravaActivityStreams) (finalOperation *models.Operation, err error) {
 	err = nil
 	finalOperation = nil
 
@@ -475,6 +484,10 @@ func StravaSyncOperationForActivity(activity models.StravaGetActivitiesRequestRe
 	operationSet.OperationID = operation.ID
 	movingTime := time.Duration(activity.MovingTime)
 	operationSet.Time = &movingTime
+
+	if streams != nil {
+		operationSet.StravaStreams = &models.StravaStreamsJSON{StravaActivityStreams: *streams}
+	}
 
 	if activity.Distance != 0.0 {
 		var newFloat float64
@@ -547,6 +560,59 @@ func SyncStravaOperationsToExerciseSession(exerciseID uuid.UUID, userID uuid.UUI
 	}
 
 	logger.Log.Info("Updated exercise with operations.")
+
+	return
+}
+
+func StravaGetActivityStreams(token string, activityID string) (streams models.StravaActivityStreams, err error) {
+	err = nil
+	streams = models.StravaActivityStreams{}
+
+	url := stravaAPIBaseURL + "/activities/" + activityID + "/streams"
+	var jsonStr = []byte(``)
+
+	req, err := http.NewRequest("GET", url, bytes.NewBuffer(jsonStr))
+	if err != nil {
+		logger.Log.Info("URL request generation threw error. Error: " + err.Error())
+		return streams, errors.New("URL request generation threw error.")
+	}
+
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Authorization", "Bearer "+token)
+
+	q := req.URL.Query()
+	q.Add("keys", "time,latlng,altitude,heartrate,cadence,watts,temp,velocity_smooth")
+	q.Add("key_by_type", "true")
+
+	req.URL.RawQuery = q.Encode()
+	client := &http.Client{}
+	resp, err := client.Do(req)
+	if err != nil {
+		logger.Log.Info("URL request threw error. Error: " + err.Error())
+		return streams, errors.New("URL request threw error.")
+	}
+
+	defer resp.Body.Close()
+
+	logger.Log.Info("Get activity streams gave HTTP code: " + resp.Status)
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		logger.Log.Info("Failed to read reply body. Error: " + err.Error())
+		return streams, errors.New("Failed to read reply body.")
+	}
+
+	if resp.StatusCode != 200 {
+		logger.Log.Info("HTTP code was not 200. Body:")
+		logger.Log.Info(string(body))
+		return streams, errors.New("Strava returned non-200 status: " + resp.Status)
+	}
+
+	err = json.Unmarshal(body, &streams)
+	if err != nil {
+		logger.Log.Info("Failed to parse reply body. Error: " + err.Error())
+		return streams, errors.New("Failed to parse reply body.")
+	}
 
 	return
 }

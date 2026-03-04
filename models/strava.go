@@ -1,6 +1,11 @@
 package models
 
-import "time"
+import (
+	"database/sql/driver"
+	"encoding/json"
+	"errors"
+	"time"
+)
 
 type StravaAuthorizeRequestReply struct {
 	TokenType    string `json:"token_type"`
@@ -94,4 +99,54 @@ type StravaGetActivitiesRequestReply struct {
 	PrCount                    int         `json:"pr_count"`
 	TotalPhotoCount            int         `json:"total_photo_count"`
 	HasKudoed                  bool        `json:"has_kudoed"`
+}
+
+// Strava API response shape (key_by_type=true)
+type StravaStream[T any] struct {
+	Data         []T    `json:"data"`
+	SeriesType   string `json:"series_type"`
+	OriginalSize int    `json:"original_size"`
+	Resolution   string `json:"resolution"`
+}
+
+type StravaActivityStreams struct {
+	Time           *StravaStream[int]       `json:"time"`
+	LatLng         *StravaStream[[]float64] `json:"latlng"`
+	Altitude       *StravaStream[float64]   `json:"altitude"`
+	Heartrate      *StravaStream[int]       `json:"heartrate"`
+	Cadence        *StravaStream[int]       `json:"cadence"`
+	Watts          *StravaStream[int]       `json:"watts"`
+	Temp           *StravaStream[int]       `json:"temp"`
+	VelocitySmooth *StravaStream[float64]   `json:"velocity_smooth"`
+}
+
+// StravaStreamsJSON is a GORM-compatible JSONB type
+type StravaStreamsJSON struct {
+	StravaActivityStreams
+}
+
+func (s StravaStreamsJSON) Value() (driver.Value, error) {
+	return json.Marshal(s)
+}
+
+func (s *StravaStreamsJSON) Scan(value interface{}) error {
+	if value == nil {
+		return nil
+	}
+
+	var b []byte
+	switch v := value.(type) {
+	case []byte:
+		b = v
+	case string:
+		b = []byte(v)
+	default:
+		return errors.New("failed to cast streams value to []byte")
+	}
+
+	if len(b) == 0 || string(b) == "null" {
+		return nil
+	}
+
+	return json.Unmarshal(b, s)
 }

@@ -100,6 +100,7 @@ func ConvertOperationSetToOperationSetObject(operationSet models.OperationSet) (
 	operationSetObject.UpdatedAt = operationSet.UpdatedAt
 	operationSetObject.Weight = operationSet.Weight
 	operationSetObject.StravaID = operationSet.StravaID
+	operationSetObject.StravaStreams = operationSet.StravaStreams
 
 	return
 }
