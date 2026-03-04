@@ -367,7 +367,7 @@ function generateSimpleActivityHTML(exercise, count) {
     const mapDivID = `route-map-${set.id}`;
 
     var hrHTML = hasHeartrate ? `<canvas id="${hrCanvasID}" class="simple-activity-hr-chart"></canvas>` : "";
-    var mapHTML = hasRoute ? `<div id="${mapDivID}" class="simple-activity-map"></div>` : "";
+    var mapHTML = hasRoute ? `<div id="${mapDivID}" class="simple-activity-map" style="height: 300px; width: 100%; border-radius: 0.5em; overflow: hidden;"></div>` : "";
 
     var html = `
         <div class="top-row">
@@ -407,16 +407,27 @@ function generateSimpleActivityHTML(exercise, count) {
         </div>
     `;
 
-    // Defer chart and map rendering until DOM is ready
+    // Defer chart and map rendering - poll until divs are actually in the DOM
     if (hasHeartrate || hasRoute) {
-        setTimeout(function() {
-            if (hasHeartrate) {
-                renderHeartrateChart(hrCanvasID, streams.time.data, streams.heartrate.data);
+        var renderAttempts = 0;
+        var renderInterval = setInterval(function() {
+            renderAttempts++;
+            var hrReady = !hasHeartrate || document.getElementById(hrCanvasID);
+            var mapReady = !hasRoute || document.getElementById(mapDivID);
+            if (hrReady && mapReady) {
+                clearInterval(renderInterval);
+                if (hasHeartrate) {
+                    renderHeartrateChart(hrCanvasID, streams.time.data, streams.heartrate.data);
+                }
+                if (hasRoute) {
+                    console.log("[map] div found, rendering route with", latlngData.data.length, "points");
+                    renderRouteMap(mapDivID, latlngData.data);
+                }
+            } else if (renderAttempts > 50) {
+                clearInterval(renderInterval);
+                console.warn("[simple card] DOM elements not found after 50 attempts. hr:", hrCanvasID, "map:", mapDivID);
             }
-            if (hasRoute) {
-                renderRouteMap(mapDivID, latlngData.data);
-            }
-        }, 0);
+        }, 50);
     }
 
     return html;
@@ -497,14 +508,16 @@ function renderHeartrateChart(canvasID, timeData, hrData) {
 
 function renderRouteMap(divID, latlngData) {
     var mapDiv = document.getElementById(divID);
-    if (!mapDiv || !latlngData || latlngData.length === 0) return;
+    if (!mapDiv) { console.warn('[map] div not found:', divID); return; }
+    if (!latlngData || latlngData.length === 0) { console.warn('[map] no latlng data'); return; }
 
     // Leaflet must be available globally
     if (typeof L === 'undefined') {
-        console.warn('Leaflet not loaded — cannot render route map.');
+        console.warn('[map] Leaflet not loaded');
         mapDiv.style.display = 'none';
         return;
     }
+    console.log('[map] rendering', latlngData.length, 'points, first point:', latlngData[0]);
 
     var map = L.map(divID, { zoomControl: true, scrollWheelZoom: false });
 

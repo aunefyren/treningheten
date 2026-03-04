@@ -2839,7 +2839,7 @@ label {
     display: flex;
     gap: 2em;
     justify-content: center;
-    margin-top: 1.5em;
+    margin: 0.5rem 1.25em;
 }
 
 .simple-stat {
@@ -2857,4 +2857,12 @@ label {
     font-size: 0.75em;
     opacity: 0.6;
     margin-top: 0.25em;
+}
+
+.simple-activity-map {
+  margin: 0.5rem 1rem;
+}
+
+.simple-activity-hr-chart {
+  margin: 0.5rem 1rem;
 }
