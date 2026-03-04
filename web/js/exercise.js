@@ -133,9 +133,18 @@ function placeExerciseDay(exerciseDay) {
     placeExercises(exerciseDay.exercises);
 }
 
+var exerciseCache = {};
+
+function isSimpleActivity(exercise) {
+    return exercise.operations.length === 1 &&
+           exercise.operations[0].operation_sets.length === 1 &&
+           exercise.operations[0].type === 'moving';
+}
+
 function placeExercises(exercises) {
     exercisesHTML = "";
-    counter = 1; 
+    counter = 1;
+    exerciseCache = {};
 
     try {
         document.getElementById('stravaCombineButtonWrapper').style.display = "none";
@@ -144,6 +153,9 @@ function placeExercises(exercises) {
     }
 
     exercises.forEach(exercise => {
+        exercise._count = counter;
+        exerciseCache[exercise.id] = exercise;
+
         var exerciseGenerated = generateExerciseHTML(exercise, counter)
         var exerciseHTML = `
             <div class="exerciseWrapper" id="exercise-${exercise.id}">
@@ -160,10 +172,15 @@ function placeExercises(exercises) {
     document.getElementById('exercisesWrapper').innerHTML = exercisesHTML;
 }
 
-function generateExerciseHTML(exercise, count) {
+function generateExerciseHTML(exercise, count, forceFullEditor = false) {
     var exerciseHTML = null;
 
     if(exercise.is_on) {
+
+        if(!forceFullEditor && isSimpleActivity(exercise)) {
+            return generateSimpleActivityHTML(exercise, count);
+        }
+
         durationHTML = ""
         if(exercise.duration) {
             durationHTML = secondsToDurationString(exercise.duration)
@@ -268,6 +285,84 @@ function generateExerciseHTML(exercise, count) {
     }
 
     return exerciseHTML;
+}
+
+function generateSimpleActivityHTML(exercise, count) {
+    const operation = exercise.operations[0];
+    const set = operation.operation_sets[0];
+    const action = operation.action;
+
+    var timeHTML = ""
+    if (exercise.time) {
+        const date = new Date(exercise.time);
+        timeHTML = date.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', hour12: false });
+    }
+
+    var durationHTML = set.time
+        ? secondsToDurationString(set.time)
+        : (exercise.duration ? secondsToDurationString(exercise.duration) : "—");
+
+    var distanceHTML = set.distance != null
+        ? set.distance + " " + operation.distance_unit
+        : "—";
+
+    var avgHTML = "—"
+    if (set.distance != null && set.time != null) {
+        avgHTML = parseFloat(set.distance / (set.time / 3600)).toFixed(2) + " " + operation.distance_unit + "/h";
+    }
+
+    var actionName = action ? action.name : "Activity"
+    var actionIcon = operation.type === 'moving' ? '🏃‍♂️' : operation.type === 'timing' ? '⏱️' : '💪'
+
+    var stravaHTML = ""
+    if (exercise.strava_id && exercise.strava_id.length > 0) {
+        stravaHTML = `
+            <a class="strava-text clickable" onclick="window.open('https://www.strava.com/activities/${exercise.strava_id[0]}', '_blank')">
+                View on Strava <img src="/assets/external-link.svg" class="btn_logo" style="width: 1em; height: 1em; margin: 0 0.25em;">
+            </a>
+        `;
+    }
+
+    return `
+        <div class="top-row">
+            <img src="/assets/trash-2.svg" style="height: 1em; width: 1em; padding: 1em;"
+                onclick="updateExercise('${exercise.id}', false, ${count}, '${exercise.time}')"
+                class="btn_logo clickable color-invert">
+        </div>
+        <div class="exerciseSubWrapper" id="exercise-sub-${exercise.id}">
+            <h2>${actionIcon} ${actionName}</h2>
+            <p style="opacity: 0.6; margin: 0.25em 0;">${timeHTML}</p>
+
+            ${stravaHTML}
+
+            <div class="simple-activity-stats">
+                <div class="simple-stat">
+                    <span class="simple-stat-value">${durationHTML}</span>
+                    <span class="simple-stat-label">Duration</span>
+                </div>
+                <div class="simple-stat">
+                    <span class="simple-stat-value">${distanceHTML}</span>
+                    <span class="simple-stat-label">Distance</span>
+                </div>
+                <div class="simple-stat">
+                    <span class="simple-stat-value">${avgHTML}</span>
+                    <span class="simple-stat-label">Avg speed</span>
+                </div>
+            </div>
+
+            <button onclick="switchToFullEditor('${exercise.id}')" style="margin-top: 1.5em; font-size: 0.75em; opacity: 0.6;">
+                ✏️ Edit details
+            </button>
+
+            <hr class="invert" style="border: 0.025em solid var(--white); margin: 4em 0;">
+        </div>
+    `;
+}
+
+function switchToFullEditor(exerciseID) {
+    const exercise = exerciseCache[exerciseID];
+    if (!exercise) return;
+    document.getElementById('exercise-' + exerciseID).innerHTML = generateExerciseHTML(exercise, exercise._count, true);
 }
 
 function generateOperationsHTML(operations, exerciseID) {
