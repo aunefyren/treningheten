@@ -315,16 +315,65 @@ function generateSimpleActivityHTML(exercise, count) {
     var actionIcon = operation.type === 'moving' ? '🏃‍♂️' : operation.type === 'timing' ? '⏱️' : '💪'
 
     var stravaHTML = ""
-    if (exercise.strava_id && exercise.strava_id.length > 0) {
+    const stravaActivityID = set.strava_id
+
+    if (stravaActivityID) {
         stravaHTML = `
-            <a class="strava-text clickable" onclick="window.open('https://www.strava.com/activities/${exercise.strava_id[0]}', '_blank')">
-                View on Strava <img src="/assets/external-link.svg" class="btn_logo" style="width: 1em; height: 1em; margin: 0 0.25em;">
-            </a>
+            <p class="strava-text clickable" onclick="window.open('https://www.strava.com/activities/${stravaActivityID}', '_blank')">
+                Strava session (${stravaActivityID})
+                <img src="/assets/external-link.svg" class="btn_logo" style="width: 1.25em; height: 1.25em; padding: 0; margin: 0.25em 0.5em;">
+            </p>
         `;
+    } else {
+        console.log("no Strava ID")
     }
 
-    return `
+    const streams = set.strava_streams;
+    const hasHeartrate = streams && streams.heartrate && streams.heartrate.data && streams.heartrate.data.length > 0;
+    const latlngData = streams && (streams.latlng || streams.lat_lng);
+    const hasRoute = latlngData && latlngData.data && latlngData.data.length > 0;
+
+    // Compute HR stats
+    var hrStatsHTML = "";
+    if (hasHeartrate) {
+        const hrVals = streams.heartrate.data.filter(v => v > 0);
+        if (hrVals.length > 0) {
+            const hrAvg = Math.round(hrVals.reduce((a, b) => a + b, 0) / hrVals.length);
+            const hrMin = Math.min(...hrVals);
+            const hrMax = Math.max(...hrVals);
+            hrStatsHTML = `
+                <div class="simple-activity-stats" style="margin-top: 1em;">
+                    <div class="simple-stat">
+                        <span class="simple-stat-value">${hrMin} <span style="font-size:0.6em; opacity:0.7;">bpm</span></span>
+                        <span class="simple-stat-label">Min HR</span>
+                    </div>
+                    <div class="simple-stat">
+                        <span class="simple-stat-value">${hrAvg} <span style="font-size:0.6em; opacity:0.7;">bpm</span></span>
+                        <span class="simple-stat-label">Avg HR</span>
+                    </div>
+                    <div class="simple-stat">
+                        <span class="simple-stat-value">${hrMax} <span style="font-size:0.6em; opacity:0.7;">bpm</span></span>
+                        <span class="simple-stat-label">Max HR</span>
+                    </div>
+                </div>
+            `;
+        }
+    }
+
+    // Debug: log what we have so we can track down missing strava/map data
+    console.log('[simple card] exercise.strava_id:', exercise.strava_id, '| set.strava_activity_id:', set.strava_activity_id, '| hasRoute:', hasRoute, '| latlngKeys:', streams ? Object.keys(streams) : null);
+
+    const hrCanvasID = `hr-chart-${set.id}`;
+    const mapDivID = `route-map-${set.id}`;
+
+    var hrHTML = hasHeartrate ? `<canvas id="${hrCanvasID}" class="simple-activity-hr-chart"></canvas>` : "";
+    var mapHTML = hasRoute ? `<div id="${mapDivID}" class="simple-activity-map"></div>` : "";
+
+    var html = `
         <div class="top-row">
+            <img src="/assets/edit.svg" style="height: 1em; width: 1em; padding: 1em;"
+                onclick="switchToFullEditor('${exercise.id}')"
+                class="btn_logo clickable color-invert">
             <img src="/assets/trash-2.svg" style="height: 1em; width: 1em; padding: 1em;"
                 onclick="updateExercise('${exercise.id}', false, ${count}, '${exercise.time}')"
                 class="btn_logo clickable color-invert">
@@ -350,19 +399,159 @@ function generateSimpleActivityHTML(exercise, count) {
                 </div>
             </div>
 
-            <button onclick="switchToFullEditor('${exercise.id}')" style="margin-top: 1.5em; font-size: 0.75em; opacity: 0.6;">
-                ✏️ Edit details
-            </button>
+            ${mapHTML}
+            ${hrHTML}
+            ${hrStatsHTML}
 
             <hr class="invert" style="border: 0.025em solid var(--white); margin: 4em 0;">
         </div>
     `;
+
+    // Defer chart and map rendering until DOM is ready
+    if (hasHeartrate || hasRoute) {
+        setTimeout(function() {
+            if (hasHeartrate) {
+                renderHeartrateChart(hrCanvasID, streams.time.data, streams.heartrate.data);
+            }
+            if (hasRoute) {
+                renderRouteMap(mapDivID, latlngData.data);
+            }
+        }, 0);
+    }
+
+    return html;
+}
+
+function renderHeartrateChart(canvasID, timeData, hrData) {
+    var canvas = document.getElementById(canvasID);
+    if (!canvas) return;
+
+    // Filter out zero values at the start (HR monitor not yet active)
+    var points = [];
+    for (var i = 0; i < hrData.length; i++) {
+        if (hrData[i] > 0) {
+            points.push({
+                x: timeData[i],  // seconds elapsed — use x for linear scale
+                y: hrData[i]
+            });
+        }
+    }
+
+    if (points.length === 0) return;
+
+    var tickColor = "rgba(255,255,255,0.6)";
+
+    new Chart(canvas, {
+        type: "line",
+        data: {
+            datasets: [{
+                label: "Heart Rate (bpm)",
+                data: points,
+                fill: true,
+                borderColor: "rgba(220, 80, 80, 1)",
+                pointBackgroundColor: "rgba(220, 80, 80, 1)",
+                backgroundColor: "rgba(220, 80, 80, 0.2)",
+                tension: 0.3,
+                pointRadius: 0,
+                borderWidth: 2
+            }]
+        },
+        options: {
+            legend: { display: false },
+            scales: {
+                xAxes: [{
+                    type: "linear",
+                    gridLines: { color: "rgba(255,255,255,0.1)" },
+                    ticks: {
+                        fontColor: tickColor,
+                        autoSkip: true,
+                        maxTicksLimit: 6,
+                        callback: function(value) {
+                            return secondsToDurationString(value);
+                        }
+                    }
+                }],
+                yAxes: [{
+                    gridLines: { color: "rgba(255,255,255,0.1)" },
+                    ticks: {
+                        fontColor: tickColor,
+                        beginAtZero: false,
+                        precision: 0,
+                        callback: function(value) { return value + " bpm"; }
+                    }
+                }]
+            },
+            tooltips: {
+                callbacks: {
+                    title: function(items) {
+                        return secondsToDurationString(items[0].xLabel);
+                    },
+                    label: function(item) {
+                        return item.yLabel + " bpm";
+                    }
+                }
+            }
+        }
+    });
+}
+
+function renderRouteMap(divID, latlngData) {
+    var mapDiv = document.getElementById(divID);
+    if (!mapDiv || !latlngData || latlngData.length === 0) return;
+
+    // Leaflet must be available globally
+    if (typeof L === 'undefined') {
+        console.warn('Leaflet not loaded — cannot render route map.');
+        mapDiv.style.display = 'none';
+        return;
+    }
+
+    var map = L.map(divID, { zoomControl: true, scrollWheelZoom: false });
+
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '© OpenStreetMap contributors',
+        maxZoom: 18
+    }).addTo(map);
+
+    var latLngs = latlngData.map(function(point) {
+        return [point[0], point[1]];
+    });
+
+    var polyline = L.polyline(latLngs, {
+        color: 'rgba(220, 80, 80, 1)',
+        weight: 3,
+        opacity: 0.85
+    }).addTo(map);
+
+    // Start marker
+    L.circleMarker(latLngs[0], {
+        radius: 6, color: '#4caf50', fillColor: '#4caf50', fillOpacity: 1
+    }).addTo(map);
+
+    // End marker
+    L.circleMarker(latLngs[latLngs.length - 1], {
+        radius: 6, color: '#f44336', fillColor: '#f44336', fillOpacity: 1
+    }).addTo(map);
+
+    map.fitBounds(polyline.getBounds(), { padding: [16, 16] });
 }
 
 function switchToFullEditor(exerciseID) {
     const exercise = exerciseCache[exerciseID];
     if (!exercise) return;
     document.getElementById('exercise-' + exerciseID).innerHTML = generateExerciseHTML(exercise, exercise._count, true);
+    // Append a "back to summary" button after the full editor renders
+    const subWrapper = document.getElementById('exercise-sub-' + exerciseID);
+    if (subWrapper && isSimpleActivity(exercise)) {
+        const backBtn = document.createElement('button');
+        backBtn.textContent = '← Back to summary';
+        backBtn.className = 'back-to-summary-btn';
+        backBtn.style.cssText = 'margin-top: 1em; font-size: 0.75em; opacity: 0.6;';
+        backBtn.onclick = function() {
+            document.getElementById('exercise-' + exerciseID).innerHTML = generateSimpleActivityHTML(exercise, exercise._count);
+        };
+        subWrapper.insertBefore(backBtn, subWrapper.firstChild);
+    }
 }
 
 function generateOperationsHTML(operations, exerciseID) {
@@ -797,6 +986,7 @@ function placeNewOperationSet(operationSet, operationID, operation) {
         </div>
     `;
     element.insertAdjacentHTML("beforeend", operationSetHTML)
+    updateBackButtonVisibility(operationID);
 }
 
 function updateOperation(operationID) {
@@ -1139,6 +1329,39 @@ function deleteOperationSet(operationSetID) {
 
 function removeOperationSet(operation) {
     document.getElementById('operation-' + operation.id).innerHTML = generateOperationHTML(operation)
+    // operation.id is the operation ID; find its set wrapper to recount
+    updateBackButtonVisibility(operation.id);
+}
+
+// Show/hide the "← Back to summary" button based on whether the exercise
+// still qualifies as a simple activity (1 operation, 1 set, type=moving).
+function updateBackButtonVisibility(operationID) {
+    const setWrapper = document.getElementById('operation-set-wrapper-sub-' + operationID);
+    if (!setWrapper) return;
+
+    // Walk up to find the exercise wrapper: operation-set-wrapper-sub-X is inside
+    // operationWrapper > operationsWrapperSub > operationsWrapper > exerciseSubWrapper
+    const exerciseSubWrapper = setWrapper.closest('.exerciseSubWrapper');
+    if (!exerciseSubWrapper) return;
+
+    const exerciseID = exerciseSubWrapper.id.replace('exercise-sub-', '');
+    const exercise = exerciseCache[exerciseID];
+    if (!exercise) return;
+
+    const backBtn = exerciseSubWrapper.querySelector('.back-to-summary-btn');
+    if (!backBtn) return;
+
+    const setCount = setWrapper.children.length;
+    const operationCount = document.getElementById('operationsWrapper-sub-' + exerciseID)
+        ? document.getElementById('operationsWrapper-sub-' + exerciseID).children.length
+        : 1;
+
+    // Simple = 1 operation, 1 set, type moving (mirrors isSimpleActivity logic)
+    const typeEl = document.getElementById('operation-type-text-' + operationID);
+    const currentType = typeEl ? typeEl.value : 'moving';
+    const isSimple = (operationCount === 1 && setCount === 1 && currentType === 'moving');
+
+    backBtn.style.display = isSimple ? '' : 'none';
 }
 
 function selectActionForOperation(operationID, actionName) {
