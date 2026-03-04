@@ -312,7 +312,12 @@ function generateSimpleActivityHTML(exercise, count) {
     }
 
     var actionName = action ? action.name : "Activity"
-    var actionIcon = operation.type === 'moving' ? '🏃‍♂️' : operation.type === 'timing' ? '⏱️' : '💪'
+    var actionIcon
+    if (action && action.has_logo) {
+        actionIcon = `<img src="/assets/actions/${action.name}.svg" class="color-invert" style="height: 1em; width: 1em; vertical-align: middle; margin-right: 0.25em;">`
+    } else {
+        actionIcon = operation.type === 'moving' ? '🏃‍♂️' : operation.type === 'timing' ? '⏱️' : '💪'
+    }
 
     var stravaHTML = ""
     const stravaActivityID = set.strava_id
