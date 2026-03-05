@@ -312,6 +312,7 @@ function generateSimpleActivityHTML(exercise, count) {
     }
 
     var actionName = action ? action.name : "Activity"
+    var activityTitle = (operation.note && operation.note.trim() !== '') ? operation.note.trim() : actionName
     var actionIcon
     if (action && action.has_logo) {
         actionIcon = `<img src="/assets/actions/${action.name}.svg" class="color-invert" style="height: 1em; width: 1em; vertical-align: middle;">`
@@ -319,16 +320,13 @@ function generateSimpleActivityHTML(exercise, count) {
         actionIcon = operation.type === 'moving' ? '🏃‍♂️' : operation.type === 'timing' ? '⏱️' : '💪'
     }
 
-    var stravaHTML = ""
+    var stravaLinkHTML = ""
     const stravaActivityID = set.strava_id
 
     if (stravaActivityID) {
-        stravaHTML = `
-            <p class="strava-text clickable" onclick="window.open('https://www.strava.com/activities/${stravaActivityID}', '_blank')">
-                Strava session (${stravaActivityID})
-                <img src="/assets/external-link.svg" class="btn_logo" style="width: 1.25em; height: 1.25em; padding: 0; margin: 0.25em 0.5em;">
-            </p>
-        `;
+        stravaLinkHTML = `<a href="https://www.strava.com/activities/${stravaActivityID}" target="_blank" style="display: inline-flex; align-items: center; margin-left: 0.4em; vertical-align: middle; opacity: 0.8;">
+            <img src="/assets/strava-logo.svg" style="height: 0.85em; width: auto;">
+        </a>`
     } else {
         console.log("no Strava ID")
     }
@@ -372,7 +370,7 @@ function generateSimpleActivityHTML(exercise, count) {
     const mapDivID = `route-map-${set.id}`;
 
     var hrHTML = hasHeartrate ? `<div class="simple-activity-hr-wrapper"><canvas id="${hrCanvasID}" class="simple-activity-hr-chart"></canvas>${hrStatsHTML}</div>` : "";
-    var mapHTML = hasRoute ? `<div id="${mapDivID}" class="simple-activity-map" style="height: 300px; width: 100%; border-radius: 0.5em; overflow: hidden;"></div>` : "";
+    var mapHTML = hasRoute ? `<div id="${mapDivID}" class="simple-activity-map" style="height: 300px; width: 100%; border-radius: 0.5em; overflow: hidden; position: relative; z-index: 0;"></div>` : "";
 
     var html = `
         <div class="top-row">
@@ -384,10 +382,8 @@ function generateSimpleActivityHTML(exercise, count) {
                 class="btn_logo clickable color-invert">
         </div>
         <div class="exerciseSubWrapper" id="exercise-sub-${exercise.id}">
-            <h2>${actionIcon} ${actionName}</h2>
+            <h2>${actionIcon} ${activityTitle}${stravaLinkHTML}</h2>
             <p style="opacity: 0.6; margin: 0.25em 0;">${timeHTML}</p>
-
-            ${stravaHTML}
 
             <div class="simple-activity-stats-wrapper">
                 <div class="simple-activity-stats">
