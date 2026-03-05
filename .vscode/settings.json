@@ -3,6 +3,7 @@
         "chrono",
         "frontpage",
         "Heartrate",
+        "Infof",
         "leaderboard",
         "lightgreen",
         "logrus",

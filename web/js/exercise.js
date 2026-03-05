@@ -314,7 +314,7 @@ function generateSimpleActivityHTML(exercise, count) {
     var actionName = action ? action.name : "Activity"
     var actionIcon
     if (action && action.has_logo) {
-        actionIcon = `<img src="/assets/actions/${action.name}.svg" class="color-invert" style="height: 1em; width: 1em; vertical-align: middle; margin-right: 0.25em;">`
+        actionIcon = `<img src="/assets/actions/${action.name}.svg" class="color-invert" style="height: 1em; width: 1em; vertical-align: middle;">`
     } else {
         actionIcon = operation.type === 'moving' ? '🏃‍♂️' : operation.type === 'timing' ? '⏱️' : '💪'
     }
@@ -371,7 +371,7 @@ function generateSimpleActivityHTML(exercise, count) {
     const hrCanvasID = `hr-chart-${set.id}`;
     const mapDivID = `route-map-${set.id}`;
 
-    var hrHTML = hasHeartrate ? `<canvas id="${hrCanvasID}" class="simple-activity-hr-chart"></canvas>` : "";
+    var hrHTML = hasHeartrate ? `<div class="simple-activity-hr-wrapper"><canvas id="${hrCanvasID}" class="simple-activity-hr-chart"></canvas>${hrStatsHTML}</div>` : "";
     var mapHTML = hasRoute ? `<div id="${mapDivID}" class="simple-activity-map" style="height: 300px; width: 100%; border-radius: 0.5em; overflow: hidden;"></div>` : "";
 
     var html = `
@@ -389,24 +389,26 @@ function generateSimpleActivityHTML(exercise, count) {
 
             ${stravaHTML}
 
-            <div class="simple-activity-stats">
-                <div class="simple-stat">
-                    <span class="simple-stat-value">${durationHTML}</span>
-                    <span class="simple-stat-label">Duration</span>
+            <div class="simple-activity-stats-wrapper">
+                <div class="simple-activity-stats">
+                    <div class="simple-stat">
+                        <span class="simple-stat-value">${durationHTML}</span>
+                        <span class="simple-stat-label">Duration</span>
+                    </div>
+                    <div class="simple-stat">
+                        <span class="simple-stat-value">${distanceHTML}</span>
+                        <span class="simple-stat-label">Distance</span>
+                    </div>
+                    <div class="simple-stat">
+                        <span class="simple-stat-value">${avgHTML}</span>
+                        <span class="simple-stat-label">Avg speed</span>
+                    </div>
                 </div>
-                <div class="simple-stat">
-                    <span class="simple-stat-value">${distanceHTML}</span>
-                    <span class="simple-stat-label">Distance</span>
-                </div>
-                <div class="simple-stat">
-                    <span class="simple-stat-value">${avgHTML}</span>
-                    <span class="simple-stat-label">Avg speed</span>
-                </div>
+
+                ${mapHTML}
             </div>
 
-            ${mapHTML}
             ${hrHTML}
-            ${hrStatsHTML}
 
             <hr class="invert" style="border: 0.025em solid var(--white); margin: 4em 0;">
         </div>

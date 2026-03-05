@@ -150,3 +150,7 @@ func (s *StravaStreamsJSON) Scan(value interface{}) error {
 
 	return json.Unmarshal(b, s)
 }
+
+type StravaSyncActivitiesForUsersRequest struct {
+	UserIDs *[]string `json:"user_ids"`
+}

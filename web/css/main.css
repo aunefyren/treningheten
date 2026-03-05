@@ -2837,9 +2837,15 @@ label {
 
 .simple-activity-stats {
     display: flex;
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-content: center;
+    justify-content: center;
+    align-items: center;
+    box-sizing: inherit;
     gap: 2em;
     justify-content: center;
-    margin: 0.5rem 1.25em;
+    margin: 1rem;
 }
 
 .simple-stat {
@@ -2861,8 +2867,38 @@ label {
 
 .simple-activity-map {
   margin: 0.5rem 1rem;
+  max-width: 40rem;
+  max-height: 20rem;
 }
 
 .simple-activity-hr-chart {
   margin: 0.5rem 1rem;
+  max-width: 40rem;
+  max-height: 20rem;
+}
+
+.simple-activity-hr-wrapper {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-content: center;
+  justify-content: center;
+  align-items: center;
+  box-sizing: inherit;
+  width: 100%;
+  width: -webkit-fill-available;
+  width: -moz-available;
+}
+
+.simple-activity-stats-wrapper {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-content: center;
+  justify-content: center;
+  align-items: center;
+  box-sizing: inherit;
+  width: 100%;
+  width: -webkit-fill-available;
+  width: -moz-available;
 }

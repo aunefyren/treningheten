@@ -56,15 +56,16 @@ type OperationObject struct {
 
 type OperationSet struct {
 	GormModel
-	Enabled       bool               `json:"enabled" gorm:"not null; default: true;"`
-	OperationID   uuid.UUID          `json:"" gorm:"type:varchar(100);"`
-	Operation     Operation          `json:"operation" gorm:"not null"`
-	Repetitions   *float64           `json:"repetitions" gorm:"default: null"`
-	Weight        *float64           `json:"weight" gorm:"default: null"`
-	Distance      *float64           `json:"distance" gorm:"default: null"`
-	Time          *time.Duration     `json:"time" gorm:"default: null"`
-	StravaID      *string            `json:"strava_id" gorm:"default: null;"`
-	StravaStreams *StravaStreamsJSON `json:"strava_streams" gorm:"type:longtext;default: null;"`
+	Enabled               bool               `json:"enabled" gorm:"not null; default: true;"`
+	OperationID           uuid.UUID          `json:"" gorm:"type:varchar(100);"`
+	Operation             Operation          `json:"operation" gorm:"not null"`
+	Repetitions           *float64           `json:"repetitions" gorm:"default: null"`
+	Weight                *float64           `json:"weight" gorm:"default: null"`
+	Distance              *float64           `json:"distance" gorm:"default: null"`
+	Time                  *time.Duration     `json:"time" gorm:"default: null"`
+	StravaID              *string            `json:"strava_id" gorm:"default: null;"`
+	StravaStreams         *StravaStreamsJSON `json:"strava_streams" gorm:"type:longtext;default: null;"`
+	StravaDataRetrievedAt *time.Time         `json:"strava_data_retrieved_at" gorm:"default: null;"`
 }
 
 type OperationSetCreationRequest struct {
@@ -84,14 +85,15 @@ type OperationSetUpdateRequest struct {
 
 type OperationSetObject struct {
 	GormModel
-	Enabled       bool               `json:"enabled"`
-	Operation     uuid.UUID          `json:"operation"`
-	Repetitions   *float64           `json:"repetitions"`
-	Weight        *float64           `json:"weight"`
-	Distance      *float64           `json:"distance"`
-	Time          *time.Duration     `json:"time"`
-	StravaID      *string            `json:"strava_id" gorm:"default: null;"`
-	StravaStreams *StravaStreamsJSON `json:"strava_streams" gorm:"type:longtext;default: null;"`
+	Enabled               bool               `json:"enabled"`
+	Operation             uuid.UUID          `json:"operation"`
+	Repetitions           *float64           `json:"repetitions"`
+	Weight                *float64           `json:"weight"`
+	Distance              *float64           `json:"distance"`
+	Time                  *time.Duration     `json:"time"`
+	StravaID              *string            `json:"strava_id"`
+	StravaStreams         *StravaStreamsJSON `json:"strava_streams"`
+	StravaDataRetrievedAt *time.Time         `json:"strava_data_retrieved_at"`
 }
 
 type Action struct {

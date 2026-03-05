@@ -11,7 +11,7 @@ import (
 	"github.com/thanhpk/randstr"
 )
 
-// receive a user strcut and save it in the database
+// receive a user struct and save it in the database
 func RegisterUserInDB(user models.User) (models.User, error) {
 	dbRecord := Instance.Create(&user)
 
@@ -24,7 +24,7 @@ func RegisterUserInDB(user models.User) (models.User, error) {
 	return user, nil
 }
 
-// Generate a random verification code an return ut
+// generate a random verification code an return it
 func GenerateRandomVerificationCodeForUser(userID uuid.UUID) (string, error) {
 
 	randomString := randstr.String(8)
@@ -250,7 +250,7 @@ func UpdateBirthDateValueByUserID(userID uuid.UUID, birthDate *time.Time) error 
 
 }
 
-// Get user information by user ID (censored)
+// Get enabled user information by user ID (censored)
 func GetUserInformation(UserID uuid.UUID) (models.User, error) {
 	var user models.User
 	userrecord := Instance.Where("`users`.enabled = ?", 1).Where("`users`.id = ?", UserID).Find(&user)
@@ -266,7 +266,7 @@ func GetUserInformation(UserID uuid.UUID) (models.User, error) {
 	return user, nil
 }
 
-// Get all users information (censored)
+// Get all enabled users information (censored)
 func GetUsersInformation() ([]models.User, error) {
 	var users []models.User
 	userrecord := Instance.Where("`users`.enabled = ?", 1).Find(&users)

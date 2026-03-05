@@ -102,6 +102,7 @@ func GetOperationSetsByOperationIDAndUserID(operationID uuid.UUID, userID uuid.U
 	return
 }
 
+// get enabled operation sets for user
 func GetOperationSetsByUserID(userID uuid.UUID) (operationSets []models.OperationSet, err error) {
 	operationSets = []models.OperationSet{}
 	err = nil
@@ -328,6 +329,31 @@ func GetActionsDoneUsingUserID(userID uuid.UUID) (actions []models.Action, err e
 
 	if record.Error != nil {
 		return actions, record.Error
+	}
+
+	return
+}
+
+// get enabled operation sets for user where strava is attached
+func GetStravaOperationSetsByUserID(userID uuid.UUID) (operationSets []models.OperationSet, err error) {
+	operationSets = []models.OperationSet{}
+	err = nil
+
+	record := Instance.Where("`operation_sets`.enabled = ?", 1).
+		Where("`operation_sets`.strava_id IS NOT NULL").
+		Joins("JOIN `operations` on `operation_sets`.operation_id = `operations`.id").
+		Where("`operations`.enabled = ?", 1).
+		Joins("JOIN `exercises` on `operations`.exercise_id = `exercises`.id").
+		Where("`exercises`.enabled = ?", 1).
+		Joins("JOIN `exercise_days` on `exercises`.exercise_day_id = `exercise_days`.id").
+		Where("`exercise_days`.enabled = ?", 1).
+		Joins("JOIN `users` on `exercise_days`.user_id = `users`.id").
+		Where("`users`.enabled = ?", 1).
+		Where("`users`.id = ?", userID).
+		Find(&operationSets)
+
+	if record.Error != nil {
+		return operationSets, record.Error
 	}
 
 	return
