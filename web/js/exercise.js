@@ -395,8 +395,18 @@ function generateSimpleActivityHTML(exercise, count) {
     var hrHTML = hasHeartrate ? `<div class="simple-activity-hr-wrapper"><canvas id="${hrCanvasID}" class="simple-activity-hr-chart"></canvas>${hrStatsHTML}</div>` : "";
     var mapHTML = hasRoute ? `<div id="${mapDivID}" class="simple-activity-map" style="height: 300px; width: 100%; border-radius: 0.5em; overflow: hidden; position: relative; z-index: 0;"></div>` : "";
 
+    stravaSyncButtonHTML = "";
+    if (stravaActivityID) {
+        stravaSyncButtonHTML = `
+            <img src="/assets/refresh-cw.svg" style="height: 1em; width: 1em; padding: 1em;"
+                onclick="stravaSyncOperationSet('${set.id}')"
+                class="btn_logo clickable color-invert">
+        `;
+    }
+
     var html = `
         <div class="top-row">
+            ${stravaSyncButtonHTML}
             <img src="/assets/edit.svg" style="height: 1em; width: 1em; padding: 1em;"
                 onclick="switchToFullEditor('${exercise.id}')"
                 class="btn_logo clickable color-invert">
@@ -444,20 +454,30 @@ function generateSimpleActivityHTML(exercise, count) {
             if (hrReady && mapReady) {
                 clearInterval(renderInterval);
                 if (hasHeartrate) {
-                    // Use set.moving_time to cap the x-axis — streams.time.data contains
-                    // elapsed seconds which can exceed moving time due to pauses.
-                    // Remap: scale each elapsed-time value so the array ends at moving_time.
-                    const rawTime = streams.time.data;
+                    // The streams are distance-sampled, not time-sampled, so
+                    // streams.time.data is elapsed seconds and doesn't match moving_time.
+                    // Fix: keep only samples where the runner is moving (velocity > 0.5 m/s),
+                    // then space them evenly across set.moving_time seconds.
+                    const hrRaw = streams.heartrate.data;
+                    const velocity = streams.velocity_smooth && streams.velocity_smooth.data;
                     const movingTimeSecs = set.moving_time || set.time;
-                    let chartTimeData;
-                    if (movingTimeSecs && rawTime.length > 1) {
-                        const elapsedMax = rawTime[rawTime.length - 1];
-                        const scale = movingTimeSecs / elapsedMax;
-                        chartTimeData = rawTime.map(t => Math.round(t * scale));
+                    let chartHrData, chartTimeData;
+                    if (velocity && velocity.length === hrRaw.length && movingTimeSecs) {
+                        chartHrData = [];
+                        const movingIndices = [];
+                        for (let i = 0; i < hrRaw.length; i++) {
+                            if (velocity[i] > 0.5) {
+                                movingIndices.push(i);
+                            }
+                        }
+                        const n = movingIndices.length;
+                        chartTimeData = movingIndices.map((idx, j) => Math.round(j / (n - 1) * movingTimeSecs));
+                        chartHrData = movingIndices.map(idx => hrRaw[idx]);
                     } else {
-                        chartTimeData = rawTime;
+                        chartTimeData = streams.time.data;
+                        chartHrData = hrRaw;
                     }
-                    renderHeartrateChart(hrCanvasID, chartTimeData, streams.heartrate.data);
+                    renderHeartrateChart(hrCanvasID, chartTimeData, chartHrData, movingTimeSecs);
                 }
                 if (hasRoute) {
                     console.log("[map] div found, rendering route with", latlngData.data.length, "points");
@@ -473,16 +493,16 @@ function generateSimpleActivityHTML(exercise, count) {
     return html;
 }
 
-function renderHeartrateChart(canvasID, timeData, hrData) {
+function renderHeartrateChart(canvasID, timeData, hrData, maxSecs) {
     var canvas = document.getElementById(canvasID);
     if (!canvas) return;
 
-    // Filter out zero values at the start (HR monitor not yet active)
+    // Build {x, y} points — both arrays are already aligned (same length)
     var points = [];
     for (var i = 0; i < hrData.length; i++) {
         if (hrData[i] > 0) {
             points.push({
-                x: timeData[i],  // seconds elapsed — use x for linear scale
+                x: timeData[i],
                 y: hrData[i]
             });
         }
@@ -517,6 +537,8 @@ function renderHeartrateChart(canvasID, timeData, hrData) {
                         fontColor: tickColor,
                         autoSkip: true,
                         maxTicksLimit: 6,
+                        min: 0,
+                        max: maxSecs || undefined,
                         callback: function(value) {
                             return secondsToDurationString(value);
                         }
@@ -1647,5 +1669,39 @@ function divideStravaExercises(exerciseID) {
     xhttp.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
     xhttp.setRequestHeader("Authorization", jwt);
     xhttp.send();
+    return false;
+}
+
+function stravaSyncOperationSet(operationSetID) {
+    if(!confirm("Are you sure you want to update this with data from Strava?")) {
+        return
+    }
+
+    var form_obj = {};
+    var form_data = JSON.stringify(form_obj);
+
+    var xhttp = new XMLHttpRequest();
+    xhttp.onreadystatechange = function() {
+        if (this.readyState == 4) {
+            try {
+                result = JSON.parse(this.responseText);
+            } catch(e) {
+                console.log(e +' - Response: ' + this.responseText);
+                error("Could not reach API.");
+                return;
+            }
+            
+            if(result.error) {
+                error(result.error);
+            } else {
+                location.reload(); 
+            }
+        }
+    };
+    xhttp.withCredentials = true;
+    xhttp.open("post", api_url + "auth/operation-sets/" + operationSetID + "/strava-sync");
+    xhttp.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
+    xhttp.setRequestHeader("Authorization", jwt);
+    xhttp.send(form_data);
     return false;
 }

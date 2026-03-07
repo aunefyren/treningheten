@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/aunefyren/treningheten/database"
+	"github.com/aunefyren/treningheten/files"
 	"github.com/aunefyren/treningheten/logger"
 	"github.com/aunefyren/treningheten/middlewares"
 	"github.com/aunefyren/treningheten/models"
@@ -999,4 +1000,110 @@ func APIGetActionStatistics(context *gin.Context) {
 	actionStatistics.Action = action
 
 	context.JSON(http.StatusOK, gin.H{"message": "Action statistics retrieved.", "statistics": actionStatistics})
+}
+
+func APISyncStravaOperationSet(context *gin.Context) {
+	var operationSetID = context.Param("operation_set_id")
+
+	if !files.ConfigFile.StravaEnabled {
+		context.JSON(http.StatusBadRequest, gin.H{"error": "Strava is disabled on the tenant."})
+		context.Abort()
+		return
+	}
+
+	operationSetIDUUID, err := uuid.Parse(operationSetID)
+	if err != nil {
+		context.JSON(http.StatusBadRequest, gin.H{"error": "Failed to parse ID."})
+		context.Abort()
+		return
+	}
+
+	// Get user ID
+	userID, err := middlewares.GetAuthUsername(context.GetHeader("Authorization"))
+	if err != nil {
+		logger.Log.Info("Failed to verify user ID. Error: " + "Failed to verify user ID.")
+		context.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		context.Abort()
+		return
+	}
+
+	operationSet, err := database.GetOperationSetByIDAndUserID(operationSetIDUUID, userID)
+	if err != nil {
+		logger.Log.Info("Failed to get operation set. Error: " + err.Error())
+		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get operation set."})
+		context.Abort()
+		return
+	}
+
+	if operationSet.StravaID == nil {
+		context.JSON(http.StatusBadRequest, gin.H{"error": "Operation set is not connected to a Strava activity."})
+		context.Abort()
+		return
+	}
+
+	user, err := database.GetAllUserInformation(userID)
+	if err != nil {
+		logger.Log.Info("Failed to get user object. Error: " + err.Error())
+		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get user object."})
+		context.Abort()
+		return
+	}
+
+	token, err := StravaGetAuthorizationForUser(user)
+	if err != nil {
+		logger.Log.Info("Failed to get authorize user toward Strava. Error: " + err.Error())
+		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get authorize user toward Strava."})
+		context.Abort()
+		return
+	}
+
+	activity, err := StravaGetActivity(token, *operationSet.StravaID)
+	if err != nil {
+		logger.Log.Info("Failed to get activity from Strava. Error: " + err.Error())
+		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get activity from Strava."})
+		context.Abort()
+		return
+	}
+
+	err = StravaSyncActivityForUser(activity, user, token)
+	if err != nil {
+		logger.Log.Info("Failed to update exercise with Strava data. Error: " + err.Error())
+		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update exercise with Strava data."})
+		context.Abort()
+		return
+	}
+
+	operationSet, err = database.GetOperationSetByIDAndUserID(operationSetIDUUID, userID)
+	if err != nil {
+		logger.Log.Info("Failed to get operation set. Error: " + err.Error())
+		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get operation set."})
+		context.Abort()
+		return
+	}
+
+	operationSetObject, err := ConvertOperationSetToOperationSetObject(operationSet)
+	if err != nil {
+		logger.Log.Info("Failed to get convert operation set to operation set object. Error: " + err.Error())
+		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get convert operation set to operation set object."})
+		context.Abort()
+		return
+	}
+
+	operation, err := database.GetOperationByIDAndUserID(operationSet.OperationID, userID)
+	if err != nil {
+		logger.Log.Info("Failed to get operation. Error: " + err.Error())
+		context.JSON(http.StatusBadRequest, gin.H{"error": "Failed to get operation."})
+		context.Abort()
+		return
+	}
+
+	operationObject, err := ConvertOperationToOperationObject(operation)
+	if err != nil {
+		logger.Log.Info("Failed to get convert operation to operation object. Error: " + err.Error())
+		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get convert operation to operation object."})
+		context.Abort()
+		return
+	}
+
+	context.JSON(http.StatusOK, gin.H{"message": "Operation set synced.", "operation_set": operationSetObject, "operation": operationObject})
 }
