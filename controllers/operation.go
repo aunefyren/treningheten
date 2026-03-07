@@ -97,6 +97,7 @@ func ConvertOperationSetToOperationSetObject(operationSet models.OperationSet) (
 	operationSetObject.Operation = operationSet.OperationID
 	operationSetObject.Repetitions = operationSet.Repetitions
 	operationSetObject.Time = operationSet.Time
+	operationSetObject.MovingTime = operationSet.MovingTime
 	operationSetObject.UpdatedAt = operationSet.UpdatedAt
 	operationSetObject.Weight = operationSet.Weight
 	operationSetObject.StravaID = operationSet.StravaID

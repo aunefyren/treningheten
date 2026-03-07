@@ -846,13 +846,7 @@ func APISyncStravaForUser(context *gin.Context) {
 		return
 	}
 
-	err = StravaSyncWeekForUser(user, pointInTime)
-	if err != nil {
-		logger.Log.Info("Failed to sync Strava for user. Error: " + err.Error())
-		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to sync Strava for user."})
-		context.Abort()
-		return
-	}
+	go StravaSyncWeekForUser(user, pointInTime)
 
 	context.JSON(http.StatusOK, gin.H{"message": "Strava sync started!"})
 }

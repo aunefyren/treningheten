@@ -303,19 +303,20 @@ function generateSimpleActivityHTML(exercise, count) {
         : (exercise.duration ? secondsToDurationString(exercise.duration) : "—");
 
     var distanceHTML = set.distance != null
-        ? set.distance + " " + operation.distance_unit
+        ? parseFloat(set.distance).toFixed(2) + " " + operation.distance_unit
         : "—";
 
     var avgHTML = "—"
-    if (set.distance != null && set.time != null) {
-        avgHTML = parseFloat(set.distance / (set.time / 3600)).toFixed(2) + " " + operation.distance_unit + "/h";
+    const speedTime = set.moving_time || set.time;
+    if (set.distance != null && speedTime != null) {
+        avgHTML = parseFloat(set.distance / (speedTime / 3600)).toFixed(2) + " " + operation.distance_unit + "/h";
     }
 
     var actionName = action ? action.name : "Activity"
     var activityTitle = (operation.note && operation.note.trim() !== '') ? operation.note.trim() : actionName
     var actionIcon
     if (action && action.has_logo) {
-        actionIcon = `<img src="/assets/actions/${action.name}.svg" class="color-invert" style="height: 1em; width: 1em; vertical-align: middle;">`
+        actionIcon = `<img src="/assets/actions/${action.name}.svg" class="color-invert" style="height: 1em; width: 1em; vertical-align: middle; margin: 0.5rem;">`
     } else {
         actionIcon = operation.type === 'moving' ? '🏃‍♂️' : operation.type === 'timing' ? '⏱️' : '💪'
     }
@@ -324,7 +325,7 @@ function generateSimpleActivityHTML(exercise, count) {
     const stravaActivityID = set.strava_id
 
     if (stravaActivityID) {
-        stravaLinkHTML = `<a href="https://www.strava.com/activities/${stravaActivityID}" target="_blank" style="display: inline-flex; align-items: center; margin-left: 0.4em; vertical-align: middle; opacity: 0.8;">
+        stravaLinkHTML = `<a href="https://www.strava.com/activities/${stravaActivityID}" target="_blank" style="display: inline-flex; align-items: center; margin: 0.5rem; vertical-align: middle; opacity: 0.8;">
             <img src="/assets/strava-logo.svg" style="height: 0.85em; width: auto;">
         </a>`
     } else {
@@ -335,6 +336,28 @@ function generateSimpleActivityHTML(exercise, count) {
     const hasHeartrate = streams && streams.heartrate && streams.heartrate.data && streams.heartrate.data.length > 0;
     const latlngData = streams && (streams.latlng || streams.lat_lng);
     const hasRoute = latlngData && latlngData.data && latlngData.data.length > 0;
+
+    // Elevation gain from altitude stream
+    var elevationHTML = "";
+    if (streams && streams.altitude && streams.altitude.data && streams.altitude.data.length > 1) {
+        const altData = streams.altitude.data;
+        let gain = 0;
+        for (let i = 1; i < altData.length; i++) {
+            const delta = altData[i] - altData[i - 1];
+            if (delta > 0) gain += delta;
+        }
+
+        if(gain > 0) {
+            elevationValue = Math.round(gain) + " m";
+
+            elevationHTML = `
+                <div class="simple-stat">
+                    <span class="simple-stat-value">${elevationValue}</span>
+                    <span class="simple-stat-label">Elevation</span>
+                </div>
+            `
+        }
+    }
 
     // Compute HR stats
     var hrStatsHTML = "";
@@ -382,7 +405,7 @@ function generateSimpleActivityHTML(exercise, count) {
                 class="btn_logo clickable color-invert">
         </div>
         <div class="exerciseSubWrapper" id="exercise-sub-${exercise.id}">
-            <h2>${actionIcon} ${activityTitle}${stravaLinkHTML}</h2>
+            <h2 class="simple-activity-title">${actionIcon} ${activityTitle}${stravaLinkHTML}</h2>
             <p style="opacity: 0.6; margin: 0.25em 0;">${timeHTML}</p>
 
             <div class="simple-activity-stats-wrapper">
@@ -399,6 +422,7 @@ function generateSimpleActivityHTML(exercise, count) {
                         <span class="simple-stat-value">${avgHTML}</span>
                         <span class="simple-stat-label">Avg speed</span>
                     </div>
+                    ${elevationHTML}
                 </div>
 
                 ${mapHTML}
@@ -420,7 +444,20 @@ function generateSimpleActivityHTML(exercise, count) {
             if (hrReady && mapReady) {
                 clearInterval(renderInterval);
                 if (hasHeartrate) {
-                    renderHeartrateChart(hrCanvasID, streams.time.data, streams.heartrate.data);
+                    // Use set.moving_time to cap the x-axis — streams.time.data contains
+                    // elapsed seconds which can exceed moving time due to pauses.
+                    // Remap: scale each elapsed-time value so the array ends at moving_time.
+                    const rawTime = streams.time.data;
+                    const movingTimeSecs = set.moving_time || set.time;
+                    let chartTimeData;
+                    if (movingTimeSecs && rawTime.length > 1) {
+                        const elapsedMax = rawTime[rawTime.length - 1];
+                        const scale = movingTimeSecs / elapsedMax;
+                        chartTimeData = rawTime.map(t => Math.round(t * scale));
+                    } else {
+                        chartTimeData = rawTime;
+                    }
+                    renderHeartrateChart(hrCanvasID, chartTimeData, streams.heartrate.data);
                 }
                 if (hasRoute) {
                     console.log("[map] div found, rendering route with", latlngData.data.length, "points");

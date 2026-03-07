@@ -521,7 +521,9 @@ func StravaSyncOperationForActivity(activity models.StravaGetActivitiesRequestRe
 	operationSet.StravaID = &stravaID
 	operationSet.OperationID = operation.ID
 	movingTime := time.Duration(activity.MovingTime)
-	operationSet.Time = &movingTime
+	operationSet.MovingTime = &movingTime
+	totalTime := time.Duration(activity.ElapsedTime)
+	operationSet.Time = &totalTime
 
 	now := time.Now()
 	operationSet.StravaDataRetrievedAt = &now
