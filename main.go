@@ -123,6 +123,8 @@ func main() {
 		os.Exit(1)
 	}
 
+	database.SeedActions()
+
 	if generateInvite {
 		invite, err := database.GenerateRandomInvite()
 		if err != nil {

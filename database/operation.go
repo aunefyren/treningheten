@@ -239,6 +239,14 @@ func CreateActionInDB(action models.Action) (models.Action, error) {
 	return action, nil
 }
 
+func UpdateActionInDB(action models.Action) (models.Action, error) {
+	record := Instance.Save(&action)
+	if record.Error != nil {
+		return action, record.Error
+	}
+	return action, nil
+}
+
 func GetActionByStravaName(stravaName string) (action *models.Action, err error) {
 	action = nil
 	err = nil
