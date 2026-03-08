@@ -325,7 +325,7 @@ function generateSimpleActivityHTML(exercise, count) {
     const stravaActivityID = set.strava_id
 
     if (stravaActivityID) {
-        stravaLinkHTML = `<a href="https://www.strava.com/activities/${stravaActivityID}" target="_blank" style="display: inline-flex; align-items: center; margin: 0.5rem; vertical-align: middle; opacity: 0.8;">
+        stravaLinkHTML = `<a href="https://www.strava.com/activities/${stravaActivityID}" target="_blank" style="display: inline-flex; align-items: center; margin: 0.5rem; vertical-align: middle;">
             <img src="/assets/strava-logo.svg" style="height: 0.85em; width: auto;">
         </a>`
     } else {
