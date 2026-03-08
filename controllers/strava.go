@@ -460,10 +460,6 @@ func StravaSyncOperationForActivity(activity models.StravaGetActivitiesRequestRe
 	err = nil
 	finalOperation = nil
 
-	if strings.ToLower(activity.SportType) == "pickleball" {
-		activity.SportType = "Padel"
-	}
-
 	// Get action by Strava activity
 	action, err := database.GetActionByStravaName(activity.SportType)
 	if err != nil {

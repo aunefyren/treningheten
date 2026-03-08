@@ -465,9 +465,6 @@ function PlaceUserData(user_object, stravaOauth, stravaEnabled) {
             padelHTML = "";
             publicHTML = "";
 
-            if(user_object.strava_padel) {
-                padelHTML = "checked"
-            }
             if(user_object.strava_walks) {
                 walksHTML = "checked"
             }
@@ -486,11 +483,6 @@ function PlaceUserData(user_object, stravaOauth, stravaEnabled) {
                 </div>
 
                 <div class="notification-options" id="" style="">
-                    <div class="strava-option" id="" style="">
-                        <input style="" class="clickable" type="checkbox" id="strava_padel" name="strava_padel" value="" onchange="updateAccountValue('strava_padel');" ${padelHTML}>
-                        <label for="strava_padel" style="margin: 0;" class="clickable">Convert Pickleball to Padel</label><br>
-                    </div>
-
                     <div class="strava-option" id="" style="">
                         <input style="" class="clickable" type="checkbox" id="strava_walks" name="strava_walks" value="" onchange="updateAccountValue('strava_walks');" ${walksHTML}>
                         <label for="strava_walks" style="margin: 0;" class="clickable">Ignore walks</label><br>

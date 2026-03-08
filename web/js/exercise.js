@@ -239,7 +239,7 @@ function generateExerciseHTML(exercise, count, forceFullEditor = false) {
             <div class="top-row">
                 ${stravaDivide}
                 ${stravaCombineHTML}
-                <img src="/assets/trash-2.svg" style="height: 1em; width: 1em; padding: 1em;" onclick="updateExercise('${exercise.id}', false, ${count}, '${exercise.time}')" class="btn_logo clickable color-invert">
+                <img src="/assets/trash-2.svg" style="height: 1em; width: 1em; padding: 1em;" onclick="updateExercise('${exercise.id}', false, ${count}, '${exercise.time}', true)" class="btn_logo clickable color-invert">
             </div>
 
             <div class="exerciseSubWrapper" id="exercise-sub-${exercise.id}">
@@ -249,14 +249,14 @@ function generateExerciseHTML(exercise, count, forceFullEditor = false) {
                 
                 <div class="exercise-input" id="exercise-timeofday-${exercise.id}">
                     <label style="margin: 0;" for="exercise-timeofday-input-${exercise.id}"" title="Time of day">Time</label>
-                    <input style="" class="exercise-time-input" type="time" id="exercise-timeofday-input-${exercise.id}" name="exercise-timeofday-input" placeholder="hh:mm" value="${timeHTML}" onchange="updateExercise('${exercise.id}', true, ${count}, '${exercise.time}')">
+                    <input style="" class="exercise-time-input" type="time" id="exercise-timeofday-input-${exercise.id}" name="exercise-timeofday-input" placeholder="hh:mm" value="${timeHTML}" onchange="updateExercise('${exercise.id}', true, ${count}, '${exercise.time}', true)">
                 </div>
                 <div class="exercise-input" id="exercise-time-${exercise.id}">
                     <label style="margin: 0;" for="exercise-time-input-${exercise.id}"" title="Total session duration">Duration</label>
-                    <input style="" class="exercise-time-input" type="text" id="exercise-time-input-${exercise.id}" name="exercise-time-input" pattern="[0-9:]{0,}" placeholder="hh:mm:ss" value="${durationHTML}" onchange="updateExercise('${exercise.id}', true, ${count}, '${exercise.time}')">
+                    <input style="" class="exercise-time-input" type="text" id="exercise-time-input-${exercise.id}" name="exercise-time-input" pattern="[0-9:]{0,}" placeholder="hh:mm:ss" value="${durationHTML}" onchange="updateExercise('${exercise.id}', true, ${count}, '${exercise.time}', true)">
                 </div>
 
-                <textarea class="day-note-area" id="exercise-note-${exercise.id}" name="exercise-exercise-note" rows="3" cols="33" placeholder="Notes" style="margin-top: 1em; width: 20em;" onchange="updateExercise('${exercise.id}', true, ${count}, '${exercise.time}')">${exercise.note}</textarea>
+                <textarea class="day-note-area" id="exercise-note-${exercise.id}" name="exercise-exercise-note" rows="3" cols="33" placeholder="Notes" style="margin-top: 1em; width: 20em;" onchange="updateExercise('${exercise.id}', true, ${count}, '${exercise.time}', true)">${exercise.note}</textarea>
 
                 <div class="operationsWrapper" id="operationsWrapper-${exercise.id}">
                     ${generateOperationsHTML(exercise.operations, exercise.id)}
@@ -411,7 +411,7 @@ function generateSimpleActivityHTML(exercise, count) {
                 onclick="switchToFullEditor('${exercise.id}')"
                 class="btn_logo clickable color-invert">
             <img src="/assets/trash-2.svg" style="height: 1em; width: 1em; padding: 1em;"
-                onclick="updateExercise('${exercise.id}', false, ${count}, '${exercise.time}')"
+                onclick="updateExercise('${exercise.id}', false, ${count}, '${exercise.time}', true)"
                 class="btn_logo clickable color-invert">
         </div>
         <div class="exerciseSubWrapper" id="exercise-sub-${exercise.id}">
@@ -842,8 +842,8 @@ function generateOperationSetHTML(operationSet, operation, setCounter) {
         weight = operationSet.weight
     }
     var time = ""
-    if(operationSet.time) {
-        time = secondsToDurationString(operationSet.time)
+    if(operationSet.moving_time) {
+        time = secondsToDurationString(operationSet.moving_time)
     }
     var distance = ""
     if(operationSet.distance != null) {
@@ -1129,7 +1129,7 @@ function updateOperationSet(operationSetID, setCount) {
     var form_obj = {
         "repetitions": repetitions,
         "weight": weight,
-        "time": timeFinal,
+        "moving_time": timeFinal,
         "distance": distance,
     };
 
@@ -1168,7 +1168,7 @@ function placeOperationSet(operationSet, operation, setCount) {
     document.getElementById('operation-set-' + operationSet.id).innerHTML = operationSetHTML
 }
 
-function updateExercise(exerciseID, on, count, originalTimeString) {
+function updateExercise(exerciseID, on, count, originalTimeString, fromEditor = false) {
     if(!on && !confirm("Are you sure you want to delete this session?")) {
         return;
     }
@@ -1213,7 +1213,11 @@ function updateExercise(exerciseID, on, count, originalTimeString) {
             if(result.error) {
                 error(result.error);
             } else {
-                placeExercise(result.exercise, count)
+                if (fromEditor) {
+                    placeExercise(result.exercise, count, true);
+                } else {
+                    placeExercise(result.exercise, count);
+                }
             }
 
         }
@@ -1226,8 +1230,22 @@ function updateExercise(exerciseID, on, count, originalTimeString) {
     return false;
 }
 
-function placeExercise(exercise, count) {
-    document.getElementById('exercise-' + exercise.id).innerHTML = generateExerciseHTML(exercise, count)
+function placeExercise(exercise, count, forceFullEditor = false) {
+    document.getElementById('exercise-' + exercise.id).innerHTML = generateExerciseHTML(exercise, count, forceFullEditor)
+    if (forceFullEditor && isSimpleActivity(exercise)) {
+        // Re-inject the "back to summary" button just like switchToFullEditor does
+        const subWrapper = document.getElementById('exercise-sub-' + exercise.id);
+        if (subWrapper) {
+            const backBtn = document.createElement('button');
+            backBtn.textContent = '← Back to summary';
+            backBtn.className = 'back-to-summary-btn';
+            backBtn.style.cssText = 'margin-top: 1em; font-size: 0.75em; opacity: 0.6;';
+            backBtn.onclick = function() {
+                document.getElementById('exercise-' + exercise.id).innerHTML = generateSimpleActivityHTML(exercise, exercise._count);
+            };
+            subWrapper.insertBefore(backBtn, subWrapper.firstChild);
+        }
+    }
 }
 
 function loadExerciseList() {

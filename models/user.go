@@ -22,7 +22,6 @@ type User struct {
 	SundayAlert                bool       `json:"sunday_alert" gorm:"not null; default: false"`
 	BirthDate                  *time.Time `json:"birth_date" gorm:"default: null"`
 	StravaCode                 *string    `json:"strava_code" gorm:"default: null"`
-	StravaPadel                *bool      `json:"strava_padel" gorm:"default: false"`
 	StravaWalks                *bool      `json:"strava_walks" gorm:"default: true"`
 	StravaID                   *string    `json:"strava_id" gorm:"default: null"`
 	StravaPublic               *bool      `json:"strava_public" gorm:"default: true"`
@@ -50,7 +49,6 @@ type UserUpdateRequest struct {
 
 type UserPartialUpdateRequest struct {
 	SundayAlert  *bool `json:"sunday_alert"`
-	StravaPadel  *bool `json:"strava_padel"`
 	StravaWalks  *bool `json:"strava_walks"`
 	StravaPublic *bool `json:"strava_public"`
 }

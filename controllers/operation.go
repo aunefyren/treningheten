@@ -569,7 +569,7 @@ func APIUpdateOperationSet(context *gin.Context) {
 
 	operationSet.Distance = operationSetUpdateRequest.Distance
 	operationSet.Repetitions = operationSetUpdateRequest.Repetitions
-	operationSet.Time = operationSetUpdateRequest.Time
+	operationSet.MovingTime = operationSetUpdateRequest.MovingTime
 	operationSet.Weight = operationSetUpdateRequest.Weight
 
 	operationSet, err = database.UpdateOperationSetInDB(operationSet)

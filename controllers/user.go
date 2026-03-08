@@ -886,10 +886,6 @@ func APIPartialUpdateUser(context *gin.Context) {
 		userObject.SundayAlert = *userUpdateRequest.SundayAlert
 	}
 
-	if userUpdateRequest.StravaPadel != nil {
-		userObject.StravaPadel = userUpdateRequest.StravaPadel
-	}
-
 	if userUpdateRequest.StravaWalks != nil {
 		userObject.StravaWalks = userUpdateRequest.StravaWalks
 	}

@@ -81,7 +81,7 @@ type OperationSetUpdateRequest struct {
 	Repetitions *float64       `json:"repetitions"`
 	Weight      *float64       `json:"weight"`
 	Distance    *float64       `json:"distance"`
-	Time        *time.Duration `json:"time"`
+	MovingTime  *time.Duration `json:"moving_time"`
 }
 
 type OperationSetObject struct {
