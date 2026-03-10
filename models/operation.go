@@ -140,10 +140,10 @@ type StatisticsSumCompilation struct {
 }
 
 type StatisticsAverageCompilation struct {
-	Distance   float64 `json:"distance"`
-	Time       int     `json:"time"`
-	Repetition float64 `json:"repetition"`
-	Weight     float64 `json:"weight"`
+	Distance   float64       `json:"distance"`
+	Time       time.Duration `json:"time"`
+	Repetition float64       `json:"repetition"`
+	Weight     float64       `json:"weight"`
 }
 
 type StatisticsTopCompilation struct {

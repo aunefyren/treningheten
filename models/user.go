@@ -3,6 +3,7 @@ package models
 import (
 	"time"
 
+	"github.com/google/uuid"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -83,4 +84,49 @@ func (user *User) CheckPassword(providedPassword string) error {
 		return err
 	}
 	return nil
+}
+
+type UserStatisticsReply struct {
+	ExercisesAllTime   int `json:"exercises_all_time"`
+	ExercisesPastYear  int `json:"exercises_past_year"`
+	ExercisesPastMonth int `json:"exercises_past_month"`
+	StreakWeeks        int `json:"streak_weeks"`
+	StreakWeeksTop     int `json:"streak_weeks_top"`
+	StreakDays         int `json:"streak_days"`
+	StreakDaysTop      int `json:"streak_days_top"`
+	SeasonsJoined      int `json:"seasons_joined"`
+	ActivityStatistics struct {
+		Action    Action                    `json:"action"`
+		PastMonth UserStatisticsCompilation `json:"past_month"`
+		PastYear  UserStatisticsCompilation `json:"past_year"`
+		AllTime   UserStatisticsCompilation `json:"all_time"`
+	} `json:"activity_statistics"`
+}
+
+type UserStatisticsCompilation struct {
+	Sums     UserStatisticsSumCompilation     `json:"sums"`
+	Averages UserStatisticsAverageCompilation `json:"averages"`
+	Tops     UserStatisticsTopCompilation     `json:"tops"`
+}
+
+type UserStatisticsTopCompilation struct {
+	Distance              float64       `json:"distance"`
+	DistanceExerciseDayID *uuid.UUID    `json:"distance_exercise_day_id"`
+	Time                  time.Duration `json:"time"`
+	TimeExerciseDayID     *uuid.UUID    `json:"time_exercise_day_id"`
+	Weight                float64       `json:"weight"`
+	WeightExerciseDayID   *uuid.UUID    `json:"weight_exercise_day_id"`
+}
+
+type UserStatisticsSumCompilation struct {
+	Distance   float64       `json:"distance"`
+	Time       time.Duration `json:"time"`
+	Weight     float64       `json:"weight"`
+	Operations int64         `json:"operations"`
+}
+
+type UserStatisticsAverageCompilation struct {
+	Distance float64       `json:"distance"`
+	Time     time.Duration `json:"time"`
+	Weight   float64       `json:"weight"`
 }

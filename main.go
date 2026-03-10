@@ -255,6 +255,8 @@ func initRouter(configFile models.ConfigStruct) *gin.Engine {
 			auth.GET("/users", controllers.GetUsers)
 			auth.POST("/users/:user_id", controllers.UpdateUser)
 			auth.PATCH("/users/:user_id", controllers.APIPartialUpdateUser)
+			auth.GET("/users/:user_id/activities", controllers.APIGetUserActivities)
+			auth.GET("/users/:user_id/statistics", controllers.APIGetUserStatistics)
 
 			auth.GET("/debts/unchosen", controllers.APIGetUnchosenDebt)
 			auth.GET("/debts/:debt_id", controllers.APIGetDebt)

@@ -3,6 +3,7 @@ package controllers
 import (
 	"html"
 	"net/http"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -905,4 +906,398 @@ func APIPartialUpdateUser(context *gin.Context) {
 
 	// Reply
 	context.JSON(http.StatusOK, gin.H{"message": "Account updated."})
+}
+
+func APIGetUserActivities(context *gin.Context) {
+	var userIDString = context.Param("user_id")
+	userID, err := uuid.Parse(userIDString)
+	if err != nil {
+		logger.Log.Info("Failed to parse user ID. Error: " + err.Error())
+		context.JSON(http.StatusBadRequest, gin.H{"error": "Failed to parse user ID."})
+		context.Abort()
+		return
+	}
+
+	// Get current time
+	now := time.Now()
+	lastMonth := now.AddDate(0, -1, 0)
+
+	mondayStart, err := utilities.FindEarlierMonday(lastMonth)
+	if err != nil {
+		logger.Log.Info("Failed to find Monday. Error: " + err.Error())
+		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to find Monday."})
+		context.Abort()
+		return
+	}
+
+	sundayEnd, err := utilities.FindNextSunday(now)
+	if err != nil {
+		logger.Log.Info("Failed to find Sunday. Error: " + err.Error())
+		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to find Sunday."})
+		context.Abort()
+		return
+	}
+
+	allExerciseDays, err := database.GetExerciseDaysForSharingUsersUsingDates(mondayStart, sundayEnd)
+	if err != nil {
+		logger.Log.Info("Failed to get exercise days from time frame. Error: " + err.Error())
+		context.JSON(http.StatusBadRequest, gin.H{"error": "Failed to get exercise days from time frame."})
+		context.Abort()
+		return
+	}
+
+	filteredExerciseDays := []models.ExerciseDay{}
+	validatedUsers := []uuid.UUID{}
+	for _, exerciseDay := range allExerciseDays {
+		if exerciseDay.UserID == nil {
+			continue
+		}
+
+		foundInCache := false
+		for _, validatedUserID := range validatedUsers {
+			if validatedUserID == *exerciseDay.UserID {
+				foundInCache = true
+				break
+			}
+		}
+
+		if foundInCache {
+			filteredExerciseDays = append(filteredExerciseDays, exerciseDay)
+			continue
+		} else {
+			if exerciseDay.UserID != nil && userID != *exerciseDay.UserID {
+				filteredExerciseDays = append(filteredExerciseDays, exerciseDay)
+				validatedUsers = append(validatedUsers, *exerciseDay.UserID)
+				continue
+			}
+		}
+	}
+
+	exerciseDayObjects, err := ConvertExerciseDaysToExerciseDayObjects(filteredExerciseDays)
+	if err != nil {
+		logger.Log.Info("Failed to convert exercise day to exercise day objects. Error: " + err.Error())
+		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to convert exercise day to exercise day objects."})
+		context.Abort()
+		return
+	}
+
+	allActivities := []models.Activity{}
+	for _, exerciseDayObject := range exerciseDayObjects {
+		for _, exercise := range exerciseDayObject.Exercises {
+			if exercise.IsOn && exercise.Enabled {
+				newActivity := models.Activity{}
+				newActivity.ExerciseID = exercise.ID
+				newActivity.User = exerciseDayObject.User
+				newActivity.Time = exercise.Time
+				newActivity.Actions = []models.Action{}
+
+				if exerciseDayObject.User.StravaPublic != nil && *exerciseDayObject.User.StravaPublic {
+					newActivity.StravaIDs = exercise.StravaID
+				} else {
+					newActivity.StravaIDs = []string{}
+				}
+
+				for _, operation := range exercise.Operations {
+					if operation.Action != nil {
+						newActivity.Actions = append(newActivity.Actions, *operation.Action)
+					}
+				}
+
+				allActivities = append(allActivities, newActivity)
+			}
+		}
+	}
+
+	sort.Slice(allActivities, func(i, j int) bool {
+		return allActivities[j].Time.Before(allActivities[i].Time)
+	})
+
+	// Return activities
+	context.JSON(http.StatusOK, gin.H{"activities": allActivities})
+}
+
+func APIGetUserStatistics(context *gin.Context) {
+	var userIDString = context.Param("user_id")
+	userID, err := uuid.Parse(userIDString)
+	if err != nil {
+		logger.Log.Info("Failed to parse user ID. Error: " + err.Error())
+		context.JSON(http.StatusBadRequest, gin.H{"error": "Failed to parse user ID."})
+		context.Abort()
+		return
+	}
+
+	userStatisticsReply := models.UserStatisticsReply{}
+
+	exerciseDays, err := database.GetAllExerciseDaysWithExerciseByUserID(userID)
+	if err != nil {
+		logger.Log.Info("Failed to get exercise days for user. Error: " + err.Error())
+		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get exercise days for user."})
+		context.Abort()
+		return
+	}
+
+	exerciseDayObjects, err := ConvertExerciseDaysToExerciseDayObjects(exerciseDays)
+	if err != nil {
+		logger.Log.Info("Failed to convert exercise days to objects for user. Error: " + err.Error())
+		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to convert exercise days to objects for user"})
+		context.Abort()
+		return
+	}
+
+	var lastRegisteredWeek *int
+	var lastRegisteredYear *int
+	var lastRegisteredDay *time.Time
+	lastWeekChecked := false
+	yesterdayChecked := false
+
+	lastWeekDate := time.Now().AddDate(0, 0, -7)
+	lastWeekYear, lastWeek := lastWeekDate.ISOWeek()
+	yesterday := time.Now().AddDate(0, 0, -1)
+
+	sort.Slice(exerciseDayObjects, func(i, j int) bool {
+		return exerciseDayObjects[i].Date.Before(exerciseDayObjects[j].Date)
+	})
+
+	allActions := []uuid.UUID{}
+
+	for _, exerciseDay := range exerciseDayObjects {
+		exerciseDayDate := exerciseDay.Date
+		logger.Log.Trace("exercise day: " + exerciseDayDate.String())
+		for _, exercise := range exerciseDay.Exercises {
+			if !exercise.Enabled || !exercise.IsOn {
+				continue
+			}
+
+			userStatisticsReply.ExercisesAllTime += 1
+
+			if time.Since(exerciseDayDate) <= time.Duration(time.Hour*24*365) {
+				userStatisticsReply.ExercisesPastYear += 1
+			}
+
+			if time.Since(exerciseDayDate) <= time.Duration(time.Hour*24*31) {
+				userStatisticsReply.ExercisesPastMonth += 1
+			}
+
+			currentYear, currentWeek := exerciseDayDate.ISOWeek()
+			logger.Log.Tracef("week %d, year %d", currentWeek, currentYear)
+			if lastRegisteredWeek != nil && lastRegisteredYear != nil && (currentWeek != *lastRegisteredWeek || currentYear != *lastRegisteredYear) {
+				logger.Log.Tracef("not the same week %d", currentWeek)
+				lastWeekDate := exerciseDayDate.AddDate(0, 0, -7)
+				lastWeekYear, lastWeek := lastWeekDate.ISOWeek()
+
+				if lastWeek == *lastRegisteredWeek && lastWeekYear == *lastRegisteredYear {
+					userStatisticsReply.StreakWeeks += 1
+					logger.Log.Tracef("adding week %d exercises", currentWeek)
+
+					if userStatisticsReply.StreakWeeks > userStatisticsReply.StreakWeeksTop {
+						userStatisticsReply.StreakWeeksTop = userStatisticsReply.StreakWeeks
+					}
+				} else {
+					userStatisticsReply.StreakWeeks = 1
+					logger.Log.Tracef("reset week %d", currentWeek)
+				}
+			} else {
+				if lastRegisteredWeek != nil {
+					logger.Log.Tracef("the same week %d, %d | %d, %d", *lastRegisteredWeek, *lastRegisteredYear, currentWeek, currentYear)
+				}
+			}
+
+			currentDay := exerciseDayDate
+			if lastRegisteredDay != nil && currentDay.Format("2006-01-02") != lastRegisteredDay.Format("2006-01-02") {
+				dayBefore := currentDay.AddDate(0, 0, -1)
+				if dayBefore.Format("2006-01-02") == lastRegisteredDay.Format("2006-01-02") {
+					userStatisticsReply.StreakDays += 1
+
+					if userStatisticsReply.StreakDays > userStatisticsReply.StreakDaysTop {
+						userStatisticsReply.StreakDaysTop = userStatisticsReply.StreakDays
+					}
+				} else {
+					userStatisticsReply.StreakDays = 1
+				}
+			}
+
+			lastRegisteredWeek = &currentWeek
+			lastRegisteredYear = &currentYear
+			lastRegisteredDay = &exerciseDayDate
+
+			if currentWeek == lastWeek && currentYear == lastWeekYear {
+				lastWeekChecked = true
+			}
+			if currentDay.Format("2006-01-02") != yesterday.Format("2006-01-02") {
+				yesterdayChecked = true
+			}
+
+			for _, operation := range exercise.Operations {
+				if !operation.Enabled {
+					continue
+				}
+				if operation.Action != nil {
+					allActions = append(allActions, *&operation.Action.ID)
+				}
+			}
+		}
+	}
+
+	if !lastWeekChecked {
+		userStatisticsReply.StreakWeeks = 0
+	}
+	if !yesterdayChecked {
+		userStatisticsReply.StreakDays = 0
+	}
+
+	goals, err := database.GetGoalsForUserUsingUserID(userID)
+	if err != nil {
+		logger.Log.Info("Failed to get goals for user. Error: " + err.Error())
+		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get goals for user."})
+		context.Abort()
+		return
+	}
+
+	userStatisticsReply.SeasonsJoined = len(goals)
+
+	chosenAction := mostCommonAction(allActions)
+
+	if chosenAction != nil {
+		for _, exerciseDay := range exerciseDayObjects {
+			exerciseDayDate := exerciseDay.Date
+			for _, exercise := range exerciseDay.Exercises {
+				if !exercise.Enabled || !exercise.IsOn {
+					continue
+				}
+
+				for _, operation := range exercise.Operations {
+					if !operation.Enabled {
+						continue
+					}
+
+					actionDistance := 0.0
+					actionTime := time.Duration(0)
+					actionRepetitions := 0.0
+					actionWeight := 0.0
+
+					for _, operationSet := range operation.OperationSets {
+						if !operationSet.Enabled {
+							continue
+						}
+						if operationSet.Distance != nil {
+							actionDistance += *operationSet.Distance
+						}
+						if operationSet.Time != nil {
+							actionTime = time.Duration(actionTime + *operationSet.Time)
+						}
+						if operationSet.Repetitions != nil {
+							actionRepetitions += *operationSet.Repetitions
+						}
+						if operationSet.Weight != nil {
+							actionWeight += *operationSet.Weight
+						}
+					}
+
+					if operation.Action != nil && operation.Action.ID == *chosenAction {
+						userStatisticsReply.ActivityStatistics.Action = *operation.Action
+
+						if time.Since(exerciseDayDate) < time.Duration(time.Hour*24*31) {
+							userStatisticsReply.ActivityStatistics.PastMonth.Sums.Operations += 1
+
+							userStatisticsReply.ActivityStatistics.PastMonth.Sums.Distance += actionDistance
+							userStatisticsReply.ActivityStatistics.PastMonth.Sums.Time += actionTime
+							userStatisticsReply.ActivityStatistics.PastMonth.Sums.Weight += actionWeight
+
+							if actionDistance > userStatisticsReply.ActivityStatistics.PastMonth.Tops.Distance {
+								userStatisticsReply.ActivityStatistics.PastMonth.Tops.Distance = actionDistance
+								userStatisticsReply.ActivityStatistics.PastMonth.Tops.DistanceExerciseDayID = &exercise.ExerciseDay
+							}
+							if actionTime > userStatisticsReply.ActivityStatistics.PastMonth.Tops.Time {
+								userStatisticsReply.ActivityStatistics.PastMonth.Tops.Time = actionTime
+								userStatisticsReply.ActivityStatistics.PastMonth.Tops.TimeExerciseDayID = &exercise.ExerciseDay
+							}
+							if actionWeight > userStatisticsReply.ActivityStatistics.PastMonth.Tops.Weight {
+								userStatisticsReply.ActivityStatistics.PastMonth.Tops.Weight = actionWeight
+								userStatisticsReply.ActivityStatistics.PastMonth.Tops.WeightExerciseDayID = &exercise.ExerciseDay
+							}
+						}
+						if time.Since(exerciseDayDate) < time.Duration(time.Hour*24*365) {
+							userStatisticsReply.ActivityStatistics.PastYear.Sums.Operations += 1
+
+							userStatisticsReply.ActivityStatistics.PastYear.Sums.Distance += actionDistance
+							userStatisticsReply.ActivityStatistics.PastYear.Sums.Time += time.Duration(actionTime)
+							userStatisticsReply.ActivityStatistics.PastYear.Sums.Weight += actionWeight
+
+							if actionDistance > userStatisticsReply.ActivityStatistics.PastYear.Tops.Distance {
+								userStatisticsReply.ActivityStatistics.PastYear.Tops.Distance = actionDistance
+								userStatisticsReply.ActivityStatistics.PastYear.Tops.DistanceExerciseDayID = &exercise.ExerciseDay
+							}
+							if actionTime > userStatisticsReply.ActivityStatistics.PastYear.Tops.Time {
+								userStatisticsReply.ActivityStatistics.PastYear.Tops.Time = actionTime
+								userStatisticsReply.ActivityStatistics.PastYear.Tops.TimeExerciseDayID = &exercise.ExerciseDay
+							}
+							if actionWeight > userStatisticsReply.ActivityStatistics.PastYear.Tops.Weight {
+								userStatisticsReply.ActivityStatistics.PastYear.Tops.Weight = actionWeight
+								userStatisticsReply.ActivityStatistics.PastYear.Tops.WeightExerciseDayID = &exercise.ExerciseDay
+							}
+						}
+
+						userStatisticsReply.ActivityStatistics.AllTime.Sums.Operations += 1
+
+						userStatisticsReply.ActivityStatistics.AllTime.Sums.Distance += actionDistance
+						userStatisticsReply.ActivityStatistics.AllTime.Sums.Time += actionTime
+						userStatisticsReply.ActivityStatistics.AllTime.Sums.Weight += actionWeight
+
+						if actionDistance > userStatisticsReply.ActivityStatistics.AllTime.Tops.Distance {
+							userStatisticsReply.ActivityStatistics.AllTime.Tops.Distance = actionDistance
+							userStatisticsReply.ActivityStatistics.AllTime.Tops.DistanceExerciseDayID = &exercise.ExerciseDay
+						}
+						if actionTime > userStatisticsReply.ActivityStatistics.AllTime.Tops.Time {
+							userStatisticsReply.ActivityStatistics.AllTime.Tops.Time = actionTime
+							userStatisticsReply.ActivityStatistics.AllTime.Tops.TimeExerciseDayID = &exercise.ExerciseDay
+						}
+						if actionWeight > userStatisticsReply.ActivityStatistics.AllTime.Tops.Weight {
+							userStatisticsReply.ActivityStatistics.AllTime.Tops.Weight = actionWeight
+							userStatisticsReply.ActivityStatistics.AllTime.Tops.WeightExerciseDayID = &exercise.ExerciseDay
+						}
+					}
+				}
+			}
+		}
+	}
+
+	if userStatisticsReply.ActivityStatistics.PastMonth.Sums.Operations > 0 {
+		userStatisticsReply.ActivityStatistics.PastMonth.Averages.Distance = float64(userStatisticsReply.ActivityStatistics.PastMonth.Sums.Distance / float64(userStatisticsReply.ActivityStatistics.PastMonth.Sums.Operations))
+		userStatisticsReply.ActivityStatistics.PastMonth.Averages.Time = time.Duration(float64(userStatisticsReply.ActivityStatistics.PastMonth.Sums.Time) / float64(userStatisticsReply.ActivityStatistics.PastMonth.Sums.Operations))
+		userStatisticsReply.ActivityStatistics.PastMonth.Averages.Weight = float64(userStatisticsReply.ActivityStatistics.PastMonth.Sums.Weight / float64(userStatisticsReply.ActivityStatistics.PastMonth.Sums.Operations))
+	}
+	if userStatisticsReply.ActivityStatistics.PastYear.Sums.Operations > 0 {
+		userStatisticsReply.ActivityStatistics.PastYear.Averages.Distance = float64(userStatisticsReply.ActivityStatistics.PastYear.Sums.Distance / float64(userStatisticsReply.ActivityStatistics.PastYear.Sums.Operations))
+		userStatisticsReply.ActivityStatistics.PastYear.Averages.Time = time.Duration(float64(userStatisticsReply.ActivityStatistics.PastYear.Sums.Time) / float64(userStatisticsReply.ActivityStatistics.PastYear.Sums.Operations))
+		userStatisticsReply.ActivityStatistics.PastYear.Averages.Weight = float64(userStatisticsReply.ActivityStatistics.PastYear.Sums.Weight / float64(userStatisticsReply.ActivityStatistics.PastYear.Sums.Operations))
+	}
+	if userStatisticsReply.ActivityStatistics.AllTime.Sums.Operations > 0 {
+		userStatisticsReply.ActivityStatistics.AllTime.Averages.Distance = float64(userStatisticsReply.ActivityStatistics.AllTime.Sums.Distance / float64(userStatisticsReply.ActivityStatistics.AllTime.Sums.Operations))
+		userStatisticsReply.ActivityStatistics.AllTime.Averages.Time = time.Duration(float64(userStatisticsReply.ActivityStatistics.AllTime.Sums.Time) / float64(userStatisticsReply.ActivityStatistics.AllTime.Sums.Operations))
+		userStatisticsReply.ActivityStatistics.AllTime.Averages.Weight = float64(userStatisticsReply.ActivityStatistics.AllTime.Sums.Weight / float64(userStatisticsReply.ActivityStatistics.AllTime.Sums.Operations))
+	}
+
+	context.JSON(http.StatusOK, gin.H{"data": userStatisticsReply})
+}
+
+func mostCommonAction(uuidArray []uuid.UUID) *uuid.UUID {
+	if len(uuidArray) == 0 {
+		return nil
+	}
+
+	counts := make(map[uuid.UUID]int)
+	for _, id := range uuidArray {
+		counts[id]++
+	}
+
+	var best uuid.UUID
+	bestCount := 0
+	for id, count := range counts {
+		if count > bestCount || (count == bestCount && id.String() < best.String()) {
+			best = id
+			bestCount = count
+		}
+	}
+
+	return &best
 }

@@ -36,7 +36,7 @@ func UpdateExerciseByTurningOnByExerciseID(exerciseID uuid.UUID) error {
 
 	var exercise models.Exercise
 
-	exerciseRecord := Instance.Model(exercise).Where("`exercises`.enabled = ?", 1).Where("`exercises`.ID = ?", exerciseID).Update("on", 1)
+	exerciseRecord := Instance.Model(exercise).Where("`exercises`.enabled = ?", 1).Where("`exercises`.ID = ?", exerciseID).Update("is_on", 1)
 	if exerciseRecord.Error != nil {
 		return exerciseRecord.Error
 	} else if exerciseRecord.RowsAffected != 1 {
@@ -52,7 +52,7 @@ func UpdateExerciseByTurningOffByExerciseID(exerciseID uuid.UUID) error {
 
 	var exercise models.Exercise
 
-	exerciseRecord := Instance.Model(exercise).Where("`exercises`.enabled = ?", 1).Where("`exercises`.ID = ?", exerciseID).Update("on", 0)
+	exerciseRecord := Instance.Model(exercise).Where("`exercises`.enabled = ?", 1).Where("`exercises`.ID = ?", exerciseID).Update("is_on", 0)
 	if exerciseRecord.Error != nil {
 		return exerciseRecord.Error
 	} else if exerciseRecord.RowsAffected != 1 {
@@ -146,4 +146,26 @@ func GetExerciseForUserWithStravaID(userID uuid.UUID, stravaID string) (exercise
 	}
 
 	return exercise, err
+}
+
+// Return exercise days where there are exercises that are enabled, is on, for a user
+func GetAllExerciseDaysWithExerciseByUserID(userID uuid.UUID) ([]models.ExerciseDay, error) {
+	var exerciseDays []models.ExerciseDay
+
+	record := Instance.
+		Where("`exercise_days`.enabled = ?", 1).
+		Joins("JOIN `exercises` ON `exercises`.exercise_day_id = `exercise_days`.id").
+		Where("`exercises`.enabled = ?", 1).
+		Where("`exercises`.is_on = ?", 1).
+		Joins("JOIN `users` ON `users`.id = `exercise_days`.user_id").
+		Where("`users`.enabled = ?", 1).
+		Where("`users`.id = ?", userID).
+		Distinct().
+		Find(&exerciseDays)
+
+	if record.Error != nil {
+		return []models.ExerciseDay{}, record.Error
+	}
+
+	return exerciseDays, nil
 }

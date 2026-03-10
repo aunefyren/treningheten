@@ -49,6 +49,10 @@ function load_page(result) {
             <p id="join_date" style=""></p>
             <p id="user_admin" style=""></p>
 
+            <div class="button-collection">
+                <button onclick="window.location.href = '/users/${user_id}';"class="regular-button" style="" type="submit" href="">Public profile</button>
+            </div>
+
             <div class="account-section-wrapper">
 
                 <div class="account-section" style="">

@@ -986,7 +986,7 @@ func APIGetActionStatistics(context *gin.Context) {
 	if statisticsSums.Operations > 0 {
 		statisticsAverages := models.StatisticsAverageCompilation{
 			Distance:   (statisticsSums.Distance / float64(statisticsSums.Operations)),
-			Time:       int(statisticsSums.Time.Nanoseconds() / statisticsSums.Operations),
+			Time:       time.Duration(float64(statisticsSums.Time) / float64(statisticsSums.Operations)),
 			Repetition: (statisticsSums.Repetition / float64(statisticsSums.Operations)),
 			Weight:     (statisticsSums.Weight / float64(statisticsSums.Operations)),
 		}

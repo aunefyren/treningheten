@@ -43,18 +43,21 @@ function load_page(result) {
     var html = `
 
         <div class="module">
+            <div class="account-section">
+                <div class="user-active-profile-photo">
+                    <img style="width: 100%; height: 100%;" class="user-active-profile-photo-img" id="user-active-profile-photo-img" src="/assets/images/barbell.gif">
+                </div>
 
-            <div class="user-active-profile-photo">
-                <img style="width: 100%; height: 100%;" class="user-active-profile-photo-img" id="user-active-profile-photo-img" src="/assets/images/barbell.gif">
+                <b><p id="user_name" style="margin-top: 1em; font-size: 1.25em;"></p></b>
+                <p id="join_date" style=""></p>
+                <p id="user_admin" style=""></p>
+
+                <div class="user-links" id="user-links" style="display:none; margin-top: 1em;">
+                </div>
             </div>
 
-            <b><p id="user_name" style="margin-top: 1em; font-size: 1.25em;"></p></b>
-            <p id="join_date" style=""></p>
-            <p id="user_admin" style=""></p>
-
-            <div class="user-links" id="user-links" style="display:none; margin-top: 1em;">
+            <div id="account-section-stats class="account-section">
             </div>
-
         </div>
 
         <div class="module" id="achievements-hr" style="display: none;">

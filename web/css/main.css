@@ -1784,6 +1784,18 @@ input[type=checkbox]
   background-color: var(--black);
 }
 
+.regular-button {
+  margin: 1rem 2rem;
+  padding: 0.5rem 0.25rem;
+  background-color: var(--lightblue);
+  width: 10rem;
+  font-size: 0.8rem;
+}
+
+.regular-button:hover {
+  background-color: var(--black);
+}
+
 .notification-options {
   display: flex;
   flex-direction: row;
