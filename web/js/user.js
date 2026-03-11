@@ -476,15 +476,33 @@ function PlaceUserStats(data) {
         <div class="user-stats-section">
             <div class="user-stats-section-title">Streaks</div>
             <div class="user-stats-row">
-                <div class="user-streak-card">
-                    ${weekFlame}
-                    <div class="user-streak-number">${data.streak_weeks}<span class="user-streak-unit">wk</span></div>
-                    <div class="user-stat-label">Week streak</div>
+                <div class="user-streak-card unselectable" tabindex="1">
+                    <div class="user-streak-card-base">
+                        ${weekFlame}
+                        <div class="user-streak-number">${data.streak_weeks}<span class="user-streak-unit">wk</span></div>
+                        <div class="user-stat-label">Week streak</div>
+                    </div>
+                    <div class="streak-overlay">
+                        <div class="streak-overlay-text">
+                            <div style="font-size: 1.1em;">🔥 Week streak</div>
+                            <div>Current: <b>${data.streak_weeks} wk</b></div>
+                            <div style="opacity: 0.7;">Best: <b>${data.streak_weeks_top} wk</b></div>
+                        </div>
+                    </div>
                 </div>
-                <div class="user-streak-card">
-                    ${dayFlame}
-                    <div class="user-streak-number">${data.streak_days}<span class="user-streak-unit">d</span></div>
-                    <div class="user-stat-label">Day streak</div>
+                <div class="user-streak-card unselectable" tabindex="1">
+                    <div class="user-streak-card-base">
+                        ${dayFlame}
+                        <div class="user-streak-number">${data.streak_days}<span class="user-streak-unit">d</span></div>
+                        <div class="user-stat-label">Day streak</div>
+                    </div>
+                    <div class="streak-overlay">
+                        <div class="streak-overlay-text">
+                            <div style="font-size: 1.1em;">🔥 Day streak</div>
+                            <div>Current: <b>${data.streak_days} d</b></div>
+                            <div style="opacity: 0.7;">Best: <b>${data.streak_days_top} d</b></div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>`;
