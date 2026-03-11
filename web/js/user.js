@@ -44,7 +44,7 @@ function load_page(result) {
 
         <div class="module">
             <div class="user-profile-row">
-            <div class="account-section account-section--profile">
+            <div class="account-section account-section--profile" id="account-section-details">
                 <div class="user-active-profile-photo">
                     <img style="width: 100%; height: 100%;" class="user-active-profile-photo-img" id="user-active-profile-photo-img" src="/assets/images/barbell.gif">
                 </div>
@@ -219,8 +219,13 @@ function PlaceUserData(user_object) {
     document.getElementById("user_admin").innerHTML = "Administrator: " + admin_string
 
     GetUserAchievements(user_object.id);
-    GetUserStats(user_object.id);
 
+    if(user_object.share_statistics) {
+        GetUserStats(user_object.id);
+    } else {
+        document.getElementById("account-section-stats").outerHTML = "";
+        document.getElementById("account-section-details").style.border = "none";
+    }
 }
 
 function GetUserAchievements(userID) {

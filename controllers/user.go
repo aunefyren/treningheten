@@ -843,7 +843,7 @@ func APISyncStravaForUser(context *gin.Context) {
 	}
 
 	if user.StravaCode == nil {
-		context.JSON(http.StatusInternalServerError, gin.H{"error": "User does not have a Strava connection."})
+		context.JSON(http.StatusBadRequest, gin.H{"error": "User does not have a Strava connection."})
 		context.Abort()
 		return
 	}
@@ -928,7 +928,7 @@ func APIGetUserActivities(context *gin.Context) {
 	}
 
 	if user.ShareActivities == nil || *user.ShareActivities == false {
-		context.JSON(http.StatusInternalServerError, gin.H{"error": "User does not share activities."})
+		context.JSON(http.StatusForbidden, gin.H{"error": "User does not share activities."})
 		context.Abort()
 		return
 	}
@@ -1050,7 +1050,7 @@ func APIGetUserStatistics(context *gin.Context) {
 	}
 
 	if user.ShareStatistics == nil || *user.ShareStatistics == false {
-		context.JSON(http.StatusInternalServerError, gin.H{"error": "User does not share statistics."})
+		context.JSON(http.StatusForbidden, gin.H{"error": "User does not share statistics."})
 		context.Abort()
 		return
 	}

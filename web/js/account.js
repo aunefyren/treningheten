@@ -283,7 +283,8 @@ function send_update(user_id) {
             "profile_image": "",
             "password_old": password_old,
             "birth_date": birth_date_string,
-            "share_activities": share_activities
+            "share_activities": share_activities,
+            "share_statistics": share_statistics
         };
 
         var form_data = JSON.stringify(form_obj);
