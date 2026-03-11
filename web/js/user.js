@@ -501,7 +501,7 @@ function PlaceUserStats(data) {
     if (act && act.action) {
         var actionName  = act.action.name || "";
         var actionLogo  = act.action.has_logo
-            ? `<img src="/assets/actions/${act.action.name}.svg" style="height:1.4em; width:1.4em; vertical-align:middle; margin-right:0.4em;" onerror="this.style.display='none'">`
+            ? `<img src="/assets/actions/${act.action.name}.svg" class="color-invert" style="height:1.4em; width:1.4em; vertical-align:middle; margin-right:0.4em;" onerror="this.style.display='none'">`
             : "";
 
         function actPeriodHTML(period, label) {

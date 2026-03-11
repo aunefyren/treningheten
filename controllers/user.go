@@ -440,8 +440,9 @@ func UpdateUser(context *gin.Context) {
 		}
 	}
 
-	// Transfer share activity value
+	// Transfer share values
 	userOriginal.ShareActivities = userUpdateRequest.ShareActivities
+	userOriginal.ShareStatistics = userUpdateRequest.ShareStatistics
 
 	// Update profile image
 	if userUpdateRequest.ProfileImage != "" {
@@ -918,6 +919,20 @@ func APIGetUserActivities(context *gin.Context) {
 		return
 	}
 
+	user, err := database.GetUserInformation(userID)
+	if err != nil {
+		logger.Log.Info("Failed to get user. Error: " + err.Error())
+		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get user."})
+		context.Abort()
+		return
+	}
+
+	if user.ShareActivities == nil || *user.ShareActivities == false {
+		context.JSON(http.StatusInternalServerError, gin.H{"error": "User does not share activities."})
+		context.Abort()
+		return
+	}
+
 	// Get current time
 	now := time.Now()
 	lastMonth := now.AddDate(0, -1, 0)
@@ -1026,6 +1041,20 @@ func APIGetUserStatistics(context *gin.Context) {
 		return
 	}
 
+	user, err := database.GetUserInformation(userID)
+	if err != nil {
+		logger.Log.Info("Failed to get user. Error: " + err.Error())
+		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get user."})
+		context.Abort()
+		return
+	}
+
+	if user.ShareStatistics == nil || *user.ShareStatistics == false {
+		context.JSON(http.StatusInternalServerError, gin.H{"error": "User does not share statistics."})
+		context.Abort()
+		return
+	}
+
 	userStatisticsReply := models.UserStatisticsReply{}
 
 	exerciseDays, err := database.GetAllExerciseDaysWithExerciseByUserID(userID)
@@ -1123,7 +1152,8 @@ func APIGetUserStatistics(context *gin.Context) {
 			if currentWeek == lastWeek && currentYear == lastWeekYear {
 				lastWeekChecked = true
 			}
-			if currentDay.Format("2006-01-02") != yesterday.Format("2006-01-02") {
+			if currentDay.Format("2006-01-02") == yesterday.Format("2006-01-02") {
+				logger.Log.Info("yesterday checked")
 				yesterdayChecked = true
 			}
 
@@ -1157,104 +1187,110 @@ func APIGetUserStatistics(context *gin.Context) {
 
 	chosenAction := mostCommonAction(allActions)
 
-	if chosenAction != nil {
-		for _, exerciseDay := range exerciseDayObjects {
-			exerciseDayDate := exerciseDay.Date
-			for _, exercise := range exerciseDay.Exercises {
-				if !exercise.Enabled || !exercise.IsOn {
+	for _, exerciseDay := range exerciseDayObjects {
+		exerciseDayDate := exerciseDay.Date
+		for _, exercise := range exerciseDay.Exercises {
+			if !exercise.Enabled || !exercise.IsOn {
+				continue
+			}
+
+			logger.Log.Tracef("exercise processing")
+
+			if len(exercise.Operations) == 0 {
+				exercise.Operations = append(exercise.Operations, models.OperationObject{Enabled: true})
+			}
+
+			for _, operation := range exercise.Operations {
+				if !operation.Enabled {
 					continue
 				}
 
-				for _, operation := range exercise.Operations {
-					if !operation.Enabled {
+				logger.Log.Tracef("exercise operation with no object processing")
+
+				actionDistance := 0.0
+				actionTime := time.Duration(0)
+				actionRepetitions := 0.0
+				actionWeight := 0.0
+
+				for _, operationSet := range operation.OperationSets {
+					if !operationSet.Enabled {
 						continue
 					}
+					if operationSet.Distance != nil {
+						actionDistance += *operationSet.Distance
+					}
+					if operationSet.Time != nil {
+						actionTime = time.Duration(actionTime + *operationSet.Time)
+					}
+					if operationSet.Repetitions != nil {
+						actionRepetitions += *operationSet.Repetitions
+					}
+					if operationSet.Weight != nil {
+						actionWeight += *operationSet.Weight
+					}
+				}
 
-					actionDistance := 0.0
-					actionTime := time.Duration(0)
-					actionRepetitions := 0.0
-					actionWeight := 0.0
+				if (operation.Action == nil && chosenAction == nil) || (operation.Action != nil && chosenAction != nil && operation.Action.ID == *chosenAction) {
+					userStatisticsReply.ActivityStatistics.Action = operation.Action
 
-					for _, operationSet := range operation.OperationSets {
-						if !operationSet.Enabled {
-							continue
+					if time.Since(exerciseDayDate) < time.Duration(time.Hour*24*31) {
+						userStatisticsReply.ActivityStatistics.PastMonth.Sums.Operations += 1
+
+						userStatisticsReply.ActivityStatistics.PastMonth.Sums.Distance += actionDistance
+						userStatisticsReply.ActivityStatistics.PastMonth.Sums.Time += actionTime
+						userStatisticsReply.ActivityStatistics.PastMonth.Sums.Weight += actionWeight
+
+						if actionDistance > userStatisticsReply.ActivityStatistics.PastMonth.Tops.Distance {
+							userStatisticsReply.ActivityStatistics.PastMonth.Tops.Distance = actionDistance
+							userStatisticsReply.ActivityStatistics.PastMonth.Tops.DistanceExerciseDayID = &exercise.ExerciseDay
 						}
-						if operationSet.Distance != nil {
-							actionDistance += *operationSet.Distance
+						if actionTime > userStatisticsReply.ActivityStatistics.PastMonth.Tops.Time {
+							userStatisticsReply.ActivityStatistics.PastMonth.Tops.Time = actionTime
+							userStatisticsReply.ActivityStatistics.PastMonth.Tops.TimeExerciseDayID = &exercise.ExerciseDay
 						}
-						if operationSet.Time != nil {
-							actionTime = time.Duration(actionTime + *operationSet.Time)
+						if actionWeight > userStatisticsReply.ActivityStatistics.PastMonth.Tops.Weight {
+							userStatisticsReply.ActivityStatistics.PastMonth.Tops.Weight = actionWeight
+							userStatisticsReply.ActivityStatistics.PastMonth.Tops.WeightExerciseDayID = &exercise.ExerciseDay
 						}
-						if operationSet.Repetitions != nil {
-							actionRepetitions += *operationSet.Repetitions
+					}
+					if time.Since(exerciseDayDate) < time.Duration(time.Hour*24*365) {
+						userStatisticsReply.ActivityStatistics.PastYear.Sums.Operations += 1
+
+						userStatisticsReply.ActivityStatistics.PastYear.Sums.Distance += actionDistance
+						userStatisticsReply.ActivityStatistics.PastYear.Sums.Time += time.Duration(actionTime)
+						userStatisticsReply.ActivityStatistics.PastYear.Sums.Weight += actionWeight
+
+						if actionDistance > userStatisticsReply.ActivityStatistics.PastYear.Tops.Distance {
+							userStatisticsReply.ActivityStatistics.PastYear.Tops.Distance = actionDistance
+							userStatisticsReply.ActivityStatistics.PastYear.Tops.DistanceExerciseDayID = &exercise.ExerciseDay
 						}
-						if operationSet.Weight != nil {
-							actionWeight += *operationSet.Weight
+						if actionTime > userStatisticsReply.ActivityStatistics.PastYear.Tops.Time {
+							userStatisticsReply.ActivityStatistics.PastYear.Tops.Time = actionTime
+							userStatisticsReply.ActivityStatistics.PastYear.Tops.TimeExerciseDayID = &exercise.ExerciseDay
+						}
+						if actionWeight > userStatisticsReply.ActivityStatistics.PastYear.Tops.Weight {
+							userStatisticsReply.ActivityStatistics.PastYear.Tops.Weight = actionWeight
+							userStatisticsReply.ActivityStatistics.PastYear.Tops.WeightExerciseDayID = &exercise.ExerciseDay
 						}
 					}
 
-					if operation.Action != nil && operation.Action.ID == *chosenAction {
-						userStatisticsReply.ActivityStatistics.Action = *operation.Action
+					userStatisticsReply.ActivityStatistics.AllTime.Sums.Operations += 1
 
-						if time.Since(exerciseDayDate) < time.Duration(time.Hour*24*31) {
-							userStatisticsReply.ActivityStatistics.PastMonth.Sums.Operations += 1
+					userStatisticsReply.ActivityStatistics.AllTime.Sums.Distance += actionDistance
+					userStatisticsReply.ActivityStatistics.AllTime.Sums.Time += actionTime
+					userStatisticsReply.ActivityStatistics.AllTime.Sums.Weight += actionWeight
 
-							userStatisticsReply.ActivityStatistics.PastMonth.Sums.Distance += actionDistance
-							userStatisticsReply.ActivityStatistics.PastMonth.Sums.Time += actionTime
-							userStatisticsReply.ActivityStatistics.PastMonth.Sums.Weight += actionWeight
-
-							if actionDistance > userStatisticsReply.ActivityStatistics.PastMonth.Tops.Distance {
-								userStatisticsReply.ActivityStatistics.PastMonth.Tops.Distance = actionDistance
-								userStatisticsReply.ActivityStatistics.PastMonth.Tops.DistanceExerciseDayID = &exercise.ExerciseDay
-							}
-							if actionTime > userStatisticsReply.ActivityStatistics.PastMonth.Tops.Time {
-								userStatisticsReply.ActivityStatistics.PastMonth.Tops.Time = actionTime
-								userStatisticsReply.ActivityStatistics.PastMonth.Tops.TimeExerciseDayID = &exercise.ExerciseDay
-							}
-							if actionWeight > userStatisticsReply.ActivityStatistics.PastMonth.Tops.Weight {
-								userStatisticsReply.ActivityStatistics.PastMonth.Tops.Weight = actionWeight
-								userStatisticsReply.ActivityStatistics.PastMonth.Tops.WeightExerciseDayID = &exercise.ExerciseDay
-							}
-						}
-						if time.Since(exerciseDayDate) < time.Duration(time.Hour*24*365) {
-							userStatisticsReply.ActivityStatistics.PastYear.Sums.Operations += 1
-
-							userStatisticsReply.ActivityStatistics.PastYear.Sums.Distance += actionDistance
-							userStatisticsReply.ActivityStatistics.PastYear.Sums.Time += time.Duration(actionTime)
-							userStatisticsReply.ActivityStatistics.PastYear.Sums.Weight += actionWeight
-
-							if actionDistance > userStatisticsReply.ActivityStatistics.PastYear.Tops.Distance {
-								userStatisticsReply.ActivityStatistics.PastYear.Tops.Distance = actionDistance
-								userStatisticsReply.ActivityStatistics.PastYear.Tops.DistanceExerciseDayID = &exercise.ExerciseDay
-							}
-							if actionTime > userStatisticsReply.ActivityStatistics.PastYear.Tops.Time {
-								userStatisticsReply.ActivityStatistics.PastYear.Tops.Time = actionTime
-								userStatisticsReply.ActivityStatistics.PastYear.Tops.TimeExerciseDayID = &exercise.ExerciseDay
-							}
-							if actionWeight > userStatisticsReply.ActivityStatistics.PastYear.Tops.Weight {
-								userStatisticsReply.ActivityStatistics.PastYear.Tops.Weight = actionWeight
-								userStatisticsReply.ActivityStatistics.PastYear.Tops.WeightExerciseDayID = &exercise.ExerciseDay
-							}
-						}
-
-						userStatisticsReply.ActivityStatistics.AllTime.Sums.Operations += 1
-
-						userStatisticsReply.ActivityStatistics.AllTime.Sums.Distance += actionDistance
-						userStatisticsReply.ActivityStatistics.AllTime.Sums.Time += actionTime
-						userStatisticsReply.ActivityStatistics.AllTime.Sums.Weight += actionWeight
-
-						if actionDistance > userStatisticsReply.ActivityStatistics.AllTime.Tops.Distance {
-							userStatisticsReply.ActivityStatistics.AllTime.Tops.Distance = actionDistance
-							userStatisticsReply.ActivityStatistics.AllTime.Tops.DistanceExerciseDayID = &exercise.ExerciseDay
-						}
-						if actionTime > userStatisticsReply.ActivityStatistics.AllTime.Tops.Time {
-							userStatisticsReply.ActivityStatistics.AllTime.Tops.Time = actionTime
-							userStatisticsReply.ActivityStatistics.AllTime.Tops.TimeExerciseDayID = &exercise.ExerciseDay
-						}
-						if actionWeight > userStatisticsReply.ActivityStatistics.AllTime.Tops.Weight {
-							userStatisticsReply.ActivityStatistics.AllTime.Tops.Weight = actionWeight
-							userStatisticsReply.ActivityStatistics.AllTime.Tops.WeightExerciseDayID = &exercise.ExerciseDay
-						}
+					if actionDistance > userStatisticsReply.ActivityStatistics.AllTime.Tops.Distance {
+						userStatisticsReply.ActivityStatistics.AllTime.Tops.Distance = actionDistance
+						userStatisticsReply.ActivityStatistics.AllTime.Tops.DistanceExerciseDayID = &exercise.ExerciseDay
+					}
+					if actionTime > userStatisticsReply.ActivityStatistics.AllTime.Tops.Time {
+						userStatisticsReply.ActivityStatistics.AllTime.Tops.Time = actionTime
+						userStatisticsReply.ActivityStatistics.AllTime.Tops.TimeExerciseDayID = &exercise.ExerciseDay
+					}
+					if actionWeight > userStatisticsReply.ActivityStatistics.AllTime.Tops.Weight {
+						userStatisticsReply.ActivityStatistics.AllTime.Tops.Weight = actionWeight
+						userStatisticsReply.ActivityStatistics.AllTime.Tops.WeightExerciseDayID = &exercise.ExerciseDay
 					}
 				}
 			}

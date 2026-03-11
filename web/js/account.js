@@ -145,6 +145,9 @@ function load_page(result) {
                             <input style="margin-top: 3em;" class="clickable" type="checkbox" id="share_activities" name="share_activities" value="share_activities">
                             <label for="share_activities" style="margin: 0;" class="clickable">Share my activities on the activity feed.</label><br>
 
+                            <input style="margin-top: 3em;" class="clickable" type="checkbox" id="share_statistics" name="share_statistics" value="share_statistics">
+                            <label for="share_statistics" style="margin: 0;" class="clickable">Share my statistics on my page.</label><br>
+
                             <label style="margin-top: 5em;" id="form-input-icon" for="password_old">Current password:</label>
                             <input type="password" name="password_old" id="password_old" placeholder="To save your changes, type your current password." required />
 
@@ -227,6 +230,7 @@ function send_update(user_id) {
     var email = document.getElementById("email").value;
     var password_old = document.getElementById("password_old").value;
     var share_activities = document.getElementById("share_activities").checked;
+    var share_statistics = document.getElementById("share_statistics").checked;
     var new_profile_image = document.getElementById('new_profile_image').files[0];
     var birth_date = document.getElementById('birth_date').value;
 
@@ -259,7 +263,8 @@ function send_update(user_id) {
                 "profile_image": result,
                 "password_old": password_old,
                 "birth_date": birth_date_string,
-                "share_activities": share_activities
+                "share_activities": share_activities,
+                "share_statistics": share_statistics
             };
 
             var form_data = JSON.stringify(form_obj);
@@ -453,6 +458,10 @@ function PlaceUserData(user_object, stravaOauth, stravaEnabled) {
 
     if(user_object.share_activities) {
         document.getElementById("share_activities").checked = true;
+    }
+
+    if(user_object.share_statistics) {
+        document.getElementById("share_statistics").checked = true;
     }
 
     if(stravaEnabled) {

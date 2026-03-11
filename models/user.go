@@ -26,7 +26,8 @@ type User struct {
 	StravaWalks                *bool      `json:"strava_walks" gorm:"default: true"`
 	StravaID                   *string    `json:"strava_id" gorm:"default: null"`
 	StravaPublic               *bool      `json:"strava_public" gorm:"default: true"`
-	ShareActivities            *bool      `json:"share_activities" gorm:"default: false"`
+	ShareActivities            *bool      `json:"share_activities" gorm:"default: true"`
+	ShareStatistics            *bool      `json:"share_statistics" gorm:"default: true"`
 }
 
 type UserCreationRequest struct {
@@ -46,6 +47,7 @@ type UserUpdateRequest struct {
 	OldPassword     string     `json:"password_old"`
 	BirthDate       *time.Time `json:"birth_date"`
 	ShareActivities *bool      `json:"share_activities"`
+	ShareStatistics *bool      `json:"share_statistics"`
 }
 
 type UserPartialUpdateRequest struct {
@@ -96,7 +98,7 @@ type UserStatisticsReply struct {
 	StreakDaysTop      int `json:"streak_days_top"`
 	SeasonsJoined      int `json:"seasons_joined"`
 	ActivityStatistics struct {
-		Action    Action                    `json:"action"`
+		Action    *Action                   `json:"action"`
 		PastMonth UserStatisticsCompilation `json:"past_month"`
 		PastYear  UserStatisticsCompilation `json:"past_year"`
 		AllTime   UserStatisticsCompilation `json:"all_time"`
