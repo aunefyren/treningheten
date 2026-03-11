@@ -59,12 +59,27 @@ function load_page(result) {
 
             <div id="account-section-stats" class="account-section account-section--stats">
                 <div id="user-stats-skeleton" class="user-stats-skeleton">
-                    <div class="skeleton-block" style="width: 7em; height: 1.1em; border-radius: 0.4em;"></div>
-                    <div class="skeleton-block" style="width: 5em; height: 2em; border-radius: 0.4em; margin-top: 0.5em;"></div>
-                    <div class="skeleton-block" style="width: 7em; height: 1.1em; border-radius: 0.4em; margin-top: 1em;"></div>
-                    <div class="skeleton-block" style="width: 5em; height: 2em; border-radius: 0.4em; margin-top: 0.5em;"></div>
-                    <div class="skeleton-block" style="width: 9em; height: 1.1em; border-radius: 0.4em; margin-top: 1em;"></div>
-                    <div class="skeleton-block" style="width: 6em; height: 1.5em; border-radius: 0.4em; margin-top: 0.5em;"></div>
+                    <!-- Streaks label + two cards -->
+                    <div class="skeleton-block" style="width: 5em; height: 0.8em; border-radius: 0.3em;"></div>
+                    <div style="display:flex; gap: 0.5em; margin-top: 0.5em;">
+                        <div class="skeleton-block" style="width: 6em; height: 5em; border-radius: 0.6em;"></div>
+                        <div class="skeleton-block" style="width: 6em; height: 5em; border-radius: 0.6em;"></div>
+                    </div>
+                    <!-- Sessions label + three cards -->
+                    <div class="skeleton-block" style="width: 5em; height: 0.8em; border-radius: 0.3em; margin-top: 1.2em;"></div>
+                    <div style="display:flex; gap: 0.5em; margin-top: 0.5em;">
+                        <div class="skeleton-block" style="width: 5em; height: 3.5em; border-radius: 0.6em;"></div>
+                        <div class="skeleton-block" style="width: 5em; height: 3.5em; border-radius: 0.6em;"></div>
+                        <div class="skeleton-block" style="width: 5em; height: 3.5em; border-radius: 0.6em;"></div>
+                    </div>
+                    <!-- Activity label + tab bar + stat cards -->
+                    <div class="skeleton-block" style="width: 7em; height: 0.8em; border-radius: 0.3em; margin-top: 1.2em;"></div>
+                    <div class="skeleton-block" style="width: 18em; max-width: 100%; height: 1.8em; border-radius: 0.5em; margin-top: 0.5em;"></div>
+                    <div style="display:flex; gap: 0.5em; margin-top: 0.5em; flex-wrap: wrap;">
+                        <div class="skeleton-block" style="width: 5.5em; height: 3.5em; border-radius: 0.6em;"></div>
+                        <div class="skeleton-block" style="width: 5.5em; height: 3.5em; border-radius: 0.6em;"></div>
+                        <div class="skeleton-block" style="width: 5.5em; height: 3.5em; border-radius: 0.6em;"></div>
+                    </div>
                 </div>
                 <div id="user-stats-content" style="display:none; width: 100%;"></div>
             </div>

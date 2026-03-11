@@ -286,7 +286,23 @@ function load_page(result) {
                                     <h3 id="current-week-title">Current week</h3>
 
                                     <div id="current-week-users" class="current-week-users">
-                                        ...
+                                        <div class="fp-skeleton">
+                                            <div class="fp-skeleton-row">
+                                                <div class="fp-skeleton-user"></div>
+                                                <div class="fp-skeleton-user"></div>
+                                                <div class="fp-skeleton-user"></div>
+                                            </div>
+                                            <div class="fp-skeleton-row">
+                                                <div class="fp-skeleton-user"></div>
+                                                <div class="fp-skeleton-user"></div>
+                                                <div class="fp-skeleton-user"></div>
+                                            </div>
+                                            <div class="fp-skeleton-row">
+                                                <div class="fp-skeleton-user"></div>
+                                                <div class="fp-skeleton-user"></div>
+                                                <div class="fp-skeleton-user"></div>
+                                            </div>
+                                        </div>
                                     </div>
 
 
@@ -312,7 +328,30 @@ function load_page(result) {
                                     <h3 style="margin: 0.5em;">Previous weeks</h3>
 
                                     <div id="leaderboard-weeks" class="leaderboard-weeks">
-                                        ...
+                                        <div class="fp-skeleton">
+                                            <div class="fp-skeleton-week-row">
+                                                <div class="skeleton-block fp-skeleton-week-label"></div>
+                                                <div class="fp-skeleton-week-grid">
+                                                    <div class="fp-skeleton-week-user"></div>
+                                                    <div class="fp-skeleton-week-user"></div>
+                                                    <div class="fp-skeleton-week-user"></div>
+                                                    <div class="fp-skeleton-week-user"></div>
+                                                    <div class="fp-skeleton-week-user"></div>
+                                                    <div class="fp-skeleton-week-user"></div>
+                                                </div>
+                                            </div>
+                                            <div class="fp-skeleton-week-row">
+                                                <div class="skeleton-block fp-skeleton-week-label"></div>
+                                                <div class="fp-skeleton-week-grid">
+                                                    <div class="fp-skeleton-week-user"></div>
+                                                    <div class="fp-skeleton-week-user"></div>
+                                                    <div class="fp-skeleton-week-user"></div>
+                                                    <div class="fp-skeleton-week-user"></div>
+                                                    <div class="fp-skeleton-week-user"></div>
+                                                    <div class="fp-skeleton-week-user"></div>
+                                                </div>
+                                            </div>
+                                        </div>
                                     </div>
 
                                 </div>
@@ -590,7 +629,7 @@ function get_calendar(fireworks, user_id, loadingMessage){
 
         } else {
             if(loadingMessage) {
-                info("Loading week...");
+                // info("Loading week...");
             }
         }
     };
