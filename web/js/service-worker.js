@@ -2,15 +2,17 @@ console.log("Service-worker loaded.");
 
 // Incrementing OFFLINE_VERSION will kick off the install event and force
 // previously cached resources to be updated from the network.
-const OFFLINE_VERSION = 1;
-const CACHE_NAME = 'treningheten-cache';
-// Customize this with a different URL if needed.
+const OFFLINE_VERSION = 2;
+const CACHE_NAME = 'treningheten-cache-v' + OFFLINE_VERSION;
+const OFFLINE_URL = '/offline';
 const urlsToCache = [
     '/',
+    '/offline',
     '/manifest.json',
     '/service-worker.js',
     '/robots.txt',
-    'assets/favicons/favicon.ico'
+    'assets/favicons/favicon.ico',
+    'assets/refresh-cw.svg'
 ];
 
 self.addEventListener('install', (event) => {
@@ -31,6 +33,17 @@ self.addEventListener('activate', (event) => {
         if ('navigationPreload' in self.registration) {
             await self.registration.navigationPreload.enable();
         }
+
+        // Delete old caches that don't match the current CACHE_NAME.
+        const cacheNames = await caches.keys();
+        await Promise.all(
+            cacheNames
+                .filter(name => name !== CACHE_NAME)
+                .map(name => {
+                    console.log('Deleting old cache:', name);
+                    return caches.delete(name);
+                })
+        );
     })());
 
     // Tell the active service worker to take control of the page immediately.
@@ -38,8 +51,7 @@ self.addEventListener('activate', (event) => {
 });
 
 self.addEventListener('fetch', (event) => {
-    // We only want to call event.respondWith() if this is a navigation request
-    // for an HTML page.
+    // Navigation requests (HTML pages): network-first, fall back to offline page.
     if (event.request.mode === 'navigate') {
         event.respondWith((async () => {
             try {
@@ -52,24 +64,38 @@ self.addEventListener('fetch', (event) => {
                 const networkResponse = await fetch(event.request);
                 return networkResponse;
             } catch (error) {
-                // catch is only triggered if an exception is thrown, which is likely
-                // due to a network error.
-                // If fetch() returns a valid HTTP response with a response code in
-                // the 4xx or 5xx range, the catch() will NOT be called.
                 console.log('Fetch failed; returning offline page instead.', error);
-
                 const cache = await caches.open(CACHE_NAME);
                 const cachedResponse = await cache.match(OFFLINE_URL);
                 return cachedResponse;
             }
-          })());
+        })());
+        return;
     }
 
-    // If our if() condition is false, then this fetch handler won't intercept the
-    // request. If there are any other fetch handlers registered, they will get a
-    // chance to call event.respondWith(). If no fetch handlers call
-    // event.respondWith(), the request will be handled by the browser as if there
-    // were no service worker involvement.
+    // Static assets (scripts, styles, images): cache-first, fall back to network.
+    const dest = event.request.destination;
+    if (dest === 'script' || dest === 'style' || dest === 'image' || dest === 'font') {
+        event.respondWith((async () => {
+            const cache = await caches.open(CACHE_NAME);
+            const cachedResponse = await cache.match(event.request);
+            if (cachedResponse) {
+                return cachedResponse;
+            }
+            try {
+                const networkResponse = await fetch(event.request);
+                // Cache successful responses for future offline use.
+                if (networkResponse.ok) {
+                    cache.put(event.request, networkResponse.clone());
+                }
+                return networkResponse;
+            } catch (error) {
+                console.log('Asset fetch failed:', event.request.url, error);
+                // Nothing we can do for assets — just fail silently.
+                return new Response('', { status: 408, statusText: 'Offline' });
+            }
+        })());
+    }
 });
 
 self.addEventListener('notificationclose', event => {
@@ -114,31 +140,7 @@ self.addEventListener('notificationclick', event => {
 });
 
 
-/* This works
-self.addEventListener("push", (event) => {
-    if (!(self.Notification && self.Notification.permission === "granted")) {
-      return;
-    }
-  
-    const data = event.data?.json() ?? {};
-    const title = data.title || "Something Has Happened";
-    const message =
-      data.body || "Here's something you might want to check out.";
-    const icon = "images/new-notification.png";
-  
-    const notification = new self.Notification(title, {
-      body: message,
-      tag: "simple-push-demo-notification",
-      icon,
-    });
-  
-    notification.addEventListener("click", () => {
-      clients.openWindow(
-        "https://example.blog.com/2015/03/04/something-new.html",
-      );
-    });
-});
-*/
+
 
 self.addEventListener('push', function(event) {
     if (!(self.Notification && self.Notification.permission === "granted")) {

@@ -9,6 +9,10 @@ if('serviceWorker' in navigator) {
     }
 )};
 
+window.addEventListener('offline', () => {
+    window.location.href = '/offline';
+});
+
 // Make XHTTP requests
 function makeRequest (method, url, data) {
     return new Promise(function (resolve, reject) {
@@ -76,6 +80,17 @@ function get_login(cookie) {
     xhttp.onreadystatechange = function() {
 
         if (this.readyState == 4) {
+
+            if (this.status === 0) {
+                // status 0 = network failure, no response received
+                if(!navigator.onLine && window.location.pathname != "/offline") {
+                    window.location.href = '/offline';
+                    return;
+                } else if ( window.location.pathname == "/offline") {
+                    load_page(false);
+                    return;
+                }
+            }
 
             // Try to parse API response
             var result;
