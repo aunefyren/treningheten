@@ -40,7 +40,6 @@ type Exercise struct {
 	IsOn          bool           `json:"is_on" gorm:"not null; default: true"`
 	ExerciseDayID uuid.UUID      `json:"" gorm:"type:varchar(100);"`
 	ExerciseDay   ExerciseDay    `json:"exercise_day" gorm:"not null"`
-	StravaID      *string        `json:"strava_id" gorm:"default: null;"`
 	Time          *time.Time     `json:"time"`
 }
 

@@ -852,23 +852,11 @@ func ConvertExerciseToExerciseObject(exercise models.Exercise) (exerciseObject m
 
 	exerciseObject.Operations = operationObjects
 
-	if exercise.StravaID != nil {
-		idString := exercise.StravaID
-		array := strings.Split(*idString, ";")
-		newArray := []string{}
-
-		for _, stravaID := range array {
-			if stravaID != "" {
-				newArray = append(newArray, stravaID)
-			}
+	exerciseObject.StravaID = []string{}
+	for _, operationObject := range operationObjects {
+		if operationObject.StravaID != nil && *operationObject.StravaID != "" {
+			exerciseObject.StravaID = append(exerciseObject.StravaID, *operationObject.StravaID)
 		}
-		if len(newArray) < 1 {
-			exerciseObject.StravaID = nil
-		} else {
-			exerciseObject.StravaID = newArray
-		}
-	} else {
-		exerciseObject.StravaID = nil
 	}
 
 	if exercise.Time == nil {
@@ -1372,7 +1360,6 @@ func APIStravaCombine(context *gin.Context) {
 	var masterExercise = models.Exercise{}
 	for index, exercise := range exercises {
 		if index == 0 {
-			exercise.StravaID = &stravaIDsString
 			masterExercise = exercise
 
 			logger.Log.Info(masterExercise.ID)
@@ -1500,8 +1487,6 @@ func APIStravaDivide(context *gin.Context) {
 		} else {
 			currentExercise = exercise
 		}
-
-		currentExercise.StravaID = &stravaID
 
 		if index != 0 {
 			_, err := database.CreateExerciseInDB(*currentExercise)

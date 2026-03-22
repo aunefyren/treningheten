@@ -37,6 +37,13 @@ func ConvertOperationToOperationObject(operation models.Operation) (operationObj
 
 	operationObject.OperationSets = operationSetObjects
 
+	for _, operationSet := range operationSetObjects {
+		if operationSet.StravaID != nil && *operationSet.StravaID != "" {
+			operationObject.StravaID = operationSet.StravaID
+			break
+		}
+	}
+
 	if operation.ActionID != nil {
 		action, err := database.GetActionByID(*operation.ActionID)
 		if err != nil {
@@ -60,7 +67,6 @@ func ConvertOperationToOperationObject(operation models.Operation) (operationObj
 	operationObject.WeightUnit = operation.WeightUnit
 	operationObject.DistanceUnit = operation.DistanceUnit
 	operationObject.Duration = operation.Duration
-	operationObject.StravaID = operation.StravaID
 	operationObject.Note = operation.Note
 
 	return

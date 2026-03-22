@@ -1157,12 +1157,14 @@ func APIGetUserStatistics(context *gin.Context) {
 				yesterdayChecked = true
 			}
 
-			for _, operation := range exercise.Operations {
-				if !operation.Enabled {
-					continue
-				}
-				if operation.Action != nil {
-					allActions = append(allActions, *&operation.Action.ID)
+			if time.Since(exerciseDayDate) <= time.Duration(time.Hour*24*31) {
+				for _, operation := range exercise.Operations {
+					if !operation.Enabled {
+						continue
+					}
+					if operation.Action != nil {
+						allActions = append(allActions, *&operation.Action.ID)
+					}
 				}
 			}
 		}
@@ -1233,7 +1235,7 @@ func APIGetUserStatistics(context *gin.Context) {
 				if (operation.Action == nil && chosenAction == nil) || (operation.Action != nil && chosenAction != nil && operation.Action.ID == *chosenAction) {
 					userStatisticsReply.ActivityStatistics.Action = operation.Action
 
-					if time.Since(exerciseDayDate) < time.Duration(time.Hour*24*31) {
+					if time.Since(exerciseDayDate) <= time.Duration(time.Hour*24*31) {
 						userStatisticsReply.ActivityStatistics.PastMonth.Sums.Operations += 1
 
 						userStatisticsReply.ActivityStatistics.PastMonth.Sums.Distance += actionDistance
@@ -1253,7 +1255,7 @@ func APIGetUserStatistics(context *gin.Context) {
 							userStatisticsReply.ActivityStatistics.PastMonth.Tops.WeightExerciseDayID = &exercise.ExerciseDay
 						}
 					}
-					if time.Since(exerciseDayDate) < time.Duration(time.Hour*24*365) {
+					if time.Since(exerciseDayDate) <= time.Duration(time.Hour*24*365) {
 						userStatisticsReply.ActivityStatistics.PastYear.Sums.Operations += 1
 
 						userStatisticsReply.ActivityStatistics.PastYear.Sums.Distance += actionDistance

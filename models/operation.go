@@ -17,7 +17,6 @@ type Operation struct {
 	WeightUnit   string         `json:"weight_unit" gorm:"not null; default: kg"`
 	DistanceUnit string         `json:"distance_unit" gorm:"not null; default: km"`
 	Equipment    *string        `json:"equipment" gorm:""`
-	StravaID     *string        `json:"strava_id" gorm:"default: null;"`
 	Note         *string        `json:"note" gorm:"default: null;"`
 	Duration     *time.Duration `json:"duration"`
 }

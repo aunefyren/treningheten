@@ -1039,6 +1039,18 @@ func APIGetCurrentSeasonActivities(context *gin.Context) {
 		return
 	}
 
+	generalAction, err := database.GetActionByStravaName("Workout")
+	if err != nil {
+		logger.Log.Info("Failed to get general action object. Error: " + err.Error())
+		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get general action object."})
+		context.Abort()
+		return
+	} else if generalAction == nil {
+		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to find general action object."})
+		context.Abort()
+		return
+	}
+
 	allActivities := []models.Activity{}
 	for _, exerciseDayObject := range exerciseDayObjects {
 		for _, exercise := range exerciseDayObject.Exercises {
@@ -1055,10 +1067,16 @@ func APIGetCurrentSeasonActivities(context *gin.Context) {
 					newActivity.StravaIDs = []string{}
 				}
 
-				for _, operation := range exercise.Operations {
-					if operation.Action != nil {
-						newActivity.Actions = append(newActivity.Actions, *operation.Action)
+				if len(exercise.Operations) > 0 {
+					for _, operation := range exercise.Operations {
+						if operation.Action != nil {
+							newActivity.Actions = append(newActivity.Actions, *operation.Action)
+						} else {
+							newActivity.Actions = append(newActivity.Actions, *generalAction)
+						}
 					}
+				} else {
+					newActivity.Actions = append(newActivity.Actions, *generalAction)
 				}
 
 				allActivities = append(allActivities, newActivity)

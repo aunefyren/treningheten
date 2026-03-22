@@ -6,6 +6,7 @@ import (
 	"errors"
 	"io"
 	"net/http"
+	"slices"
 	"sort"
 	"strconv"
 	"strings"
@@ -324,6 +325,8 @@ func StravaSyncActivityForUser(activity models.StravaGetActivitiesRequestReply, 
 	err = nil
 	now := time.Now()
 
+	logger.Log.Tracef("strava activity action: %s", activity.SportType)
+
 	// skip walks if enabled
 	if user.StravaWalks != nil && *user.StravaWalks && strings.ToLower(activity.SportType) == "walk" {
 		logger.Log.Trace("Skipping activity because user has 'ignore walks' enabled.")
@@ -394,46 +397,15 @@ func StravaSyncActivityForUser(activity models.StravaGetActivitiesRequestReply, 
 		exercise.ExerciseDayID = exerciseDay.ID
 	}
 
-	// Strava ID list
-	oldStravaID := ""
-	idString := exercise.StravaID
-	if idString != nil {
-		oldStravaID = *idString
-	}
-
-	newStravaID := ""
-	if oldStravaID != "" {
-		stravaIDArray := strings.Split(oldStravaID, ";")
-		idFound := false
-		for _, stravaID := range stravaIDArray {
-			if stravaID == strconv.Itoa(int(activity.ID)) {
-				idFound = true
-				break
-			}
-		}
-		if !idFound {
-			stravaIDArray = append(stravaIDArray, strconv.Itoa(int(activity.ID)))
-		}
-		for index, stravaID := range stravaIDArray {
-			if index != 0 {
-				newStravaID += ";"
-			}
-			newStravaID += stravaID
-		}
-	} else {
-		newStravaID = strconv.Itoa(int(activity.ID))
-	}
-
 	exercise.Enabled = true
 	exercise.Note = activity.Name
 	elapsedTime := time.Duration(activity.ElapsedTime)
 	exercise.Duration = &elapsedTime
 	exercise.IsOn = true
-	exercise.StravaID = &newStravaID
 	exercise.Time = &activity.StartDate
 
-	logger.Log.Tracef("Strava activity start time %s for Strava ID %s", activity.StartDate, newStravaID)
-	logger.Log.Tracef("Strava activity local start time %s for Strava ID %s", activity.StartDateLocal, newStravaID)
+	logger.Log.Tracef("Strava activity start time %s for Strava ID %s", activity.StartDate, activity.ID)
+	logger.Log.Tracef("Strava activity local start time %s for Strava ID %s", activity.StartDateLocal, activity.ID)
 
 	finalExercise, err := database.UpdateExerciseInDB(*exercise)
 	if err != nil {
@@ -465,7 +437,11 @@ func StravaSyncOperationForActivity(activity models.StravaGetActivitiesRequestRe
 	if err != nil {
 		return finalOperation, err
 	} else if action == nil {
-		return finalOperation, nil
+		// not known Strava exercise, get general action
+		action, err = database.GetActionByStravaName("Workout")
+		if err != nil {
+			return finalOperation, err
+		}
 	}
 
 	// Get or create operation
@@ -486,7 +462,6 @@ func StravaSyncOperationForActivity(activity models.StravaGetActivitiesRequestRe
 	operation.ActionID = &action.ID
 	operation.Type = action.Type
 	stravaID := strconv.Itoa(int(activity.ID))
-	operation.StravaID = &stravaID
 	durationTime := time.Duration(activity.ElapsedTime)
 	operation.Duration = &durationTime
 	operation.Note = &activity.Name
@@ -675,8 +650,8 @@ func APISyncStravaActivitiesForUsers(context *gin.Context) {
 	}
 
 	usersToSync := []models.User{}
-	if syncRequest.UserIDs != nil && len(*syncRequest.UserIDs) > 0 {
-		for _, userID := range *syncRequest.UserIDs {
+	if len(syncRequest.UserIDs) > 0 {
+		for _, userID := range syncRequest.UserIDs {
 			parsedID, err := uuid.Parse(userID)
 			if err != nil {
 				context.JSON(http.StatusBadRequest, gin.H{"error": "failed to parse user ID"})
@@ -684,7 +659,7 @@ func APISyncStravaActivitiesForUsers(context *gin.Context) {
 				return
 			}
 
-			user, err := database.GetUserInformation(parsedID)
+			user, err := database.GetAllUserInformation(parsedID)
 			if err != nil {
 				context.JSON(http.StatusNotFound, gin.H{"error": "failed to find user by ID"})
 				context.Abort()
@@ -692,7 +667,12 @@ func APISyncStravaActivitiesForUsers(context *gin.Context) {
 			}
 
 			if user.Enabled && user.StravaCode != nil && *user.StravaCode != "" {
+				logger.Log.Debugf("adding to sync queue %s", user.ID.String())
 				usersToSync = append(usersToSync, user)
+			} else {
+				context.JSON(http.StatusBadRequest, gin.H{"error": "invalid user to sync " + user.ID.String()})
+				context.Abort()
+				return
 			}
 		}
 	} else {
@@ -711,20 +691,26 @@ func APISyncStravaActivitiesForUsers(context *gin.Context) {
 		}
 	}
 
-	go SyncStravaActivitiesForUsers(usersToSync)
+	go SyncStravaActivitiesForUsers(usersToSync, syncRequest.StravaIDs)
 
 	context.JSON(http.StatusAccepted, gin.H{"message": "Strava sync started!"})
 }
 
-func SyncStravaActivitiesForUsers(usersToSync []models.User) {
+func SyncStravaActivitiesForUsers(usersToSync []models.User, stravaIDs []string) {
 	for _, user := range usersToSync {
-		userOperationSets, err := database.GetStravaOperationSetsByUserID(user.ID)
+		userExercises, err := database.GetStravaExercisesByUserID(user.ID)
 		if err != nil {
 			logger.Log.Info("failed to get user operation sets. error: " + err.Error())
 			continue
 		}
 
-		if len(userOperationSets) < 1 {
+		if len(userExercises) < 1 {
+			continue
+		}
+
+		userExerciseObjects, err := ConvertExercisesToExerciseObjects(userExercises)
+		if err != nil {
+			logger.Log.Error("Failed to convert user exercises to exercise objects. error: " + err.Error())
 			continue
 		}
 
@@ -736,31 +722,39 @@ func SyncStravaActivitiesForUsers(usersToSync []models.User) {
 
 		logger.Log.Debugf("syncing activities for user '%s %s'", user.FirstName, user.LastName)
 
-		sort.Slice(userOperationSets, func(i, j int) bool {
-			return userOperationSets[i].CreatedAt.After(userOperationSets[j].CreatedAt)
+		sort.Slice(userExercises, func(i, j int) bool {
+			return userExercises[i].CreatedAt.After(userExercises[j].CreatedAt)
 		})
 
-		for _, operationSet := range userOperationSets {
-			logger.Log.Debugf("getting activity from Strava '%s'", *operationSet.StravaID)
+		for _, userExercise := range userExerciseObjects {
+			for _, operation := range userExercise.Operations {
+				for _, operationSet := range operation.OperationSets {
+					if len(stravaIDs) > 0 && operationSet.StravaID != nil && !slices.Contains(stravaIDs, *operationSet.StravaID) {
+						continue
+					}
 
-			if operationSet.StravaDataRetrievedAt != nil && time.Since(*operationSet.StravaDataRetrievedAt) < time.Duration(time.Hour*24*7) {
-				logger.Log.Debugf("Strava activity '%s' data is too new for full refresh", *operationSet.StravaID)
-				continue
+					logger.Log.Debugf("getting activity from Strava '%s'", *operationSet.StravaID)
+
+					if operationSet.StravaDataRetrievedAt != nil && time.Since(*operationSet.StravaDataRetrievedAt) < time.Duration(time.Hour*24*7) {
+						logger.Log.Debugf("Strava activity '%s' data is too new for full refresh", *operationSet.StravaID)
+						continue
+					}
+
+					stravaActivity, err := StravaGetActivity(stravaToken, *operationSet.StravaID)
+					if err != nil {
+						logger.Log.Info("failed to authorize user toward Strava. error: " + err.Error())
+						continue
+					}
+
+					err = StravaSyncActivityForUser(stravaActivity, user, stravaToken)
+					if err != nil {
+						logger.Log.Info("failed to update Strava activity. error: " + err.Error())
+						continue
+					}
+
+					logger.Log.Infof("updated Strava activity '%d' for user '%s %s'", stravaActivity.ID, user.FirstName, user.LastName)
+				}
 			}
-
-			stravaActivity, err := StravaGetActivity(stravaToken, *operationSet.StravaID)
-			if err != nil {
-				logger.Log.Info("failed to authorize user toward Strava. error: " + err.Error())
-				continue
-			}
-
-			err = StravaSyncActivityForUser(stravaActivity, user, stravaToken)
-			if err != nil {
-				logger.Log.Info("failed to update Strava activity. error: " + err.Error())
-				continue
-			}
-
-			logger.Log.Infof("updated Strava activity '%d' for user '%s %s'", stravaActivity.ID, user.FirstName, user.LastName)
 		}
 	}
 

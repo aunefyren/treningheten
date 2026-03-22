@@ -269,8 +269,11 @@ func GetOperationByStravaIDAndUserIDAndExerciseID(userID uuid.UUID, stravaID int
 	operation = nil
 	err = nil
 
-	record := Instance.Where("`operations`.enabled = ?", 1).
-		Where("`operations`.strava_id = ?", stravaID).
+	record := Instance.
+		Where("`operations`.enabled = ?", 1).
+		Joins("JOIN `operation_sets` on `operation_sets`.operation_id = `operations`.id").
+		Where("`operation_sets`.enabled = ?", 1).
+		Where("`operation_sets`.strava_id = ?", stravaID).
 		Joins("JOIN `exercises` on `operations`.exercise_id = `exercises`.id").
 		Where("`exercises`.enabled = ?", 1).
 		Where("`exercises`.id = ?", exerciseID).

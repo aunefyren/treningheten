@@ -152,5 +152,6 @@ func (s *StravaStreamsJSON) Scan(value interface{}) error {
 }
 
 type StravaSyncActivitiesForUsersRequest struct {
-	UserIDs *[]string `json:"user_ids"`
+	UserIDs   []string `json:"user_ids"`
+	StravaIDs []string `json:"strava_ids"`
 }

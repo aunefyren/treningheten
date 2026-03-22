@@ -16,6 +16,18 @@ func ptr(s string) *string {
 var defaultActions = []models.Action{
 	// --- Cardio / Moving ---
 	{
+		GormModel:     models.GormModel{ID: uuid.MustParse("2d597949-e670-4a4d-a5e1-e67c3837c8a1"), CreatedAt: time.Now()},
+		Enabled:       true,
+		Name:          "Exercise",
+		NorwegianName: "Trening",
+		Description:   "Any type of heart rate elevating activity that makes the body work.",
+		Type:          "timing",
+		BodyPart:      "general",
+		StravaName:    "Workout",
+		PastTenseVerb: ptr("worked out"),
+		HasLogo:       false,
+	},
+	{
 		GormModel:     models.GormModel{ID: uuid.MustParse("a3fe89d4-bbb9-40af-9bd1-e72ec448705c"), CreatedAt: time.Now()},
 		Enabled:       true,
 		Name:          "Run",
@@ -293,6 +305,18 @@ var defaultActions = []models.Action{
 		BodyPart:      "core",
 		StravaName:    "",
 		PastTenseVerb: ptr("did the plank"),
+		HasLogo:       false,
+	},
+	{
+		GormModel:     models.GormModel{ID: uuid.MustParse("9be08d4e-a5ec-49df-9c5b-718cd5bbf46e"), CreatedAt: time.Now()},
+		Enabled:       true,
+		Name:          "Pilates",
+		NorwegianName: "Pilates",
+		Description:   "Low-impact, mind-body exercise method focusing on core strength, flexibility, posture, and body awareness.",
+		Type:          "lifting",
+		BodyPart:      "core",
+		StravaName:    "Pilates",
+		PastTenseVerb: ptr("did some pilates"),
 		HasLogo:       false,
 	},
 }
