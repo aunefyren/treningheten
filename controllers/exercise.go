@@ -1536,3 +1536,102 @@ func APIStravaDivide(context *gin.Context) {
 
 	context.JSON(http.StatusCreated, gin.H{"message": "Exercises divided."})
 }
+
+// Get full workout calender for the week from the database, and return to user
+func APIGetExerciseDayInWeek(context *gin.Context) {
+	// Get user ID
+	userID, err := middlewares.GetAuthUsername(context.GetHeader("Authorization"))
+	if err != nil {
+		logger.Log.Info("Failed to verify user ID. Error: " + "Failed to verify user ID.")
+		context.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		context.Abort()
+		return
+	}
+
+	// Get exercises from user
+	todayString, okay := context.GetQuery("today")
+	weekDay, okayTwo := context.GetQuery("weekDay")
+	pointInTime := time.Now()
+	if okay && strings.EqualFold(todayString, "true") {
+		pointInTime = time.Now()
+	} else if !okayTwo {
+		context.JSON(http.StatusBadRequest, gin.H{"error": "Failed to get exercise day, no weekDay."})
+		context.Abort()
+		return
+	}
+
+	if (!okay || !strings.EqualFold(todayString, "true")) && okayTwo {
+		weekDayInt, err := strconv.Atoi(weekDay)
+		if err != nil {
+			logger.Log.Error("Failed to parse weekDay int. Error: " + err.Error())
+			context.JSON(http.StatusBadRequest, gin.H{"error": "Failed to parse weekDay int."})
+			context.Abort()
+			return
+		}
+
+		if weekDayInt < 0 || weekDayInt > 6 {
+			context.JSON(http.StatusBadRequest, gin.H{"error": "Invalid weekDay. 0-6."})
+			context.Abort()
+			return
+		}
+
+		pointInTime = time.Now()
+
+		if int(pointInTime.Weekday()) != 1 {
+			pointInTime, err = utilities.FindEarlierMonday(pointInTime)
+			if err != nil {
+				logger.Log.Error("Failed to find Monday. Error: " + err.Error())
+				context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to find Monday."})
+				context.Abort()
+				return
+			}
+		}
+
+		for i := 0; i < 10; i++ {
+			timeWeekDay := pointInTime.Weekday()
+
+			if int(timeWeekDay) == weekDayInt {
+				break
+			}
+
+			pointInTime = pointInTime.AddDate(0, 0, 1)
+		}
+	}
+
+	exerciseDay, err := database.GetExerciseDayByDateAndUserID(userID, pointInTime)
+	if err != nil {
+		logger.Log.Info("Failed to get exercise day. Error: " + err.Error())
+		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get exercise day."})
+		context.Abort()
+		return
+	}
+
+	if exerciseDay == nil {
+		// Create new exercise day
+		newExerciseDay := models.ExerciseDay{
+			Date:   time.Date(pointInTime.Year(), pointInTime.Month(), pointInTime.Day(), 00, 00, 00, 00, time.Local),
+			UserID: &userID,
+		}
+		newExerciseDay.ID = uuid.New()
+
+		newExerciseDay, err = database.UpdateExerciseDayInDatabase(newExerciseDay)
+		if err != nil {
+			logger.Log.Info("Failed to create exercise day. Error: " + err.Error())
+			context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create exercise day."})
+			context.Abort()
+			return
+		}
+
+		exerciseDay = &newExerciseDay
+	}
+
+	exerciseDayObject, err := ConvertExerciseDayToExerciseDayObject(*exerciseDay)
+	if err != nil {
+		logger.Log.Info("Failed to get convert exercise day to exercise day object. Error: " + err.Error())
+		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get convert exercise day to exercise day object."})
+		context.Abort()
+		return
+	}
+
+	context.JSON(http.StatusOK, gin.H{"message": "Exercise day retrieved.", "exercise": exerciseDayObject})
+}

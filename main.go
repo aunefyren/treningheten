@@ -214,6 +214,7 @@ func initRouter(configFile models.ConfigStruct) *gin.Engine {
 			auth.GET("/exercise-days", controllers.APIGetExerciseDays)
 			auth.GET("/exercise-days/:exercise_day_id", controllers.APIGetExerciseDay)
 			auth.POST("/exercise-days/:exercise_day_id", controllers.APIUpdateExerciseDay)
+			auth.GET("/exercise-days/week", controllers.APIGetExerciseDayInWeek)
 
 			auth.POST("/exercises/week", controllers.APIRegisterWeek)
 			auth.GET("/exercises/week", controllers.APIGetWeek)

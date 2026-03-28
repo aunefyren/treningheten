@@ -709,7 +709,28 @@ function place_week(week, fireworks, user_id) {
     // Enable workout buttons
     addExerciseButton = document.getElementById("add-exercise-button")
     addExerciseButton.addEventListener("click", function(e) {
-        addExercise(week.days[day-1].id)
+        var xhttp = new XMLHttpRequest();
+        xhttp.onreadystatechange = function() {
+            if (this.readyState == 4) {
+                try {
+                    result = JSON.parse(this.responseText);
+                } catch(e) {
+                    console.log(e + ' - Response: ' + this.responseText);
+                    error("Could not reach API.");
+                    return;
+                }
+                if(result.error) {
+                    error(result.error);
+                } else {
+                    addExercise(result.exercise.id);
+                }
+            }
+        };
+        xhttp.withCredentials = true;
+        xhttp.open("get", api_url + "auth/exercise-days/week?today=true");
+        xhttp.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
+        xhttp.setRequestHeader("Authorization", jwt);
+        xhttp.send();
     }, false);
     addExerciseButton.style.display = 'flex'
 
@@ -729,7 +750,7 @@ function place_week(week, fireworks, user_id) {
 
 }
 
-function update_exercises(go_to_exercise, weekDayInt) {
+function update_exercises() {
     var user_id = document.getElementById("calendar_user_id").value
 
     var day_1_check = document.getElementById("day_1_check").innerHTML
@@ -826,10 +847,6 @@ function update_exercises(go_to_exercise, weekDayInt) {
                 blinkCalendar();
 
                 week = result.week;
-
-                if(go_to_exercise === true) {
-                    GoToExercise(week.days[weekDayInt-1].id)
-                }
 
                 console.log(week);
 
@@ -1308,7 +1325,34 @@ function placeDebtSpin(overview) {
 
 function EditExercise(weekdayInt) {
 
-    update_exercises(true, weekdayInt);
+    var existingID = document.getElementById("day_" + weekdayInt + "_id").value;
+    if(existingID && existingID !== "00000000-0000-0000-0000-000000000000") {
+        GoToExercise(existingID);
+        return;
+    }
+
+    var xhttp = new XMLHttpRequest();
+    xhttp.onreadystatechange = function() {
+        if (this.readyState == 4) {
+            try {
+                result = JSON.parse(this.responseText);
+            } catch(e) {
+                console.log(e + ' - Response: ' + this.responseText);
+                error("Could not reach API.");
+                return;
+            }
+            if(result.error) {
+                error(result.error);
+            } else {
+                GoToExercise(result.exercise.id);
+            }
+        }
+    };
+    xhttp.withCredentials = true;
+    xhttp.open("get", api_url + "auth/exercise-days/week?weekDay=" + weekdayInt);
+    xhttp.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
+    xhttp.setRequestHeader("Authorization", jwt);
+    xhttp.send();
 
 }
 
