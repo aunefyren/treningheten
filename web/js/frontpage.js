@@ -47,7 +47,10 @@ function load_page(result) {
                             <img src="/assets/images/barbell.gif">
                         </div>
 
-                        <button type="submit" onclick="" id="add-exercise-button" style="display: none; margin-bottom: 0em; width: 12em;"><img src="assets/plus.svg" class="btn_logo color-invert"><p2>Start new workout</p2></button>
+                        <div class="ai-button-row">
+                            <div id="ai-message-inline" style="display: none;"></div>
+                            <button type="submit" onclick="" id="add-exercise-button" style="display: none; margin: 0em; width: 12em;"><img src="assets/plus.svg" class="btn_logo color-invert"><p2>Start new workout</p2></button>
+                        </div>
 
                     </div>
 
@@ -389,11 +392,48 @@ function load_page(result) {
         showLoggedInMenu();
         get_season(user_id, true, activeSeason);
         document.getElementById('front-page-text').innerHTML = 'Remember to log your workouts.';
+        if ("{{.ollamaEnabled}}" == "true") {
+            load_ai_message();
+        }
     } else {
         showLoggedOutMenu();
         document.getElementById('front-page-text').innerHTML = 'Log in to use the platform.';
         document.getElementById('log-in-button').style.display = 'inline-block';
     }
+}
+
+function load_ai_message() {
+    var el = document.getElementById('ai-message-inline');
+    if (!el) return;
+
+    el.style.display = 'block';
+    el.innerHTML = `
+        <div class="ai-message-card">
+            <span class="ai-message-label">AI</span>
+            <div class="skeleton-block ai-message-skeleton"></div>
+        </div>`;
+
+    var xhttp = new XMLHttpRequest();
+    xhttp.onreadystatechange = function() {
+        if (this.readyState != 4) return;
+        try {
+            var result = JSON.parse(this.responseText);
+            if (this.status === 200 && result.data) {
+                el.innerHTML = `
+                    <div class="ai-message-card">
+                        <span class="ai-message-label">AI</span>
+                        <span class="ai-message-text">${result.data}</span>
+                    </div>`;
+            } else {
+                el.style.display = 'none';
+            }
+        } catch(e) {
+            el.style.display = 'none';
+        }
+    };
+    xhttp.open("GET", "/api/auth/ai/frontpage", true);
+    xhttp.setRequestHeader("Authorization", jwt);
+    xhttp.send();
 }
 
 function get_season(user_id, loadingMessage, activeSeason){

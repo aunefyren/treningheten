@@ -259,6 +259,8 @@ func StravaSyncWeekForUser(user models.User, pointInTime time.Time) (err error) 
 		}
 	}
 
+	go OllamaAsyncRefreshCacheForUser(user.ID)
+
 	return
 }
 

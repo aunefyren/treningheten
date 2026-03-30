@@ -155,6 +155,17 @@ func main() {
 		logger.Log.Info("generating results for last week task was not scheduled successfully")
 	}
 
+	if files.ConfigFile.Ollama.Enabled {
+		_, err = taskScheduler.ScheduleWithCron(func(ctx context.Context) {
+			logger.Log.Info("Ollama pre-cache task executing")
+			controllers.OllamaPreCacheForAllUsers()
+		}, "0 0 6 * * *")
+
+		if err != nil {
+			logger.Log.Info("Ollama pre-cache task was not scheduled successfully. error: " + err.Error())
+		}
+	}
+
 	if files.ConfigFile.StravaEnabled {
 		_, err = taskScheduler.ScheduleWithCron(func(ctx context.Context) {
 			logger.Log.Info("strava sync task executing")
@@ -170,6 +181,8 @@ func main() {
 	router := initRouter(files.ConfigFile)
 
 	logger.Log.Info("Router initialized.")
+
+	go controllers.OllamaPreCacheForAllUsers()
 
 	log.Fatal(router.Run(":" + strconv.Itoa(files.ConfigFile.TreninghetenPort)))
 }
@@ -271,6 +284,8 @@ func initRouter(configFile models.ConfigStruct) *gin.Engine {
 			auth.POST("/notifications/subscribe", controllers.APISubscribeToNotification)
 			auth.POST("/notifications/subscription", controllers.APIGetSubscriptionForEndpoint)
 			auth.POST("/notifications/subscription/update", controllers.APIUpdateSubscriptionForEndpoint)
+
+			auth.GET("/ai/frontpage", controllers.APIGetOllamaFrontPageMessageForUser)
 		}
 
 		admin := api.Group("/admin").Use(middlewares.Auth(true))
@@ -330,6 +345,7 @@ func initRouter(configFile models.ConfigStruct) *gin.Engine {
 		"vapidPublicKey":    configFile.VAPIDPublicKey,
 		"timezone":          configFile.Timezone,
 		"stravaRedirectURI": configFile.StravaRedirectURI,
+		"ollamaEnabled":     configFile.Ollama.Enabled,
 	}
 
 	// endpoint handler building for JS
@@ -355,8 +371,6 @@ func initRouter(configFile models.ConfigStruct) *gin.Engine {
 	if err != nil {
 		logger.Log.Error("failed to build TXT paths. error: " + err.Error())
 	}
-
-	return router
 
 	return router
 }

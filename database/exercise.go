@@ -22,7 +22,11 @@ func GetExerciseByExerciseDayID(exerciseDayID uuid.UUID) ([]models.Exercise, err
 
 	var exercises []models.Exercise
 
-	exerciseRecord := Instance.Where("`exercises`.enabled = ?", 1).Where("`exercises`.exercise_day_id = ?", exerciseDayID).Find(&exercises)
+	exerciseRecord := Instance.
+		Where("`exercises`.enabled = ?", 1).
+		Where("`exercises`.exercise_day_id = ?", exerciseDayID).
+		Find(&exercises)
+
 	if exerciseRecord.Error != nil {
 		return []models.Exercise{}, exerciseRecord.Error
 	}
@@ -31,7 +35,7 @@ func GetExerciseByExerciseDayID(exerciseDayID uuid.UUID) ([]models.Exercise, err
 
 }
 
-// Turn on exercise in dastabase
+// Turn on exercise in database
 func UpdateExerciseByTurningOnByExerciseID(exerciseID uuid.UUID) error {
 
 	var exercise models.Exercise

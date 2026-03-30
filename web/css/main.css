@@ -3007,6 +3007,15 @@ label {
   animation: skeleton-shimmer 1.4s infinite;
 }
 
+/* ── AI message widget ── */
+.ai-button-row { display: flex; flex-direction: column; align-items: center; gap: 0.75em; width: 100%; margin-top: 1em; }
+@media (min-width: 600px) { .ai-button-row { flex-direction: row; align-items: center; justify-content: center; } }
+#ai-message-inline { width: 100%; max-width: 28em; }
+.ai-message-card { background: rgba(255,255,255,0.05); border: 0.05em solid rgba(255,255,255,0.1); border-radius: 0.6em; padding: 0.75em 1em; display: flex; align-items: center; gap: 0.6em; min-height: 2.8em; box-sizing: border-box; width: 100%; }
+.ai-message-label { font-size: 0.6em; opacity: 0.45; text-transform: uppercase; letter-spacing: 0.08em; white-space: nowrap; flex-shrink: 0; }
+.ai-message-text { font-size: 0.85em; opacity: 0.85; line-height: 1.5; text-align: left; }
+.ai-message-skeleton { height: 1em; border-radius: 0.3em; flex: 1; }
+
 /* ── Stats layout ── */
 .user-stats-section { display: flex; flex-direction: column; gap: 0.5em; padding: 0.75em 0; }
 .user-stats-section + .user-stats-section { border-top: 0.1rem solid rgba(255,255,255,0.08); }

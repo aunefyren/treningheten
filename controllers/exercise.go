@@ -247,6 +247,8 @@ func APIRegisterWeek(context *gin.Context) {
 
 	context.JSON(http.StatusCreated, gin.H{"message": "Week saved.", "week": weekReturn})
 
+	go OllamaAsyncRefreshCacheForUser(userID)
+
 }
 
 // Get full workout calender for the week from the database, and return to user

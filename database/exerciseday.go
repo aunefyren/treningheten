@@ -144,7 +144,13 @@ func GetExerciseDaysBetweenDatesUsingDatesAndUserID(userID uuid.UUID, startDate 
 	startDayString := startDate.Format("2006-01-02") + " 00:00:00.000"
 	endDayString := endDate.Format("2006-01-02") + " 23:59:59"
 
-	exerciserecord := Instance.Where("`exercise_days`.enabled = ?", 1).Where("`exercise_days`.user_id = ?", userID).Where("`exercise_days`.Date >= ?", startDayString).Where("`exercise_days`.Date <= ?", endDayString).Find(&exercises)
+	exerciserecord := Instance.
+		Where("`exercise_days`.enabled = ?", 1).
+		Where("`exercise_days`.user_id = ?", userID).
+		Where("`exercise_days`.Date >= ?", startDayString).
+		Where("`exercise_days`.Date <= ?", endDayString).
+		Find(&exercises)
+
 	if exerciserecord.Error != nil {
 		return []models.ExerciseDay{}, exerciserecord.Error
 	} else if exerciserecord.RowsAffected == 0 {
