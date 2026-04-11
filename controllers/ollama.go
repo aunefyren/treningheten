@@ -192,7 +192,7 @@ func OllamaGenerateFrontPageMessage(ctx context.Context, user models.User, exerc
 
 WEEKS: A week always runs Monday to Sunday. The payload includes "current_week_start" — the exact date of this week's Monday. Use it to determine which workouts fall in the current week. Do not guess or recalculate it.
 
-WORKOUT DATA: The "recent_workouts_past_31_days" list contains ONLY days the user actually exercised. A missing date means the user did NOT work out that day — there is no missing or unavailable data. If no entries exist on or after "current_week_start", the user has not worked out yet this week. State this clearly without hedging.
+WORKOUT DATA: The "recent_workouts_past_31_days" list contains ONLY days the user actually exercised. A missing date means the user did NOT work out that day — there is no missing or unavailable data. If no entries exist on or after "current_week_start", the user has not worked out yet this week. State this clearly without hedging. Only reference workout dates that literally appear in this list. Never infer, assume, or invent a workout on any date — including today's date — unless it is explicitly present in the list.
 
 SEASONS: If "active_seasons" is empty, the user is not in any active season. Do not mention season progress, season streaks, or the spin wheel when outside a season. When in a season: hitting the weekly goal each consecutive week builds a season streak; missing it while competing means spinning a wheel — whoever it lands on wins the prize (the spinning user failed). Sick leave is per-season and expires unused.
 
