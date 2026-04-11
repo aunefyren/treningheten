@@ -89,10 +89,11 @@ type ollamaSeasonPayload struct {
 }
 
 type ollamaPromptPayload struct {
-	PointInTime    string                  `json:"point_in_time"`
-	User           ollamaUserPayload       `json:"user"`
-	ActiveSeasons  []ollamaSeasonPayload   `json:"active_seasons"`
-	RecentWorkouts []ollamaExercisePayload `json:"recent_workouts_past_31_days"`
+	PointInTime      string                  `json:"point_in_time"`
+	CurrentWeekStart string                  `json:"current_week_start"`
+	User             ollamaUserPayload       `json:"user"`
+	ActiveSeasons    []ollamaSeasonPayload   `json:"active_seasons"`
+	RecentWorkouts   []ollamaExercisePayload `json:"recent_workouts_past_31_days"`
 }
 
 func buildOllamaPayload(user models.User, exerciseDays []models.ExerciseDayObject, activeSeasons []models.SeasonObject, pointInTime time.Time) (string, error) {
@@ -127,8 +128,16 @@ func buildOllamaPayload(user models.User, exerciseDays []models.ExerciseDayObjec
 		})
 	}
 
+	// Calculate the Monday of the current week (ISO: weeks start on Monday).
+	weekday := int(pointInTime.Weekday())
+	if weekday == 0 {
+		weekday = 7 // Sunday is 7 in ISO week numbering
+	}
+	monday := pointInTime.AddDate(0, 0, -(weekday - 1))
+
 	payload := ollamaPromptPayload{
-		PointInTime: pointInTime.Format("2006-01-02 (Monday)"),
+		PointInTime:      pointInTime.Format("2006-01-02 (Monday)"),
+		CurrentWeekStart: monday.Format("2006-01-02"),
 		User: ollamaUserPayload{
 			FirstName: user.FirstName,
 			LastName:  user.LastName,
@@ -179,14 +188,17 @@ func OllamaGenerateFrontPageMessage(ctx context.Context, user models.User, exerc
 	messages := []ChatMessage{
 		{
 			Role: "system",
-			Content: `
-				You are a fitness coach for Treningheten, a workout tracking app.
-				Users join seasons with a weekly workout goal. Hit the goal each week to build a streak; miss it and you must spin a
-				wheel if competing — the person it lands on wins the season prize (meaning someone else failed). Not relevant outside of seasons.
-				Sick leave is per-season and expires unused. Streaks increase when you exercise every week. Weeks start on Mondays.
-				Generate a short front-page message (2 sentences normally, 4 sentences maximum) for the user based on their data. Look at the dates of exercises.
-				Be specific: reference the current weekday, their progress this week, and where they stand in the season, if applicable. 
-				Friendly tone, humor welcome. No text formatting, reply in plain text. Emoji's are allowed. Respond in English.`,
+			Content: `You are a fitness coach for Treningheten, a workout tracking app. Follow these rules precisely:
+
+WEEKS: A week always runs Monday to Sunday. The payload includes "current_week_start" — the exact date of this week's Monday. Use it to determine which workouts fall in the current week. Do not guess or recalculate it.
+
+WORKOUT DATA: The "recent_workouts_past_31_days" list contains ONLY days the user actually exercised. A missing date means the user did NOT work out that day — there is no missing or unavailable data. If no entries exist on or after "current_week_start", the user has not worked out yet this week. State this clearly without hedging.
+
+SEASONS: If "active_seasons" is empty, the user is not in any active season. Do not mention season progress, season streaks, or the spin wheel when outside a season. When in a season: hitting the weekly goal each consecutive week builds a season streak; missing it while competing means spinning a wheel — whoever it lands on wins the prize (the spinning user failed). Sick leave is per-season and expires unused.
+
+STREAKS: Season streaks only exist and grow within a season. They cannot increase outside of a season. Users have separate personal streaks on their profile, but those are unrelated — do not mention or confuse them with season streaks.
+
+OUTPUT: Write a short front-page message (2 sentences normally, 4 maximum). Be specific: reference the current weekday, their workout progress this week, and season standing if applicable. Friendly tone, humor welcome. Plain text only, no markdown. Emojis allowed. Reply in English.`,
 		},
 		{
 			Role:    "user",
