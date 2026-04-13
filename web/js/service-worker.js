@@ -2,7 +2,7 @@ console.log("Service-worker loaded.");
 
 // Incrementing OFFLINE_VERSION will kick off the install event and force
 // previously cached resources to be updated from the network.
-const OFFLINE_VERSION = 2;
+const OFFLINE_VERSION = 3;
 const CACHE_NAME = 'treningheten-cache-v' + OFFLINE_VERSION;
 const OFFLINE_URL = '/offline';
 const urlsToCache = [
@@ -73,9 +73,33 @@ self.addEventListener('fetch', (event) => {
         return;
     }
 
-    // Static assets (scripts, styles, images): cache-first, fall back to network.
+    // Scripts and styles: network-first, fall back to cache.
+    // This ensures updates are always picked up while still working offline.
     const dest = event.request.destination;
-    if (dest === 'script' || dest === 'style' || dest === 'image' || dest === 'font') {
+    if (dest === 'script' || dest === 'style' || dest === 'font') {
+        event.respondWith((async () => {
+            const cache = await caches.open(CACHE_NAME);
+            try {
+                const networkResponse = await fetch(event.request);
+                if (networkResponse.ok) {
+                    cache.put(event.request, networkResponse.clone());
+                }
+                return networkResponse;
+            } catch (error) {
+                console.log('Asset fetch failed; returning cached version.', event.request.url, error);
+                const cachedResponse = await cache.match(event.request);
+                if (cachedResponse) {
+                    return cachedResponse;
+                }
+                return new Response('', { status: 408, statusText: 'Offline' });
+            }
+        })());
+        return;
+    }
+
+    // Images: cache-first, fall back to network.
+    // Stale images are less harmful and this keeps image loads fast.
+    if (dest === 'image') {
         event.respondWith((async () => {
             const cache = await caches.open(CACHE_NAME);
             const cachedResponse = await cache.match(event.request);
@@ -84,14 +108,12 @@ self.addEventListener('fetch', (event) => {
             }
             try {
                 const networkResponse = await fetch(event.request);
-                // Cache successful responses for future offline use.
                 if (networkResponse.ok) {
                     cache.put(event.request, networkResponse.clone());
                 }
                 return networkResponse;
             } catch (error) {
-                console.log('Asset fetch failed:', event.request.url, error);
-                // Nothing we can do for assets — just fail silently.
+                console.log('Image fetch failed:', event.request.url, error);
                 return new Response('', { status: 408, statusText: 'Offline' });
             }
         })());
