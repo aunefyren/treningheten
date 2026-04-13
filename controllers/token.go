@@ -2,6 +2,7 @@ package controllers
 
 import (
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/aunefyren/treningheten/auth"
@@ -31,10 +32,12 @@ func GenerateToken(context *gin.Context) {
 		return
 	}
 
+	cleanedInput := strings.TrimSpace(strings.ToLower(request.Email))
+
 	// check if email exists and password is correct
-	record := database.Instance.Where("email = ?", request.Email).First(&user)
-	if record.Error != nil {
-		logger.Log.Info("Invalid credentials. Error: " + record.Error.Error())
+	user, err := database.GetUserInformationByEmail(cleanedInput)
+	if err != nil {
+		logger.Log.Info("Invalid credentials. Error: " + err.Error())
 		context.JSON(http.StatusInternalServerError, gin.H{"error": "Invalid credentials."})
 		context.Abort()
 		return

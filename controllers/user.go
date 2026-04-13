@@ -57,7 +57,7 @@ func RegisterUser(context *gin.Context) {
 	var trueVariable = true
 
 	// Move values from request to object
-	user.Email = html.EscapeString(strings.TrimSpace(userCreationRequest.Email))
+	user.Email = html.EscapeString(strings.TrimSpace(strings.ToLower(userCreationRequest.Email)))
 	user.Password = userCreationRequest.Password
 	user.FirstName = html.EscapeString(strings.TrimSpace(userCreationRequest.FirstName))
 	user.LastName = html.EscapeString(strings.TrimSpace(userCreationRequest.LastName))
@@ -403,7 +403,7 @@ func UpdateUser(context *gin.Context) {
 		return
 	}
 
-	userUpdateRequest.Email = html.EscapeString(strings.TrimSpace(userUpdateRequest.Email))
+	userUpdateRequest.Email = html.EscapeString(strings.TrimSpace(strings.ToLower(userUpdateRequest.Email)))
 
 	if userOriginal.Email != userUpdateRequest.Email {
 
