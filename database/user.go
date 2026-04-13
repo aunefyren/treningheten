@@ -300,6 +300,19 @@ func GetUserInformationByEmail(email string) (models.User, error) {
 	return user, nil
 }
 
+// Get all user information using email (uncensored)
+func GetAllUserInformationByEmail(email string) (models.User, error) {
+	var user models.User
+	userrecord := Instance.Where("`users`.enabled = ?", 1).Where("`users`.email = ?", email).Find(&user)
+	if userrecord.Error != nil {
+		return models.User{}, userrecord.Error
+	} else if userrecord.RowsAffected != 1 {
+		return models.User{}, errors.New("Failed to find correct user in DB.")
+	}
+
+	return user, nil
+}
+
 // Get ALL user information by user ID (uncensored)
 func GetAllUserInformation(UserID uuid.UUID) (models.User, error) {
 	var user models.User

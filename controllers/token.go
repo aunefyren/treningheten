@@ -35,7 +35,7 @@ func GenerateToken(context *gin.Context) {
 	cleanedInput := strings.TrimSpace(strings.ToLower(request.Email))
 
 	// check if email exists and password is correct
-	user, err := database.GetUserInformationByEmail(cleanedInput)
+	user, err := database.GetAllUserInformationByEmail(cleanedInput)
 	if err != nil {
 		logger.Log.Info("Invalid credentials. Error: " + err.Error())
 		context.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid credentials."})
