@@ -14,16 +14,18 @@ jobs:
         goos: [linux, windows]
         goarch: ["386", amd64, arm64, arm]
         exclude:
-          - goarch: arm64, arm
+          - goarch: arm64
+            goos: windows
+          - goarch: arm
             goos: windows
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
     - uses: wangyoucao577/go-release-action@v1.40
       with:
         github_token: ${{ secrets.GIT_HUB_TOKEN }}
         goos: ${{ matrix.goos }}
         goarch: ${{ matrix.goarch }}
-        goversion: "1.24.0"
+        goversion: "1.25.0"
         binary_name: "treningheten"
         ldflags: "-s -w"
         extra_files: README.md auth config controllers database middlewares models utilities web Dockerfile
