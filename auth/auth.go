@@ -2,6 +2,7 @@ package auth
 
 import (
 	"errors"
+	"fmt"
 	"time"
 
 	"github.com/aunefyren/treningheten/database"
@@ -17,14 +18,16 @@ type JWTClaim struct {
 	jwt.RegisteredClaims
 }
 
-func GenerateJWT(userID uuid.UUID) (tokenString string, err error) {
-	expirationTime := time.Now().Add(time.Hour * 24 * 7)
+func GenerateJWT(userID uuid.UUID, admin bool) (tokenString string, err error) {
+	now := time.Now()
+	expirationTime := now.Add(time.Hour * 24 * 7)
 	claims := &JWTClaim{
 		UserID: userID,
+		Admin:  admin,
 		RegisteredClaims: jwt.RegisteredClaims{
 			ExpiresAt: jwt.NewNumericDate(expirationTime),
-			NotBefore: jwt.NewNumericDate(time.Now()),
-			IssuedAt:  jwt.NewNumericDate(time.Now()),
+			NotBefore: jwt.NewNumericDate(now),
+			IssuedAt:  jwt.NewNumericDate(now),
 			Issuer:    "Treningheten",
 		},
 	}
@@ -50,7 +53,10 @@ func ValidateToken(signedToken string, admin bool) (err error) {
 		signedToken,
 		&JWTClaim{},
 		func(token *jwt.Token) (interface{}, error) {
-			return []byte(jwtKey), nil
+			if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
+				return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
+			}
+			return jwtKey, nil
 		},
 	)
 	if err != nil {
@@ -95,7 +101,10 @@ func ParseToken(signedToken string) (*JWTClaim, error) {
 		signedToken,
 		&JWTClaim{},
 		func(token *jwt.Token) (interface{}, error) {
-			return []byte(jwtKey), nil
+			if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
+				return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
+			}
+			return jwtKey, nil
 		},
 	)
 	if err != nil {

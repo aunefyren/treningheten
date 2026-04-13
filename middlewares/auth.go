@@ -3,6 +3,7 @@ package middlewares
 import (
 	"errors"
 	"net/http"
+	"strings"
 
 	"github.com/aunefyren/treningheten/auth"
 	"github.com/aunefyren/treningheten/database"
@@ -15,7 +16,7 @@ import (
 
 func Auth(admin bool) gin.HandlerFunc {
 	return func(context *gin.Context) {
-		tokenString := context.GetHeader("Authorization")
+		tokenString := strings.TrimPrefix(context.GetHeader("Authorization"), "Bearer ")
 		if tokenString == "" {
 			context.JSON(401, gin.H{"error": "request does not contain an access token"})
 			context.Abort()
@@ -99,7 +100,7 @@ func Auth(admin bool) gin.HandlerFunc {
 }
 
 func GetAuthUsername(tokenString string) (uuid.UUID, error) {
-
+	tokenString = strings.TrimPrefix(tokenString, "Bearer ")
 	if tokenString == "" {
 		return uuid.UUID{}, errors.New("no Authorization header given")
 	}
@@ -111,7 +112,7 @@ func GetAuthUsername(tokenString string) (uuid.UUID, error) {
 }
 
 func GetTokenClaims(tokenString string) (*auth.JWTClaim, error) {
-
+	tokenString = strings.TrimPrefix(tokenString, "Bearer ")
 	if tokenString == "" {
 		return &auth.JWTClaim{}, errors.New("no Authorization header given")
 	}

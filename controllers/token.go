@@ -38,7 +38,7 @@ func GenerateToken(context *gin.Context) {
 	user, err := database.GetUserInformationByEmail(cleanedInput)
 	if err != nil {
 		logger.Log.Info("Invalid credentials. Error: " + err.Error())
-		context.JSON(http.StatusInternalServerError, gin.H{"error": "Invalid credentials."})
+		context.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid credentials."})
 		context.Abort()
 		return
 	}
@@ -51,7 +51,7 @@ func GenerateToken(context *gin.Context) {
 		return
 	}
 
-	tokenString, err := auth.GenerateJWT(user.ID)
+	tokenString, err := auth.GenerateJWT(user.ID, user.Admin != nil && *user.Admin)
 	if err != nil {
 		context.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		context.Abort()
@@ -88,8 +88,9 @@ func ValidateToken(context *gin.Context) {
 
 		if float64(difference.Hours()/24/365) < 1.0 && claims.ExpiresAt.After(now) {
 
-			// Change expiration to now + seven days
+			// Change expiration and issuance to now
 			claims.ExpiresAt.Time = now.Add(time.Hour * 24 * 7)
+			claims.IssuedAt.Time = now
 
 			// Get user object by ID and check and update admin status
 			userObject, userErr := database.GetUserInformation(claims.UserID)

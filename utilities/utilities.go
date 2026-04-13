@@ -20,7 +20,7 @@ func PrintASCII() {
 func ValidatePasswordFormat(password string) (bool, string, error) {
 	requirements := "Password must have a minimum of eight characters, at least one uppercase letter, one lowercase letter and one number."
 
-	if len(password) < 8 {
+	if len(password) < 8 || len(password) > 128 {
 		return false, requirements, nil
 	}
 

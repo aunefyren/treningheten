@@ -252,8 +252,7 @@ func ResetSecureKey() {
 		os.Exit(1)
 	}
 	ConfigFile.PrivateKey = privateKey
-	SaveConfig()
-	if err != nil {
+	if err := SaveConfig(); err != nil {
 		fmt.Println("failed to save new config. exiting...")
 		os.Exit(1)
 	}
