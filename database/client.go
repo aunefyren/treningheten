@@ -134,6 +134,10 @@ func Migrate() {
 	Instance.AutoMigrate(&models.OperationSet{})
 	Instance.AutoMigrate(&models.Action{})
 	Instance.AutoMigrate(&models.WeightValue{})
+	Instance.AutoMigrate(&models.OAuthClient{})
+	Instance.AutoMigrate(&models.OAuthAuthorizationCode{})
+	Instance.AutoMigrate(&models.OAuthRefreshToken{})
+	Instance.AutoMigrate(&models.PersonalAccessToken{})
 
 	logger.Log.Info("Database migration completed.")
 }

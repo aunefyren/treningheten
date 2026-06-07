@@ -1,7 +1,7 @@
 function load_page(result) {
 
-    // Reset cookie
-    set_cookie("treningheten", "", 1);
+    // Reset session tokens
+    clear_tokens();
 
     var html = `
                 <div class="" id="forside">

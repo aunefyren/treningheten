@@ -2732,7 +2732,7 @@ label {
   padding: 0 1rem;
 }
 
-.notifications-wrapper, .settings-wrapper, .strava-wrapper, .mail-notifications-wrapper {
+.notifications-wrapper, .settings-wrapper, .strava-wrapper, .mail-notifications-wrapper, .pat-wrapper {
   display: none;
   flex-direction: column;
   flex-wrap: wrap;
@@ -2743,6 +2743,76 @@ label {
   width: 100%;
   width: -webkit-fill-available;
   width: -moz-available;
+}
+
+.pat-form {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  width: 100%;
+}
+
+.pat-form input[type="text"], .pat-form select {
+  width: 100%;
+  max-width: 22em;
+}
+
+/* Override the global tall (10rem) listbox-style select for normal dropdowns. */
+.pat-form select {
+  height: 2.5rem;
+  min-height: 2.5rem;
+  overflow-y: auto;
+}
+
+.pat-option {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.pat-list-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  width: 100%;
+  padding: 0.5rem 0;
+  border-top: 0.1rem solid var(--trans-lightblue);
+}
+
+.pat-list-info {
+  display: flex;
+  flex-direction: column;
+  text-align: left;
+  word-break: break-word;
+}
+
+.pat-meta {
+  font-size: 0.75em;
+  opacity: 0.8;
+}
+
+.pat-revoke {
+  width: 7em;
+  flex-shrink: 0;
+}
+
+.pat-new-token-box {
+  width: 100%;
+  text-align: center;
+  padding: 0.75rem;
+  border: 0.1rem solid var(--trans-lightblue);
+  border-radius: 0.5rem;
+}
+
+.pat-token-value {
+  display: block;
+  word-break: break-all;
+  padding: 0.5rem;
+  background: var(--trans-lightblue);
+  border-radius: 0.4rem;
+  font-family: monospace;
 }
 
 .account-section-wrapper {

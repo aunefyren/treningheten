@@ -283,8 +283,9 @@ func VerifyUser(context *gin.Context) {
 		return
 	}
 
-	// Generate new JWT token
-	tokenString, err := auth.GenerateJWT(user.ID, user.Admin != nil && *user.Admin)
+	// Issue a new OAuth token set for the verified user (auto-login)
+	admin := user.Admin != nil && *user.Admin
+	tokenSet, err := auth.IssueTokenSet(user.ID, admin, auth.ScopeForUser(admin), models.FirstPartyClientID)
 	if err != nil {
 		context.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		context.Abort()
@@ -292,7 +293,7 @@ func VerifyUser(context *gin.Context) {
 	}
 
 	// Reply
-	context.JSON(http.StatusOK, gin.H{"message": "User verified.", "token": tokenString})
+	context.JSON(http.StatusOK, gin.H{"message": "User verified.", "data": tokenSet})
 
 }
 
@@ -480,8 +481,9 @@ func UpdateUser(context *gin.Context) {
 		return
 	}
 
-	// Generate new JWT token
-	tokenString, err := auth.GenerateJWT(user.ID, user.Admin != nil && *user.Admin)
+	// Issue a new OAuth token set (email/admin changes may affect claims)
+	admin := user.Admin != nil && *user.Admin
+	tokenSet, err := auth.IssueTokenSet(user.ID, admin, auth.ScopeForUser(admin), models.FirstPartyClientID)
 	if err != nil {
 		context.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		context.Abort()
@@ -511,7 +513,7 @@ func UpdateUser(context *gin.Context) {
 	}
 
 	// Reply
-	context.JSON(http.StatusOK, gin.H{"message": "Account updated.", "token": tokenString, "verified": user.Verified})
+	context.JSON(http.StatusOK, gin.H{"message": "Account updated.", "data": tokenSet, "verified": user.Verified})
 
 }
 

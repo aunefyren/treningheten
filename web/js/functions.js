@@ -1,4 +1,59 @@
 var api_url = window.location.origin + "/api/";
+var OAUTH_CLIENT_ID = "treningheten-web";
+
+// Store the OAuth token pair. Access token keeps the legacy cookie name so all
+// existing Authorization headers keep working.
+function store_tokens(access_token, refresh_token) {
+    if(access_token) {
+        set_cookie("treningheten", access_token, 7);
+        jwt = access_token;
+    }
+    if(refresh_token) {
+        set_cookie("treningheten_refresh", refresh_token, 30);
+    }
+}
+
+// Clear both tokens (logout / failed refresh).
+function clear_tokens() {
+    set_cookie("treningheten", "", 1);
+    set_cookie("treningheten_refresh", "", 1);
+    jwt = "";
+}
+
+// Exchange the refresh token for a new access token. Calls back with the new
+// access token on success, or "" on failure.
+function refresh_access_token(callback) {
+    var refresh_token = get_cookie("treningheten_refresh");
+    if(!refresh_token) {
+        callback("");
+        return;
+    }
+
+    var body = "grant_type=refresh_token"
+        + "&client_id=" + encodeURIComponent(OAUTH_CLIENT_ID)
+        + "&refresh_token=" + encodeURIComponent(refresh_token);
+
+    var xhttp = new XMLHttpRequest();
+    xhttp.onreadystatechange = function() {
+        if(this.readyState == 4) {
+            try {
+                var result = JSON.parse(this.responseText);
+                if(this.status >= 200 && this.status < 300 && result.access_token) {
+                    store_tokens(result.access_token, result.refresh_token);
+                    callback(result.access_token);
+                    return;
+                }
+            } catch(e) {
+                console.log("Failed to parse refresh response. Error: " + e);
+            }
+            clear_tokens();
+            callback("");
+        }
+    };
+    xhttp.open("post", api_url + "oauth/token");
+    xhttp.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");
+    xhttp.send(body);
+}
 
 // Load service worker
 if('serviceWorker' in navigator) {
@@ -69,9 +124,20 @@ function get_cookie(cname) {
 }
 
 // Validate login token and get login details
-function get_login(cookie) {
+function get_login(cookie, triedRefresh) {
 
     if(jwt == "") {
+        // No access token: try to silently refresh before giving up.
+        if(!triedRefresh && get_cookie("treningheten_refresh")) {
+            refresh_access_token(function(newToken) {
+                if(newToken) {
+                    get_login(newToken, true);
+                } else {
+                    load_page(false);
+                }
+            });
+            return;
+        }
         load_page(false);
         return
     }
@@ -110,9 +176,26 @@ function get_login(cookie) {
                 load_page(this.responseText);
                 return;
             } else if(result.error) {
+                // Access token rejected: attempt a single silent refresh before
+                // bouncing the user to the login page.
+                if(!triedRefresh && get_cookie("treningheten_refresh")) {
+                    refresh_access_token(function(newToken) {
+                        if(newToken) {
+                            get_login(newToken, true);
+                        } else {
+                            clear_tokens();
+                            if(window.location.pathname !== "/login") {
+                                logInPageRedirect(result.error);
+                            } else {
+                                load_page(false);
+                            }
+                        }
+                    });
+                    return;
+                }
+
                 error(result.error)
-                set_cookie("treningheten", "", 7);
-                jwt = "";
+                clear_tokens();
                 if(window.location.pathname !== "/login") {
                     console.log("login page redirect")
                     logInPageRedirect(result.error);
@@ -122,13 +205,6 @@ function get_login(cookie) {
                     load_page(false);
                 }
             } else {
-                // If new token, save it
-                if(result.token != null && result.token != "") {
-                    // store jwt to cookie
-                    console.log("Refreshed login token.")
-                    set_cookie("treningheten", result.token, 7);
-                }
-
                 // Load page
                 load_page(this.responseText)
             }
@@ -354,7 +430,7 @@ function error(message) {
 
 // When log out button is pressed, remove cookie and redirect to home page
 function logout() {
-    set_cookie("treningheten", "", 1);
+    clear_tokens();
     window.location.href = '/';
 }
 

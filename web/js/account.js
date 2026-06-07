@@ -164,8 +164,19 @@ function load_page(result) {
                         <div class="">Strava</div>
                         <img id="section-button-strava" src="assets/chevron-right.svg" class="color-invert" style="margin: 0.5em;">
                     </div>
-                    
+
                     <div id="strava-wrapper" class="strava-wrapper minimized">
+                    </div>
+                </div>
+
+                <div class="account-section" id="pat-section">
+
+                    <div class="account-section-tab clickable" style="" onclick="toggleSection('pat-wrapper', 'section-button-pat')">
+                        <div class="">Developer access tokens</div>
+                        <img id="section-button-pat" src="assets/chevron-right.svg" class="color-invert" style="margin: 0.5em;">
+                    </div>
+
+                    <div id="pat-wrapper" class="pat-wrapper minimized">
                     </div>
                 </div>
 
@@ -198,6 +209,7 @@ function load_page(result) {
         GetUserData(user_id, strava_oauth, strava_enabled);
         GetProfileImage(user_id);
         CheckForSubscription();
+        renderPATSection(admin);
     } else {
         showLoggedOutMenu();
         invalid_session();
@@ -317,9 +329,11 @@ function send_update_two(form_data, user_id) {
 
                 success(result.message);
 
-                // store jwt to cookie
-                set_cookie("treningheten", result.token, 7);
-                
+                // store the refreshed OAuth token pair
+                if(result.data) {
+                    store_tokens(result.data.access_token, result.data.refresh_token);
+                }
+
                 if(result.verified) {
                     location.reload();
                 } else {
@@ -607,4 +621,188 @@ function updateAccountValue(property) {
     xhttp.setRequestHeader("Authorization", jwt);
     xhttp.send(form_data);
     return false;
+}
+
+// --- Personal Access Tokens ---
+
+function renderPATSection(isAdmin) {
+    var adminCheckbox = "";
+    if(isAdmin) {
+        adminCheckbox = `
+            <div class="pat-option">
+                <input class="clickable" type="checkbox" id="pat_admin" name="pat_admin">
+                <label for="pat_admin" style="margin:0;" class="clickable">Include admin access</label>
+            </div>`;
+    }
+
+    var html = `
+    <div class="text-body" style="margin-bottom:1em;">
+        Personal access tokens let your own scripts and integrations use the API on your behalf.
+        Treat them like passwords &mdash; anyone with a token can act as you.
+    </div>
+
+    <form class="pat-form" onsubmit="event.preventDefault(); submitPAT();">
+        <input type="text" id="pat_name" placeholder="Token name (e.g. my laptop script)" required>
+
+        <select id="pat_scope" class="clickable">
+            <option value="api:read">Read-only</option>
+            <option value="api:write">Read &amp; write</option>
+        </select>
+
+        <select id="pat_expiry" class="clickable">
+            <option value="30">Expires in 30 days</option>
+            <option value="90" selected>Expires in 90 days</option>
+            <option value="180">Expires in 180 days</option>
+            <option value="365">Expires in 365 days</option>
+        </select>
+        ` + adminCheckbox + `
+        <button type="submit" style="width:12em;">Create token</button>
+    </form>
+
+    <div id="pat-new-token" style="margin-top:1em;"></div>
+
+    <div id="pat-list" style="margin-top:1em; width:100%;">Loading...</div>
+    `;
+
+    document.getElementById("pat-wrapper").innerHTML = html;
+    loadPATs();
+}
+
+function loadPATs() {
+    var xhttp = new XMLHttpRequest();
+    xhttp.onreadystatechange = function() {
+        if(this.readyState == 4) {
+            var result;
+            try {
+                result = JSON.parse(this.responseText);
+            } catch(e) {
+                document.getElementById("pat-list").innerHTML = "Could not load tokens.";
+                return;
+            }
+            if(result.error) {
+                document.getElementById("pat-list").innerHTML = "Could not load tokens.";
+                return;
+            }
+            renderPATList(result.data || []);
+        }
+    };
+    xhttp.open("get", api_url + "auth/pats");
+    xhttp.setRequestHeader("Authorization", "Bearer " + jwt);
+    xhttp.send();
+}
+
+function renderPATList(pats) {
+    if(!pats.length) {
+        document.getElementById("pat-list").innerHTML = `<div class="text-body">No active tokens.</div>`;
+        return;
+    }
+
+    var rows = "";
+    for(var i = 0; i < pats.length; i++) {
+        var p = pats[i];
+        var expires = new Date(p.expires_at).toLocaleDateString();
+        var lastUsed = p.last_used_at ? new Date(p.last_used_at).toLocaleDateString() : "never";
+        rows += `
+        <div class="pat-list-item">
+            <div class="pat-list-info">
+                <b>${escapeHTML(p.name)}</b>
+                <span class="pat-meta">${escapeHTML(p.scope)} &middot; expires ${expires} &middot; last used ${lastUsed}</span>
+            </div>
+            <button class="danger-button pat-revoke" onclick="revokePAT('${p.id}')">Revoke</button>
+        </div>`;
+    }
+    document.getElementById("pat-list").innerHTML = rows;
+}
+
+function submitPAT() {
+    var name = document.getElementById("pat_name").value;
+    var scope = document.getElementById("pat_scope").value;
+    var expiry = parseInt(document.getElementById("pat_expiry").value, 10);
+    var adminEl = document.getElementById("pat_admin");
+    var admin = adminEl ? adminEl.checked : false;
+
+    var form_data = JSON.stringify({
+        "name": name,
+        "scope": scope,
+        "admin": admin,
+        "expires_in_days": expiry
+    });
+
+    var xhttp = new XMLHttpRequest();
+    xhttp.onreadystatechange = function() {
+        if(this.readyState == 4) {
+            var result;
+            try {
+                result = JSON.parse(this.responseText);
+            } catch(e) {
+                error("Could not reach API.");
+                return;
+            }
+            if(result.error) {
+                error(result.error);
+                return;
+            }
+            success("Token created.");
+            document.getElementById("pat_name").value = "";
+            showNewPAT(result.data.token);
+            loadPATs();
+        }
+    };
+    xhttp.open("post", api_url + "auth/pats");
+    xhttp.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
+    xhttp.setRequestHeader("Authorization", "Bearer " + jwt);
+    xhttp.send(form_data);
+}
+
+function showNewPAT(token) {
+    var html = `
+    <div class="pat-new-token-box">
+        <div class="text-body" style="margin-bottom:0.5em;">
+            Copy your new token now &mdash; you won't be able to see it again.
+        </div>
+        <code class="pat-token-value" id="pat-token-value">${escapeHTML(token)}</code>
+        <button type="button" style="width:8em; margin-top:0.5em;" onclick="copyPAT()">Copy</button>
+    </div>`;
+    document.getElementById("pat-new-token").innerHTML = html;
+}
+
+function copyPAT() {
+    var value = document.getElementById("pat-token-value").innerText;
+    navigator.clipboard.writeText(value).then(function() {
+        success("Token copied to clipboard.");
+    }, function() {
+        error("Could not copy token.");
+    });
+}
+
+function revokePAT(patID) {
+    var xhttp = new XMLHttpRequest();
+    xhttp.onreadystatechange = function() {
+        if(this.readyState == 4) {
+            var result;
+            try {
+                result = JSON.parse(this.responseText);
+            } catch(e) {
+                error("Could not reach API.");
+                return;
+            }
+            if(result.error) {
+                error(result.error);
+                return;
+            }
+            success("Token revoked.");
+            loadPATs();
+        }
+    };
+    xhttp.open("DELETE", api_url + "auth/pats/" + patID);
+    xhttp.setRequestHeader("Authorization", "Bearer " + jwt);
+    xhttp.send();
+}
+
+function escapeHTML(value) {
+    return String(value)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;");
 }

@@ -124,6 +124,7 @@ func main() {
 	}
 
 	database.SeedActions()
+	database.SeedOAuthClients()
 
 	if generateInvite {
 		invite, err := database.GenerateRandomInvite()
@@ -195,10 +196,18 @@ func initRouter(configFile models.ConfigStruct) *gin.Engine {
 	// API endpoint
 	api := router.Group("/api")
 	{
+		// OAuth 2.0 authorization server endpoints
+		oauth := api.Group("/oauth")
+		{
+			oauth.POST("/token", controllers.OAuthToken)
+			oauth.GET("/authorize", controllers.OAuthAuthorizeInfo)
+			oauth.POST("/authorize/decision", middlewares.Auth(false), controllers.OAuthAuthorizeDecision)
+			oauth.POST("/register", controllers.OAuthRegister)
+			oauth.POST("/revoke", controllers.OAuthRevoke)
+		}
+
 		open := api.Group("/open")
 		{
-			open.POST("/tokens/register", controllers.GenerateToken)
-
 			open.POST("/users", controllers.RegisterUser)
 			open.POST("/users/reset", controllers.APIResetPassword)
 			open.GET("/users/reset/:resetCode", controllers.APIVerifyResetCode)
@@ -286,6 +295,10 @@ func initRouter(configFile models.ConfigStruct) *gin.Engine {
 			auth.POST("/notifications/subscription/update", controllers.APIUpdateSubscriptionForEndpoint)
 
 			auth.GET("/ai/frontpage", controllers.APIGetOllamaFrontPageMessageForUser)
+
+			auth.POST("/pats", controllers.APICreatePersonalAccessToken)
+			auth.GET("/pats", controllers.APIGetPersonalAccessTokens)
+			auth.DELETE("/pats/:pat_id", controllers.APIDeletePersonalAccessToken)
 		}
 
 		admin := api.Group("/admin").Use(middlewares.Auth(true))
@@ -318,6 +331,10 @@ func initRouter(configFile models.ConfigStruct) *gin.Engine {
 		}
 
 	}
+
+	// OAuth 2.0 discovery metadata (RFC 8414 + RFC 9728), served at the root.
+	router.GET("/.well-known/oauth-authorization-server", controllers.OAuthAuthorizationServerMetadata)
+	router.GET("/.well-known/oauth-protected-resource", controllers.OAuthProtectedResourceMetadata)
 
 	router.Use(cors.New(cors.Config{
 		AllowOrigins: []string{"*"},
@@ -408,12 +425,12 @@ func parseFlags(configFile models.ConfigStruct) (models.ConfigStruct, bool, erro
 	}
 
 	// Respect the flag if config is empty
-	if externalURL == nil {
+	if externalURL != nil {
 		configFile.TreninghetenExternalURL = *externalURL
 	}
 
 	// Respect the flag if config is empty
-	if timezone == nil {
+	if timezone != nil {
 		configFile.Timezone = *timezone
 	}
 

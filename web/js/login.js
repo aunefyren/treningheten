@@ -1,7 +1,7 @@
 function load_page(result) {
 
-    // Reset cookie
-    set_cookie("treningheten", "", 1);
+    // Reset session tokens
+    clear_tokens();
 
     var html = `
         <div class="" id="forside">
@@ -196,17 +196,16 @@ function send_log_in(){
     var user_email = document.getElementById("email").value;
     var user_password = document.getElementById("password").value;
 
-    var form_obj = { 
-        "email" : user_email,
-        "password" : user_password
-    };
-
-    var form_data = JSON.stringify(form_obj);
+    // OAuth 2.0 resource-owner password grant (first-party client).
+    var form_data = "grant_type=password"
+        + "&client_id=" + encodeURIComponent(OAUTH_CLIENT_ID)
+        + "&username=" + encodeURIComponent(user_email)
+        + "&password=" + encodeURIComponent(user_password);
 
     var xhttp = new XMLHttpRequest();
     xhttp.onreadystatechange = function() {
         if (this.readyState == 4) {
-            
+
             try {
                 result = JSON.parse(this.responseText);
             } catch(e) {
@@ -215,24 +214,30 @@ function send_log_in(){
                 clear_data();
                 return;
             }
-            
+
             if(result.error) {
 
-                error(result.error);
+                error(result.error_description || result.error);
                 clear_data();
 
             } else {
 
-                // store jwt to cookie
-                set_cookie("treningheten", result.token, 7);
+                // store the OAuth token pair
+                store_tokens(result.access_token, result.refresh_token);
 
                 // show home page &amp; tell the user it was a successful login
                 showLoggedInMenu();
-                success(result.message);
+                success("Logged in!");
                 clear_data();
                 disable_login_button();
 
-                frontPageRedirect();
+                // Honour a same-origin return URL (e.g. OAuth consent flow).
+                var returnUrl = new URL(window.location.href).searchParams.get("return");
+                if(returnUrl && returnUrl.charAt(0) === "/" && returnUrl.charAt(1) !== "/") {
+                    window.location = returnUrl;
+                } else {
+                    frontPageRedirect();
+                }
 
             }
 
@@ -241,8 +246,8 @@ function send_log_in(){
         }
     };
     xhttp.withCredentials = true;
-    xhttp.open("post", api_url + "open/tokens/register");
-    xhttp.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
+    xhttp.open("post", api_url + "oauth/token");
+    xhttp.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");
     xhttp.send(form_data);
     return false;
 }

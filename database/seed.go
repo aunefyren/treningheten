@@ -321,6 +321,32 @@ var defaultActions = []models.Action{
 	},
 }
 
+// SeedOAuthClients ensures the first-party web client exists. It is idempotent.
+func SeedOAuthClients() {
+	if _, err := GetOAuthClientByClientID(models.FirstPartyClientID); err == nil {
+		logger.Log.Println("first-party OAuth client already present")
+		return
+	}
+
+	client := models.OAuthClient{
+		GormModel:               models.GormModel{ID: uuid.New(), CreatedAt: time.Now()},
+		ClientID:                models.FirstPartyClientID,
+		ClientName:              "Treningheten Web",
+		RedirectURIs:            "",
+		GrantTypes:              "password refresh_token",
+		ResponseTypes:           "",
+		Scope:                   models.ScopeAPI + " " + models.ScopeAdmin,
+		TokenEndpointAuthMethod: "none",
+		Public:                  true,
+		FirstParty:              true,
+	}
+	if err := CreateOAuthClient(&client); err != nil {
+		logger.Log.Printf("failed to seed first-party OAuth client: %v", err)
+		return
+	}
+	logger.Log.Println("seeded first-party OAuth client")
+}
+
 // SeedActions inserts any default actions that are not already present in the database.
 // It matches on ID so re-running at startup is safe and idempotent.
 func SeedActions() {
