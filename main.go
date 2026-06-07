@@ -336,6 +336,10 @@ func initRouter(configFile models.ConfigStruct) *gin.Engine {
 	router.GET("/.well-known/oauth-authorization-server", controllers.OAuthAuthorizationServerMetadata)
 	router.GET("/.well-known/oauth-protected-resource", controllers.OAuthProtectedResourceMetadata)
 
+	// MCP (Model Context Protocol) endpoint — JSON-RPC over Streamable HTTP,
+	// authenticated with an OAuth access token or a Personal Access Token.
+	router.Any("/mcp", controllers.MCPHandler())
+
 	router.Use(cors.New(cors.Config{
 		AllowOrigins: []string{"*"},
 		// AllowAllOrigins:  true,

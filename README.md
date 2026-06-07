@@ -39,3 +39,4 @@ Treningheten is a web-based platform for tracking workouts. A workout season is 
 - Achievements given when certain actions are done
 - OAuth 2.0 authorization server for API access (authorization-code + PKCE, dynamic client registration, refresh tokens) — see [docs/oauth.md](docs/oauth.md)
 - Personal Access Tokens for scripts and integrations, managed from your account page — see [docs/pat.md](docs/pat.md)
+- MCP (Model Context Protocol) server so AI assistants can read your training data (e.g. feedback on your latest run) — see [docs/mcp.md](docs/mcp.md)

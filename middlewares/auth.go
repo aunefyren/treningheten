@@ -58,6 +58,36 @@ func authenticate(authHeader string) (Principal, error) {
 	return Principal{UserID: claims.UserID, Scope: claims.Scope, IsPAT: false}, nil
 }
 
+// Authenticate resolves a bearer credential into a Principal and verifies the
+// account is enabled and (when SMTP is on) email-verified. It is the shared
+// entry point used by both the Auth middleware and the MCP endpoint.
+func Authenticate(authHeader string) (Principal, error) {
+	principal, err := authenticate(authHeader)
+	if err != nil {
+		return Principal{}, err
+	}
+
+	enabled, err := database.VerifyUserIsEnabled(principal.UserID)
+	if err != nil {
+		return Principal{}, errors.New("failed to check account")
+	}
+	if !enabled {
+		return Principal{}, errors.New("account disabled")
+	}
+
+	if files.ConfigFile.SMTPEnabled {
+		verified, err := database.VerifyUserIsVerified(principal.UserID)
+		if err != nil {
+			return Principal{}, errors.New("failed to check verification")
+		}
+		if !verified {
+			return Principal{}, errors.New("account not verified")
+		}
+	}
+
+	return principal, nil
+}
+
 // bearerChallenge writes an RFC 6750 WWW-Authenticate challenge. When the
 // external URL is configured it points clients at the protected-resource
 // metadata (RFC 9728), which MCP clients use for discovery.
@@ -73,6 +103,12 @@ func bearerChallenge(context *gin.Context, status int, errCode string, descripti
 	context.Header("WWW-Authenticate", strings.Join(parts, ", "))
 	context.JSON(status, gin.H{"error": description})
 	context.Abort()
+}
+
+// BearerChallenge emits an RFC 6750 WWW-Authenticate challenge (exported for the
+// MCP endpoint so unauthenticated clients discover the OAuth flow).
+func BearerChallenge(context *gin.Context, status int, errCode string, description string) {
+	bearerChallenge(context, status, errCode, description)
 }
 
 func isReadMethod(method string) bool {
