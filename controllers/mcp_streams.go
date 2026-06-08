@@ -245,7 +245,7 @@ func streamNames(s *models.StravaActivityStreams) []string {
 // are ignored (heart rate and cadence record 0 while paused/stopped).
 func intStat(data []int, filterZero bool) *models.MCPStreamStat {
 	sum, count := 0, 0
-	min, max := math.MaxInt64, math.MinInt64
+	min, max := math.MaxInt, math.MinInt
 	for _, v := range data {
 		if filterZero && v <= 0 {
 			continue

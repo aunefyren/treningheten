@@ -169,32 +169,104 @@ function get_debt(debt_id) {
     return false;
 }
 
+function isHexColor(value) {
+    return typeof value === "string" && /^#[0-9a-fA-F]{6}$/.test(value);
+}
+
+// readableTextColor returns black or white depending on the perceived brightness of
+// the background, so segment labels stay legible on any fill color.
+function readableTextColor(hex) {
+    var r = parseInt(hex.substr(1, 2), 16);
+    var g = parseInt(hex.substr(3, 2), 16);
+    var b = parseInt(hex.substr(5, 2), 16);
+    var yiq = (r * 299 + g * 587 + b * 114) / 1000;
+    return yiq >= 140 ? "#000000" : "#ffffff";
+}
+
+// hslToHex spreads auto colors deterministically once the curated palette is used up.
+function hslToHex(h, s, l) {
+    s /= 100; l /= 100;
+    var c = (1 - Math.abs(2 * l - 1)) * s;
+    var x = c * (1 - Math.abs((h / 60) % 2 - 1));
+    var m = l - c / 2;
+    var r = 0, g = 0, b = 0;
+    if (h < 60) { r = c; g = x; }
+    else if (h < 120) { r = x; g = c; }
+    else if (h < 180) { g = c; b = x; }
+    else if (h < 240) { g = x; b = c; }
+    else if (h < 300) { r = x; b = c; }
+    else { r = c; b = x; }
+    var toHex = function(v) { return ("0" + Math.round((v + m) * 255).toString(16)).slice(-2); };
+    return "#" + toHex(r) + toHex(g) + toHex(b);
+}
+
+// assignWheelColors sets candidateArray[i].color. A user's chosen color is honored
+// verbatim (duplicates allowed). Everyone else gets a stable, distinct color: ordered
+// by user id (deterministic across spins) and drawn from the unused palette, falling
+// back to a golden-angle spread if the palette is exhausted.
+function assignWheelColors(candidateArray, palette) {
+    var used = {};
+
+    for (var i = 0; i < candidateArray.length; i++) {
+        var pick = candidateArray[i].user ? candidateArray[i].user.wheel_color : null;
+        if (isHexColor(pick)) {
+            candidateArray[i].color = pick;
+            used[pick.toLowerCase()] = true;
+        }
+    }
+
+    var auto = candidateArray.filter(function(c) { return !c.color; });
+    auto.sort(function(a, b) {
+        var ai = (a.user && a.user.id) || "";
+        var bi = (b.user && b.user.id) || "";
+        return ai < bi ? -1 : ai > bi ? 1 : 0;
+    });
+
+    var goldenIndex = 0;
+    for (var i = 0; i < auto.length; i++) {
+        var chosen = null;
+        for (var j = 0; j < palette.length; j++) {
+            if (!used[palette[j].toLowerCase()]) { chosen = palette[j]; break; }
+        }
+        if (!chosen) {
+            chosen = hslToHex((goldenIndex * 137.508) % 360, 65, 55);
+            goldenIndex++;
+        }
+        auto[i].color = chosen;
+        used[chosen.toLowerCase()] = true;
+    }
+}
+
 function placeWheel(candidateArray) {
 
-    var colors = [
+    var palette = [
         "#800000", "#9A6324", "#808000", "#469990", "#e6194B", "#f58231", "#ffe119", "#bfef45", "#3cb44b", "#42d4f4", "#4363d8", "#911eb4", "#f032e6", "#a9a9a9", "#fabed4", "#ffd8b1", "#fffac8", "#aaffc3", "#dcbeff", "#ffffff"
-    ]
+    ];
 
     document.getElementById('wheel-module').style.display = "flex";
 
-    var ticketAmount = 0;
+    // Render the canvas backing store at the device pixel ratio so segment borders and
+    // names stay crisp on high-DPI / mobile screens. The displayed (CSS) size is
+    // unchanged — only the backing resolution and Winwheel's scaleFactor grow. Capped
+    // at 3 to bound the canvas size. Stroke widths (not scaled by Winwheel) and the
+    // manual pointer are multiplied by wheelScale to keep their on-screen thickness.
+    var wheelBaseSize = 1000;
+    var wheelScale = Math.min(Math.max(window.devicePixelRatio || 1, 1), 3);
+    var wheelCanvas = document.getElementById('canvas');
+    if (wheelCanvas) {
+        wheelCanvas.width = wheelBaseSize * wheelScale;
+        wheelCanvas.height = wheelBaseSize * wheelScale;
+        wheelCanvas.style.width = wheelBaseSize + 'px';
+        wheelCanvas.style.height = 'auto';
+        wheelCanvas.style.maxWidth = '100%';
+    }
 
+    // Honor each user's chosen color; auto-assign a stable, distinct color otherwise.
+    assignWheelColors(candidateArray, palette);
+
+    var ticketAmount = 0;
     for(var i = 0; i < candidateArray.length; i++) {
         ticketAmount += candidateArray[i].tickets;
-
-        if(colors.length > 0) {
-            var index = Math.floor(Math.random()*colors.length)
-            candidateArray[i].color = colors[index]
-            var colors2 = []
-            for(var j = 0; j < colors.length; j++) {
-                if(j != index) {
-                    colors2.push(colors[j]);
-                }
-            }
-            colors = colors2;
-        } else {
-            candidateArray[i].color = "#" + Math.floor(Math.random()*16777215).toString(16);
-        }
     }
 
     console.log("Placing " + ticketAmount + " tickets.");
@@ -220,8 +292,35 @@ function placeWheel(candidateArray) {
     console.log(candidateArray.length + " candidates for wheel")
     // Add tickets to wheel dict
     for(var i = 0; i < candidateArray.length; i++) {
+        var user = candidateArray[i].user;
+        var fill = candidateArray[i].color;
+        var textColor = readableTextColor(fill);
+
+        var label = user.first_name;
+        if (user.wheel_emoji && user.wheel_emoji.length > 0 && user.wheel_emoji.length <= 16) {
+            label = user.wheel_emoji + " " + label;
+        }
+
+        var segment = {
+            'fillStyle'       : fill,
+            'text'            : label,
+            // Contrast comes from the luminance-picked fill color (black on light fills,
+            // white on dark). We deliberately omit a text outline: Winwheel strokes the
+            // outline ON TOP of the fill with miter joins, which looks rough/aliased on
+            // rotated glyphs. Fill-only gives clean, smoothly anti-aliased text.
+            'textFillStyle'   : textColor,
+            'textStrokeStyle' : null,
+            'user_id'         : user.id
+        };
+
+        // Optional per-user segment border.
+        if (isHexColor(user.wheel_border_color)) {
+            segment.strokeStyle = user.wheel_border_color;
+            segment.lineWidth = 8 * wheelScale;
+        }
+
         for(var j = 0; j < candidateArray[i].tickets; j++) {
-            placementArray.push({'fillStyle' : candidateArray[i].color, 'textStrokeStyle' : '#000000', 'text' : candidateArray[i].user.first_name, 'user_id' : candidateArray[i].user.id})
+            placementArray.push(Object.assign({}, segment));
         }
     }
 
@@ -232,12 +331,13 @@ function placeWheel(candidateArray) {
 
     theWheel = new Winwheel({
         'numSegments'    : placementArray.length,
+        'scaleFactor'    : wheelScale,
         'outerRadius'    : 450,
         'centerX'        : 500,    // correctly position the wheel
         'centerY'        : 500,
         'segments'       : placementArray,
         'textAlignment'  : 'outer',
-        'textFontSize'   : 30,
+        'textFontSize'   : 34,
         'animation'      :
         {
             'type'          : 'spinToStop',
@@ -307,14 +407,18 @@ function drawTriangle()
     // Get the canvas context the wheel uses.
     let ctx = theWheel.ctx;
 
+    // The triangle is drawn outside Winwheel, so scale its coords by the same factor
+    // as the wheel to stay aligned with the DPR-scaled backing store.
+    let s = theWheel.scaleFactor || 1;
+
     ctx.strokeStyle = 'navy';     // Set line color.
     ctx.fillStyle   = 'aqua';     // Set fill color.
-    ctx.lineWidth   = 2;
+    ctx.lineWidth   = 2 * s;
     ctx.beginPath();              // Begin path.
-    ctx.moveTo(460, 5);           // Move to initial position.
-    ctx.lineTo(540, 5);           // Draw lines to make the shape.
-    ctx.lineTo(500, 75);
-    ctx.lineTo(460, 5);
+    ctx.moveTo(460 * s, 5 * s);   // Move to initial position.
+    ctx.lineTo(540 * s, 5 * s);   // Draw lines to make the shape.
+    ctx.lineTo(500 * s, 75 * s);
+    ctx.lineTo(460 * s, 5 * s);
     ctx.stroke();                 // Complete the path by stroking (draw lines).
     ctx.fill();                   // Then fill.
 }

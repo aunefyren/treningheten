@@ -26,6 +26,9 @@ type User struct {
 	StravaIgnoreWalks          *bool      `json:"strava_walks" gorm:"column:strava_walks;default: true"`
 	StravaID                   *string    `json:"strava_id" gorm:"default: null"`
 	StravaPublic               *bool      `json:"strava_public" gorm:"default: true"`
+	WheelColor                 *string    `json:"wheel_color" gorm:"default: null"`
+	WheelBorderColor           *string    `json:"wheel_border_color" gorm:"default: null"`
+	WheelEmoji                 *string    `json:"wheel_emoji" gorm:"default: null"`
 	ShareActivities            *bool      `json:"share_activities" gorm:"default: true"`
 	ShareStatistics            *bool      `json:"share_statistics" gorm:"default: true"`
 }
@@ -51,9 +54,12 @@ type UserUpdateRequest struct {
 }
 
 type UserPartialUpdateRequest struct {
-	SundayAlert       *bool `json:"sunday_alert"`
-	StravaIgnoreWalks *bool `json:"strava_walks"`
-	StravaPublic      *bool `json:"strava_public"`
+	SundayAlert       *bool   `json:"sunday_alert"`
+	StravaIgnoreWalks *bool   `json:"strava_walks"`
+	StravaPublic      *bool   `json:"strava_public"`
+	WheelColor        *string `json:"wheel_color"`
+	WheelBorderColor  *string `json:"wheel_border_color"`
+	WheelEmoji        *string `json:"wheel_emoji"`
 }
 
 type UserUpdatePasswordRequest struct {

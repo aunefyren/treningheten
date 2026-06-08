@@ -169,6 +169,17 @@ function load_page(result) {
                     </div>
                 </div>
 
+                <div class="account-section" id="wheel-section">
+
+                    <div class="account-section-tab clickable" style="" onclick="toggleSection('wheel-wrapper', 'section-button-wheel')">
+                        <div class="">Wheel appearance</div>
+                        <img id="section-button-wheel" src="assets/chevron-right.svg" class="color-invert" style="margin: 0.5em;">
+                    </div>
+
+                    <div id="wheel-wrapper" class="wheel-wrapper minimized">
+                    </div>
+                </div>
+
                 <div class="account-section" id="pat-section">
 
                     <div class="account-section-tab clickable" style="" onclick="toggleSection('pat-wrapper', 'section-button-pat')">
@@ -527,6 +538,8 @@ function PlaceUserData(user_object, stravaOauth, stravaEnabled) {
         document.getElementById("strava-wrapper").innerHTML = stravaHTML
         document.getElementById('strava-section').style.display = 'flex'
     }
+
+    renderWheelSection(user_object);
 }
 
 function leave_season() {
@@ -624,6 +637,176 @@ function updateAccountValue(property) {
 }
 
 // --- Personal Access Tokens ---
+
+var wheelPalette = [
+    "#800000", "#9A6324", "#808000", "#469990", "#e6194B", "#f58231", "#ffe119", "#bfef45", "#3cb44b", "#42d4f4", "#4363d8", "#911eb4", "#f032e6", "#a9a9a9", "#fabed4", "#ffd8b1", "#fffac8", "#aaffc3", "#dcbeff", "#ffffff"
+];
+var wheelState = { color: null, border: null, emoji: null, firstName: "You" };
+
+function isAccountHex(value) {
+    return typeof value === "string" && /^#[0-9a-fA-F]{6}$/.test(value);
+}
+
+// Black or white text depending on background brightness (mirrors the wheel).
+function accountReadableTextColor(hex) {
+    if (!isAccountHex(hex)) return "#000000";
+    var r = parseInt(hex.substr(1, 2), 16), g = parseInt(hex.substr(3, 2), 16), b = parseInt(hex.substr(5, 2), 16);
+    return ((r * 299 + g * 587 + b * 114) / 1000) >= 140 ? "#000000" : "#ffffff";
+}
+
+function renderWheelSection(user_object) {
+    wheelState.color = isAccountHex(user_object.wheel_color) ? user_object.wheel_color : null;
+    wheelState.border = isAccountHex(user_object.wheel_border_color) ? user_object.wheel_border_color : null;
+    wheelState.emoji = (typeof user_object.wheel_emoji === "string" && user_object.wheel_emoji) ? user_object.wheel_emoji : null;
+    wheelState.firstName = user_object.first_name || "You";
+
+    var swatches = function(kind, current) {
+        var html = "";
+        for (var i = 0; i < wheelPalette.length; i++) {
+            var c = wheelPalette[i];
+            var sel = (current && current.toLowerCase() === c.toLowerCase()) ? " wheel-swatch-selected" : "";
+            html += `<button type="button" data-color="${c}" class="wheel-swatch${sel}" style="background:${c};" title="${c}" onclick="selectWheelColor('${kind}','${c}')"></button>`;
+        }
+        return html;
+    };
+
+    var colorCustom = isAccountHex(wheelState.color) ? wheelState.color : "#4363d8";
+    var borderCustom = isAccountHex(wheelState.border) ? wheelState.border : "#000000";
+
+    var html = `
+        <p style="width:100%; text-align:center;">Choose how you appear on the prize wheel. Leave a value unset to be auto-assigned.</p>
+
+        <div id="wheel-preview" class="wheel-preview"></div>
+
+        <div class="wheel-option">
+            <label>Color</label>
+            <div id="wheel-swatches-color" class="wheel-swatches">${swatches('color', wheelState.color)}</div>
+            <div class="wheel-controls">
+                <input type="color" id="wheel-color-custom" value="${colorCustom}" onchange="selectWheelColor('color', this.value)">
+                <button type="button" class="wheel-clear" onclick="selectWheelColor('color', null)">Auto</button>
+            </div>
+        </div>
+
+        <div class="wheel-option">
+            <label>Border</label>
+            <div id="wheel-swatches-border" class="wheel-swatches">${swatches('border', wheelState.border)}</div>
+            <div class="wheel-controls">
+                <input type="color" id="wheel-border-custom" value="${borderCustom}" onchange="selectWheelColor('border', this.value)">
+                <button type="button" class="wheel-clear" onclick="selectWheelColor('border', null)">None</button>
+            </div>
+        </div>
+
+        <div class="wheel-option">
+            <label for="wheel-emoji-input">Emoji</label>
+            <div class="wheel-controls">
+                <input type="text" id="wheel-emoji-input" maxlength="16" placeholder="🔥" value="${wheelState.emoji ? escapeHTML(wheelState.emoji) : ""}" oninput="previewWheelEmoji(this.value)" onchange="saveWheelEmoji(this.value)">
+                <button type="button" class="wheel-clear" onclick="document.getElementById('wheel-emoji-input').value=''; saveWheelEmoji('');">Clear</button>
+            </div>
+        </div>
+    `;
+
+    document.getElementById("wheel-wrapper").innerHTML = html;
+    updateWheelPreview();
+}
+
+function selectWheelColor(kind, value) {
+    if (value !== null && !isAccountHex(value)) return;
+    if (kind === 'color') {
+        wheelState.color = value;
+        saveWheelValue('wheel_color', value === null ? "" : value);
+    } else {
+        wheelState.border = value;
+        saveWheelValue('wheel_border_color', value === null ? "" : value);
+    }
+    highlightSwatch(kind, value);
+    updateWheelPreview();
+}
+
+// firstGrapheme returns the first user-perceived character (one emoji), correctly
+// handling multi-codepoint emoji (flags, skin tones, ZWJ sequences) where supported.
+function firstGrapheme(value) {
+    value = (value || "").trim();
+    if (!value) return "";
+    if (typeof Intl !== "undefined" && Intl.Segmenter) {
+        var first = new Intl.Segmenter(undefined, { granularity: "grapheme" }).segment(value)[Symbol.iterator]().next();
+        return first.done ? "" : first.value.segment;
+    }
+    // Fallback for older browsers: first code point.
+    return Array.from(value)[0] || "";
+}
+
+function previewWheelEmoji(value) {
+    var one = firstGrapheme(value);
+    var input = document.getElementById('wheel-emoji-input');
+    if (input && input.value !== one) input.value = one;
+    wheelState.emoji = one === "" ? null : one;
+    updateWheelPreview();
+}
+
+function saveWheelEmoji(value) {
+    var one = firstGrapheme(value);
+    var input = document.getElementById('wheel-emoji-input');
+    if (input && input.value !== one) input.value = one;
+    wheelState.emoji = one === "" ? null : one;
+    saveWheelValue('wheel_emoji', one);
+    updateWheelPreview();
+}
+
+function highlightSwatch(kind, value) {
+    var container = document.getElementById('wheel-swatches-' + kind);
+    if (!container) return;
+    var buttons = container.querySelectorAll('button');
+    for (var i = 0; i < buttons.length; i++) {
+        var dc = buttons[i].getAttribute('data-color');
+        if (value && dc && dc.toLowerCase() === value.toLowerCase()) {
+            buttons[i].classList.add('wheel-swatch-selected');
+        } else {
+            buttons[i].classList.remove('wheel-swatch-selected');
+        }
+    }
+}
+
+function updateWheelPreview() {
+    var preview = document.getElementById('wheel-preview');
+    if (!preview) return;
+    var fill = isAccountHex(wheelState.color) ? wheelState.color : "#cccccc";
+    var text = accountReadableTextColor(fill);
+    var outline = text === "#000000" ? "#ffffff" : "#000000";
+    var label = (wheelState.emoji ? wheelState.emoji + " " : "") + wheelState.firstName;
+
+    preview.style.background = fill;
+    preview.style.color = text;
+    preview.style.border = "4px solid " + (isAccountHex(wheelState.border) ? wheelState.border : "transparent");
+    preview.style.textShadow = "0 0 2px " + outline + ", 0 0 2px " + outline;
+    preview.textContent = label + (isAccountHex(wheelState.color) ? "" : " (auto color)");
+}
+
+function saveWheelValue(property, value) {
+    var form_obj = {};
+    form_obj[property] = value;
+    var form_data = JSON.stringify(form_obj);
+
+    var xhttp = new XMLHttpRequest();
+    xhttp.onreadystatechange = function() {
+        if (this.readyState == 4) {
+            try {
+                result = JSON.parse(this.responseText);
+            } catch(e) {
+                console.log(e + ' - Response: ' + this.responseText);
+                error("Could not reach API.");
+                return;
+            }
+            if (result.error) {
+                error(result.error);
+            }
+        }
+    };
+    xhttp.withCredentials = true;
+    xhttp.open("PATCH", api_url + "auth/users/" + user_id);
+    xhttp.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
+    xhttp.setRequestHeader("Authorization", jwt);
+    xhttp.send(form_data);
+}
 
 function renderPATSection(isAdmin) {
     var adminCheckbox = "";

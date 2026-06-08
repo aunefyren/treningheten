@@ -2732,7 +2732,7 @@ label {
   padding: 0 1rem;
 }
 
-.notifications-wrapper, .settings-wrapper, .strava-wrapper, .mail-notifications-wrapper, .pat-wrapper {
+.notifications-wrapper, .settings-wrapper, .strava-wrapper, .mail-notifications-wrapper, .pat-wrapper, .wheel-wrapper {
   display: none;
   flex-direction: column;
   flex-wrap: wrap;
@@ -2743,6 +2743,87 @@ label {
   width: 100%;
   width: -webkit-fill-available;
   width: -moz-available;
+}
+
+.wheel-preview {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 8em;
+  min-height: 3em;
+  padding: 0.5rem 1.5rem;
+  margin-bottom: 1.25rem;
+  border-radius: 0.5rem;
+  font-weight: bold;
+  font-size: 1.2rem;
+}
+
+.wheel-option {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  width: 100%;
+  max-width: 24em;
+  margin-bottom: 1.25rem;
+}
+
+/* Divider between the color / border / emoji blocks. */
+.wheel-option:not(:last-child) {
+  border-bottom: 0.1rem solid var(--trans-lightblue);
+  padding-bottom: 1.25rem;
+}
+
+.wheel-option > label {
+  font-weight: bold;
+}
+
+.wheel-swatches {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.4rem;
+}
+
+.wheel-swatch {
+  width: 1.8em;
+  height: 1.8em;
+  border-radius: 50%;
+  border: 2px solid rgba(0, 0, 0, 0.3);
+  cursor: pointer;
+  padding: 0;
+}
+
+.wheel-swatch-selected {
+  border: 3px solid #1d3557;
+  box-shadow: 0 0 0 2px #ffffff inset;
+  transform: scale(1.15);
+}
+
+.wheel-controls {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.wheel-controls input[type="color"] {
+  width: 2.5em;
+  height: 2.5em;
+  padding: 0;
+  border: none;
+  background: none;
+  cursor: pointer;
+}
+
+.wheel-controls input[type="text"] {
+  width: 6em;
+  text-align: center;
+}
+
+.wheel-clear {
+  cursor: pointer;
 }
 
 .pat-form {

@@ -13,6 +13,9 @@ architecture overview.
 - [data-conventions.md](data-conventions.md) — cross-cutting gotchas: the
   `Convert*Object` read layer, durations stored as seconds, per-operation units, soft
   deletes.
+- [wheel-customization.md](wheel-customization.md) — per-user wheel appearance (color,
+  border, emoji): storage, account-page picker, validation, and the
+  distinct/stable color assignment.
 
 ## Auth & integrations
 

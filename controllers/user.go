@@ -898,6 +898,46 @@ func APIPartialUpdateUser(context *gin.Context) {
 		userObject.StravaPublic = userUpdateRequest.StravaPublic
 	}
 
+	// Wheel appearance. An empty value clears the field (reverts to auto-assignment).
+	if userUpdateRequest.WheelColor != nil {
+		color := strings.TrimSpace(*userUpdateRequest.WheelColor)
+		if color == "" {
+			userObject.WheelColor = nil
+		} else if utilities.ValidHexColor(color) {
+			userObject.WheelColor = &color
+		} else {
+			context.JSON(http.StatusBadRequest, gin.H{"error": "Invalid wheel color. Expected a hex value like #4363d8."})
+			context.Abort()
+			return
+		}
+	}
+
+	if userUpdateRequest.WheelBorderColor != nil {
+		border := strings.TrimSpace(*userUpdateRequest.WheelBorderColor)
+		if border == "" {
+			userObject.WheelBorderColor = nil
+		} else if utilities.ValidHexColor(border) {
+			userObject.WheelBorderColor = &border
+		} else {
+			context.JSON(http.StatusBadRequest, gin.H{"error": "Invalid wheel border color. Expected a hex value like #000000."})
+			context.Abort()
+			return
+		}
+	}
+
+	if userUpdateRequest.WheelEmoji != nil {
+		emoji := strings.TrimSpace(*userUpdateRequest.WheelEmoji)
+		if emoji == "" {
+			userObject.WheelEmoji = nil
+		} else if utilities.ValidWheelEmoji(emoji) {
+			userObject.WheelEmoji = &emoji
+		} else {
+			context.JSON(http.StatusBadRequest, gin.H{"error": "Invalid wheel emoji. Use a single emoji."})
+			context.Abort()
+			return
+		}
+	}
+
 	// Update user in database
 	_, err = database.UpdateUser(userObject)
 	if err != nil {
