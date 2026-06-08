@@ -890,8 +890,8 @@ func APIPartialUpdateUser(context *gin.Context) {
 		userObject.SundayAlert = *userUpdateRequest.SundayAlert
 	}
 
-	if userUpdateRequest.StravaWalks != nil {
-		userObject.StravaWalks = userUpdateRequest.StravaWalks
+	if userUpdateRequest.StravaIgnoreWalks != nil {
+		userObject.StravaIgnoreWalks = userUpdateRequest.StravaIgnoreWalks
 	}
 
 	if userUpdateRequest.StravaPublic != nil {
@@ -1075,19 +1075,13 @@ func APIGetUserStatistics(context *gin.Context) {
 		return
 	}
 
-	var lastRegisteredWeek *int
-	var lastRegisteredYear *int
-	var lastRegisteredDay *time.Time
-	lastWeekChecked := false
-	yesterdayChecked := false
-
-	lastWeekDate := time.Now().AddDate(0, 0, -7)
-	lastWeekYear, lastWeek := lastWeekDate.ISOWeek()
-	yesterday := time.Now().AddDate(0, 0, -1)
-
-	sort.Slice(exerciseDayObjects, func(i, j int) bool {
-		return exerciseDayObjects[i].Date.Before(exerciseDayObjects[j].Date)
-	})
+	// Personal day/week streaks are computed by the shared builder so the MCP
+	// get_statistics tool and this endpoint cannot drift. See computePersonalStreaks.
+	streaks := computePersonalStreaks(exerciseDayObjects)
+	userStatisticsReply.StreakWeeks = streaks.WeekCurrent
+	userStatisticsReply.StreakWeeksTop = streaks.WeekBest
+	userStatisticsReply.StreakDays = streaks.DayCurrent
+	userStatisticsReply.StreakDaysTop = streaks.DayBest
 
 	allActions := []uuid.UUID{}
 
@@ -1109,56 +1103,6 @@ func APIGetUserStatistics(context *gin.Context) {
 				userStatisticsReply.ExercisesPastMonth += 1
 			}
 
-			currentYear, currentWeek := exerciseDayDate.ISOWeek()
-			logger.Log.Tracef("week %d, year %d", currentWeek, currentYear)
-			if lastRegisteredWeek != nil && lastRegisteredYear != nil && (currentWeek != *lastRegisteredWeek || currentYear != *lastRegisteredYear) {
-				logger.Log.Tracef("not the same week %d", currentWeek)
-				lastWeekDate := exerciseDayDate.AddDate(0, 0, -7)
-				lastWeekYear, lastWeek := lastWeekDate.ISOWeek()
-
-				if lastWeek == *lastRegisteredWeek && lastWeekYear == *lastRegisteredYear {
-					userStatisticsReply.StreakWeeks += 1
-					logger.Log.Tracef("adding week %d exercises", currentWeek)
-
-					if userStatisticsReply.StreakWeeks > userStatisticsReply.StreakWeeksTop {
-						userStatisticsReply.StreakWeeksTop = userStatisticsReply.StreakWeeks
-					}
-				} else {
-					userStatisticsReply.StreakWeeks = 1
-					logger.Log.Tracef("reset week %d", currentWeek)
-				}
-			} else {
-				if lastRegisteredWeek != nil {
-					logger.Log.Tracef("the same week %d, %d | %d, %d", *lastRegisteredWeek, *lastRegisteredYear, currentWeek, currentYear)
-				}
-			}
-
-			currentDay := exerciseDayDate
-			if lastRegisteredDay != nil && currentDay.Format("2006-01-02") != lastRegisteredDay.Format("2006-01-02") {
-				dayBefore := currentDay.AddDate(0, 0, -1)
-				if dayBefore.Format("2006-01-02") == lastRegisteredDay.Format("2006-01-02") {
-					userStatisticsReply.StreakDays += 1
-
-					if userStatisticsReply.StreakDays > userStatisticsReply.StreakDaysTop {
-						userStatisticsReply.StreakDaysTop = userStatisticsReply.StreakDays
-					}
-				} else {
-					userStatisticsReply.StreakDays = 1
-				}
-			}
-
-			lastRegisteredWeek = &currentWeek
-			lastRegisteredYear = &currentYear
-			lastRegisteredDay = &exerciseDayDate
-
-			if currentWeek == lastWeek && currentYear == lastWeekYear {
-				lastWeekChecked = true
-			}
-			if currentDay.Format("2006-01-02") == yesterday.Format("2006-01-02") {
-				logger.Log.Info("yesterday checked")
-				yesterdayChecked = true
-			}
-
 			if time.Since(exerciseDayDate) <= time.Duration(time.Hour*24*31) {
 				for _, operation := range exercise.Operations {
 					if !operation.Enabled {
@@ -1170,13 +1114,6 @@ func APIGetUserStatistics(context *gin.Context) {
 				}
 			}
 		}
-	}
-
-	if !lastWeekChecked {
-		userStatisticsReply.StreakWeeks = 0
-	}
-	if !yesterdayChecked {
-		userStatisticsReply.StreakDays = 0
 	}
 
 	goals, err := database.GetGoalsForUserUsingUserID(userID)

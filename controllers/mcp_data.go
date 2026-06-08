@@ -47,48 +47,47 @@ func assembleUserWeights(userID uuid.UUID, limit int) ([]models.MCPWeight, error
 }
 
 // assembleUserActivities flattens the ExerciseDay -> Exercise -> Operation -> Set
-// model into a date-sorted list of activities. actionFilter (case-insensitive)
-// limits to a single exercise type when non-empty; limit caps the result count.
+// model into a date-sorted list of activities. It walks the enriched *Object tree
+// (see ConvertExerciseDaysToExerciseDayObjects) rather than raw GORM models, so it
+// inherits action resolution and the exercise-time fallback for free.
+// actionFilter (case-insensitive) limits to a single exercise type when non-empty;
+// limit caps the result count.
 func assembleUserActivities(userID uuid.UUID, actionFilter string, limit int) ([]models.MCPActivity, error) {
-	days, err := database.GetAllExerciseDaysWithExerciseByUserID(userID)
+	dayObjects, err := loadUserExerciseDayObjects(userID)
 	if err != nil {
 		return nil, err
 	}
+	return flattenActivities(dayObjects, actionFilter, limit), nil
+}
 
+// loadUserExerciseDayObjects loads and enriches the user's exercise days. Callers
+// that need both the flat activities and the day grouping (e.g. streaks) load once
+// and reuse, since the conversion is the expensive part.
+func loadUserExerciseDayObjects(userID uuid.UUID) ([]models.ExerciseDayObject, error) {
+	days, err := database.GetExerciseDaysForUserUsingUserID(userID)
+	if err != nil {
+		return nil, err
+	}
+	return ConvertExerciseDaysToExerciseDayObjects(days)
+}
+
+// flattenActivities walks the enriched day tree into a date-sorted activity list.
+// actionFilter (case-insensitive) limits to a single exercise type when non-empty;
+// limit caps the result count.
+func flattenActivities(dayObjects []models.ExerciseDayObject, actionFilter string, limit int) []models.MCPActivity {
 	actionFilter = strings.ToLower(strings.TrimSpace(actionFilter))
-	actionCache := map[uuid.UUID]string{}
 
 	activities := []models.MCPActivity{}
-	for _, day := range days {
-		exercises, err := database.GetExerciseByExerciseDayID(day.ID)
-		if err != nil {
-			return nil, err
-		}
-		for _, exercise := range exercises {
-			operations, err := database.GetOperationsByExerciseID(exercise.ID)
-			if err != nil {
-				return nil, err
-			}
-			for _, op := range operations {
-				actionName := resolveActionName(op.ActionID, actionCache)
+	for _, day := range dayObjects {
+		for _, exercise := range day.Exercises {
+			for _, op := range exercise.Operations {
+				activity := operationObjectToActivity(op, exercise.Time)
 
-				if actionFilter != "" && !strings.Contains(strings.ToLower(actionName), actionFilter) {
+				if actionFilter != "" && !strings.Contains(strings.ToLower(activity.Action), actionFilter) {
 					continue
 				}
 
-				sets, err := database.GetOperationSetsByOperationID(op.ID)
-				if err != nil {
-					return nil, err
-				}
-
-				activities = append(activities, models.MCPActivity{
-					Date:            day.Date,
-					Action:          actionName,
-					Type:            op.Type,
-					Note:            derefString(op.Note),
-					DurationSeconds: durationToSeconds(op.Duration),
-					Sets:            mapSets(sets, op.WeightUnit, op.DistanceUnit),
-				})
+				activities = append(activities, activity)
 			}
 		}
 	}
@@ -99,69 +98,150 @@ func assembleUserActivities(userID uuid.UUID, actionFilter string, limit int) ([
 	if limit > 0 && len(activities) > limit {
 		activities = activities[:limit]
 	}
-	return activities, nil
+	return activities
 }
 
-// assembleUserStatistics derives a focused set of counts and totals from the
-// user's full activity history.
+// operationObjectToActivity flattens one enriched OperationObject into an
+// MCPActivity. HasStreams flags whether any set carries Strava sensor data, so the
+// LLM knows it can call get_workout_streams for the time-series detail.
+func operationObjectToActivity(op models.OperationObject, date time.Time) models.MCPActivity {
+	actionName := "Unknown"
+	if op.Action != nil {
+		actionName = op.Action.Name
+	}
+
+	hasStreams := false
+	for _, s := range op.OperationSets {
+		if s.StravaStreams != nil {
+			hasStreams = true
+			break
+		}
+	}
+
+	return models.MCPActivity{
+		ID:              op.ID.String(),
+		Date:            date,
+		Action:          actionName,
+		Type:            op.Type,
+		Note:            derefString(op.Note),
+		Equipment:       derefString(op.Equipment),
+		DurationSeconds: durationToSeconds(op.Duration),
+		HasStreams:      hasStreams,
+		Sets:            mapSets(op.OperationSets, op.WeightUnit, op.DistanceUnit),
+	}
+}
+
+// assembleSingleActivity returns the flat view of one activity (operation) owned by
+// the user, resolving its exercise date with the same fallback as the list path.
+func assembleSingleActivity(userID uuid.UUID, activityID uuid.UUID) (models.MCPActivity, error) {
+	operation, err := database.GetOperationByIDAndUserID(activityID, userID)
+	if err != nil {
+		return models.MCPActivity{}, err
+	}
+
+	opObject, err := ConvertOperationToOperationObject(operation)
+	if err != nil {
+		return models.MCPActivity{}, err
+	}
+
+	date := resolveExerciseDate(userID, operation.ExerciseID)
+	return operationObjectToActivity(opObject, date), nil
+}
+
+// resolveExerciseDate mirrors ConvertExerciseToExerciseObject's time fallback:
+// the exercise's own Time, else its day's date, else now.
+func resolveExerciseDate(userID uuid.UUID, exerciseID uuid.UUID) time.Time {
+	exercise, err := database.GetExerciseByIDAndUserID(exerciseID, userID)
+	if err != nil || exercise == nil {
+		return time.Now()
+	}
+	if exercise.Time != nil {
+		return *exercise.Time
+	}
+	if day, err := database.GetExerciseDayByID(exercise.ExerciseDayID); err == nil && day != nil {
+		return day.Date
+	}
+	return time.Now()
+}
+
+// assembleUserStatistics derives a focused set of counts, totals and streaks from
+// the user's full activity history. It loads the enriched day tree once and uses it
+// for both the windowed totals and the streak computation.
 func assembleUserStatistics(userID uuid.UUID) (models.MCPStatistics, error) {
-	activities, err := assembleUserActivities(userID, "", 0)
+	dayObjects, err := loadUserExerciseDayObjects(userID)
 	if err != nil {
 		return models.MCPStatistics{}, err
 	}
+
+	activities := flattenActivities(dayObjects, "", 0)
 
 	now := time.Now()
 	monthAgo := now.AddDate(0, -1, 0)
 	yearAgo := now.AddDate(-1, 0, 0)
 
+	add := func(w *models.MCPStatWindow, distanceKm float64, timeSeconds int64) {
+		w.Activities++
+		w.DistanceKm += distanceKm
+		w.TimeSeconds += timeSeconds
+	}
+
 	stats := models.MCPStatistics{}
 	for _, a := range activities {
-		stats.ActivitiesAllTime++
-		if a.Date.After(yearAgo) {
-			stats.ActivitiesPastYear++
-		}
-		if a.Date.After(monthAgo) {
-			stats.ActivitiesPastMonth++
-		}
-		if a.DurationSeconds != nil {
-			stats.TotalTimeSeconds += *a.DurationSeconds
-		}
+		distanceKm := 0.0
 		for _, s := range a.Sets {
 			if s.Distance != nil {
-				stats.TotalDistance += *s.Distance
-			}
-			if s.TimeSeconds != nil {
-				stats.TotalTimeSeconds += *s.TimeSeconds
+				distanceKm += distanceToKm(*s.Distance, s.DistanceUnit)
 			}
 		}
+
+		// Count time once per activity: the activity duration when present, otherwise
+		// the sum of set times. (Strava sets both to the same value, so adding both
+		// would double-count.)
+		var timeSeconds int64
+		if a.DurationSeconds != nil {
+			timeSeconds = *a.DurationSeconds
+		} else {
+			for _, s := range a.Sets {
+				if s.TimeSeconds != nil {
+					timeSeconds += *s.TimeSeconds
+				}
+			}
+		}
+
+		add(&stats.AllTime, distanceKm, timeSeconds)
+		if a.Date.After(yearAgo) {
+			add(&stats.PastYear, distanceKm, timeSeconds)
+		}
+		if a.Date.After(monthAgo) {
+			add(&stats.PastMonth, distanceKm, timeSeconds)
+		}
 	}
+
+	// Tidy float accumulation noise from the km conversions.
+	stats.AllTime.DistanceKm = round2(stats.AllTime.DistanceKm)
+	stats.PastYear.DistanceKm = round2(stats.PastYear.DistanceKm)
+	stats.PastMonth.DistanceKm = round2(stats.PastMonth.DistanceKm)
+
+	streaks := computePersonalStreaks(dayObjects)
+	stats.Streaks.Personal = models.MCPPersonalStreaks{
+		WeekCurrent: streaks.WeekCurrent,
+		WeekBest:    streaks.WeekBest,
+		DayCurrent:  streaks.DayCurrent,
+		DayBest:     streaks.DayBest,
+	}
+
 	return stats, nil
 }
 
-func resolveActionName(actionID *uuid.UUID, cache map[uuid.UUID]string) string {
-	if actionID == nil {
-		return "Unknown"
-	}
-	if name, ok := cache[*actionID]; ok {
-		return name
-	}
-	action, err := database.GetActionByID(*actionID)
-	name := "Unknown"
-	if err == nil {
-		name = action.Name
-	}
-	cache[*actionID] = name
-	return name
-}
-
-func mapSets(sets []models.OperationSet, weightUnit string, distanceUnit string) []models.MCPActivitySet {
+func mapSets(sets []models.OperationSetObject, weightUnit string, distanceUnit string) []models.MCPActivitySet {
 	result := make([]models.MCPActivitySet, 0, len(sets))
 	for _, s := range sets {
 		set := models.MCPActivitySet{
-			Repetitions: s.Repetitions,
-			Weight:      s.Weight,
-			Distance:    s.Distance,
-			TimeSeconds: durationToSeconds(s.Time),
+			Repetitions:       s.Repetitions,
+			Weight:            s.Weight,
+			Distance:          s.Distance,
+			TimeSeconds:       durationToSeconds(s.Time),
+			MovingTimeSeconds: durationToSeconds(s.MovingTime),
 		}
 		if s.Weight != nil {
 			set.WeightUnit = weightUnit
@@ -174,12 +254,33 @@ func mapSets(sets []models.OperationSet, weightUnit string, distanceUnit string)
 	return result
 }
 
+// durationToSeconds converts a stored duration to seconds. NOTE: these fields hold
+// a raw seconds count, not real nanosecond durations, so we cast the value directly
+// rather than calling .Seconds() (which would divide by 1e9 and yield 0).
 func durationToSeconds(d *time.Duration) *int64 {
 	if d == nil {
 		return nil
 	}
-	seconds := int64(d.Seconds())
+	seconds := int64(*d)
 	return &seconds
+}
+
+// distanceToKm normalizes a distance value to kilometres based on its unit. Units
+// are free-form strings (default "km"); unrecognized units are treated as km, which
+// is the overwhelmingly common case (Strava import and the model default).
+func distanceToKm(value float64, unit string) float64 {
+	switch strings.ToLower(strings.TrimSpace(unit)) {
+	case "mi", "mile", "miles":
+		return value * 1.609344
+	case "m", "meter", "meters", "metre", "metres":
+		return value / 1000.0
+	case "yd", "yard", "yards":
+		return value * 0.0009144
+	case "ft", "foot", "feet":
+		return value * 0.0003048
+	default:
+		return value
+	}
 }
 
 func derefString(s *string) string {

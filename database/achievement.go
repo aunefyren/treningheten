@@ -175,6 +175,23 @@ func GetAchievementDelegationByAchievementIDAndUserID(userID uuid.UUID, achievem
 	return
 }
 
+// GetAchievementDelegationByIDAndUserID fetches a single delegation owned by the
+// user. found is false when no enabled delegation with that id belongs to the user.
+func GetAchievementDelegationByIDAndUserID(delegationID uuid.UUID, userID uuid.UUID) (delegation models.AchievementDelegation, found bool, err error) {
+	achievementRecord := Instance.Where("`achievement_delegations`.enabled = ?", 1).
+		Where("`achievement_delegations`.id = ?", delegationID).
+		Where("`achievement_delegations`.user_id = ?", userID).
+		Find(&delegation)
+
+	if achievementRecord.Error != nil {
+		return models.AchievementDelegation{}, false, achievementRecord.Error
+	} else if achievementRecord.RowsAffected == 0 {
+		return models.AchievementDelegation{}, false, nil
+	}
+
+	return delegation, true, nil
+}
+
 func SetAchievementsToSeenForUser(userID uuid.UUID) (updates int64, err error) {
 	var achievementStruct models.AchievementDelegation
 	err = nil

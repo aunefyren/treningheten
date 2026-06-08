@@ -400,7 +400,7 @@ func CensorUserObject(user models.User) models.User {
 	user.VerificationCodeExpiration = nil
 	user.SundayAlert = false
 	user.StravaCode = nil
-	user.StravaWalks = nil
+	user.StravaIgnoreWalks = nil
 	user.ShareActivities = nil
 
 	if user.StravaPublic == nil || !*user.StravaPublic {

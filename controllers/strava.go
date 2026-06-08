@@ -10,6 +10,7 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/aunefyren/treningheten/database"
@@ -24,17 +25,58 @@ import (
 
 const stravaAPIBaseURL = "https://www.strava.com/api/v3"
 
-// package-level rate limiter
-var stravaRateLimiter = time.NewTicker(time.Minute / 30)
+// Strava's OAuth token endpoint is NOT under /api/v3.
+const stravaOAuthTokenURL = "https://www.strava.com/oauth/token"
+
+// Strava's default read rate limit is ~100 requests per 15-minute window (plus a
+// daily cap). A flat per-minute ticker can exceed the 15-minute window under load, so
+// we enforce the window directly with a sliding-window limiter, kept safely under the
+// cap. stravaWait() blocks until a request slot is free.
+const (
+	stravaRateWindow = 15 * time.Minute
+	stravaRateLimit  = 90
+)
+
+var (
+	stravaRateMu    sync.Mutex
+	stravaRateTimes []time.Time
+)
 
 func stravaWait() {
-	<-stravaRateLimiter.C
+	for {
+		stravaRateMu.Lock()
+		now := time.Now()
+		cutoff := now.Add(-stravaRateWindow)
+
+		// Drop timestamps that have aged out of the window.
+		kept := stravaRateTimes[:0]
+		for _, t := range stravaRateTimes {
+			if t.After(cutoff) {
+				kept = append(kept, t)
+			}
+		}
+		stravaRateTimes = kept
+
+		if len(stravaRateTimes) < stravaRateLimit {
+			stravaRateTimes = append(stravaRateTimes, now)
+			stravaRateMu.Unlock()
+			return
+		}
+
+		// Window is full; wait until the oldest request falls out of it.
+		wait := stravaRateTimes[0].Add(stravaRateWindow).Sub(now)
+		stravaRateMu.Unlock()
+		if wait < 10*time.Millisecond {
+			wait = 10 * time.Millisecond
+		}
+		time.Sleep(wait)
+	}
 }
 
 func StravaAuthorize(code string) (authorization models.StravaAuthorizeRequestReply, err error) {
 	err = nil
 	authorization = models.StravaAuthorizeRequestReply{}
-	url := stravaAPIBaseURL + "/oauth/token"
+	url := stravaOAuthTokenURL
 
 	var jsonStr = []byte(``)
 	req, err := http.NewRequest("POST", url, bytes.NewBuffer(jsonStr))
@@ -72,8 +114,8 @@ func StravaAuthorize(code string) (authorization models.StravaAuthorizeRequestRe
 	}
 
 	if resp.StatusCode != 200 {
-		logger.Log.Error("HTTP code was not 200. Body:")
-		logger.Log.Error(string(body))
+		logger.Log.Error("Strava authorize returned non-200. Body: " + string(body))
+		return authorization, errors.New("Strava authorize returned non-200 status: " + resp.Status)
 	}
 
 	err = json.Unmarshal(body, &authorization)
@@ -88,7 +130,7 @@ func StravaAuthorize(code string) (authorization models.StravaAuthorizeRequestRe
 func StravaReauthorize(code string) (authorization models.StravaReauthorizationRequestReply, err error) {
 	err = nil
 	authorization = models.StravaReauthorizationRequestReply{}
-	url := stravaAPIBaseURL + "/oauth/token"
+	url := stravaOAuthTokenURL
 
 	var jsonStr = []byte(``)
 	req, err := http.NewRequest("POST", url, bytes.NewBuffer(jsonStr))
@@ -126,8 +168,8 @@ func StravaReauthorize(code string) (authorization models.StravaReauthorizationR
 	}
 
 	if resp.StatusCode != 200 {
-		logger.Log.Error("HTTP code was not 200. Body:")
-		logger.Log.Error(string(body))
+		logger.Log.Error("Strava reauthorize returned non-200. Body: " + string(body))
+		return authorization, errors.New("Strava reauthorize returned non-200 status: " + resp.Status)
 	}
 
 	err = json.Unmarshal(body, &authorization)
@@ -187,8 +229,8 @@ func StravaGetActivities(token string, before int, after int) (activities []mode
 	}
 
 	if resp.StatusCode != 200 {
-		logger.Log.Info("HTTP code was not 200. Body:")
-		logger.Log.Info(string(body))
+		logger.Log.Info("Get activities returned non-200. Body: " + string(body))
+		return activities, errors.New("Strava returned non-200 status: " + resp.Status)
 	}
 
 	err = json.Unmarshal(body, &activities)
@@ -273,54 +315,91 @@ func StravaGetAuthorizationForUser(user models.User) (token string, err error) {
 		return token, errors.New("no Strava code")
 	}
 
-	stravaCodeData := strings.Split(*user.StravaCode, ":")
-
+	// The code field is "<prefix>:<value>"; split only on the first colon so the
+	// value (an encrypted, base64 token) is preserved intact.
+	stravaCodeData := strings.SplitN(*user.StravaCode, ":", 2)
 	if len(stravaCodeData) != 2 {
-		logger.Log.Error("Invalid Strava code format for user. ID: " + string(user.ID.String()))
+		logger.Log.Error("Invalid Strava code format for user. ID: " + user.ID.String())
 		return token, errors.New("Invalid Strava code format for user.")
 	}
 
-	// If totally new authorization
 	switch strings.ToLower(stravaCodeData[0]) {
 	case "c":
+		// Fresh one-time authorization code from the OAuth callback.
 		authorization, err := StravaAuthorize(stravaCodeData[1])
 		if err != nil {
-			logger.Log.Error("Failed to authorize user. ID: " + user.ID.String())
+			// Do NOT overwrite the stored code on failure — a transient error or
+			// revoked token must not brick the connection.
+			logger.Log.Error("Failed to authorize user. ID: " + user.ID.String() + ". Error: " + err.Error())
 			return token, errors.New("Failed to authorize user.")
 		}
+		if authorization.AccessToken == "" || authorization.RefreshToken == "" {
+			return token, errors.New("Strava authorize returned empty tokens.")
+		}
 
-		newCode := "r:" + authorization.RefreshToken
-		user.StravaCode = &newCode
-		user, err = database.UpdateUser(user)
-		if err != nil {
-			logger.Log.Error("Failed to update user. ID: " + user.ID.String())
-			return token, errors.New("Failed to update user.")
+		if err := storeStravaRefreshToken(user, authorization.RefreshToken); err != nil {
+			logger.Log.Error("Failed to store Strava refresh token. ID: " + user.ID.String() + ". Error: " + err.Error())
+			return token, errors.New("Failed to store Strava refresh token.")
 		}
 
 		token = authorization.AccessToken
-		// If re-authorization
 	case "r":
-		authorization, err := StravaReauthorize(stravaCodeData[1])
+		// Stored refresh token (encrypted; legacy values may still be plaintext).
+		refreshToken := decryptStravaRefreshToken(stravaCodeData[1])
+
+		authorization, err := StravaReauthorize(refreshToken)
 		if err != nil {
-			logger.Log.Error("Failed to re-authorize user. ID: " + user.ID.String())
+			logger.Log.Error("Failed to re-authorize user. ID: " + user.ID.String() + ". Error: " + err.Error())
 			return token, errors.New("Failed to re-authorize user.")
 		}
+		if authorization.AccessToken == "" || authorization.RefreshToken == "" {
+			return token, errors.New("Strava reauthorize returned empty tokens.")
+		}
 
-		newCode := "r:" + authorization.RefreshToken
-		user.StravaCode = &newCode
-		user, err = database.UpdateUser(user)
-		if err != nil {
-			logger.Log.Error("Failed to update user. ID: " + user.ID.String())
-			return token, errors.New("Failed to update user.")
+		if err := storeStravaRefreshToken(user, authorization.RefreshToken); err != nil {
+			logger.Log.Error("Failed to store Strava refresh token. ID: " + user.ID.String() + ". Error: " + err.Error())
+			return token, errors.New("Failed to store Strava refresh token.")
 		}
 
 		token = authorization.AccessToken
 	default:
-		logger.Log.Error("Invalid Strava code format for user. ID: " + string(user.ID.String()))
+		logger.Log.Error("Invalid Strava code format for user. ID: " + user.ID.String())
 		return token, errors.New("Invalid Strava code format for user.")
 	}
 
 	return
+}
+
+// storeStravaRefreshToken encrypts the refresh token at rest and persists it on the
+// user as "r:<ciphertext>". It refuses to store an empty token.
+func storeStravaRefreshToken(user models.User, refreshToken string) error {
+	if refreshToken == "" {
+		return errors.New("empty Strava refresh token")
+	}
+
+	encrypted, err := utilities.EncryptString(refreshToken, files.ConfigFile.StravaTokenKey)
+	if err != nil {
+		return errors.New("failed to encrypt Strava refresh token: " + err.Error())
+	}
+
+	newCode := "r:" + encrypted
+	user.StravaCode = &newCode
+	if _, err := database.UpdateUser(user); err != nil {
+		return errors.New("failed to update user: " + err.Error())
+	}
+
+	return nil
+}
+
+// decryptStravaRefreshToken returns the plaintext refresh token. Values stored before
+// encryption was introduced are plaintext and fail to decrypt — those are returned
+// as-is and get re-encrypted on the next successful exchange.
+func decryptStravaRefreshToken(stored string) string {
+	plaintext, err := utilities.DecryptString(stored, files.ConfigFile.StravaTokenKey)
+	if err != nil {
+		return stored
+	}
+	return plaintext
 }
 
 func StravaSyncActivityForUser(activity models.StravaGetActivitiesRequestReply, user models.User, token string) (err error) {
@@ -330,7 +409,7 @@ func StravaSyncActivityForUser(activity models.StravaGetActivitiesRequestReply, 
 	logger.Log.Tracef("strava activity action: %s", activity.SportType)
 
 	// skip walks if enabled
-	if user.StravaWalks != nil && *user.StravaWalks && strings.ToLower(activity.SportType) == "walk" {
+	if user.StravaIgnoreWalks != nil && *user.StravaIgnoreWalks && strings.ToLower(activity.SportType) == "walk" {
 		logger.Log.Trace("Skipping activity because user has 'ignore walks' enabled.")
 		return nil
 	} else {
@@ -379,7 +458,10 @@ func StravaSyncActivityForUser(activity models.StravaGetActivitiesRequestReply, 
 
 			logger.Log.Trace("activity start: " + activity.StartDateLocal.String())
 
-			dateObject := time.Date(activity.StartDateLocal.Year(), activity.StartDateLocal.Month(), activity.StartDateLocal.Day(), 0, 0, 0, 0, time.Local)
+			// StartDateLocal carries the athlete's local wall-clock date. Stamp the day
+			// at midnight UTC (not the server's zone) so it is deterministic and matches
+			// the date-string lookups regardless of where the server runs.
+			dateObject := time.Date(activity.StartDateLocal.Year(), activity.StartDateLocal.Month(), activity.StartDateLocal.Day(), 0, 0, 0, 0, time.UTC)
 			exerciseDay.Date = dateObject
 
 			logger.Log.Trace("exercise day date: " + dateObject.String())
@@ -399,10 +481,9 @@ func StravaSyncActivityForUser(activity models.StravaGetActivitiesRequestReply, 
 		exercise.ExerciseDayID = exerciseDay.ID
 	}
 
+	// Note and Duration are derived from the operations by
+	// SyncStravaOperationsToExerciseSession below, so they are not set here.
 	exercise.Enabled = true
-	exercise.Note = activity.Name
-	elapsedTime := time.Duration(activity.ElapsedTime)
-	exercise.Duration = &elapsedTime
 	exercise.IsOn = true
 	exercise.Time = &activity.StartDate
 

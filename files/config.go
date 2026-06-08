@@ -117,6 +117,17 @@ func LoadConfig() (err error) {
 		anythingChanged = true
 	}
 
+	if ConfigFile.StravaTokenKey == "" {
+		// 32 bytes for AES-256-GCM encryption of stored Strava refresh tokens
+		newKey, err := GenerateSecureKey(32)
+		if err != nil {
+			return errors.New("failed to generate Strava token key. error: " + err.Error())
+		}
+		ConfigFile.StravaTokenKey = newKey
+		anythingChanged = true
+		fmt.Println("new Strava token key set")
+	}
+
 	if ConfigFile.TreninghetenLogLevel == "" {
 		level := logrus.InfoLevel
 		ConfigFile.TreninghetenLogLevel = level.String()
