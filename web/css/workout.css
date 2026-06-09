@@ -1,0 +1,585 @@
+/* ============================================================================
+   Workout summary view — "performance dashboard" aesthetic
+   Scoped entirely under .workout-view so it does not touch the rest of the app.
+   Athletic, scoreboard-style numerals on a deep navy surface with one energetic
+   accent (green = active/positive). Strava keeps its own orange.
+   ============================================================================ */
+
+.workout-view {
+  --wv-font-display: 'Saira Semi Condensed', 'Roboto', sans-serif;
+  --wv-font-body: 'Hanken Grotesk', 'Roboto', sans-serif;
+
+  --wv-ink: #f3f6fb;          /* primary text on dark */
+  --wv-ink-dim: #9fb0c7;      /* muted labels */
+  --wv-line: rgba(255, 255, 255, 0.10);
+  --wv-surface: rgba(255, 255, 255, 0.045);
+  --wv-surface-hi: rgba(255, 255, 255, 0.08);
+  --wv-accent: #00d27a;       /* energetic green — active/positive only */
+  --wv-strava: #fc4c02;
+
+  font-family: var(--wv-font-body);
+  color: var(--wv-ink);
+  width: 100%;
+  display: flex;
+  justify-content: center;
+}
+
+/* ── Session shell ───────────────────────────────────────────────────────── */
+.wv-session {
+  width: 100%;
+  max-width: 46rem;
+  margin: 1rem 0 2.5rem;
+  padding: 1.5rem clamp(1rem, 4vw, 2rem) 1.75rem;
+  border-radius: 1.25rem;
+  border: 1px solid var(--wv-line);
+  position: relative;
+  overflow: hidden;
+  /* Depth: deep navy base + a soft top-left light source, not a flat fill. */
+  background:
+    radial-gradient(120% 80% at 0% 0%, rgba(0, 210, 122, 0.10) 0%, transparent 42%),
+    linear-gradient(160deg, #16263c 0%, #0d1b2a 100%);
+  box-shadow: 0 1.5rem 3rem rgba(0, 0, 0, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.04);
+}
+
+/* Fine grain overlay for texture. */
+.wv-session::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0.5;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.025'/%3E%3C/svg%3E");
+}
+
+.wv-session > * { position: relative; z-index: 1; }
+
+/* ── Session header: meta + total roll-up ────────────────────────────────── */
+.wv-session-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.wv-session-meta { display: flex; flex-direction: column; gap: 0.15rem; min-width: 0; }
+
+.wv-session-date {
+  font-size: 0.72rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--wv-ink-dim);
+  font-weight: 600;
+}
+
+.wv-session-summary {
+  font-family: var(--wv-font-display);
+  font-weight: 600;
+  font-size: clamp(1.5rem, 5vw, 2.1rem);
+  line-height: 1.05;
+  letter-spacing: 0.01em;
+}
+
+.wv-session-total {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  text-align: right;
+  flex-shrink: 0;
+}
+
+.wv-total-value {
+  font-family: var(--wv-font-display);
+  font-weight: 700;
+  font-size: clamp(1.8rem, 6vw, 2.6rem);
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+  color: var(--wv-accent);
+}
+
+.wv-total-label {
+  font-size: 0.65rem;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--wv-ink-dim);
+  margin-top: 0.15rem;
+}
+
+/* ── Action row ──────────────────────────────────────────────────────────── */
+.wv-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.25rem;
+  margin-top: 0.75rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--wv-line);
+}
+
+.wv-action-icon {
+  height: 1.1rem;
+  width: 1.1rem;
+  padding: 0.6rem;            /* keeps tap target ~44px */
+  border-radius: 0.6rem;
+  opacity: 0.7;
+  filter: invert(100%);       /* the source SVGs are black; flip them for the dark surface */
+  transition: opacity 0.15s, background 0.15s;
+}
+.wv-action-icon:hover { opacity: 1; background: var(--wv-surface-hi); }
+.wv-combine { width: 1.1rem; height: 1.1rem; margin-right: 0.4rem; accent-color: var(--wv-accent); }
+
+/* ── Activities (vertical list, reads well on phone + desktop) ───────────── */
+.wv-activities { display: flex; flex-direction: column; gap: 1rem; margin-top: 1.25rem; }
+
+.wv-activity {
+  background: var(--wv-surface);
+  border: 1px solid var(--wv-line);
+  border-radius: 1rem;
+  padding: 1.1rem 1.2rem;
+  border-left: 3px solid var(--wv-line);
+}
+.wv-activity-cardio   { border-left-color: var(--wv-accent); }
+.wv-activity-strength { border-left-color: #ffb020; }
+.wv-activity-time     { border-left-color: var(--wv-strava); }
+
+.wv-activity-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 0.5rem;
+}
+
+.wv-activity-title {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-family: var(--wv-font-display);
+  font-weight: 600;
+  font-size: 1.25rem;
+  letter-spacing: 0.01em;
+  min-width: 0;
+}
+.wv-activity-title span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.wv-activity-head-actions { display: flex; align-items: center; gap: 0.4rem; flex-shrink: 0; }
+.wv-activity-icon { height: 1.25rem; width: 1.25rem; }
+.wv-activity-emoji { font-size: 1.1rem; line-height: 1; }
+
+/* Source / provider badge */
+.wv-source {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  flex-shrink: 0;
+  font-size: 0.68rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  font-weight: 600;
+  padding: 0.25rem 0.55rem;
+  border-radius: 0.5rem;
+  text-decoration: none;
+  border: 1px solid var(--wv-line);
+  color: var(--wv-ink-dim);
+}
+.wv-source img { height: 0.8rem; width: auto; }
+.wv-source-strava { color: var(--wv-strava); border-color: rgba(252, 76, 2, 0.4); }
+.wv-source-manual { color: var(--wv-ink-dim); }
+
+.wv-description {
+  white-space: pre-wrap;
+  font-size: 0.9rem;
+  line-height: 1.5;
+  color: var(--wv-ink-dim);
+  margin: 0.5rem 0 0.75rem;
+}
+
+/* ── Stat row (cardio / time) ────────────────────────────────────────────── */
+.wv-stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1.25rem 2rem;
+  margin-top: 0.75rem;
+}
+
+.wv-stat { display: flex; flex-direction: column; gap: 0.15rem; }
+
+.wv-stat-value {
+  font-family: var(--wv-font-display);
+  font-weight: 600;
+  font-size: 1.6rem;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+.wv-stat-unit { font-size: 0.7em; opacity: 0.65; margin-left: 0.15em; font-weight: 500; }
+
+.wv-stat-label {
+  font-size: 0.62rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--wv-ink-dim);
+}
+
+/* ── Strength: scoreboard set grid ───────────────────────────────────────── */
+.wv-set-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin-top: 0.5rem;
+}
+
+.wv-set {
+  font-family: var(--wv-font-display);
+  font-weight: 600;
+  font-size: 1.05rem;
+  font-variant-numeric: tabular-nums;
+  background: var(--wv-surface-hi);
+  border: 1px solid var(--wv-line);
+  border-radius: 0.5rem;
+  padding: 0.3rem 0.6rem;
+  letter-spacing: 0.02em;
+}
+.wv-set-mult { opacity: 0.45; margin: 0 0.12em; font-weight: 500; }
+.wv-set-empty { color: var(--wv-ink-dim); font-family: var(--wv-font-body); font-weight: 400; }
+
+.wv-rollup {
+  margin-top: 0.7rem;
+  font-size: 0.75rem;
+  letter-spacing: 0.04em;
+  color: var(--wv-ink-dim);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ── Charts & map ────────────────────────────────────────────────────────── */
+.wv-map {
+  height: 16rem;
+  width: 100%;
+  border-radius: 0.75rem;
+  overflow: hidden;
+  margin-top: 1rem;
+  position: relative;
+  z-index: 0;
+}
+
+/* Let Chart.js own the canvas pixel dimensions (it renders at devicePixelRatio);
+   forcing width/height in CSS stretches the bitmap and blurs the labels. We only
+   bound the container width so the chart's own aspect ratio keeps it sensible. */
+.wv-hr-wrapper { margin: 1rem auto 0; width: 100%; max-width: 38rem; }
+
+/* ── Back-to-summary button (editor mode) ────────────────────────────────── */
+.back-to-summary-btn {
+  font-family: var(--wv-font-body);
+  font-size: 0.8rem;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  color: var(--white);
+  background: var(--trans-lightblue);
+  border: 1px solid var(--lightblue);
+  border-radius: 0.6rem;
+  padding: 0.5rem 1rem;
+  margin: 0 auto 1.25rem;
+  display: block;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.back-to-summary-btn:hover { background: var(--lightblue); }
+
+/* ── Tag chips inside the dashboard (override the light global chip) ──────── */
+.workout-view .tag-list { justify-content: flex-start; margin: 0.4rem 0 0.2rem; }
+.workout-view .tag-chip {
+  background: var(--wv-surface-hi);
+  border: 1px solid var(--wv-line);
+  color: var(--wv-ink);
+  font-size: 0.68rem;
+  letter-spacing: 0.04em;
+}
+
+/* ── Mobile ──────────────────────────────────────────────────────────────── */
+@media (max-width: 480px) {
+  .wv-session { padding: 1.2rem 1rem 1.4rem; border-radius: 1rem; }
+  .wv-session-head { flex-direction: row; align-items: flex-start; }
+  .wv-stats { gap: 1rem 1.5rem; }
+  .wv-stat-value { font-size: 1.4rem; }
+}
+
+/* ============================================================================
+   Workout editor (HEVY/Strong-style builder) — shares the dashboard surface.
+   All inputs are >=16px so iOS Safari never zooms on focus.
+   ============================================================================ */
+
+.we-session {
+  width: 100%;
+  max-width: 46rem;
+  margin: 1rem 0 2.5rem;
+  padding: 1.5rem clamp(1rem, 4vw, 2rem) 1.75rem;
+  border-radius: 1.25rem;
+  border: 1px solid var(--wv-line);
+  position: relative;
+  overflow: hidden;
+  background:
+    radial-gradient(120% 80% at 0% 0%, rgba(0, 210, 122, 0.10) 0%, transparent 42%),
+    linear-gradient(160deg, #16263c 0%, #0d1b2a 100%);
+  box-shadow: 0 1.5rem 3rem rgba(0, 0, 0, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.04);
+}
+
+.we-session-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+.we-eyebrow {
+  font-size: 0.72rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--wv-ink-dim);
+  font-weight: 600;
+}
+.we-session-actions { display: flex; align-items: center; gap: 0.25rem; }
+
+/* Inputs — base type for the whole editor; 1rem == 16px keeps iOS from zooming. */
+.we-input,
+.we-set-input,
+.we-type-select,
+.we-equipment-select,
+.we-note {
+  font-family: var(--wv-font-body);
+  font-size: 1rem;
+  color: var(--wv-ink);
+  background: rgba(0, 0, 0, 0.22);
+  border: 1px solid var(--wv-line);
+  border-radius: 0.55rem;
+  padding: 0.55rem 0.65rem;
+  box-sizing: border-box;
+  width: 100%;
+}
+.we-input:focus,
+.we-set-input:focus,
+.we-type-select:focus,
+.we-equipment-select:focus,
+.we-note:focus {
+  outline: none;
+  border-color: var(--wv-accent);
+  background: rgba(0, 0, 0, 0.30);
+}
+.we-input::placeholder,
+.we-set-input::placeholder,
+.we-note::placeholder { color: rgba(255, 255, 255, 0.35); }
+
+.we-session-fields { display: flex; gap: 0.75rem; flex-wrap: wrap; }
+.we-field { display: flex; flex-direction: column; gap: 0.3rem; flex: 1; min-width: 7rem; }
+.we-field-label {
+  font-size: 0.62rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--wv-ink-dim);
+}
+
+.we-note { margin-top: 0.9rem; resize: vertical; line-height: 1.45; }
+
+.we-strava-links { display: flex; flex-direction: column; gap: 0.25rem; margin-top: 0.75rem; }
+.we-strava-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.78rem;
+  color: var(--wv-strava);
+  text-decoration: none;
+  opacity: 0.85;
+}
+.we-strava-link img { height: 0.85rem; filter: invert(46%) sepia(83%) saturate(2500%) hue-rotate(354deg); }
+
+/* ── Exercise cards (vertical list) ──────────────────────────────────────── */
+.we-exercises { margin-top: 1.25rem; }
+.we-exercise-list { display: flex; flex-direction: column; gap: 1rem; }
+
+.we-exercise {
+  background: var(--wv-surface);
+  border: 1px solid var(--wv-line);
+  border-left: 3px solid var(--wv-accent);
+  border-radius: 1rem;
+  padding: 1rem 1.1rem 1.1rem;
+}
+
+.we-exercise-head { display: flex; align-items: center; gap: 0.5rem; }
+.we-type-select { width: auto; flex-shrink: 0; padding: 0.55rem 0.4rem; text-align: center; }
+.we-action { position: relative; flex: 1; min-width: 0; }
+.we-action-input { width: 100%; }
+.we-exercise-head .wv-action-icon { padding: 0.5rem; }
+
+.we-equipment-select { margin-top: 0.6rem; color: var(--wv-ink-dim); }
+
+.we-op-note { margin-top: 0.6rem; }
+
+/* ── Set table — declarative columns, toggled purely by the type modifier ─── */
+.we-sets { margin-top: 0.9rem; }
+.we-set-head,
+.we-set-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+.we-set-head { margin-bottom: 0.4rem; }
+.we-set-rows { display: flex; flex-direction: column; gap: 0.4rem; }
+
+.we-col { flex: 1; min-width: 0; text-align: center; }
+.we-col-set { flex: 0 0 2.4rem; }
+
+.we-set-head .we-col {
+  font-size: 0.6rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--wv-ink-dim);
+}
+.we-set-input { text-align: center; padding: 0.5rem 0.3rem; -moz-appearance: textfield; }
+.we-set-input::-webkit-outer-spin-button,
+.we-set-input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+
+.we-set-num {
+  font-family: var(--wv-font-display);
+  font-weight: 700;
+  font-size: 1.05rem;
+  color: var(--wv-ink);
+  background: var(--wv-surface-hi);
+  border: 1px solid var(--wv-line);
+  border-radius: 0.5rem;
+  padding: 0.4rem 0;
+  transition: background 0.15s, color 0.15s;
+}
+.we-set-num:hover { background: rgba(208, 0, 0, 0.7); color: #fff; }
+.we-set-avg { font-variant-numeric: tabular-nums; color: var(--wv-ink-dim); font-size: 0.9rem; }
+
+/* Column visibility per activity type — header and rows share the same rules,
+   so they can never desync. */
+.we-type-lifting .we-col-time,
+.we-type-lifting .we-col-dist,
+.we-type-lifting .we-col-avg { display: none; }
+.we-type-moving .we-col-weight,
+.we-type-moving .we-col-reps { display: none; }
+.we-type-timing .we-col-weight,
+.we-type-timing .we-col-reps,
+.we-type-timing .we-col-dist,
+.we-type-timing .we-col-avg { display: none; }
+
+/* ── Add buttons ─────────────────────────────────────────────────────────── */
+.we-add-set,
+.we-add-exercise {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  font-family: var(--wv-font-body);
+  font-weight: 600;
+  font-size: 0.85rem;
+  color: var(--wv-ink);
+  background: var(--wv-surface-hi);
+  border: 1px dashed var(--wv-line);
+  border-radius: 0.6rem;
+  padding: 0.55rem 1rem;
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+}
+.we-add-set { width: 100%; margin-top: 0.6rem; }
+.we-add-exercise { width: 100%; margin-top: 1rem; }
+.we-add-set:hover,
+.we-add-exercise:hover { border-color: var(--wv-accent); background: rgba(0, 210, 122, 0.12); }
+.we-add-set img,
+.we-add-exercise img { height: 0.9rem; filter: invert(100%); }
+
+/* The action autocomplete popover sits over the dark card; keep it readable. */
+.we-action .dropdown-actions-wrapper { top: 3.1rem; z-index: 5; }
+
+/* ============================================================================
+   Neutralise global form styling. main.css targets `input[type=...], select`
+   (specificity 0,1,1) and `select { height: 10rem }`, which outrank our single
+   classes — forcing white backgrounds, 2rem heights, big margins and tall
+   selects. Prefixing with .workout-view (0,2,x) wins cleanly and lets us restate
+   the dark-surface look in one place.
+   ============================================================================ */
+.workout-view .we-input,
+.workout-view .we-set-input,
+.workout-view .we-type-select,
+.workout-view .we-equipment-select,
+.workout-view .we-note {
+  background: rgba(0, 0, 0, 0.22);
+  color: var(--wv-ink);
+  border: 1px solid var(--wv-line);
+  border-radius: 0.55rem;
+  margin: 0;
+  height: auto;
+  min-height: 0;
+  max-height: none;
+  box-sizing: border-box;
+  font-family: var(--wv-font-body);
+  font-size: 1rem;
+  overflow: visible;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
+}
+
+.workout-view .we-input,
+.workout-view .we-set-input,
+.workout-view .we-note { padding: 0.55rem 0.65rem; width: 100%; }
+
+.workout-view .we-equipment-select { padding: 0.55rem 0.65rem; width: 100%; }
+.workout-view .we-type-select { padding: 0.55rem 0.4rem; width: auto; flex: 0 0 auto; text-align: center; }
+.workout-view .we-set-input { padding: 0.5rem 0.3rem; text-align: center; }
+.workout-view .we-note { resize: vertical; min-height: 3rem; line-height: 1.45; }
+
+.workout-view .we-input:focus,
+.workout-view .we-set-input:focus,
+.workout-view .we-type-select:focus,
+.workout-view .we-equipment-select:focus,
+.workout-view .we-note:focus {
+  outline: none;
+  border-color: var(--wv-accent);
+  background: rgba(0, 0, 0, 0.30);
+}
+
+/* The native options popup inherits the select's translucent background and
+   renders as low-contrast grey; give the options a solid dark fill instead. */
+.workout-view .we-type-select option,
+.workout-view .we-equipment-select option {
+  background: #16263c;
+  color: var(--wv-ink);
+}
+
+/* Custom caret for the selects (native arrow is gone with appearance:none). */
+.workout-view .we-equipment-select {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%239fb0c7'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0.7rem center;
+  padding-right: 1.8rem;
+}
+
+/* The action autocomplete popover: restyle as a dark panel so it matches the
+   editor (the global rule makes it white with our inherited light text → unreadable). */
+.workout-view .dropdown-actions-wrapper {
+  margin: 0;
+  background: #1b2c44;
+  border: 1px solid var(--wv-line);
+  color: var(--wv-ink);
+  border-radius: 0.6rem;
+  box-shadow: 0 0.75rem 1.5rem rgba(0, 0, 0, 0.45);
+}
+.workout-view .dropdown-action {
+  color: var(--wv-ink);
+  border-bottom: 1px solid var(--wv-line);
+  font-size: 0.9rem;
+}
+.workout-view .dropdown-action:last-child { border-bottom: none; }
+.workout-view .dropdown-action:hover { background: var(--wv-surface-hi); }
+
+/* Global `button { width:100%; margin:1rem; background:lightblue }` leaks into our
+   editor buttons; pin them down under .workout-view. */
+.workout-view .we-add-set,
+.workout-view .we-add-exercise { width: 100%; margin: 0; }
+.workout-view .we-add-set { margin-top: 0.6rem; }
+.workout-view .we-add-exercise { margin-top: 1rem; }
+.workout-view .back-to-summary-btn {
+  width: auto;
+  max-width: 18rem;
+  margin: 0 auto 1.25rem;
+  padding: 0.55rem 1.2rem;
+}

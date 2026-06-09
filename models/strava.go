@@ -51,7 +51,13 @@ type StravaGetActivitiesRequestReply struct {
 		ID            int `json:"id"`
 		ResourceState int `json:"resource_state"`
 	} `json:"athlete"`
-	Name               string      `json:"name"`
+	Name string `json:"name"`
+	// Description is only populated by the detailed activity endpoint
+	// (GET /activities/{id}); the list endpoint omits it.
+	Description *string `json:"description"`
+	// WorkoutType is a Strava enum (run: 1=race, 2=long run, 3=workout;
+	// ride: 11=race, 12=workout) used to derive activity tags.
+	WorkoutType        *int        `json:"workout_type"`
 	Distance           float64     `json:"distance"`
 	MovingTime         int         `json:"moving_time"`
 	ElapsedTime        int         `json:"elapsed_time"`

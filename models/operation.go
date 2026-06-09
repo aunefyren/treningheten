@@ -18,6 +18,8 @@ type Operation struct {
 	DistanceUnit string         `json:"distance_unit" gorm:"not null; default: km"`
 	Equipment    *string        `json:"equipment" gorm:""`
 	Note         *string        `json:"note" gorm:"default: null;"`
+	Description  *string        `json:"description" gorm:"type:longtext;default: null;"`
+	Tags         TagList        `json:"tags" gorm:"type:longtext;default: null;"`
 	Duration     *time.Duration `json:"duration"`
 }
 
@@ -36,6 +38,10 @@ type OperationUpdateRequest struct {
 	WeightUnit   string `json:"weight_unit"`
 	DistanceUnit string `json:"distance_unit"`
 	Equipment    string `json:"equipment"`
+	// Tags and Description are pointers so an omitted field (normal operation edits)
+	// leaves the stored value untouched, while an explicit value replaces it.
+	Tags        *[]string `json:"tags"`
+	Description *string   `json:"description"`
 }
 
 type OperationObject struct {
@@ -50,6 +56,8 @@ type OperationObject struct {
 	Equipment     *string              `json:"equipment"`
 	StravaID      *string              `json:"strava_id"`
 	Note          *string              `json:"note"`
+	Description   *string              `json:"description"`
+	Tags          []string             `json:"tags"`
 	Duration      *time.Duration       `json:"duration"`
 }
 
@@ -66,6 +74,9 @@ type OperationSet struct {
 	StravaID              *string            `json:"strava_id" gorm:"default: null;"`
 	StravaStreams         *StravaStreamsJSON `json:"strava_streams" gorm:"type:longtext;default: null;"`
 	StravaDataRetrievedAt *time.Time         `json:"strava_data_retrieved_at" gorm:"default: null;"`
+	// StravaDetailRetrievedAt guards the detailed-activity fetch (description), which
+	// is not in the list-sync payload, so the hourly sync only re-fetches when stale.
+	StravaDetailRetrievedAt *time.Time `json:"strava_detail_retrieved_at" gorm:"default: null;"`
 }
 
 type OperationSetCreationRequest struct {

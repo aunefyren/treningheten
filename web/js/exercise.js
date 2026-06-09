@@ -1,3 +1,58 @@
+// Activity tag vocabulary (mirrors models/tag.go). Strava auto-fills the first
+// four (commute + workout_type); the rest are user-only because Strava's public
+// API does not expose them.
+const ACTIVITY_TAGS = [
+    { slug: "race", label: "Race" },
+    { slug: "long-run", label: "Long Run" },
+    { slug: "workout", label: "Workout" },
+    { slug: "commute", label: "Commute" },
+    { slug: "for-a-cause", label: "For a Cause" },
+    { slug: "recovery", label: "Recovery" },
+    { slug: "with-pet", label: "With Pet" },
+    { slug: "with-kid", label: "With Kid" },
+];
+
+function tagLabel(slug) {
+    const tag = ACTIVITY_TAGS.find(t => t.slug === slug);
+    return tag ? tag.label : slug;
+}
+
+function escapeHTML(value) {
+    return String(value)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;");
+}
+
+// Read-only chips for the summary card.
+function generateTagChipsHTML(tags) {
+    if (!tags || tags.length === 0) {
+        return "";
+    }
+    const chips = tags
+        .map(slug => `<span class="tag-chip tag-chip-readonly">${escapeHTML(tagLabel(slug))}</span>`)
+        .join("");
+    return `<div class="tag-list">${chips}</div>`;
+}
+
+// Toggleable chips for the full editor.
+function generateTagSelectorHTML(operation) {
+    const selected = operation.tags || [];
+    const chips = ACTIVITY_TAGS
+        .map(t => {
+            const isSel = selected.includes(t.slug) ? " tag-chip-selected" : "";
+            return `<span class="tag-chip clickable${isSel}" data-tag="${t.slug}" onclick="toggleTag('${operation.id}', this)">${escapeHTML(t.label)}</span>`;
+        })
+        .join("");
+    return `<div class="tag-selector" id="tag-selector-${operation.id}">${chips}</div>`;
+}
+
+function toggleTag(operationID, el) {
+    el.classList.toggle("tag-chip-selected");
+    updateOperation(operationID);
+}
+
 function load_page(result) {
 
     if(result !== false) {
@@ -135,12 +190,6 @@ function placeExerciseDay(exerciseDay) {
 
 var exerciseCache = {};
 
-function isSimpleActivity(exercise) {
-    return exercise.operations.length === 1 &&
-           exercise.operations[0].operation_sets.length === 1 &&
-           exercise.operations[0].type === 'moving';
-}
-
 function placeExercises(exercises) {
     exercisesHTML = "";
     counter = 1;
@@ -177,94 +226,11 @@ function generateExerciseHTML(exercise, count, forceFullEditor = false) {
 
     if(exercise.is_on) {
 
-        if(!forceFullEditor && isSimpleActivity(exercise)) {
-            return generateSimpleActivityHTML(exercise, count);
+        if(!forceFullEditor) {
+            return renderWorkoutSummary(exercise, count);
         }
 
-        durationHTML = ""
-        if(exercise.duration) {
-            durationHTML = secondsToDurationString(exercise.duration)
-        }
-
-        timeHTML = ""
-        if(exercise.time) {
-            // Parse and extract HH:MM in local time
-            const date = new Date(exercise.time);
-            timeHTML = date.toLocaleTimeString('en-GB', {
-                hour: '2-digit',
-                minute: '2-digit',
-                hour12: false
-            });
-        }
-
-        stravaHTML = ""
-        stravaCombineHTML = ""
-        stravaDivide = ""
-        if(exercise.strava_id && exercise.strava_id.length > 0) {
-            stravaHTML += `<div class="strava-stack">`
-            stravaIDString = ""
-            for(var i = 0; i < exercise.strava_id.length; i++) {
-                stravaHTML += `
-                    <p class="strava-text clickable" onclick="window.open('https://www.strava.com/activities/${exercise.strava_id[i]}', '_blank')">
-                        Strava session (${exercise.strava_id[i]})
-                        <img src="/assets/external-link.svg" class="btn_logo" style="width: 1.25em; height: 1.25em; padding: 0; margin: 0.25em 0.5em;">
-                    </p>
-                `;
-
-                if(i != 0) {
-                    stravaIDString += ";"
-                }
-                stravaIDString += exercise.strava_id[i]
-            }
-            stravaHTML += `</div>`
-            
-            stravaCombineHTML += `
-                <input style="margin: 0.5em;" id="${stravaIDString}" class="clickable stravaCombineCheck" type="checkbox" name="" value="">
-            `;
-
-            if(exercise.strava_id.length > 1) {
-                stravaDivide += `
-                    <img src="/assets/scissors.svg" style="height: 1em; width: 1em; padding: 1em;" onclick="divideStravaExercises('${exercise.id}')" class="btn_logo clickable color-invert">
-                `;
-            }
-
-            try {
-                document.getElementById('stravaCombineButtonWrapper').style.display = "flex";
-            } catch(e) {
-                console.log("Failed to show Strava button. Error: " + e)
-            }
-        }
-
-        exerciseHTML = `
-            <div class="top-row">
-                ${stravaDivide}
-                ${stravaCombineHTML}
-                <img src="/assets/trash-2.svg" style="height: 1em; width: 1em; padding: 1em;" onclick="updateExercise('${exercise.id}', false, ${count}, '${exercise.time}', true)" class="btn_logo clickable color-invert">
-            </div>
-
-            <div class="exerciseSubWrapper" id="exercise-sub-${exercise.id}">
-                ${stravaHTML}
-
-                <h2 style="">Session ${count}</h2>
-                
-                <div class="exercise-input" id="exercise-timeofday-${exercise.id}">
-                    <label style="margin: 0;" for="exercise-timeofday-input-${exercise.id}"" title="Time of day">Time</label>
-                    <input style="" class="exercise-time-input" type="time" id="exercise-timeofday-input-${exercise.id}" name="exercise-timeofday-input" placeholder="hh:mm" value="${timeHTML}" onchange="updateExercise('${exercise.id}', true, ${count}, '${exercise.time}', true)">
-                </div>
-                <div class="exercise-input" id="exercise-time-${exercise.id}">
-                    <label style="margin: 0;" for="exercise-time-input-${exercise.id}"" title="Total session duration">Duration</label>
-                    <input style="" class="exercise-time-input" type="text" id="exercise-time-input-${exercise.id}" name="exercise-time-input" pattern="[0-9:]{0,}" placeholder="hh:mm:ss" value="${durationHTML}" onchange="updateExercise('${exercise.id}', true, ${count}, '${exercise.time}', true)">
-                </div>
-
-                <textarea class="day-note-area" id="exercise-note-${exercise.id}" name="exercise-exercise-note" rows="3" cols="33" placeholder="Notes" style="margin-top: 1em; width: 20em;" onchange="updateExercise('${exercise.id}', true, ${count}, '${exercise.time}', true)">${exercise.note}</textarea>
-
-                <div class="operationsWrapper" id="operationsWrapper-${exercise.id}">
-                    ${generateOperationsHTML(exercise.operations, exercise.id)}
-                </div>
-
-                <hr class="invert" style="border: 0.025em solid var(--white); margin: 4em 0;">
-            </div>
-        `;
+        exerciseHTML = renderWorkoutEditor(exercise, count);
     } else if (exercise.operations.length > 0){
         exerciseHTML = `
             <div class="exerciseSubWrapper" id="exercise-sub-${exercise.id}">
@@ -287,57 +253,151 @@ function generateExerciseHTML(exercise, count, forceFullEditor = false) {
     return exerciseHTML;
 }
 
-function generateSimpleActivityHTML(exercise, count) {
-    const operation = exercise.operations[0];
-    const set = operation.operation_sets[0];
-    const action = operation.action;
+// ── Universal workout summary view ──────────────────────────────────────────
+// Every session renders a read-only overview by default; the editor is an
+// explicit mode (the edit action). The overview composes one sub-card per
+// activity (cardio / strength / time) so it scales from a lone run to a
+// run + bench + core session, regardless of source (Strava, manual, future HEVY).
 
-    var timeHTML = ""
+function renderWorkoutSummary(exercise, count) {
+    const operations = (exercise.operations || []).filter(op => op);
+
+    var dateLine = "";
     if (exercise.time) {
         const date = new Date(exercise.time);
-        timeHTML = date.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', hour12: false });
+        const day = date.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' });
+        const clock = date.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', hour12: false });
+        dateLine = day + " · " + clock;
     }
 
-    var durationHTML = set.time
-        ? secondsToDurationString(set.time)
-        : (exercise.duration ? secondsToDurationString(exercise.duration) : "—");
+    const totalDuration = exercise.duration ? secondsToDurationString(exercise.duration) : "—";
+    const summaryLine = operations.map(activityTitle).join("  +  ") || "Empty session";
+    const subCards = operations.map(op => renderActivitySubCard(op, exercise)).join("");
 
-    var distanceHTML = set.distance != null
-        ? parseFloat(set.distance).toFixed(2) + " " + operation.distance_unit
-        : "—";
+    return `
+        <div class="workout-view">
+            <div class="wv-session" id="exercise-sub-${exercise.id}">
+                <div class="wv-session-head">
+                    <div class="wv-session-meta">
+                        <span class="wv-session-date">${dateLine}</span>
+                        <span class="wv-session-summary">${escapeHTML(summaryLine)}</span>
+                    </div>
+                    <div class="wv-session-total">
+                        <span class="wv-total-value">${totalDuration}</span>
+                        <span class="wv-total-label">Total</span>
+                    </div>
+                </div>
+                ${renderSessionActionRow(exercise, count)}
+                <div class="wv-activities">
+                    ${subCards}
+                </div>
+            </div>
+        </div>
+    `;
+}
 
-    var avgHTML = "—"
-    const speedTime = set.moving_time || set.time;
-    if (set.distance != null && speedTime != null) {
-        avgHTML = parseFloat(set.distance / (speedTime / 3600)).toFixed(2) + " " + operation.distance_unit + "/h";
+function renderSessionActionRow(exercise, count) {
+    var combineHTML = "";
+    var divideHTML = "";
+    if (exercise.strava_id && exercise.strava_id.length > 0) {
+        const ids = exercise.strava_id.join(";");
+        combineHTML = `<input class="clickable stravaCombineCheck wv-combine" type="checkbox" id="${ids}" title="Select to combine with another session">`;
+        if (exercise.strava_id.length > 1) {
+            divideHTML = `<img src="/assets/scissors.svg" class="btn_logo clickable wv-action-icon" title="Split combined activities" onclick="divideStravaExercises('${exercise.id}')">`;
+        }
+        try { document.getElementById('stravaCombineButtonWrapper').style.display = "flex"; } catch(e) {}
     }
+    return `
+        <div class="wv-actions">
+            ${combineHTML}
+            ${divideHTML}
+            <img src="/assets/edit.svg" class="btn_logo clickable wv-action-icon" title="Edit session" onclick="switchToFullEditor('${exercise.id}')">
+            <img src="/assets/trash-2.svg" class="btn_logo clickable wv-action-icon" title="Delete session" onclick="updateExercise('${exercise.id}', false, ${count}, '${exercise.time}', true)">
+        </div>
+    `;
+}
 
-    var actionName = action ? action.name : "Activity"
-    var activityTitle = (operation.note && operation.note.trim() !== '') ? operation.note.trim() : actionName
-    var actionIcon
+// Dispatch one activity to the right sub-card by its type.
+function renderActivitySubCard(operation, exercise) {
+    if (operation.type === 'lifting') {
+        return renderStrengthSubCard(operation);
+    } else if (operation.type === 'timing') {
+        return renderTimeSubCard(operation);
+    }
+    return renderCardioSubCard(operation, exercise);
+}
+
+function activityActionIcon(operation) {
+    const action = operation.action;
     if (action && action.has_logo) {
-        actionIcon = `<img src="/assets/actions/${action.name}.svg" class="color-invert" style="height: 1em; width: 1em; vertical-align: middle; margin: 0.5rem;">`
-    } else {
-        actionIcon = operation.type === 'moving' ? '🏃‍♂️' : operation.type === 'timing' ? '⏱️' : '💪'
+        return `<img src="/assets/actions/${action.name}.svg" class="color-invert wv-activity-icon" alt="">`;
+    }
+    const emoji = operation.type === 'lifting' ? '🏋️' : operation.type === 'timing' ? '⏱️' : '🏃';
+    return `<span class="wv-activity-emoji">${emoji}</span>`;
+}
+
+function activityTitle(operation) {
+    if (operation.note && operation.note.trim() !== '') return operation.note.trim();
+    if (operation.action && operation.action.name) return operation.action.name;
+    return operation.type === 'lifting' ? 'Strength' : operation.type === 'timing' ? 'Activity' : 'Cardio';
+}
+
+// Generic provider badge — derived client-side for now (Strava if a strava id is
+// present, else manual). This is the single place to swap when the backend grows
+// a real `source` object, keeping the card provider-agnostic for HEVY etc.
+function sourceBadge(operation, stravaID) {
+    if (stravaID) {
+        return `<a class="wv-source wv-source-strava" href="https://www.strava.com/activities/${stravaID}" target="_blank" title="View on Strava">
+            <img src="/assets/strava-logo.svg" alt=""><span>Strava</span>
+        </a>`;
+    }
+    return `<span class="wv-source wv-source-manual">Manual</span>`;
+}
+
+function activityDescriptionHTML(operation) {
+    if (operation.description && operation.description.trim() !== '') {
+        return `<p class="wv-description">${escapeHTML(operation.description.trim())}</p>`;
+    }
+    return "";
+}
+
+// Trim trailing zeros from a metric for display (80.0 -> "80", 2.5 -> "2.5").
+function wvNum(n) {
+    if (n == null) return "";
+    return (Math.round(n * 100) / 100).toString();
+}
+
+function renderCardioSubCard(operation, exercise) {
+    const sets = operation.operation_sets || [];
+
+    // Aggregate across the activity's sets; pick the set carrying streams for the
+    // chart/map (a Strava activity has exactly one).
+    var distance = 0, hasDistance = false, movingSecs = 0, totalSecs = 0;
+    var streamSet = null, stravaID = null;
+    sets.forEach(s => {
+        if (s.distance != null) { distance += s.distance; hasDistance = true; }
+        if (s.moving_time) movingSecs += s.moving_time;
+        if (s.time) totalSecs += s.time;
+        if (!streamSet && s.strava_streams) streamSet = s;
+        if (!stravaID && s.strava_id) stravaID = s.strava_id;
+    });
+
+    const durationSecs = totalSecs || movingSecs || operation.duration || 0;
+    const durationHTML = durationSecs ? secondsToDurationString(durationSecs) : "—";
+    const distanceHTML = hasDistance ? wvNum(parseFloat(distance.toFixed(2))) + " " + operation.distance_unit : "—";
+
+    var avgHTML = "—";
+    const speedSecs = movingSecs || totalSecs;
+    if (hasDistance && speedSecs) {
+        avgHTML = parseFloat(distance / (speedSecs / 3600)).toFixed(2) + " " + operation.distance_unit + "/h";
     }
 
-    var stravaLinkHTML = ""
-    const stravaActivityID = set.strava_id
-
-    if (stravaActivityID) {
-        stravaLinkHTML = `<a href="https://www.strava.com/activities/${stravaActivityID}" target="_blank" style="display: inline-flex; align-items: center; margin: 0.5rem; vertical-align: middle;">
-            <img src="/assets/strava-logo.svg" style="height: 0.85em; width: auto;">
-        </a>`
-    } else {
-        console.log("no Strava ID")
-    }
-
-    const streams = set.strava_streams;
+    const streams = streamSet ? streamSet.strava_streams : null;
+    const setForStreams = streamSet || sets[0] || {};
     const hasHeartrate = streams && streams.heartrate && streams.heartrate.data && streams.heartrate.data.length > 0;
     const latlngData = streams && (streams.latlng || streams.lat_lng);
     const hasRoute = latlngData && latlngData.data && latlngData.data.length > 0;
 
-    // Elevation gain from altitude stream
     var elevationHTML = "";
     if (streams && streams.altitude && streams.altitude.data && streams.altitude.data.length > 1) {
         const altData = streams.altitude.data;
@@ -346,151 +406,156 @@ function generateSimpleActivityHTML(exercise, count) {
             const delta = altData[i] - altData[i - 1];
             if (delta > 0) gain += delta;
         }
-
-        if(gain > 0) {
-            elevationValue = Math.round(gain) + " m";
-
-            elevationHTML = `
-                <div class="simple-stat">
-                    <span class="simple-stat-value">${elevationValue}</span>
-                    <span class="simple-stat-label">Elevation</span>
-                </div>
-            `
+        if (gain > 0) {
+            elevationHTML = `<div class="wv-stat"><span class="wv-stat-value">${Math.round(gain)}<span class="wv-stat-unit">m</span></span><span class="wv-stat-label">Elevation</span></div>`;
         }
     }
 
-    // Compute HR stats
     var hrStatsHTML = "";
     if (hasHeartrate) {
         const hrVals = streams.heartrate.data.filter(v => v > 0);
         if (hrVals.length > 0) {
             const hrAvg = Math.round(hrVals.reduce((a, b) => a + b, 0) / hrVals.length);
-            const hrMin = Math.min(...hrVals);
-            const hrMax = Math.max(...hrVals);
-            hrStatsHTML = `
-                <div class="simple-activity-stats" style="margin-top: 1em;">
-                    <div class="simple-stat">
-                        <span class="simple-stat-value">${hrMin} <span style="font-size:0.6em; opacity:0.7;">bpm</span></span>
-                        <span class="simple-stat-label">Min HR</span>
-                    </div>
-                    <div class="simple-stat">
-                        <span class="simple-stat-value">${hrAvg} <span style="font-size:0.6em; opacity:0.7;">bpm</span></span>
-                        <span class="simple-stat-label">Avg HR</span>
-                    </div>
-                    <div class="simple-stat">
-                        <span class="simple-stat-value">${hrMax} <span style="font-size:0.6em; opacity:0.7;">bpm</span></span>
-                        <span class="simple-stat-label">Max HR</span>
-                    </div>
-                </div>
-            `;
+            hrStatsHTML = `<div class="wv-stat"><span class="wv-stat-value">${hrAvg}<span class="wv-stat-unit">bpm</span></span><span class="wv-stat-label">Avg HR</span></div>`;
         }
     }
 
-    // Debug: log what we have so we can track down missing strava/map data
-    console.log('[simple card] exercise.strava_id:', exercise.strava_id, '| set.strava_activity_id:', set.strava_activity_id, '| hasRoute:', hasRoute, '| latlngKeys:', streams ? Object.keys(streams) : null);
+    const setKey = setForStreams.id || operation.id;
+    const hrCanvasID = `hr-chart-${setKey}`;
+    const mapDivID = `route-map-${setKey}`;
+    const hrHTML = hasHeartrate ? `<div class="wv-hr-wrapper"><canvas id="${hrCanvasID}" class="wv-hr-chart"></canvas></div>` : "";
+    const mapHTML = hasRoute ? `<div id="${mapDivID}" class="wv-map"></div>` : "";
 
-    const hrCanvasID = `hr-chart-${set.id}`;
-    const mapDivID = `route-map-${set.id}`;
-
-    var hrHTML = hasHeartrate ? `<div class="simple-activity-hr-wrapper"><canvas id="${hrCanvasID}" class="simple-activity-hr-chart"></canvas>${hrStatsHTML}</div>` : "";
-    var mapHTML = hasRoute ? `<div id="${mapDivID}" class="simple-activity-map" style="height: 300px; width: 100%; border-radius: 0.5em; overflow: hidden; position: relative; z-index: 0;"></div>` : "";
-
-    stravaSyncButtonHTML = "";
-    if (stravaActivityID) {
-        stravaSyncButtonHTML = `
-            <img src="/assets/refresh-cw.svg" style="height: 1em; width: 1em; padding: 1em;"
-                onclick="stravaSyncOperationSet('${set.id}')"
-                class="btn_logo clickable color-invert">
-        `;
+    if (hasHeartrate || hasRoute) {
+        scheduleCardioStreamRender(setForStreams, streams, hrCanvasID, mapDivID, hasHeartrate, hasRoute, latlngData);
     }
 
-    var html = `
-        <div class="top-row">
-            ${stravaSyncButtonHTML}
-            <img src="/assets/edit.svg" style="height: 1em; width: 1em; padding: 1em;"
-                onclick="switchToFullEditor('${exercise.id}')"
-                class="btn_logo clickable color-invert">
-            <img src="/assets/trash-2.svg" style="height: 1em; width: 1em; padding: 1em;"
-                onclick="updateExercise('${exercise.id}', false, ${count}, '${exercise.time}', true)"
-                class="btn_logo clickable color-invert">
-        </div>
-        <div class="exerciseSubWrapper" id="exercise-sub-${exercise.id}">
-            <h2 class="simple-activity-title">${actionIcon} ${activityTitle}${stravaLinkHTML}</h2>
-            <p style="opacity: 0.6; margin: 0.25em 0;">${timeHTML}</p>
+    var syncHTML = "";
+    if (stravaID && setForStreams.id) {
+        syncHTML = `<img src="/assets/refresh-cw.svg" class="btn_logo clickable wv-action-icon" title="Re-sync from Strava" onclick="stravaSyncOperationSet('${setForStreams.id}')">`;
+    }
 
-            <div class="simple-activity-stats-wrapper">
-                <div class="simple-activity-stats">
-                    <div class="simple-stat">
-                        <span class="simple-stat-value">${durationHTML}</span>
-                        <span class="simple-stat-label">Duration</span>
-                    </div>
-                    <div class="simple-stat">
-                        <span class="simple-stat-value">${distanceHTML}</span>
-                        <span class="simple-stat-label">Distance</span>
-                    </div>
-                    <div class="simple-stat">
-                        <span class="simple-stat-value">${avgHTML}</span>
-                        <span class="simple-stat-label">Avg speed</span>
-                    </div>
-                    ${elevationHTML}
-                </div>
-
-                ${mapHTML}
+    return `
+        <div class="wv-activity wv-activity-cardio">
+            <div class="wv-activity-head">
+                <div class="wv-activity-title">${activityActionIcon(operation)}<span>${escapeHTML(activityTitle(operation))}</span></div>
+                <div class="wv-activity-head-actions">${syncHTML}${sourceBadge(operation, stravaID)}</div>
             </div>
-
+            ${generateTagChipsHTML(operation.tags)}
+            ${activityDescriptionHTML(operation)}
+            <div class="wv-stats">
+                <div class="wv-stat"><span class="wv-stat-value">${durationHTML}</span><span class="wv-stat-label">Duration</span></div>
+                <div class="wv-stat"><span class="wv-stat-value">${distanceHTML}</span><span class="wv-stat-label">Distance</span></div>
+                <div class="wv-stat"><span class="wv-stat-value">${avgHTML}</span><span class="wv-stat-label">Avg speed</span></div>
+                ${elevationHTML}
+                ${hrStatsHTML}
+            </div>
+            ${mapHTML}
             ${hrHTML}
-
-            <hr class="invert" style="border: 0.025em solid var(--white); margin: 4em 0;">
         </div>
     `;
+}
 
-    // Defer chart and map rendering - poll until divs are actually in the DOM
-    if (hasHeartrate || hasRoute) {
-        var renderAttempts = 0;
-        var renderInterval = setInterval(function() {
-            renderAttempts++;
-            var hrReady = !hasHeartrate || document.getElementById(hrCanvasID);
-            var mapReady = !hasRoute || document.getElementById(mapDivID);
-            if (hrReady && mapReady) {
-                clearInterval(renderInterval);
-                if (hasHeartrate) {
-                    // The streams are distance-sampled, not time-sampled, so
-                    // streams.time.data is elapsed seconds and doesn't match moving_time.
-                    // Fix: keep only samples where the runner is moving (velocity > 0.5 m/s),
-                    // then space them evenly across set.moving_time seconds.
-                    const hrRaw = streams.heartrate.data;
-                    const velocity = streams.velocity_smooth && streams.velocity_smooth.data;
-                    const movingTimeSecs = set.moving_time || set.time;
-                    let chartHrData, chartTimeData;
-                    if (velocity && velocity.length === hrRaw.length && movingTimeSecs) {
-                        chartHrData = [];
-                        const movingIndices = [];
-                        for (let i = 0; i < hrRaw.length; i++) {
-                            if (velocity[i] > 0.5) {
-                                movingIndices.push(i);
-                            }
-                        }
-                        const n = movingIndices.length;
-                        chartTimeData = movingIndices.map((idx, j) => Math.round(j / (n - 1) * movingTimeSecs));
-                        chartHrData = movingIndices.map(idx => hrRaw[idx]);
-                    } else {
-                        chartTimeData = streams.time.data;
-                        chartHrData = hrRaw;
+function renderStrengthSubCard(operation) {
+    const sets = operation.operation_sets || [];
+    var totalReps = 0, volume = 0, hasVolume = false, stravaID = null;
+    const setChips = sets.map(s => {
+        if (!stravaID && s.strava_id) stravaID = s.strava_id;
+        const reps = (s.repetitions != null) ? s.repetitions : null;
+        const weight = (s.weight != null) ? s.weight : null;
+        if (reps != null) totalReps += reps;
+        if (reps != null && weight != null) { volume += reps * weight; hasVolume = true; }
+        var label;
+        if (weight != null && reps != null) label = `${wvNum(weight)}<span class="wv-set-mult">×</span>${wvNum(reps)}`;
+        else if (reps != null) label = `${wvNum(reps)} reps`;
+        else if (weight != null) label = `${wvNum(weight)} ${operation.weight_unit}`;
+        else label = "—";
+        return `<span class="wv-set">${label}</span>`;
+    }).join("");
+
+    var rollup = `${sets.length} ${sets.length === 1 ? 'set' : 'sets'}`;
+    if (totalReps > 0) rollup += ` · ${wvNum(totalReps)} reps`;
+    if (hasVolume) rollup += ` · ${wvNum(Math.round(volume))} ${operation.weight_unit} vol`;
+
+    return `
+        <div class="wv-activity wv-activity-strength">
+            <div class="wv-activity-head">
+                <div class="wv-activity-title">${activityActionIcon(operation)}<span>${escapeHTML(activityTitle(operation))}</span></div>
+                ${sourceBadge(operation, stravaID)}
+            </div>
+            ${generateTagChipsHTML(operation.tags)}
+            ${activityDescriptionHTML(operation)}
+            <div class="wv-set-grid">${setChips || '<span class="wv-set wv-set-empty">No sets</span>'}</div>
+            <div class="wv-rollup">${rollup}</div>
+        </div>
+    `;
+}
+
+function renderTimeSubCard(operation) {
+    const sets = operation.operation_sets || [];
+    var secs = 0, stravaID = null;
+    sets.forEach(s => {
+        if (s.time) secs += s.time;
+        else if (s.moving_time) secs += s.moving_time;
+        if (!stravaID && s.strava_id) stravaID = s.strava_id;
+    });
+    if (!secs && operation.duration) secs = operation.duration;
+    const durationHTML = secs ? secondsToDurationString(secs) : "—";
+
+    return `
+        <div class="wv-activity wv-activity-time">
+            <div class="wv-activity-head">
+                <div class="wv-activity-title">${activityActionIcon(operation)}<span>${escapeHTML(activityTitle(operation))}</span></div>
+                ${sourceBadge(operation, stravaID)}
+            </div>
+            ${generateTagChipsHTML(operation.tags)}
+            ${activityDescriptionHTML(operation)}
+            <div class="wv-stats">
+                <div class="wv-stat"><span class="wv-stat-value">${durationHTML}</span><span class="wv-stat-label">Duration</span></div>
+            </div>
+        </div>
+    `;
+}
+
+// Deferred chart/map render: summary HTML is injected via innerHTML, so poll
+// until the canvas/map nodes exist, then draw. (Ported from the old simple card.)
+function scheduleCardioStreamRender(set, streams, hrCanvasID, mapDivID, hasHeartrate, hasRoute, latlngData) {
+    var attempts = 0;
+    var interval = setInterval(function() {
+        attempts++;
+        var hrReady = !hasHeartrate || document.getElementById(hrCanvasID);
+        var mapReady = !hasRoute || document.getElementById(mapDivID);
+        if (hrReady && mapReady) {
+            clearInterval(interval);
+            if (hasHeartrate) {
+                // Streams are distance-sampled, not time-sampled, so keep only the
+                // moving samples (velocity > 0.5 m/s) and space them evenly across
+                // moving_time so the x-axis matches the activity duration.
+                const hrRaw = streams.heartrate.data;
+                const velocity = streams.velocity_smooth && streams.velocity_smooth.data;
+                const movingTimeSecs = set.moving_time || set.time;
+                let chartHrData, chartTimeData;
+                if (velocity && velocity.length === hrRaw.length && movingTimeSecs) {
+                    const movingIndices = [];
+                    for (let i = 0; i < hrRaw.length; i++) {
+                        if (velocity[i] > 0.5) movingIndices.push(i);
                     }
-                    renderHeartrateChart(hrCanvasID, chartTimeData, chartHrData, movingTimeSecs);
+                    const n = movingIndices.length;
+                    chartTimeData = movingIndices.map((idx, j) => Math.round(j / (n - 1) * movingTimeSecs));
+                    chartHrData = movingIndices.map(idx => hrRaw[idx]);
+                } else {
+                    chartTimeData = streams.time.data;
+                    chartHrData = hrRaw;
                 }
-                if (hasRoute) {
-                    console.log("[map] div found, rendering route with", latlngData.data.length, "points");
-                    renderRouteMap(mapDivID, latlngData.data);
-                }
-            } else if (renderAttempts > 50) {
-                clearInterval(renderInterval);
-                console.warn("[simple card] DOM elements not found after 50 attempts. hr:", hrCanvasID, "map:", mapDivID);
+                renderHeartrateChart(hrCanvasID, chartTimeData, chartHrData, movingTimeSecs);
             }
-        }, 50);
-    }
-
-    return html;
+            if (hasRoute) {
+                renderRouteMap(mapDivID, latlngData.data);
+            }
+        } else if (attempts > 50) {
+            clearInterval(interval);
+        }
+    }, 50);
 }
 
 function renderHeartrateChart(canvasID, timeData, hrData, maxSecs) {
@@ -615,264 +680,205 @@ function switchToFullEditor(exerciseID) {
     const exercise = exerciseCache[exerciseID];
     if (!exercise) return;
     document.getElementById('exercise-' + exerciseID).innerHTML = generateExerciseHTML(exercise, exercise._count, true);
-    // Append a "back to summary" button after the full editor renders
+    injectBackButton(exerciseID);
+}
+
+// Re-render the read-only summary from the (cache-synced) exercise.
+function switchToSummary(exerciseID) {
+    const exercise = exerciseCache[exerciseID];
+    if (!exercise) return;
+    document.getElementById('exercise-' + exerciseID).innerHTML = generateExerciseHTML(exercise, exercise._count, false);
+}
+
+// Every active session has a summary view, so the editor always offers a way back.
+// (Deleted sessions have no summary, so skip the button there.)
+function injectBackButton(exerciseID) {
+    const exercise = exerciseCache[exerciseID];
+    if (exercise && exercise.is_on === false) return;
     const subWrapper = document.getElementById('exercise-sub-' + exerciseID);
-    if (subWrapper && isSimpleActivity(exercise)) {
-        const backBtn = document.createElement('button');
-        backBtn.textContent = '← Back to summary';
-        backBtn.className = 'back-to-summary-btn';
-        backBtn.style.cssText = 'margin-top: 1em; font-size: 0.75em; opacity: 0.6;';
-        backBtn.onclick = function() {
-            document.getElementById('exercise-' + exerciseID).innerHTML = generateSimpleActivityHTML(exercise, exercise._count);
-        };
-        subWrapper.insertBefore(backBtn, subWrapper.firstChild);
+    if (!subWrapper || subWrapper.querySelector('.back-to-summary-btn')) return;
+    const backBtn = document.createElement('button');
+    backBtn.textContent = '← Back to summary';
+    backBtn.className = 'back-to-summary-btn';
+    backBtn.onclick = function() { switchToSummary(exerciseID); };
+    subWrapper.insertBefore(backBtn, subWrapper.firstChild);
+}
+
+// ── Workout editor (HEVY/Strong-style builder) ───────────────────────────────
+// Renders entirely from the cached exercise (the single source of truth). Field
+// changes / adds / deletes persist via the existing REST endpoints and reconcile
+// the response back into exerciseCache, so the summary and editor never drift.
+
+function renderWorkoutEditor(exercise, count) {
+    var timeOfDay = "";
+    if (exercise.time) {
+        const date = new Date(exercise.time);
+        timeOfDay = date.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', hour12: false });
     }
+    const durationStr = exercise.duration ? secondsToDurationString(exercise.duration) : "";
+    const onChange = `updateExercise('${exercise.id}', true, ${count}, '${exercise.time}', true)`;
+
+    // Strava source links + combine/divide (parity with the summary card).
+    var stravaLinks = "", combineHTML = "", divideHTML = "";
+    if (exercise.strava_id && exercise.strava_id.length > 0) {
+        stravaLinks = `<div class="we-strava-links">` + exercise.strava_id.map(id =>
+            `<a class="we-strava-link" href="https://www.strava.com/activities/${id}" target="_blank">Strava activity ${id}<img src="/assets/external-link.svg" alt=""></a>`
+        ).join("") + `</div>`;
+        const ids = exercise.strava_id.join(";");
+        combineHTML = `<input class="clickable stravaCombineCheck wv-combine" type="checkbox" id="${ids}" title="Select to combine with another session">`;
+        if (exercise.strava_id.length > 1) {
+            divideHTML = `<img src="/assets/scissors.svg" class="btn_logo clickable wv-action-icon" title="Split combined activities" onclick="divideStravaExercises('${exercise.id}')">`;
+        }
+        try { document.getElementById('stravaCombineButtonWrapper').style.display = "flex"; } catch(e) {}
+    }
+
+    return `
+        <div class="workout-view">
+            <div class="we-session" id="exercise-sub-${exercise.id}">
+                <div class="we-session-head">
+                    <span class="we-eyebrow">Editing session</span>
+                    <div class="we-session-actions">
+                        ${combineHTML}
+                        ${divideHTML}
+                        <img src="/assets/trash-2.svg" class="btn_logo clickable wv-action-icon" title="Delete session" onclick="updateExercise('${exercise.id}', false, ${count}, '${exercise.time}', true)">
+                    </div>
+                </div>
+                <div class="we-session-fields">
+                    <label class="we-field">
+                        <span class="we-field-label">Time</span>
+                        <input class="we-input" type="time" id="exercise-timeofday-input-${exercise.id}" value="${timeOfDay}" onchange="${onChange}">
+                    </label>
+                    <label class="we-field">
+                        <span class="we-field-label">Duration</span>
+                        <input class="we-input" type="text" pattern="[0-9:]{0,}" id="exercise-time-input-${exercise.id}" placeholder="hh:mm:ss" value="${durationStr}" onchange="${onChange}">
+                    </label>
+                </div>
+                <textarea class="we-note" id="exercise-note-${exercise.id}" rows="2" placeholder="Session note" onchange="${onChange}">${escapeHTML(exercise.note || '')}</textarea>
+                ${stravaLinks}
+                <div class="we-exercises" id="operationsWrapper-${exercise.id}">
+                    ${generateOperationsHTML(exercise.operations, exercise.id)}
+                </div>
+            </div>
+        </div>
+    `;
 }
 
 function generateOperationsHTML(operations, exerciseID) {
-    operationsHTML = `<div class="operationsWrapperSub" id="operationsWrapper-sub-${exerciseID}">`;
-
+    var html = `<div class="we-exercise-list" id="operationsWrapper-sub-${exerciseID}">`;
     operations.forEach(operation => {
-        operationHTML = generateOperationHTML(operation, exerciseID)
-        operationsHTML += `
-            <div class="operationWrapper" id="operation-${operation.id}">
-                ${operationHTML}
-            </div>
-        `;
+        html += `<div class="we-exercise" id="operation-${operation.id}">${generateOperationHTML(operation, exerciseID)}</div>`;
     });
-
-    operationsHTML += `</div>`
-
-    operationsAddButtonHTML = generateOperationAddButtonHTML(operations, exerciseID)
-    operationsHTML += operationsAddButtonHTML;
-
-    return operationsHTML
+    html += `</div>`;
+    html += generateOperationAddButtonHTML(operations, exerciseID);
+    return html;
 }
 
 function generateOperationAddButtonHTML(operations, exerciseID) {
     return `
-        <div class="addOperationWrapper clickable hover" id="addOperationWrapper-${exerciseID}" title="Add exercise" onclick="addOperation('${exerciseID}');">
-            <img src="/assets/plus.svg" class="button-icon" style="height: 100%; margin: 1em;">
-        </div>
+        <button class="we-add-exercise clickable" onclick="addOperation('${exerciseID}')">
+            <img src="/assets/plus.svg" alt=""><span>Add exercise</span>
+        </button>
     `;
 }
 
 function generateOperationHTML(operation) {
-    liftingHTML = ''
-    timingHTML = ''
-    movingHTML = ''
-    if(operation.type == 'lifting') {
-        liftingHTML = 'selected'
-    } else if(operation.type == 'timing') {
-        timingHTML = 'selected'
-    } else if(operation.type == 'moving') {
-        movingHTML = 'selected'
-    }
+    const liftingSel = operation.type == 'lifting' ? 'selected' : '';
+    const movingSel  = operation.type == 'moving'  ? 'selected' : '';
+    const timingSel  = operation.type == 'timing'  ? 'selected' : '';
+    const actionName = operation.action ? operation.action.name : "";
 
-    actionHTML = ""
-    if(operation.action) {
-        actionHTML = operation.action.name
-    }
+    const equip = operation.equipment || "";
+    const equipOptions = [
+        ["", "Equipment"], ["barbells", "Barbells"], ["dumbbells", "Dumbbells"],
+        ["bands", "Bands"], ["rope", "Rope"], ["bench", "Bench"],
+        ["treadmill", "Treadmill"], ["machine", "Machine"]
+    ];
+    const equipHTML = equipOptions.map(([v, label]) =>
+        `<option value="${v}" ${equip === v ? 'selected' : ''}>${label}</option>`
+    ).join("");
 
-    noneHTML = ''
-    barbellsHTML = ''
-    dumbbellsHTML = ''
-    bandsHTML = ''
-    ropeHTML = ''
-    benchHTML = ''
-    treadmillHTML = ''
-    machineHTML = ''
-    if(operation.equipment == 'barbells') {
-        barbellsHTML = 'selected'
-    } else if(operation.equipment == 'dumbbells') {
-        dumbbellsHTML = 'selected'
-    } else if(operation.equipment == 'bands') {
-        bandsHTML = 'selected'
-    } else if(operation.equipment == 'rope') {
-        ropeHTML = 'selected'
-    } else if(operation.equipment == 'bench') {
-        benchHTML = 'selected'
-    } else if(operation.equipment == 'treadmill') {
-        treadmillHTML = 'selected'
-    } else if(operation.equipment == 'machine') {
-        machineHTML = 'selected'
-    } else {
-        noneHTML = 'selected'
-    }
-
-    var operationHTML = `
-        <div class="operation-selectors">
-            <div class="operationType" id="operation-type-${operation.id}">
-                <select class="operation-type-input" type="text" id="operation-type-text-${operation.id}" name="operation-type-text" style="text-align: center; font-size: 0.9em !important; min-height: 2em; min-width: 3em; height: 100% !important;" onchange="updateOperation('${operation.id}')">
-                    <option value="lifting" ${liftingHTML}>💪</option>
-                    <option value="moving" ${movingHTML}>🏃‍♂️</option>
-                    <option value="timing" ${timingHTML}>⏱️</option>
-                </select>  
-            </div>
-            <div class="operationAction" id="operation-action-${operation.id}">
-                <input style="" class="operation-action-input" type="text" list="operation-action-text-list-${operation.id}" id="operation-action-text-${operation.id}" name="operation-action-text" placeholder="exercise" value="${actionHTML}" onkeyup="filterFunction('${operation.id}')" onfocus="showSelectDropdown('${operation.id}', true)">
+    return `
+        <div class="we-exercise-head">
+            <select class="we-type-select" id="operation-type-text-${operation.id}" title="Type" onchange="updateOperation('${operation.id}')">
+                <option value="lifting" ${liftingSel}>💪</option>
+                <option value="moving" ${movingSel}>🏃</option>
+                <option value="timing" ${timingSel}>⏱️</option>
+            </select>
+            <div class="we-action" id="operation-action-${operation.id}">
+                <input class="we-input we-action-input" type="text" autocomplete="off" id="operation-action-text-${operation.id}" name="operation-action-text" placeholder="Exercise name" value="${escapeHTML(actionName)}" onkeyup="filterFunction('${operation.id}')" onfocus="showSelectDropdown('${operation.id}', true)">
                 <div id="operation-action-text-list-${operation.id}" class="dropdown-actions-wrapper" style="display: none;">
                     ${processExerciseList(operation.id)}
                 </div>
             </div>
-            <div class="operationEquipment" id="operation-equipment-${operation.id}">
-                <select class="operation-equipment-input" type="text" id="operation-equipment-text-${operation.id}" name="operation-equipment-text" style="text-align: center; font-size: 0.9em !important; min-height: 2em; min-width: 3em;" onchange="updateOperation('${operation.id}')">
-                    <option value="" ${noneHTML}></option>
-                    <option value="barbells" ${barbellsHTML}>Barbells</option>
-                    <option value="dumbbells" ${dumbbellsHTML}>Dumbbells</option>
-                    <option value="bands" ${bandsHTML}>Bands</option>
-                    <option value="rope" ${ropeHTML}>Rope</option>
-                    <option value="bench" ${benchHTML}>Bench</option>
-                    <option value="treadmill" ${treadmillHTML}>Treadmill</option>
-                    <option value="machine" ${machineHTML}>Machine</option>
-                </select>  
-            </div>
-            
-            <div class="addActionWrapper clickable hover" id="addActionWrapper-${operation.id}" title="Add new exercise" onclick="addAction('${operation.id}');" style="">
-                <img src="/assets/plus.svg" class="button-icon" style="width: 100%; margin: 0.25em;">
-            </div>
-
-            <input type="hidden" id="operation-distance-unit-${operation.id}" value="${operation.distance_unit}">
-            <input type="hidden" id="operation-weight-unit-${operation.id}" value="${operation.weight_unit}">
+            <img src="/assets/plus.svg" class="btn_logo clickable wv-action-icon" id="addActionWrapper-${operation.id}" title="Create new exercise type" onclick="addAction('${operation.id}')">
+            <img src="/assets/trash-2.svg" class="btn_logo clickable wv-action-icon" title="Remove exercise" onclick="deleteOperation('${operation.id}')">
         </div>
+
+        <select class="we-equipment-select" id="operation-equipment-text-${operation.id}" name="operation-equipment-text" onchange="updateOperation('${operation.id}')">
+            ${equipHTML}
+        </select>
+
+        ${generateTagSelectorHTML(operation)}
+
+        <textarea class="we-note we-op-note" id="operation-description-${operation.id}" name="operation-description" rows="2" placeholder="Description" onchange="updateOperation('${operation.id}')">${operation.description ? escapeHTML(operation.description) : ''}</textarea>
+
+        <input type="hidden" id="operation-distance-unit-${operation.id}" value="${operation.distance_unit}">
+        <input type="hidden" id="operation-weight-unit-${operation.id}" value="${operation.weight_unit}">
 
         ${generateOperationSetsHTML(operation.operation_sets, operation)}
-
-        <div class="bottom-row">
-            <img src="/assets/trash-2.svg" style="height: 1em; width: 1em; padding: 0.5em 1em 1em 1em;" onclick="deleteOperation('${operation.id}')" class="btn_logo clickable">
-        </div>
     `;
-
-    return operationHTML;
 }
 
 function generateOperationSetsHTML(operationSets, operation) {
-    operationSetsHTML = ""; 
-
-    repsHTML = 'block'
-    distanceHTML = 'block'
-    timingHTML = 'block'
-    weightHTML = 'block'
-    averageHTML = 'block'
-    if(operation.type == 'lifting') {
-        distanceHTML = 'none'
-        timingHTML = 'none'
-        averageHTML = 'none'
-    } else if(operation.type == 'timing') {
-        repsHTML = 'none'
-        distanceHTML = 'none'
-        weightHTML = 'none'
-        averageHTML = 'none'
-    } else if(operation.type == 'moving') {
-        repsHTML = 'none'
-        weightHTML = 'none'
-    }
-
-    operationSetsHTML += `
-        <div class="operationSetWrapper" id="operation-set-titles" style="justify-content:space-between;">
-            <div class="operation-set-title">
-                sets
-            </div>
-            <div class="operation-set-title" style="display: ${weightHTML};">
-                ${operation.weight_unit}
-            </div>
-            <div class="operation-set-title" style="display: ${repsHTML};">
-                reps
-            </div>
-            <div class="operation-set-title" style="display: ${timingHTML};">
-                time
-            </div>
-            <div class="operation-set-title" style="display: ${distanceHTML};">
-                ${operation.distance_unit}
-            </div>
-            <div class="operation-set-title" style="display: ${averageHTML};">
-                ${operation.distance_unit}/t
-            </div>
-        </div>
-
-        <div class="operationSetWrapperSub" id="operation-set-wrapper-sub-${operation.id}">
-    `;
-
-    setCounter = 1;
+    // Columns are declared once; which show is driven purely by the type modifier
+    // class (we-type-*) in CSS, so the header and rows can never desync. Every set
+    // keeps all inputs in the DOM (hidden ones included) so updateOperationSet can
+    // read them regardless of type.
+    var rows = "";
+    var setCounter = 1;
     operationSets.forEach(operationSet => {
-        operationSetsHTML += `
-            <div class="operationSetWrapper" id="operation-set-${operationSet.id}">
-                ${generateOperationSetHTML(operationSet, operation, setCounter)}
-            </div>
-        `;
+        rows += `<div class="we-set-row" id="operation-set-${operationSet.id}">${generateOperationSetHTML(operationSet, operation, setCounter)}</div>`;
         setCounter += 1;
     });
 
-    operationSetsHTML += `
+    return `
+        <div class="we-sets we-type-${operation.type}">
+            <div class="we-set-head">
+                <span class="we-col we-col-set">Set</span>
+                <span class="we-col we-col-weight">${operation.weight_unit}</span>
+                <span class="we-col we-col-reps">Reps</span>
+                <span class="we-col we-col-time">Time</span>
+                <span class="we-col we-col-dist">${operation.distance_unit}</span>
+                <span class="we-col we-col-avg">${operation.distance_unit}/h</span>
+            </div>
+            <div class="we-set-rows" id="operation-set-wrapper-sub-${operation.id}">
+                ${rows}
+            </div>
         </div>
-        <div class="addOperationSetWrapper clickable hover" id="addOperationSetWrapper-${operation.id}" title="Add set" onclick="addOperationSet('${operation.id}');" style="margin: 0.5em 0;">
-            <img src="/assets/plus.svg" class="button-icon" style="height: 100%; margin: 0.25em;">
-        </div>
+        <button class="we-add-set clickable" id="addOperationSetWrapper-${operation.id}" onclick="addOperationSet('${operation.id}')">
+            <img src="/assets/plus.svg" alt=""><span>Add set</span>
+        </button>
     `;
-
-    return operationSetsHTML;
 }
 
 function generateOperationSetHTML(operationSet, operation, setCounter) {
-    repsHTML = 'block'
-    distanceHTML = 'block'
-    timingHTML = 'block'
-    weightHTML = 'block'
-    averageHTML = 'block'
-    if(operation.type == 'lifting') {
-        distanceHTML = 'none'
-        timingHTML = 'none'
-        averageHTML = 'none'
-    } else if(operation.type == 'timing') {
-        repsHTML = 'none'
-        distanceHTML = 'none'
-        weightHTML = 'none'
-        averageHTML = 'none'
-    } else if(operation.type == 'moving') {
-        repsHTML = 'none'
-        weightHTML = 'none'
-    }
-
-    var reps = ""
-    if(operationSet.repetitions) {
-        reps = operationSet.repetitions
-    }
-    var weight = ""
-    if(operationSet.weight) {
-        weight = operationSet.weight
-    }
-    var time = ""
-    if(operationSet.moving_time) {
-        time = secondsToDurationString(operationSet.moving_time)
-    }
-    var distance = ""
-    if(operationSet.distance != null) {
-        distance = operationSet.distance
-    }
-    var average = ""
-    if(operationSet.distance != null && operationSet.time != null) {
+    const reps = (operationSet.repetitions != null) ? operationSet.repetitions : "";
+    const weight = (operationSet.weight != null) ? operationSet.weight : "";
+    const time = operationSet.moving_time ? secondsToDurationString(operationSet.moving_time) : "";
+    const distance = (operationSet.distance != null) ? operationSet.distance : "";
+    var average = "–";
+    if (operationSet.distance != null && operationSet.time != null && operationSet.time > 0) {
         average = parseFloat(operationSet.distance / (operationSet.time / 3600)).toFixed(2);
     }
+    const onChange = `updateOperationSet('${operationSet.id}', '${setCounter}')`;
 
     return `
-        <div class="operation-set clickable" id="operation-set-counter-${operationSet.id}"  onclick="deleteOperationSet('${operationSet.id}')">
-            Set ${setCounter}
-        </div>
-        <div class="operation-set-input" id="operation-set-weight-${operationSet.id}" style="display: ${weightHTML};">
-            <input style="" min="0" class="operation-set-weight-input" type="number" id="operation-set-weight-input-${operationSet.id}" name="operation-set-weight-input" placeholder="${operation.weight_unit}" value="${weight}" onchange="updateOperationSet('${operationSet.id}', '${setCounter}')">
-        </div>
-        <div class="operation-set-input" id="operation-set-rep-${operationSet.id}" style="display: ${repsHTML};">
-            <input style="" min="0" class="operation-set-rep-input" type="number" id="operation-set-rep-input-${operationSet.id}" name="operation-set-rep-input" placeholder="reps" value="${reps}" onchange="updateOperationSet('${operationSet.id}', '${setCounter}')">
-        </div>
-        <div class="operation-set-input operation-set-input-wide" id="operation-set-time-${operationSet.id}" style="display: ${timingHTML};">
-            <input style="" class="operation-set-time-input" type="text" id="operation-set-time-input-${operationSet.id}" name="operation-set-time-input" pattern="[0-9:]{0,}" placeholder="hh:mm:ss" value="${time}" onchange="updateOperationSet('${operationSet.id}', '${setCounter}')">
-        </div>
-        <div class="operation-set-input" id="operation-set-distance-${operationSet.id}" style="display: ${distanceHTML};">
-            <input style="" min="0" class="operation-set-distance-input" type="number" id="operation-set-distance-input-${operationSet.id}" name="operation-set-distance-input" placeholder="${operation.distance_unit}" value="${distance}" onchange="updateOperationSet('${operationSet.id}', '${setCounter}')">
-        </div>
-        <div class="operation-set" id="operation-set-average-${operationSet.id}" style="display: ${averageHTML};">
-            ${average}
-        </div>
+        <span class="we-col we-col-set we-set-num clickable" id="operation-set-counter-${operationSet.id}" title="Delete set" onclick="deleteOperationSet('${operationSet.id}')">${setCounter}</span>
+        <span class="we-col we-col-weight"><input class="we-set-input" type="number" min="0" inputmode="decimal" id="operation-set-weight-input-${operationSet.id}" placeholder="–" value="${weight}" onchange="${onChange}"></span>
+        <span class="we-col we-col-reps"><input class="we-set-input" type="number" min="0" inputmode="numeric" id="operation-set-rep-input-${operationSet.id}" placeholder="–" value="${reps}" onchange="${onChange}"></span>
+        <span class="we-col we-col-time"><input class="we-set-input" type="text" pattern="[0-9:]{0,}" id="operation-set-time-input-${operationSet.id}" placeholder="0:00" value="${time}" onchange="${onChange}"></span>
+        <span class="we-col we-col-dist"><input class="we-set-input" type="number" min="0" inputmode="decimal" id="operation-set-distance-input-${operationSet.id}" placeholder="–" value="${distance}" onchange="${onChange}"></span>
+        <span class="we-col we-col-avg we-set-avg">${average}</span>
     `;
 }
 
@@ -1010,11 +1016,36 @@ function addOperation(exerciseID) {
 }
 
 function placeNewOperation(operation) {
-    document.getElementById('operationsWrapper-sub-' + operation.exercise).innerHTML += `
-        <div class="operationWrapper" id="operation-${operation.id}">
-            ${generateOperationHTML(operation, operation.exercise)}
-        </div>
-    `;
+    const exercise = exerciseCache[operation.exercise];
+    if (exercise) {
+        if (!exercise.operations) exercise.operations = [];
+        exercise.operations.push(operation);
+    }
+    rerenderExerciseEditor(operation.exercise);
+}
+
+// Re-render an exercise's editor from the cache (single source of truth) and
+// re-attach the back-to-summary button.
+function rerenderExerciseEditor(exerciseID) {
+    const exercise = exerciseCache[exerciseID];
+    if (!exercise) return;
+    document.getElementById('exercise-' + exerciseID).innerHTML = generateExerciseHTML(exercise, exercise._count, true);
+    injectBackButton(exerciseID);
+}
+
+// Remove an operation from whichever cached exercise holds it; returns that id.
+function removeOperationFromCache(operationID) {
+    for (const exID in exerciseCache) {
+        const ex = exerciseCache[exID];
+        if (ex && ex.operations) {
+            const idx = ex.operations.findIndex(o => o.id === operationID);
+            if (idx !== -1) {
+                ex.operations.splice(idx, 1);
+                return exID;
+            }
+        }
+    }
+    return null;
 }
 
 function addOperationSet(operationID) {
@@ -1053,15 +1084,9 @@ function addOperationSet(operationID) {
 }
 
 function placeNewOperationSet(operationSet, operationID, operation) {
-    element = document.getElementById('operation-set-wrapper-sub-' + operationID)
-    count = element.children.length
-    operationSetHTML = `
-        <div class="operationSetWrapper" id="operation-set-${operationSet.id}">
-            ${generateOperationSetHTML(operationSet, operation, count + 1)}
-        </div>
-    `;
-    element.insertAdjacentHTML("beforeend", operationSetHTML)
-    updateBackButtonVisibility(operationID);
+    // The response operation carries its full set list; reconcile + re-render the
+    // single operation card (keeps the cache and the new set row in sync).
+    placeOperation(operation);
 }
 
 function updateOperation(operationID) {
@@ -1074,12 +1099,20 @@ function updateOperation(operationID) {
     var distance_unit = document.getElementById('operation-distance-unit-' + operationID).value
     var equipment = document.getElementById('operation-equipment-text-' + operationID).value
 
+    var tagEls = document.querySelectorAll('#tag-selector-' + operationID + ' .tag-chip-selected');
+    var tags = Array.from(tagEls).map(e => e.getAttribute('data-tag'));
+
+    var descriptionEl = document.getElementById('operation-description-' + operationID);
+    var description = descriptionEl ? descriptionEl.value : "";
+
     var form_obj = {
         "type": type,
         "action": action,
         "weight_unit": weight_unit,
         "distance_unit": distance_unit,
         "equipment": equipment,
+        "tags": tags,
+        "description": description,
     };
 
     var form_data = JSON.stringify(form_obj);
@@ -1116,6 +1149,18 @@ function updateOperation(operationID) {
 function placeOperation(operation) {
     operationHTML = generateOperationHTML(operation)
     document.getElementById('operation-' + operation.id).innerHTML = operationHTML
+    syncOperationToCache(operation)
+}
+
+// Keep exerciseCache in step with edits so switching back to the summary view
+// (which re-renders from the cache) reflects updated tags/description/etc.
+function syncOperationToCache(operation) {
+    const exercise = exerciseCache[operation.exercise];
+    if (!exercise || !exercise.operations) return;
+    const idx = exercise.operations.findIndex(o => o.id === operation.id);
+    if (idx !== -1) {
+        exercise.operations[idx] = operation;
+    }
 }
 
 function updateOperationSet(operationSetID, setCount) {
@@ -1166,6 +1211,9 @@ function updateOperationSet(operationSetID, setCount) {
 function placeOperationSet(operationSet, operation, setCount) {
     operationSetHTML = generateOperationSetHTML(operationSet, operation, setCount)
     document.getElementById('operation-set-' + operationSet.id).innerHTML = operationSetHTML
+    if (operation) {
+        syncOperationToCache(operation)
+    }
 }
 
 function updateExercise(exerciseID, on, count, originalTimeString, fromEditor = false) {
@@ -1173,17 +1221,28 @@ function updateExercise(exerciseID, on, count, originalTimeString, fromEditor = 
         return;
     }
 
-    var note = document.getElementById('exercise-note-' + exerciseID).value
-    var time = document.getElementById('exercise-time-input-' + exerciseID).value
+    // The editor inputs only exist in edit mode. When called from the summary
+    // (e.g. the delete button), fall back to the cached exercise so we don't read
+    // null elements or accidentally blank the note/time/duration.
+    const cached = exerciseCache[exerciseID] || {};
+    const noteEl = document.getElementById('exercise-note-' + exerciseID);
+    const timeEl = document.getElementById('exercise-time-input-' + exerciseID);
+    const timeOfDayEl = document.getElementById('exercise-timeofday-input-' + exerciseID);
+
+    var note = noteEl ? noteEl.value : (cached.note || "")
+    var time = timeEl ? timeEl.value : (cached.duration ? secondsToDurationString(cached.duration) : "")
     var newIso = ""
 
     try {
-        var timeOfDay = document.getElementById('exercise-timeofday-input-' + exerciseID).value
-
-        const localDate = new Date(originalTimeString);
-        const [hours, minutes] = timeOfDay.split(':').map(Number);
-        localDate.setHours(hours, minutes, 0, 0);
-        newIso = toLocalISOString(localDate);
+        if (timeOfDayEl) {
+            const localDate = new Date(originalTimeString);
+            const [hours, minutes] = timeOfDayEl.value.split(':').map(Number);
+            localDate.setHours(hours, minutes, 0, 0);
+            newIso = toLocalISOString(localDate);
+        } else {
+            // No editor inputs — keep the existing time as-is.
+            newIso = originalTimeString ? toLocalISOString(new Date(originalTimeString)) : "";
+        }
     } catch(e) {
         console.log("failed to parse original time ISO. error: " + e)
         return
@@ -1231,20 +1290,15 @@ function updateExercise(exerciseID, on, count, originalTimeString, fromEditor = 
 }
 
 function placeExercise(exercise, count, forceFullEditor = false) {
+    // Keep the cache authoritative (the update endpoint returns the full exercise
+    // tree) so switching back to the summary reflects session-level edits too.
+    if (exercise && exercise.id) {
+        exercise._count = exerciseCache[exercise.id] ? exerciseCache[exercise.id]._count : count;
+        exerciseCache[exercise.id] = exercise;
+    }
     document.getElementById('exercise-' + exercise.id).innerHTML = generateExerciseHTML(exercise, count, forceFullEditor)
-    if (forceFullEditor && isSimpleActivity(exercise)) {
-        // Re-inject the "back to summary" button just like switchToFullEditor does
-        const subWrapper = document.getElementById('exercise-sub-' + exercise.id);
-        if (subWrapper) {
-            const backBtn = document.createElement('button');
-            backBtn.textContent = '← Back to summary';
-            backBtn.className = 'back-to-summary-btn';
-            backBtn.style.cssText = 'margin-top: 1em; font-size: 0.75em; opacity: 0.6;';
-            backBtn.onclick = function() {
-                document.getElementById('exercise-' + exercise.id).innerHTML = generateSimpleActivityHTML(exercise, exercise._count);
-            };
-            subWrapper.insertBefore(backBtn, subWrapper.firstChild);
-        }
+    if (forceFullEditor) {
+        injectBackButton(exercise.id);
     }
 }
 
@@ -1342,12 +1396,18 @@ function addExercise(exerciseDayID) {
 function placeNewExercise(exercise) {
     element = document.getElementById('exercisesWrapper')
     count = element.children.length
+    // Cache it so the summary⇄editor toggle works without a page refresh, and open
+    // a brand-new (empty) session straight in the editor — there's nothing to
+    // summarise yet, and it's where the user needs to be to add exercises.
+    exercise._count = count + 1;
+    exerciseCache[exercise.id] = exercise;
     var exerciseHTML = `
         <div class="exerciseWrapper" id="exercise-${exercise.id}">
-            ${generateExerciseHTML(exercise, count + 1)}
+            ${generateExerciseHTML(exercise, count + 1, true)}
         </div>
     `;
     element.insertAdjacentHTML("beforeend", exerciseHTML)
+    injectBackButton(exercise.id);
 }
 
 function deleteExercise() {
@@ -1374,7 +1434,12 @@ function deleteOperation(operationID) {
             if(result.error) {
                 error(result.error);
             } else {
-                document.getElementById('operation-' + operationID).remove();
+                const exID = removeOperationFromCache(operationID);
+                if (exID) {
+                    rerenderExerciseEditor(exID);
+                } else {
+                    document.getElementById('operation-' + operationID).remove();
+                }
             }
 
         }
@@ -1421,40 +1486,8 @@ function deleteOperationSet(operationSetID) {
 }
 
 function removeOperationSet(operation) {
-    document.getElementById('operation-' + operation.id).innerHTML = generateOperationHTML(operation)
-    // operation.id is the operation ID; find its set wrapper to recount
-    updateBackButtonVisibility(operation.id);
-}
-
-// Show/hide the "← Back to summary" button based on whether the exercise
-// still qualifies as a simple activity (1 operation, 1 set, type=moving).
-function updateBackButtonVisibility(operationID) {
-    const setWrapper = document.getElementById('operation-set-wrapper-sub-' + operationID);
-    if (!setWrapper) return;
-
-    // Walk up to find the exercise wrapper: operation-set-wrapper-sub-X is inside
-    // operationWrapper > operationsWrapperSub > operationsWrapper > exerciseSubWrapper
-    const exerciseSubWrapper = setWrapper.closest('.exerciseSubWrapper');
-    if (!exerciseSubWrapper) return;
-
-    const exerciseID = exerciseSubWrapper.id.replace('exercise-sub-', '');
-    const exercise = exerciseCache[exerciseID];
-    if (!exercise) return;
-
-    const backBtn = exerciseSubWrapper.querySelector('.back-to-summary-btn');
-    if (!backBtn) return;
-
-    const setCount = setWrapper.children.length;
-    const operationCount = document.getElementById('operationsWrapper-sub-' + exerciseID)
-        ? document.getElementById('operationsWrapper-sub-' + exerciseID).children.length
-        : 1;
-
-    // Simple = 1 operation, 1 set, type moving (mirrors isSimpleActivity logic)
-    const typeEl = document.getElementById('operation-type-text-' + operationID);
-    const currentType = typeEl ? typeEl.value : 'moving';
-    const isSimple = (operationCount === 1 && setCount === 1 && currentType === 'moving');
-
-    backBtn.style.display = isSimple ? '' : 'none';
+    // Reconcile the cache and re-render the operation card (set numbers re-flow).
+    placeOperation(operation);
 }
 
 function selectActionForOperation(operationID, actionName) {
@@ -1577,17 +1610,13 @@ function createAction(operationID) {
     return false;
 }
 
-window.addEventListener('click', function(e){   
-    if (
-        e.target.classList.contains('dropdown-action') ||
-        e.target.classList.contains('dropdown-actions-wrapper') ||
-        e.target.classList.contains('operation-action-input') ||
-        e.target.classList.contains('operationAction')
-    ){
-        console.log('Inside div.')
-    } else{
-        closeAllLists();
+window.addEventListener('click', function(e){
+    // A click inside an exercise-name field or its dropdown should leave the list
+    // open; anything else closes (and persists) any open action dropdowns.
+    if (e.target.closest('.we-action, .operationAction, .dropdown-actions-wrapper')) {
+        return;
     }
+    closeAllLists();
 });
 
 function closeAllLists() {

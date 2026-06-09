@@ -3,6 +3,7 @@ package controllers
 import (
 	"errors"
 	"net/http"
+	"slices"
 	"sort"
 	"strings"
 	"time"
@@ -68,6 +69,8 @@ func ConvertOperationToOperationObject(operation models.Operation) (operationObj
 	operationObject.DistanceUnit = operation.DistanceUnit
 	operationObject.Duration = operation.Duration
 	operationObject.Note = operation.Note
+	operationObject.Description = operation.Description
+	operationObject.Tags = []string(operation.Tags)
 
 	return
 }
@@ -403,6 +406,9 @@ func APICreateOperationSetForUser(context *gin.Context) {
 		return
 	}
 
+	// ConvertOperationToOperationObject already loads every set from the DB,
+	// including the one just created — so it must NOT be appended again (doing so
+	// returns the new set twice).
 	operationObject, err := ConvertOperationToOperationObject(operation)
 	if err != nil {
 		logger.Log.Info("Failed to get convert operation to operation object. Error: " + err.Error())
@@ -410,8 +416,6 @@ func APICreateOperationSetForUser(context *gin.Context) {
 		context.Abort()
 		return
 	}
-
-	operationObject.OperationSets = append(operationObject.OperationSets, operationSetObject)
 
 	context.JSON(http.StatusCreated, gin.H{"message": "Operation set created.", "operation_set": operationSetObject, "operation": operationObject})
 }
@@ -513,6 +517,37 @@ func APIUpdateOperation(context *gin.Context) {
 		context.JSON(http.StatusBadRequest, gin.H{"error": "Invalid operation weight unit."})
 		context.Abort()
 		return
+	}
+
+	// Tags are replaced only when explicitly provided; validate against the
+	// controlled vocabulary and de-duplicate.
+	if operationUpdateRequest.Tags != nil {
+		validatedTags := []string{}
+		for _, tag := range *operationUpdateRequest.Tags {
+			trimmedTag := strings.TrimSpace(tag)
+			if trimmedTag == "" {
+				continue
+			}
+			if !models.IsValidTag(trimmedTag) {
+				context.JSON(http.StatusBadRequest, gin.H{"error": "Invalid tag: " + trimmedTag})
+				context.Abort()
+				return
+			}
+			if !slices.Contains(validatedTags, trimmedTag) {
+				validatedTags = append(validatedTags, trimmedTag)
+			}
+		}
+		operation.Tags = models.TagList(validatedTags)
+	}
+
+	// Description is replaced only when explicitly provided; an empty value clears it.
+	if operationUpdateRequest.Description != nil {
+		trimmedDescription := strings.TrimSpace(*operationUpdateRequest.Description)
+		if trimmedDescription == "" {
+			operation.Description = nil
+		} else {
+			operation.Description = &trimmedDescription
+		}
 	}
 
 	operation, err = database.UpdateOperationInDB(operation)
@@ -1071,7 +1106,7 @@ func APISyncStravaOperationSet(context *gin.Context) {
 		return
 	}
 
-	err = StravaSyncActivityForUser(activity, user, token)
+	err = StravaSyncActivityForUser(activity, user, token, true)
 	if err != nil {
 		logger.Log.Info("Failed to update exercise with Strava data. Error: " + err.Error())
 		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update exercise with Strava data."})

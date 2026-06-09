@@ -2050,7 +2050,6 @@ input[type=checkbox]
 .operationWrapper {
   width: 20rem;
   min-height: 20rem;
-  max-height: 30rem;
   background-color: var(--white);
   border-radius: 10%;
   margin: 0.5rem;
@@ -2061,7 +2060,7 @@ input[type=checkbox]
   justify-content: start;
   align-items: center;
   box-sizing: inherit;
-  overflow: auto;
+  padding-bottom: 1rem;
 }
 
 .addOperationWrapper{
@@ -3000,85 +2999,6 @@ label {
   margin: 0.25rem;
 }
 
-.simple-activity-stats {
-    display: flex;
-    flex-direction: row;
-    flex-wrap: wrap;
-    align-content: center;
-    justify-content: center;
-    align-items: center;
-    box-sizing: inherit;
-    gap: 2em;
-    justify-content: center;
-    margin: 1rem;
-}
-
-.simple-stat {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-}
-
-.simple-stat-value {
-    font-size: 1.4em;
-    font-weight: bold;
-}
-
-.simple-stat-label {
-    font-size: 0.75em;
-    opacity: 0.6;
-    margin-top: 0.25em;
-}
-
-.simple-activity-map {
-  margin: 0.5rem 1rem;
-  max-width: 40rem;
-  max-height: 20rem;
-}
-
-.simple-activity-hr-chart {
-  margin: 0.5rem 1rem;
-  max-width: 40rem;
-  max-height: 20rem;
-}
-
-.simple-activity-hr-wrapper {
-  display: flex;
-  flex-direction: row;
-  flex-wrap: wrap;
-  align-content: center;
-  justify-content: center;
-  align-items: center;
-  box-sizing: inherit;
-  width: 100%;
-  width: -webkit-fill-available;
-  width: -moz-available;
-}
-
-.simple-activity-stats-wrapper {
-  display: flex;
-  flex-direction: row;
-  flex-wrap: wrap;
-  align-content: center;
-  justify-content: center;
-  align-items: center;
-  box-sizing: inherit;
-  width: 100%;
-  width: -webkit-fill-available;
-  width: -moz-available;
-}
-
-.simple-activity-title {
-  text-align: center;
-  display: flex;
-  flex-direction: row;
-  flex-wrap: wrap;
-  align-content: center;
-  justify-content: center;
-  align-items: center;
-  box-sizing: inherit;
-}
-
 /* Skeleton loader */
 /* ── User profile row (photo + stats side by side on desktop) ── */
 .user-profile-row {
@@ -3227,3 +3147,31 @@ label {
 .user-stat-tab { flex: 1; background: rgba(255,255,255,0.06); border: none; color: inherit; border-radius: 0.5em; padding: 0.3em 0.6em; font-size: 0.75em; cursor: pointer; opacity: 0.55; transition: opacity 0.15s; }
 .user-stat-tab:hover { opacity: 0.85; }
 .user-stat-tab-active { background: rgba(255,255,255,0.15); opacity: 1; font-weight: bold; }
+/* ── Activity tags ── */
+/* Solid colours so chips are legible on both the mediumblue summary card and the
+   white operation editor card. */
+.tag-list { display: flex; flex-wrap: wrap; gap: 0.4em; justify-content: center; margin: 0.5em 0; }
+.tag-selector { display: flex; flex-wrap: wrap; gap: 0.4em; justify-content: center; margin: 1em 0; }
+.tag-chip {
+    display: inline-block;
+    padding: 0.2em 0.7em;
+    border-radius: 1em;
+    font-size: 0.75em;
+    background: var(--lightblue);
+    color: var(--white);
+    border: 1px solid transparent;
+    user-select: none;
+    transition: background 0.15s, opacity 0.15s;
+}
+/* Unselected chips in the editor read as "off". */
+.tag-selector .tag-chip { opacity: 0.55; }
+.tag-selector .tag-chip:hover { opacity: 0.85; }
+.tag-chip-selected { background: var(--lightgreen); opacity: 1 !important; font-weight: bold; }
+.tag-chip-readonly { cursor: default; }
+
+/* Per-operation description in the editor. */
+.operation-description-area {
+    width: 90%;
+    margin: 0.5em auto;
+    resize: vertical;
+}

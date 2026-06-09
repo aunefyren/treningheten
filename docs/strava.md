@@ -166,11 +166,14 @@ safe.
   sport types fall back to the generic **`Workout`** action. The operation's `Type`
   comes from the matched action.
 - The **Operation** (found/created by Strava id + user + exercise) gets `ActionID`,
-  `Duration = ElapsedTime`, `Note = activity.Name`.
+  `Duration = ElapsedTime`, `Note = activity.Name`, the derived `Tags`
+  (see [tags](#activity-tags)), and — when detail was fetched this run —
+  `Description`.
 - The **OperationSet** (found/created by Strava id + user + operation) is where the
   Strava data lands: `StravaID`, `MovingTime`, `Time = ElapsedTime`,
-  `StravaDataRetrievedAt = now`, the sensor `StravaStreams`, and
-  `Distance = activity.Distance / 1000` (Strava reports metres; stored as km).
+  `StravaDataRetrievedAt = now`, `StravaDetailRetrievedAt` (when detail was fetched),
+  the sensor `StravaStreams`, and `Distance = activity.Distance / 1000` (Strava
+  reports metres; stored as km).
 
 **Session aggregation**
 - `SyncStravaOperationsToExerciseSession` then recomputes the parent exercise's
@@ -182,6 +185,57 @@ safe.
 > into `time.Duration(…)` — i.e. the stored value is a seconds count, not real
 > nanoseconds. Always read these with `int64(*d)`, never `.Seconds()`. See
 > [data-conventions.md](data-conventions.md#durations-are-stored-as-seconds-not-nanoseconds).
+
+### Activity tags
+
+Treningheten owns an 8-value tag vocabulary (`models/tag.go`): **Race, Long Run,
+Workout, Commute, For a Cause, Recovery, With Pet, With Kid**. Tags live on the
+`Operation` as a JSON `TagList` column and are surfaced per-activity in the UI (not
+folded into the aggregated session note).
+
+Strava's **public** API only exposes a subset of its in-app tags, so only the first
+four are auto-derived (`controllers/strava.go` `stravaDerivedTags`):
+
+| Tag | Strava source |
+|---|---|
+| Commute | `commute == true` |
+| Race | `workout_type` 1 (run) / 11 (ride) |
+| Long Run | `workout_type` 2 |
+| Workout | `workout_type` 3 (run) / 12 (ride) |
+
+Both `commute` and `workout_type` ride along in the **list** payload, so deriving
+these tags costs **no extra API call**. The other four tags (For a Cause, Recovery,
+With Pet, With Kid) exist only in Strava's *internal* app — the public v3 API returns
+no field for them — so they can only ever be set **manually** in Treningheten
+(operation edit view → tag chips → `PUT /api/auth/operations/:id`).
+
+**Merge on re-sync** (`mergeStravaTags`): each sync recomputes the four
+Strava-managed tags from the activity and **preserves** any user-managed tags already
+present. Strava is the source of truth for its four, so if a user removes e.g.
+"Commute" but Strava still reports it, the next sync re-adds it. User-only tags are
+never touched by sync.
+
+The manual-edit path (`APIUpdateOperation`) validates incoming tags against the
+vocabulary, de-duplicates, and — because `OperationUpdateRequest.Tags` is a pointer —
+leaves stored tags **untouched** when the field is omitted (so ordinary action/unit
+edits don't wipe tags).
+
+### Description
+
+`activity.description` is **only** returned by the detailed endpoint
+(`GET /activities/{id}`), not the list sync. To avoid an extra rate-limited call on
+every hourly run, `StravaSyncActivityForUser` takes a `hasDetail` flag:
+
+- **Bulk refresh** and **single-set sync** already fetch the detailed activity, so
+  they pass `hasDetail = true` and use its description directly.
+- The **weekly list sync** passes `hasDetail = false` and fetches detail **lazily**,
+  guarded by `OperationSet.StravaDetailRetrievedAt`: only when it is missing or older
+  than `stravaDetailRefreshInterval` (7 days). A list-only sync that doesn't fetch
+  detail never overwrites an existing description.
+
+The description is stored on `Operation.Description` (parallel to `Note`) and shown
+per-activity in the summary card — it is deliberately **not** rolled into the
+`Exercise.Note` aggregation (which joins operation notes with `" + "`).
 
 ### Sensor streams
 
@@ -208,9 +262,12 @@ Beyond connect/sync, a few endpoints let users curate imported activities:
 ## Key code locations
 
 - `controllers/strava.go` — auth/token exchange, retrieval helpers, rate limiter, sync
-  orchestration, conversion.
-- `models/strava.go` — Strava API response shapes, `StravaActivityStreams`,
-  `StravaStreamsJSON`.
+  orchestration, conversion, tag derivation/merge (`stravaDerivedTags`,
+  `mergeStravaTags`), the description detail-fetch guard.
+- `models/strava.go` — Strava API response shapes (incl. `WorkoutType`,
+  `Description`), `StravaActivityStreams`, `StravaStreamsJSON`.
+- `models/tag.go` — the 8-tag vocabulary, the Strava-managed subset, and the
+  `TagList` JSON column type.
 - `models/user.go` — `StravaCode`, `StravaID`, `StravaWalks`, `StravaPublic`.
 - `models/config.go` / `files/config.go` — the `Strava*` config fields.
 - `database/user.go` (`GetStravaUsers`), `database/operation.go`

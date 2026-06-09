@@ -37,6 +37,52 @@ const (
 	stravaRateLimit  = 90
 )
 
+// The detailed-activity endpoint is the only source of an activity's description,
+// so the hourly weekly sync only re-fetches it when missing or older than this.
+const stravaDetailRefreshInterval = 7 * 24 * time.Hour
+
+// stravaDerivedTags maps the Strava attributes Treningheten can read (commute +
+// workout_type) onto tag slugs. Strava's public API exposes nothing for the other
+// tags (for-a-cause, recovery, with-pet, with-kid), so those stay user-managed.
+func stravaDerivedTags(activity models.StravaGetActivitiesRequestReply) []string {
+	tags := []string{}
+	if activity.Commute {
+		tags = append(tags, models.TagCommute)
+	}
+	if activity.WorkoutType != nil {
+		switch *activity.WorkoutType {
+		case 1, 11: // race (run / ride)
+			tags = append(tags, models.TagRace)
+		case 2: // long run (run)
+			tags = append(tags, models.TagLongRun)
+		case 3, 12: // workout (run / ride)
+			tags = append(tags, models.TagWorkout)
+		}
+	}
+	return tags
+}
+
+// mergeStravaTags refreshes the Strava-managed tags from a sync while preserving
+// any user-managed tags already on the operation. Strava is the source of truth
+// for its subset, so a user removing e.g. "commute" sees it re-added on the next
+// sync if Strava still reports it.
+func mergeStravaTags(existing []string, derived []string) models.TagList {
+	merged := []string{}
+	// Keep still-valid user-managed tags.
+	for _, tag := range existing {
+		if !models.IsStravaManagedTag(tag) && models.IsValidTag(tag) {
+			merged = append(merged, tag)
+		}
+	}
+	// Add the freshly derived Strava-managed tags, avoiding duplicates.
+	for _, tag := range derived {
+		if !slices.Contains(merged, tag) {
+			merged = append(merged, tag)
+		}
+	}
+	return models.TagList(merged)
+}
+
 var (
 	stravaRateMu    sync.Mutex
 	stravaRateTimes []time.Time
@@ -295,7 +341,7 @@ func StravaSyncWeekForUser(user models.User, pointInTime time.Time) (err error) 
 	go GiveUserAnAchievement(user.ID, uuid.MustParse("fb4f6c1f-dfad-4df7-8007-4cfd6f351b17"), time.Now(), 5)
 
 	for _, activity := range activities {
-		err = StravaSyncActivityForUser(activity, user, token)
+		err = StravaSyncActivityForUser(activity, user, token, false)
 		if err != nil {
 			logger.Log.Errorf("failed to sync activity '%d' for user '%s %s'. error: %s", activity.ID, user.FirstName, user.LastName, err.Error())
 		}
@@ -402,7 +448,11 @@ func decryptStravaRefreshToken(stored string) string {
 	return plaintext
 }
 
-func StravaSyncActivityForUser(activity models.StravaGetActivitiesRequestReply, user models.User, token string) (err error) {
+// StravaSyncActivityForUser imports one Strava activity. hasDetail tells whether
+// activity already came from the detailed endpoint (so its Description is
+// authoritative); when false, the activity is a list-sync summary and the detailed
+// activity is fetched lazily behind the StravaDetailRetrievedAt staleness guard.
+func StravaSyncActivityForUser(activity models.StravaGetActivitiesRequestReply, user models.User, token string, hasDetail bool) (err error) {
 	err = nil
 	now := time.Now()
 
@@ -434,6 +484,30 @@ func StravaSyncActivityForUser(activity models.StravaGetActivitiesRequestReply, 
 		logger.Log.Warn("Failed to get activity streams. Error: " + err.Error())
 	} else {
 		stravaStreams = &stravaActivityStreams
+	}
+
+	// The description is only available from the detailed-activity endpoint, which
+	// the list-sync payload does not include. When the caller already has detail,
+	// use it directly; otherwise fetch it lazily, but only when missing or stale so
+	// the hourly sync doesn't make an extra rate-limited call every run.
+	detailRetrieved := hasDetail
+	if !hasDetail {
+		existingSet, setErr := database.GetOperationSetByStravaIDAndUserID(user.ID, int(activity.ID))
+		if setErr != nil {
+			logger.Log.Warn("Failed to look up operation set for detail guard. Error: " + setErr.Error())
+		}
+		needDetail := existingSet == nil ||
+			existingSet.StravaDetailRetrievedAt == nil ||
+			time.Since(*existingSet.StravaDetailRetrievedAt) > stravaDetailRefreshInterval
+		if needDetail {
+			detailedActivity, detailErr := StravaGetActivity(token, strconv.FormatInt(activity.ID, 10))
+			if detailErr != nil {
+				logger.Log.Warn("Failed to fetch detailed activity for description. Error: " + detailErr.Error())
+			} else {
+				activity.Description = detailedActivity.Description
+				detailRetrieved = true
+			}
+		}
 	}
 
 	exercise, err := database.GetExerciseForUserWithStravaID(user.ID, strconv.Itoa(int(activity.ID)))
@@ -487,8 +561,8 @@ func StravaSyncActivityForUser(activity models.StravaGetActivitiesRequestReply, 
 	exercise.IsOn = true
 	exercise.Time = &activity.StartDate
 
-	logger.Log.Tracef("Strava activity start time %s for Strava ID %s", activity.StartDate, activity.ID)
-	logger.Log.Tracef("Strava activity local start time %s for Strava ID %s", activity.StartDateLocal, activity.ID)
+	logger.Log.Tracef("Strava activity start time %s for Strava ID %d", activity.StartDate, activity.ID)
+	logger.Log.Tracef("Strava activity local start time %s for Strava ID %d", activity.StartDateLocal, activity.ID)
 
 	finalExercise, err := database.UpdateExerciseInDB(*exercise)
 	if err != nil {
@@ -498,7 +572,7 @@ func StravaSyncActivityForUser(activity models.StravaGetActivitiesRequestReply, 
 
 	logger.Log.Trace("Updated exercise.")
 
-	operation, err := StravaSyncOperationForActivity(activity, user, finalExercise, stravaStreams)
+	operation, err := StravaSyncOperationForActivity(activity, user, finalExercise, stravaStreams, detailRetrieved)
 	if err != nil {
 		logger.Log.Error("Failed to sync operation. Error: " + err.Error())
 		logger.Log.Error("Sport type was: " + activity.SportType)
@@ -511,7 +585,7 @@ func StravaSyncActivityForUser(activity models.StravaGetActivitiesRequestReply, 
 	return nil
 }
 
-func StravaSyncOperationForActivity(activity models.StravaGetActivitiesRequestReply, user models.User, exercise models.Exercise, streams *models.StravaActivityStreams) (finalOperation *models.Operation, err error) {
+func StravaSyncOperationForActivity(activity models.StravaGetActivitiesRequestReply, user models.User, exercise models.Exercise, streams *models.StravaActivityStreams, detailRetrieved bool) (finalOperation *models.Operation, err error) {
 	err = nil
 	finalOperation = nil
 
@@ -549,6 +623,19 @@ func StravaSyncOperationForActivity(activity models.StravaGetActivitiesRequestRe
 	operation.Duration = &durationTime
 	operation.Note = &activity.Name
 
+	// Refresh the Strava-derived tags while preserving user-managed ones.
+	operation.Tags = mergeStravaTags(operation.Tags, stravaDerivedTags(activity))
+
+	// Only overwrite the description when we actually fetched detail this run; a
+	// list-only sync carries no description and must not blank an existing one.
+	if detailRetrieved {
+		if activity.Description != nil && strings.TrimSpace(*activity.Description) != "" {
+			operation.Description = activity.Description
+		} else {
+			operation.Description = nil
+		}
+	}
+
 	newOperation, err := database.UpdateOperationInDB(operation)
 	if err != nil {
 		return finalOperation, err
@@ -581,6 +668,11 @@ func StravaSyncOperationForActivity(activity models.StravaGetActivitiesRequestRe
 
 	now := time.Now()
 	operationSet.StravaDataRetrievedAt = &now
+
+	// Record when detail (description) was last fetched so the guard can throttle it.
+	if detailRetrieved {
+		operationSet.StravaDetailRetrievedAt = &now
+	}
 
 	if streams != nil {
 		operationSet.StravaStreams = &models.StravaStreamsJSON{StravaActivityStreams: *streams}
@@ -829,7 +921,7 @@ func SyncStravaActivitiesForUsers(usersToSync []models.User, stravaIDs []string)
 						continue
 					}
 
-					err = StravaSyncActivityForUser(stravaActivity, user, stravaToken)
+					err = StravaSyncActivityForUser(stravaActivity, user, stravaToken, true)
 					if err != nil {
 						logger.Log.Info("failed to update Strava activity. error: " + err.Error())
 						continue
