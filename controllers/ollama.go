@@ -79,9 +79,9 @@ type ollamaSeasonPayload struct {
 	WeeklyGoalMet            bool   `json:"weekly_goal_met"`
 	WorkoutsRemaining        int    `json:"workouts_remaining_to_meet_goal"`
 	CurrentStreakWeeks       int    `json:"current_streak_weeks"`
-	Competing                bool   `json:"competing"`
-	WheelTicketsIfYouHitGoal int    `json:"wheel_tickets_if_you_hit_goal,omitempty"`
-	SickleaveUsedThisWeek    bool   `json:"sickleave_used_this_week"`
+	Competing                 bool `json:"competing"`
+	PrizeEntriesIfYouMeetGoal int  `json:"prize_entries_to_win_if_a_rival_fails,omitempty"`
+	SickleaveUsedThisWeek     bool `json:"sickleave_used_this_week"`
 	SickleaveDaysLeft        int    `json:"sickleave_days_left"`
 }
 
@@ -271,10 +271,10 @@ func buildSeasonPayloads(userID uuid.UUID, seasonObjects []models.SeasonObject, 
 			SickleaveDaysLeft:     sickleaveLeft,
 		}
 
-		// Wheel tickets only matter while competing: hitting the goal earns
-		// streak+1 entries to win when a rival fails.
+		// Meeting the goal while competing earns streak+1 entries on the wheel.
+		// These only pay off if a rival fails and has to spin.
 		if result.Competing {
-			seasonPayload.WheelTicketsIfYouHitGoal = result.CurrentStreak + 1
+			seasonPayload.PrizeEntriesIfYouMeetGoal = result.CurrentStreak + 1
 		}
 
 		seasonPayloads = append(seasonPayloads, seasonPayload)
@@ -326,10 +326,11 @@ READING THE DATA:
 - "seasons" lists the competitions the user is in right now. If "in_any_season" is false, the user is in no season: write a purely personal message and do not mention seasons, goals, season streaks, or the wheel.
 - Each season is independent with its own goal and streak, all measured against the same shared workout count. When there is more than one season, address them separately by name.
 
-PER-SEASON RULES:
-- "weekly_goal_met" says whether this week's goal is already reached; "workouts_remaining_to_meet_goal" is how many more are needed.
-- If "competing" is true and the goal is NOT met by Sunday, the user must spin the wheel and a rival who succeeded wins the prize. Meeting the goal keeps the user safe; hitting the goal is NOT what causes anyone to spin.
-- A higher "current_streak_weeks" grants more "wheel_tickets_if_you_hit_goal" — entries that let the user win the prize when a rival fails.
+PER-SEASON RULES (read carefully — the wheel is easy to get backwards):
+- "weekly_goal_met" says whether this week's goal is already reached; "workouts_remaining_to_meet_goal" is how many more workouts are needed.
+- The wheel only applies when "competing" is true. The user spins the wheel ONLY as a penalty for FAILING to meet their goal. Meeting the goal NEVER makes the user spin — do not tell the user to spin when they hit their goal.
+- When the user meets their goal, they instead receive "prize_entries_to_win_if_a_rival_fails" entries on the wheel. These pay off only if a DIFFERENT competitor fails their own goal and is forced to spin; that spin might land on the user and win them the prize. It is conditional and not guaranteed — it depends on someone else failing.
+- A higher "current_streak_weeks" means more entries and better odds of winning the prize when a rival fails.
 - If "competing" is false, the user never spins and is simply participating.
 
 OUTPUT: Write a short front-page greeting, 2 sentences normally, 4 maximum. Reference today's weekday and the user's progress this week, plus season standing when relevant. Friendly tone, light humor welcome. Plain text only: no markdown, no headings, no bullet points, no emojis. Reply in English.`,

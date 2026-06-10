@@ -24,8 +24,10 @@ Mechanics (confirmed by user):
   - So tickets are earned by HITTING the goal, not missing it. A longer streak
     gives YOU more tickets, so when a rival fails and spins you are more likely to
     win the prize. Missing means you spin and hand a prize to a successful rival.
-  - Flat-payload field name (locked): `wheel_tickets_if_you_hit_goal` =
-    current_streak + 1, emitted only when competing.
+  - Flat-payload field name (locked): `prize_entries_to_win_if_a_rival_fails` =
+    current_streak + 1, emitted only when competing. (Earlier name
+    `wheel_tickets_if_you_hit_goal` made the model think hitting the goal = you
+    spin; renamed + prompt now states spinning is ONLY a penalty for failing.)
 
 **Why:** This is the core framing for the Ollama front-page feature
 ([[ollama-frontpage-flat-payload]] context). The flat payload must compute

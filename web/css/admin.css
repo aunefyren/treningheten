@@ -1,0 +1,91 @@
+/* Admin page styles. Kept separate from main.css as we migrate away from the
+   global stylesheet. */
+
+/* Server info card */
+
+.server-info {
+  text-align: left;
+}
+
+#server-info-title {
+  text-align: center;
+  margin-bottom: 0.75rem;
+}
+
+.server-info-loading {
+  text-align: center;
+  color: var(--mediumblue);
+}
+
+.info-sections {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+  width: 100%;
+}
+
+.info-section {
+  border: 1px solid var(--grey);
+  border-radius: 0.5rem;
+  padding: 0.6rem 0.75rem;
+  background-color: var(--eggshell);
+}
+
+.info-section-head {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 0.4rem;
+  font-weight: bold;
+  color: var(--darkblue);
+}
+
+.info-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 1rem;
+  padding: 0.15rem 0;
+  font-size: 0.9rem;
+}
+
+.info-row + .info-row {
+  border-top: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+.info-key {
+  color: var(--mediumblue);
+  white-space: nowrap;
+}
+
+.info-value {
+  text-align: right;
+  word-break: break-word;
+}
+
+/* Badges */
+
+.info-badge {
+  display: inline-block;
+  padding: 0.12rem 0.55rem;
+  border-radius: 999px;
+  font-size: 0.68rem;
+  font-weight: bold;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--white);
+  line-height: 1.4;
+}
+
+.info-badge--on {
+  background-color: var(--lightgreen);
+}
+
+.info-badge--off {
+  background-color: var(--lightblue);
+}
+
+.info-badge--neutral {
+  background-color: var(--mediumblue);
+}

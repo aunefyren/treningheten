@@ -20,9 +20,8 @@ function load_page(result) {
                     <div class="server-info-module" id="server-info-module">
 
                         <div class="server-info" id="server-info">
-                            <h3 id="server-info-title">Server info:</h3>
-                            <p id="server-treningheten-version-title" style="">Version: <a id="server-treningheten-version">...</a></p>
-                            <p id="server-timezone-title" style="">Timezone: <a id="server-timezone">...</a></p>
+                            <h3 id="server-info-title">Server info</h3>
+                            <p class="server-info-loading">Loading...</p>
                         </div>
 
                     </div>
@@ -194,9 +193,88 @@ function get_server_info() {
 
 }
 
+function server_info_badge(on, onText, offText) {
+    onText = onText || "Enabled";
+    offText = offText || "Disabled";
+    return on
+        ? `<span class="info-badge info-badge--on">` + onText + `</span>`
+        : `<span class="info-badge info-badge--off">` + offText + `</span>`;
+}
+
+function server_info_row(key, value) {
+    if(value === undefined || value === null || value === "") {
+        value = "—";
+    }
+    return `<div class="info-row"><span class="info-key">` + key + `</span><span class="info-value">` + value + `</span></div>`;
+}
+
 function place_server_info(server_info) {
-    document.getElementById('server-treningheten-version').innerHTML = server_info.treningheten_version
-    document.getElementById('server-timezone').innerHTML = server_info.timezone
+    var s = server_info || {};
+    var db = s.database || {};
+    var smtp = s.smtp || {};
+    var strava = s.strava || {};
+    var ai = s.ai || {};
+    var push = s.push || {};
+
+    var db_target = "—";
+    if((db.type || "").toLowerCase() === "sqlite") {
+        db_target = db.location || "—";
+    } else if(db.host) {
+        db_target = db.host + (db.port ? ":" + db.port : "") + (db.name ? " / " + db.name : "");
+    }
+
+    var environment_badge = `<span class="info-badge info-badge--neutral">` + (s.environment || "unknown") + `</span>`;
+
+    var html = `
+        <h3 id="server-info-title">Server info</h3>
+        <div class="info-sections">
+
+            <div class="info-section">
+                <div class="info-section-head">Application ` + environment_badge + `</div>
+                ` + server_info_row("Name", s.name) + `
+                ` + server_info_row("Version", s.treningheten_version) + `
+                ` + server_info_row("Timezone", s.timezone) + `
+                ` + server_info_row("Port", s.port) + `
+                ` + server_info_row("Log level", s.log_level) + `
+                ` + server_info_row("External URL", s.external_url) + `
+            </div>
+
+            <div class="info-section">
+                <div class="info-section-head">Database</div>
+                ` + server_info_row("Type", db.type) + `
+                ` + server_info_row("Target", db_target) + `
+                ` + server_info_row("SSL", server_info_badge(db.ssl, "On", "Off")) + `
+            </div>
+
+            <div class="info-section">
+                <div class="info-section-head">Email (SMTP) ` + server_info_badge(smtp.enabled) + `</div>
+                ` + server_info_row("Host", smtp.host) + `
+                ` + server_info_row("Port", smtp.port) + `
+                ` + server_info_row("From", smtp.from) + `
+            </div>
+
+            <div class="info-section">
+                <div class="info-section-head">Strava ` + server_info_badge(strava.enabled) + `</div>
+                ` + server_info_row("Credentials", server_info_badge(strava.configured, "Configured", "Missing")) + `
+                ` + server_info_row("Redirect URI", strava.redirect_uri) + `
+            </div>
+
+            <div class="info-section">
+                <div class="info-section-head">AI (Ollama) ` + server_info_badge(ai.enabled) + `</div>
+                ` + server_info_row("URL", ai.url) + `
+                ` + server_info_row("Model", ai.model) + `
+                ` + server_info_row("API key", server_info_badge(ai.api_key_set, "Set", "None")) + `
+            </div>
+
+            <div class="info-section">
+                <div class="info-section-head">Push (VAPID) ` + server_info_badge(push.configured, "Configured", "Missing") + `</div>
+                ` + server_info_row("Contact", push.contact) + `
+            </div>
+
+        </div>
+    `;
+
+    document.getElementById('server-info').innerHTML = html;
 }
 
 function get_invites() {
