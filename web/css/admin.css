@@ -5,6 +5,9 @@
 
 .server-info {
   text-align: left;
+  /* Override the shared module cap in main.css so the sections aren't clipped. */
+  max-height: none;
+  height: auto;
 }
 
 #server-info-title {
