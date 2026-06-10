@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"sort"
 	"strings"
 	"sync"
 	"time"
@@ -60,90 +61,96 @@ func ollamaPayloadHash(payload string) string {
 	return fmt.Sprintf("%x", sum)
 }
 
-type ollamaUserPayload struct {
-	FirstName string `json:"first_name"`
-	LastName  string `json:"last_name"`
+// ollamaRecentWorkout is a single day the user actually worked out. Provided for
+// flavour only; the authoritative weekly count lives in the top-level payload.
+type ollamaRecentWorkout struct {
+	Date          string `json:"date"`
+	DayOfWeek     string `json:"day_of_week"`
+	ExerciseCount int    `json:"exercise_count"`
+	Note          string `json:"note,omitempty"`
 }
 
-type ollamaExercisePayload struct {
-	Date      string `json:"date"`
-	DayOfWeek string `json:"day_of_week"`
-	Note      string `json:"note,omitempty"`
-	Count     int    `json:"exercise_count"`
-}
-
-type ollamaGoalPayload struct {
-	WeeklyGoal    int    `json:"weekly_goal"`
-	Competing     bool   `json:"competing"`
-	SickleaveLeft int    `json:"sickleave_days_left"`
-	UserFirstName string `json:"user_first_name"`
-}
-
+// ollamaSeasonPayload is one season the user is currently in. Every field is
+// pre-computed so the model never has to derive goal progress, streaks or stakes.
+// All values are derived from the single shared weekly workout count.
 type ollamaSeasonPayload struct {
-	Name        string              `json:"name"`
-	Description string              `json:"description,omitempty"`
-	Start       string              `json:"start"`
-	End         string              `json:"end"`
-	Prize       string              `json:"prize,omitempty"`
-	Goals       []ollamaGoalPayload `json:"goals"`
+	Name                     string `json:"name"`
+	WeeklyGoalWorkouts       int    `json:"weekly_goal_workouts"`
+	WeeklyGoalMet            bool   `json:"weekly_goal_met"`
+	WorkoutsRemaining        int    `json:"workouts_remaining_to_meet_goal"`
+	CurrentStreakWeeks       int    `json:"current_streak_weeks"`
+	Competing                bool   `json:"competing"`
+	WheelTicketsIfYouHitGoal int    `json:"wheel_tickets_if_you_hit_goal,omitempty"`
+	SickleaveUsedThisWeek    bool   `json:"sickleave_used_this_week"`
+	SickleaveDaysLeft        int    `json:"sickleave_days_left"`
 }
 
 type ollamaPromptPayload struct {
-	PointInTime      string                  `json:"point_in_time"`
-	CurrentWeekStart string                  `json:"current_week_start"`
-	User             ollamaUserPayload       `json:"user"`
-	ActiveSeasons    []ollamaSeasonPayload   `json:"active_seasons"`
-	RecentWorkouts   []ollamaExercisePayload `json:"recent_workouts_past_31_days"`
+	Today                  string                `json:"today"`
+	DaysLeftInWeek         int                   `json:"days_left_in_week_including_today"`
+	UserFirstName          string                `json:"user_first_name"`
+	WorkoutsLoggedThisWeek int                   `json:"workouts_logged_this_week"`
+	RecentWorkouts         []ollamaRecentWorkout `json:"recent_workouts"`
+	InAnySeason            bool                  `json:"in_any_season"`
+	Seasons                []ollamaSeasonPayload `json:"seasons"`
 }
 
-func buildOllamaPayload(user models.User, exerciseDays []models.ExerciseDayObject, activeSeasons []models.SeasonObject, pointInTime time.Time) (string, error) {
-	seasons := make([]ollamaSeasonPayload, 0, len(activeSeasons))
-	for _, s := range activeSeasons {
-		goals := make([]ollamaGoalPayload, 0, len(s.Goals))
-		for _, g := range s.Goals {
-			goals = append(goals, ollamaGoalPayload{
-				WeeklyGoal:    g.ExerciseInterval,
-				Competing:     g.Competing,
-				SickleaveLeft: g.SickleaveLeft,
-				UserFirstName: g.User.FirstName,
-			})
-		}
-		seasons = append(seasons, ollamaSeasonPayload{
-			Name:        s.Name,
-			Description: s.Description,
-			Start:       s.Start.Format("2006-01-02"),
-			End:         s.End.Format("2006-01-02"),
-			Prize:       s.Prize.Name,
-			Goals:       goals,
-		})
+// buildOllamaPayload gathers everything the model needs for one user and flattens
+// it into pre-computed data points. The model only reads these values; it never
+// has to count workouts, filter by week, or reason about season rules.
+func buildOllamaPayload(userID uuid.UUID, pointInTime time.Time) (string, error) {
+	user, err := database.GetUserInformation(userID)
+	if err != nil {
+		return "", errors.New("failed to get user: " + err.Error())
 	}
 
-	workouts := make([]ollamaExercisePayload, 0, len(exerciseDays))
-	for _, d := range exerciseDays {
-		workouts = append(workouts, ollamaExercisePayload{
-			Date:      d.Date.Format("2006-01-02"),
-			DayOfWeek: d.Date.Format("Monday"),
-			Note:      d.Note,
-			Count:     len(d.Exercises),
-		})
+	// Shared weekly workout count, scored in the same unit as the goal
+	// (number of valid exercises logged this week, Monday-Sunday).
+	weekExercises, err := GetExercisesForWeekUsingUserID(pointInTime, userID)
+	if err != nil {
+		return "", errors.New("failed to get exercises for week: " + err.Error())
+	}
+	workoutsThisWeek := len(weekExercises)
+
+	// Recent workouts (last 31 days) purely for flavour. Only days actually
+	// worked out appear here.
+	oneMonthAgo := pointInTime.AddDate(0, 0, -31)
+	toNight := utilities.SetClockToMaximum(pointInTime)
+
+	exerciseDays, err := database.GetExerciseDaysBetweenDatesUsingDatesAndUserID(userID, oneMonthAgo, toNight)
+	if err != nil {
+		return "", errors.New("failed to get exercise days: " + err.Error())
 	}
 
-	// Calculate the Monday of the current week (ISO: weeks start on Monday).
-	weekday := int(pointInTime.Weekday())
-	if weekday == 0 {
-		weekday = 7 // Sunday is 7 in ISO week numbering
+	exerciseDayObjects, err := ConvertExerciseDaysToExerciseDayObjects(exerciseDays)
+	if err != nil {
+		return "", errors.New("failed to convert exercise days: " + err.Error())
 	}
-	monday := pointInTime.AddDate(0, 0, -(weekday - 1))
+
+	recentWorkouts := buildRecentWorkouts(exerciseDayObjects, 5)
+
+	// Seasons the user is currently in, each flattened to its own pre-computed
+	// progress and stakes.
+	seasons, err := GetOngoingSeasonsFromDBForUserID(pointInTime, userID)
+	if err != nil {
+		return "", errors.New("failed to get seasons: " + err.Error())
+	}
+
+	seasonObjects, err := ConvertSeasonsToSeasonObjects(seasons)
+	if err != nil {
+		return "", errors.New("failed to convert seasons: " + err.Error())
+	}
+
+	seasonPayloads := buildSeasonPayloads(userID, seasonObjects, workoutsThisWeek, pointInTime)
 
 	payload := ollamaPromptPayload{
-		PointInTime:      pointInTime.Format("2006-01-02 (Monday)"),
-		CurrentWeekStart: monday.Format("2006-01-02"),
-		User: ollamaUserPayload{
-			FirstName: user.FirstName,
-			LastName:  user.LastName,
-		},
-		ActiveSeasons:  seasons,
-		RecentWorkouts: workouts,
+		Today:                  pointInTime.Format("Monday 2006-01-02"),
+		DaysLeftInWeek:         daysLeftInWeekIncludingToday(pointInTime),
+		UserFirstName:          user.FirstName,
+		WorkoutsLoggedThisWeek: workoutsThisWeek,
+		RecentWorkouts:         recentWorkouts,
+		InAnySeason:            len(seasonPayloads) > 0,
+		Seasons:                seasonPayloads,
 	}
 
 	b, err := json.Marshal(payload)
@@ -153,7 +160,130 @@ func buildOllamaPayload(user models.User, exerciseDays []models.ExerciseDayObjec
 	return string(b), nil
 }
 
-func OllamaGenerateFrontPageMessage(ctx context.Context, user models.User, exerciseDays []models.ExerciseDayObject, activeSeasons []models.SeasonObject, pointInTime time.Time) (string, error) {
+// daysLeftInWeekIncludingToday returns how many days remain in the current
+// Monday-Sunday week, counting today (Monday=7, Sunday=1).
+func daysLeftInWeekIncludingToday(pointInTime time.Time) int {
+	weekday := int(pointInTime.Weekday())
+	if weekday == 0 {
+		weekday = 7 // Sunday is 7 in ISO week numbering
+	}
+	return 8 - weekday
+}
+
+// buildRecentWorkouts returns the most recent worked-out days (newest first),
+// counting only enabled, active exercises.
+func buildRecentWorkouts(exerciseDayObjects []models.ExerciseDayObject, limit int) []ollamaRecentWorkout {
+	recent := make([]ollamaRecentWorkout, 0, len(exerciseDayObjects))
+	for _, day := range exerciseDayObjects {
+		count := 0
+		for _, exercise := range day.Exercises {
+			if exercise.Enabled && exercise.IsOn {
+				count++
+			}
+		}
+		if count == 0 {
+			continue
+		}
+		recent = append(recent, ollamaRecentWorkout{
+			Date:          day.Date.Format("2006-01-02"),
+			DayOfWeek:     day.Date.Format("Monday"),
+			ExerciseCount: count,
+			Note:          day.Note,
+		})
+	}
+
+	// Newest first. ISO date strings sort chronologically.
+	sort.Slice(recent, func(i, j int) bool {
+		return recent[i].Date > recent[j].Date
+	})
+
+	if len(recent) > limit {
+		recent = recent[:limit]
+	}
+	return recent
+}
+
+// buildSeasonPayloads flattens each active season into pre-computed progress and
+// stakes for this user, reusing the same week-result logic the rest of the app
+// uses (so streaks, sick leave and wheel tickets stay consistent).
+func buildSeasonPayloads(userID uuid.UUID, seasonObjects []models.SeasonObject, workoutsThisWeek int, pointInTime time.Time) []ollamaSeasonPayload {
+	monday, err := utilities.FindEarlierMonday(pointInTime)
+	if err != nil {
+		logger.Log.Info("Ollama payload: failed to find earlier Monday. Error: " + err.Error())
+		return []ollamaSeasonPayload{}
+	}
+	sunday, err := utilities.FindNextSunday(pointInTime)
+	if err != nil {
+		logger.Log.Info("Ollama payload: failed to find next Sunday. Error: " + err.Error())
+		return []ollamaSeasonPayload{}
+	}
+
+	seasonPayloads := make([]ollamaSeasonPayload, 0, len(seasonObjects))
+	for _, season := range seasonObjects {
+		// Find this user's goal in the season (one goal per user per season).
+		goalFound := false
+		goalInterval := 0
+		sickleaveLeft := 0
+		for _, goal := range season.Goals {
+			if goal.User.ID == userID {
+				goalFound = true
+				goalInterval = goal.ExerciseInterval
+				sickleaveLeft = goal.SickleaveLeft
+				break
+			}
+		}
+		if !goalFound {
+			continue
+		}
+
+		// Reuse the season week-result engine so the streak reflects the whole
+		// season history, not just this week.
+		weeks, err := RetrieveWeekResultsFromSeasonWithinTimeframe(monday, sunday, season)
+		if err != nil || len(weeks) != 1 {
+			logger.Log.Info("Ollama payload: could not resolve current week for season '" + season.Name + "'. Skipping.")
+			continue
+		}
+
+		var result *models.UserWeekResults
+		for i := range weeks[0].UserWeekResults {
+			if weeks[0].UserWeekResults[i].UserID == userID {
+				result = &weeks[0].UserWeekResults[i]
+				break
+			}
+		}
+		if result == nil {
+			continue
+		}
+
+		remaining := goalInterval - workoutsThisWeek
+		if remaining < 0 {
+			remaining = 0
+		}
+
+		seasonPayload := ollamaSeasonPayload{
+			Name:                  season.Name,
+			WeeklyGoalWorkouts:    goalInterval,
+			WeeklyGoalMet:         result.WeekCompletion >= 1.0,
+			WorkoutsRemaining:     remaining,
+			CurrentStreakWeeks:    result.CurrentStreak,
+			Competing:             result.Competing,
+			SickleaveUsedThisWeek: result.SickLeave,
+			SickleaveDaysLeft:     sickleaveLeft,
+		}
+
+		// Wheel tickets only matter while competing: hitting the goal earns
+		// streak+1 entries to win when a rival fails.
+		if result.Competing {
+			seasonPayload.WheelTicketsIfYouHitGoal = result.CurrentStreak + 1
+		}
+
+		seasonPayloads = append(seasonPayloads, seasonPayload)
+	}
+
+	return seasonPayloads
+}
+
+func OllamaGenerateFrontPageMessage(ctx context.Context, userID uuid.UUID, pointInTime time.Time) (string, error) {
 	config := files.ConfigFile.Ollama
 
 	if !config.Enabled {
@@ -168,13 +298,13 @@ func OllamaGenerateFrontPageMessage(ctx context.Context, user models.User, exerc
 		return "", errors.New("Ollama model is not configured")
 	}
 
-	userPayload, err := buildOllamaPayload(user, exerciseDays, activeSeasons, pointInTime)
+	userPayload, err := buildOllamaPayload(userID, pointInTime)
 	if err != nil {
 		return "", errors.New("failed to build Ollama payload: " + err.Error())
 	}
 
 	hash := ollamaPayloadHash(userPayload)
-	userKey := user.ID.String()
+	userKey := userID.String()
 
 	ollamaCacheMu.RLock()
 	entry, found := ollamaCache[userKey]
@@ -188,17 +318,21 @@ func OllamaGenerateFrontPageMessage(ctx context.Context, user models.User, exerc
 	messages := []ChatMessage{
 		{
 			Role: "system",
-			Content: `You are a fitness coach for Treningheten, a workout tracking app. Follow these rules precisely:
+			Content: `You are a fitness coach for Treningheten, a workout tracking app. You are given a JSON object of already-computed facts about one user. Every number and status in it is final: never recompute, infer, or invent anything that is not in the JSON.
 
-WEEKS: A week always runs Monday to Sunday. The payload includes "current_week_start" — the exact date of this week's Monday. Use it to determine which workouts fall in the current week. Do not guess or recalculate it.
+READING THE DATA:
+- "workouts_logged_this_week" is the exact number of workouts the user has logged since Monday. Use it as-is; do not count anything yourself.
+- "recent_workouts" lists only days the user actually worked out. A day not in the list means no workout. Never claim a workout that is not listed.
+- "seasons" lists the competitions the user is in right now. If "in_any_season" is false, the user is in no season: write a purely personal message and do not mention seasons, goals, season streaks, or the wheel.
+- Each season is independent with its own goal and streak, all measured against the same shared workout count. When there is more than one season, address them separately by name.
 
-WORKOUT DATA: The "recent_workouts_past_31_days" list contains ONLY days the user actually exercised. A missing date means the user did NOT work out that day — there is no missing or unavailable data. If no entries exist on or after "current_week_start", the user has not worked out yet this week. State this clearly without hedging. Only reference workout dates that literally appear in this list. Never infer, assume, or invent a workout on any date — including today's date — unless it is explicitly present in the list.
+PER-SEASON RULES:
+- "weekly_goal_met" says whether this week's goal is already reached; "workouts_remaining_to_meet_goal" is how many more are needed.
+- If "competing" is true and the goal is NOT met by Sunday, the user must spin the wheel and a rival who succeeded wins the prize. Meeting the goal keeps the user safe; hitting the goal is NOT what causes anyone to spin.
+- A higher "current_streak_weeks" grants more "wheel_tickets_if_you_hit_goal" — entries that let the user win the prize when a rival fails.
+- If "competing" is false, the user never spins and is simply participating.
 
-SEASONS: If "active_seasons" is empty, the user is not in any active season. Do not mention season progress, season streaks, or the spin wheel when outside a season. When in a season: hitting the weekly goal each consecutive week builds a season streak; missing it while competing means spinning a wheel — whoever it lands on wins the prize (the spinning user failed). Sick leave is per-season and expires unused.
-
-STREAKS: Season streaks only exist and grow within a season. They cannot increase outside of a season. Users have separate personal streaks on their profile, but those are unrelated — do not mention or confuse them with season streaks.
-
-OUTPUT: Write a short front-page message (2 sentences normally, 4 maximum). Be specific: reference the current weekday, their workout progress this week, and season standing if applicable. Friendly tone, humor welcome. Plain text only, no markdown. Emojis allowed. Reply in English.`,
+OUTPUT: Write a short front-page greeting, 2 sentences normally, 4 maximum. Reference today's weekday and the user's progress this week, plus season standing when relevant. Friendly tone, light humor welcome. Plain text only: no markdown, no headings, no bullet points, no emojis. Reply in English.`,
 		},
 		{
 			Role:    "user",
@@ -269,74 +403,7 @@ func APIGetOllamaFrontPageMessageForUser(context *gin.Context) {
 		return
 	}
 
-	user, err := database.GetUserInformation(userID)
-	if err != nil {
-		logger.Log.Info("Failed to get user. Error: " + err.Error())
-		context.JSON(http.StatusBadRequest, gin.H{"error": "Failed to get user."})
-		context.Abort()
-		return
-	}
-
-	// Current time
-	now := time.Now()
-	oneMonthAgo := now.AddDate(0, 0, -31)
-	toNight := utilities.SetClockToMaximum(now)
-
-	exerciseDays, err := database.GetExerciseDaysBetweenDatesUsingDatesAndUserID(userID, oneMonthAgo, toNight)
-	if err != nil {
-		logger.Log.Info("Failed to get exercises. Error: " + err.Error())
-		context.JSON(http.StatusBadRequest, gin.H{"error": "Failed to get exercises."})
-		context.Abort()
-		return
-	}
-
-	exerciseDaysObjects, err := ConvertExerciseDaysToExerciseDayObjects(exerciseDays)
-	if err != nil {
-		logger.Log.Info("Failed to convert exercise days to exercise day objects. Error: " + err.Error())
-		context.JSON(http.StatusBadRequest, gin.H{"error": "Failed to convert exercise days to exercise day objects."})
-		context.Abort()
-		return
-	}
-
-	// clean up data set for Ollama
-	tmp := []models.ExerciseDayObject{}
-	for _, exerciseDay := range exerciseDaysObjects {
-		if len(exerciseDay.Exercises) == 0 {
-			continue
-		}
-
-		tmp2 := []models.ExerciseObject{}
-		for _, exercise := range exerciseDay.Exercises {
-			if exercise.Enabled && exercise.IsOn {
-				tmp2 = append(tmp2, exercise)
-			}
-		}
-
-		exerciseDay.Exercises = tmp2
-
-		if len(exerciseDay.Exercises) > 0 {
-			tmp = append(tmp, exerciseDay)
-		}
-	}
-	exerciseDaysObjects = tmp
-
-	seasons, err := GetOngoingSeasonsFromDBForUserID(now, userID)
-	if err != nil {
-		logger.Log.Info("Failed to get seasons. Error: " + err.Error())
-		context.JSON(http.StatusBadRequest, gin.H{"error": "Failed to get seasons."})
-		context.Abort()
-		return
-	}
-
-	seasonObjects, err := ConvertSeasonsToSeasonObjects(seasons)
-	if err != nil {
-		logger.Log.Info("Failed to convert seasons to season objects. Error: " + err.Error())
-		context.JSON(http.StatusBadRequest, gin.H{"error": "Failed to convert seasons to season objects."})
-		context.Abort()
-		return
-	}
-
-	ollamaMessage, err := OllamaGenerateFrontPageMessage(context, user, exerciseDaysObjects, seasonObjects, now)
+	ollamaMessage, err := OllamaGenerateFrontPageMessage(context, userID, time.Now())
 	if err != nil {
 		logger.Log.Info("Failed to get Ollama message. Error: " + err.Error())
 		context.JSON(http.StatusBadRequest, gin.H{"error": "Failed to get Ollama message."})
@@ -377,73 +444,17 @@ func OllamaAsyncRefreshCacheForUser(userID uuid.UUID) {
 
 	logger.Log.Error("Ollama cache refresh: starting for user " + userID.String())
 
-	now := time.Now()
-	oneMonthAgo := now.AddDate(0, 0, -31)
-	toNight := utilities.SetClockToMaximum(now)
-
-	user, err := database.GetUserInformation(userID)
-	if err != nil {
-		logger.Log.Error("Ollama cache refresh: failed to get user " + userID.String() + ". Error: " + err.Error())
-		return
-	}
-
-	exerciseDays, err := database.GetExerciseDaysBetweenDatesUsingDatesAndUserID(userID, oneMonthAgo, toNight)
-	if err != nil {
-		logger.Log.Error("Ollama cache refresh: failed to get exercise days for user " + userID.String() + ". Error: " + err.Error())
-		return
-	}
-
-	exerciseDayObjects, err := ConvertExerciseDaysToExerciseDayObjects(exerciseDays)
-	if err != nil {
-		logger.Log.Error("Ollama cache refresh: failed to convert exercise days for user " + userID.String() + ". Error: " + err.Error())
-		return
-	}
-
-	// clean up data set for Ollama
-	tmp := []models.ExerciseDayObject{}
-	for _, exerciseDay := range exerciseDayObjects {
-		if len(exerciseDay.Exercises) == 0 {
-			continue
-		}
-
-		tmp2 := []models.ExerciseObject{}
-		for _, exercise := range exerciseDay.Exercises {
-			if exercise.Enabled && exercise.IsOn {
-				tmp2 = append(tmp2, exercise)
-			}
-		}
-
-		exerciseDay.Exercises = tmp2
-
-		if len(exerciseDay.Exercises) > 0 {
-			tmp = append(tmp, exerciseDay)
-		}
-	}
-	exerciseDayObjects = tmp
-
-	seasons, err := GetOngoingSeasonsFromDBForUserID(now, userID)
-	if err != nil {
-		logger.Log.Error("Ollama cache refresh: failed to get seasons for user " + userID.String() + ". Error: " + err.Error())
-		return
-	}
-
-	seasonObjects, err := ConvertSeasonsToSeasonObjects(seasons)
-	if err != nil {
-		logger.Log.Error("Ollama cache refresh: failed to convert seasons for user " + userID.String() + ". Error: " + err.Error())
-		return
-	}
-
-	_, err = OllamaGenerateFrontPageMessage(ctx, user, exerciseDayObjects, seasonObjects, now)
+	_, err := OllamaGenerateFrontPageMessage(ctx, userID, time.Now())
 	if err != nil {
 		if ctx.Err() != nil {
-			logger.Log.Debug("Ollama cache refresh: request cancelled for user " + user.FirstName + " " + user.LastName + ".")
+			logger.Log.Debug("Ollama cache refresh: request cancelled for user " + userID.String() + ".")
 		} else {
 			logger.Log.Error("Ollama cache refresh: failed to generate message for user " + userID.String() + ". Error: " + err.Error())
 		}
 		return
 	}
 
-	logger.Log.Debug("Ollama cache refresh: cached message for user " + user.FirstName + " " + user.LastName + ".")
+	logger.Log.Debug("Ollama cache refresh: cached message for user " + userID.String() + ".")
 }
 
 func OllamaPreCacheForAllUsers() {
