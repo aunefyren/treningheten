@@ -124,6 +124,8 @@ func operationObjectToActivity(op models.OperationObject, date time.Time) models
 		Action:          actionName,
 		Type:            op.Type,
 		Note:            derefString(op.Note),
+		Description:     derefString(op.Description),
+		Tags:            op.Tags,
 		Equipment:       derefString(op.Equipment),
 		DurationSeconds: durationToSeconds(op.Duration),
 		HasStreams:      hasStreams,

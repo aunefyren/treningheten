@@ -85,23 +85,10 @@ function getAllExerciseDays(){
                 error(result.error);
             } else {
                 clearResponse();
-                
-                yearArray = [];
-                for(var i = 0; i < result.exercise.length; i++) {
-                    var date = new Date(Date.parse(result.exercise[i].date));
-                    var year = date.getFullYear();
 
-                    var found = false; 
-                    for(var j = 0; j < yearArray.length; j++) {
-                        if(yearArray[j] == year) {
-                            found = true;
-                            break;
-                        }
-                    }
-                    if(!found) {
-                        yearArray.push(year);
-                    }
-                }
+                // The years endpoint returns the distinct years directly, so the page
+                // no longer enriches the whole exercise history just to list years.
+                yearArray = result.years || [];
 
                 placeExerciseYears(yearArray)
             }
@@ -111,7 +98,7 @@ function getAllExerciseDays(){
         }
     };
     xhttp.withCredentials = true;
-    xhttp.open("get", api_url + "auth/exercise-days");
+    xhttp.open("get", api_url + "auth/exercise-days/years");
     xhttp.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
     xhttp.setRequestHeader("Authorization", jwt);
     xhttp.send();
@@ -175,6 +162,11 @@ function get_exercises(year){
         return
     }
 
+    // Show a loading spinner inside the year wrapper while the exercises load.
+    var leaderboard = document.getElementById("goal-leaderboard-" + year)
+    leaderboard.innerHTML = '<div class="exercise-loading"><div class="trh-spinner"></div></div>'
+    leaderboard.style.margin = "1em 0"
+
     var xhttp = new XMLHttpRequest();
     xhttp.onreadystatechange = function() {
         if (this.readyState == 4) {
@@ -189,18 +181,13 @@ function get_exercises(year){
             
             if(result.error) {
 
+                document.getElementById("goal-leaderboard-" + year).innerHTML = ""
                 error(result.error);
 
             } else {
 
-                //clearResponse();
-                exercise = result.exercise;
+                place_exercises(result.exercise, year);
 
-                console.log(exercise)
-
-                console.log("Placing exercises: ")
-                place_exercises(exercise, year);
-                
             }
 
         } else {
@@ -208,7 +195,7 @@ function get_exercises(year){
         }
     };
     xhttp.withCredentials = true;
-    xhttp.open("get", api_url + "auth/exercise-days?year=" + year);
+    xhttp.open("get", api_url + "auth/exercise-days/summary?year=" + year);
     xhttp.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
     xhttp.setRequestHeader("Authorization", jwt);
     xhttp.send();
@@ -219,61 +206,28 @@ function get_exercises(year){
 function place_exercises(exercise_array, year) {
 
     clearResponse();
-    exerciseFound = false;
-    let lastWeek = 0;
-    
-    // Place weeks
+
+    var leaderboard = document.getElementById("goal-leaderboard-" + year)
+    leaderboard.style.margin = "1em 0"
+
+    // Group days by week, keeping the source (date-descending) order so weeks appear
+    // newest-first. Each day's HTML is built once and the whole block is assigned in a
+    // single innerHTML write, instead of repeatedly appending (which re-parses the
+    // growing markup on every iteration).
+    var weekOrder = [];
+    var weekDays = {};
+
     for(var i = 0; i < exercise_array.length; i++) {
 
-        let newLine = '';
+        var day = exercise_array[i];
 
-        if(exercise_array[i].exercise_interval == 0 && exercise_array[i].note == "") {
+        if(day.exercise_interval == 0 && day.note == "") {
             continue;
-        } 
-
-        // parse date object
-        try {
-            var date = new Date(Date.parse(exercise_array[i].date));
-            var date_string = GetDayOfTheWeek(date)
-            var dateStringDetailed = GetDateString(date, false)
-            var week = date.getWeek(1);
-        } catch {
-            var date_string = "Error"
-            var dateStringDetailed = "Error"
-            var week = "Error"
         }
 
-        if(lastWeek !== week || lastWeek == 0) {
-            newLine = 
-                ` 
-                    <hr style="margin: 0.25em;">
-                    <div class="exercise-week">
-                        <b>Week: ${week}</b>
-                    </div>
-                    <div id="exercises-${week}-${year}" class="exercises-group">
-                    </div>
-                `;
-        }
-
-        var html = `
-
-            ${newLine}
-
-        `;
-
-        document.getElementById("goal-leaderboard-" + year).innerHTML += html
-        document.getElementById("goal-leaderboard-" + year).style.margin = "1em 0"
-
-        lastWeek = week;
-
-    }
-
-    // Place exercises in weeks
-    for(var i = 0; i < exercise_array.length; i++) {
-
-        if(exercise_array[i].exercise_interval == 0 && exercise_array[i].note == "") {
-            continue;
-        } else if (exercise_array[i].note != "") {
+        var note_html = "";
+        var note_text = "";
+        if(day.note != "") {
             note_html = `
                 <div class="exercise-notes">
                     Notes
@@ -281,32 +235,27 @@ function place_exercises(exercise_array, year) {
             `;
             note_text = `
             <div class="overlay">
-                <div class="text-exercise">${HTMLAddNewLines(exercise_array[i].note)}</div>
+                <div class="text-exercise">${HTMLAddNewLines(day.note)}</div>
             </div>
             `;
-        } else {
-            note_html = "";
-            note_text = "";
         }
 
         // parse date object
         try {
-            var date = new Date(Date.parse(exercise_array[i].date));
+            var date = new Date(Date.parse(day.date));
             var dateFullString = GetDateString(date, false);
             var date_string = GetDayOfTheWeek(date)
             var dateStringDetailed = GetDateString(date, false)
             var week = date.getWeek(1);
-            var year = date.getFullYear()
         } catch {
+            var dateFullString = "Error"
             var date_string = "Error"
             var dateStringDetailed = "Error"
             var week = "Error"
-            var year = "Error"
         }
 
-        var html = `
-
-            <div class="exercise-object clickable" title="${dateStringDetailed}" onclick="exerciseRedirect('${exercise_array[i].id}')">
+        var dayHTML = `
+            <div class="exercise-object clickable" title="${dateStringDetailed}" onclick="exerciseRedirect('${day.id}')">
 
                 <div class="exercise-base">
 
@@ -318,11 +267,11 @@ function place_exercises(exercise_array, year) {
 
                     <div class="exercise-details" id="">
                         <div class="exercise-exercise-number">
-                            Exercise amount: <b>${exercise_array[i].exercise_interval}</b>
+                            Exercise amount: <b>${day.exercise_interval}</b>
                         </div>
 
                         ${note_html}
-                        
+
                     </div>
 
                 </div>
@@ -332,20 +281,40 @@ function place_exercises(exercise_array, year) {
             </div>
         `;
 
-        var oldHTML = document.getElementById(`exercises-${week}-${year}`).innerHTML
-        document.getElementById(`exercises-${week}-${year}`).innerHTML = html + oldHTML
-
-        exerciseFound = true;
+        if(!(week in weekDays)) {
+            weekDays[week] = [];
+            weekOrder.push(week);
+        }
+        weekDays[week].push(dayHTML);
 
     }
 
-    if(!exerciseFound) {
-        document.getElementById("goal-leaderboard-" + year).innerHTML = `
+    if(weekOrder.length == 0) {
+        leaderboard.innerHTML = `
             <div style="margin: 1em 0">
                 None...
             </div>
         `;
+        return;
     }
+
+    var html = '';
+    for(var w = 0; w < weekOrder.length; w++) {
+        var week = weekOrder[w];
+        html += `
+            <hr style="margin: 0.25em;">
+            <div class="exercise-week">
+                <b>Week: ${week}</b>
+            </div>
+            <div class="exercises-group">
+        `;
+        // Days were collected newest-first; reverse so the week reads oldest-to-newest
+        // (matching the previous prepend behaviour).
+        html += weekDays[week].slice().reverse().join('');
+        html += `</div>`;
+    }
+
+    leaderboard.innerHTML = html;
 
     return
 

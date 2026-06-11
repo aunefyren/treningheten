@@ -108,6 +108,13 @@ function load_page(result) {
                             <canvas id="myActivityChart" style="max-width: 100%; width: 1000px; display:none;"></canvas>
                         </div>
 
+                        <div id="activity-heatmap-wrapper" style="display: none;">
+                            <div class="text-body" style="text-align: center; margin-top: 1em;">
+                                Heatmap of this activity's GPS tracks.
+                            </div>
+                            <div id="activity-heatmap-canvas" class="heatmap-canvas" style="display: none;"></div>
+                        </div>
+
                     </div>
 
                 </div>
@@ -145,6 +152,154 @@ function load_page(result) {
         showLoggedOutMenu();
         invalid_session();
     }
+}
+
+var activityHeatmapInstance = null;
+var activityHeatLayer = null;
+
+// resetActivityHeatmap hides the heatmap and drops the current heat layer. Called when
+// the activity/date filter changes so stale points are not shown while reloading.
+function resetActivityHeatmap() {
+    var wrapper = document.getElementById("activity-heatmap-wrapper");
+    if (wrapper) {
+        wrapper.style.display = "none";
+    }
+    if (activityHeatmapInstance && activityHeatLayer) {
+        activityHeatmapInstance.removeLayer(activityHeatLayer);
+        activityHeatLayer = null;
+    }
+}
+
+// renderActivityHeatmap draws a density heatmap from the GPS streams already present in
+// the chosen activity's statistics response, so it inherits the activity-type and date
+// filters for free. Only activities with GPS movement carry latlng streams; everything
+// else shows the "no GPS data" note.
+function renderActivityHeatmap(operations) {
+
+    var wrapper = document.getElementById("activity-heatmap-wrapper");
+    var canvas = document.getElementById("activity-heatmap-canvas");
+    if (!wrapper) {
+        return;
+    }
+
+    var points = extractHeatmapPoints(operations);
+
+    // No GPS data for this activity/period (or the map library is unavailable): hide the
+    // whole heatmap section, including its caption, so nothing is shown for non-GPS activities.
+    if (!points.length || typeof L === "undefined") {
+        if (typeof L === "undefined" && points.length) {
+            console.log("Leaflet is not loaded.");
+        }
+        wrapper.style.display = "none";
+        return;
+    }
+
+    wrapper.style.display = "block";
+    canvas.style.display = "block";
+
+    if (!activityHeatmapInstance) {
+        activityHeatmapInstance = L.map("activity-heatmap-canvas");
+        L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+            maxZoom: 19,
+            attribution: "&copy; OpenStreetMap contributors"
+        }).addTo(activityHeatmapInstance);
+    }
+
+    if (activityHeatLayer) {
+        activityHeatmapInstance.removeLayer(activityHeatLayer);
+    }
+    activityHeatLayer = L.heatLayer(points, { radius: 6, blur: 8, maxZoom: 17 }).addTo(activityHeatmapInstance);
+
+    // Open on the densest cluster (usually the most-frequented area) rather than fitting
+    // all points, which would zoom out to fit far-away one-off activities.
+    var center = densestCenter(points);
+    activityHeatmapInstance.setView(center, 13);
+
+    // The container starts hidden, so Leaflet may have measured a zero size; recompute
+    // once it is visible.
+    setTimeout(function() {
+        activityHeatmapInstance.invalidateSize();
+        activityHeatmapInstance.setView(center, 13);
+    }, 200);
+
+}
+
+// extractHeatmapPoints flattens latlng samples out of the operations' Strava streams,
+// thinned by a per-track stride and capped overall to keep the render light.
+function extractHeatmapPoints(operations) {
+
+    var points = [];
+    if (!operations) {
+        return points;
+    }
+
+    var stride = 3;
+    for (var i = 0; i < operations.length; i++) {
+        var sets = operations[i].operation_sets || [];
+        for (var j = 0; j < sets.length; j++) {
+            var streams = sets[j].strava_streams;
+            if (!streams || !streams.latlng || !streams.latlng.data) {
+                continue;
+            }
+            var data = streams.latlng.data;
+            for (var k = 0; k < data.length; k += stride) {
+                var coordinate = data[k];
+                if (!coordinate || coordinate.length < 2) {
+                    continue;
+                }
+                points.push([coordinate[0], coordinate[1]]);
+            }
+        }
+    }
+
+    var cap = 40000;
+    if (points.length > cap) {
+        var step = points.length / cap;
+        var reduced = [];
+        for (var n = 0; n < cap; n++) {
+            reduced.push(points[Math.floor(n * step)]);
+        }
+        points = reduced;
+    }
+
+    return points;
+}
+
+// densestCenter buckets points into coarse (~1 km) cells, finds the cell with the most
+// samples, and returns the average coordinate of that cell — a cheap "biggest cluster".
+function densestCenter(points) {
+
+    var cells = {};
+    var precision = 100; // round to 2 decimals -> ~1.1 km cells
+    var bestKey = null;
+    var bestCount = 0;
+
+    for (var i = 0; i < points.length; i++) {
+        var latRounded = Math.round(points[i][0] * precision) / precision;
+        var lngRounded = Math.round(points[i][1] * precision) / precision;
+        var key = latRounded + "," + lngRounded;
+
+        var cell = cells[key];
+        if (!cell) {
+            cell = { count: 0, latSum: 0, lngSum: 0 };
+            cells[key] = cell;
+        }
+        cell.count++;
+        cell.latSum += points[i][0];
+        cell.lngSum += points[i][1];
+
+        if (cell.count > bestCount) {
+            bestCount = cell.count;
+            bestKey = key;
+        }
+    }
+
+    if (!bestKey) {
+        return [points[0][0], points[0][1]];
+    }
+
+    var best = cells[bestKey];
+    return [best.latSum / best.count, best.lngSum / best.count];
 }
 
 function getSeasons(){
@@ -808,6 +963,8 @@ function chooseActivity() {
 
     document.getElementById("activity-statistics-element-wrapper-div").innerHTML = "";
 
+    resetActivityHeatmap();
+
     if(selectActivity.value == null || selectActivity.value == 0 || selectActivity.value == "null") {
         // Show loading gif
         document.getElementById("loading-dumbbell-activities").style.display = "none";
@@ -986,6 +1143,9 @@ function placeActivityStatistics(statistics) {
 
     // Remove loading gif
     document.getElementById("loading-dumbbell-activities").style.display = "none";
+
+    // Draw the GPS heatmap from the same operations, inheriting the activity + date filter.
+    renderActivityHeatmap(statistics.operations);
 }
 
 function placeDefaultDates() {

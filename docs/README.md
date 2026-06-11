@@ -16,6 +16,8 @@ architecture overview.
 - [wheel-customization.md](wheel-customization.md) — per-user wheel appearance (color,
   border, emoji): storage, account-page picker, validation, and the
   distinct/stable color assignment.
+- [heatmap.md](heatmap.md) — private per-user GPS activity heatmap on `/statistics`
+  (Leaflet + Leaflet.heat over stored Strava `latlng` streams).
 
 ## Auth & integrations
 

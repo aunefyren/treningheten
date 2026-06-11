@@ -33,7 +33,7 @@ for example, give feedback on their latest run. This is Phase 3 of the auth work
 | `whoami` | — | Profile: name, email, admin, member-since |
 | `list_weights` | `limit?` | Body-weight entries, newest first |
 | `get_latest_weight` | — | Most recent weight entry |
-| `list_exercises` | `action?`, `limit?` | Logged activities (id, date, action, type, equipment, duration, `has_streams`, per-set distance/time/moving-time/reps/weight), newest first; `action` filters by exercise type (e.g. `Run`) |
+| `list_exercises` | `action?`, `limit?` | Logged activities (id, date, action, type, `note`, `description`, `tags`, equipment, duration, `has_streams`, per-set distance/time/moving-time/reps/weight), newest first; `action` filters by exercise type (e.g. `Run`) |
 | `get_workout` | `activity_id` | The flat detail of one activity by id — for drilling in after `list_exercises` |
 | `get_workout_streams` | `activity_id`, `from_seconds?`, `to_seconds?`, `resolution?`, `max_points?` | Processed Strava sensor data for one activity (summary header + downsampled time-series). See below |
 | `get_statistics` | — | Per-window totals (activity count, km distance, seconds time) over three **rolling** windows: trailing ~1 month, trailing 12 months, all-time. Counts span **all** exercise types; distance/time only count activities that record them. Plus **personal** day/week activity streaks (current + best) |
@@ -44,7 +44,7 @@ for example, give feedback on their latest run. This is Phase 3 of the auth work
 | `list_achievement_delegations` | `limit?`, `offset?`, `achievement_id?` | The user's achievement awards (newest first), paginated, optionally filtered to one achievement; response includes `total` |
 | `get_achievement_delegation` | `delegation_id` | One of the user's awards (ownership-checked) |
 
-Each activity carries a stable `id` (the operation id) used to address `get_workout` / `get_workout_streams`, and a `has_streams` flag so the model knows whether stream detail is available before asking for it.
+Each activity carries a stable `id` (the operation id) used to address `get_workout` / `get_workout_streams`, and a `has_streams` flag so the model knows whether stream detail is available before asking for it. It also carries the user's `note` and `description` (the latter is the Strava description for imported activities) plus `tags` from the fixed vocabulary (`race`, `long-run`, `workout`, `commute`, `for-a-cause`, `recovery`, `with-pet`, `with-kid`). Because each activity is one operation, its `description`/`tags` belong unambiguously to that activity's `action`, even when an exercise day spans multiple action types.
 
 Durations are exposed in **seconds** for LLM friendliness. Note that the underlying
 `*time.Duration` fields store a raw seconds count, not real nanosecond durations, so

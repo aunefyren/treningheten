@@ -1,7 +1,6 @@
 package controllers
 
 import (
-	"bytes"
 	"encoding/json"
 	"errors"
 	"net/http"
@@ -27,24 +26,15 @@ func PushNotificationToSubscriptions(notificationType string, notificationBody s
 
 	notificationSum := 0
 
-	notificationAdditionalDataString := "null"
-	if notificationAdditionalData != nil {
-		notificationAdditionalDataString = "\"" + *notificationAdditionalData + "\""
-	}
-
-	notificationData := `
-		{
-			"title": "` + notificationTitle + `",
-			"body": "` + notificationBody + `",
-			"additional_data": ` + notificationAdditionalDataString + `,
-			"category": "` + notificationType + `"
-		}
-	`
-
-	dataBuffer := &bytes.Buffer{}
-	if err = json.Compact(dataBuffer, []byte(notificationData)); err != nil {
-		logger.Log.Info("Failed to compact JSON data. Error: " + err.Error())
-		return 0, errors.New("Failed to compact JSON data.")
+	payloadBytes, err := json.Marshal(models.PushNotificationPayload{
+		Title:          notificationTitle,
+		Body:           notificationBody,
+		AdditionalData: notificationAdditionalData,
+		Category:       notificationType,
+	})
+	if err != nil {
+		logger.Log.Info("Failed to marshal notification payload. Error: " + err.Error())
+		return 0, errors.New("Failed to marshal notification payload.")
 	}
 
 	for _, subscription := range subscriptions {
@@ -57,7 +47,7 @@ func PushNotificationToSubscriptions(notificationType string, notificationBody s
 		s.Keys.P256dh = subscription.P256Dh
 
 		// Send Notification
-		response, err := webpush.SendNotification(dataBuffer.Bytes(), s, &webpush.Options{
+		response, err := webpush.SendNotification(payloadBytes, s, &webpush.Options{
 			Subscriber:      vapidSettings.VAPIDContact,
 			VAPIDPublicKey:  vapidSettings.VAPIDPublicKey,
 			VAPIDPrivateKey: vapidSettings.VAPIDSecretKey,
@@ -66,19 +56,23 @@ func PushNotificationToSubscriptions(notificationType string, notificationBody s
 		})
 
 		if err != nil {
-			logger.Log.Info("Failed to push notification. Error: " + err.Error())
-			return notificationSum, errors.New("Failed to push notification.")
+			// Don't abort the whole batch because one device failed; log and move on so
+			// the remaining subscriptions still receive the notification.
+			logger.Log.Info("Failed to push notification to subscription, skipping. Error: " + err.Error())
+			continue
 		}
 
-		logger.Log.Info("Pushed notification, got status code: " + string(response.Status))
+		statusCode := response.StatusCode
+		response.Body.Close()
 
-		// Disable "gone" endpoints
-		if response.StatusCode == 410 {
+		// A 404 or 410 means the push service considers the subscription permanently
+		// gone, so disable it to stop retrying it on every future push.
+		if statusCode == http.StatusNotFound || statusCode == http.StatusGone {
 			subscription.Enabled = false
-			_, err := database.UpdateSubscription(subscription)
-			if err != nil {
-				logger.Log.Info("Failed to disable subscription. Error: " + err.Error())
+			if _, err := database.UpdateSubscription(subscription); err != nil {
+				logger.Log.Info("Failed to disable dead subscription. Error: " + err.Error())
 			}
+			continue
 		}
 
 		notificationSum += 1
@@ -128,6 +122,38 @@ func APISubscribeToNotification(context *gin.Context) {
 	subscription.AchievementAlert = subscriptionRequest.Settings.AchievementAlert
 	subscription.NewsAlert = subscriptionRequest.Settings.NewsAlert
 	subscription.UserID = userID
+
+	// A browser keeps the same endpoint when re-subscribing, so upsert on
+	// (user_id, endpoint) instead of inserting a duplicate row (which would cause
+	// duplicate notifications and ambiguous single-row lookups).
+	existing, found, err := database.GetAllSubscriptionForUserByUserIDAndEndpoint(userID, subscription.Endpoint)
+	if err != nil {
+		logger.Log.Info("Failed to look up existing subscription. Error: " + err.Error())
+		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to look up existing subscription."})
+		context.Abort()
+		return
+	}
+
+	if found {
+		existing.ExpirationTime = subscription.ExpirationTime
+		existing.Auth = subscription.Auth
+		existing.P256Dh = subscription.P256Dh
+		existing.SundayAlert = subscription.SundayAlert
+		existing.AchievementAlert = subscription.AchievementAlert
+		existing.NewsAlert = subscription.NewsAlert
+		existing.Enabled = true
+
+		if _, err = database.UpdateSubscription(existing); err != nil {
+			logger.Log.Info("Failed to update subscription in database. Error: " + err.Error())
+			context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update subscription in database."})
+			context.Abort()
+			return
+		}
+
+		context.JSON(http.StatusOK, gin.H{"message": "Subscription updated."})
+		return
+	}
+
 	subscription.ID = uuid.New()
 
 	_, err = database.CreateSubscriptionInDB(subscription)

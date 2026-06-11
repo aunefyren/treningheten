@@ -40,6 +40,16 @@ type SubscriptionCreationRequest struct {
 	}
 }
 
+// PushNotificationPayload is the JSON body delivered to the service worker's push
+// handler. It is marshalled with encoding/json so values containing quotes, newlines
+// or other special characters are escaped correctly.
+type PushNotificationPayload struct {
+	Title          string  `json:"title"`
+	Body           string  `json:"body"`
+	AdditionalData *string `json:"additional_data"`
+	Category       string  `json:"category"`
+}
+
 type NotificationCreationRequest struct {
 	Title          string    `json:"title"`
 	Body           string    `json:"body"`

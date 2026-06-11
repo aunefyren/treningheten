@@ -168,7 +168,7 @@ func buildMCPServer(userID uuid.UUID) *mcp.Server {
 
 	mcp.AddTool(server, &mcp.Tool{
 		Name:        "list_exercises",
-		Description: "List the user's logged exercise activities (with action type, duration and per-set distance/time/reps/weight), newest first. Optionally filter by exercise type (e.g. Run).",
+		Description: "List the user's logged exercise activities (with action type, tags, note/description, duration and per-set distance/time/reps/weight), newest first. Optionally filter by exercise type (e.g. Run).",
 	}, func(ctx context.Context, req *mcp.CallToolRequest, args mcpListExercisesArgs) (*mcp.CallToolResult, mcpActivitiesOutput, error) {
 		activities, err := assembleUserActivities(userID, args.Action, limitOrDefault(args.Limit))
 		if err != nil {
@@ -190,7 +190,7 @@ func buildMCPServer(userID uuid.UUID) *mcp.Server {
 
 	mcp.AddTool(server, &mcp.Tool{
 		Name:        "get_workout",
-		Description: "Get the flat detail of a single activity by its id (action, type, duration and per-set distance/time/reps/weight). Use after list_exercises to drill into one workout.",
+		Description: "Get the flat detail of a single activity by its id (action, type, tags, note/description, duration and per-set distance/time/reps/weight). Use after list_exercises to drill into one workout.",
 	}, func(ctx context.Context, req *mcp.CallToolRequest, args mcpWorkoutArgs) (*mcp.CallToolResult, mcpActivityOutput, error) {
 		activityID, err := uuid.Parse(args.ActivityID)
 		if err != nil {

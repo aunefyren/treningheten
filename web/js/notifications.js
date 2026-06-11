@@ -32,6 +32,10 @@ function register_push(jwtToken, appPubkey, sunday_alert, achievement_alert, new
             })
             .then(function() {
                 success("Subscription created.")
+            })
+            .catch(function(e) {
+                console.log("Failed to register push subscription. Error: " + e);
+                error("Could not enable notifications. Please allow notifications for this site and try again.");
             });
     });
 }
@@ -57,13 +61,13 @@ function create_push(vapid_public_key) {
     navigator.serviceWorker.ready.then(function(registration) {
         return registration.pushManager.getSubscription()
             .then(function(subscription) {
-                if (subscription && PermissionStatus.state !== 'granted') {
+                if (subscription) {
                     update_subscription(vapid_public_key, subscription);
                 } else {
                     create_new_subscription(vapid_public_key);
                 }
             }
-        ) 
+        )
     });
 
 }
@@ -134,11 +138,11 @@ function CheckForSubscription() {
     navigator.serviceWorker.ready.then(function(registration) {
         return registration.pushManager.getSubscription()
             .then(function(subscription) {
-                if (subscription && PermissionStatus.state !== 'granted') {
+                if (subscription) {
                     GetSubscriptionSettings(subscription.endpoint);
                 }
             }
-        ) 
+        )
     });
 
 }
@@ -196,9 +200,15 @@ function DeregisterPush() {
         return registration.pushManager.getSubscription()
             .then(function(subscription) {
                 if (subscription) {
-                    console.log("De-registering subscription.")
-                    registration.unregister();
+                    console.log("Unsubscribing push subscription.")
+                    // Unsubscribe only the push subscription; do NOT unregister the whole
+                    // service worker (that would also disable offline caching). The server
+                    // disables its stale row automatically on the next push (404/410).
+                    return subscription.unsubscribe();
                 }
-            }) 
+            })
+            .catch(function(e) {
+                console.log("Failed to unsubscribe push subscription. Error: " + e);
+            });
     });
 }

@@ -52,6 +52,8 @@ function load_page(result) {
                             <button type="submit" onclick="" id="add-exercise-button" style="display: none; margin: 0em; width: 12em;"><img src="assets/plus.svg" class="btn_logo color-invert"><p2>Start new workout</p2></button>
                         </div>
 
+                        <div id="push-prompt" class="push-prompt" style="display: none;"></div>
+
                     </div>
 
                     <div class="module" id="ongoingseason" style="display: none;">
@@ -395,11 +397,127 @@ function load_page(result) {
         if ("{{.ollamaEnabled}}" == "true") {
             load_ai_message();
         }
+        maybeShowPushPrompt();
     } else {
         showLoggedOutMenu();
         document.getElementById('front-page-text').innerHTML = 'Log in to use the platform.';
         document.getElementById('log-in-button').style.display = 'inline-block';
     }
+}
+
+// Key used to remember that the user dismissed the front-page notification prompt.
+// Stored per-device (localStorage), which matches push being a per-device feature.
+const PUSH_PROMPT_DISMISSED_KEY = 'trh_push_prompt_dismissed';
+
+// maybeShowPushPrompt shows a small, dismissible card encouraging the user to enable
+// push notifications, but only when it makes sense: the browser supports push, the
+// user has not already decided (permission is still "default"), there is no existing
+// subscription, and they have not previously dismissed the prompt.
+function maybeShowPushPrompt() {
+
+    var prompt = document.getElementById('push-prompt');
+    if (!prompt) {
+        return;
+    }
+
+    // Browser capability check.
+    if (!('serviceWorker' in navigator) || !('PushManager' in window) || !('Notification' in window)) {
+        console.log('Push prompt: hidden — browser does not support push notifications (needs a secure context: HTTPS or localhost).');
+        return;
+    }
+
+    // Only "denied" is a dead end — nothing we can do without the user re-allowing in
+    // browser settings. "default" (undecided) and "granted" (allowed, but maybe not
+    // subscribed on THIS device) both still warrant a prompt; the subscription check
+    // below decides whether there is actually anything to offer.
+    if (Notification.permission === 'denied') {
+        console.log('Push prompt: hidden — Notification.permission is "denied". The user must re-allow notifications in browser settings.');
+        return;
+    }
+
+    // Respect a previous dismissal.
+    try {
+        if (localStorage.getItem(PUSH_PROMPT_DISMISSED_KEY) === 'true') {
+            console.log('Push prompt: hidden — previously dismissed. Run localStorage.removeItem("' + PUSH_PROMPT_DISMISSED_KEY + '") to re-test.');
+            return;
+        }
+    } catch (e) {
+        // localStorage unavailable (e.g. private mode); just proceed to show it.
+    }
+
+    navigator.serviceWorker.ready.then(function(registration) {
+        return registration.pushManager.getSubscription().then(function(subscription) {
+            if (subscription) {
+                // Already subscribed on this device; nothing to prompt.
+                console.log('Push prompt: hidden — this device already has a push subscription.');
+                return;
+            }
+
+            console.log('Push prompt: showing (permission "' + Notification.permission + '").');
+
+            // When permission is already granted, the user allowed notifications before
+            // but this device has no subscription, so frame it as re-enabling here.
+            var promptMessage = (Notification.permission === 'granted')
+                ? 'Notifications are off on this device. Turn them back on?'
+                : 'Want reminders and updates? Enable notifications.';
+
+            prompt.innerHTML = `
+                <div class="push-prompt-text">
+                    <img src="assets/bell.svg" class="btn_logo color-invert push-prompt-icon">
+                    <span>${promptMessage}</span>
+                </div>
+                <div class="push-prompt-actions">
+                    <button type="submit" class="push-prompt-enable" onclick="enablePushFromPrompt(); return false;">Enable</button>
+                    <button type="submit" class="push-prompt-dismiss" onclick="dismissPushPrompt(); return false;">Not now</button>
+                </div>
+            `;
+            prompt.style.display = 'flex';
+        });
+    }).catch(function(e) {
+        console.log('Failed to evaluate push prompt. Error: ' + e);
+    });
+
+}
+
+// enablePushFromPrompt asks for notification permission (within the click gesture) and,
+// if granted, subscribes with all alert types on. The user can fine-tune them in /account.
+function enablePushFromPrompt() {
+
+    var prompt = document.getElementById('push-prompt');
+
+    Notification.requestPermission().then(function(permission) {
+        if (permission === 'granted') {
+            // sunday_alert, achievement_alert, news_alert all on by default.
+            register_push(jwt, '{{ .vapidPublicKey }}', true, true, true);
+        } else {
+            error('Notifications were not enabled.');
+        }
+        if (prompt) {
+            prompt.style.display = 'none';
+        }
+    }).catch(function(e) {
+        console.log('Failed to request notification permission. Error: ' + e);
+        if (prompt) {
+            prompt.style.display = 'none';
+        }
+    });
+
+}
+
+// dismissPushPrompt hides the prompt and remembers the choice so it does not return.
+function dismissPushPrompt() {
+
+    var prompt = document.getElementById('push-prompt');
+    if (prompt) {
+        prompt.style.display = 'none';
+    }
+
+    try {
+        localStorage.setItem(PUSH_PROMPT_DISMISSED_KEY, 'true');
+    } catch (e) {
+        // localStorage unavailable; the prompt simply may reappear next visit.
+    }
+
 }
 
 function load_ai_message() {

@@ -180,6 +180,63 @@ func GetExerciseDaysForUserUsingUserID(userID uuid.UUID) ([]models.ExerciseDay, 
 
 }
 
+// GetExerciseDaysForUserUsingUserIDAndYear returns the user's enabled exercise days
+// whose date falls within the given calendar year. The year filter is applied as a
+// date range in the query so the whole history is never loaded just to filter in Go.
+func GetExerciseDaysForUserUsingUserIDAndYear(userID uuid.UUID, year int) ([]models.ExerciseDay, error) {
+
+	var exercises []models.ExerciseDay
+
+	start := time.Date(year, 1, 1, 0, 0, 0, 0, time.Local)
+	end := start.AddDate(1, 0, 0)
+
+	exerciserecord := Instance.Order("date desc").
+		Where("`exercise_days`.enabled = ?", 1).
+		Where("`exercise_days`.user_id = ?", userID).
+		Where("`exercise_days`.date >= ? AND `exercise_days`.date < ?", start, end).
+		Find(&exercises)
+
+	if exerciserecord.Error != nil {
+		return []models.ExerciseDay{}, exerciserecord.Error
+	} else if exerciserecord.RowsAffected == 0 {
+		return []models.ExerciseDay{}, nil
+	}
+
+	return exercises, nil
+
+}
+
+// GetDistinctExerciseYearsForUser returns the distinct calendar years (newest first)
+// in which the user has an enabled exercise day. It plucks only the date column, so
+// the listing page can build its year list without enriching any day.
+func GetDistinctExerciseYearsForUser(userID uuid.UUID) ([]int, error) {
+
+	var dates []time.Time
+
+	record := Instance.Model(&models.ExerciseDay{}).
+		Where("`exercise_days`.enabled = ?", 1).
+		Where("`exercise_days`.user_id = ?", userID).
+		Order("date desc").
+		Pluck("date", &dates)
+
+	if record.Error != nil {
+		return []int{}, record.Error
+	}
+
+	years := []int{}
+	seen := map[int]bool{}
+	for _, date := range dates {
+		year := date.Year()
+		if !seen[year] {
+			seen[year] = true
+			years = append(years, year)
+		}
+	}
+
+	return years, nil
+
+}
+
 func GetExerciseDaysForUserUsingUserIDAndGoalID(userID uuid.UUID, goalID uuid.UUID) ([]models.ExerciseDay, error) {
 
 	var exercises []models.ExerciseDay
