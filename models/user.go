@@ -26,6 +26,12 @@ type User struct {
 	StravaIgnoreWalks          *bool      `json:"strava_walks" gorm:"column:strava_walks;default: true"`
 	StravaID                   *string    `json:"strava_id" gorm:"default: null"`
 	StravaPublic               *bool      `json:"strava_public" gorm:"default: true"`
+	StravaSkipHevyDuplicates   *bool      `json:"strava_skip_hevy" gorm:"default: false"`
+	HevyAPIKey                 *string    `json:"-" gorm:"default: null"`
+	HevyLastSync               *time.Time `json:"-" gorm:"default: null"`
+	HevyProfileURL             *string    `json:"hevy_profile_url" gorm:"default: null"`
+	HevyPublic                 *bool      `json:"hevy_public" gorm:"default: true"`
+	HevyConnected              bool       `json:"hevy_connected" gorm:"-"`
 	WheelColor                 *string    `json:"wheel_color" gorm:"default: null"`
 	WheelBorderColor           *string    `json:"wheel_border_color" gorm:"default: null"`
 	WheelEmoji                 *string    `json:"wheel_emoji" gorm:"default: null"`
@@ -54,12 +60,14 @@ type UserUpdateRequest struct {
 }
 
 type UserPartialUpdateRequest struct {
-	SundayAlert       *bool   `json:"sunday_alert"`
-	StravaIgnoreWalks *bool   `json:"strava_walks"`
-	StravaPublic      *bool   `json:"strava_public"`
-	WheelColor        *string `json:"wheel_color"`
-	WheelBorderColor  *string `json:"wheel_border_color"`
-	WheelEmoji        *string `json:"wheel_emoji"`
+	SundayAlert              *bool   `json:"sunday_alert"`
+	StravaIgnoreWalks        *bool   `json:"strava_walks"`
+	StravaPublic             *bool   `json:"strava_public"`
+	StravaSkipHevyDuplicates *bool   `json:"strava_skip_hevy"`
+	HevyPublic               *bool   `json:"hevy_public"`
+	WheelColor               *string `json:"wheel_color"`
+	WheelBorderColor         *string `json:"wheel_border_color"`
+	WheelEmoji               *string `json:"wheel_emoji"`
 }
 
 type UserUpdatePasswordRequest struct {
@@ -70,6 +78,10 @@ type UserUpdatePasswordRequest struct {
 
 type UserStravaCodeUpdateRequest struct {
 	StravaCode string `json:"strava_code"`
+}
+
+type UserHevyAPIKeyUpdateRequest struct {
+	HevyAPIKey string `json:"hevy_api_key"`
 }
 
 type UserWithTickets struct {

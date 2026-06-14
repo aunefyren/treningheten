@@ -87,9 +87,21 @@ introduced are plaintext; they fail to decrypt, are used as-is once, and are
 re-encrypted on the next successful exchange — so no migration is needed.
 
 **Failure handling:** the token exchanges return an error on any non-200 response, and
-`StravaGetAuthorizationForUser` **never overwrites `StravaCode` on failure** and never
-stores an empty token. A transient error or a revoked token therefore surfaces as a
-failed sync rather than silently bricking the connection.
+never store an empty token. The response is then split into two cases:
+
+- **Transient failure** (rate limiting, 5xx, network): `StravaCode` is **left intact**,
+  so the failure surfaces as a failed sync and the next run retries the same credential.
+- **Invalid session** — Strava answers the token exchange with **HTTP 400 or 401**
+  (an already-used authorization code, or a revoked/invalid refresh token). The
+  exchange returns the `ErrStravaSessionInvalid` sentinel, and
+  `StravaGetAuthorizationForUser` **clears the connection** via
+  `database.ClearStravaConnectionForUser` (NULLs `StravaCode` + `StravaID`). The user
+  then sees the disconnected state on `/account` and is prompted to reconnect, instead
+  of the connection silently retrying a dead credential forever.
+
+A user can also disconnect manually: `DELETE /api/auth/users/:user_id/strava`
+(`APIDeleteStravaConnection`) clears the same fields. The account page shows a
+**Disconnect Strava** button whenever a connection exists.
 
 ## Retrieval
 
@@ -135,7 +147,9 @@ the API for recent ones.
 2. Get an access token (authorize/reauthorize per the token lifecycle).
 3. `StravaGetActivities(token, before=sunday, after=monday)` — the activities in that
    week (Strava's `before`/`after` are exclusive UNIX bounds).
-4. Award the "connected Strava" achievement (`fb4f6c1f-…`), async and best-effort.
+4. Award the "Influencer" achievement (`fb4f6c1f-…`), async and best-effort. This is
+   the shared Strava-or-Hevy connection achievement — the Hevy sync paths grant the
+   same id.
 5. Import each activity via `StravaSyncActivityForUser`.
 6. Kick off an async Ollama front-page cache refresh for the user.
 
@@ -254,6 +268,9 @@ Beyond connect/sync, a few endpoints let users curate imported activities:
   combined session back apart.
 - `POST /api/auth/operation-sets/:operation_set_id/strava-sync`
   (`APISyncStravaOperationSet`) — refresh a single set's data from Strava.
+- `DELETE /api/auth/users/:user_id/strava` (`APIDeleteStravaConnection`) — disconnect
+  Strava (clears `StravaCode` + `StravaID`). Backs the account-page **Disconnect Strava**
+  button.
 
 > The account page warns users to log a session to **either** Strava or Treningheten,
 > not both — there is no cross-source de-duplication beyond the Strava-id idempotency,

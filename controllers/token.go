@@ -34,5 +34,6 @@ func ValidateToken(context *gin.Context) {
 		"strava_enabled":      files.ConfigFile.StravaEnabled,
 		"strava_client_id":    files.ConfigFile.StravaClientID,
 		"strava_redirect_uri": files.ConfigFile.StravaRedirectURI,
+		"hevy_enabled":        files.ConfigFile.HevyEnabled,
 	})
 }

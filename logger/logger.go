@@ -28,7 +28,7 @@ func InitLogger(logLevel string) {
 	// Set log level
 	level, err := logrus.ParseLevel(logLevel)
 	if err != nil {
-		logrus.Error("Failed to load log file: %v", err)
+		logrus.Errorf("Failed to parse log level: %v", err)
 		level = logrus.InfoLevel
 	}
 

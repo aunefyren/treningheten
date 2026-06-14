@@ -194,6 +194,9 @@ func GetUser(context *gin.Context) {
 			context.Abort()
 			return
 		}
+
+		// Surface Hevy connection state without ever serializing the key itself
+		userObject.HevyConnected = userObject.HevyAPIKey != nil && *userObject.HevyAPIKey != ""
 	} else {
 		userObject, err = database.GetUserInformation(user_id_int)
 		if err != nil {
@@ -898,6 +901,14 @@ func APIPartialUpdateUser(context *gin.Context) {
 		userObject.StravaPublic = userUpdateRequest.StravaPublic
 	}
 
+	if userUpdateRequest.StravaSkipHevyDuplicates != nil {
+		userObject.StravaSkipHevyDuplicates = userUpdateRequest.StravaSkipHevyDuplicates
+	}
+
+	if userUpdateRequest.HevyPublic != nil {
+		userObject.HevyPublic = userUpdateRequest.HevyPublic
+	}
+
 	// Wheel appearance. An empty value clears the field (reverts to auto-assignment).
 	if userUpdateRequest.WheelColor != nil {
 		color := strings.TrimSpace(*userUpdateRequest.WheelColor)
@@ -1053,6 +1064,8 @@ func APIGetUserActivities(context *gin.Context) {
 				} else {
 					newActivity.StravaIDs = []string{}
 				}
+
+				newActivity.HevyWorkoutID = exercise.HevyWorkoutID
 
 				for _, operation := range exercise.Operations {
 					if operation.Action != nil {

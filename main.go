@@ -178,6 +178,17 @@ func main() {
 		}
 	}
 
+	if files.ConfigFile.HevyEnabled {
+		_, err = taskScheduler.ScheduleWithCron(func(ctx context.Context) {
+			logger.Log.Info("hevy sync task executing")
+			controllers.HevyEventsSyncForAllUsers()
+		}, "0 30 * * * *")
+
+		if err != nil {
+			logger.Log.Info("hevy sync task was not scheduled successfully. error: " + err.Error())
+		}
+	}
+
 	// Initialize Router
 	router := initRouter(files.ConfigFile)
 
@@ -275,7 +286,11 @@ func initRouter(configFile models.ConfigStruct) *gin.Engine {
 
 			auth.GET("/users/:user_id", controllers.GetUser)
 			auth.POST("/users/:user_id/strava", controllers.APISetStravaCode)
+			auth.DELETE("/users/:user_id/strava", controllers.APIDeleteStravaConnection)
 			auth.POST("/users/:user_id/strava-sync", controllers.APISyncStravaForUser)
+			auth.POST("/users/:user_id/hevy", controllers.APISetHevyAPIKey)
+			auth.DELETE("/users/:user_id/hevy", controllers.APIDeleteHevyAPIKey)
+			auth.POST("/users/:user_id/hevy-sync", controllers.APISyncHevyForUser)
 			auth.GET("/users/:user_id/image", controllers.APIGetUserProfileImage)
 			auth.GET("/users", controllers.GetUsers)
 			auth.POST("/users/:user_id", controllers.UpdateUser)
@@ -369,6 +384,7 @@ func initRouter(configFile models.ConfigStruct) *gin.Engine {
 		"timezone":          configFile.Timezone,
 		"stravaRedirectURI": configFile.StravaRedirectURI,
 		"ollamaEnabled":     configFile.Ollama.Enabled,
+		"hevyEnabled":       configFile.HevyEnabled,
 	}
 
 	// endpoint handler building for JS

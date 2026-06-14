@@ -52,6 +52,7 @@ type Exercise struct {
 	ExerciseDayID uuid.UUID      `json:"" gorm:"type:varchar(100);"`
 	ExerciseDay   ExerciseDay    `json:"exercise_day" gorm:"not null"`
 	Time          *time.Time     `json:"time"`
+	HevyWorkoutID *string        `json:"hevy_workout_id" gorm:"default: null"`
 }
 
 type ExerciseUpdateRequest struct {
@@ -70,14 +71,15 @@ type ExerciseCreationRequest struct {
 
 type ExerciseObject struct {
 	GormModel
-	Note        string            `json:"note"`
-	Duration    *time.Duration    `json:"duration"`
-	Enabled     bool              `json:"enabled"`
-	IsOn        bool              `json:"is_on"`
-	ExerciseDay uuid.UUID         `json:"exercise_day"`
-	Operations  []OperationObject `json:"operations"`
-	StravaID    []string          `json:"strava_id"`
-	Time        time.Time         `json:"time"`
+	Note          string            `json:"note"`
+	Duration      *time.Duration    `json:"duration"`
+	Enabled       bool              `json:"enabled"`
+	IsOn          bool              `json:"is_on"`
+	ExerciseDay   uuid.UUID         `json:"exercise_day"`
+	Operations    []OperationObject `json:"operations"`
+	StravaID      []string          `json:"strava_id"`
+	HevyWorkoutID *string           `json:"hevy_workout_id"`
+	Time          time.Time         `json:"time"`
 }
 
 type ExerciseDayCreationRequest struct {
@@ -119,9 +121,10 @@ type WeekResult struct {
 }
 
 type Activity struct {
-	ExerciseID uuid.UUID `json:"id"`
-	User       User      `json:"user"`
-	Time       time.Time `json:"time"`
-	StravaIDs  []string  `json:"strava_ids"`
-	Actions    []Action  `json:"actions"`
+	ExerciseID    uuid.UUID `json:"id"`
+	User          User      `json:"user"`
+	Time          time.Time `json:"time"`
+	StravaIDs     []string  `json:"strava_ids"`
+	HevyWorkoutID *string   `json:"hevy_workout_id"`
+	Actions       []Action  `json:"actions"`
 }

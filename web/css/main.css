@@ -2703,6 +2703,14 @@ label {
   margin: 0.25rem;
 }
 
+.hevy-logo-img {
+  width: 1.5rem;
+  height: 1.5rem;
+  margin: 0.25rem;
+  border-radius: 0.3rem;
+  object-fit: contain;
+}
+
 .account-section {
   display: flex;
   flex-direction: column;
@@ -2731,7 +2739,7 @@ label {
   padding: 0 1rem;
 }
 
-.notifications-wrapper, .settings-wrapper, .strava-wrapper, .mail-notifications-wrapper, .pat-wrapper, .wheel-wrapper {
+.notifications-wrapper, .settings-wrapper, .strava-wrapper, .hevy-wrapper, .mail-notifications-wrapper, .pat-wrapper, .wheel-wrapper {
   display: none;
   flex-direction: column;
   flex-wrap: wrap;

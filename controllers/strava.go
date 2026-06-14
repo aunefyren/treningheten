@@ -16,6 +16,7 @@ import (
 	"github.com/aunefyren/treningheten/database"
 	"github.com/aunefyren/treningheten/files"
 	"github.com/aunefyren/treningheten/logger"
+	"github.com/aunefyren/treningheten/middlewares"
 	"github.com/aunefyren/treningheten/models"
 	"github.com/aunefyren/treningheten/utilities"
 	"github.com/gin-gonic/gin"
@@ -27,6 +28,12 @@ const stravaAPIBaseURL = "https://www.strava.com/api/v3"
 
 // Strava's OAuth token endpoint is NOT under /api/v3.
 const stravaOAuthTokenURL = "https://www.strava.com/oauth/token"
+
+// ErrStravaSessionInvalid signals that Strava rejected the stored credential as
+// permanently invalid (an already-used authorization code or a revoked refresh
+// token), as opposed to a transient failure (rate limiting, 5xx, network). The
+// caller uses this to clear the connection so the user is prompted to reconnect.
+var ErrStravaSessionInvalid = errors.New("Strava session invalid.")
 
 // Strava's default read rate limit is ~100 requests per 15-minute window (plus a
 // daily cap). A flat per-minute ticker can exceed the 15-minute window under load, so
@@ -161,6 +168,9 @@ func StravaAuthorize(code string) (authorization models.StravaAuthorizeRequestRe
 
 	if resp.StatusCode != 200 {
 		logger.Log.Error("Strava authorize returned non-200. Body: " + string(body))
+		if resp.StatusCode == http.StatusBadRequest || resp.StatusCode == http.StatusUnauthorized {
+			return authorization, ErrStravaSessionInvalid
+		}
 		return authorization, errors.New("Strava authorize returned non-200 status: " + resp.Status)
 	}
 
@@ -215,6 +225,9 @@ func StravaReauthorize(code string) (authorization models.StravaReauthorizationR
 
 	if resp.StatusCode != 200 {
 		logger.Log.Error("Strava reauthorize returned non-200. Body: " + string(body))
+		if resp.StatusCode == http.StatusBadRequest || resp.StatusCode == http.StatusUnauthorized {
+			return authorization, ErrStravaSessionInvalid
+		}
 		return authorization, errors.New("Strava reauthorize returned non-200 status: " + resp.Status)
 	}
 
@@ -374,8 +387,14 @@ func StravaGetAuthorizationForUser(user models.User) (token string, err error) {
 		// Fresh one-time authorization code from the OAuth callback.
 		authorization, err := StravaAuthorize(stravaCodeData[1])
 		if err != nil {
-			// Do NOT overwrite the stored code on failure — a transient error or
-			// revoked token must not brick the connection.
+			// A transient error (rate limiting, 5xx, network) must not brick the
+			// connection, so it is left intact. An explicitly invalid session
+			// (already-used code / revoked access) is cleared so the user is
+			// prompted to reconnect on the account page.
+			if errors.Is(err, ErrStravaSessionInvalid) {
+				clearStravaConnection(user.ID)
+				return token, ErrStravaSessionInvalid
+			}
 			logger.Log.Error("Failed to authorize user. ID: " + user.ID.String() + ". Error: " + err.Error())
 			return token, errors.New("Failed to authorize user.")
 		}
@@ -395,6 +414,12 @@ func StravaGetAuthorizationForUser(user models.User) (token string, err error) {
 
 		authorization, err := StravaReauthorize(refreshToken)
 		if err != nil {
+			// Same policy as the "c" branch: clear only on an explicitly invalid
+			// session (revoked / invalid refresh token), keep it on transient errors.
+			if errors.Is(err, ErrStravaSessionInvalid) {
+				clearStravaConnection(user.ID)
+				return token, ErrStravaSessionInvalid
+			}
 			logger.Log.Error("Failed to re-authorize user. ID: " + user.ID.String() + ". Error: " + err.Error())
 			return token, errors.New("Failed to re-authorize user.")
 		}
@@ -437,6 +462,37 @@ func storeStravaRefreshToken(user models.User, refreshToken string) error {
 	return nil
 }
 
+// clearStravaConnection removes the stored Strava credential and athlete id for a
+// user, disconnecting them. Failures are logged but not surfaced — the caller is
+// already returning an error for the failed authorization.
+func clearStravaConnection(userID uuid.UUID) {
+	logger.Log.Warn("Clearing invalid Strava connection for user. ID: " + userID.String())
+	if err := database.ClearStravaConnectionForUser(userID); err != nil {
+		logger.Log.Error("Failed to clear Strava connection. ID: " + userID.String() + ". Error: " + err.Error())
+	}
+}
+
+// APIDeleteStravaConnection disconnects Strava by clearing the stored authorization
+// code / refresh token and athlete id for the requesting user.
+func APIDeleteStravaConnection(context *gin.Context) {
+	userID, err := middlewares.GetAuthUsername(context.GetHeader("Authorization"))
+	if err != nil {
+		logger.Log.Info("Failed to get user ID. Error: " + err.Error())
+		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get user ID."})
+		context.Abort()
+		return
+	}
+
+	if err := database.ClearStravaConnectionForUser(userID); err != nil {
+		logger.Log.Info("Failed to clear Strava connection. Error: " + err.Error())
+		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to disconnect Strava."})
+		context.Abort()
+		return
+	}
+
+	context.JSON(http.StatusOK, gin.H{"message": "Strava disconnected."})
+}
+
 // decryptStravaRefreshToken returns the plaintext refresh token. Values stored before
 // encryption was introduced are plaintext and fail to decrypt — those are returned
 // as-is and get re-encrypted on the next successful exchange.
@@ -464,6 +520,17 @@ func StravaSyncActivityForUser(activity models.StravaGetActivitiesRequestReply, 
 		return nil
 	} else {
 		logger.Log.Trace("Sport type is: " + activity.SportType)
+	}
+
+	// skip activities that duplicate an imported Hevy workout (Hevy wins), when enabled
+	if user.StravaSkipHevyDuplicates != nil && *user.StravaSkipHevyDuplicates {
+		hevyExercise, hevyErr := database.GetHevyExerciseForUserNearTime(user.ID, activity.StartDate, hevyStravaOverlapWindow)
+		if hevyErr != nil {
+			logger.Log.Warn("Failed to check Hevy overlap for Strava activity. Error: " + hevyErr.Error())
+		} else if hevyExercise != nil {
+			logger.Log.Trace("Skipping Strava activity because it overlaps an imported Hevy workout.")
+			return nil
+		}
 	}
 
 	// add Strava ID to user if missing

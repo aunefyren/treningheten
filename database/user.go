@@ -455,12 +455,37 @@ func GetStravaUsersWithinSeason(seasonID uuid.UUID) (users []models.User, err er
 	return
 }
 
+// ClearStravaConnectionForUser disconnects Strava by NULLing the stored credential
+// and athlete id. A map is used (not a struct) so GORM writes the NULLs rather than
+// skipping the zero values.
+func ClearStravaConnectionForUser(userID uuid.UUID) error {
+	record := Instance.Model(&models.User{}).Where("id = ?", userID).Updates(map[string]interface{}{
+		"strava_code": nil,
+		"strava_id":   nil,
+	})
+	return record.Error
+}
+
 func GetStravaUsers() (users []models.User, err error) {
 	err = nil
 	users = []models.User{}
 
 	record := Instance.Where("`users`.enabled = ?", 1).
 		Where("`users`.strava_code IS NOT NULL").
+		Find(&users)
+	if record.Error != nil {
+		return users, record.Error
+	}
+
+	return
+}
+
+func GetHevyUsers() (users []models.User, err error) {
+	err = nil
+	users = []models.User{}
+
+	record := Instance.Where("`users`.enabled = ?", 1).
+		Where("`users`.hevy_api_key IS NOT NULL").
 		Find(&users)
 	if record.Error != nil {
 		return users, record.Error

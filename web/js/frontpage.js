@@ -1507,7 +1507,9 @@ function EditExercise(weekdayInt) {
         }
     };
     xhttp.withCredentials = true;
-    xhttp.open("get", api_url + "auth/exercise-days/week?weekDay=" + weekdayInt);
+    // The front page numbers days Monday=1..Sunday=7, but the API expects Go's
+    // time.Weekday (Sunday=0..Saturday=6). 7 % 7 maps Sunday to 0; 1-6 are unchanged.
+    xhttp.open("get", api_url + "auth/exercise-days/week?weekDay=" + (weekdayInt % 7));
     xhttp.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
     xhttp.setRequestHeader("Authorization", jwt);
     xhttp.send();
@@ -1966,6 +1968,14 @@ function generateActivityHTML(activity) {
                 </img>
             `;
         });
+    }
+
+    // Hevy has no public per-workout URL, so the logo just marks the source.
+    if(activity.hevy_workout_id) {
+        activityStravaHTML += `
+            <img class="hevy-logo-img" src="/assets/hevy.png" title="Imported from Hevy">
+            </img>
+        `;
     }
 
     

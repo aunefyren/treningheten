@@ -53,7 +53,7 @@ function load_page(result) {
                 <p id="join_date" style=""></p>
                 <p id="user_admin" style=""></p>
 
-                <div class="user-links" id="user-links" style="display:none; margin-top: 1em;">
+                <div class="user-links" id="user-links" style="display:none; margin-top: 1em; gap: 0.75em;">
                 </div>
             </div>
 
@@ -221,12 +221,24 @@ function PlaceUserData(user_object) {
 
     if(user_object.strava_id && user_object.strava_public) {
         userLinks = document.getElementById("user-links")
-        
+
         userLinks.style.display = "flex"
 
         userLinks.innerHTML += `
             <div onclick="window.open('https://www.strava.com/athletes/${user_object.strava_id}', '_blank');" class="clickable" style="width: 2em; height: 2em;" title="Strava profile">
                 <img src="/assets/strava-logo.svg" style="" class="">
+            </div>
+        `;
+    }
+
+    if(user_object.hevy_profile_url && user_object.hevy_public) {
+        userLinks = document.getElementById("user-links")
+
+        userLinks.style.display = "flex"
+
+        userLinks.innerHTML += `
+            <div onclick="window.open('${user_object.hevy_profile_url}', '_blank');" class="clickable" style="width: 2em; height: 2em;" title="Hevy profile">
+                <img src="/assets/hevy.png" style="width: 100%; height: 100%; object-fit: contain; border-radius: 0.3rem;" class="">
             </div>
         `;
     }

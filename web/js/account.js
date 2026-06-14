@@ -8,6 +8,7 @@ function load_page(result) {
             var strava_client_id = login_data.strava_client_id;
             var strava_redirect_uri = login_data.strava_redirect_uri;
             var strava_enabled = login_data.strava_enabled;
+            var hevy_enabled = login_data.hevy_enabled;
 
             // Premade variables
             user_id = login_data.data.id
@@ -18,6 +19,7 @@ function load_page(result) {
             strava_client_id = "";
             strava_redirect_uri = "";
             strava_enabled = false;
+            hevy_enabled = false;
 
             user_id = 0
             admin = false
@@ -30,10 +32,11 @@ function load_page(result) {
         strava_client_id = "";
         strava_redirect_uri = "";
         strava_enabled = false;
+        hevy_enabled = false;
 
         user_id = 0
         admin = false
-    }   
+    }
 
     var strava_oauth = `http://www.strava.com/oauth/authorize?client_id=${encodeURI(strava_client_id)}&response_type=code&redirect_uri=${encodeURI(strava_redirect_uri)}&approval_prompt=force&scope=activity:read_all`
 
@@ -169,6 +172,17 @@ function load_page(result) {
                     </div>
                 </div>
 
+                <div class="account-section" style="display: none;" id="hevy-section">
+
+                    <div class="account-section-tab clickable" style="" onclick="toggleSection('hevy-wrapper', 'section-button-hevy')">
+                        <div class="">Hevy</div>
+                        <img id="section-button-hevy" src="assets/chevron-right.svg" class="color-invert" style="margin: 0.5em;">
+                    </div>
+
+                    <div id="hevy-wrapper" class="hevy-wrapper minimized">
+                    </div>
+                </div>
+
                 <div class="account-section" id="wheel-section">
 
                     <div class="account-section-tab clickable" style="" onclick="toggleSection('wheel-wrapper', 'section-button-wheel')">
@@ -217,7 +231,7 @@ function load_page(result) {
 
     if(result !== false) {
         showLoggedInMenu();
-        GetUserData(user_id, strava_oauth, strava_enabled);
+        GetUserData(user_id, strava_oauth, strava_enabled, hevy_enabled);
         GetProfileImage(user_id);
         CheckForSubscription();
         renderPATSection(admin);
@@ -411,7 +425,7 @@ function PlaceProfileImage(imageBase64) {
 
 }
 
-function GetUserData(userID, stravaOauth, stravaEnabled) {
+function GetUserData(userID, stravaOauth, stravaEnabled, hevyEnabled) {
 
     var xhttp = new XMLHttpRequest();
     xhttp.onreadystatechange = function() {
@@ -431,7 +445,7 @@ function GetUserData(userID, stravaOauth, stravaEnabled) {
 
             } else {
 
-                PlaceUserData(result.user, stravaOauth, stravaEnabled)
+                PlaceUserData(result.user, stravaOauth, stravaEnabled, hevyEnabled)
                 
             }
 
@@ -449,7 +463,7 @@ function GetUserData(userID, stravaOauth, stravaEnabled) {
 
 }
 
-function PlaceUserData(user_object, stravaOauth, stravaEnabled) {
+function PlaceUserData(user_object, stravaOauth, stravaEnabled, hevyEnabled) {
 
     document.getElementById("user_name").innerHTML = user_object.first_name + " " + user_object.last_name
     document.getElementById("email").value = user_object.email
@@ -491,55 +505,166 @@ function PlaceUserData(user_object, stravaOauth, stravaEnabled) {
     }
 
     if(stravaEnabled) {
-        var stravaHTML = `
-            <p style="width: 100%; text-align: center;">
-                Strava exercises sync automatically every hour. Be careful to only log your sessions to either Strava or {{.appName}}.
-            </p>
+        // Promote to globals so the section can be re-rendered after disconnect
+        // without re-fetching server config.
+        stravaOauthURL = stravaOauth;
+        stravaHevyEnabled = hevyEnabled;
+        renderStravaSection(user_object);
+    }
 
-            <button onclick="window.location.href='${stravaOauth}';" class="" style="width: 10em;" type="submit" href="">Connect Strava</button>
-        `;
+    if(hevyEnabled) {
+        renderHevySection(user_object);
+    }
 
-        if(user_object.strava_code && user_object.strava_code != "") {
-            walksHTML = "";
-            padelHTML = "";
-            publicHTML = "";
+    renderWheelSection(user_object);
+}
 
-            if(user_object.strava_walks) {
-                walksHTML = "checked"
-            }
-            if(user_object.strava_public) {
-                publicHTML = "checked"
-            }
+function renderStravaSection(user_object) {
+    var stravaOauth = stravaOauthURL;
+    var hevyEnabled = stravaHevyEnabled;
 
-            stravaHTML = `
-                <p style="width: 100%; text-align: center;">
-                    Strava exercises sync automatically every hour. Be careful to only log your sessions to either Strava or {{.appName}}.
-                </p>
+    var stravaHTML = `
+        <p style="width: 100%; text-align: center;">
+            Strava exercises sync automatically every hour. Be careful to only log your sessions to either Strava or {{.appName}}.
+        </p>
 
-                <div class="notification-options" id="" style="">
-                    <button onclick="window.location.href='${stravaOauth}';" class="" style="width: 12em;" type="submit" href="">Connect Strava again</button>
-                    <button onclick="syncStrava('${user_object.id}');" class="" style="width: 12em;" type="submit" href="">Sync Strava now</button>
-                </div>
+        <button onclick="window.location.href='${stravaOauth}';" class="" style="width: 10em;" type="submit" href="">Connect Strava</button>
+    `;
 
-                <div class="notification-options" id="" style="">
-                    <div class="strava-option" id="" style="">
-                        <input style="" class="clickable" type="checkbox" id="strava_walks" name="strava_walks" value="" onchange="updateAccountValue('strava_walks');" ${walksHTML}>
-                        <label for="strava_walks" style="margin: 0;" class="clickable">Ignore walks</label><br>
-                    </div>
+    if(user_object.strava_code && user_object.strava_code != "") {
+        var walksHTML = user_object.strava_walks ? "checked" : "";
+        var publicHTML = user_object.strava_public ? "checked" : "";
 
-                    <div class="strava-option" id="" style="">
-                        <input style="" class="clickable" type="checkbox" id="strava_public" name="strava_public" value="" onchange="updateAccountValue('strava_public');" ${publicHTML}>
-                        <label for="strava_public" style="margin: 0;" class="clickable">Show my Strava on my profile</label><br>
-                    </div>
+        // Only relevant when Hevy is available on this server.
+        var skipHevyOption = "";
+        if(hevyEnabled) {
+            var skipHevyHTML = user_object.strava_skip_hevy ? "checked" : "";
+            skipHevyOption = `
+                <div class="strava-option" id="" style="">
+                    <input style="" class="clickable" type="checkbox" id="strava_skip_hevy" name="strava_skip_hevy" value="" onchange="updateAccountValue('strava_skip_hevy');" ${skipHevyHTML}>
+                    <label for="strava_skip_hevy" style="margin: 0;" class="clickable">Skip Strava activities already in Hevy</label><br>
                 </div>
             `;
         }
 
-        document.getElementById("strava-wrapper").innerHTML = stravaHTML
-        document.getElementById('strava-section').style.display = 'flex'
+        stravaHTML = `
+            <p style="width: 100%; text-align: center;">
+                Strava is connected. Exercises sync automatically every hour. Be careful to only log your sessions to either Strava or {{.appName}}.
+            </p>
+
+            <div class="notification-options" id="" style="">
+                <button onclick="syncStrava('${user_object.id}');" class="" style="width: 12em;" type="submit" href="">Sync Strava now</button>
+                <button onclick="disconnectStrava('${user_object.id}');" class="danger-button" style="width: 12em;" type="submit" href="">Disconnect Strava</button>
+            </div>
+
+            <div class="notification-options" id="" style="">
+                <div class="strava-option" id="" style="">
+                    <input style="" class="clickable" type="checkbox" id="strava_walks" name="strava_walks" value="" onchange="updateAccountValue('strava_walks');" ${walksHTML}>
+                    <label for="strava_walks" style="margin: 0;" class="clickable">Ignore walks</label><br>
+                </div>
+
+                <div class="strava-option" id="" style="">
+                    <input style="" class="clickable" type="checkbox" id="strava_public" name="strava_public" value="" onchange="updateAccountValue('strava_public');" ${publicHTML}>
+                    <label for="strava_public" style="margin: 0;" class="clickable">Show my Strava on my profile</label><br>
+                </div>
+
+                ${skipHevyOption}
+            </div>
+        `;
     }
 
-    renderWheelSection(user_object);
+    document.getElementById("strava-wrapper").innerHTML = stravaHTML
+    document.getElementById('strava-section').style.display = 'flex'
+}
+
+// Re-fetch the user and re-render only the Strava section (used after disconnect
+// so the rest of the page is left untouched).
+function refreshStravaSection(user_id) {
+    var xhttp = new XMLHttpRequest();
+    xhttp.onreadystatechange = function() {
+        if (this.readyState == 4) {
+            try {
+                result = JSON.parse(this.responseText);
+            } catch(e) {
+                console.log(e +' - Response: ' + this.responseText);
+                return;
+            }
+            if(!result.error && result.user) {
+                renderStravaSection(result.user);
+            }
+        }
+    };
+    xhttp.withCredentials = true;
+    xhttp.open("get", api_url + "auth/users/" + user_id);
+    xhttp.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
+    xhttp.setRequestHeader("Authorization", jwt);
+    xhttp.send();
+    return;
+}
+
+function renderHevySection(user_object) {
+    var hevyHTML = `
+        <p style="width: 100%; text-align: center;">
+            Connect Hevy to sync your workouts automatically. Your Hevy API key is found under Settings in the Hevy app and requires a Hevy PRO subscription.
+        </p>
+
+        <div class="notification-options" id="" style="">
+            <input id="hevy_api_key" type="password" placeholder="Hevy API key" autocomplete="off" style="width: 16em;">
+            <button onclick="setHevy('${user_object.id}');" class="" style="width: 12em;" type="submit" href="">Connect Hevy</button>
+        </div>
+    `;
+
+    if(user_object.hevy_connected) {
+        var hevyPublicHTML = user_object.hevy_public ? "checked" : "";
+
+        hevyHTML = `
+            <p style="width: 100%; text-align: center;">
+                Hevy is connected. Workouts sync automatically. Be careful to only log your sessions to either Hevy or {{.appName}}.
+            </p>
+
+            <div class="notification-options" id="" style="">
+                <input id="hevy_api_key" type="password" placeholder="Replace Hevy API key" autocomplete="off" style="width: 16em;">
+                <button onclick="setHevy('${user_object.id}');" class="" style="width: 12em;" type="submit" href="">Update key</button>
+                <button onclick="syncHevy('${user_object.id}');" class="" style="width: 12em;" type="submit" href="">Sync Hevy now</button>
+                <button onclick="disconnectHevy('${user_object.id}');" class="danger-button" style="width: 12em;" type="submit" href="">Disconnect Hevy</button>
+            </div>
+
+            <div class="notification-options" id="" style="">
+                <div class="strava-option" id="" style="">
+                    <input style="" class="clickable" type="checkbox" id="hevy_public" name="hevy_public" value="" onchange="updateAccountValue('hevy_public');" ${hevyPublicHTML}>
+                    <label for="hevy_public" style="margin: 0;" class="clickable">Show my Hevy on my profile</label><br>
+                </div>
+            </div>
+        `;
+    }
+
+    document.getElementById("hevy-wrapper").innerHTML = hevyHTML
+    document.getElementById('hevy-section').style.display = 'flex'
+}
+
+// Re-fetch the user and re-render only the Hevy section (used after connect/disconnect
+// so the rest of the page is left untouched).
+function refreshHevySection(user_id) {
+    var xhttp = new XMLHttpRequest();
+    xhttp.onreadystatechange = function() {
+        if (this.readyState == 4) {
+            try {
+                result = JSON.parse(this.responseText);
+            } catch(e) {
+                console.log(e +' - Response: ' + this.responseText);
+                return;
+            }
+            if(!result.error && result.user) {
+                renderHevySection(result.user);
+            }
+        }
+    };
+    xhttp.withCredentials = true;
+    xhttp.open("get", api_url + "auth/users/" + user_id);
+    xhttp.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
+    xhttp.setRequestHeader("Authorization", jwt);
+    xhttp.send();
+    return;
 }
 
 function leave_season() {
@@ -581,6 +706,131 @@ function syncStrava(user_id) {
     };
     xhttp.withCredentials = true;
     xhttp.open("post", api_url + "auth/users/" + user_id + "/strava-sync");
+    xhttp.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
+    xhttp.setRequestHeader("Authorization", jwt);
+    xhttp.send();
+    return false;
+}
+
+function setHevy(user_id) {
+    var apiKey = document.getElementById("hevy_api_key").value.trim();
+    if(apiKey == "") {
+        error("Please enter your Hevy API key.");
+        return false;
+    }
+
+    var xhttp = new XMLHttpRequest();
+    xhttp.onreadystatechange = function() {
+        if (this.readyState == 4) {
+            try {
+                result = JSON.parse(this.responseText);
+            } catch(e) {
+                console.log(e +' - Response: ' + this.responseText);
+                error("Could not reach API.");
+                return;
+            }
+
+            if(result.error) {
+                error(result.error);
+            } else {
+                success(result.message);
+                refreshHevySection(user_id);
+            }
+        } else {
+            info("Connecting...");
+        }
+    };
+    xhttp.withCredentials = true;
+    xhttp.open("post", api_url + "auth/users/" + user_id + "/hevy");
+    xhttp.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
+    xhttp.setRequestHeader("Authorization", jwt);
+    xhttp.send(JSON.stringify({ hevy_api_key: apiKey }));
+    return false;
+}
+
+function disconnectStrava(user_id) {
+    var xhttp = new XMLHttpRequest();
+    xhttp.onreadystatechange = function() {
+        if (this.readyState == 4) {
+            try {
+                result = JSON.parse(this.responseText);
+            } catch(e) {
+                console.log(e +' - Response: ' + this.responseText);
+                error("Could not reach API.");
+                return;
+            }
+
+            if(result.error) {
+                error(result.error);
+            } else {
+                success(result.message);
+                refreshStravaSection(user_id);
+            }
+        } else {
+            info("Disconnecting...");
+        }
+    };
+    xhttp.withCredentials = true;
+    xhttp.open("delete", api_url + "auth/users/" + user_id + "/strava");
+    xhttp.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
+    xhttp.setRequestHeader("Authorization", jwt);
+    xhttp.send();
+    return false;
+}
+
+function disconnectHevy(user_id) {
+    var xhttp = new XMLHttpRequest();
+    xhttp.onreadystatechange = function() {
+        if (this.readyState == 4) {
+            try {
+                result = JSON.parse(this.responseText);
+            } catch(e) {
+                console.log(e +' - Response: ' + this.responseText);
+                error("Could not reach API.");
+                return;
+            }
+
+            if(result.error) {
+                error(result.error);
+            } else {
+                success(result.message);
+                refreshHevySection(user_id);
+            }
+        } else {
+            info("Disconnecting...");
+        }
+    };
+    xhttp.withCredentials = true;
+    xhttp.open("delete", api_url + "auth/users/" + user_id + "/hevy");
+    xhttp.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
+    xhttp.setRequestHeader("Authorization", jwt);
+    xhttp.send();
+    return false;
+}
+
+function syncHevy(user_id) {
+    var xhttp = new XMLHttpRequest();
+    xhttp.onreadystatechange = function() {
+        if (this.readyState == 4) {
+            try {
+                result = JSON.parse(this.responseText);
+            } catch(e) {
+                console.log(e +' - Response: ' + this.responseText);
+                error("Could not reach API.");
+                return;
+            }
+
+            if(result.error) {
+                error(result.error);
+            } else {
+                success(result.message);
+            }
+        } else {
+            info("Syncing...");
+        }
+    };
+    xhttp.withCredentials = true;
+    xhttp.open("post", api_url + "auth/users/" + user_id + "/hevy-sync");
     xhttp.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
     xhttp.setRequestHeader("Authorization", jwt);
     xhttp.send();

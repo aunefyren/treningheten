@@ -128,6 +128,17 @@ func LoadConfig() (err error) {
 		fmt.Println("new Strava token key set")
 	}
 
+	if ConfigFile.HevyTokenKey == "" {
+		// 32 bytes for AES-256-GCM encryption of stored Hevy API keys
+		newKey, err := GenerateSecureKey(32)
+		if err != nil {
+			return errors.New("failed to generate Hevy token key. error: " + err.Error())
+		}
+		ConfigFile.HevyTokenKey = newKey
+		anythingChanged = true
+		fmt.Println("new Hevy token key set")
+	}
+
 	if ConfigFile.TreninghetenLogLevel == "" {
 		level := logrus.InfoLevel
 		ConfigFile.TreninghetenLogLevel = level.String()

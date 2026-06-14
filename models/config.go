@@ -33,6 +33,8 @@ type ConfigStruct struct {
 	StravaClientSecret      string         `json:"strava_client_secret"`
 	StravaRedirectURI       string         `json:"strava_redirect_uri"`
 	StravaTokenKey          string         `json:"strava_token_key"`
+	HevyEnabled             bool           `json:"hevy_enabled"`
+	HevyTokenKey            string         `json:"hevy_token_key"`
 	Ollama                  OllamaSettings `json:"ollama"`
 }
 

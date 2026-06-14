@@ -42,6 +42,9 @@ func APIGetServerInfo(context *gin.Context) {
 			Configured:  config.StravaClientID != "" && config.StravaClientSecret != "",
 			RedirectURI: config.StravaRedirectURI,
 		},
+		Hevy: models.ServerInfoHevy{
+			Enabled: config.HevyEnabled,
+		},
 		AI: models.ServerInfoAI{
 			Enabled:   config.Ollama.Enabled,
 			URL:       config.Ollama.URL,

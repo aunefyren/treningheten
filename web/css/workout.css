@@ -183,6 +183,8 @@
 }
 .wv-source img { height: 0.8rem; width: auto; }
 .wv-source-strava { color: var(--wv-strava); border-color: rgba(252, 76, 2, 0.4); }
+.wv-source-hevy { color: var(--wv-ink); border-color: rgba(255, 255, 255, 0.25); }
+.wv-source-hevy img { border-radius: 0.2rem; }
 .wv-source-manual { color: var(--wv-ink-dim); }
 
 .wv-description {

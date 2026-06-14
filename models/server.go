@@ -14,6 +14,7 @@ type ServerInfoReply struct {
 	Database ServerInfoDatabase `json:"database"`
 	SMTP     ServerInfoSMTP     `json:"smtp"`
 	Strava   ServerInfoStrava   `json:"strava"`
+	Hevy     ServerInfoHevy     `json:"hevy"`
 	AI       ServerInfoAI       `json:"ai"`
 	Push     ServerInfoPush     `json:"push"`
 }
@@ -38,6 +39,10 @@ type ServerInfoStrava struct {
 	Enabled     bool   `json:"enabled"`
 	Configured  bool   `json:"configured"`
 	RedirectURI string `json:"redirect_uri,omitempty"`
+}
+
+type ServerInfoHevy struct {
+	Enabled bool `json:"enabled"`
 }
 
 type ServerInfoAI struct {

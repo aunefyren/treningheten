@@ -974,6 +974,7 @@ func ConvertExerciseToExerciseObject(exercise models.Exercise) (exerciseObject m
 	exerciseObject.IsOn = exercise.IsOn
 	exerciseObject.UpdatedAt = exercise.UpdatedAt
 	exerciseObject.Duration = exercise.Duration
+	exerciseObject.HevyWorkoutID = exercise.HevyWorkoutID
 
 	return
 }

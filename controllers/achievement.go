@@ -436,7 +436,7 @@ func ValidateAchievements() error {
 
 	stravaAchievement := models.Achievement{
 		Name:          "Influencer",
-		Description:   "Add a Strava connection to Treningheten.",
+		Description:   "Connect Strava or Hevy to Treningheten.",
 		Category:      "Default",
 		CategoryColor: "lightblue",
 	}

@@ -2,6 +2,7 @@ package database
 
 import (
 	"errors"
+	"time"
 
 	"github.com/aunefyren/treningheten/models"
 
@@ -191,6 +192,97 @@ func GetExerciseForUserWithStravaID(userID uuid.UUID, stravaID string) (exercise
 	}
 
 	return exercise, err
+}
+
+// GetExerciseForUserWithHevyWorkoutID finds the exercise a Hevy workout was imported
+// into. The Hevy workout id is stored directly on the exercise, so this only scopes to
+// the user via the exercise day (no operation/set joins like the Strava lookup needs).
+func GetExerciseForUserWithHevyWorkoutID(userID uuid.UUID, hevyWorkoutID string) (exercise *models.Exercise, err error) {
+	exercise = nil
+	err = nil
+
+	exerciseRecord := Instance.Model(exercise).
+		Where("`exercises`.enabled = ?", 1).
+		Where("`exercises`.hevy_workout_id = ?", hevyWorkoutID).
+		Joins("JOIN `exercise_days` on `exercises`.exercise_day_id = `exercise_days`.id").
+		Where("`exercise_days`.enabled = ?", 1).
+		Where("`exercise_days`.user_id = ?", userID).
+		Find(&exercise)
+
+	if exerciseRecord.Error != nil {
+		return exercise, exerciseRecord.Error
+	} else if exerciseRecord.RowsAffected != 1 {
+		return nil, err
+	}
+
+	return exercise, err
+}
+
+// GetHevyExerciseForUserNearTime returns an enabled Hevy-imported exercise whose start
+// time falls within ±window of start, for the given user (used to skip a Strava activity
+// that duplicates a Hevy workout). Returns nil when there is no match.
+func GetHevyExerciseForUserNearTime(userID uuid.UUID, start time.Time, window time.Duration) (*models.Exercise, error) {
+	var exercises []models.Exercise
+
+	lower := start.Add(-window).UTC().Format("2006-01-02 15:04:05")
+	upper := start.Add(window).UTC().Format("2006-01-02 15:04:05")
+
+	record := Instance.
+		Where("`exercises`.enabled = ?", 1).
+		Where("`exercises`.hevy_workout_id IS NOT NULL").
+		Where("`exercises`.`time` >= ?", lower).
+		Where("`exercises`.`time` <= ?", upper).
+		Joins("JOIN `exercise_days` on `exercises`.exercise_day_id = `exercise_days`.id").
+		Where("`exercise_days`.enabled = ?", 1).
+		Where("`exercise_days`.user_id = ?", userID).
+		Order("`exercises`.`time` ASC").
+		Limit(1).
+		Find(&exercises)
+
+	if record.Error != nil {
+		return nil, record.Error
+	} else if len(exercises) == 0 {
+		return nil, nil
+	}
+
+	return &exercises[0], nil
+}
+
+// GetStravaExerciseForUserNearTime returns an enabled Strava-sourced exercise (one with a
+// set carrying a Strava id, and not itself a Hevy import) whose start time falls within
+// ±window of start, for the given user (used so a Hevy workout can supersede an
+// already-imported Strava duplicate). Returns nil when there is no match.
+func GetStravaExerciseForUserNearTime(userID uuid.UUID, start time.Time, window time.Duration) (*models.Exercise, error) {
+	var exercises []models.Exercise
+
+	lower := start.Add(-window).UTC().Format("2006-01-02 15:04:05")
+	upper := start.Add(window).UTC().Format("2006-01-02 15:04:05")
+
+	record := Instance.
+		Where("`exercises`.enabled = ?", 1).
+		Where("`exercises`.hevy_workout_id IS NULL").
+		Where("`exercises`.`time` >= ?", lower).
+		Where("`exercises`.`time` <= ?", upper).
+		Joins("JOIN `operations` on `operations`.exercise_id = `exercises`.id").
+		Where("`operations`.enabled = ?", 1).
+		Joins("JOIN `operation_sets` on `operation_sets`.operation_id = `operations`.id").
+		Where("`operation_sets`.enabled = ?", 1).
+		Where("`operation_sets`.strava_id IS NOT NULL").
+		Joins("JOIN `exercise_days` on `exercises`.exercise_day_id = `exercise_days`.id").
+		Where("`exercise_days`.enabled = ?", 1).
+		Where("`exercise_days`.user_id = ?", userID).
+		Group("`exercises`.id").
+		Order("`exercises`.`time` ASC").
+		Limit(1).
+		Find(&exercises)
+
+	if record.Error != nil {
+		return nil, record.Error
+	} else if len(exercises) == 0 {
+		return nil, nil
+	}
+
+	return &exercises[0], nil
 }
 
 // Return exercise days where there are exercises that are enabled, is on, for a user

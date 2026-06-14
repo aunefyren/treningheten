@@ -265,6 +265,23 @@ func GetActionByStravaName(stravaName string) (action *models.Action, err error)
 	return
 }
 
+func GetActionByHevyTemplateID(hevyTemplateID string) (action *models.Action, err error) {
+	action = nil
+	err = nil
+
+	record := Instance.Where("`actions`.enabled = ?", 1).
+		Where("`actions`.hevy_template_id = ?", hevyTemplateID).
+		Find(&action)
+
+	if record.Error != nil {
+		return action, record.Error
+	} else if record.RowsAffected != 1 {
+		return nil, err
+	}
+
+	return
+}
+
 func GetOperationByStravaIDAndUserIDAndExerciseID(userID uuid.UUID, stravaID int, exerciseID uuid.UUID) (operation *models.Operation, err error) {
 	operation = nil
 	err = nil

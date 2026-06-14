@@ -27,3 +27,5 @@ architecture overview.
   clients).
 - [strava.md](strava.md) — Strava integration: OAuth connect, the token-lifecycle
   scheme, hourly sync, rate limiting, and activity-to-exercise conversion.
+- [hevy.md](hevy.md) — Hevy integration: per-user API-key auth (no OAuth), account
+  setup/validation, and the planned workout sync + exercise mapping (WIP).

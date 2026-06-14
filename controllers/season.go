@@ -1067,6 +1067,8 @@ func APIGetCurrentSeasonActivities(context *gin.Context) {
 					newActivity.StravaIDs = []string{}
 				}
 
+				newActivity.HevyWorkoutID = exercise.HevyWorkoutID
+
 				if len(exercise.Operations) > 0 {
 					for _, operation := range exercise.Operations {
 						if operation.Action != nil {

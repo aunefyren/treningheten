@@ -320,9 +320,9 @@ function renderSessionActionRow(exercise, count) {
 // Dispatch one activity to the right sub-card by its type.
 function renderActivitySubCard(operation, exercise) {
     if (operation.type === 'lifting') {
-        return renderStrengthSubCard(operation);
+        return renderStrengthSubCard(operation, exercise);
     } else if (operation.type === 'timing') {
-        return renderTimeSubCard(operation);
+        return renderTimeSubCard(operation, exercise);
     }
     return renderCardioSubCard(operation, exercise);
 }
@@ -342,14 +342,20 @@ function activityTitle(operation) {
     return operation.type === 'lifting' ? 'Strength' : operation.type === 'timing' ? 'Activity' : 'Cardio';
 }
 
-// Generic provider badge — derived client-side for now (Strava if a strava id is
-// present, else manual). This is the single place to swap when the backend grows
-// a real `source` object, keeping the card provider-agnostic for HEVY etc.
-function sourceBadge(operation, stravaID) {
+// Generic provider badge — derived client-side from the available ids (Strava if a strava
+// id is present, Hevy if the parent exercise was imported from Hevy, else manual). This is
+// the single place to swap when the backend grows a real `source` object.
+function sourceBadge(operation, stravaID, exercise) {
     if (stravaID) {
         return `<a class="wv-source wv-source-strava" href="https://www.strava.com/activities/${stravaID}" target="_blank" title="View on Strava">
             <img src="/assets/strava-logo.svg" alt=""><span>Strava</span>
         </a>`;
+    }
+    // Hevy has no public per-workout URL, so this is a non-link source marker.
+    if (exercise && exercise.hevy_workout_id) {
+        return `<span class="wv-source wv-source-hevy" title="Imported from Hevy">
+            <img src="/assets/hevy.png" alt=""><span>Hevy</span>
+        </span>`;
     }
     return `<span class="wv-source wv-source-manual">Manual</span>`;
 }
@@ -439,7 +445,7 @@ function renderCardioSubCard(operation, exercise) {
         <div class="wv-activity wv-activity-cardio">
             <div class="wv-activity-head">
                 <div class="wv-activity-title">${activityActionIcon(operation)}<span>${escapeHTML(activityTitle(operation))}</span></div>
-                <div class="wv-activity-head-actions">${syncHTML}${sourceBadge(operation, stravaID)}</div>
+                <div class="wv-activity-head-actions">${syncHTML}${sourceBadge(operation, stravaID, exercise)}</div>
             </div>
             ${generateTagChipsHTML(operation.tags)}
             ${activityDescriptionHTML(operation)}
@@ -456,7 +462,7 @@ function renderCardioSubCard(operation, exercise) {
     `;
 }
 
-function renderStrengthSubCard(operation) {
+function renderStrengthSubCard(operation, exercise) {
     const sets = operation.operation_sets || [];
     var totalReps = 0, volume = 0, hasVolume = false, stravaID = null;
     const setChips = sets.map(s => {
@@ -481,7 +487,7 @@ function renderStrengthSubCard(operation) {
         <div class="wv-activity wv-activity-strength">
             <div class="wv-activity-head">
                 <div class="wv-activity-title">${activityActionIcon(operation)}<span>${escapeHTML(activityTitle(operation))}</span></div>
-                ${sourceBadge(operation, stravaID)}
+                ${sourceBadge(operation, stravaID, exercise)}
             </div>
             ${generateTagChipsHTML(operation.tags)}
             ${activityDescriptionHTML(operation)}
@@ -491,7 +497,7 @@ function renderStrengthSubCard(operation) {
     `;
 }
 
-function renderTimeSubCard(operation) {
+function renderTimeSubCard(operation, exercise) {
     const sets = operation.operation_sets || [];
     var secs = 0, stravaID = null;
     sets.forEach(s => {
@@ -506,7 +512,7 @@ function renderTimeSubCard(operation) {
         <div class="wv-activity wv-activity-time">
             <div class="wv-activity-head">
                 <div class="wv-activity-title">${activityActionIcon(operation)}<span>${escapeHTML(activityTitle(operation))}</span></div>
-                ${sourceBadge(operation, stravaID)}
+                ${sourceBadge(operation, stravaID, exercise)}
             </div>
             ${generateTagChipsHTML(operation.tags)}
             ${activityDescriptionHTML(operation)}
