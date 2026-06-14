@@ -429,11 +429,11 @@ func RetrieveWeekResultsFromSeasonWithinTimeframe(firstPointInTime time.Time, la
 	}
 
 	// Remove weeks from before selected starting point
-	logger.Log.Info("Removing weeks outside of given time frame.")
+	logger.Log.Debug("Removing weeks outside of given time frame.")
 	newWeeksResults := []models.WeekResults{}
 	for _, weeksResult := range weeksResults {
 		if weeksResult.WeekDate.Before(firstPointInTime) || weeksResult.WeekDate.After(lastPointInTime) {
-			logger.Log.Info("Removing week: " + weeksResult.WeekDate.String())
+			logger.Log.Trace("Removing week: " + weeksResult.WeekDate.String())
 			continue
 		}
 
