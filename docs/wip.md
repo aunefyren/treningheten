@@ -1,6 +1,6 @@
 # Work in progress
 
-## Determined plans
+## Plans & Ideas
 
 ### More workout tags
 Ideas for tags:
@@ -21,14 +21,6 @@ Must be season specific setting
 Option to allow how many workouts carry over, how long they can exist before they decay
 Must be user friendly and understandable in the UI
 
-### Admin panel stats
-Examples:
-- How many % of active users are in seasons now
-- How many % of active users have notifications enabled
-- How many % of active users have a Strava integration enabled
-- How many users exist
-- How many % of achievements to active users have
-
 ### Front page activities, add partner
 - Allow a person to tag their partner/group on their exercise session within builder
 - Show as activity together on season activity post if both have joined season
@@ -44,6 +36,18 @@ Examples:
 
 ### Delete account button is not working
 - What gets left behind? Do seasons you joined still show you? Show 'Deleted user'?
+
+### best effort system
+- Manual programming per activity?
+- "fastest 5K"...
+- Must be calculated at save or during runtime?
+- Notification integration for PR?
+- PRs for reps and weight on strength exercises?
+- Time based best efforts? During this season? During this year?
+
+## AI Ollama feedback on exercises?
+- How to avoid spamming the LMM
+- Little model, can the feedback be decent?
 
 ## Problems
 

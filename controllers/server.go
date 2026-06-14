@@ -45,6 +45,9 @@ func APIGetServerInfo(context *gin.Context) {
 		Hevy: models.ServerInfoHevy{
 			Enabled: config.HevyEnabled,
 		},
+		MCP: models.ServerInfoMCP{
+			Enabled: config.MCPEnabled != nil && *config.MCPEnabled,
+		},
 		AI: models.ServerInfoAI{
 			Enabled:   config.Ollama.Enabled,
 			URL:       config.Ollama.URL,

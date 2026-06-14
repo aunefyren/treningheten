@@ -15,6 +15,7 @@ type ServerInfoReply struct {
 	SMTP     ServerInfoSMTP     `json:"smtp"`
 	Strava   ServerInfoStrava   `json:"strava"`
 	Hevy     ServerInfoHevy     `json:"hevy"`
+	MCP      ServerInfoMCP      `json:"mcp"`
 	AI       ServerInfoAI       `json:"ai"`
 	Push     ServerInfoPush     `json:"push"`
 }
@@ -42,6 +43,10 @@ type ServerInfoStrava struct {
 }
 
 type ServerInfoHevy struct {
+	Enabled bool `json:"enabled"`
+}
+
+type ServerInfoMCP struct {
 	Enabled bool `json:"enabled"`
 }
 

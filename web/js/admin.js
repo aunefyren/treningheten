@@ -26,6 +26,15 @@ function load_page(result) {
 
                     </div>
 
+                    <div class="server-info-module" id="stats-module">
+
+                        <div class="server-info" id="admin-stats">
+                            <h3 id="admin-stats-title">Statistics</h3>
+                            <p class="server-info-loading">Loading...</p>
+                        </div>
+
+                    </div>
+
                     <div class="invitation-module" id="invitation-module">
 
                         <div class="invites" id="invites">
@@ -148,6 +157,7 @@ function load_page(result) {
             error("You are not an admin.")
         } else {
             get_server_info();
+            get_admin_stats();
             get_invites();
             get_prizes();
         }
@@ -213,6 +223,8 @@ function place_server_info(server_info) {
     var db = s.database || {};
     var smtp = s.smtp || {};
     var strava = s.strava || {};
+    var hevy = s.hevy || {};
+    var mcp = s.mcp || {};
     var ai = s.ai || {};
     var push = s.push || {};
 
@@ -260,6 +272,14 @@ function place_server_info(server_info) {
             </div>
 
             <div class="info-section">
+                <div class="info-section-head">Hevy ` + server_info_badge(hevy.enabled) + `</div>
+            </div>
+
+            <div class="info-section">
+                <div class="info-section-head">MCP server ` + server_info_badge(mcp.enabled) + `</div>
+            </div>
+
+            <div class="info-section">
                 <div class="info-section-head">AI (Ollama) ` + server_info_badge(ai.enabled) + `</div>
                 ` + server_info_row("URL", ai.url) + `
                 ` + server_info_row("Model", ai.model) + `
@@ -275,6 +295,79 @@ function place_server_info(server_info) {
     `;
 
     document.getElementById('server-info').innerHTML = html;
+}
+
+function get_admin_stats() {
+
+    var xhttp = new XMLHttpRequest();
+    xhttp.onreadystatechange = function() {
+        if (this.readyState == 4) {
+
+            try {
+                result = JSON.parse(this.responseText);
+            } catch(e) {
+                console.log(e +' - Response: ' + this.responseText);
+                error("Could not reach API.");
+                return;
+            }
+
+            if(result.error) {
+
+                error(result.error);
+
+            } else {
+
+                place_admin_stats(result.stats)
+
+            }
+
+        }
+    };
+    xhttp.withCredentials = true;
+    xhttp.open("get", api_url + "admin/stats");
+    xhttp.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
+    xhttp.setRequestHeader("Authorization", jwt);
+    xhttp.send();
+    return false;
+
+}
+
+function admin_stats_metric(key, count, total, pct) {
+    var value = count;
+    if(total !== undefined && total !== null) {
+        value += " / " + total;
+    }
+    if(pct !== undefined && pct !== null) {
+        value += ` <span class="info-badge info-badge--neutral">` + pct + `%</span>`;
+    }
+    return server_info_row(key, value);
+}
+
+function place_admin_stats(stats) {
+    var s = stats || {};
+
+    var html = `
+        <h3 id="admin-stats-title">Statistics</h3>
+        <div class="info-sections">
+
+            <div class="info-section">
+                <div class="info-section-head">Users</div>
+                ` + server_info_row("Total users", s.total_users) + `
+                ` + admin_stats_metric("In a season now", s.users_in_season_now, s.total_users, s.users_in_season_now_pct) + `
+                ` + admin_stats_metric("Notifications enabled", s.users_with_notifications, s.total_users, s.users_with_notifications_pct) + `
+                ` + admin_stats_metric("Strava connected", s.users_with_strava, s.total_users, s.users_with_strava_pct) + `
+            </div>
+
+            <div class="info-section">
+                <div class="info-section-head">Achievements</div>
+                ` + server_info_row("Total achievements", s.achievements_total) + `
+                ` + server_info_row("Avg. completion", `<span class="info-badge info-badge--neutral">` + s.avg_achievement_completion_pct + `%</span>`) + `
+            </div>
+
+        </div>
+    `;
+
+    document.getElementById('admin-stats').innerHTML = html;
 }
 
 function get_invites() {

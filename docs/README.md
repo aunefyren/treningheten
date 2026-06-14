@@ -18,6 +18,8 @@ architecture overview.
   distinct/stable color assignment.
 - [heatmap.md](heatmap.md) — private per-user GPS activity heatmap on `/statistics`
   (Leaflet + Leaflet.heat over stored Strava `latlng` streams).
+- [admin-stats.md](admin-stats.md) — aggregate usage statistics on the admin panel
+  (users in seasons / with notifications / with Strava, achievement completion).
 
 ## Auth & integrations
 

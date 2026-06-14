@@ -4,7 +4,7 @@
 [![Docker Pulls](https://img.shields.io/docker/pulls/aunefyren/treningheten?style=for-the-badge)](https://hub.docker.com/r/aunefyren/treningheten)
 [![Newest Release](https://img.shields.io/github/v/release/aunefyren/treningheten?style=for-the-badge)](https://github.com/aunefyren/treningheten/releases)
 [![Go Version](https://img.shields.io/github/go-mod/go-version/aunefyren/treningheten?style=for-the-badge)](https://go.dev/dl/)
-[![Test Coverage](https://img.shields.io/codecov/c/github/aunefyren/treningheten?style=for-the-badge)](https://codecov.io/gh/aunefyren/treningheten)
+[![Test Coverage](https://img.shields.io/endpoint?url=https%3A%2F%2Fgist.githubusercontent.com%2Faunefyren%2F8c408c7c3b5033bc569630ec63b7f498%2Fraw%2Ftreningheten-coverage.json&style=for-the-badge)](https://github.com/aunefyren/treningheten/actions/workflows/go.yml)
 
 <br>
 <br>

@@ -334,6 +334,8 @@ func initRouter(configFile models.ConfigStruct) *gin.Engine {
 
 			admin.GET("/server-info", controllers.APIGetServerInfo)
 
+			admin.GET("/stats", controllers.APIGetAdminStats)
+
 			admin.GET("/exercise-days", controllers.APIAdminGetExerciseDays)
 
 			admin.POST("/debts", controllers.APIGenerateDebtForWeek)

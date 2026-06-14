@@ -139,6 +139,13 @@ func LoadConfig() (err error) {
 		fmt.Println("new Hevy token key set")
 	}
 
+	if ConfigFile.MCPEnabled == nil {
+		// Default the MCP server on for existing installs missing the field.
+		enabled := true
+		ConfigFile.MCPEnabled = &enabled
+		anythingChanged = true
+	}
+
 	if ConfigFile.TreninghetenLogLevel == "" {
 		level := logrus.InfoLevel
 		ConfigFile.TreninghetenLogLevel = level.String()
@@ -180,6 +187,8 @@ func CreateConfigFile() error {
 	ConfigFile.DBType = "sqlite"
 	ConfigFile.DBLocation = "config/data.db"
 	ConfigFile.SMTPEnabled = true
+	mcpEnabled := true
+	ConfigFile.MCPEnabled = &mcpEnabled
 	ConfigFile.TreninghetenVersion = treninghetenVersionParameter
 
 	err := AddVapidKeysToConfig()

@@ -35,6 +35,7 @@ type ConfigStruct struct {
 	StravaTokenKey          string         `json:"strava_token_key"`
 	HevyEnabled             bool           `json:"hevy_enabled"`
 	HevyTokenKey            string         `json:"hevy_token_key"`
+	MCPEnabled              *bool          `json:"mcp_enabled"`
 	Ollama                  OllamaSettings `json:"ollama"`
 }
 

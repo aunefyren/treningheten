@@ -72,10 +72,11 @@ type MCPActivitySet struct {
 type MCPActivity struct {
 	ID              string           `json:"id" jsonschema:"stable id for this activity; pass to get_workout or get_workout_streams"`
 	Date            time.Time        `json:"date"`
-	Action          string           `json:"action" jsonschema:"the exercise type, e.g. Run, Bicycling, Weight Training"`
+	Action          string           `json:"action" jsonschema:"the exercise type, e.g. Run, Bicycling, Weight Training, or a specific movement like Bench Press"`
 	Type            string           `json:"type" jsonschema:"moving, timing or lifting"`
+	Source          string           `json:"source" jsonschema:"where this activity came from: strava (imported from Strava), hevy (imported from Hevy), or manual (logged in the app)"`
 	Note            string           `json:"note,omitempty" jsonschema:"the user's short manual note on this activity"`
-	Description     string           `json:"description,omitempty" jsonschema:"longer free-text description; for Strava-imported activities this is the athlete's description from Strava. Belongs to this activity's action specifically"`
+	Description     string           `json:"description,omitempty" jsonschema:"longer free-text description; for Strava-imported activities this is the athlete's description from Strava, and for Hevy custom exercises it is the user's per-exercise note. Belongs to this activity's action specifically"`
 	Tags            []string         `json:"tags,omitempty" jsonschema:"workout category tags from a fixed vocabulary: race, long-run, workout, commute, for-a-cause, recovery, with-pet, with-kid"`
 	Equipment       string           `json:"equipment,omitempty"`
 	DurationSeconds *int64           `json:"duration_seconds,omitempty"`

@@ -81,7 +81,7 @@ func flattenActivities(dayObjects []models.ExerciseDayObject, actionFilter strin
 	for _, day := range dayObjects {
 		for _, exercise := range day.Exercises {
 			for _, op := range exercise.Operations {
-				activity := operationObjectToActivity(op, exercise.Time)
+				activity := operationObjectToActivity(op, exercise.Time, exercise.HevyWorkoutID)
 
 				if actionFilter != "" && !strings.Contains(strings.ToLower(activity.Action), actionFilter) {
 					continue
@@ -103,11 +103,19 @@ func flattenActivities(dayObjects []models.ExerciseDayObject, actionFilter strin
 
 // operationObjectToActivity flattens one enriched OperationObject into an
 // MCPActivity. HasStreams flags whether any set carries Strava sensor data, so the
-// LLM knows it can call get_workout_streams for the time-series detail.
-func operationObjectToActivity(op models.OperationObject, date time.Time) models.MCPActivity {
+// LLM knows it can call get_workout_streams for the time-series detail. hevyWorkoutID
+// is the parent exercise's Hevy id (provenance), used to set Source.
+func operationObjectToActivity(op models.OperationObject, date time.Time, hevyWorkoutID *string) models.MCPActivity {
+	note := derefString(op.Note)
 	actionName := "Unknown"
 	if op.Action != nil {
 		actionName = op.Action.Name
+	} else if name := strings.TrimSpace(note); name != "" {
+		// No global Action (e.g. a Hevy custom exercise): the exercise name is kept on
+		// the operation's note, with any real note moved to the description. Promote it
+		// so the activity's action reflects the exercise instead of "Unknown".
+		actionName = name
+		note = ""
 	}
 
 	hasStreams := false
@@ -118,12 +126,20 @@ func operationObjectToActivity(op models.OperationObject, date time.Time) models
 		}
 	}
 
+	source := "manual"
+	if op.StravaID != nil && *op.StravaID != "" {
+		source = "strava"
+	} else if hevyWorkoutID != nil && *hevyWorkoutID != "" {
+		source = "hevy"
+	}
+
 	return models.MCPActivity{
 		ID:              op.ID.String(),
 		Date:            date,
 		Action:          actionName,
 		Type:            op.Type,
-		Note:            derefString(op.Note),
+		Source:          source,
+		Note:            note,
 		Description:     derefString(op.Description),
 		Tags:            op.Tags,
 		Equipment:       derefString(op.Equipment),
@@ -146,24 +162,25 @@ func assembleSingleActivity(userID uuid.UUID, activityID uuid.UUID) (models.MCPA
 		return models.MCPActivity{}, err
 	}
 
-	date := resolveExerciseDate(userID, operation.ExerciseID)
-	return operationObjectToActivity(opObject, date), nil
+	date, hevyWorkoutID := resolveExerciseDate(userID, operation.ExerciseID)
+	return operationObjectToActivity(opObject, date, hevyWorkoutID), nil
 }
 
 // resolveExerciseDate mirrors ConvertExerciseToExerciseObject's time fallback:
-// the exercise's own Time, else its day's date, else now.
-func resolveExerciseDate(userID uuid.UUID, exerciseID uuid.UUID) time.Time {
+// the exercise's own Time, else its day's date, else now. It also returns the
+// exercise's Hevy workout id (provenance) so the activity can report its source.
+func resolveExerciseDate(userID uuid.UUID, exerciseID uuid.UUID) (time.Time, *string) {
 	exercise, err := database.GetExerciseByIDAndUserID(exerciseID, userID)
 	if err != nil || exercise == nil {
-		return time.Now()
+		return time.Now(), nil
 	}
+	date := time.Now()
 	if exercise.Time != nil {
-		return *exercise.Time
+		date = *exercise.Time
+	} else if day, err := database.GetExerciseDayByID(exercise.ExerciseDayID); err == nil && day != nil {
+		date = day.Date
 	}
-	if day, err := database.GetExerciseDayByID(exercise.ExerciseDayID); err == nil && day != nil {
-		return day.Date
-	}
-	return time.Now()
+	return date, exercise.HevyWorkoutID
 }
 
 // assembleUserStatistics derives a focused set of counts, totals and streaks from
