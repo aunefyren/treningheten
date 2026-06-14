@@ -1,6 +1,41 @@
 package models
 
-import "time"
+import (
+	"strings"
+	"time"
+)
+
+// HevyActionType maps a Hevy template "type" onto Treningheten's action type
+// vocabulary (lifting/timing/moving). Lives here (not in controllers) so both the
+// live import path and the catalog seeder produce identical Actions.
+func HevyActionType(hevyType string) string {
+	switch strings.ToLower(strings.TrimSpace(hevyType)) {
+	case "duration":
+		return "timing"
+	case "distance_duration", "weight_distance", "short_distance_weight":
+		return "moving"
+	default:
+		// weight_reps, reps_only, bodyweight_reps, weighted_bodyweight,
+		// assisted_bodyweight, and anything unrecognised.
+		return "lifting"
+	}
+}
+
+// ToAction builds a global Action from an official-catalog Hevy template. The caller
+// assigns the ID (random in the live path, deterministic in the seeder) — everything
+// else here matches what an on-demand import would create.
+func (t HevyExerciseTemplate) ToAction() Action {
+	templateID := strings.TrimSpace(t.ID)
+	return Action{
+		Enabled:        true,
+		Name:           strings.TrimSpace(t.Title),
+		NorwegianName:  strings.TrimSpace(t.Title),
+		Type:           HevyActionType(t.Type),
+		BodyPart:       strings.TrimSpace(t.PrimaryMuscleGroup),
+		HevyTemplateID: &templateID,
+		HasLogo:        false,
+	}
+}
 
 // HevyUserInfo mirrors the Hevy API "UserInfo" object returned by GET /v1/user/info.
 type HevyUserInfo struct {

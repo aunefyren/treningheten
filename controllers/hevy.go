@@ -126,16 +126,7 @@ func hevyFetchExerciseTemplates(apiKey string) (map[string]models.HevyExerciseTe
 // Action/Operation type vocabulary (lifting/timing/moving). Hevy is strength-centric,
 // so unknown/most types default to "lifting".
 func hevyTypeToActionType(hevyType string) string {
-	switch strings.ToLower(strings.TrimSpace(hevyType)) {
-	case "duration":
-		return "timing"
-	case "distance_duration", "weight_distance", "short_distance_weight":
-		return "moving"
-	default:
-		// weight_reps, reps_only, bodyweight_reps, weighted_bodyweight,
-		// assisted_bodyweight, and anything unrecognised.
-		return "lifting"
-	}
+	return models.HevyActionType(hevyType)
 }
 
 // getOrCreateHevyAction resolves the global Action for a Hevy exercise template.
@@ -156,16 +147,9 @@ func getOrCreateHevyAction(template models.HevyExerciseTemplate) (*models.Action
 	}
 
 	// Auto-create a global Action keyed by the (stable, unique) Hevy template id.
-	templateID := template.ID
-	newAction := models.Action{
-		Enabled:        true,
-		Name:           strings.TrimSpace(template.Title),
-		NorwegianName:  strings.TrimSpace(template.Title),
-		Type:           hevyTypeToActionType(template.Type),
-		BodyPart:       strings.TrimSpace(template.PrimaryMuscleGroup),
-		HevyTemplateID: &templateID,
-		HasLogo:        false,
-	}
+	// Shares models.HevyExerciseTemplate.ToAction with the catalog seeder so a template
+	// imported on-demand is identical to one seeded at startup.
+	newAction := template.ToAction()
 	newAction.ID = uuid.New()
 
 	created, err := database.CreateActionInDB(newAction)

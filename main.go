@@ -124,6 +124,9 @@ func main() {
 	}
 
 	database.SeedActions()
+	if files.ConfigFile.HevyEnabled {
+		database.SeedHevyActions()
+	}
 	database.SeedOAuthClients()
 
 	if generateInvite {

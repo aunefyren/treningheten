@@ -39,9 +39,6 @@ Examples:
 - Allow to track gear (like shoes) either on workout builder or on account (or somewhere else)
 - Sync over Strava gear, keep them in sync
 
-### HEVY follow-ups (optional)
-Integration is implemented (see `docs/hevy.md`). Optional nicety: pre-populate `Action.HevyTemplateID` on existing seeded Actions where a clean match to Hevy's catalog exists, so common lifts reuse a curated Action instead of auto-creating.
-
 ### leave season button is not working
 - Which season? all?
 

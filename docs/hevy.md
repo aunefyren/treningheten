@@ -69,17 +69,49 @@ own template. The mapping layer lives in `controllers/hevy.go`:
   (pageSize 100) into a `template_id → HevyExerciseTemplate` map. The workout payload only
   carries the template id + title, so this map supplies `is_custom`, `type`, and
   `primary_muscle_group`.
-- `hevyTypeToActionType(hevyType)` — maps a Hevy template type onto Treningheten's
+- `models.HevyActionType(hevyType)` — maps a Hevy template type onto Treningheten's
   `lifting`/`timing`/`moving` vocabulary (`duration`→timing; `*distance*`→moving; the rest,
-  being rep/weight based, →lifting). Unit-tested in `controllers/hevy_test.go`.
+  being rep/weight based, →lifting). Lives in `models` (not `controllers`) so the live
+  import and the catalog seeder produce identical Actions; the thin `hevyTypeToActionType`
+  wrapper in `controllers/hevy.go` is unit-tested in `controllers/hevy_test.go`.
+- `models.HevyExerciseTemplate.ToAction()` — the single template→`Action` builder
+  (Name/NorwegianName = title, Type from the mapping, BodyPart = primary muscle group,
+  `HevyTemplateID` set, `HasLogo=false`). Used by both the seeder and the live path.
 - `getOrCreateHevyAction(template)` — for `is_custom=false`, resolves a global `Action` by
   `Action.HevyTemplateID` (`database.GetActionByHevyTemplateID`) and **auto-creates** one
-  on miss (Name/NorwegianName = title, Type from the mapping, BodyPart = primary muscle
-  group, `HasLogo=false`). For `is_custom=true` it returns `nil` — custom exercises are
-  private and must not enter the shared vocabulary.
+  via `ToAction()` (random UUID) on miss. For `is_custom=true` it returns `nil` — custom
+  exercises are private and must not enter the shared vocabulary. With the catalog seeded
+  (below) this miss path is now mainly a safety net for templates Hevy adds after the
+  embedded snapshot was exported.
 
 Model keys: `Exercise.HevyWorkoutID` (idempotency for the workout→`Exercise` import) and
 `Action.HevyTemplateID` (sole dedup authority for catalog actions). Both are `AutoMigrate`d.
+
+## Built-in catalog seed (implemented)
+
+The full official Hevy exercise catalog (~433 templates) is **built into the binary** —
+the Strava-catalog equivalent for Hevy — rather than being discovered lazily as users
+sync. `database/data/hevy_templates.json` (exported from the Hevy API; refresh source in
+`scripts/hevyseed/`) is `//go:embed`ed, and `database.SeedHevyActions()` (in
+`database/seed_hevy.go`) runs at startup when `HevyEnabled`, right after `SeedActions()`.
+
+- **Dedup authority is `HevyTemplateID`**, identical to the live path, so the seed is
+  idempotent and never duplicates an Action a sync already created.
+- **Overlaps merge into curated Actions.** `hevyOverlapOverrides` maps a Hevy template id
+  onto an existing curated Action UUID (Running→Run, Cycling→Bicycling, Swimming→Swim,
+  Walking, Hiking→Hike, Rowing Machine→Rowing, Elliptical Trainer→Elliptical, Yoga,
+  Pilates, Plank). For these the seeder sets `HevyTemplateID` on the curated Action (only
+  if empty) instead of creating a new one — so no duplicate cardio/bodyweight Actions.
+  Ambiguous cases (Hevy's single generic *Skiing* vs the curated Alpine/Cross-Country
+  split; *Boxing*/*Climbing* with no curated equivalent) are intentionally left to seed
+  standalone. Since `Action.HevyTemplateID` is a single value, each curated Action absorbs
+  exactly **one** Hevy template; variant templates (e.g. a treadmill *Running*) seed as
+  their own Action.
+- **New Actions get deterministic UUIDs** (`uuid.NewSHA1(hevyActionNamespace, templateID)`)
+  so fresh installs are stable and re-seeds never duplicate.
+
+Data integrity (override ids exist in the catalog, deterministic ids are unique and don't
+collide with override targets) is covered by `database/seed_hevy_test.go`.
 
 ## Workout import (implemented)
 
