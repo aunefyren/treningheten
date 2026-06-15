@@ -72,6 +72,18 @@ func loadResizedImageCached(filePath string, maxWidth uint, maxHeight uint) ([]b
 	return resizedBytes, nil
 }
 
+// safeImageFilePath joins baseDir and fileName and verifies the result stays within
+// baseDir, so a request parameter can never traverse out of the image directory (defence
+// in depth — callers already restrict fileName to a parsed UUID).
+func safeImageFilePath(baseDir string, fileName string) (string, error) {
+	cleanBase := filepath.Clean(baseDir)
+	joined := filepath.Join(cleanBase, fileName)
+	if joined != cleanBase && !strings.HasPrefix(joined, cleanBase+string(os.PathSeparator)) {
+		return "", errors.New("Resolved path escapes the image directory.")
+	}
+	return joined, nil
+}
+
 // serveImageBytes writes raw image bytes for direct use in an <img> tag, with caching
 // headers so the browser can reuse and dedupe them. The MIME type is detected from the
 // content (resized photos are JPEG; the profile default is an SVG). It honours
@@ -131,7 +143,17 @@ func APIGetUserProfileImage(context *gin.Context) {
 		return
 	}
 
-	var filePath = profile_image_path + "/" + userIDString + ".jpg"
+	// Build the path from the parsed UUID's canonical string (not the raw request
+	// parameter) and confirm it stays within the image directory, so the filename can only
+	// ever be a valid UUID inside that directory — no path traversal. This also matches how
+	// the file is written on upload.
+	filePath, err := safeImageFilePath(profile_image_path, userID.String()+".jpg")
+	if err != nil {
+		logger.Log.Info("Failed to resolve profile image path. Error: " + err.Error())
+		context.JSON(http.StatusBadRequest, gin.H{"error": "Failed to resolve image path."})
+		context.Abort()
+		return
+	}
 
 	imageBytes, err := loadResizedImageCached(filePath, imageWidth, imageHeight)
 	if err != nil {
@@ -361,7 +383,15 @@ func APIGetAchievementsImage(context *gin.Context) {
 		return
 	}
 
-	var filePath = achievements_image_path + "/" + achievementIDString + ".jpg"
+	// Build the path from the parsed UUID's canonical string and confirm it stays within
+	// the image directory — no path traversal.
+	filePath, err := safeImageFilePath(achievements_image_path, achievementID.String()+".jpg")
+	if err != nil {
+		logger.Log.Info("Failed to resolve achievement image path. Error: " + err.Error())
+		context.JSON(http.StatusBadRequest, gin.H{"error": "Failed to resolve image path."})
+		context.Abort()
+		return
+	}
 
 	imageBytes, err := loadResizedImageCached(filePath, imageWidth, imageHeight)
 	if err != nil {

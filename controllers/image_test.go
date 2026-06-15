@@ -7,10 +7,30 @@ import (
 	"image/jpeg"
 	"image/png"
 	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 	"time"
 )
+
+func TestSafeImageFilePath(t *testing.T) {
+	base := "/var/app/images"
+
+	good, err := safeImageFilePath(base, "550e8400-e29b-41d4-a716-446655440000.jpg")
+	if err != nil {
+		t.Fatalf("unexpected error for valid filename: %v", err)
+	}
+	if want := filepath.Join(base, "550e8400-e29b-41d4-a716-446655440000.jpg"); good != want {
+		t.Errorf("got %q, want %q", good, want)
+	}
+
+	// Names that resolve outside the base directory must be rejected.
+	for _, bad := range []string{"../secret.jpg", "../../etc/passwd", "sub/../../escape.jpg"} {
+		if _, err := safeImageFilePath(base, bad); err == nil {
+			t.Errorf("expected error for %q, got nil", bad)
+		}
+	}
+}
 
 // makeTestPNG builds a solid-color PNG of the given size for use as test input.
 func makeTestPNG(t *testing.T, w, h int) []byte {
