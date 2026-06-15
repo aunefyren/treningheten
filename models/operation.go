@@ -13,6 +13,8 @@ type Operation struct {
 	Exercise     Exercise       `json:"exercise" gorm:"not null;"`
 	ActionID     *uuid.UUID     `json:"" gorm:"type:varchar(100);"`
 	Action       *Action        `json:"action" gorm:""`
+	GearID       *uuid.UUID     `json:"" gorm:"type:varchar(100);"`
+	Gear         *Gear          `json:"gear" gorm:""`
 	Type         string         `json:"type" gorm:"not null; default: lifting"`
 	WeightUnit   string         `json:"weight_unit" gorm:"not null; default: kg"`
 	DistanceUnit string         `json:"distance_unit" gorm:"not null; default: km"`
@@ -54,6 +56,7 @@ type OperationObject struct {
 	WeightUnit    string               `json:"weight_unit"`
 	DistanceUnit  string               `json:"distance_unit"`
 	Equipment     *string              `json:"equipment"`
+	Gear          *GearObject          `json:"gear"`
 	StravaID      *string              `json:"strava_id"`
 	Note          *string              `json:"note"`
 	Description   *string              `json:"description"`

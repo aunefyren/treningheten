@@ -116,17 +116,7 @@ func ConvertSeasonToSeasonObject(season models.Season) (models.SeasonObject, err
 		return models.SeasonObject{}, err
 	}
 
-	for _, goal := range goals {
-
-		goalObject, err := ConvertGoalToGoalObject(goal)
-		if err != nil {
-			logger.Log.Info("Failed to convert goal to goal object. Error: " + err.Error() + ". Skipping goal...")
-			continue
-		}
-
-		seasonObject.Goals = append(seasonObject.Goals, goalObject)
-
-	}
+	seasonObject.Goals = buildGoalObjects(goals)
 
 	prize, _, err := database.GetPrizeByID(season.PrizeID)
 	if err != nil {
@@ -165,6 +155,69 @@ func ConvertSeasonsToSeasonObjects(seasons []models.Season) (seasonObjects []mod
 	}
 
 	return
+}
+
+// buildGoalObjects converts a season's goals to GoalObjects using two bulk queries (users
+// + unused sick leave) instead of the two queries per goal that ConvertGoalToGoalObject
+// issues. Goals whose enabled user can't be found are skipped, matching the previous
+// per-goal behaviour in ConvertSeasonToSeasonObject.
+func buildGoalObjects(goals []models.Goal) []models.GoalObject {
+	goalObjects := []models.GoalObject{}
+	if len(goals) == 0 {
+		return goalObjects
+	}
+
+	userIDs := make([]uuid.UUID, 0, len(goals))
+	goalIDs := make([]uuid.UUID, 0, len(goals))
+	for _, goal := range goals {
+		userIDs = append(userIDs, goal.UserID)
+		goalIDs = append(goalIDs, goal.ID)
+	}
+
+	users, err := database.GetUsersByIDs(userIDs)
+	if err != nil {
+		logger.Log.Info("Failed to bulk-load goal users. Error: " + err.Error())
+		users = []models.User{}
+	}
+	usersByID := make(map[uuid.UUID]models.User, len(users))
+	for _, user := range users {
+		usersByID[user.ID] = user
+	}
+
+	sickleaves, err := database.GetUnusedSickleavesForGoalIDs(goalIDs)
+	if err != nil {
+		logger.Log.Info("Failed to bulk-load unused sick leave. Error: " + err.Error())
+		sickleaves = []models.Sickleave{}
+	}
+	sickleaveCountByGoal := make(map[uuid.UUID]int, len(goalIDs))
+	for _, sickleave := range sickleaves {
+		sickleaveCountByGoal[sickleave.GoalID]++
+	}
+
+	for _, goal := range goals {
+		user, found := usersByID[goal.UserID]
+		if !found {
+			logger.Log.Info("Failed to find user '" + goal.UserID.String() + "' for goal '" + goal.ID.String() + "'. Skipping goal.")
+			continue
+		}
+
+		goalObject := models.GoalObject{
+			SeasonID:         goal.SeasonID,
+			ExerciseInterval: goal.ExerciseInterval,
+			Competing:        goal.Competing,
+			User:             user,
+			Enabled:          goal.Enabled,
+			SickleaveLeft:    sickleaveCountByGoal[goal.ID],
+		}
+		goalObject.ID = goal.ID
+		goalObject.CreatedAt = goal.CreatedAt
+		goalObject.DeletedAt = goal.DeletedAt
+		goalObject.UpdatedAt = goal.UpdatedAt
+
+		goalObjects = append(goalObjects, goalObject)
+	}
+
+	return goalObjects
 }
 
 func APIRegisterSeason(context *gin.Context) {
@@ -344,29 +397,24 @@ func APIGetCurrentSeasonLeaderboard(context *gin.Context) {
 		Season:   seasonObject,
 	}
 
-	seasonLeaderboard.PastWeeks, err = RetrieveWeekResultsFromSeasonWithinTimeframe(seasonObject.Start, now.AddDate(0, 0, -7), seasonObject)
+	// Compute every week once (newest first). When the season is ongoing, the newest week
+	// is the current week and the rest are past weeks; otherwise they are all past weeks.
+	// (Previously this walked the whole season twice — once for past weeks, once for the
+	// current week — each rebuilding the season's week data.)
+	allWeeks, err := RetrieveWeekResultsFromSeasonWithinTimeframe(seasonObject.Start, now, seasonObject)
 	if err != nil {
-		logger.Log.Info("Failed to retrieve past weeks for season. Error: " + err.Error())
+		logger.Log.Info("Failed to retrieve weeks for season. Error: " + err.Error())
 		context.JSON(http.StatusBadRequest, gin.H{"error": "Failed to retrieve weeks for season."})
 		context.Abort()
 		return
 	}
 
-	if now.Before(season.End) && now.After(season.Start) {
-		thisWeek, err := RetrieveWeekResultsFromSeasonWithinTimeframe(now.AddDate(0, 0, -7), now, seasonObject)
-		if err != nil {
-			logger.Log.Info("Failed to retrieve current week for season. Error: " + err.Error())
-			context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to retrieve current week for season."})
-			context.Abort()
-			return
-		} else if len(thisWeek) != 1 {
-			logger.Log.Info("Got more than one week for current week.")
-			context.JSON(http.StatusInternalServerError, gin.H{"error": "Got more than one week for current week."})
-			context.Abort()
-			return
-		} else {
-			seasonLeaderboard.CurrentWeek = &thisWeek[0]
-		}
+	if now.Before(season.End) && now.After(season.Start) && len(allWeeks) > 0 {
+		currentWeek := allWeeks[0]
+		seasonLeaderboard.CurrentWeek = &currentWeek
+		seasonLeaderboard.PastWeeks = allWeeks[1:]
+	} else {
+		seasonLeaderboard.PastWeeks = allWeeks
 	}
 
 	// Return group with owner and success message
@@ -700,7 +748,6 @@ func ReverseWeeksArray(input []models.WeekResults) []models.WeekResults {
 
 // Get all enabled seasons
 func APIGetSeasons(context *gin.Context) {
-	seasons := []models.Season{}
 	seasonObjects := []models.SeasonObject{}
 
 	// Get user ID
@@ -719,65 +766,73 @@ func APIGetSeasons(context *gin.Context) {
 		return
 	}
 
-	// Remove non-potential seasons
 	potentialBoolean, okay := context.GetQuery("potential")
 	countdownBoolean, okayTwo := context.GetQuery("countdown")
+
+	// The potential and countdown lists are lightweight: they only need identity, dates,
+	// participant count and the caller's own goal, so they return SeasonListItems built
+	// from a single goals query per season — no full per-goal SeasonObject conversion.
 	if okay && potentialBoolean == "true" {
-		newSeasons := []models.Season{}
+		items := []models.SeasonListItem{}
+		now := time.Now()
 
 		for _, season := range potentialSeasons {
-			goal, err := database.GetGoalFromUserWithinSeason(season.ID, userID)
+			goals, err := database.GetGoalsFromWithinSeason(season.ID)
 			if err != nil {
-				logger.Log.Info("Failed to check for goal within seasons. Error: " + err.Error())
+				logger.Log.Info("Failed to get goals within season. Error: " + err.Error())
 				context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to check for goal within seasons."})
 				context.Abort()
 				return
-			} else if goal != nil {
-				continue
 			}
 
-			now := time.Now()
-			if now.After(season.Start) && (season.JoinAnytime == nil || *season.JoinAnytime == false) {
-				logger.Log.Info(season.JoinAnytime)
+			// A season the user already joined is not a "potential" season to join.
+			if findUserGoalID(goals, userID) != nil {
 				continue
 			}
-
+			if now.After(season.Start) && (season.JoinAnytime == nil || !*season.JoinAnytime) {
+				continue
+			}
 			if now.After(season.End) {
 				continue
 			}
 
-			newSeasons = append(newSeasons, season)
+			items = append(items, buildSeasonListItem(season, goals, userID))
 		}
 
-		seasons = newSeasons
-	} else if okayTwo && countdownBoolean == "true" {
-		newSeasons := []models.Season{}
+		context.JSON(http.StatusOK, gin.H{"seasons": items, "message": "Seasons retrieved."})
+		return
+	}
+
+	if okayTwo && countdownBoolean == "true" {
+		items := []models.SeasonListItem{}
+		now := time.Now()
 
 		for _, season := range potentialSeasons {
-			goal, err := database.GetGoalFromUserWithinSeason(season.ID, userID)
+			goals, err := database.GetGoalsFromWithinSeason(season.ID)
 			if err != nil {
-				logger.Log.Info("Failed to check for goal within seasons. Error: " + err.Error())
+				logger.Log.Info("Failed to get goals within season. Error: " + err.Error())
 				context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to check for goal within seasons."})
 				context.Abort()
 				return
-			} else if goal == nil {
-				continue
 			}
 
-			now := time.Now()
+			// Countdown shows seasons the user has joined that have not started yet.
+			if findUserGoalID(goals, userID) == nil {
+				continue
+			}
 			if now.After(season.Start) {
 				continue
 			}
 
-			newSeasons = append(newSeasons, season)
+			items = append(items, buildSeasonListItem(season, goals, userID))
 		}
 
-		seasons = newSeasons
-	} else {
-		seasons = potentialSeasons
+		context.JSON(http.StatusOK, gin.H{"seasons": items, "message": "Seasons retrieved."})
+		return
 	}
 
-	for _, season := range seasons {
+	// Bare list: full season objects (consumed by the seasons and statistics pages).
+	for _, season := range potentialSeasons {
 		seasonObject, err := ConvertSeasonToSeasonObject(season)
 		if err != nil {
 			logger.Log.Info("Failed process season. Error: " + err.Error())
@@ -788,9 +843,33 @@ func APIGetSeasons(context *gin.Context) {
 		seasonObjects = append(seasonObjects, seasonObject)
 	}
 
-	// Return seasons
 	context.JSON(http.StatusOK, gin.H{"seasons": seasonObjects, "message": "Seasons retrieved."})
 
+}
+
+// findUserGoalID returns the user's goal ID from a season's goals, or nil if the user has
+// no goal in that season.
+func findUserGoalID(goals []models.Goal, userID uuid.UUID) *uuid.UUID {
+	for _, goal := range goals {
+		if goal.UserID == userID {
+			goalID := goal.ID
+			return &goalID
+		}
+	}
+	return nil
+}
+
+// buildSeasonListItem assembles the lightweight list view from a season and its goals.
+func buildSeasonListItem(season models.Season, goals []models.Goal, userID uuid.UUID) models.SeasonListItem {
+	return models.SeasonListItem{
+		ID:               season.ID,
+		Name:             season.Name,
+		Start:            season.Start,
+		End:              season.End,
+		JoinAnytime:      season.JoinAnytime,
+		ParticipantCount: len(goals),
+		UserGoalID:       findUserGoalID(goals, userID),
+	}
 }
 
 // Get one enabled seasons

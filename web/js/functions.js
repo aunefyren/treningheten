@@ -408,14 +408,8 @@ function toggle_navbar() {
     }
 }
 
-// Toggle navbar if clicked outside
+// Toggle navbar if clicked outside (modal backdrop dismissal is handled by TRModal)
 document.addEventListener('click', function(event) {
-    var myModal = document.getElementById("myModal")
-    if(myModal && myModal.classList.contains("open") && (event.target.id == "myModal" || event.target.id == "caption")) {
-        toggleModal();
-        return;
-    }
-    
     var isClickInsideElement = ignoreNav.contains(event.target);
     if (!isClickInsideElement) {
         var nav_classlist = document.getElementById('navbar').classList;
@@ -897,28 +891,9 @@ function frontPageRedirect(refresh) {
     return false
 }
 
-function toggleModal(modalHTML) {
-    var x = document.getElementById("myModal");
-    if(x) {
-        if (x.classList.contains("closed") && modalHTML) {
-            x.classList.add("open");
-            x.classList.remove("closed");
-            x.style.display = "block";
-            freezerScrolling(true);
-        } else if(!modalHTML){
-            x.classList.add("closed");
-            x.classList.remove("open");
-            x.style.display = "none";
-            freezerScrolling(false);
-        }
-        
-        if(modalHTML) {
-            document.getElementById("modalContent").innerHTML = modalHTML
-        }
-    } else {
-        freezerScrolling(false);
-    }
-}
+// toggleModal()/closeModal() now live in web/js/modal.js (TRModal), which is
+// loaded after this file so its definitions win. freezerScrolling stays here
+// because TRModal reuses it for the body scroll-lock.
 
 function freezerScrolling(freeze) {
     if(freeze) {

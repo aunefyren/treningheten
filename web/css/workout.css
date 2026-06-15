@@ -585,3 +585,10 @@
   margin: 0 auto 1.25rem;
   padding: 0.55rem 1.2rem;
 }
+
+/* ── Gear ─────────────────────────────────────────────────────────────────── */
+/* Session-level gear selector sits inside .we-session-fields next to Time/Duration.
+   The manage-gear modal body lives in the shared modal.css (.trm-gear-*). */
+.we-gear-row { display: flex; align-items: center; gap: 0.4rem; }
+.we-gear-row .we-gear-select { flex: 1; }
+.we-gear-row .wv-action-icon { padding: 0.5rem; flex: 0 0 auto; }

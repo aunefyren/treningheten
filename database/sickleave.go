@@ -108,6 +108,24 @@ func GetSickleavesForGoalIDsBetweenDates(goalIDs []uuid.UUID, startDate time.Tim
 	return sickleaves, nil
 }
 
+// GetUnusedSickleavesForGoalIDs returns enabled, unused sick-leave rows for the given
+// goals in a single query, so callers can count "sick leave left" per goal without a query
+// per goal. Returns an empty slice when no goal IDs are supplied.
+func GetUnusedSickleavesForGoalIDs(goalIDs []uuid.UUID) ([]models.Sickleave, error) {
+	var sickleaves []models.Sickleave
+
+	if len(goalIDs) == 0 {
+		return []models.Sickleave{}, nil
+	}
+
+	record := Instance.Where("`sickleaves`.enabled = ?", 1).Where("`sickleaves`.used = ?", 0).Where("`sickleaves`.goal_id IN ?", goalIDs).Find(&sickleaves)
+	if record.Error != nil {
+		return []models.Sickleave{}, record.Error
+	}
+
+	return sickleaves, nil
+}
+
 // Update sickleave in database to used and date to now by sickleave ID
 func SetSickleaveToUsedByID(sickleaveID uuid.UUID) error {
 

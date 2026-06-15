@@ -170,6 +170,11 @@ function get_leaderboard(season_id){
         button.classList.remove("minimized")
         button.classList.add("expand")
         document.getElementById("season-button-image-" + season_id).src = "assets/chevron-down.svg"
+        // Show a loading spinner while the season's leaderboard is fetched; it is replaced
+        // when place_leaderboard renders into the same container.
+        document.getElementById("season-leaderboard-" + season_id).innerHTML = `
+            <div class="exercise-loading"><div class="trh-spinner"></div></div>
+        `;
     } else {
         button.classList.add("minimized")
         button.classList.remove("expand")
@@ -193,6 +198,7 @@ function get_leaderboard(season_id){
             if(result.error) {
 
                 error(result.error);
+                document.getElementById("season-leaderboard-" + season_id).innerHTML = "";
 
             } else {
                 season = result.season;
@@ -229,6 +235,7 @@ function get_leaderboard_two(season_id) {
             if(result.error) {
 
                 error(result.error);
+                document.getElementById("season-leaderboard-" + season_id).innerHTML = "";
 
             } else {
 

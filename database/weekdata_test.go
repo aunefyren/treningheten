@@ -144,6 +144,79 @@ func TestGetDebtsForUserIDsBetweenDates(t *testing.T) {
 	}
 }
 
+func TestGetUsersByIDs(t *testing.T) {
+	newTestDB(t)
+
+	enabled1 := makeTestUser(t, "e1@example.com", nil)
+	enabled2 := makeTestUser(t, "e2@example.com", nil)
+	disabled := makeTestUser(t, "d1@example.com", nil)
+	if err := Instance.Model(&models.User{}).Where("id = ?", disabled.ID).Update("enabled", false).Error; err != nil {
+		t.Fatalf("failed to disable user: %v", err)
+	}
+
+	users, err := GetUsersByIDs([]uuid.UUID{enabled1.ID, enabled2.ID, disabled.ID})
+	if err != nil {
+		t.Fatalf("GetUsersByIDs returned error: %v", err)
+	}
+	if len(users) != 2 {
+		t.Errorf("got %d users, want 2 (disabled excluded)", len(users))
+	}
+	for _, user := range users {
+		if user.Password != "REDACTED" {
+			t.Errorf("user %s not censored: password = %q", user.ID, user.Password)
+		}
+	}
+
+	none, err := GetUsersByIDs(nil)
+	if err != nil {
+		t.Fatalf("GetUsersByIDs(nil) returned error: %v", err)
+	}
+	if len(none) != 0 {
+		t.Errorf("no IDs: got %d, want 0", len(none))
+	}
+}
+
+func TestGetUnusedSickleavesForGoalIDs(t *testing.T) {
+	newTestDB(t)
+
+	goal1 := uuid.New()
+	goal2 := uuid.New()
+
+	seedSL := func(goalID uuid.UUID, enabled, used bool) {
+		sickleave := models.Sickleave{GoalID: goalID, Enabled: enabled, Used: used}
+		sickleave.ID = uuid.New()
+		if err := Instance.Omit("Goal").Create(&sickleave).Error; err != nil {
+			t.Fatalf("failed to seed sickleave: %v", err)
+		}
+		if err := Instance.Model(&models.Sickleave{}).Where("id = ?", sickleave.ID).
+			Updates(map[string]interface{}{"enabled": enabled, "used": used}).Error; err != nil {
+			t.Fatalf("failed to set sickleave flags: %v", err)
+		}
+	}
+
+	seedSL(goal1, true, false)  // counted
+	seedSL(goal1, true, false)  // counted
+	seedSL(goal1, true, true)   // used → excluded
+	seedSL(goal1, false, false) // disabled → excluded
+	seedSL(goal2, true, false)  // other goal
+
+	only1, err := GetUnusedSickleavesForGoalIDs([]uuid.UUID{goal1})
+	if err != nil {
+		t.Fatalf("GetUnusedSickleavesForGoalIDs returned error: %v", err)
+	}
+	if len(only1) != 2 {
+		t.Errorf("goal 1: got %d unused sick-leave rows, want 2", len(only1))
+	}
+
+	both, err := GetUnusedSickleavesForGoalIDs([]uuid.UUID{goal1, goal2})
+	if err != nil {
+		t.Fatalf("GetUnusedSickleavesForGoalIDs returned error: %v", err)
+	}
+	if len(both) != 3 {
+		t.Errorf("goals 1+2: got %d unused sick-leave rows, want 3", len(both))
+	}
+}
+
 func TestGetSickleavesForGoalIDsBetweenDates(t *testing.T) {
 	newTestDB(t)
 

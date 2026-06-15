@@ -177,6 +177,10 @@ safe.
   `Time = activity.StartDate`, `Duration = ElapsedTime`.
 
 **Activity → Operation → OperationSet**
+- **Gear:** the activity's `gear_id` is mapped onto a local gear row
+  (`resolveStravaGearForUser`), creating it on first sight with a one-time
+  `GET /gear/{id}` detail fetch for its name/brand. An activity with no gear leaves the
+  operation's existing gear untouched. See [gear.md](gear.md).
 - **Action mapping:** `activity.SportType` is matched to an `Action` via
   `GetActionByStravaName` (case-insensitive match on `Action.StravaName`); unknown
   sport types fall back to the generic **`Workout`** action. The operation's `Type`

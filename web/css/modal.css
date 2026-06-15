@@ -1,0 +1,310 @@
+/* ============================================================================
+   Treningheten shared modal — "telemetry panel"
+   ----------------------------------------------------------------------------
+   One dark, instrument-cluster modal used everywhere (exercise builder, gear,
+   statistics). Self-contained: it declares its own design tokens and fonts so
+   it renders identically on any page, with or without workout.css loaded.
+   Driven by web/js/modal.js (TRModal). All classes are namespaced `trm-`.
+   ============================================================================ */
+
+.trm {
+  --trm-ink: #eef3fb;
+  --trm-ink-dim: #93a4bd;
+  --trm-line: rgba(255, 255, 255, 0.10);
+  --trm-line-soft: rgba(255, 255, 255, 0.055);
+  --trm-accent: #00d27a;
+  --trm-accent-soft: rgba(0, 210, 122, 0.18);
+  --trm-surface: rgba(255, 255, 255, 0.045);
+  --trm-surface-hi: rgba(255, 255, 255, 0.09);
+  --trm-panel-top: #141f2e;
+  --trm-panel-bottom: #0b121c;
+  --trm-strava: #fc4c02;
+  --trm-font-display: 'Saira Semi Condensed', 'Roboto', sans-serif;
+  --trm-font-body: 'Hanken Grotesk', 'Roboto', sans-serif;
+
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: none;
+  place-items: center;
+  padding: clamp(0.75rem, 4vw, 2.5rem);
+  box-sizing: border-box;
+  font-family: var(--trm-font-body);
+  color: var(--trm-ink);
+}
+.trm.trm-open { display: grid; }
+.trm *, .trm *::before, .trm *::after { box-sizing: border-box; }
+
+/* ── Backdrop ──────────────────────────────────────────────────────────── */
+.trm-overlay {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(120% 85% at 50% -10%, rgba(0, 210, 122, 0.12), transparent 55%),
+    radial-gradient(150% 130% at 50% 120%, rgba(2, 6, 12, 0.82), rgba(2, 6, 12, 0.93)),
+    rgba(4, 8, 14, 0.55);
+  backdrop-filter: blur(7px) saturate(118%);
+  -webkit-backdrop-filter: blur(7px) saturate(118%);
+  animation: trm-fade 0.28s ease forwards;
+}
+/* fine film grain so the wash has texture, not a flat black */
+.trm-overlay::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.82' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  opacity: 0.045;
+  mix-blend-mode: overlay;
+  pointer-events: none;
+}
+
+/* ── Panel ─────────────────────────────────────────────────────────────── */
+.trm-panel {
+  position: relative;
+  width: min(34rem, 100%);
+  max-height: min(86vh, 48rem);
+  display: flex;
+  flex-direction: column;
+  background: linear-gradient(180deg, var(--trm-panel-top), var(--trm-panel-bottom));
+  border: 1px solid var(--trm-line);
+  border-radius: 18px;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.05),
+    0 30px 80px -20px rgba(0, 0, 0, 0.78),
+    0 8px 26px -14px rgba(0, 0, 0, 0.65);
+  overflow: hidden;
+  outline: none;
+  animation: trm-panel-in 0.46s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+/* accent keyline + bloom along the top edge — the signature detail */
+.trm-panel::before {
+  content: "";
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, var(--trm-accent), transparent);
+  filter: drop-shadow(0 0 7px var(--trm-accent-soft));
+}
+
+.trm-closing .trm-overlay { animation: trm-fade-out 0.2s ease forwards; }
+.trm-closing .trm-panel { animation: trm-panel-out 0.2s ease forwards; }
+
+/* corner register marks — instrument-cluster cue */
+.trm-corner { position: absolute; width: 11px; height: 11px; border: 1px solid var(--trm-accent); opacity: 0.4; pointer-events: none; }
+.trm-corner-tl { top: 11px; left: 11px; border-right: 0; border-bottom: 0; }
+.trm-corner-tr { top: 11px; right: 11px; border-left: 0; border-bottom: 0; }
+.trm-corner-bl { bottom: 11px; left: 11px; border-right: 0; border-top: 0; }
+.trm-corner-br { bottom: 11px; right: 11px; border-left: 0; border-top: 0; }
+
+/* ── Header ────────────────────────────────────────────────────────────── */
+.trm-head {
+  display: flex;
+  align-items: flex-start;
+  gap: 1rem;
+  padding: 1.4rem 3.4rem 1.05rem 1.45rem;
+  border-bottom: 1px solid var(--trm-line-soft);
+}
+.trm-head-text { min-width: 0; }
+.trm-eyebrow {
+  margin: 0 0 0.35rem;
+  font-family: var(--trm-font-display);
+  font-size: 0.62rem;
+  font-weight: 600;
+  letter-spacing: 0.32em;
+  text-transform: uppercase;
+  color: var(--trm-accent);
+}
+.trm-title {
+  margin: 0;
+  font-family: var(--trm-font-display);
+  font-size: 1.5rem;
+  font-weight: 600;
+  line-height: 1.04;
+  letter-spacing: 0.01em;
+  color: var(--trm-ink);
+}
+.trm-close {
+  position: absolute;
+  top: 1rem; right: 1rem;
+  z-index: 2;
+  width: 2.1rem; height: 2.1rem;
+  display: grid; place-items: center;
+  border-radius: 50%;
+  border: 1px solid var(--trm-line);
+  background: var(--trm-surface);
+  color: var(--trm-ink-dim);
+  cursor: pointer;
+  transition: transform 0.28s cubic-bezier(0.16, 1, 0.3, 1), color 0.2s, background 0.2s, border-color 0.2s;
+}
+.trm-close svg { width: 0.82rem; height: 0.82rem; pointer-events: none; }
+.trm-close:hover {
+  color: var(--trm-ink);
+  background: var(--trm-surface-hi);
+  border-color: var(--trm-accent);
+  transform: rotate(90deg);
+}
+.trm-close:focus-visible { outline: 2px solid var(--trm-accent); outline-offset: 2px; }
+
+/* ── Body ──────────────────────────────────────────────────────────────── */
+.trm-body {
+  padding: 1.3rem 1.45rem 1.5rem;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+  scrollbar-color: var(--trm-line) transparent;
+}
+.trm-panel-bare .trm-body { padding-top: 2.7rem; }
+.trm-body::-webkit-scrollbar { width: 10px; }
+.trm-body::-webkit-scrollbar-thumb {
+  background: var(--trm-line);
+  border-radius: 99px;
+  border: 3px solid transparent;
+  background-clip: padding-box;
+}
+.trm-body::-webkit-scrollbar-thumb:hover { background: var(--trm-surface-hi); background-clip: padding-box; }
+
+/* ── Shared form controls (used by the gear & new-exercise forms) ──────────
+   Everything here is scoped under `#trm-root .trm-body` on purpose. The app's
+   main.css styles raw `input` / `select` / `button` / `label` globally
+   (white background, height:10rem on select, 1rem margins, etc.). Rather than
+   fight that per-property, the id selector gives every modal control id-level
+   specificity, so global element rules simply cannot reach inside the panel.
+   The close button lives OUTSIDE .trm-body, so it keeps its own styling. */
+#trm-root .trm-body .trm-field { display: flex; flex-direction: column; gap: 0.35rem; margin-bottom: 0.95rem; text-align: left; }
+#trm-root .trm-body .trm-label {
+  font-family: var(--trm-font-display);
+  font-size: 0.63rem; font-weight: 600;
+  letter-spacing: 0.2em; text-transform: uppercase;
+  color: var(--trm-ink-dim);
+}
+
+/* Native controls — covers both the explicit .trm-* classes and any un-classed
+   legacy markup (e.g. the weight-log form) dropped in via toggleModal(). */
+#trm-root .trm-body input:not([type="checkbox"]):not([type="radio"]):not([type="range"]),
+#trm-root .trm-body select,
+#trm-root .trm-body textarea {
+  font-family: var(--trm-font-body);
+  font-size: 0.95rem;
+  color: var(--trm-ink);
+  background: rgba(0, 0, 0, 0.25);
+  border: 1px solid var(--trm-line);
+  border-radius: 0.6rem;
+  padding: 0.6rem 0.7rem;
+  width: 100%;
+  box-sizing: border-box;
+  height: auto;
+  min-height: 0;
+  max-height: none;
+  margin: 0;
+  overflow: visible;
+  transition: border-color 0.18s, background 0.18s, box-shadow 0.18s;
+}
+#trm-root .trm-body textarea { resize: vertical; min-height: 4.5rem; line-height: 1.45; }
+#trm-root .trm-body input:focus,
+#trm-root .trm-body select:focus,
+#trm-root .trm-body textarea:focus {
+  outline: none;
+  border-color: var(--trm-accent);
+  background: rgba(0, 0, 0, 0.33);
+  box-shadow: 0 0 0 3px var(--trm-accent-soft);
+}
+#trm-root .trm-body input::placeholder,
+#trm-root .trm-body textarea::placeholder { color: rgba(255, 255, 255, 0.3); }
+#trm-root .trm-body input[type="checkbox"],
+#trm-root .trm-body input[type="radio"] { accent-color: var(--trm-accent); width: auto; }
+
+/* Baseline theming for un-classed content (labels, rules, headings, links). */
+#trm-root .trm-body label { display: inline-block; color: var(--trm-ink); font-size: 0.82rem; margin: 0 0 0.3rem; text-align: left; }
+#trm-root .trm-body h1, #trm-root .trm-body h2, #trm-root .trm-body h3, #trm-root .trm-body h4 {
+  font-family: var(--trm-font-display); color: var(--trm-ink); margin: 0 0 0.7rem; font-weight: 600;
+}
+#trm-root .trm-body hr { border: 0; border-top: 1px solid var(--trm-line-soft); margin: 1.2rem 0; }
+#trm-root .trm-body a { color: var(--trm-accent); }
+
+/* Buttons — every button inside the body gets the primary look (id specificity
+   beats main.css `button { background:lightblue; color:#fff; margin:1rem }`). */
+#trm-root .trm-body button {
+  font-family: var(--trm-font-display);
+  text-transform: uppercase; letter-spacing: 0.12em;
+  font-size: 0.8rem; font-weight: 600;
+  display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem;
+  width: 100%; margin: 0; padding: 0.72rem 1rem;
+  border: 0; border-radius: 0.6rem; cursor: pointer;
+  color: #04140c; background: var(--trm-accent);
+  box-shadow: 0 8px 20px -10px var(--trm-accent);
+  transition: transform 0.15s, filter 0.15s;
+}
+#trm-root .trm-body button:hover { filter: brightness(1.07); transform: translateY(-1px); }
+#trm-root .trm-body button:active { transform: translateY(0); }
+#trm-root .trm-body button img { width: 1rem; height: 1rem; }
+
+#trm-root .trm-body .trm-row { display: flex; gap: 0.6rem; }
+#trm-root .trm-body .trm-row > * { flex: 1; min-width: 0; }
+
+#trm-root .trm-body .trm-divider { border: 0; border-top: 1px solid var(--trm-line-soft); margin: 1.35rem 0; }
+#trm-root .trm-body .trm-section-label {
+  font-family: var(--trm-font-display);
+  text-transform: uppercase; letter-spacing: 0.2em;
+  font-size: 0.66rem; color: var(--trm-ink-dim);
+  margin: 0 0 0.85rem;
+}
+#trm-root .trm-body .trm-or { text-align: center; font-size: 0.66rem; letter-spacing: 0.22em; text-transform: uppercase; color: var(--trm-ink-dim); margin: 0.15rem 0; }
+
+/* ── Gear list (rendered into the modal body) ──────────────────────────── */
+.trm-gear-list { display: flex; flex-direction: column; gap: 0.7rem; }
+.trm-gear-empty { color: var(--trm-ink-dim); font-size: 0.85rem; text-align: center; padding: 0.4rem 0 1rem; }
+.trm-gear-item {
+  border: 1px solid var(--trm-line);
+  border-radius: 0.7rem;
+  padding: 0.7rem;
+  background: var(--trm-surface);
+  display: flex; flex-direction: column; gap: 0.55rem;
+}
+.trm-gear-head { display: flex; align-items: center; gap: 0.4rem; }
+.trm-gear-head .trm-input { flex: 1; }
+.trm-gear-head .trm-select { flex: 0 0 6.2rem; }
+.trm-gear-meta { display: flex; align-items: center; gap: 0.55rem; }
+.trm-gear-meta .trm-input { flex: 1; }
+.trm-gear-distance {
+  font-family: var(--trm-font-display);
+  font-size: 1rem; font-weight: 600;
+  color: var(--trm-accent);
+  white-space: nowrap; padding-right: 0.15rem;
+}
+.trm-gear-toggles { display: flex; align-items: center; gap: 1.1rem; }
+.trm-gear-toggle { display: inline-flex; align-items: center; gap: 0.4rem; font-size: 0.78rem; color: var(--trm-ink-dim); cursor: pointer; }
+.trm-gear-toggle input { accent-color: var(--trm-accent); }
+.trm-gear-del { margin-left: auto; width: 1rem; height: 1rem; opacity: 0.55; filter: invert(100%); cursor: pointer; transition: opacity 0.15s; }
+.trm-gear-del:hover { opacity: 1; }
+.trm-badge {
+  font-family: var(--trm-font-display);
+  font-size: 0.56rem; letter-spacing: 0.14em; text-transform: uppercase;
+  padding: 0.2rem 0.45rem; border-radius: 0.35rem;
+  background: rgba(252, 76, 2, 0.14); color: var(--trm-strava);
+  border: 1px solid rgba(252, 76, 2, 0.35);
+}
+
+/* ── Motion ────────────────────────────────────────────────────────────── */
+@keyframes trm-fade { from { opacity: 0; } to { opacity: 1; } }
+@keyframes trm-fade-out { from { opacity: 1; } to { opacity: 0; } }
+@keyframes trm-panel-in {
+  from { opacity: 0; transform: translateY(20px) scale(0.965); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+@keyframes trm-panel-out {
+  from { opacity: 1; transform: translateY(0) scale(1); }
+  to   { opacity: 0; transform: translateY(8px) scale(0.985); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .trm-overlay, .trm-panel,
+  .trm-closing .trm-overlay, .trm-closing .trm-panel { animation-duration: 0.001s; }
+  .trm-close { transition: color 0.2s, background 0.2s, border-color 0.2s; }
+  .trm-close:hover { transform: none; }
+}
+
+@media (max-width: 520px) {
+  .trm-title { font-size: 1.3rem; }
+  .trm-head { padding: 1.15rem 1.1rem 0.85rem; }
+  .trm-body { padding: 1.1rem 1.1rem 1.25rem; }
+}

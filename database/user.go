@@ -286,6 +286,29 @@ func GetUsersInformation() ([]models.User, error) {
 }
 
 // Get user information using email (censored)
+// GetUsersByIDs returns the enabled, censored users for the given IDs in a single query,
+// so callers converting many goals don't issue one GetUserInformation per goal. Users that
+// are missing/disabled are simply absent from the result. Returns an empty slice when no
+// IDs are supplied.
+func GetUsersByIDs(userIDs []uuid.UUID) ([]models.User, error) {
+	var users []models.User
+
+	if len(userIDs) == 0 {
+		return []models.User{}, nil
+	}
+
+	userrecord := Instance.Where("`users`.enabled = ?", 1).Where("`users`.id IN ?", userIDs).Find(&users)
+	if userrecord.Error != nil {
+		return []models.User{}, userrecord.Error
+	}
+
+	for index := range users {
+		users[index] = CensorUserObject(users[index])
+	}
+
+	return users, nil
+}
+
 func GetUserInformationByEmail(email string) (models.User, error) {
 	var user models.User
 	userrecord := Instance.Where("`users`.enabled = ?", 1).Where("`users`.email = ?", email).Find(&user)

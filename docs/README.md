@@ -27,6 +27,8 @@ architecture overview.
   (users in seasons / with notifications / with Strava, achievement completion).
 - [image-serving.md](image-serving.md) — how profile/achievement images are served (raw
   bytes via `<img src>`, cookie-or-header auth, HTTP + server-side resize caching).
+- [gear.md](gear.md) — gear tracking (shoes/bikes): manual + Strava-imported equipment,
+  per-operation linkage, computed distance, and the session-level builder selector.
 
 ## Auth & integrations
 

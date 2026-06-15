@@ -168,6 +168,26 @@ func TestResizeImageDoesNotUpscale(t *testing.T) {
 	}
 }
 
+func TestDetectImageMimeType(t *testing.T) {
+	cases := []struct {
+		name  string
+		bytes []byte
+		want  string
+	}{
+		{"jpeg", makeTestJPEG(t, 8, 8), "image/jpeg"},
+		{"png", makeTestPNG(t, 8, 8), "image/png"},
+		{"svg", []byte(`<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24"></svg>`), "image/svg+xml"},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			if got := detectImageMimeType(tc.bytes); got != tc.want {
+				t.Errorf("detectImageMimeType(%s) = %q, want %q", tc.name, got, tc.want)
+			}
+		})
+	}
+}
+
 func TestResizeImageRejectsNonImage(t *testing.T) {
 	if _, err := ResizeImage(250, 250, []byte("this is not an image")); err == nil {
 		t.Error("expected error when resizing non-image bytes, got nil")

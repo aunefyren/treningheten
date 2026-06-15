@@ -110,6 +110,14 @@ There is no build step or framework — `web/js/*.js` is served through Go templ
   `<img src="${profileImageURL(userID, true)}" onerror="${IMAGE_FALLBACK_ONERROR}">`
   (helpers in `functions.js`). The browser caches and dedupes them for free — don't
   re-introduce XHR→base64→`set .src` plumbing. See [image-serving.md](image-serving.md).
+- **Modals use the shared `TRModal`** (`web/js/modal.js` + `web/css/modal.css`, the dark
+  "telemetry panel"). Don't hand-render `#myModal` markup. Open with
+  `TRModal.open({ eyebrow, title, body, onClose })`, swap content with `TRModal.setBody(html)`,
+  dismiss with `TRModal.close()`. The legacy `toggleModal(html?)` / `closeModal()` globals are
+  shims over it. Body content can use the shared `.trm-field` / `.trm-label` / `.trm-input` /
+  `.trm-select` / `.trm-textarea` / `.trm-btn` / `.trm-divider` classes; un-classed elements
+  (`label`, `input`, `button`, `hr`, headings) are themed for the dark panel automatically.
+  Include `modal.css` + `modal.js` on the page (`modal.js` **after** `functions.js`).
 
 ## Tests
 

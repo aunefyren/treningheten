@@ -642,7 +642,7 @@ func StravaSyncActivityForUser(activity models.StravaGetActivitiesRequestReply, 
 
 	logger.Log.Trace("Updated exercise.")
 
-	operation, err := StravaSyncOperationForActivity(activity, user, finalExercise, stravaStreams, detailRetrieved)
+	operation, err := StravaSyncOperationForActivity(activity, user, finalExercise, stravaStreams, detailRetrieved, token)
 	if err != nil {
 		logger.Log.Error("Failed to sync operation. Error: " + err.Error())
 		logger.Log.Error("Sport type was: " + activity.SportType)
@@ -655,7 +655,7 @@ func StravaSyncActivityForUser(activity models.StravaGetActivitiesRequestReply, 
 	return nil
 }
 
-func StravaSyncOperationForActivity(activity models.StravaGetActivitiesRequestReply, user models.User, exercise models.Exercise, streams *models.StravaActivityStreams, detailRetrieved bool) (finalOperation *models.Operation, err error) {
+func StravaSyncOperationForActivity(activity models.StravaGetActivitiesRequestReply, user models.User, exercise models.Exercise, streams *models.StravaActivityStreams, detailRetrieved bool, token string) (finalOperation *models.Operation, err error) {
 	err = nil
 	finalOperation = nil
 
@@ -688,6 +688,17 @@ func StravaSyncOperationForActivity(activity models.StravaGetActivitiesRequestRe
 	operation.ExerciseID = exercise.ID
 	operation.ActionID = &action.ID
 	operation.Type = action.Type
+
+	// Map the activity's Strava gear onto a local gear row. Only re-link when the
+	// activity actually carries a gear id, so a user-set gear on an activity with
+	// no Strava gear is preserved.
+	gear, err := resolveStravaGearForUser(activity.GearID, user.ID, token)
+	if err != nil {
+		logger.Log.Warn("Failed to resolve Strava gear, leaving operation gear unchanged. Error: " + err.Error())
+	} else if gear != nil {
+		operation.GearID = &gear.ID
+	}
+
 	stravaID := strconv.Itoa(int(activity.ID))
 	durationTime := time.Duration(activity.ElapsedTime)
 	operation.Duration = &durationTime
@@ -1004,6 +1015,55 @@ func SyncStravaActivitiesForUsers(usersToSync []models.User, stravaIDs []string)
 	}
 
 	logger.Log.Infof("Strava activities synced for %d users", len(usersToSync))
+}
+
+// StravaGetGear fetches the detail for one piece of equipment (GET /gear/{id}),
+// used to name gear the first time it is seen during sync.
+func StravaGetGear(token string, gearID string) (gear models.StravaGear, err error) {
+	stravaWait()
+	err = nil
+	gear = models.StravaGear{}
+	url := stravaAPIBaseURL + "/gear/" + gearID
+
+	var jsonStr = []byte(``)
+	req, err := http.NewRequest("GET", url, bytes.NewBuffer(jsonStr))
+	if err != nil {
+		logger.Log.Info("URL request generation threw error. Error: " + err.Error())
+		return gear, errors.New("URL request generation threw error.")
+	}
+
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Authorization", "Bearer "+token)
+
+	client := &http.Client{}
+	resp, err := client.Do(req)
+	if err != nil {
+		logger.Log.Info("URL request threw error. Error: " + err.Error())
+		return gear, errors.New("URL request threw error.")
+	}
+	defer resp.Body.Close()
+
+	logger.Log.Info("Get gear gave HTTP code: " + resp.Status)
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		logger.Log.Info("Failed to read reply body. Error: " + err.Error())
+		return gear, errors.New("Failed to read reply body.")
+	}
+
+	if resp.StatusCode != 200 {
+		logger.Log.Info("HTTP code was not 200. Body:")
+		logger.Log.Info(string(body))
+		return gear, errors.New("Strava returned non-200 status: " + resp.Status)
+	}
+
+	err = json.Unmarshal(body, &gear)
+	if err != nil {
+		logger.Log.Info("Failed to parse reply body. Error: " + err.Error())
+		return gear, errors.New("Failed to parse reply body.")
+	}
+
+	return
 }
 
 func StravaGetActivity(token string, activityID string) (activity models.StravaGetActivitiesRequestReply, err error) {

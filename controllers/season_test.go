@@ -5,6 +5,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/aunefyren/treningheten/database"
 	"github.com/aunefyren/treningheten/models"
 
 	"github.com/google/uuid"
@@ -155,6 +156,96 @@ func TestRetrieveWeekResultsSickLeavePreservesStreak(t *testing.T) {
 	}
 	if week1.SickLeave {
 		t.Errorf("week 1: unexpected sick leave")
+	}
+}
+
+func TestConvertSeasonToSeasonObjectBatched(t *testing.T) {
+	newControllerTestDB(t)
+
+	prize := models.Prize{Name: "Beer", Quantity: 6, Enabled: true}
+	prize.ID = uuid.New()
+	if err := database.CreatePrizeInDB(prize); err != nil {
+		t.Fatalf("failed to seed prize: %v", err)
+	}
+
+	season := models.Season{
+		Name:    "Winter",
+		Start:   time.Date(2024, 1, 1, 0, 0, 0, 0, time.UTC),
+		End:     time.Date(2024, 3, 1, 0, 0, 0, 0, time.UTC),
+		PrizeID: prize.ID,
+		Enabled: true,
+	}
+	season.ID = uuid.New()
+	if err := database.CreateSeasonInDB(season); err != nil {
+		t.Fatalf("failed to seed season: %v", err)
+	}
+
+	alice := createTestUser(t, "alice@example.com", "Alice")
+	bob := createTestUser(t, "bob@example.com", "Bob")
+
+	goal1 := models.Goal{SeasonID: season.ID, UserID: alice.ID, ExerciseInterval: 3, Competing: true, Enabled: true}
+	goal1.ID = uuid.New()
+	if _, err := database.CreateGoalInDB(goal1); err != nil {
+		t.Fatalf("failed to seed goal 1: %v", err)
+	}
+	goal2 := models.Goal{SeasonID: season.ID, UserID: bob.ID, ExerciseInterval: 4, Competing: true, Enabled: true}
+	goal2.ID = uuid.New()
+	if _, err := database.CreateGoalInDB(goal2); err != nil {
+		t.Fatalf("failed to seed goal 2: %v", err)
+	}
+
+	// Alice: 2 unused sick leave (counted) + 1 used (not counted). Bob: none.
+	anyDate := time.Date(2024, 1, 10, 0, 0, 0, 0, time.UTC)
+	seedSickleave(t, goal1.ID, anyDate, false)
+	seedSickleave(t, goal1.ID, anyDate, false)
+	seedSickleave(t, goal1.ID, anyDate, true)
+
+	obj, err := ConvertSeasonToSeasonObject(season)
+	if err != nil {
+		t.Fatalf("ConvertSeasonToSeasonObject returned error: %v", err)
+	}
+
+	if obj.Name != "Winter" {
+		t.Errorf("season name = %q, want Winter", obj.Name)
+	}
+	if obj.Prize.ID != prize.ID {
+		t.Errorf("prize id = %v, want %v", obj.Prize.ID, prize.ID)
+	}
+	if len(obj.Goals) != 2 {
+		t.Fatalf("expected 2 goals, got %d", len(obj.Goals))
+	}
+
+	byUser := map[uuid.UUID]models.GoalObject{}
+	for _, g := range obj.Goals {
+		byUser[g.User.ID] = g
+	}
+
+	aliceGoal, ok := byUser[alice.ID]
+	if !ok {
+		t.Fatalf("alice's goal missing from season object")
+	}
+	if aliceGoal.ExerciseInterval != 3 {
+		t.Errorf("alice interval = %d, want 3", aliceGoal.ExerciseInterval)
+	}
+	if aliceGoal.SickleaveLeft != 2 {
+		t.Errorf("alice sickleave left = %d, want 2", aliceGoal.SickleaveLeft)
+	}
+	if aliceGoal.User.FirstName != "Alice" {
+		t.Errorf("alice first name = %q, want Alice", aliceGoal.User.FirstName)
+	}
+	if aliceGoal.User.Password != "REDACTED" {
+		t.Errorf("expected censored user (password REDACTED), got %q", aliceGoal.User.Password)
+	}
+
+	bobGoal, ok := byUser[bob.ID]
+	if !ok {
+		t.Fatalf("bob's goal missing from season object")
+	}
+	if bobGoal.ExerciseInterval != 4 {
+		t.Errorf("bob interval = %d, want 4", bobGoal.ExerciseInterval)
+	}
+	if bobGoal.SickleaveLeft != 0 {
+		t.Errorf("bob sickleave left = %d, want 0", bobGoal.SickleaveLeft)
 	}
 }
 

@@ -57,6 +57,19 @@ func ConvertOperationToOperationObject(operation models.Operation) (operationObj
 		operationObject.Action = nil
 	}
 
+	// Flatten the linked gear's identity. Distance is left at zero here to avoid a
+	// roll-up query per operation; the gear-list endpoint fills the computed total.
+	if operation.GearID != nil {
+		gear, err := database.GetGearByID(*operation.GearID)
+		if err != nil {
+			logger.Log.Info("Failed to get gear in database. Error: " + err.Error())
+			return operationObject, errors.New("Failed to get gear in database.")
+		} else if gear != nil {
+			gearObject := ConvertGearToGearObject(*gear, 0)
+			operationObject.Gear = &gearObject
+		}
+	}
+
 	operationObject.Equipment = operation.Equipment
 	operationObject.CreatedAt = operation.CreatedAt
 	operationObject.DeletedAt = operation.DeletedAt

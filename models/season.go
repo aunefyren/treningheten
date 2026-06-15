@@ -6,6 +6,19 @@ import (
 	"github.com/google/uuid"
 )
 
+// SeasonListItem is a lightweight season view for the potential/countdown lists, which
+// only need identity, dates, participant count and the caller's own goal — not the full,
+// per-goal-resolved SeasonObject.
+type SeasonListItem struct {
+	ID               uuid.UUID  `json:"id"`
+	Name             string     `json:"name"`
+	Start            time.Time  `json:"start"`
+	End              time.Time  `json:"end"`
+	JoinAnytime      *bool      `json:"join_anytime"`
+	ParticipantCount int        `json:"participant_count"`
+	UserGoalID       *uuid.UUID `json:"user_goal_id"`
+}
+
 type Season struct {
 	GormModel
 	Name        string    `json:"name" gorm:"not null"`

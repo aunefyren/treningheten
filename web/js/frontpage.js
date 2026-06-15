@@ -1626,13 +1626,7 @@ function placeCountdownSeasons(seasonsArray, userID) {
 
         var html = "Seasons you are waiting for:<br><div class='countdownSeasonList'><hr>";
         for(var i = 0; i < seasonsArray.length; i++) {
-            var goalID = ''
-            for(var j = 0; j < seasonsArray[i].goals.length; j++) {
-                if(seasonsArray[i].goals[j].user.id == userID) {
-                    goalID = seasonsArray[i].goals[j].id;
-                    break;
-                }
-            }
+            var goalID = seasonsArray[i].user_goal_id || '';
 
             var date_start = new Date(seasonsArray[i].start);
             var date_end = new Date(seasonsArray[i].end);
@@ -1644,8 +1638,9 @@ function placeCountdownSeasons(seasonsArray, userID) {
                 joinText = "<b>You must join before the start date.</b>"
             }
 
+            var participantCount = seasonsArray[i].participant_count;
             var partici_string = "participants"
-            if(seasonsArray[i].goals.length == 1) {
+            if(participantCount == 1) {
                 partici_string = "participant"
             }
 
@@ -1654,9 +1649,9 @@ function placeCountdownSeasons(seasonsArray, userID) {
                     <h3 id="countdown_season_title" style="margin: 0 0 0.5em 0;">${seasonsArray[i].name}</h3>
                     <p id="countdown_season_start">${GetDateString(date_start, true)}</p>
                     <p id="countdown_season_end">${GetDateString(date_end, true)}</p>
-                  
-                    <p id="countdown_title" style="margin-top: 0.25em;">${seasonsArray[i].goals.length + " " + partici_string}. Starting in:</p>
-                    
+
+                    <p id="countdown_title" style="margin-top: 0.25em;">${participantCount + " " + partici_string}. Starting in:</p>
+
                     <p style="font-size: 2em; text-align: center;" id="countdown_number_${seasonsArray[i].id}" class="countdown_number">00d 00h 00m 00s</p>
 
                     <a class="clickable hover" style="margin: 1em 0 0 0; font-size:0.75em;" onclick="deleteGoal('${goalID}');">I changed my mind!</i></a>

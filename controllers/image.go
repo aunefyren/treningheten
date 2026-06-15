@@ -98,7 +98,21 @@ func serveImageBytes(context *gin.Context, imageBytes []byte) {
 		return
 	}
 
-	context.Data(http.StatusOK, http.DetectContentType(imageBytes), imageBytes)
+	context.Data(http.StatusOK, detectImageMimeType(imageBytes), imageBytes)
+}
+
+// detectImageMimeType returns the MIME type for image bytes. It special-cases SVG, which
+// http.DetectContentType reports as XML/text — that would stop a browser rendering the
+// default profile placeholder in an <img> tag.
+func detectImageMimeType(imageBytes []byte) string {
+	sniff := imageBytes
+	if len(sniff) > 1024 {
+		sniff = sniff[:1024]
+	}
+	if bytes.Contains(sniff, []byte("<svg")) {
+		return "image/svg+xml"
+	}
+	return http.DetectContentType(imageBytes)
 }
 
 var profile_image_path, _ = filepath.Abs("./images/profiles")

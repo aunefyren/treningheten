@@ -90,6 +90,30 @@ func seedExerciseDayWithExercises(t *testing.T, userID uuid.UUID, date time.Time
 	}
 }
 
+// createTestUser inserts a minimal enabled, verified user via the real registration path
+// and returns it.
+func createTestUser(t *testing.T, email string, firstName string) models.User {
+	t.Helper()
+
+	admin := false
+	user := models.User{
+		FirstName: firstName,
+		LastName:  "User",
+		Email:     email,
+		Password:  "hashed-password",
+		Admin:     &admin,
+		Enabled:   true,
+		Verified:  true,
+	}
+	user.ID = uuid.New()
+
+	created, err := database.RegisterUserInDB(user)
+	if err != nil {
+		t.Fatalf("failed to register test user: %v", err)
+	}
+	return created
+}
+
 // seedSickleave inserts an enabled sick-leave row for a goal on the given date.
 func seedSickleave(t *testing.T, goalID uuid.UUID, date time.Time, used bool) {
 	t.Helper()

@@ -82,29 +82,29 @@ type StravaGetActivitiesRequestReply struct {
 		SummaryPolyline string `json:"summary_polyline"`
 		ResourceState   int    `json:"resource_state"`
 	} `json:"map"`
-	Trainer                    bool        `json:"trainer"`
-	Commute                    bool        `json:"commute"`
-	Manual                     bool        `json:"manual"`
-	Private                    bool        `json:"private"`
-	Visibility                 string      `json:"visibility"`
-	Flagged                    bool        `json:"flagged"`
-	GearID                     interface{} `json:"gear_id"`
-	StartLatlng                []float64   `json:"start_latlng"`
-	EndLatlng                  []float64   `json:"end_latlng"`
-	AverageSpeed               float64     `json:"average_speed"`
-	MaxSpeed                   float64     `json:"max_speed"`
-	HasHeartrate               bool        `json:"has_heartrate"`
-	HeartrateOptOut            bool        `json:"heartrate_opt_out"`
-	DisplayHideHeartrateOption bool        `json:"display_hide_heartrate_option"`
-	ElevHigh                   float64     `json:"elev_high"`
-	ElevLow                    float64     `json:"elev_low"`
-	UploadID                   int64       `json:"upload_id"`
-	UploadIDStr                string      `json:"upload_id_str"`
-	ExternalID                 string      `json:"external_id"`
-	FromAcceptedTag            bool        `json:"from_accepted_tag"`
-	PrCount                    int         `json:"pr_count"`
-	TotalPhotoCount            int         `json:"total_photo_count"`
-	HasKudoed                  bool        `json:"has_kudoed"`
+	Trainer                    bool      `json:"trainer"`
+	Commute                    bool      `json:"commute"`
+	Manual                     bool      `json:"manual"`
+	Private                    bool      `json:"private"`
+	Visibility                 string    `json:"visibility"`
+	Flagged                    bool      `json:"flagged"`
+	GearID                     *string   `json:"gear_id"`
+	StartLatlng                []float64 `json:"start_latlng"`
+	EndLatlng                  []float64 `json:"end_latlng"`
+	AverageSpeed               float64   `json:"average_speed"`
+	MaxSpeed                   float64   `json:"max_speed"`
+	HasHeartrate               bool      `json:"has_heartrate"`
+	HeartrateOptOut            bool      `json:"heartrate_opt_out"`
+	DisplayHideHeartrateOption bool      `json:"display_hide_heartrate_option"`
+	ElevHigh                   float64   `json:"elev_high"`
+	ElevLow                    float64   `json:"elev_low"`
+	UploadID                   int64     `json:"upload_id"`
+	UploadIDStr                string    `json:"upload_id_str"`
+	ExternalID                 string    `json:"external_id"`
+	FromAcceptedTag            bool      `json:"from_accepted_tag"`
+	PrCount                    int       `json:"pr_count"`
+	TotalPhotoCount            int       `json:"total_photo_count"`
+	HasKudoed                  bool      `json:"has_kudoed"`
 }
 
 // Strava API response shape (key_by_type=true)
@@ -155,6 +155,23 @@ func (s *StravaStreamsJSON) Scan(value interface{}) error {
 	}
 
 	return json.Unmarshal(b, s)
+}
+
+// StravaGear is the detailed equipment shape from GET /gear/{id}. Distance is
+// Strava's lifetime total (metres) and is intentionally not stored — Treningheten
+// computes gear distance from logged operations instead (see docs/gear.md).
+type StravaGear struct {
+	ID            string  `json:"id"`
+	Primary       bool    `json:"primary"`
+	ResourceState int     `json:"resource_state"`
+	Distance      float64 `json:"distance"`
+	BrandName     string  `json:"brand_name"`
+	ModelName     string  `json:"model_name"`
+	FrameType     int     `json:"frame_type"`
+	Description   string  `json:"description"`
+	Name          string  `json:"name"`
+	Nickname      string  `json:"nickname"`
+	Retired       bool    `json:"retired"`
 }
 
 type StravaSyncActivitiesForUsersRequest struct {

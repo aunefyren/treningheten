@@ -277,6 +277,12 @@ func initRouter(configFile models.ConfigStruct) *gin.Engine {
 			auth.DELETE("/operation-sets/:operation_set_id", controllers.APIDeleteOperationSet)
 			auth.POST("/operation-sets/:operation_set_id/strava-sync", controllers.APISyncStravaOperationSet)
 
+			auth.GET("/gear", controllers.APIGetGearForUser)
+			auth.POST("/gear", controllers.APICreateGear)
+			auth.PUT("/gear/:gear_id", controllers.APIUpdateGear)
+			auth.DELETE("/gear/:gear_id", controllers.APIDeleteGear)
+			auth.PUT("/exercises/:exercise_id/gear", controllers.APISetGearForExercise)
+
 			auth.GET("/weights", controllers.APIGetWeightsForUser)
 			auth.GET("/weights/:weight_id", controllers.APIGetWeightForUser)
 			auth.POST("/weights", controllers.APICreateWeightForUser)

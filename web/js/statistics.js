@@ -19,14 +19,6 @@ function load_page(result) {
     }
 
     var html = `
-                <!-- The Modal -->
-                <div id="myModal" class="modal closed">
-                    <span class="close clickable" onclick="toggleModal()">&times;</span>
-                    <div class="modalContent" id="modalContent">
-                    </div>
-                    <div id="caption"></div>
-                </div>
-
                 <div class="" id="front-page">
                     
                     <div class="module">
