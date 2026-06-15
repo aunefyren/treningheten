@@ -482,45 +482,12 @@ async function choose_winner(resolve, debt_id) {
 
 function GetProfileImage(userID) {
 
-    var xhttp = new XMLHttpRequest();
-    xhttp.onreadystatechange = function() {
-        if (this.readyState == 4) {
-            
-            try {
-                result = JSON.parse(this.responseText);
-            } catch(e) {
-                console.log(e +' - Response: ' + this.responseText);
-                error("Could not reach API.");
-                return;
-            }
-            
-            if(result.error) {
-
-                error(result.error);
-
-            } else {
-
-                PlaceProfileImage(result.image)
-                
-            }
-
-        } else {
-            // info("Loading week...");
-        }
-    };
-    xhttp.withCredentials = true;
-    xhttp.open("get", api_url + "auth/users/" + userID + "/image");
-    xhttp.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
-    xhttp.setRequestHeader("Authorization", jwt);
-    xhttp.send();
-
-    return;
-
-}
-
-function PlaceProfileImage(imageBase64) {
-
-    document.getElementById("spinner-winner-image").src = imageBase64
+    var img = document.getElementById("spinner-winner-image");
+    if (!img) {
+        return;
+    }
+    img.onerror = function() { this.onerror = null; this.src = '/assets/images/barbell.gif'; };
+    img.src = profileImageURL(userID, false);
 
     setInterval(function () {
         document.getElementById('spinner-winner-image-div').classList.add('shine')

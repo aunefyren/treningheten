@@ -200,6 +200,36 @@ func Auth(admin bool) gin.HandlerFunc {
 	}
 }
 
+// AuthImageReadOnly authenticates read-only image requests that may originate from an
+// <img> tag, which cannot send an Authorization header. It accepts the access token from
+// the Authorization header or, failing that, the `treningheten` cookie, then runs the
+// shared Authenticate() checks (account enabled / verified). Image routes are GET-only and
+// the images are already visible to any logged-in user, so this requires only a valid
+// login — no scope enforcement beyond that.
+func AuthImageReadOnly() gin.HandlerFunc {
+	return func(context *gin.Context) {
+		authHeader := context.GetHeader("Authorization")
+		if authHeader == "" {
+			if cookie, err := context.Cookie("treningheten"); err == nil && cookie != "" {
+				authHeader = "Bearer " + cookie
+			}
+		}
+
+		if authHeader == "" {
+			bearerChallenge(context, http.StatusUnauthorized, "invalid_request", "request does not contain an access token")
+			return
+		}
+
+		if _, err := Authenticate(authHeader); err != nil {
+			logger.Log.Info("failed to validate image request token. error: " + err.Error())
+			bearerChallenge(context, http.StatusUnauthorized, "invalid_token", "failed to validate token")
+			return
+		}
+
+		context.Next()
+	}
+}
+
 // GetAuthUsername resolves the calling user's ID from either token type.
 func GetAuthUsername(tokenString string) (uuid.UUID, error) {
 	if strings.TrimPrefix(tokenString, "Bearer ") == "" {

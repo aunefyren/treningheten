@@ -2,8 +2,10 @@ package controllers
 
 import (
 	"bytes"
+	"crypto/md5"
 	"encoding/base64"
 	"errors"
+	"fmt"
 	"image"
 	"image/jpeg"
 	"image/png"
@@ -12,6 +14,8 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
+	"time"
 
 	"github.com/aunefyren/treningheten/database"
 	"github.com/aunefyren/treningheten/logger"
@@ -20,6 +24,70 @@ import (
 	"github.com/google/uuid"
 	"github.com/nfnt/resize"
 )
+
+// Resized images are cached in memory keyed by source path + target size, so the
+// expensive Lanczos3 resize runs once per (image, size) rather than on every request.
+// The cache self-invalidates on the source file's modification time, so a re-uploaded
+// profile photo is picked up without any explicit invalidation call.
+type cachedResizedImage struct {
+	bytes   []byte
+	modTime time.Time
+}
+
+var imageCacheMutex sync.RWMutex
+var imageCache = map[string]cachedResizedImage{}
+
+// loadResizedImageCached returns the resized bytes for filePath at the given max
+// dimensions, serving from the in-memory cache when the file is unchanged. It returns an
+// error if the file does not exist (callers fall back to a default).
+func loadResizedImageCached(filePath string, maxWidth uint, maxHeight uint) ([]byte, error) {
+	info, err := os.Stat(filePath)
+	if err != nil {
+		return nil, err
+	}
+
+	cacheKey := fmt.Sprintf("%s|%dx%d", filePath, maxWidth, maxHeight)
+
+	imageCacheMutex.RLock()
+	entry, found := imageCache[cacheKey]
+	imageCacheMutex.RUnlock()
+	if found && entry.modTime.Equal(info.ModTime()) {
+		return entry.bytes, nil
+	}
+
+	imageBytes, err := LoadImageFile(filePath)
+	if err != nil {
+		return nil, err
+	}
+
+	resizedBytes, err := ResizeImage(maxWidth, maxHeight, imageBytes)
+	if err != nil {
+		return nil, err
+	}
+
+	imageCacheMutex.Lock()
+	imageCache[cacheKey] = cachedResizedImage{bytes: resizedBytes, modTime: info.ModTime()}
+	imageCacheMutex.Unlock()
+
+	return resizedBytes, nil
+}
+
+// serveImageBytes writes raw image bytes for direct use in an <img> tag, with caching
+// headers so the browser can reuse and dedupe them. The MIME type is detected from the
+// content (resized photos are JPEG; the profile default is an SVG). It honours
+// If-None-Match for cheap revalidation once the max-age window expires.
+func serveImageBytes(context *gin.Context, imageBytes []byte) {
+	etag := fmt.Sprintf("\"%x\"", md5.Sum(imageBytes))
+	context.Header("Cache-Control", "private, max-age=300")
+	context.Header("ETag", etag)
+
+	if context.GetHeader("If-None-Match") == etag {
+		context.Status(http.StatusNotModified)
+		return
+	}
+
+	context.Data(http.StatusOK, http.DetectContentType(imageBytes), imageBytes)
+}
 
 var profile_image_path, _ = filepath.Abs("./images/profiles")
 var achievements_image_path, _ = filepath.Abs("./web/assets/achievements")
@@ -65,12 +133,9 @@ func APIGetUserProfileImage(context *gin.Context) {
 
 	var filePath = profile_image_path + "/" + userIDString + ".jpg"
 
-	imageBytes, err := LoadImageFile(filePath)
-	resize := true
+	imageBytes, err := loadResizedImageCached(filePath, imageWidth, imageHeight)
 	if err != nil {
-		// Debug line
-		// logger.Log.Info("Failed to find profile image. Loading default.")
-
+		// No profile image on disk: serve the (unresized) default placeholder.
 		imageBytes, err = LoadDefaultProfileImage()
 		if err != nil {
 			logger.Log.Info("Failed to load default profile image. Error: " + err.Error())
@@ -78,29 +143,10 @@ func APIGetUserProfileImage(context *gin.Context) {
 			context.Abort()
 			return
 		}
-		resize = false
 	}
 
-	if resize {
-		imageBytes, err = ResizeImage(imageWidth, imageHeight, imageBytes)
-		if err != nil {
-			logger.Log.Info("Failed to resize image. Error: " + err.Error())
-			context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to resize image."})
-			context.Abort()
-			return
-		}
-	}
-
-	base64, err := ImageBytesToBase64(imageBytes)
-	if err != nil {
-		logger.Log.Info("Failed to convert image file to Base64. Error: " + err.Error())
-		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to convert image file to Base64."})
-		context.Abort()
-		return
-	}
-
-	// Reply
-	context.JSON(http.StatusOK, gin.H{"image": base64, "message": "Picture retrieved."})
+	// Reply with the raw image bytes so it can be loaded directly into an <img> tag.
+	serveImageBytes(context, imageBytes)
 
 }
 
@@ -317,8 +363,7 @@ func APIGetAchievementsImage(context *gin.Context) {
 
 	var filePath = achievements_image_path + "/" + achievementIDString + ".jpg"
 
-	imageBytes, err := LoadImageFile(filePath)
-	resize := true
+	imageBytes, err := loadResizedImageCached(filePath, imageWidth, imageHeight)
 	if err != nil {
 		logger.Log.Info("Failed to find achievement image. Error: " + err.Error())
 		context.JSON(http.StatusBadRequest, gin.H{"error": "Failed to find achievement image."})
@@ -326,25 +371,7 @@ func APIGetAchievementsImage(context *gin.Context) {
 		return
 	}
 
-	if resize {
-		imageBytes, err = ResizeImage(imageWidth, imageHeight, imageBytes)
-		if err != nil {
-			logger.Log.Info("Failed to resize image. Error: " + err.Error())
-			context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to resize image."})
-			context.Abort()
-			return
-		}
-	}
-
-	base64, err := ImageBytesToBase64(imageBytes)
-	if err != nil {
-		logger.Log.Info("Failed to convert image file to Base64. Error: " + err.Error())
-		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to convert image file to Base64."})
-		context.Abort()
-		return
-	}
-
-	// Reply
-	context.JSON(http.StatusOK, gin.H{"image": base64, "message": "Picture retrieved."})
+	// Reply with the raw image bytes so it can be loaded directly into an <img> tag.
+	serveImageBytes(context, imageBytes)
 
 }

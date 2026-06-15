@@ -68,6 +68,30 @@ window.addEventListener('offline', () => {
     window.location.href = '/offline';
 });
 
+// profileImageURL returns the URL of a user's profile image for direct use in an <img src>.
+// The image endpoint accepts the session cookie, so no Authorization header is needed and
+// the browser caches/dedupes these automatically. Pass thumbnail=true for the small size.
+function profileImageURL(userID, thumbnail) {
+    var url = api_url + "auth/users/" + userID + "/image";
+    if (thumbnail) {
+        url += "?thumbnail=true";
+    }
+    return url;
+}
+
+// achievementImageURL is the achievement equivalent of profileImageURL.
+function achievementImageURL(achievementID, thumbnail) {
+    var url = api_url + "auth/achievements/" + achievementID + "/image";
+    if (thumbnail) {
+        url += "?thumbnail=true";
+    }
+    return url;
+}
+
+// IMAGE_FALLBACK_ONERROR is the inline onerror handler for profile/achievement <img> tags:
+// if the request fails (e.g. expired session), swap in the local placeholder once.
+var IMAGE_FALLBACK_ONERROR = "this.onerror=null;this.src='/assets/images/barbell.gif'";
+
 // Make XHTTP requests
 function makeRequest (method, url, data) {
     return new Promise(function (resolve, reject) {
@@ -243,7 +267,8 @@ function get_image(url, cookie, info, iteration) {
 
     if(iteration > 5) {
         return;
-    } if (iteration =! null) {
+    }
+    if (iteration != null) {
         iteration++;
     }
 

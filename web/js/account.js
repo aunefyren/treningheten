@@ -383,45 +383,14 @@ function send_update_two(form_data, user_id) {
 
 function GetProfileImage(userID) {
 
-    var xhttp = new XMLHttpRequest();
-    xhttp.onreadystatechange = function() {
-        if (this.readyState == 4) {
-            
-            try {
-                result = JSON.parse(this.responseText);
-            } catch(e) {
-                console.log(e +' - Response: ' + this.responseText);
-                error("Could not reach API.");
-                return;
-            }
-            
-            if(result.error) {
-
-                error(result.error);
-
-            } else {
-
-                PlaceProfileImage(result.image)
-                
-            }
-
-        } else {
-            // info("Loading week...");
-        }
-    };
-    xhttp.withCredentials = true;
-    xhttp.open("get", api_url + "auth/users/" + user_id + "/image");
-    xhttp.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
-    xhttp.setRequestHeader("Authorization", jwt);
-    xhttp.send();
-
-    return;
-
-}
-
-function PlaceProfileImage(imageBase64) {
-
-    document.getElementById("user-active-profile-photo-img").src = imageBase64
+    var img = document.getElementById("user-active-profile-photo-img");
+    if (!img) {
+        return;
+    }
+    img.onerror = function() { this.onerror = null; this.src = '/assets/images/barbell.gif'; };
+    // Cache-buster: this is the user's own account page, where they may have just changed
+    // their photo, so bypass the image cache to always show the current one.
+    img.src = profileImageURL(userID, false) + "?v=" + Date.now();
 
 }
 

@@ -119,45 +119,12 @@ function load_page(result) {
 
 function GetProfileImage(userID) {
 
-    var xhttp = new XMLHttpRequest();
-    xhttp.onreadystatechange = function() {
-        if (this.readyState == 4) {
-            
-            try {
-                result = JSON.parse(this.responseText);
-            } catch(e) {
-                console.log(e +' - Response: ' + this.responseText);
-                error("Could not reach API.");
-                return;
-            }
-            
-            if(result.error) {
-
-                error(result.error);
-
-            } else {
-
-                PlaceProfileImage(result.image)
-                
-            }
-
-        } else {
-            // info("Loading week...");
-        }
-    };
-    xhttp.withCredentials = true;
-    xhttp.open("get", api_url + "auth/users/" + userID + "/image");
-    xhttp.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
-    xhttp.setRequestHeader("Authorization", jwt);
-    xhttp.send();
-
-    return;
-
-}
-
-function PlaceProfileImage(imageBase64) {
-
-    document.getElementById("user-active-profile-photo-img").src = imageBase64
+    var img = document.getElementById("user-active-profile-photo-img");
+    if (!img) {
+        return;
+    }
+    img.onerror = function() { this.onerror = null; this.src = '/assets/images/barbell.gif'; };
+    img.src = profileImageURL(userID, false);
 
 }
 
@@ -358,7 +325,7 @@ function PlaceUserAchievements(achievementArray) {
                 ${delegationSumHTML}
 
                 <div class="achievement-image" style="border: solid 0.2em ${categoryColor};">
-                    <img style="width: 100%; height: 100%;" class="achievement-img" id="achievement-img-${achievementArray[i].id}" src="/assets/images/barbell.gif">
+                    <img style="width: 100%; height: 100%;" class="achievement-img" src="${achievementImageURL(achievementArray[i].id, true)}" onerror="${IMAGE_FALLBACK_ONERROR}">
                 </div>
 
                 <div class="achievement-title">
@@ -389,55 +356,10 @@ function PlaceUserAchievements(achievementArray) {
 
         document.getElementById("achievements-box").innerHTML += html
 
-        GetAchievementImage(achievementArray[i].id)
-
     }
 
 }
 
-function GetAchievementImage(achievementID) {
-
-    var xhttp = new XMLHttpRequest();
-    xhttp.onreadystatechange = function() {
-        if (this.readyState == 4) {
-            
-            try {
-                result = JSON.parse(this.responseText);
-            } catch(e) {
-                console.log(e +' - Response: ' + this.responseText);
-                error("Could not reach API.");
-                return;
-            }
-            
-            if(result.error) {
-
-                error(result.error);
-
-            } else {
-
-                PlaceAchievementImage(result.image, achievementID)
-                
-            }
-
-        } else {
-            // info("Loading week...");
-        }
-    };
-    xhttp.withCredentials = true;
-    xhttp.open("get", api_url + "auth/achievements/" + achievementID + "/image?thumbnail=true");
-    xhttp.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
-    xhttp.setRequestHeader("Authorization", jwt);
-    xhttp.send();
-
-    return;
-
-}
-
-function PlaceAchievementImage(imageBase64, achievementID) {
-
-    document.getElementById("achievement-img-" + achievementID).src = imageBase64
-
-}
 function GetUserStats(userID) {
     var xhttp = new XMLHttpRequest();
     xhttp.onreadystatechange = function() {

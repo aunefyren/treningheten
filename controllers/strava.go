@@ -402,6 +402,15 @@ func StravaGetAuthorizationForUser(user models.User) (token string, err error) {
 			return token, errors.New("Strava authorize returned empty tokens.")
 		}
 
+		// The authorization-code exchange is the only Strava response that carries the
+		// athlete object, so this is where the user's Strava ID is captured. Persist it
+		// in the same write as the refresh token so a connection always records the ID,
+		// regardless of whether the user has any activities to sync.
+		if user.StravaID == nil && authorization.Athlete.ID != 0 {
+			stravaID := strconv.Itoa(authorization.Athlete.ID)
+			user.StravaID = &stravaID
+		}
+
 		if err := storeStravaRefreshToken(user, authorization.RefreshToken); err != nil {
 			logger.Log.Error("Failed to store Strava refresh token. ID: " + user.ID.String() + ". Error: " + err.Error())
 			return token, errors.New("Failed to store Strava refresh token.")
@@ -533,16 +542,10 @@ func StravaSyncActivityForUser(activity models.StravaGetActivitiesRequestReply, 
 		}
 	}
 
-	// add Strava ID to user if missing
-	if user.StravaID == nil {
-		stravaID := strconv.Itoa(activity.Athlete.ID)
-		user.StravaID = &stravaID
-		user, err = database.UpdateUser(user)
-		if err != nil {
-			logger.Log.Error("Failed to update user Strava ID. Error: " + err.Error())
-			return errors.New("Failed to update user Strava ID.")
-		}
-	}
+	// The user's Strava ID is captured at authorization time (see
+	// StravaGetAuthorizationForUser), not here — deriving it in the activity loop
+	// coupled it to having activities and risked clobbering strava_code by saving a
+	// stale user struct.
 
 	// check for data streams
 	var stravaStreams *models.StravaActivityStreams

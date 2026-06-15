@@ -568,42 +568,7 @@ function get_season(user_id, loadingMessage, activeSeason){
                 return;
             }
             
-            /*
-            if(result.error == "No active or future seasons found." || result.seasons.length == 0) {
-                clearResponse();
-                document.getElementById('top-module').innerHTML = `
-                <div class="module">
-                    <div class="title">
-                        {{.appName}}
-                    </div>
-
-                    <div class="picture-box" style="height: 12em; width: 12em; margin: 1em 0;">
-                        <img class="max-size" src="/assets/images/bored.svg">
-                    </div>
-                
-
-                    <div class="text-body" id="front-page-text" style="text-align: center;">
-                        <b>There currently is no season of {{.appName}} planned or ongoing.</b>
-                        <br><br>
-                        Contact your local {{.appName}} administrator to plan a new season.
-                        <br><br>
-                        Meanwhile, feel free to check out the <a href="/seasons">past seasons and your statistics</a>.
-                        <br><br>
-                        Or perhaps check out <a href="/achievements">your own achievements</a>?
-                    </div>
-
-                    <div id="debt-module" class="debt-module" style="display: none; margin-top: 5em;">
-                        <h3 id="debt-module-title">Prizes</h3>
-                        <div id="debt-module-notifications" class="debt-module-notifications">
-                        </div>
-                    </div>
-
-                </div>
-                `;
-
-                getDebtOverview();
-
-            } else */if(result.error) {
+            if(result.error) {
 
                 error(result.error);
                 error_splash_image();
@@ -1019,7 +984,7 @@ function update_exercises() {
                 }
 
                 console.log("Placing initial week: ")
-                place_week(week, new_fireworks);
+                place_week(week, new_fireworks, user_id);
                 get_season(user_id, false);
 
                 //success(result.message)
@@ -1083,121 +1048,92 @@ function get_leaderboard(season, goal, refresh, fireworks){
     return false;
 }
 
+// userDisplayName returns the cached user record for an ID, or a safe placeholder.
+// userList is built from the current season's goals, so historical week/leaderboard
+// results can reference a user who has since left the season; without this guard those
+// rows would throw on `.first_name`.
+function userDisplayName(userID) {
+    var user = userList[userID];
+    if(user && user.first_name) {
+        return user;
+    }
+    return { first_name: "Former member", last_name: "" };
+}
+
 function place_leaderboard(weeks_array) {
 
     var leaderboardWeeks = document.getElementById("leaderboard-weeks")
-    var html = ``;
 
     if(weeks_array.length == 0) {
-        html = `
+        leaderboardWeeks.innerHTML = `
             <div id="" class="leaderboard-weeks">
                 <p id="" style="margin: 0.5em; text-align: center;">No past weeks.</p>
             </div>
         `;
-        leaderboardWeeks.innerHTML = html
-    } else {
-        leaderboardWeeks.innerHTML = ""
-
-        for(var i = 0; i < weeks_array.length; i++) {
-            var week_html = `
-                <div class="leaderboard-week" id="">
-                    <div class="leaderboard-week-number">
-                        Week ` + weeks_array[i].week_number + ` (` + weeks_array[i].week_year + `)
-                    </div>
-                    <div class="leaderboard-week-results">
-            `;
-
-            var results_html = "";
-
-            // Sort users
-            weeks_array[i].users = weeks_array[i].users.sort((a,b) => b.user_id.localeCompare(a.user_id));
-
-            for(var j = 0; j < weeks_array[i].users.length; j++) {
-                var completion = "❌"
-
-                if(!weeks_array[i].users[j].full_week_participation && weeks_array[i].users[j].week_completion < 1.0) {
-                    completion = "🕙"
-                } else if(weeks_array[i].users[j].sick_leave) {
-                    completion = "🤢"
-                } else if(weeks_array[i].users[j].week_completion >= 1.0) {
-                    completion = "✅"
-                }
-
-                var onclick_command_str = "return;"
-                var clickable_str = ""
-                if(weeks_array[i].users[j].debt !== null && weeks_array[i].users[j].debt.winner !== null) {
-                    onclick_command_str = "location.replace('/wheel?debt_id=" + weeks_array[i].users[j].debt.id + "'); "
-                    clickable_str = "clickable grey-underline"
-                    completion += "🎡"
-                }
-
-
-                var result_html = `
-                <div class="leaderboard-week-result" id="">
-                    <div class="leaderboard-week-result-user clickable" style="cursor: pointer;" onclick="location.href='/users/${weeks_array[i].users[j].user_id}'">
-                        ` + userList[weeks_array[i].users[j].user_id].first_name + `
-                    </div>
-                    <div class="leaderboard-week-result-exercise ` + clickable_str  + `" onclick="` + onclick_command_str  + `">
-                        ` + completion  + `
-                    </div>
-                </div>
-                `;
-                results_html += result_html;
-
-            }
-
-            week_html += results_html + `</div></div>`;
-
-            leaderboardWeeks.innerHTML += week_html
-        }
-        
+        return;
     }
 
-    return
-}
+    // Build the whole board as one string and assign once, rather than reparsing the
+    // DOM on every `innerHTML +=`.
+    var html = "";
 
-function GetProfileImageForUserOnLeaderboard(userID) {
+    for(var i = 0; i < weeks_array.length; i++) {
+        var week_html = `
+            <div class="leaderboard-week" id="">
+                <div class="leaderboard-week-number">
+                    Week ` + weeks_array[i].week_number + ` (` + weeks_array[i].week_year + `)
+                </div>
+                <div class="leaderboard-week-results">
+        `;
 
-    var xhttp = new XMLHttpRequest();
-    xhttp.onreadystatechange = function() {
-        if (this.readyState == 4) {
-            
-            try {
-                result = JSON.parse(this.responseText);
-            } catch(e) {
-                console.log(e +' - Response: ' + this.responseText);
-                error("Could not reach API.");
-                return;
+        var results_html = "";
+
+        // Sort users by how much of their weekly goal they completed (highest first),
+        // matching the current-week board.
+        weeks_array[i].users = weeks_array[i].users.sort((a,b) => b.week_completion - a.week_completion);
+
+        for(var j = 0; j < weeks_array[i].users.length; j++) {
+            var completion = "❌"
+
+            if(!weeks_array[i].users[j].full_week_participation && weeks_array[i].users[j].week_completion < 1.0) {
+                completion = "🕙"
+            } else if(weeks_array[i].users[j].sick_leave) {
+                completion = "🤢"
+            } else if(weeks_array[i].users[j].week_completion >= 1.0) {
+                completion = "✅"
             }
-            
-            if(result.error) {
 
-                error(result.error);
-
-            } else {
-
-                PlaceProfileImageForUserOnLeaderboard(result.image, userID)
-                
+            var onclick_command_str = "return;"
+            var clickable_str = ""
+            if(weeks_array[i].users[j].debt !== null && weeks_array[i].users[j].debt.winner !== null) {
+                onclick_command_str = "location.replace('/wheel?debt_id=" + weeks_array[i].users[j].debt.id + "'); "
+                clickable_str = "clickable grey-underline"
+                completion += "🎡"
             }
 
-        } else {
-            // info("Loading week...");
+
+            var result_html = `
+            <div class="leaderboard-week-result" id="">
+                <div class="leaderboard-week-result-user clickable" style="cursor: pointer;" onclick="location.href='/users/${weeks_array[i].users[j].user_id}'">
+                    ` + userDisplayName(weeks_array[i].users[j].user_id).first_name + `
+                </div>
+                <div class="leaderboard-week-result-exercise ` + clickable_str  + `" onclick="` + onclick_command_str  + `">
+                    ` + completion  + `
+                </div>
+            </div>
+            `;
+            results_html += result_html;
+
         }
-    };
-    xhttp.withCredentials = true;
-    xhttp.open("get", api_url + "auth/users/" + userID + "/image?thumbnail=true");
-    xhttp.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
-    xhttp.setRequestHeader("Authorization", jwt);
-    xhttp.send();
 
-    return;
+        week_html += results_html + `</div></div>`;
 
-}
+        html += week_html;
+    }
 
-function PlaceProfileImageForUserOnLeaderboard(imageBase64, userID) {
+    leaderboardWeeks.innerHTML = html;
 
-    document.getElementById("member-img-" + userID).src = imageBase64
-
+    return
 }
 
 function place_season_details(goal) {
@@ -1211,11 +1147,12 @@ function place_current_week(week_array) {
 
     // Sort users
     week_array.users = week_array.users.sort((a,b) => b.week_completion - a.week_completion);
-    
-    // Remove initial data
-    currentWeekUsers.innerHTML = ""
 
     document.getElementById('current-week-title').innerHTML = `Current week (${week_array.week_number})`
+
+    // Build the board as one string and assign once. Profile images load directly via
+    // <img src> against the cookie-authenticated image endpoint (browser caches/dedupes).
+    var html = "";
 
     for(var i = 0; i < week_array.users.length; i++) {
 
@@ -1233,8 +1170,6 @@ function place_current_week(week_array) {
                 document.getElementById("calendar").classList.add("unselectable")
                 document.getElementById("calendar").classList.add("noninteractive")
                 document.getElementById("add-exercise-button").style.display = 'none';
-            } else {
-                console.log(user_id)
             }
 
         } else if(week_array.users[i].current_streak > 0) {
@@ -1251,17 +1186,19 @@ function place_current_week(week_array) {
             placeWeekProgress(completion)
         }
 
-        var week_html = `
+        var user = userDisplayName(week_array.users[i].user_id);
+
+        html += `
             <div class="current-week-user unselectable" id="">
 
                 <div style="" class="">
-                    
+
                     <div class="" style="font-size: 0.8em;">
-                        <b>${userList[week_array.users[i].user_id].first_name}</b>
+                        <b>${user.first_name}</b>
                     </div>
 
-                    <div class="current-week-user-photo" title="` + userList[week_array.users[i].user_id].first_name + ` ` + userList[week_array.users[i].user_id].last_name + `" onclick="location.href='/users/${week_array.users[i].user_id}'">
-                        <img style="width: 100%; height: 100%;" class="current-week-user-photo-img" id="current-week-user-photo-` + week_array.users[i].user_id + `-` + i + `" src="/assets/images/barbell.gif">
+                    <div class="current-week-user-photo" title="` + user.first_name + ` ` + user.last_name + `" onclick="location.href='/users/${week_array.users[i].user_id}'">
+                        <img style="width: 100%; height: 100%;" class="current-week-user-photo-img" src="${profileImageURL(week_array.users[i].user_id, true)}" onerror="${IMAGE_FALLBACK_ONERROR}">
                     </div>
                 </div>
 
@@ -1272,63 +1209,18 @@ function place_current_week(week_array) {
                     </div>
 
                     <div class="current-week-user-completion" title="How many weeks in a row have been at least 100%.">
-                        ` + current_streak + ` 
+                        ` + current_streak + `
                     </div>
 
                 </div>
 
             </div>
         `;
-
-        currentWeekUsers.innerHTML += week_html
-        GetProfileImagesForCurrentWeek(week_array.users[i].user_id, i);
     }
 
+    currentWeekUsers.innerHTML = html;
+
     return
-}
-
-function GetProfileImagesForCurrentWeek(userID, index) {
-
-    var xhttp = new XMLHttpRequest();
-    xhttp.onreadystatechange = function() {
-        if (this.readyState == 4) {
-            
-            try {
-                result = JSON.parse(this.responseText);
-            } catch(e) {
-                console.log(e +' - Response: ' + this.responseText);
-                error("Could not reach API.");
-                return;
-            }
-            
-            if(result.error) {
-
-                error(result.error);
-
-            } else {
-
-                PlaceProfileImagesForCurrentWeek(result.image, userID, index)
-                
-            }
-
-        } else {
-            // info("Loading week...");
-        }
-    };
-    xhttp.withCredentials = true;
-    xhttp.open("get", api_url + "auth/users/" + userID + "/image?thumbnail=true");
-    xhttp.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
-    xhttp.setRequestHeader("Authorization", jwt);
-    xhttp.send();
-
-    return;
-
-}
-
-function PlaceProfileImagesForCurrentWeek(imageBase64, userID, index) {
-
-    document.getElementById("current-week-user-photo-" + userID + "-" + index).src = imageBase64
-
 }
 
 function use_sickleave() {
@@ -1819,7 +1711,7 @@ function activateCountdown(countdownDate, seasonID){
             // If the count down is finished, write some text
         } else {
             clearInterval(x);
-            document.getElementById("countdown_number").innerHTML = "...";
+            document.getElementById("countdown_number_" + seasonID).innerHTML = "...";
 
             setTimeout(() => {
                 frontPageRedirect(true);
@@ -1908,18 +1800,14 @@ function placeActivities(activitiesArray) {
         return
     }
 
-    var usersToGetArray = [];
     var activitiesHTML = `
         <div class="activityWrapper">
     `;
 
     activitiesArray.forEach(activity => {
-        activityHTML = generateActivityHTML(activity);
-        activitiesHTML += activityHTML;
-        usersToGetArray.push({"userID": activity.user.id, "activityID": activity.id});
+        activitiesHTML += generateActivityHTML(activity);
     });
 
-    
     activitiesHTML += `
         </div>
     `;
@@ -1928,12 +1816,6 @@ function placeActivities(activitiesArray) {
         document.getElementById("activities-week").innerHTML = activitiesHTML
     } catch (error) {
         console.log(error)
-    }
-
-    console.log("yoo: " + usersToGetArray.length)
-    for(var i = 0; i < usersToGetArray.length; i++) {
-        console.log(i)
-        GetProfileImageForActivity(usersToGetArray[i].userID, usersToGetArray[i].activityID);
     }
 }
 
@@ -1992,7 +1874,7 @@ function generateActivityHTML(activity) {
             <div class="activity-sections">
                 <div class="activity-photo-wrapper">
                     <div class="activity-user-photo" title="` + activity.user.first_name + ` ` + activity.user.last_name + `" onclick="location.href='/users/${activity.user.id}'">
-                        <img style="width: 100%; height: 100%; border-radius: 100%; object-fit: cover; overflow: hidden;" class="activity-user-photo-img" id="activity-user-photo-` + activity.user.id + `-` + activity.id + `" src="/assets/images/barbell.gif">
+                        <img style="width: 100%; height: 100%; border-radius: 100%; object-fit: cover; overflow: hidden;" class="activity-user-photo-img" src="${profileImageURL(activity.user.id, true)}" onerror="${IMAGE_FALLBACK_ONERROR}">
                     </div>
                 </div>
 
@@ -2016,42 +1898,6 @@ function generateActivityHTML(activity) {
     `;
 
     return activityHTML;
-}
-
-function GetProfileImageForActivity(userID, index) {
-    console.log(index)
-    var xhttp = new XMLHttpRequest();
-    xhttp.onreadystatechange = function() {
-        if (this.readyState == 4) {
-            
-            try {
-                result = JSON.parse(this.responseText);
-            } catch(e) {
-                console.log(e +' - Response: ' + this.responseText);
-                error("Could not reach API.");
-                return;
-            }
-            
-            if(result.error) {
-                error(result.error);
-            } else {
-                PlaceProfileImageForActivity(result.image, userID, index)
-            }
-
-        }
-    };
-    xhttp.withCredentials = true;
-    xhttp.open("get", api_url + "auth/users/" + userID + "/image?thumbnail=true");
-    xhttp.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
-    xhttp.setRequestHeader("Authorization", jwt);
-    xhttp.send();
-
-    return;
-
-}
-
-function PlaceProfileImageForActivity(imageBase64, userID, index) {
-    document.getElementById("activity-user-photo-" + userID + "-" + index).src = imageBase64
 }
 
 function placeSeasonAlternatives(seasonObject, userID, alternatives) {

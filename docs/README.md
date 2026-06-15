@@ -3,6 +3,14 @@
 Feature and decision documentation. See the repo root `CLAUDE.md` for the
 architecture overview.
 
+## Conventions
+
+- [conventions.md](conventions.md) — code conventions: naming (camelCase, `ID`
+  uppercase), Go error handling, API response shapes, frontend JS patterns, tests, and
+  migrations.
+- [data-conventions.md](data-conventions.md) — data-model gotchas: the `Convert*Object`
+  read layer, durations stored as seconds, per-operation units, soft deletes.
+
 ## Domain
 
 - [seasons-and-goals.md](seasons-and-goals.md) — seasons (time-boxed competitions),
@@ -10,9 +18,6 @@ architecture overview.
   processing loop.
 - [streaks.md](streaks.md) — the **two** streak systems (personal activity streaks vs
   within-season goal streaks) and how each is computed.
-- [data-conventions.md](data-conventions.md) — cross-cutting gotchas: the
-  `Convert*Object` read layer, durations stored as seconds, per-operation units, soft
-  deletes.
 - [wheel-customization.md](wheel-customization.md) — per-user wheel appearance (color,
   border, emoji): storage, account-page picker, validation, and the
   distinct/stable color assignment.
@@ -20,6 +25,8 @@ architecture overview.
   (Leaflet + Leaflet.heat over stored Strava `latlng` streams).
 - [admin-stats.md](admin-stats.md) — aggregate usage statistics on the admin panel
   (users in seasons / with notifications / with Strava, achievement completion).
+- [image-serving.md](image-serving.md) — how profile/achievement images are served (raw
+  bytes via `<img src>`, cookie-or-header auth, HTTP + server-side resize caching).
 
 ## Auth & integrations
 

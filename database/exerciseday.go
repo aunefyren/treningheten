@@ -342,6 +342,38 @@ func GetValidExercisesBetweenDatesUsingDatesByUserID(userID uuid.UUID, startDate
 	return exercises, nil
 }
 
+// GetValidExercisesForUserIDsBetweenDates returns valid (enabled, on) exercises for the
+// given users whose exercise day falls between the two dates (inclusive), with the
+// exercise day preloaded so callers can bucket weekly completion by (user, week) without
+// a query per week. Returns an empty slice when no user IDs are supplied.
+func GetValidExercisesForUserIDsBetweenDates(userIDs []uuid.UUID, startDate time.Time, endDate time.Time) ([]models.Exercise, error) {
+	var exercises []models.Exercise
+
+	if len(userIDs) == 0 {
+		return []models.Exercise{}, nil
+	}
+
+	startDayString := startDate.Format("2006-01-02") + " 00:00:00.000"
+	endDayString := endDate.Format("2006-01-02") + " 23:59:59"
+
+	exerciserecord := Instance.
+		Joins("JOIN `exercise_days` on `exercises`.exercise_day_id = `exercise_days`.id").
+		Where("`exercises`.enabled = ?", 1).
+		Where("`exercises`.is_on = ?", 1).
+		Where("`exercise_days`.enabled = ?", 1).
+		Where("`exercise_days`.user_id IN ?", userIDs).
+		Where("`exercise_days`.Date >= ?", startDayString).
+		Where("`exercise_days`.Date <= ?", endDayString).
+		Preload("ExerciseDay").
+		Find(&exercises)
+
+	if exerciserecord.Error != nil {
+		return []models.Exercise{}, exerciserecord.Error
+	}
+
+	return exercises, nil
+}
+
 func GetExerciseDayByDateAndGoal(goalID uuid.UUID, date time.Time) (*models.ExerciseDay, error) {
 	var exercise models.ExerciseDay
 	var err error

@@ -294,7 +294,6 @@ func initRouter(configFile models.ConfigStruct) *gin.Engine {
 			auth.POST("/users/:user_id/hevy", controllers.APISetHevyAPIKey)
 			auth.DELETE("/users/:user_id/hevy", controllers.APIDeleteHevyAPIKey)
 			auth.POST("/users/:user_id/hevy-sync", controllers.APISyncHevyForUser)
-			auth.GET("/users/:user_id/image", controllers.APIGetUserProfileImage)
 			auth.GET("/users", controllers.GetUsers)
 			auth.POST("/users/:user_id", controllers.UpdateUser)
 			auth.PATCH("/users/:user_id", controllers.APIPartialUpdateUser)
@@ -308,7 +307,6 @@ func initRouter(configFile models.ConfigStruct) *gin.Engine {
 			auth.POST("/debts/:debt_id/received", controllers.APISetPrizeReceived)
 
 			auth.GET("/achievements", controllers.APIGetAchievements)
-			auth.GET("/achievements/:achievement_id/image", controllers.APIGetAchievementsImage)
 
 			auth.POST("/notifications/subscribe", controllers.APISubscribeToNotification)
 			auth.POST("/notifications/subscription", controllers.APIGetSubscriptionForEndpoint)
@@ -319,6 +317,15 @@ func initRouter(configFile models.ConfigStruct) *gin.Engine {
 			auth.POST("/pats", controllers.APICreatePersonalAccessToken)
 			auth.GET("/pats", controllers.APIGetPersonalAccessTokens)
 			auth.DELETE("/pats/:pat_id", controllers.APIDeletePersonalAccessToken)
+		}
+
+		// Image routes are served as raw bytes for direct use in <img src>, so they accept
+		// the access token from the `treningheten` cookie as well as the Authorization
+		// header. Read-only.
+		authImages := api.Group("/auth").Use(middlewares.AuthImageReadOnly())
+		{
+			authImages.GET("/users/:user_id/image", controllers.APIGetUserProfileImage)
+			authImages.GET("/achievements/:achievement_id/image", controllers.APIGetAchievementsImage)
 		}
 
 		admin := api.Group("/admin").Use(middlewares.Auth(true))

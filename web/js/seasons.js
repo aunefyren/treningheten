@@ -322,7 +322,7 @@ function place_leaderboard(weeks_array, season_id) {
                     var joined_image = `
                     <div class="leaderboard-week-member" style="cursor:hover;" id="member-${season_id}-${weeks_array[i].users[j].user_id}" title="${weeks_array[i].users[j].user_id} ${weeks_array[i].users[j].user_id}" onclick="location.href='/users/${weeks_array[i].users[j].user_id}'">
                         <div class="leaderboard-week-member-image">
-                            <img style="width: 100%; height: 100%;" class="leaderboard-week-member-image-img" id="member-img-${season_id}-${weeks_array[i].users[j].user_id}" src="/assets/images/barbell.gif">
+                            <img style="width: 100%; height: 100%;" class="leaderboard-week-member-image-img" src="${profileImageURL(weeks_array[i].users[j].user_id, true)}" onerror="${IMAGE_FALLBACK_ONERROR}">
                         </div>
                         ${userList[weeks_array[i].users[j].user_id].first_name}
                     </div>
@@ -356,54 +356,6 @@ function place_leaderboard(weeks_array, season_id) {
 
     document.getElementById("season-leaderboard-" + season_id).innerHTML = members_html + html
 
-    for(var i = 0; i < memberPhotoIDArray.length; i++) {
-        GetProfileImageForUserOnLeaderboard(memberPhotoIDArray[i], season_id)
-    }
-
     return
-
-}
-
-function GetProfileImageForUserOnLeaderboard(userID, seasonID) {
-
-    var xhttp = new XMLHttpRequest();
-    xhttp.onreadystatechange = function() {
-        if (this.readyState == 4) {
-            
-            try {
-                result = JSON.parse(this.responseText);
-            } catch(e) {
-                console.log(e +' - Response: ' + this.responseText);
-                error("Could not reach API.");
-                return;
-            }
-            
-            if(result.error) {
-
-                error(result.error);
-
-            } else {
-
-                PlaceProfileImageForUserOnLeaderboard(result.image, userID, seasonID)
-                
-            }
-
-        } else {
-            // info("Loading week...");
-        }
-    };
-    xhttp.withCredentials = true;
-    xhttp.open("get", api_url + "auth/users/" + userID + "/image?thumbnail=true");
-    xhttp.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
-    xhttp.setRequestHeader("Authorization", jwt);
-    xhttp.send();
-
-    return;
-
-}
-
-function PlaceProfileImageForUserOnLeaderboard(imageBase64, userID, seasonID) {
-
-    document.getElementById("member-img-" + seasonID + "-" + userID).src = imageBase64
 
 }

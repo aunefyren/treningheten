@@ -320,50 +320,6 @@ function place_exercises(exercise_array, year) {
 
 }
 
-function GetProfileImageForUserOnLeaderboard(userID, seasonID) {
-
-    var xhttp = new XMLHttpRequest();
-    xhttp.onreadystatechange = function() {
-        if (this.readyState == 4) {
-            
-            try {
-                result = JSON.parse(this.responseText);
-            } catch(e) {
-                console.log(e +' - Response: ' + this.responseText);
-                error("Could not reach API.");
-                return;
-            }
-            
-            if(result.error) {
-
-                error(result.error);
-
-            } else {
-
-                PlaceProfileImageForUserOnLeaderboard(result.image, userID, seasonID)
-                
-            }
-
-        } else {
-            // info("Loading week...");
-        }
-    };
-    xhttp.withCredentials = true;
-    xhttp.open("get", api_url + "auth/users/" + userID + "/image?thumbnail=true");
-    xhttp.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
-    xhttp.setRequestHeader("Authorization", jwt);
-    xhttp.send();
-
-    return;
-
-}
-
-function PlaceProfileImageForUserOnLeaderboard(imageBase64, userID, seasonID) {
-
-    document.getElementById("member-img-" + seasonID + "-" + userID).src = imageBase64
-
-}
-
 function exerciseRedirect(exerciseDayID) {
     window.location = '/exercises/' + exerciseDayID
 }

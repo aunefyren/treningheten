@@ -374,6 +374,142 @@ func APIGetCurrentSeasonLeaderboard(context *gin.Context) {
 
 }
 
+// weekKey identifies a competition week by its ISO year and week number. ISO weeks run
+// Monday–Sunday, exactly how a season's weeks are bucketed, so a row's ISO week (from its
+// date) maps directly to the week it belongs to.
+type weekKey struct {
+	year int
+	week int
+}
+
+func isoWeekKey(pointInTime time.Time) weekKey {
+	year, week := pointInTime.ISOWeek()
+	return weekKey{year: year, week: week}
+}
+
+// seasonWeekData holds a season's completion, debt and sick-leave inputs pre-fetched in a
+// few bulk queries and bucketed by (user/goal, ISO week), so the week-by-week result walk
+// needs no per-week database round-trips. It replaces the previous ~3 queries per
+// (week, user) with a constant handful per season.
+type seasonWeekData struct {
+	exerciseCounts map[uuid.UUID]map[weekKey]int                // userID  -> week -> valid exercise count
+	debts          map[uuid.UUID]map[weekKey][]models.Debt      // loserID -> week -> debts
+	sickleave      map[uuid.UUID]map[weekKey][]models.Sickleave // goalID  -> week -> sick leave
+}
+
+// buildSeasonWeekData fetches and buckets a season's week inputs once. The fetch window
+// runs from the Monday of the season's first week to the Sunday of the last week in range,
+// so partial first/last weeks are fully covered (matching the per-week Monday–Sunday
+// windows the logic queried previously).
+func buildSeasonWeekData(season models.SeasonObject, lastPointInTime time.Time) (*seasonWeekData, error) {
+	data := &seasonWeekData{
+		exerciseCounts: map[uuid.UUID]map[weekKey]int{},
+		debts:          map[uuid.UUID]map[weekKey][]models.Debt{},
+		sickleave:      map[uuid.UUID]map[weekKey][]models.Sickleave{},
+	}
+
+	userIDs := make([]uuid.UUID, 0, len(season.Goals))
+	goalIDs := make([]uuid.UUID, 0, len(season.Goals))
+	for _, goal := range season.Goals {
+		userIDs = append(userIDs, goal.User.ID)
+		goalIDs = append(goalIDs, goal.ID)
+	}
+	if len(userIDs) == 0 {
+		return data, nil
+	}
+
+	rangeStart, err := utilities.FindEarlierMonday(season.Start)
+	if err != nil {
+		logger.Log.Info("Failed to find start of season week data window. Error: " + err.Error())
+		return nil, errors.New("Failed to find start of season week data window.")
+	}
+
+	rangeEnd := lastPointInTime
+	if season.End.Before(rangeEnd) {
+		rangeEnd = season.End
+	}
+	rangeEnd, err = utilities.FindNextSunday(rangeEnd)
+	if err != nil {
+		logger.Log.Info("Failed to find end of season week data window. Error: " + err.Error())
+		return nil, errors.New("Failed to find end of season week data window.")
+	}
+
+	// Exercises -> per-user weekly completion count.
+	exercises, err := database.GetValidExercisesForUserIDsBetweenDates(userIDs, rangeStart, rangeEnd)
+	if err != nil {
+		return nil, err
+	}
+	for _, exercise := range exercises {
+		day := exercise.ExerciseDay
+		if day.UserID == nil {
+			continue
+		}
+		key := isoWeekKey(day.Date)
+		if data.exerciseCounts[*day.UserID] == nil {
+			data.exerciseCounts[*day.UserID] = map[weekKey]int{}
+		}
+		data.exerciseCounts[*day.UserID][key]++
+	}
+
+	// Debts -> per-loser weekly debt.
+	debts, err := database.GetDebtsForUserIDsBetweenDates(userIDs, rangeStart, rangeEnd)
+	if err != nil {
+		return nil, err
+	}
+	for _, debt := range debts {
+		key := isoWeekKey(debt.Date)
+		if data.debts[debt.LoserID] == nil {
+			data.debts[debt.LoserID] = map[weekKey][]models.Debt{}
+		}
+		data.debts[debt.LoserID][key] = append(data.debts[debt.LoserID][key], debt)
+	}
+
+	// Sick leave -> per-goal weekly sick leave (only used rows carry a date).
+	sickleaves, err := database.GetSickleavesForGoalIDsBetweenDates(goalIDs, rangeStart, rangeEnd)
+	if err != nil {
+		return nil, err
+	}
+	for _, sickleave := range sickleaves {
+		key := isoWeekKey(sickleave.Date)
+		if data.sickleave[sickleave.GoalID] == nil {
+			data.sickleave[sickleave.GoalID] = map[weekKey][]models.Sickleave{}
+		}
+		data.sickleave[sickleave.GoalID][key] = append(data.sickleave[sickleave.GoalID][key], sickleave)
+	}
+
+	return data, nil
+}
+
+// exerciseCount returns the number of valid exercises a user logged in the given week.
+func (data *seasonWeekData) exerciseCount(userID uuid.UUID, key weekKey) int {
+	if weeks, ok := data.exerciseCounts[userID]; ok {
+		return weeks[key]
+	}
+	return 0
+}
+
+// debtForWeek mirrors database.GetDebtForWeekForUser: a debt is returned only when exactly
+// one matches the (user, week), matching the previous RowsAffected == 1 rule.
+func (data *seasonWeekData) debtForWeek(userID uuid.UUID, key weekKey) (models.Debt, bool) {
+	if weeks, ok := data.debts[userID]; ok {
+		if list := weeks[key]; len(list) == 1 {
+			return list[0], true
+		}
+	}
+	return models.Debt{}, false
+}
+
+// sickleaveForWeek mirrors database.GetUsedSickleaveForGoalWithinWeek: a row is returned
+// only when exactly one matches the (goal, week). The caller inspects .Used.
+func (data *seasonWeekData) sickleaveForWeek(goalID uuid.UUID, key weekKey) *models.Sickleave {
+	if weeks, ok := data.sickleave[goalID]; ok {
+		if list := weeks[key]; len(list) == 1 {
+			return &list[0]
+		}
+	}
+	return nil
+}
+
 func RetrieveWeekResultsFromSeasonWithinTimeframe(firstPointInTime time.Time, lastPointInTime time.Time, season models.SeasonObject) ([]models.WeekResults, error) {
 	var weeksResults []models.WeekResults
 	logger.Log.Debug("Retrieving week results from season within timeframe.")
@@ -384,6 +520,14 @@ func RetrieveWeekResultsFromSeasonWithinTimeframe(firstPointInTime time.Time, la
 	if lastPointInTime.Before(firstPointInTime) {
 		logger.Log.Info("lastPointInTime is before firstPointInTime. Returning nothing.")
 		return []models.WeekResults{}, nil
+	}
+
+	// Fetch and bucket every week's completion / debt / sick-leave input up front, so the
+	// week-by-week walk below does no per-week database queries.
+	data, err := buildSeasonWeekData(season, lastPointInTime)
+	if err != nil {
+		logger.Log.Info("Failed to build season week data. Error: " + err.Error())
+		return []models.WeekResults{}, err
 	}
 
 	currentTime := season.Start
@@ -407,7 +551,7 @@ func RetrieveWeekResultsFromSeasonWithinTimeframe(firstPointInTime time.Time, la
 			logger.Log.Debug("Processing new goal '" + goal.ID.String() + "' for user '" + goal.User.FirstName + " " + goal.User.LastName + "'")
 
 			// Get Week result for goal
-			weekResultForGoal, newUserStreaks, err := GetWeekResultForGoal(goal, currentTime, userStreaks)
+			weekResultForGoal, newUserStreaks, err := GetWeekResultForGoal(goal, currentTime, userStreaks, data)
 			if err != nil {
 				logger.Log.Warn("Failed to get week results for user. Goal: " + goal.ID.String() + ". Error: " + err.Error() + ". Creating blank user.")
 				continue
@@ -448,21 +592,19 @@ func RetrieveWeekResultsFromSeasonWithinTimeframe(firstPointInTime time.Time, la
 	return newWeeksResults, nil
 }
 
-func GetWeekResultForGoal(goal models.GoalObject, currentTime time.Time, userStreaksInput []models.UserStreak) (newResult models.UserWeekResults, userStreaks []models.UserStreak, err error) {
+func GetWeekResultForGoal(goal models.GoalObject, currentTime time.Time, userStreaksInput []models.UserStreak, data *seasonWeekData) (newResult models.UserWeekResults, userStreaks []models.UserStreak, err error) {
 	userStreaks = userStreaksInput
 	newResult = models.UserWeekResults{}
 	err = nil
 
-	// Get the exercises from the week
-	exercises, err := GetExercisesForWeekUsingUserID(currentTime, goal.User.ID)
-	if err != nil {
-		return models.UserWeekResults{}, userStreaks, err
-	}
+	// Identify the week and read its completion / debt / sick-leave from the pre-bucketed
+	// season data instead of querying per week.
+	key := isoWeekKey(currentTime)
 
 	// Define exercise sum
-	exerciseSum := len(exercises)
+	exerciseSum := data.exerciseCount(goal.User.ID, key)
 
-	logger.Log.Trace("processing exercises for point in time: " + currentTime.String() + ". Exercises: " + strconv.Itoa(len(exercises)) + ". Goal exercise: " + strconv.Itoa(goal.ExerciseInterval))
+	logger.Log.Trace("processing exercises for point in time: " + currentTime.String() + ". Exercises: " + strconv.Itoa(exerciseSum) + ". Goal exercise: " + strconv.Itoa(goal.ExerciseInterval))
 
 	// Add details to week result for goal
 	newResult.UserID = goal.User.ID
@@ -482,10 +624,7 @@ func GetWeekResultForGoal(goal models.GoalObject, currentTime time.Time, userStr
 	}
 
 	// Check for debt for week
-	debt, debtFound, err := database.GetDebtForWeekForUser(currentTime, goal.User.ID)
-	if err != nil {
-		logger.Log.Info("Failed to check for debt for user '" + goal.User.ID.String() + "'. Debt will be null.")
-	} else if debtFound {
+	if debt, debtFound := data.debtForWeek(goal.User.ID, key); debtFound {
 		debtObject, err := ConvertDebtToDebtObject(debt)
 		if err != nil {
 			logger.Log.Info("Failed to convert debt to debt object for user '" + goal.User.ID.String() + "'. Debt will be null.")
@@ -529,11 +668,7 @@ func GetWeekResultForGoal(goal models.GoalObject, currentTime time.Time, userStr
 		return models.UserWeekResults{}, userStreaks, errors.New("Failed to process streak.")
 	}
 
-	sickLeave, err := database.GetUsedSickleaveForGoalWithinWeek(currentTime, goal.ID)
-	if err != nil {
-		logger.Log.Info("Failed to process sickleave. Returning.")
-		return models.UserWeekResults{}, userStreaks, errors.New("Failed to process sick leave.")
-	}
+	sickLeave := data.sickleaveForWeek(goal.ID, key)
 
 	// Found in streak, retrieve current streak
 	if newResult.FullWeekParticipation && newResult.WeekCompletion < 1 && (sickLeave == nil || !sickLeave.Used) {

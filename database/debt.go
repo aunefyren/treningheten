@@ -76,6 +76,34 @@ func GetDebtForWeekForUser(time time.Time, userID uuid.UUID) (models.Debt, bool,
 
 }
 
+// GetDebtsForUserIDsBetweenDates returns enabled debts where the loser is one of the
+// given users and the debt date falls between the two dates (inclusive), so callers can
+// bucket debts by (user, week) without a query per week. Returns an empty slice when no
+// user IDs are supplied.
+func GetDebtsForUserIDsBetweenDates(userIDs []uuid.UUID, startDate time.Time, endDate time.Time) ([]models.Debt, error) {
+	var debts []models.Debt
+
+	if len(userIDs) == 0 {
+		return []models.Debt{}, nil
+	}
+
+	startDayString := startDate.Format("2006-01-02") + " 00:00:00.000"
+	endDayString := endDate.Format("2006-01-02") + " 23:59:59"
+
+	debtRecord := Instance.
+		Where("`debts`.enabled = ?", 1).
+		Where("`debts`.loser_id IN ?", userIDs).
+		Where("`debts`.Date >= ?", startDayString).
+		Where("`debts`.Date <= ?", endDayString).
+		Find(&debts)
+
+	if debtRecord.Error != nil {
+		return []models.Debt{}, debtRecord.Error
+	}
+
+	return debts, nil
+}
+
 // Retrieve debt for user for a week in a season
 func GetDebtForWeekForUserInSeasonID(time time.Time, userID uuid.UUID, seasonID uuid.UUID) (models.Debt, bool, error) {
 

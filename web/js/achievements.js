@@ -270,10 +270,12 @@ function PlaceUserAchievements(achievementArrayPersonal, achievementArray, userI
         document.getElementById("achievements-box").innerHTML += html
 
         if(achieved) {
-            document.getElementById("achievement-img-" + achievementArray[i].id).style.padding = "0"
-            document.getElementById("achievement-img-" + achievementArray[i].id).style.borderRadius = "10em"
+            var achImg = document.getElementById("achievement-img-" + achievementArray[i].id);
+            achImg.style.padding = "0"
+            achImg.style.borderRadius = "10em"
             document.getElementById("achievement-description-" + achievementArray[i].id).innerHTML = alternativeDescription
-            GetAchievementImage(achievementArray[i].id)
+            achImg.onerror = function() { this.onerror = null; this.src = '/assets/images/barbell.gif'; };
+            achImg.src = achievementImageURL(achievementArray[i].id, true)
         } else {
             document.getElementById("achievement-img-" + achievementArray[i].id).src  = "/assets/lock.svg"
         }
@@ -298,46 +300,3 @@ function PlaceUserAchievements(achievementArrayPersonal, achievementArray, userI
 
 }
 
-function GetAchievementImage(achievementID) {
-
-    var xhttp = new XMLHttpRequest();
-    xhttp.onreadystatechange = function() {
-        if (this.readyState == 4) {
-            
-            try {
-                result = JSON.parse(this.responseText);
-            } catch(e) {
-                console.log(e +' - Response: ' + this.responseText);
-                error("Could not reach API.");
-                return;
-            }
-            
-            if(result.error) {
-
-                error(result.error);
-
-            } else {
-
-                PlaceAchievementImage(result.image, achievementID)
-                
-            }
-
-        } else {
-            // info("Loading week...");
-        }
-    };
-    xhttp.withCredentials = true;
-    xhttp.open("get", api_url + "auth/achievements/" + achievementID + "/image?thumbnail=true");
-    xhttp.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
-    xhttp.setRequestHeader("Authorization", jwt);
-    xhttp.send();
-
-    return;
-
-}
-
-function PlaceAchievementImage(imageBase64, achievementID) {
-
-    document.getElementById("achievement-img-" + achievementID).src = imageBase64
-
-}

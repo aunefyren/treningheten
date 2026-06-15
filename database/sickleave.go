@@ -79,6 +79,35 @@ func GetUnusedSickleaveForGoalWithinWeek(goalID uuid.UUID) ([]models.Sickleave, 
 
 }
 
+// GetSickleavesForGoalIDsBetweenDates returns enabled sick-leave rows for the given goals
+// whose date falls between the two dates (inclusive), so callers can bucket sick leave by
+// (goal, week) without a query per week. Only used sick leave carries a date (set when
+// used), so unused pool rows are naturally excluded. Returns an empty slice when no goal
+// IDs are supplied.
+func GetSickleavesForGoalIDsBetweenDates(goalIDs []uuid.UUID, startDate time.Time, endDate time.Time) ([]models.Sickleave, error) {
+	var sickleaves []models.Sickleave
+
+	if len(goalIDs) == 0 {
+		return []models.Sickleave{}, nil
+	}
+
+	startDayString := startDate.Format("2006-01-02") + " 00:00:00.000"
+	endDayString := endDate.Format("2006-01-02") + " 23:59:59"
+
+	record := Instance.
+		Where("`sickleaves`.enabled = ?", 1).
+		Where("`sickleaves`.goal_id IN ?", goalIDs).
+		Where("`sickleaves`.date >= ?", startDayString).
+		Where("`sickleaves`.date <= ?", endDayString).
+		Find(&sickleaves)
+
+	if record.Error != nil {
+		return []models.Sickleave{}, record.Error
+	}
+
+	return sickleaves, nil
+}
+
 // Update sickleave in database to used and date to now by sickleave ID
 func SetSickleaveToUsedByID(sickleaveID uuid.UUID) error {
 
