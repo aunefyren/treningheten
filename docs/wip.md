@@ -55,8 +55,12 @@ Open refinements left for later:
 - Time based best efforts? During this season? During this year?
 
 ## AI Ollama feedback on exercises?
+Per-exercise feedback in its own dedicated space (not the front-page greeting).
 - How to avoid spamming the LMM
 - Little model, can the feedback be decent?
+
+(Done, separately: the front-page greeting can now occasionally comment on the most
+recent workout via the optional `latest_workout` payload block — see `docs/ollama.md`.)
 
 ### Make first day of the week changeable
 - Default monday, but choose
@@ -66,12 +70,3 @@ Open refinements left for later:
 
 ### Site loads
 But sometimes not? Server asleep?
-
-### Modal on exercise building page must be updated to match exercise builder
-
-### If you have a long name (perhaps emoji as well) you can break the wheel look
-Name gets placed outside inside of inside the slice
-
-### Activity heatmap issues
-- Spot based coloring, probably the GPS cords given by the device. Could this be smoothed out / replaced with a line?
-- Is coloring based on frequency? A single run in a single place should not be red if there are a 100 other runs elsewhere

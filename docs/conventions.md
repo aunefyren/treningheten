@@ -118,6 +118,11 @@ There is no build step or framework — `web/js/*.js` is served through Go templ
   `.trm-select` / `.trm-textarea` / `.trm-btn` / `.trm-divider` classes; un-classed elements
   (`label`, `input`, `button`, `hr`, headings) are themed for the dark panel automatically.
   Include `modal.css` + `modal.js` on the page (`modal.js` **after** `functions.js`).
+  Don't *also* tag a modal control with a legacy app class (e.g. an old in-page form
+  class): `modal.css` themes controls via `#trm-root .trm-body` specificity, but any
+  `!important` rule in `main.css` beats that regardless of specificity — which once
+  forced an eggshell background under the dark panel's light text (white-on-white inputs
+  in the "Add exercise" modal). Use the `.trm-*` classes only.
 
 ## Tests
 

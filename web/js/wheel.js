@@ -183,6 +183,30 @@ function readableTextColor(hex) {
     return yiq >= 140 ? "#000000" : "#ffffff";
 }
 
+// fitSegmentFontSize returns the largest font size (down to a floor) at which a label
+// fits the radial run of a segment. Winwheel draws 'outer'/horizontal text from the rim
+// inward with no fitting of its own, so a long first name (or a wide emoji) would spill
+// past the wide part of the wedge toward the pointy center — the "name placed outside the
+// slice" bug. We never truncate: a long name only gets a smaller font. Measured in the
+// wheel's base (logical) units — Winwheel multiplies both geometry and font by scaleFactor
+// internally, so the ratio (and therefore the fitted size) is scale-independent.
+function fitSegmentFontSize(ctx, label, baseFontSize) {
+    var outerRadius = 450;                          // matches Winwheel config below
+    var textMargin = baseFontSize / 1.7;            // matches Winwheel's default margin
+    var innerKeepRadius = outerRadius * 0.34;       // keep the label out of the pointy center
+    var radialBudget = (outerRadius - textMargin) - innerKeepRadius;
+    var minFontSize = 16;
+
+    ctx.font = "bold " + baseFontSize + "px Arial"; // matches Winwheel's textFontWeight/Family
+    var width = ctx.measureText(label).width;
+    if (width <= radialBudget) {
+        return baseFontSize;
+    }
+    // Text width scales linearly with font size, so the fitting size is a closed form.
+    var fitted = Math.floor(baseFontSize * (radialBudget / width));
+    return Math.max(minFontSize, fitted);
+}
+
 // hslToHex spreads auto colors deterministically once the curated palette is used up.
 function hslToHex(h, s, l) {
     s /= 100; l /= 100;
@@ -290,6 +314,11 @@ function placeWheel(candidateArray) {
     }
 
     console.log(candidateArray.length + " candidates for wheel")
+
+    // Shared 2D context used only to measure label widths for per-segment font fitting.
+    var measureCtx = wheelCanvas ? wheelCanvas.getContext('2d') : null;
+    var baseFontSize = 34;
+
     // Add tickets to wheel dict
     for(var i = 0; i < candidateArray.length; i++) {
         var user = candidateArray[i].user;
@@ -301,9 +330,14 @@ function placeWheel(candidateArray) {
             label = user.wheel_emoji + " " + label;
         }
 
+        // Shrink long labels so they stay within the segment instead of spilling toward
+        // the wheel center. Short names keep the full base size.
+        var fontSize = measureCtx ? fitSegmentFontSize(measureCtx, label, baseFontSize) : baseFontSize;
+
         var segment = {
             'fillStyle'       : fill,
             'text'            : label,
+            'textFontSize'    : fontSize,
             // Contrast comes from the luminance-picked fill color (black on light fills,
             // white on dark). We deliberately omit a text outline: Winwheel strokes the
             // outline ON TOP of the fill with miter joins, which looks rough/aliased on

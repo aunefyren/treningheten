@@ -1512,17 +1512,17 @@ function addAction(operationID) {
         <div id="add-action-wrapper-${operationID}">
             <div class="trm-field">
                 <span class="trm-label">English name</span>
-                <input class="trm-input new-action-name-english-input" type="text" id="new-action-name-english-input-${operationID}" name="new-action-name-english-input" placeholder="Running" value="">
+                <input class="trm-input" type="text" id="new-action-name-english-input-${operationID}" name="new-action-name-english-input" placeholder="Running" value="">
             </div>
             <p class="trm-or">or / and</p>
             <div class="trm-field">
                 <span class="trm-label">Norwegian name</span>
-                <input class="trm-input new-action-name-norwegian-input" type="text" id="new-action-name-norwegian-input-${operationID}" name="new-action-name-norwegian-input" placeholder="Løping" value="">
+                <input class="trm-input" type="text" id="new-action-name-norwegian-input-${operationID}" name="new-action-name-norwegian-input" placeholder="Løping" value="">
             </div>
 
             <div class="trm-field">
                 <span class="trm-label">Sets, distance or time-based?</span>
-                <select class="trm-select new-action-type-input" id="new-action-type-input-${operationID}" name="new-action-type-input">
+                <select class="trm-select" id="new-action-type-input-${operationID}" name="new-action-type-input">
                     <option value="lifting">💪 Sets &amp; reps</option>
                     <option value="moving">🏃 Distance</option>
                     <option value="timing">⏱️ Time</option>
@@ -1534,11 +1534,11 @@ function addAction(operationID) {
 
             <div class="trm-field">
                 <span class="trm-label">Description</span>
-                <textarea class="trm-textarea new-action-description-input" id="new-action-description-input-${operationID}" name="new-action-description-input" rows="3" placeholder="Fast paced moving which can be..."></textarea>
+                <textarea class="trm-textarea" id="new-action-description-input-${operationID}" name="new-action-description-input" rows="3" placeholder="Fast paced moving which can be..."></textarea>
             </div>
             <div class="trm-field">
                 <span class="trm-label">Body part / category</span>
-                <input class="trm-input new-action-bodypart-input" type="text" id="new-action-bodypart-input-${operationID}" name="new-action-bodypart-input" placeholder="Cardio" value="">
+                <input class="trm-input" type="text" id="new-action-bodypart-input-${operationID}" name="new-action-bodypart-input" placeholder="Cardio" value="">
             </div>
 
             <button type="submit" class="trm-btn" onclick="createAction('${operationID}');"><img src="/assets/done.svg">Add and use</button>

@@ -162,9 +162,20 @@ function resetActivityHeatmap() {
     }
 }
 
-// renderActivityHeatmap draws a density heatmap from the GPS streams already present in
-// the chosen activity's statistics response, so it inherits the activity-type and date
-// filters for free. Only activities with GPS movement carry latlng streams; everything
+// HEATMAP_GRID is the cell size (degrees, ~67 m) used to count how many distinct
+// activities pass through an area. Coarse enough that two runs of the same route fall
+// in the same cell, fine enough to keep routes distinct.
+var HEATMAP_GRID = 0.0006;
+// HEATMAP_BUCKETS quantizes visit frequency into colour bands, which also lets adjacent
+// same-frequency segments merge into one polyline (fewer layers to render).
+var HEATMAP_BUCKETS = 8;
+
+// renderActivityHeatmap draws the GPS streams from the chosen activity's statistics
+// response as route polylines tinted by visit frequency, so it inherits the activity-type
+// and date filters for free. Drawing lines (not a point-density blob) keeps routes
+// continuous, and colouring by how many distinct activities pass through each cell means a
+// single run stays cool while genuinely frequented routes warm up — overlapping translucent
+// lines reinforce that. Only activities with GPS movement carry latlng streams; everything
 // else shows the "no GPS data" note.
 function renderActivityHeatmap(operations) {
 
@@ -174,12 +185,12 @@ function renderActivityHeatmap(operations) {
         return;
     }
 
-    var points = extractHeatmapPoints(operations);
+    var model = buildHeatmapModel(operations);
 
     // No GPS data for this activity/period (or the map library is unavailable): hide the
     // whole heatmap section, including its caption, so nothing is shown for non-GPS activities.
-    if (!points.length || typeof L === "undefined") {
-        if (typeof L === "undefined" && points.length) {
+    if (!model.tracks.length || typeof L === "undefined") {
+        if (typeof L === "undefined" && model.tracks.length) {
             console.log("Leaflet is not loaded.");
         }
         wrapper.style.display = "none";
@@ -200,11 +211,23 @@ function renderActivityHeatmap(operations) {
     if (activityHeatLayer) {
         activityHeatmapInstance.removeLayer(activityHeatLayer);
     }
-    activityHeatLayer = L.heatLayer(points, { radius: 6, blur: 8, maxZoom: 17 }).addTo(activityHeatmapInstance);
+
+    // A shared canvas renderer keeps thousands of segments performant, and translucent
+    // strokes composite where routes overlap, adding to the frequency tint. Each segment
+    // gets a wide, soft glow underlay plus a crisp line on top; collecting them into two
+    // groups (glow first, lines second) keeps every glow beneath every line so the halos
+    // never paint over a neighbouring route's crisp stroke.
+    var renderer = L.canvas({ padding: 0.5 });
+    var glowLayers = [];
+    var lineLayers = [];
+    for (var t = 0; t < model.tracks.length; t++) {
+        drawTrackSegments(model.tracks[t], model.counts, model.maxCount, renderer, glowLayers, lineLayers);
+    }
+    activityHeatLayer = L.layerGroup(glowLayers.concat(lineLayers)).addTo(activityHeatmapInstance);
 
     // Open on the densest cluster (usually the most-frequented area) rather than fitting
     // all points, which would zoom out to fit far-away one-off activities.
-    var center = densestCenter(points);
+    var center = densestCenter(model.allPoints);
     activityHeatmapInstance.setView(center, 13);
 
     // The container starts hidden, so Leaflet may have measured a zero size; recompute
@@ -216,45 +239,164 @@ function renderActivityHeatmap(operations) {
 
 }
 
-// extractHeatmapPoints flattens latlng samples out of the operations' Strava streams,
-// thinned by a per-track stride and capped overall to keep the render light.
-function extractHeatmapPoints(operations) {
+// heatmapCellKey rounds a coordinate to its grid cell so points from different
+// activities that pass through the same place share a key.
+function heatmapCellKey(lat, lng) {
+    return Math.round(lat / HEATMAP_GRID) + ":" + Math.round(lng / HEATMAP_GRID);
+}
 
-    var points = [];
+// buildHeatmapModel turns the operations' latlng streams into per-activity tracks plus a
+// grid of visit frequencies. Tracks are thinned by an adaptive stride (chosen so the total
+// sample count stays under a cap) to keep rendering light. Frequency counts DISTINCT
+// activities per cell — one activity passing through a cell many times still counts once —
+// so the tint reflects how often a place is revisited, not how densely the GPS sampled a
+// single track. Returns { tracks: [[lat,lng]...], counts, maxCount, allPoints }.
+function buildHeatmapModel(operations) {
+
+    var model = { tracks: [], counts: {}, maxCount: 0, allPoints: [] };
     if (!operations) {
-        return points;
+        return model;
     }
 
-    var stride = 3;
+    // Adaptive stride: choose it from the total sample count so the whole map stays under
+    // a fixed cap regardless of how many/long the tracks are.
+    var total = 0;
+    for (var a = 0; a < operations.length; a++) {
+        var aSets = operations[a].operation_sets || [];
+        for (var b = 0; b < aSets.length; b++) {
+            var aStreams = aSets[b].strava_streams;
+            if (aStreams && aStreams.latlng && aStreams.latlng.data) {
+                total += aStreams.latlng.data.length;
+            }
+        }
+    }
+    var cap = 60000;
+    var stride = Math.max(3, Math.ceil(total / cap));
+
     for (var i = 0; i < operations.length; i++) {
+        // Cells this single activity touches, deduplicated so it contributes at most once
+        // per cell to the frequency count.
+        var cellsThisActivity = {};
         var sets = operations[i].operation_sets || [];
+
         for (var j = 0; j < sets.length; j++) {
             var streams = sets[j].strava_streams;
             if (!streams || !streams.latlng || !streams.latlng.data) {
                 continue;
             }
             var data = streams.latlng.data;
+            var track = [];
+
             for (var k = 0; k < data.length; k += stride) {
                 var coordinate = data[k];
                 if (!coordinate || coordinate.length < 2) {
                     continue;
                 }
-                points.push([coordinate[0], coordinate[1]]);
+                var pt = [coordinate[0], coordinate[1]];
+                track.push(pt);
+                model.allPoints.push(pt);
+                cellsThisActivity[heatmapCellKey(pt[0], pt[1])] = true;
+            }
+
+            // Keep the final sample so the drawn line reaches the real end of the track.
+            var last = data[data.length - 1];
+            if (last && last.length >= 2 && (data.length - 1) % stride !== 0) {
+                var endPt = [last[0], last[1]];
+                track.push(endPt);
+                model.allPoints.push(endPt);
+                cellsThisActivity[heatmapCellKey(endPt[0], endPt[1])] = true;
+            }
+
+            if (track.length >= 2) {
+                model.tracks.push(track);
+            }
+        }
+
+        for (var key in cellsThisActivity) {
+            model.counts[key] = (model.counts[key] || 0) + 1;
+            if (model.counts[key] > model.maxCount) {
+                model.maxCount = model.counts[key];
             }
         }
     }
 
-    var cap = 40000;
-    if (points.length > cap) {
-        var step = points.length / cap;
-        var reduced = [];
-        for (var n = 0; n < cap; n++) {
-            reduced.push(points[Math.floor(n * step)]);
-        }
-        points = reduced;
+    return model;
+}
+
+// heatmapColor maps a 0..1 frequency fraction to a colour, sweeping the hue from blue
+// (rare) through green/yellow to red (most frequented). High saturation and a slightly
+// deeper lightness give the crisp line punchy contrast.
+function heatmapColor(fraction) {
+    var hue = (1 - fraction) * 220;
+    return "hsl(" + hue + ", 100%, 48%)";
+}
+
+// heatmapGlowColor is the same hue as the crisp line but lighter, used for the soft
+// underlay that gives each route a coloured halo.
+function heatmapGlowColor(fraction) {
+    var hue = (1 - fraction) * 220;
+    return "hsl(" + hue + ", 100%, 62%)";
+}
+
+// heatmapBucket converts a cell's visit count into a 0..(HEATMAP_BUCKETS-1) band. With a
+// single activity (maxCount <= 1) everything lands in band 0, so a lone run stays cool.
+function heatmapBucket(count, maxCount) {
+    var fraction = maxCount > 1 ? (count - 1) / (maxCount - 1) : 0;
+    return Math.round(fraction * (HEATMAP_BUCKETS - 1));
+}
+
+// drawTrackSegments splits one track into runs of consecutive points that share a
+// frequency band and pushes each run as a single coloured polyline, so the line's colour
+// follows how often each stretch is revisited while keeping the layer count down.
+function drawTrackSegments(track, counts, maxCount, renderer, glowLayers, lineLayers) {
+    if (track.length < 2) {
+        return;
     }
 
-    return points;
+    var bucketAt = function(pt) {
+        return heatmapBucket(counts[heatmapCellKey(pt[0], pt[1])] || 1, maxCount);
+    };
+
+    var runStart = 0;
+    var runBucket = bucketAt(track[0]);
+
+    for (var i = 1; i < track.length; i++) {
+        var bucket = bucketAt(track[i]);
+        if (bucket !== runBucket) {
+            // Include point i as the shared vertex so segments join without gaps.
+            pushHeatmapSegment(track.slice(runStart, i + 1), runBucket, renderer, glowLayers, lineLayers);
+            runStart = i;
+            runBucket = bucket;
+        }
+    }
+    pushHeatmapSegment(track.slice(runStart), runBucket, renderer, glowLayers, lineLayers);
+}
+
+function pushHeatmapSegment(points, bucket, renderer, glowLayers, lineLayers) {
+    if (points.length < 2) {
+        return;
+    }
+    var fraction = bucket / (HEATMAP_BUCKETS - 1);
+
+    // Soft, wide underlay for the halo.
+    glowLayers.push(L.polyline(points, {
+        renderer: renderer,
+        color: heatmapGlowColor(fraction),
+        weight: 9,
+        opacity: 0.2,
+        lineCap: "round",
+        lineJoin: "round"
+    }));
+
+    // Crisp line on top.
+    lineLayers.push(L.polyline(points, {
+        renderer: renderer,
+        color: heatmapColor(fraction),
+        weight: 4,
+        opacity: 0.8,
+        lineCap: "round",
+        lineJoin: "round"
+    }));
 }
 
 // densestCenter buckets points into coarse (~1 km) cells, finds the cell with the most

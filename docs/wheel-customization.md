@@ -78,6 +78,18 @@ applies to picked and auto colors alike, including custom hex. The text outline 
 deliberately omitted — Winwheel strokes it on top of the fill with miter joins, which
 looks rough on rotated glyphs, so fill-only (bold) text reads cleaner.
 
+### Long-name fit
+
+Winwheel draws `outer`/horizontal segment text from the rim inward with no fitting of
+its own, so a long first name (or a wide emoji) used to spill past the wide part of the
+wedge toward the pointy center. `fitSegmentFontSize` (`web/js/wheel.js`) measures each
+label with the canvas `measureText` and, if it exceeds the segment's radial budget,
+shrinks **that segment's** `textFontSize` (down to a 16px floor) — short names keep the
+full 34px. Labels are never truncated; a long name only gets a smaller font. The
+measurement is done in the wheel's base (logical) units, which is correct because
+Winwheel multiplies both geometry and font by `scaleFactor` internally, so the fitted
+size is scale-independent.
+
 ### Crispness (high-DPI / mobile)
 
 `placeWheel` sizes the canvas backing store to `1000 × devicePixelRatio` (capped at

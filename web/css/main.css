@@ -735,7 +735,7 @@ hr {
   overflow: auto;
 }
 
-.day-note-area, .new-action-description-input {
+.day-note-area {
   box-sizing: inherit;
   border-radius: 0.5rem;
   font-size: 1rem;
@@ -2212,7 +2212,7 @@ input[type=checkbox]
   border-radius: 10%;
 }
 
-.operation-set-rep-input, .operation-set-weight-input, .operation-set-time-input, .operation-set-distance-input, .exercise-time-input, .operation-set-average-input, .new-action-bodypart-input, .new-action-type-input, .new-action-name-norwegian-input, .new-action-name-english-input {
+.operation-set-rep-input, .operation-set-weight-input, .operation-set-time-input, .operation-set-distance-input, .exercise-time-input, .operation-set-average-input {
   width: 100%;
   width: -webkit-fill-available;
   width: -moz-available;

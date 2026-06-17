@@ -1,9 +1,12 @@
 # Activity heatmap
 
-A private, per-user density heatmap of where the user's GPS activities have taken them,
-shown inside the **Activity statistics** section of the `/statistics` page. Because it
-lives in that section, it inherits the existing **activity-type** and **date-range**
-filters for free — the heatmap reflects whatever activity and period the user selects.
+A private, per-user heatmap of where the user's GPS activities have taken them, shown
+inside the **Activity statistics** section of the `/statistics` page. Because it lives in
+that section, it inherits the existing **activity-type** and **date-range** filters for
+free — the heatmap reflects whatever activity and period the user selects.
+
+It is drawn as **route polylines tinted by visit frequency** (Strava personal-heatmap
+style), not a point-density blob — see [Rendering](#rendering-frequency-tinted-route-lines).
 
 ## Why this shape
 
@@ -27,16 +30,36 @@ the same data, so the client renders straight from the statistics response.
 Client side (`web/js/statistics.js`):
 
 - `renderActivityHeatmap(operations)` is called at the end of `placeActivityStatistics`.
-- `extractHeatmapPoints` flattens `operations[].operation_sets[].strava_streams.latlng.data`
-  into `[lat, lng]` points, thinned by a per-track stride and capped overall to keep the
-  render light.
+- `buildHeatmapModel` flattens `operations[].operation_sets[].strava_streams.latlng.data`
+  into per-activity **tracks** (`[lat, lng]` arrays), thinned by an *adaptive* stride
+  chosen from the total sample count so the whole map stays under a fixed cap. In the same
+  pass it builds a **frequency grid**: `counts[cell]` is how many **distinct activities**
+  pass through each ~67 m cell (`HEATMAP_GRID`) — an activity that loops through a cell many
+  times still counts once, so the tint measures revisits, not GPS sampling density.
 - `densestCenter` buckets points into ~1 km cells and returns the centroid of the busiest
   cell, so the map **opens on the most-frequented cluster** rather than fitting all points
   (which would zoom out to include far-away one-off activities).
-- Rendering uses **Leaflet** + **Leaflet.heat** (loaded from cdnjs in `statistics.html`,
-  matching the existing Chart.js CDN usage) over an OpenStreetMap tile basemap. The map
-  container is `.heatmap-canvas`; it starts hidden, so `invalidateSize()` is called once
-  it is shown. `resetActivityHeatmap` clears the layer whenever the filter changes.
+
+### Rendering: frequency-tinted route lines
+
+`drawTrackSegments` walks each track and splits it into runs of consecutive points that
+share a frequency band (`heatmapBucket`, `HEATMAP_BUCKETS` bands). Each run is emitted as
+**two** `L.polyline`s: a wide, soft, lighter **glow** underlay (`heatmapGlowColor`, weight 9,
+opacity 0.2) and a crisp line on top (`heatmapColor`, weight 4, opacity 0.8). The colour
+sweeps blue→green→yellow→red with frequency (HSL hue 220→0, full saturation); bands are
+normalised so that with a single activity (`maxCount <= 1`) everything stays in the coolest
+band — a lone run is faint, never red. The two passes are collected into separate arrays
+(glows first, then lines) so every halo sits beneath every crisp stroke. All share one
+`L.canvas` renderer for performance, and the translucent strokes composite where routes
+overlap, reinforcing the tint. This replaced the earlier **Leaflet.heat** point-density
+layer, which (a) drew blobs rather than continuous routes and (b) made *any* single track
+red because GPS samples piled up within the blur radius regardless of how often the place
+was actually visited.
+
+Leaflet core is loaded from cdnjs in `statistics.html` (matching the existing Chart.js CDN
+usage); the `leaflet.heat` plugin is no longer needed. The map container is
+`activity-heatmap-canvas`; it starts hidden, so `invalidateSize()` is called once it is
+shown. `resetActivityHeatmap` clears the layer group whenever the filter changes.
 
 Only activities with GPS movement carry `latlng` streams; for any other activity type (or
 a period with no GPS data) the section shows a "no GPS data" note. A caption states that
@@ -54,7 +77,7 @@ reconsidered for a privacy-minded self-hosted deployment.
 ## Possible future work
 
 - Multi-layer views (pace / heart-rate / gradient), which would need server-side grid
-  aggregation and raster/image generation rather than the current client-side density layer.
+  aggregation and raster/image generation rather than the current client-side line layer.
 - Self-hosting the Leaflet assets and/or tiles instead of using CDNs.
 - A lighter dedicated endpoint if the full statistics payload (which already ships entire
   streams) becomes a concern.

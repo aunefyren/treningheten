@@ -70,6 +70,26 @@ type ollamaRecentWorkout struct {
 	Note          string `json:"note,omitempty"`
 }
 
+// ollamaLatestWorkout is a richer, summary-level view of the single most recent
+// worked-out day, included only when it is recent enough to be worth a remark
+// (see latestWorkoutMaxAgeDays). Unlike recent_workouts (bare day counts), this
+// block carries enough detail for the model to comment on the session itself.
+// Metrics are pre-rolled-up; the model never sums or converts anything.
+type ollamaLatestWorkout struct {
+	Date            string   `json:"date"`
+	DayOfWeek       string   `json:"day_of_week"`
+	DaysAgo         int      `json:"days_ago"`
+	Activities      []string `json:"activities"`
+	TotalDistanceKm float64  `json:"total_distance_km,omitempty"`
+	DurationMinutes int      `json:"duration_minutes,omitempty"`
+	Note            string   `json:"note,omitempty"`
+}
+
+// latestWorkoutMaxAgeDays bounds how old the most recent workout can be and still
+// be offered to the model. Older than this and the block is omitted entirely, so
+// the message never congratulates a stale session.
+const latestWorkoutMaxAgeDays = 3
+
 // ollamaSeasonPayload is one season the user is currently in. Every field is
 // pre-computed so the model never has to derive goal progress, streaks or stakes.
 // All values are derived from the single shared weekly workout count.
@@ -91,6 +111,7 @@ type ollamaPromptPayload struct {
 	UserFirstName          string                `json:"user_first_name"`
 	WorkoutsLoggedThisWeek int                   `json:"workouts_logged_this_week"`
 	RecentWorkouts         []ollamaRecentWorkout `json:"recent_workouts"`
+	LatestWorkout          *ollamaLatestWorkout  `json:"latest_workout,omitempty"`
 	InAnySeason            bool                  `json:"in_any_season"`
 	Seasons                []ollamaSeasonPayload `json:"seasons"`
 }
@@ -128,6 +149,7 @@ func buildOllamaPayload(userID uuid.UUID, pointInTime time.Time) (string, error)
 	}
 
 	recentWorkouts := buildRecentWorkouts(exerciseDayObjects, 5)
+	latestWorkout := buildLatestWorkout(exerciseDayObjects, pointInTime)
 
 	// Seasons the user is currently in, each flattened to its own pre-computed
 	// progress and stakes.
@@ -149,6 +171,7 @@ func buildOllamaPayload(userID uuid.UUID, pointInTime time.Time) (string, error)
 		UserFirstName:          user.FirstName,
 		WorkoutsLoggedThisWeek: workoutsThisWeek,
 		RecentWorkouts:         recentWorkouts,
+		LatestWorkout:          latestWorkout,
 		InAnySeason:            len(seasonPayloads) > 0,
 		Seasons:                seasonPayloads,
 	}
@@ -201,6 +224,83 @@ func buildRecentWorkouts(exerciseDayObjects []models.ExerciseDayObject, limit in
 		recent = recent[:limit]
 	}
 	return recent
+}
+
+// buildLatestWorkout rolls the single most recent worked-out day up into a
+// summary the model may comment on. It returns nil when there is no workout
+// within latestWorkoutMaxAgeDays, so a stale session is never offered. Metrics
+// reuse the MCP flattening helpers (distance→km, duration seconds) so units stay
+// consistent with the rest of the app.
+func buildLatestWorkout(exerciseDayObjects []models.ExerciseDayObject, pointInTime time.Time) *ollamaLatestWorkout {
+	// Pick the most recent day that has at least one enabled, active exercise.
+	var latest *models.ExerciseDayObject
+	for i := range exerciseDayObjects {
+		day := &exerciseDayObjects[i]
+		hasWorkout := false
+		for _, exercise := range day.Exercises {
+			if exercise.Enabled && exercise.IsOn {
+				hasWorkout = true
+				break
+			}
+		}
+		if !hasWorkout {
+			continue
+		}
+		if latest == nil || day.Date.After(latest.Date) {
+			latest = day
+		}
+	}
+	if latest == nil {
+		return nil
+	}
+
+	// Bound by age, counting calendar days from the workout date to today.
+	daysAgo := int(utilities.SetClockToMinimum(pointInTime).Sub(utilities.SetClockToMinimum(latest.Date)).Hours() / 24)
+	if daysAgo < 0 || daysAgo > latestWorkoutMaxAgeDays {
+		return nil
+	}
+
+	// Flatten the day's activities and aggregate summary metrics, reusing the same
+	// helpers the MCP layer uses (action-name + Hevy fallback, km conversion,
+	// seconds-as-int64 duration).
+	activities := flattenActivities([]models.ExerciseDayObject{*latest}, "", 0)
+
+	seen := make(map[string]bool)
+	names := make([]string, 0, len(activities))
+	totalDistanceKm := 0.0
+	var totalSeconds int64
+	for _, a := range activities {
+		if a.Action != "" && !seen[a.Action] {
+			seen[a.Action] = true
+			names = append(names, a.Action)
+		}
+		for _, s := range a.Sets {
+			if s.Distance != nil {
+				totalDistanceKm += distanceToKm(*s.Distance, s.DistanceUnit)
+			}
+		}
+		// Count time once per activity (activity duration, else summed set times),
+		// matching the statistics roll-up so Strava's duplicated values aren't doubled.
+		if a.DurationSeconds != nil {
+			totalSeconds += *a.DurationSeconds
+		} else {
+			for _, s := range a.Sets {
+				if s.TimeSeconds != nil {
+					totalSeconds += *s.TimeSeconds
+				}
+			}
+		}
+	}
+
+	return &ollamaLatestWorkout{
+		Date:            latest.Date.Format("2006-01-02"),
+		DayOfWeek:       latest.Date.Format("Monday"),
+		DaysAgo:         daysAgo,
+		Activities:      names,
+		TotalDistanceKm: round2(totalDistanceKm),
+		DurationMinutes: int(totalSeconds / 60),
+		Note:            latest.Note,
+	}
 }
 
 // buildSeasonPayloads flattens each active season into pre-computed progress and
@@ -323,6 +423,7 @@ func OllamaGenerateFrontPageMessage(ctx context.Context, userID uuid.UUID, point
 READING THE DATA:
 - "workouts_logged_this_week" is the exact number of workouts the user has logged since Monday. Use it as-is; do not count anything yourself.
 - "recent_workouts" lists only days the user actually worked out. A day not in the list means no workout. Never claim a workout that is not listed.
+- "latest_workout" (when present) summarizes the single most recent session: which activities, total distance in km, duration in minutes, and how many days ago. You MAY work a brief, natural remark about it into the greeting when it adds something (e.g. acknowledging a recent run), but it is optional — skip it if a personal or season point fits better, and never force it. If the block is absent, do not mention any specific recent session. Use only the numbers given; never invent pace, splits, or details that are not there.
 - "seasons" lists the competitions the user is in right now. If "in_any_season" is false, the user is in no season: write a purely personal message and do not mention seasons, goals, season streaks, or the wheel.
 - Each season is independent with its own goal and streak, all measured against the same shared workout count. When there is more than one season, address them separately by name.
 
