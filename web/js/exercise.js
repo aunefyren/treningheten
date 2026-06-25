@@ -314,6 +314,14 @@ function renderSessionActionRow(exercise, count) {
 }
 
 // Dispatch one activity to the right sub-card by its type.
+// Shared Strava re-sync button used by every activity sub-card (cardio /
+// strength / time), so the three renderers can't drift on when it appears.
+// Needs the owning operation-set id — that's what stravaSyncOperationSet posts.
+function stravaSyncButtonHTML(setID, stravaID) {
+    if (!stravaID || !setID) return "";
+    return `<img src="/assets/refresh-cw.svg" class="btn_logo clickable wv-action-icon" title="Re-sync from Strava" onclick="stravaSyncOperationSet('${setID}')">`;
+}
+
 function renderActivitySubCard(operation, exercise) {
     if (operation.type === 'lifting') {
         return renderStrengthSubCard(operation, exercise);
@@ -432,16 +440,11 @@ function renderCardioSubCard(operation, exercise) {
         scheduleCardioStreamRender(setForStreams, streams, hrCanvasID, mapDivID, hasHeartrate, hasRoute, latlngData);
     }
 
-    var syncHTML = "";
-    if (stravaID && setForStreams.id) {
-        syncHTML = `<img src="/assets/refresh-cw.svg" class="btn_logo clickable wv-action-icon" title="Re-sync from Strava" onclick="stravaSyncOperationSet('${setForStreams.id}')">`;
-    }
-
     return `
         <div class="wv-activity wv-activity-cardio">
             <div class="wv-activity-head">
                 <div class="wv-activity-title">${activityActionIcon(operation)}<span>${escapeHTML(activityTitle(operation))}</span></div>
-                <div class="wv-activity-head-actions">${syncHTML}${sourceBadge(operation, stravaID, exercise)}</div>
+                <div class="wv-activity-head-actions">${stravaSyncButtonHTML(setForStreams.id, stravaID)}${sourceBadge(operation, stravaID, exercise)}</div>
             </div>
             ${generateTagChipsHTML(operation.tags)}
             ${activityDescriptionHTML(operation)}
@@ -460,9 +463,9 @@ function renderCardioSubCard(operation, exercise) {
 
 function renderStrengthSubCard(operation, exercise) {
     const sets = operation.operation_sets || [];
-    var totalReps = 0, volume = 0, hasVolume = false, stravaID = null;
+    var totalReps = 0, volume = 0, hasVolume = false, stravaID = null, stravaSetID = null;
     const setChips = sets.map(s => {
-        if (!stravaID && s.strava_id) stravaID = s.strava_id;
+        if (!stravaID && s.strava_id) { stravaID = s.strava_id; stravaSetID = s.id; }
         const reps = (s.repetitions != null) ? s.repetitions : null;
         const weight = (s.weight != null) ? s.weight : null;
         if (reps != null) totalReps += reps;
@@ -483,7 +486,7 @@ function renderStrengthSubCard(operation, exercise) {
         <div class="wv-activity wv-activity-strength">
             <div class="wv-activity-head">
                 <div class="wv-activity-title">${activityActionIcon(operation)}<span>${escapeHTML(activityTitle(operation))}</span></div>
-                ${sourceBadge(operation, stravaID, exercise)}
+                <div class="wv-activity-head-actions">${stravaSyncButtonHTML(stravaSetID, stravaID)}${sourceBadge(operation, stravaID, exercise)}</div>
             </div>
             ${generateTagChipsHTML(operation.tags)}
             ${activityDescriptionHTML(operation)}
@@ -495,11 +498,11 @@ function renderStrengthSubCard(operation, exercise) {
 
 function renderTimeSubCard(operation, exercise) {
     const sets = operation.operation_sets || [];
-    var secs = 0, stravaID = null;
+    var secs = 0, stravaID = null, stravaSetID = null;
     sets.forEach(s => {
         if (s.time) secs += s.time;
         else if (s.moving_time) secs += s.moving_time;
-        if (!stravaID && s.strava_id) stravaID = s.strava_id;
+        if (!stravaID && s.strava_id) { stravaID = s.strava_id; stravaSetID = s.id; }
     });
     if (!secs && operation.duration) secs = operation.duration;
     const durationHTML = secs ? secondsToDurationString(secs) : "—";
@@ -508,7 +511,7 @@ function renderTimeSubCard(operation, exercise) {
         <div class="wv-activity wv-activity-time">
             <div class="wv-activity-head">
                 <div class="wv-activity-title">${activityActionIcon(operation)}<span>${escapeHTML(activityTitle(operation))}</span></div>
-                ${sourceBadge(operation, stravaID, exercise)}
+                <div class="wv-activity-head-actions">${stravaSyncButtonHTML(stravaSetID, stravaID)}${sourceBadge(operation, stravaID, exercise)}</div>
             </div>
             ${generateTagChipsHTML(operation.tags)}
             ${activityDescriptionHTML(operation)}
