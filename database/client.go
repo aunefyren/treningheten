@@ -139,6 +139,8 @@ func Migrate() {
 	Instance.AutoMigrate(&models.OAuthAuthorizationCode{})
 	Instance.AutoMigrate(&models.OAuthRefreshToken{})
 	Instance.AutoMigrate(&models.PersonalAccessToken{})
+	Instance.AutoMigrate(&models.MediaConnection{})
+	Instance.AutoMigrate(&models.MediaPlayback{})
 
 	logger.Log.Info("Database migration completed.")
 }

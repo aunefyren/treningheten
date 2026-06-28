@@ -84,6 +84,19 @@ func ConvertOperationToOperationObject(operation models.Operation) (operationObj
 	operationObject.Note = operation.Note
 	operationObject.Description = operation.Description
 	operationObject.Tags = []string(operation.Tags)
+	operationObject.MediaRetrievedAt = operation.MediaRetrievedAt
+	operationObject.MediaPlayback = []models.MediaPlaybackObject{}
+
+	// Overlay the listening timeline only when the media feature is enabled, to
+	// avoid an extra query per operation on installs that don't use it.
+	if files.ConfigFile.Media.Enabled {
+		playback, err := database.GetMediaPlaybackForOperation(operation.ID)
+		if err != nil {
+			logger.Log.Info("Failed to get media playback for operation. Error: " + err.Error())
+			return operationObject, errors.New("Failed to get media playback for operation.")
+		}
+		operationObject.MediaPlayback = ConvertMediaPlaybackToObjects(playback)
+	}
 
 	return
 }

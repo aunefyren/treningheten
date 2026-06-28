@@ -37,6 +37,40 @@ type ConfigStruct struct {
 	HevyTokenKey            string         `json:"hevy_token_key"`
 	MCPEnabled              *bool          `json:"mcp_enabled"`
 	Ollama                  OllamaSettings `json:"ollama"`
+	Media                   MediaSettings  `json:"media"`
+}
+
+// MediaSettings gates the media/audio integration. Enabled is the tenant-wide
+// feature flag for the whole feature; each provider is gated independently by its
+// own MediaProviderSettings.Enabled (mirroring how Strava/Hevy are gated). TokenKey
+// is the AES-256-GCM key used to encrypt stored provider credentials at rest, and
+// is generated automatically on first run (see files/config.go).
+type MediaSettings struct {
+	Enabled  bool            `json:"enabled"`
+	TokenKey string          `json:"token_key"`
+	Plex     PlexSettings    `json:"plex"`
+	Spotify  SpotifySettings `json:"spotify"`
+}
+
+// SpotifySettings is the Spotify provider gate. Unlike Plex (a self-hosted PIN
+// flow), Spotify uses the OAuth authorization-code flow against a registered app,
+// so it needs ClientID/ClientSecret (from developer.spotify.com) and a RedirectURI
+// that is whitelisted in that app and points at this install's /oauth page.
+type SpotifySettings struct {
+	Enabled      bool   `json:"enabled"`
+	ClientID     string `json:"client_id"`
+	ClientSecret string `json:"client_secret"`
+	RedirectURI  string `json:"redirect_uri"`
+}
+
+// PlexSettings is the Plex provider gate. Enabled is the per-provider flag (a
+// provider is usable only when both Media.Enabled and this are true).
+// ClientIdentifier is the stable per-install Plex client id (X-Plex-Client-Identifier),
+// auto-generated on first run; Plex ties authorized devices to it, so it must stay
+// constant across the PIN create/poll flow and over the install's lifetime.
+type PlexSettings struct {
+	Enabled          bool   `json:"enabled"`
+	ClientIdentifier string `json:"client_identifier"`
 }
 
 type OllamaSettings struct {

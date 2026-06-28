@@ -649,6 +649,10 @@ func StravaSyncActivityForUser(activity models.StravaGetActivitiesRequestReply, 
 	} else if operation == nil {
 		logger.Log.Error("Failed to sync operation. No error.")
 		logger.Log.Error("Sport type was: " + activity.SportType)
+	} else {
+		// A Strava activity carries a fully known time window, so this is the prime
+		// trigger to overlay listening history (async; appears on next load).
+		TriggerMediaSyncForOperation(user, operation.ID)
 	}
 
 	logger.Log.Trace("Synced operations.")

@@ -14,6 +14,7 @@ import (
 	"github.com/aunefyren/treningheten/models"
 
 	"github.com/SherClockHolmes/webpush-go"
+	"github.com/google/uuid"
 	"github.com/sirupsen/logrus"
 )
 
@@ -137,6 +138,24 @@ func LoadConfig() (err error) {
 		ConfigFile.HevyTokenKey = newKey
 		anythingChanged = true
 		fmt.Println("new Hevy token key set")
+	}
+
+	if ConfigFile.Media.TokenKey == "" {
+		// 32 bytes for AES-256-GCM encryption of stored media provider credentials
+		newKey, err := GenerateSecureKey(32)
+		if err != nil {
+			return errors.New("failed to generate media token key. error: " + err.Error())
+		}
+		ConfigFile.Media.TokenKey = newKey
+		anythingChanged = true
+		fmt.Println("new media token key set")
+	}
+
+	if ConfigFile.Media.Plex.ClientIdentifier == "" {
+		// Stable per-install Plex client identifier (X-Plex-Client-Identifier).
+		ConfigFile.Media.Plex.ClientIdentifier = uuid.NewString()
+		anythingChanged = true
+		fmt.Println("new Plex client identifier set")
 	}
 
 	if ConfigFile.MCPEnabled == nil {

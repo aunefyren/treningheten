@@ -299,6 +299,14 @@ func initRouter(configFile models.ConfigStruct) *gin.Engine {
 			auth.POST("/users/:user_id/strava-sync", controllers.APISyncStravaForUser)
 			auth.POST("/users/:user_id/hevy", controllers.APISetHevyAPIKey)
 			auth.DELETE("/users/:user_id/hevy", controllers.APIDeleteHevyAPIKey)
+
+			auth.GET("/media/connections", controllers.APIGetMediaConnections)
+			auth.DELETE("/media/:provider", controllers.APIDeleteMediaConnection)
+			auth.POST("/media/plex/pin", controllers.APICreatePlexPin)
+			auth.POST("/media/plex/pin/:pin_id/check", controllers.APICheckPlexPin)
+			auth.PUT("/media/plex/server", controllers.APISetPlexServerURL)
+			auth.POST("/media/spotify/callback", controllers.APISpotifyCallback)
+			auth.POST("/operations/:operation_id/media-sync", controllers.APISyncMediaForOperation)
 			auth.POST("/users/:user_id/hevy-sync", controllers.APISyncHevyForUser)
 			auth.GET("/users", controllers.GetUsers)
 			auth.POST("/users/:user_id", controllers.UpdateUser)
@@ -403,6 +411,8 @@ func initRouter(configFile models.ConfigStruct) *gin.Engine {
 		"stravaRedirectURI": configFile.StravaRedirectURI,
 		"ollamaEnabled":     configFile.Ollama.Enabled,
 		"hevyEnabled":       configFile.HevyEnabled,
+		"mediaEnabled":      configFile.Media.Enabled,
+		"plexEnabled":       configFile.Media.Enabled && configFile.Media.Plex.Enabled,
 	}
 
 	// endpoint handler building for JS

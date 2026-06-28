@@ -62,6 +62,7 @@ function load_page(result) {
     if(result !== false) {
         var login_data = JSON.parse(result);
         user_id = login_data.data.id
+        media_enabled = login_data.media_enabled === true;
 
         try {
             admin = login_data.data.admin
@@ -75,6 +76,7 @@ function load_page(result) {
         var login_data = false;
         user_id = 0
         admin = false;
+        media_enabled = false;
     }
 
     try {
@@ -371,6 +373,168 @@ function activityDescriptionHTML(operation) {
     return "";
 }
 
+// The "soundtrack" overlay: the activity's listening history plotted against the
+// session clock (see docs/media.md). Only shown when the media feature is enabled;
+// the re-pull action re-matches the activity window against the connected provider.
+function mediaTimelineHTML(operation, exercise) {
+    if (!media_enabled) return "";
+
+    const items = operation.media_playback || [];
+    const repull = `<button class="wv-media-repull" title="Match listening history" onclick="mediaSyncOperation('${operation.id}')"><img src="/assets/refresh-cw.svg" alt="Re-match"></button>`;
+    const eq = `<span class="wv-eq" aria-hidden="true"><i></i><i></i><i></i></span>`;
+
+    if (items.length === 0) {
+        return `<div class="wv-media wv-media-empty">
+            <span class="wv-media-eyebrow"><span class="wv-eq is-muted" aria-hidden="true"><i></i><i></i><i></i></span> Soundtrack</span>
+            <span class="wv-media-empty-text">No matched listening</span>
+            ${repull}
+        </div>`;
+    }
+
+    // Session start anchors elapsed time; the Strava set's streams (if any) let us
+    // average effort over each track's window.
+    const sessionStartMs = (exercise && exercise.time) ? Date.parse(exercise.time) : NaN;
+    const streamSet = (operation.operation_sets || []).find(s => s && s.strava_streams);
+    const streams = streamSet ? streamSet.strava_streams : null;
+
+    // First pass: each track's elapsed stamp + effort over its play window. A track
+    // scrobbles when it finishes, so its window is [start − length, start]; when the
+    // length is unknown, fall back to the gap since the previous track.
+    let prevEndSec = null;
+    const tracks = items.map(it => {
+        const startMs = Date.parse(it.started_at);
+        let stamp = "";
+        let endSec = null;
+        if (!isNaN(sessionStartMs) && !isNaN(startMs)) {
+            endSec = Math.round((startMs - sessionStartMs) / 1000);
+            const shown = endSec < 0 ? 0 : endSec;
+            if (shown <= 86400) stamp = secondsToDurationString(shown);
+        }
+        if (stamp === "" && !isNaN(startMs)) {
+            const d = new Date(startMs);
+            stamp = padNumber(d.getHours(), 2) + ":" + padNumber(d.getMinutes(), 2);
+        }
+
+        let stat = null;
+        if (streams && endSec != null) {
+            let startSec = it.track_length ? endSec - it.track_length
+                         : (prevEndSec != null ? prevEndSec : endSec - 210);
+            if (startSec < 0) startSec = 0;
+            stat = streamWindowStats(streams, startSec, Math.max(startSec, endSec));
+        }
+        if (endSec != null) prevEndSec = endSec;
+
+        return { it, stamp, stat };
+    });
+
+    // The peak-effort track (highest average heart rate) gets a quiet highlight.
+    let peakHr = -1;
+    tracks.forEach(t => { if (t.stat && t.stat.hr != null && t.stat.hr > peakHr) peakHr = t.stat.hr; });
+
+    const rows = tracks.map(t => {
+        const it = t.it;
+        const artist = it.artist ? `<span class="wv-track-artist">${escapeHTML(it.artist)}</span>` : "";
+        const isPeak = t.stat && t.stat.hr != null && t.stat.hr === peakHr && peakHr > 0;
+        return `<li class="wv-track${isPeak ? ' is-peak' : ''}">
+            <span class="wv-track-time">${escapeHTML(t.stamp)}</span>
+            <span class="wv-track-main">
+                <span class="wv-track-title">${escapeHTML(it.title)}</span>
+                ${artist}
+            </span>
+            ${trackStatHTML(t.stat, isPeak)}
+        </li>`;
+    }).join("");
+
+    return `<div class="wv-media">
+        <div class="wv-media-head">
+            <span class="wv-media-eyebrow">${eq} Soundtrack <span class="wv-media-count">${items.length}</span></span>
+            ${repull}
+        </div>
+        <ul class="wv-tracklist">${rows}</ul>
+    </div>`;
+}
+
+// streamWindowStats averages a Strava stream channel over an elapsed-time window
+// [startSec, endSec]. streams.time.data is seconds-from-start and the channel arrays
+// are parallel to it; when no time channel exists the sample index is used as the
+// second. Returns null when no usable channel is present.
+function streamWindowStats(streams, startSec, endSec) {
+    if (!streams) return null;
+    const timeData = (streams.time && streams.time.data) ? streams.time.data : null;
+    const hrData = (streams.heartrate && streams.heartrate.data) ? streams.heartrate.data : null;
+    const altData = (streams.altitude && streams.altitude.data) ? streams.altitude.data : null;
+    const velData = (streams.velocity_smooth && streams.velocity_smooth.data) ? streams.velocity_smooth.data : null;
+
+    const len = (hrData || altData || velData || []).length;
+    if (!len) return null;
+
+    let hrSum = 0, hrN = 0, velSum = 0, velN = 0, elevGain = 0, prevAlt = null;
+    for (let i = 0; i < len; i++) {
+        const t = timeData ? timeData[i] : i;
+        if (t > endSec) break;
+        const a = altData ? altData[i] : null;
+        if (t < startSec) { prevAlt = a; continue; }
+        if (hrData && hrData[i] > 0) { hrSum += hrData[i]; hrN++; }
+        if (velData && velData[i] != null) { velSum += velData[i]; velN++; }
+        if (a != null) {
+            if (prevAlt != null && a > prevAlt) elevGain += a - prevAlt;
+            prevAlt = a;
+        }
+    }
+
+    return {
+        hr: hrN ? Math.round(hrSum / hrN) : null,
+        speedKmh: velN ? (velSum / velN) * 3.6 : null,
+        elevGain: elevGain >= 1 ? Math.round(elevGain) : null
+    };
+}
+
+// trackStatHTML renders the one most telling per-track metric: heart rate when it's
+// recorded (intensity during the song), else pace, else climb. Empty when no streams.
+function trackStatHTML(stat, isPeak) {
+    if (!stat) return `<span class="wv-track-stat"></span>`;
+    if (stat.hr != null) {
+        const title = isPeak ? ' title="Hardest effort"' : '';
+        return `<span class="wv-track-stat"${title}><span class="wv-track-stat-value">${stat.hr}</span><span class="wv-track-stat-unit">bpm</span></span>`;
+    }
+    if (stat.speedKmh != null) {
+        return `<span class="wv-track-stat"><span class="wv-track-stat-value">${stat.speedKmh.toFixed(1)}</span><span class="wv-track-stat-unit">km/h</span></span>`;
+    }
+    if (stat.elevGain != null) {
+        return `<span class="wv-track-stat"><span class="wv-track-stat-value">${stat.elevGain}</span><span class="wv-track-stat-unit">m&uarr;</span></span>`;
+    }
+    return `<span class="wv-track-stat"></span>`;
+}
+
+function mediaSyncOperation(operationID) {
+    var xhttp = new XMLHttpRequest();
+    xhttp.onreadystatechange = function() {
+        if (this.readyState == 4) {
+            try {
+                result = JSON.parse(this.responseText);
+            } catch(e) {
+                console.log(e + ' - Response: ' + this.responseText);
+                error("Could not reach API.");
+                return;
+            }
+            if (result.error) {
+                error(result.error);
+            } else {
+                success("Listening history updated.");
+                location.reload();
+            }
+        } else {
+            info("Matching listening history...");
+        }
+    };
+    xhttp.withCredentials = true;
+    xhttp.open("post", api_url + "auth/operations/" + operationID + "/media-sync");
+    xhttp.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
+    xhttp.setRequestHeader("Authorization", jwt);
+    xhttp.send();
+    return false;
+}
+
 // Trim trailing zeros from a metric for display (80.0 -> "80", 2.5 -> "2.5").
 function wvNum(n) {
     if (n == null) return "";
@@ -457,6 +621,7 @@ function renderCardioSubCard(operation, exercise) {
             </div>
             ${mapHTML}
             ${hrHTML}
+            ${mediaTimelineHTML(operation, exercise)}
         </div>
     `;
 }
@@ -492,6 +657,7 @@ function renderStrengthSubCard(operation, exercise) {
             ${activityDescriptionHTML(operation)}
             <div class="wv-set-grid">${setChips || '<span class="wv-set wv-set-empty">No sets</span>'}</div>
             <div class="wv-rollup">${rollup}</div>
+            ${mediaTimelineHTML(operation, exercise)}
         </div>
     `;
 }
@@ -518,6 +684,7 @@ function renderTimeSubCard(operation, exercise) {
             <div class="wv-stats">
                 <div class="wv-stat"><span class="wv-stat-value">${durationHTML}</span><span class="wv-stat-label">Duration</span></div>
             </div>
+            ${mediaTimelineHTML(operation, exercise)}
         </div>
     `;
 }

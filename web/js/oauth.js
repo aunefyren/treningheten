@@ -1,6 +1,7 @@
 function load_page(result) {
     var code = "";
     var user_id = "";
+    var oauthState = "";
 
     if(result !== false) {
         var login_data = JSON.parse(result);
@@ -8,6 +9,9 @@ function load_page(result) {
         const queryString = window.location.search;
         const urlParams = new URLSearchParams(queryString);
         code = urlParams.get('code')
+        // The state param tells us which provider this callback belongs to; Strava
+        // (no state) is the default.
+        oauthState = urlParams.get('state') || "";
     }
 
     var html = `
@@ -27,10 +31,40 @@ function load_page(result) {
 
     if(result !== false) {
         showLoggedInMenu();
-        setNewStravaCode(user_id, code);
+        if(oauthState === "spotify") {
+            setSpotifyCode(code);
+        } else {
+            setNewStravaCode(user_id, code);
+        }
     } else {
         showLoggedOutMenu();
     }
+}
+
+function setSpotifyCode(code){
+    var xhttp = new XMLHttpRequest();
+    xhttp.onreadystatechange = function() {
+        if (this.readyState == 4) {
+            try {
+                result = JSON.parse(this.responseText);
+            } catch(e) {
+                console.log(e +' - Response: ' + this.responseText);
+                error("Could not reach API.");
+                return;
+            }
+            if(result.error) {
+                error(result.error);
+            } else {
+                frontPageRedirect();
+            }
+        }
+    };
+    xhttp.withCredentials = true;
+    xhttp.open("post", api_url + "auth/media/spotify/callback");
+    xhttp.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
+    xhttp.setRequestHeader("Authorization", jwt);
+    xhttp.send(JSON.stringify({ code: code }));
+    return false;
 }
 
 function setNewStravaCode(user_id, code){

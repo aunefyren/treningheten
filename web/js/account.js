@@ -9,17 +9,25 @@ function load_page(result) {
             var strava_redirect_uri = login_data.strava_redirect_uri;
             var strava_enabled = login_data.strava_enabled;
             var hevy_enabled = login_data.hevy_enabled;
+            plex_enabled = login_data.plex_enabled;
+            spotify_enabled = login_data.spotify_enabled;
+            spotify_client_id = login_data.spotify_client_id;
+            spotify_redirect_uri = login_data.spotify_redirect_uri;
 
             // Premade variables
             user_id = login_data.data.id
             admin = login_data.data.admin
-            
+
         } catch {
             vapid_public_key = "";
             strava_client_id = "";
             strava_redirect_uri = "";
             strava_enabled = false;
             hevy_enabled = false;
+            plex_enabled = false;
+            spotify_enabled = false;
+            spotify_client_id = "";
+            spotify_redirect_uri = "";
 
             user_id = 0
             admin = false
@@ -33,12 +41,17 @@ function load_page(result) {
         strava_redirect_uri = "";
         strava_enabled = false;
         hevy_enabled = false;
+        plex_enabled = false;
+        spotify_enabled = false;
+        spotify_client_id = "";
+        spotify_redirect_uri = "";
 
         user_id = 0
         admin = false
     }
 
     var strava_oauth = `http://www.strava.com/oauth/authorize?client_id=${encodeURI(strava_client_id)}&response_type=code&redirect_uri=${encodeURI(strava_redirect_uri)}&approval_prompt=force&scope=activity:read_all`
+    spotify_oauth = `https://accounts.spotify.com/authorize?client_id=${encodeURIComponent(spotify_client_id)}&response_type=code&redirect_uri=${encodeURIComponent(spotify_redirect_uri)}&scope=${encodeURIComponent('user-read-recently-played')}&state=spotify`
 
     var html = `
 
@@ -183,6 +196,28 @@ function load_page(result) {
                     </div>
                 </div>
 
+                <div class="account-section" style="display: none;" id="plex-section">
+
+                    <div class="account-section-tab clickable" style="" onclick="toggleSection('plex-wrapper', 'section-button-plex')">
+                        <div class="">Plex</div>
+                        <img id="section-button-plex" src="assets/chevron-right.svg" class="color-invert" style="margin: 0.5em;">
+                    </div>
+
+                    <div id="plex-wrapper" class="plex-wrapper minimized">
+                    </div>
+                </div>
+
+                <div class="account-section" style="display: none;" id="spotify-section">
+
+                    <div class="account-section-tab clickable" style="" onclick="toggleSection('spotify-wrapper', 'section-button-spotify')">
+                        <div class="">Spotify</div>
+                        <img id="section-button-spotify" src="assets/chevron-right.svg" class="color-invert" style="margin: 0.5em;">
+                    </div>
+
+                    <div id="spotify-wrapper" class="spotify-wrapper minimized">
+                    </div>
+                </div>
+
                 <div class="account-section" id="wheel-section">
 
                     <div class="account-section-tab clickable" style="" onclick="toggleSection('wheel-wrapper', 'section-button-wheel')">
@@ -235,6 +270,9 @@ function load_page(result) {
         GetProfileImage(user_id);
         CheckForSubscription();
         renderPATSection(admin);
+        if(plex_enabled || spotify_enabled) {
+            renderMediaSection();
+        }
     } else {
         showLoggedOutMenu();
         invalid_session();
@@ -609,6 +647,335 @@ function renderHevySection(user_object) {
 
     document.getElementById("hevy-wrapper").innerHTML = hevyHTML
     document.getElementById('hevy-section').style.display = 'flex'
+}
+
+// --- Media / Plex -----------------------------------------------------------
+
+// Tracks the active Plex PIN poll so a second connect attempt cancels the first.
+var plexPollTimer = null;
+
+// renderMediaSection fetches the user's media connections and renders the Plex
+// section's connected/disconnected state. Other providers reuse the same endpoint
+// when they land.
+function renderMediaSection() {
+    var xhttp = new XMLHttpRequest();
+    xhttp.onreadystatechange = function() {
+        if (this.readyState == 4) {
+            var result;
+            try {
+                result = JSON.parse(this.responseText);
+            } catch(e) {
+                console.log(e + ' - Response: ' + this.responseText);
+                return;
+            }
+            if(result.error) {
+                return;
+            }
+
+            var plexConnection = null;
+            var spotifyConnection = null;
+            (result.connections || []).forEach(function(connection) {
+                if(connection.provider == "plex") {
+                    plexConnection = connection;
+                } else if(connection.provider == "spotify") {
+                    spotifyConnection = connection;
+                }
+            });
+
+            if(plex_enabled) {
+                renderPlexSection(plexConnection);
+            }
+            if(spotify_enabled) {
+                renderSpotifySection(spotifyConnection);
+            }
+        }
+    };
+    xhttp.withCredentials = true;
+    xhttp.open("get", api_url + "auth/media/connections");
+    xhttp.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
+    xhttp.setRequestHeader("Authorization", jwt);
+    xhttp.send();
+    return;
+}
+
+function renderPlexSection(connection) {
+    var plexHTML = `
+        <p style="width: 100%; text-align: center;">
+            Connect Plex to overlay what you listened to onto your workouts. You will be sent to Plex to approve the connection.
+        </p>
+
+        <div class="notification-options" id="" style="">
+            <button onclick="connectPlex();" class="" style="width: 12em;" type="submit" href="">Connect Plex</button>
+        </div>
+    `;
+
+    if(connection && connection.connected) {
+        var serverValue = connection.server_url ? escapeHTML(connection.server_url) : "";
+        var serverHint = connection.server_url
+            ? "If syncing fails, your server may be behind a reverse proxy — set the URL you actually reach it on (e.g. https://plex.example.com)."
+            : "No server auto-detected. Enter the URL you reach Plex on, e.g. https://plex.example.com";
+
+        plexHTML = `
+            <p style="width: 100%; text-align: center;">
+                Plex is connected. Your listening history is matched onto activities by time.
+            </p>
+
+            <div class="notification-options" id="" style="">
+                <input id="plex_server_url" type="text" placeholder="https://plex.example.com" autocomplete="off" value="${serverValue}" style="width: 18em;">
+                <button onclick="savePlexServerURL();" class="" style="width: 12em;" type="submit" href="">Save server URL</button>
+            </div>
+
+            <p style="width: 100%; text-align: center; opacity: 0.7; font-size: 0.85em;">
+                ${serverHint}
+            </p>
+
+            <div class="notification-options" id="" style="">
+                <button onclick="connectPlex();" class="" style="width: 12em;" type="submit" href="">Reconnect Plex</button>
+                <button onclick="disconnectPlex();" class="danger-button" style="width: 12em;" type="submit" href="">Disconnect Plex</button>
+            </div>
+        `;
+    }
+
+    document.getElementById("plex-wrapper").innerHTML = plexHTML;
+    document.getElementById('plex-section').style.display = 'flex';
+}
+
+// connectPlex starts the plex.tv PIN flow: it asks the API for a PIN, opens the
+// Plex approval page in a new tab, and then polls until the PIN is approved.
+function connectPlex() {
+    if(plexPollTimer) {
+        clearTimeout(plexPollTimer);
+        plexPollTimer = null;
+    }
+
+    // Open the window synchronously inside the click so the browser doesn't treat
+    // it as a pop-up; the URL is filled in once the API returns the PIN.
+    var plexWindow = window.open("", "_blank");
+
+    var xhttp = new XMLHttpRequest();
+    xhttp.onreadystatechange = function() {
+        if (this.readyState == 4) {
+            var result;
+            try {
+                result = JSON.parse(this.responseText);
+            } catch(e) {
+                console.log(e + ' - Response: ' + this.responseText);
+                error("Could not reach API.");
+                if(plexWindow) { plexWindow.close(); }
+                return;
+            }
+
+            if(result.error || !result.pin) {
+                error(result.error || "Failed to start Plex connection.");
+                if(plexWindow) { plexWindow.close(); }
+                return;
+            }
+
+            if(plexWindow) {
+                plexWindow.location.href = result.pin.auth_url;
+            } else {
+                window.location.href = result.pin.auth_url;
+            }
+
+            info("Waiting for Plex approval...");
+            pollPlexPin(result.pin.pin_id, 0);
+        } else {
+            info("Connecting...");
+        }
+    };
+    xhttp.withCredentials = true;
+    xhttp.open("post", api_url + "auth/media/plex/pin");
+    xhttp.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
+    xhttp.setRequestHeader("Authorization", jwt);
+    xhttp.send();
+    return false;
+}
+
+// pollPlexPin checks the PIN every few seconds until it is approved or the attempt
+// budget (~2.5 minutes) is exhausted.
+function pollPlexPin(pinID, attempts) {
+    var maxAttempts = 50;
+    if(attempts >= maxAttempts) {
+        error("Plex connection timed out. Please try again.");
+        return;
+    }
+
+    var xhttp = new XMLHttpRequest();
+    xhttp.onreadystatechange = function() {
+        if (this.readyState == 4) {
+            var result;
+            try {
+                result = JSON.parse(this.responseText);
+            } catch(e) {
+                console.log(e + ' - Response: ' + this.responseText);
+                error("Could not reach API.");
+                return;
+            }
+
+            if(result.error) {
+                error(result.error);
+                return;
+            }
+
+            if(result.result && result.result.authorized) {
+                success("Plex connected.");
+                renderMediaSection();
+                return;
+            }
+
+            // Not approved yet — check again shortly.
+            plexPollTimer = setTimeout(function() {
+                pollPlexPin(pinID, attempts + 1);
+            }, 3000);
+        }
+    };
+    xhttp.withCredentials = true;
+    xhttp.open("post", api_url + "auth/media/plex/pin/" + pinID + "/check");
+    xhttp.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
+    xhttp.setRequestHeader("Authorization", jwt);
+    xhttp.send();
+    return;
+}
+
+function disconnectPlex() {
+    var xhttp = new XMLHttpRequest();
+    xhttp.onreadystatechange = function() {
+        if (this.readyState == 4) {
+            var result;
+            try {
+                result = JSON.parse(this.responseText);
+            } catch(e) {
+                console.log(e + ' - Response: ' + this.responseText);
+                error("Could not reach API.");
+                return;
+            }
+
+            if(result.error) {
+                error(result.error);
+            } else {
+                success(result.message);
+                renderMediaSection();
+            }
+        }
+    };
+    xhttp.withCredentials = true;
+    xhttp.open("delete", api_url + "auth/media/plex");
+    xhttp.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
+    xhttp.setRequestHeader("Authorization", jwt);
+    xhttp.send();
+    return false;
+}
+
+function savePlexServerURL() {
+    var serverURL = document.getElementById("plex_server_url").value.trim();
+    if(serverURL == "") {
+        error("Please enter your Plex server URL.");
+        return false;
+    }
+
+    var xhttp = new XMLHttpRequest();
+    xhttp.onreadystatechange = function() {
+        if (this.readyState == 4) {
+            var result;
+            try {
+                result = JSON.parse(this.responseText);
+            } catch(e) {
+                console.log(e + ' - Response: ' + this.responseText);
+                error("Could not reach API.");
+                return;
+            }
+
+            if(result.error) {
+                error(result.error);
+            } else {
+                // The save succeeds even when unreachable; warn vs confirm on the flag.
+                if(result.reachable === false) {
+                    info(result.message);
+                } else {
+                    success(result.message);
+                }
+                renderMediaSection();
+            }
+        } else {
+            info("Saving...");
+        }
+    };
+    xhttp.withCredentials = true;
+    xhttp.open("put", api_url + "auth/media/plex/server");
+    xhttp.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
+    xhttp.setRequestHeader("Authorization", jwt);
+    xhttp.send(JSON.stringify({ server_url: serverURL }));
+    return false;
+}
+
+// --- Media / Spotify --------------------------------------------------------
+
+function renderSpotifySection(connection) {
+    var spotifyHTML = `
+        <p style="width: 100%; text-align: center;">
+            Connect Spotify to overlay what you listened to onto your workouts. Spotify only keeps the last ~24 hours of listening, so connect it before (or soon after) you train.
+        </p>
+
+        <div class="notification-options" id="" style="">
+            <button onclick="connectSpotify();" class="" style="width: 12em;" type="submit" href="">Connect Spotify</button>
+        </div>
+    `;
+
+    if(connection && connection.connected) {
+        spotifyHTML = `
+            <p style="width: 100%; text-align: center;">
+                Spotify is connected. Recent listening is matched onto activities by time. Because Spotify only exposes the last ~24 hours, older workouts can't be back-filled.
+            </p>
+
+            <div class="notification-options" id="" style="">
+                <button onclick="connectSpotify();" class="" style="width: 12em;" type="submit" href="">Reconnect Spotify</button>
+                <button onclick="disconnectSpotify();" class="danger-button" style="width: 12em;" type="submit" href="">Disconnect Spotify</button>
+            </div>
+        `;
+    }
+
+    document.getElementById("spotify-wrapper").innerHTML = spotifyHTML;
+    document.getElementById('spotify-section').style.display = 'flex';
+}
+
+// connectSpotify sends the user to Spotify's consent screen; the /oauth page relays
+// the authorization code back to the API (state=spotify routes it there).
+function connectSpotify() {
+    if(!spotify_oauth) {
+        error("Spotify is not configured.");
+        return false;
+    }
+    window.location.href = spotify_oauth;
+    return false;
+}
+
+function disconnectSpotify() {
+    var xhttp = new XMLHttpRequest();
+    xhttp.onreadystatechange = function() {
+        if (this.readyState == 4) {
+            var result;
+            try {
+                result = JSON.parse(this.responseText);
+            } catch(e) {
+                console.log(e + ' - Response: ' + this.responseText);
+                error("Could not reach API.");
+                return;
+            }
+
+            if(result.error) {
+                error(result.error);
+            } else {
+                success(result.message);
+                renderMediaSection();
+            }
+        }
+    };
+    xhttp.withCredentials = true;
+    xhttp.open("delete", api_url + "auth/media/spotify");
+    xhttp.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
+    xhttp.setRequestHeader("Authorization", jwt);
+    xhttp.send();
+    return false;
 }
 
 // Re-fetch the user and re-render only the Hevy section (used after connect/disconnect
