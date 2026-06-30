@@ -2,6 +2,7 @@ package controllers
 
 import (
 	"net/http"
+	"strings"
 
 	"github.com/aunefyren/treningheten/database"
 	"github.com/aunefyren/treningheten/files"
@@ -144,20 +145,19 @@ func APISyncMediaForOperation(context *gin.Context) {
 		return
 	}
 
+	// Pull every enabled provider, but don't let one provider's failure sink the
+	// others — a Spotify allowlist 403 must not discard a successful Plex sync.
+	warnings := []string{}
 	if plexEnabled() {
 		if err := PlexSyncOperationForUser(user, operation); err != nil {
 			logger.Log.Info("Failed to sync Plex media for operation. Error: " + err.Error())
-			context.JSON(http.StatusBadGateway, gin.H{"error": "Failed to sync media from Plex."})
-			context.Abort()
-			return
+			warnings = append(warnings, "Plex: "+err.Error())
 		}
 	}
 	if spotifyEnabled() {
 		if err := SpotifySyncOperationForUser(user, operation); err != nil {
 			logger.Log.Info("Failed to sync Spotify media for operation. Error: " + err.Error())
-			context.JSON(http.StatusBadGateway, gin.H{"error": "Failed to sync media from Spotify."})
-			context.Abort()
-			return
+			warnings = append(warnings, "Spotify: "+err.Error())
 		}
 	}
 
@@ -177,7 +177,11 @@ func APISyncMediaForOperation(context *gin.Context) {
 		return
 	}
 
-	context.JSON(http.StatusOK, gin.H{"message": "Media synced.", "operation": operationObject})
+	response := gin.H{"message": "Media synced.", "operation": operationObject}
+	if len(warnings) > 0 {
+		response["warning"] = strings.Join(warnings, " · ")
+	}
+	context.JSON(http.StatusOK, response)
 }
 
 // ConvertMediaPlaybackToObjects flattens stored MediaPlayback rows into the read

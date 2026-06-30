@@ -519,6 +519,11 @@ function mediaSyncOperation(operationID) {
             }
             if (result.error) {
                 error(result.error);
+            } else if (result.warning) {
+                // One provider succeeded (or none matched) but another reported an
+                // issue — surface it without blocking the result that did land.
+                error(result.warning);
+                location.reload();
             } else {
                 success("Listening history updated.");
                 location.reload();

@@ -30,6 +30,12 @@ const (
 	spotifyTokenSkew = 60 * time.Second
 )
 
+// ErrSpotifyForbidden is returned when Spotify answers a data request with 403.
+// Login succeeds but the API is denied — almost always because the account isn't on
+// the app's allowlist: a Spotify app in Development Mode only permits up to 25 users
+// the developer adds by hand, until Extended Quota Mode is granted.
+var ErrSpotifyForbidden = errors.New("Spotify denied access — this account isn't allowlisted in the Spotify app yet (the admin must add it, or enable extended quota)")
+
 // spotifyEnabled reports whether Spotify is usable: the tenant media flag, the
 // provider flag, and the registered-app credentials must all be present.
 func spotifyEnabled() bool {
@@ -244,6 +250,10 @@ func spotifyFetchRecentlyPlayed(token string) ([]models.SpotifyPlayHistory, erro
 	}
 	defer resp.Body.Close()
 
+	if resp.StatusCode == http.StatusForbidden {
+		logger.Log.Warn("Spotify history returned 403 — account likely not allowlisted in the app.")
+		return nil, ErrSpotifyForbidden
+	}
 	if resp.StatusCode != http.StatusOK {
 		logger.Log.Error("Spotify history returned non-200. Status: " + strconv.Itoa(resp.StatusCode))
 		return nil, errors.New("Spotify history returned non-200 status.")

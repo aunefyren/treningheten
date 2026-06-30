@@ -40,6 +40,15 @@ developer.spotify.com and a `redirect_uri` that is whitelisted in that app and p
 at this install's `/oauth` page (e.g. `https://your-host/oauth`). Spotify is only
 considered enabled when all three are present (plus the flags).
 
+> **Development Mode allowlist (important).** A new Spotify app starts in
+> *Development Mode*: only the app owner and up to **25 users the developer adds by
+> hand** (dashboard → User Management, by Spotify name + email) may call the Web API.
+> Any other user can *log in* fine but their data requests return **403** — the
+> symptom is login works, retrieval doesn't. Fix: add the user in the dashboard, or
+> request **Extended Quota Mode** (review process) to allow everyone. The code maps
+> this 403 to `ErrSpotifyForbidden` with a clear message, and a re-pull surfaces it
+> as a warning without discarding a successful Plex sync.
+
 ```jsonc
 "media": {
   "enabled": true,
