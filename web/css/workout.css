@@ -17,6 +17,7 @@
   --wv-accent: #00d27a;       /* energetic green — active/positive only */
   --wv-strava: #fc4c02;
   --wv-audio: #f0b429;        /* warm amber — the "soundtrack" listening layer */
+  --wv-node-cut: #101d2c;     /* solid ~matching the media card, to break the spine behind an icon node */
 
   font-family: var(--wv-font-body);
   color: var(--wv-ink);
@@ -302,9 +303,17 @@
 .wv-tracklist .wv-track:first-child::before { top: 0.66rem; }
 .wv-tracklist .wv-track:last-child::before { bottom: calc(100% - 0.66rem); }
 
-.wv-track::after {
-  content: "";
+/* Rail node — a real element so a row can carry a typed mark. Songs keep the amber
+   dot; spoken media (podcast/audiobook) swap in an amber glyph that quietly cuts the
+   spine. Both live inside the single audio accent — no second colour. */
+.wv-node {
   position: absolute;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1;
+}
+.wv-node--song {
   left: -2.5px;
   top: 0.58rem;
   width: 6px;
@@ -313,6 +322,16 @@
   background: var(--wv-audio);
   box-shadow: 0 0 0 3px rgba(240, 180, 41, 0.12);
 }
+.wv-node--icon {
+  left: -8px;
+  top: 0.24rem;
+  width: 17px;
+  height: 17px;
+  border-radius: 50%;
+  background: var(--wv-node-cut);   /* interrupts the hairline spine behind the glyph */
+  color: var(--wv-audio);
+}
+.wv-node--icon svg { width: 13px; height: 13px; display: block; }
 
 .wv-track-time {
   font-family: var(--wv-font-display);
@@ -342,11 +361,32 @@
 
 .wv-track-artist {
   font-size: 0.75rem;
-  line-height: 1.2;
+  line-height: 1.25;
   color: var(--wv-ink-dim);
-  white-space: nowrap;
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  min-width: 0;
+}
+.wv-track-artist .name {
   overflow: hidden;
   text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Source tag — the quietest mark on the row, rendered only when a session actually
+   spans more than one provider, to disambiguate interleaved plays. */
+.wv-src {
+  flex: 0 0 auto;
+  font-size: 0.58rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 0.06rem 0.32rem;
+  border-radius: 0.5rem;
+  border: 1px solid var(--wv-line);
+  color: var(--wv-ink-dim);
+  opacity: 0.85;
 }
 
 /* Per-track effort — secondary to the track, so it reads dim until it's the peak. */
@@ -374,7 +414,7 @@
 
 /* Hardest-effort track: amber stat + a brighter node. */
 .wv-track.is-peak .wv-track-stat-value { color: var(--wv-audio); }
-.wv-track.is-peak::after {
+.wv-track.is-peak .wv-node--song {
   width: 7px;
   height: 7px;
   left: -3px;

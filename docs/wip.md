@@ -35,10 +35,18 @@ time-based activities. Full design + decisions now live in [`docs/media.md`](med
 - Config flags: tenant `media.enabled` + per-provider `media.plex.enabled`, plus an
   auto-generated `media.token_key` (AES-256-GCM, for credential encryption at rest).
 - Data model `MediaConnection` + `MediaPlayback` (`models/media.go`, `database/media.go`,
-  registered in `Migrate()`); `Operation.MediaRetrievedAt` pull guard.
-- Read path: `OperationObject.MediaPlayback` / `MediaRetrievedAt`, enriched in
-  `ConvertOperationToOperationObject` only when `media.enabled`.
-- Idempotent pull primitive (delete-and-replace per operation+provider) + db tests.
+  registered in `Migrate()`); `Exercise.MediaRetrievedAt` pull guard.
+- Read path: `ExerciseObject.MediaPlayback` / `MediaRetrievedAt`, enriched in
+  `ConvertExerciseToExerciseObject` only when `media.enabled`.
+- Idempotent pull primitive (delete-and-replace per session+provider) + db tests.
+- **Session-level soundtrack (DONE):** `MediaPlayback` is keyed to the `Exercise`, not
+  the `Operation` — the match window is a single session window, so a multi-operation
+  session (manual "run + bench", Hevy) shares one soundtrack instead of duplicating the
+  same tracks per operation. Window resolution is `resolveSessionWindow` (pure,
+  unit-tested): start = `Exercise.Time`, **skipped** when absent or a date-only midnight
+  stamp (a wrong soundtrack is worse than none); duration cascades
+  `Exercise.Duration` → Σ operation durations → Σ set times → 2h default. A one-time
+  `Migrate()` cleanup drops legacy per-operation rows (re-synced per session).
 - **Plex account connection (DONE):** plex.tv PIN flow → encrypted `X-Plex-Token` on
   `MediaConnection`; probe-based reachable-server discovery (`selectReachablePlexServer`,
   TLS-skip for plex.direct); API under
@@ -50,40 +58,57 @@ time-based activities. Full design + decisions now live in [`docs/media.md`](med
   **audio-only** (`track`; TV/movie plays dropped); **privacy-scoped** to the user's
   **server-local** account id (`resolvePlexServerAccountID` via `{server}/accounts`,
   fails closed if unresolved — never pulls other users' history); async Strava-sync
-  creation trigger (`TriggerMediaSyncForOperation`); manual re-pull endpoint
-  (`POST /operations/:id/media-sync`) + activity-card 🎧 timeline & re-pull button +
+  creation trigger (`TriggerMediaSyncForExercise`); manual re-pull endpoint
+  (`POST /exercises/:exercise_id/media-sync`) + session 🎧 timeline & re-pull button +
   unit tests.
-- **Soundtrack overlay UI (DONE):** activity-card time-rail with elapsed stamps,
-  per-track avg-HR (peak-effort highlight) from the Strava streams; placed below the
-  HR chart. See `docs/media.md`.
+- **Soundtrack overlay UI (DONE):** session-level time-rail with elapsed stamps,
+  per-track avg-HR (peak-effort highlight) from a session activity's Strava streams;
+  placed below the activity sub-cards. See `docs/media.md`.
 - **Spotify (DONE):** OAuth authorization-code connect (mirrors Strava; shared `/oauth`
   page routed by `state=spotify`), token refresh, `recently-played` fetch + map (public
   album art, multi-artist join), shared `playbackForWindow` matcher; account-page
   Spotify section + mapper/token tests. Needs a registered app (`client_id`/`secret`/
   `redirect_uri`) in config. ~24h history window ⇒ relies on the prompt creation trigger.
+- **Delayed settle re-pull & reconcile cron (DONE):** two-phase pull via
+  `Exercise.MediaSettled bool` — the import-time first pull + one **settle** re-pull once
+  the session window has been closed ≥ `mediaSettleWindow` (1h), to catch Spotify's
+  delayed `recently-played`. A dedicated hourly **`MediaReconcileForAllUsers`** cron
+  (not a Strava side-effect) does first-pull-if-missing (finally covers **manual + Hevy**
+  sessions) + the settle pass over a 14-day lookback; the immediate trigger now covers
+  **Hevy** (incremental events) as well as Strava (bulk backfill leans on the cron).
+  `ReplaceMediaPlaybackForExerciseProvider` now **no-ops on an empty pull** so a
+  stale/out-of-window Spotify pull can't erase the first pull's tracks. Manual 🎧 button
+  unchanged (bypasses guard, doesn't consume the settle pass). See `docs/media.md`.
+- **Audiobookshelf (DONE — provider #3):** self-hosted **server URL + per-user API token**
+  connect (no PIN/OAuth), validated via `GET /api/me`; durable history from
+  `/api/me/listening-sessions` (inherently user-scoped → no privacy fail-closed); shared
+  `playbackForWindow` matcher (`controllers/audiobookshelf.go`). **First provider to
+  classify audiobook vs podcast natively** (session `mediaType`), so it lights up the
+  typed rail nodes + "minutes listened" metric already in the frontend. Account-page
+  section + mapper/classify tests. Config gate `media.audiobookshelf.enabled` (no app
+  credentials). V1 caveat: coarse ABS listening sessions match on **start** time, so a
+  listen begun before the workout is missed (overlap match is the later refinement).
 
 **Still to build:**
 - **Cross-activity stats:** "most listened" media, "fastest songs" (avg speed over
-  `[StartedAt, EndedAt]` from the operation's `OperationSet.StravaStreams`) on the
+  `[StartedAt, EndedAt]` from a session activity's `OperationSet.StravaStreams`) on the
   statistics page. (Per-track avg-HR on the card already shipped.)
 - **Plex artwork:** Plex thumbs need the server token to fetch — store via a proxy
   rather than embedding the credential in a stored URL. (Spotify artwork already works.)
 - **Audiobook/podcast classification:** Plex audiobooks surface as `track` → currently
   read as songs; classify from the Plex library section/agent instead.
-- **Per-(operation, provider) pull guard:** the single `Operation.MediaRetrievedAt` now
-  spans both providers — the auto-trigger pulls all providers once together, which is
-  fine for MVP, but connecting a provider *after* an activity was already pulled needs
-  the re-pull button. Generalize the guard when this becomes annoying.
-- **Edge case (note, not solving now):** editing an activity's **time** changes the
-  window — a re-pull would need to re-match.
-- **Audiobookshelf** (provider #3): API token + server URL; durable history.
+- **Per-(session, provider) pull guard:** the single `Exercise.MediaRetrievedAt` spans
+  both providers — the auto-trigger pulls all providers once together, which is fine for
+  MVP, but connecting a provider *after* a session was already pulled needs the re-pull
+  button. Generalize the guard when this becomes annoying.
+- **Edge case (note, not solving now):** editing a session's **time** changes the
+  window — the 🎧 re-pull re-matches on demand, but there's no automatic re-match on a
+  time edit. (A skipped date-only session will match once a real time is set + re-pulled.)
 
 **Open questions:**
 - Privacy: listening data is sensitive even self-hosted — any per-activity visibility controls?
 - Cross-provider de-dupe if a user has overlapping sources (e.g. casting Spotify through Plex)?
   (Per-provider rows side-step it for now; only matters once 2+ providers are connected.)
-- When provider #2 lands: generalize the single `Operation.MediaRetrievedAt` guard to
-  per-(operation, provider).
 
 ### Gear tracker — possible follow-ups
 The gear feature shipped (manual + Strava gear, per-operation storage with a session-level

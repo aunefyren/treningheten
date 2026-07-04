@@ -23,12 +23,6 @@ type Operation struct {
 	Description  *string        `json:"description" gorm:"type:longtext;default: null;"`
 	Tags         TagList        `json:"tags" gorm:"type:longtext;default: null;"`
 	Duration     *time.Duration `json:"duration"`
-	// MediaRetrievedAt is the per-activity media-pull guard, mirroring
-	// OperationSet.StravaDataRetrievedAt. A non-null value distinguishes "pulled,
-	// found nothing" from "never pulled", which drives the re-pull button state.
-	// A single column suffices for the Plex MVP; generalise to per-(operation,
-	// provider) when a second provider lands (see docs/media.md).
-	MediaRetrievedAt *time.Time `json:"media_retrieved_at" gorm:"default: null"`
 }
 
 type OperationCreationRequest struct {
@@ -68,10 +62,6 @@ type OperationObject struct {
 	Description   *string              `json:"description"`
 	Tags          []string             `json:"tags"`
 	Duration      *time.Duration       `json:"duration"`
-	// MediaPlayback is the listening timeline overlaid on this activity, enriched
-	// only when the media feature is enabled (see docs/media.md).
-	MediaPlayback    []MediaPlaybackObject `json:"media_playback"`
-	MediaRetrievedAt *time.Time            `json:"media_retrieved_at"`
 }
 
 type OperationSet struct {

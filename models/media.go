@@ -46,13 +46,17 @@ type MediaConnection struct {
 
 // MediaPlayback is one row per played item — the timeline plus the source for
 // cross-activity stats ("most listened", "fastest songs"). A queryable table, not
-// a JSON blob on the operation, because those stats are trivial over rows and
+// a JSON blob on the session, because those stats are trivial over rows and
 // painful over JSON. StartedAt/EndedAt are absolute timestamps and are the source
 // of truth for matching against the activity window and for stream-based stats.
+//
+// The soundtrack attaches to the Exercise (session), not an Operation: the match
+// window is a session window (one start + one duration), so a multi-operation
+// session shares one soundtrack rather than duplicating it per operation.
 type MediaPlayback struct {
 	GormModel
-	OperationID    uuid.UUID  `json:"" gorm:"type:varchar(100); not null; index"`
-	Operation      Operation  `json:"operation" gorm:"foreignKey:OperationID; references:ID"`
+	ExerciseID     uuid.UUID  `json:"" gorm:"type:varchar(100); not null; index"`
+	Exercise       Exercise   `json:"exercise" gorm:"foreignKey:ExerciseID; references:ID"`
 	Provider       string     `json:"provider" gorm:"type:varchar(50); not null"`
 	MediaType      string     `json:"media_type" gorm:"type:varchar(50); not null; default: song"`
 	Title          string     `json:"title" gorm:"type:varchar(255); not null"`

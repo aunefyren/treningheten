@@ -651,8 +651,10 @@ func StravaSyncActivityForUser(activity models.StravaGetActivitiesRequestReply, 
 		logger.Log.Error("Sport type was: " + activity.SportType)
 	} else {
 		// A Strava activity carries a fully known time window, so this is the prime
-		// trigger to overlay listening history (async; appears on next load).
-		TriggerMediaSyncForOperation(user, operation.ID)
+		// trigger to overlay listening history (async; appears on next load). The
+		// soundtrack attaches to the session, and each Strava activity is its own
+		// session, so trigger once per exercise.
+		TriggerMediaSyncForExercise(user, finalExercise.ID)
 	}
 
 	logger.Log.Trace("Synced operations.")

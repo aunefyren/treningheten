@@ -28,17 +28,18 @@ func ValidateToken(context *gin.Context) {
 	}
 
 	context.JSON(http.StatusOK, gin.H{
-		"message":              "Valid session!",
-		"data":                 claims,
-		"vapid_public_key":     VAPIDSettings.VAPIDPublicKey,
-		"strava_enabled":       files.ConfigFile.StravaEnabled,
-		"strava_client_id":     files.ConfigFile.StravaClientID,
-		"strava_redirect_uri":  files.ConfigFile.StravaRedirectURI,
-		"hevy_enabled":         files.ConfigFile.HevyEnabled,
-		"media_enabled":        files.ConfigFile.Media.Enabled,
-		"plex_enabled":         files.ConfigFile.Media.Enabled && files.ConfigFile.Media.Plex.Enabled,
-		"spotify_enabled":      files.ConfigFile.Media.Enabled && files.ConfigFile.Media.Spotify.Enabled,
-		"spotify_client_id":    files.ConfigFile.Media.Spotify.ClientID,
-		"spotify_redirect_uri": files.ConfigFile.Media.Spotify.RedirectURI,
+		"message":                "Valid session!",
+		"data":                   claims,
+		"vapid_public_key":       VAPIDSettings.VAPIDPublicKey,
+		"strava_enabled":         files.ConfigFile.StravaEnabled,
+		"strava_client_id":       files.ConfigFile.StravaClientID,
+		"strava_redirect_uri":    files.ConfigFile.StravaRedirectURI,
+		"hevy_enabled":           files.ConfigFile.HevyEnabled,
+		"media_enabled":          files.ConfigFile.Media.Enabled,
+		"plex_enabled":           files.ConfigFile.Media.Enabled && files.ConfigFile.Media.Plex.Enabled,
+		"spotify_enabled":        files.ConfigFile.Media.Enabled && files.ConfigFile.Media.Spotify.Enabled,
+		"spotify_client_id":      files.ConfigFile.Media.Spotify.ClientID,
+		"spotify_redirect_uri":   files.ConfigFile.Media.Spotify.RedirectURI,
+		"audiobookshelf_enabled": files.ConfigFile.Media.Enabled && files.ConfigFile.Media.Audiobookshelf.Enabled,
 	})
 }

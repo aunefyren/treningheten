@@ -142,6 +142,50 @@ func Migrate() {
 	Instance.AutoMigrate(&models.MediaConnection{})
 	Instance.AutoMigrate(&models.MediaPlayback{})
 
+	// One-time cleanup: MediaPlayback moved from per-operation to per-session. The
+	// AutoMigrate above adds the NOT NULL exercise_id column, which backfills existing
+	// (legacy per-operation) rows with an empty string — a value that references no
+	// exercise, so the FK constraint can't be added while those rows exist (MySQL
+	// errno 1452). These rows are cheap, derived, and duplicated per operation, so drop
+	// any row whose exercise_id points at no real exercise and let the next sync
+	// repopulate per session. Self-limiting: once gone, this is a no-op on later boots.
+	cleanup := Instance.Unscoped().
+		Where("exercise_id IS NULL OR exercise_id = '' OR exercise_id NOT IN (SELECT id FROM exercises)").
+		Delete(&models.MediaPlayback{})
+	if cleanup.Error != nil {
+		logger.Log.Warn("Failed to clean up legacy per-operation media playback rows. Error: " + cleanup.Error.Error())
+	} else if cleanup.RowsAffected > 0 {
+		logger.Log.Info("Removed " + strconv.FormatInt(cleanup.RowsAffected, 10) + " legacy per-operation media playback rows (will re-sync per session).")
+	}
+
+	// AutoMigrate's FK add fails on the transition boot because the legacy rows above
+	// still had an invalid exercise_id at that point; now that they're gone, add the
+	// constraint it skipped so it doesn't retry-and-fail on every subsequent startup.
+	if cleanup.Error == nil && !Instance.Migrator().HasConstraint(&models.MediaPlayback{}, "Exercise") {
+		if err := Instance.Migrator().CreateConstraint(&models.MediaPlayback{}, "Exercise"); err != nil {
+			logger.Log.Warn("Failed to add media_playbacks exercise foreign key. Error: " + err.Error())
+		}
+	}
+
+	// Drop the now-dead operation_id column. AutoMigrate never drops columns, so the old
+	// per-operation column lingers — still NOT NULL and still carrying its FK to
+	// operations. Session-level inserts don't set it, so it defaults to '' and every
+	// insert fails that FK (errno 1452). Drop the FK first (MySQL won't drop a column a
+	// FK references), then the column. No-op once gone / on fresh installs.
+	migrator := Instance.Migrator()
+	if migrator.HasColumn(&models.MediaPlayback{}, "operation_id") {
+		if migrator.HasConstraint(&models.MediaPlayback{}, "fk_media_playbacks_operation") {
+			if err := migrator.DropConstraint(&models.MediaPlayback{}, "fk_media_playbacks_operation"); err != nil {
+				logger.Log.Warn("Failed to drop legacy media_playbacks operation foreign key. Error: " + err.Error())
+			}
+		}
+		if err := migrator.DropColumn(&models.MediaPlayback{}, "operation_id"); err != nil {
+			logger.Log.Warn("Failed to drop legacy media_playbacks operation_id column. Error: " + err.Error())
+		} else {
+			logger.Log.Info("Dropped legacy media_playbacks.operation_id column.")
+		}
+	}
+
 	logger.Log.Info("Database migration completed.")
 }
 

@@ -116,12 +116,16 @@ func TestBuildPlexPlaybackClampsToActivityEnd(t *testing.T) {
 	}
 }
 
-func TestActivityWindowForExercise(t *testing.T) {
+func TestResolveSessionWindow(t *testing.T) {
 	startTime := time.Date(2026, 6, 27, 8, 0, 0, 0, time.UTC)
 	duration := time.Duration(3600) // raw seconds count (repo convention)
 
+	// Explicit session Duration wins.
 	ex := models.Exercise{Time: &startTime, Duration: &duration}
-	gotStart, gotEnd := activityWindowForExercise(ex)
+	gotStart, gotEnd, ok := resolveSessionWindow(ex, 0)
+	if !ok {
+		t.Fatalf("expected a trustworthy window for a real clock time")
+	}
 	if !gotStart.Equal(startTime) {
 		t.Errorf("start: got %v, want %v", gotStart, startTime)
 	}
@@ -129,10 +133,33 @@ func TestActivityWindowForExercise(t *testing.T) {
 		t.Errorf("end: got %v, want %v", gotEnd, want)
 	}
 
-	// No duration → default window length.
-	exNoDur := models.Exercise{Time: &startTime}
-	_, gotEnd = activityWindowForExercise(exNoDur)
+	// No session Duration but an operations/sets fallback → use the fallback.
+	exFallback := models.Exercise{Time: &startTime}
+	_, gotEnd, ok = resolveSessionWindow(exFallback, 1800)
+	if !ok {
+		t.Fatalf("expected a trustworthy window with a fallback duration")
+	}
+	if want := startTime.Add(30 * time.Minute); !gotEnd.Equal(want) {
+		t.Errorf("fallback window end: got %v, want %v", gotEnd, want)
+	}
+
+	// No duration anywhere → default window length.
+	_, gotEnd, ok = resolveSessionWindow(exFallback, 0)
+	if !ok {
+		t.Fatalf("expected a trustworthy window on the default fallback")
+	}
 	if want := startTime.Add(defaultActivityWindow); !gotEnd.Equal(want) {
 		t.Errorf("default window end: got %v, want %v", gotEnd, want)
+	}
+
+	// No Time at all → not trustworthy (skip matching).
+	if _, _, ok := resolveSessionWindow(models.Exercise{Duration: &duration}, 0); ok {
+		t.Errorf("expected ok=false when the session has no time")
+	}
+
+	// Date-only midnight stamp (manual past-day log) → not trustworthy.
+	midnight := time.Date(2026, 6, 27, 0, 0, 0, 0, time.UTC)
+	if _, _, ok := resolveSessionWindow(models.Exercise{Time: &midnight, Duration: &duration}, 0); ok {
+		t.Errorf("expected ok=false for a date-only midnight session")
 	}
 }

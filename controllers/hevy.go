@@ -497,6 +497,12 @@ func HevyEventsSyncForUser(user models.User) error {
 				}
 				if err := HevySyncWorkoutForUser(user, *event.Workout, templates); err != nil {
 					logger.Log.Warn("Failed to apply updated Hevy workout " + event.Workout.ID + ". Error: " + err.Error())
+				} else if exercise, lookupErr := database.GetExerciseForUserWithHevyWorkoutID(user.ID, event.Workout.ID); lookupErr == nil && exercise != nil {
+					// A freshly synced Hevy workout carries a real start time, so kick off the
+					// soundtrack overlay immediately (like Strava). Bulk backfill skips this
+					// and leans on the reconcile cron so it doesn't fan out a goroutine per
+					// historical workout.
+					TriggerMediaSyncForExercise(user, exercise.ID)
 				}
 			case "deleted":
 				if err := hevyDeleteWorkoutForUser(user, event.ID); err != nil {

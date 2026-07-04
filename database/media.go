@@ -26,6 +26,24 @@ func GetMediaConnectionsForUser(userID uuid.UUID) (connections []models.MediaCon
 	return
 }
 
+// GetUserIDsWithMediaConnections returns the distinct user ids that have at least one
+// enabled media connection — the candidate set the reconcile cron scans, so it skips
+// users with no connected provider entirely.
+func GetUserIDsWithMediaConnections() ([]uuid.UUID, error) {
+	userIDs := []uuid.UUID{}
+
+	record := Instance.Model(&models.MediaConnection{}).
+		Where("`media_connections`.enabled = ?", 1).
+		Distinct().
+		Pluck("user_id", &userIDs)
+
+	if record.Error != nil {
+		return nil, record.Error
+	}
+
+	return userIDs, nil
+}
+
 // GetMediaConnectionForUserProvider fetches the single connection for a (user,
 // provider) pair, or nil when none exists.
 func GetMediaConnectionForUserProvider(userID uuid.UUID, provider string) (connection *models.MediaConnection, err error) {
@@ -70,12 +88,12 @@ func DeleteMediaConnectionForUserProvider(userID uuid.UUID, provider string) err
 	return record.Error
 }
 
-// GetMediaPlaybackForOperation returns the listening timeline for an operation,
+// GetMediaPlaybackForExercise returns the listening timeline for a session,
 // ordered chronologically (the natural timeline order).
-func GetMediaPlaybackForOperation(operationID uuid.UUID) (playback []models.MediaPlayback, err error) {
+func GetMediaPlaybackForExercise(exerciseID uuid.UUID) (playback []models.MediaPlayback, err error) {
 	playback = []models.MediaPlayback{}
 
-	record := Instance.Where("`media_playbacks`.operation_id = ?", operationID).
+	record := Instance.Where("`media_playbacks`.exercise_id = ?", exerciseID).
 		Order("`media_playbacks`.started_at asc").
 		Find(&playback)
 
@@ -86,30 +104,37 @@ func GetMediaPlaybackForOperation(operationID uuid.UUID) (playback []models.Medi
 	return
 }
 
-// ReplaceMediaPlaybackForOperationProvider is the idempotent pull primitive:
-// delete-and-replace per (operation, provider). Every pull wipes that operation's
+// ReplaceMediaPlaybackForExerciseProvider is the idempotent pull primitive:
+// delete-and-replace per (session, provider). A non-empty pull wipes that session's
 // rows for the provider and reinserts, which side-steps a fragile compound de-dupe
 // key (a song can legitimately repeat within one session) and makes re-pull "just
 // work" — the same spirit as Strava sync. Other providers' rows are untouched.
-func ReplaceMediaPlaybackForOperationProvider(operationID uuid.UUID, provider string, playback []models.MediaPlayback) error {
+//
+// Non-destructive empty guard: an **empty** pull is a no-op — it never deletes
+// existing rows. These providers only ever *add* to history (they don't retract
+// plays), so an empty result means "nothing new / outside my window" (e.g. a Spotify
+// pull past its ~24h window), not "authoritatively zero". Preserving the prior pull's
+// rows stops a stale/out-of-window pull from erasing a good soundtrack. First-pull-empty
+// still stores nothing (there's nothing to preserve). See docs/media.md.
+func ReplaceMediaPlaybackForExerciseProvider(exerciseID uuid.UUID, provider string, playback []models.MediaPlayback) error {
+	if len(playback) == 0 {
+		return nil
+	}
+
 	return Instance.Transaction(func(tx *gorm.DB) error {
 		del := tx.Unscoped().
-			Where("operation_id = ?", operationID).
+			Where("exercise_id = ?", exerciseID).
 			Where("provider = ?", provider).
 			Delete(&models.MediaPlayback{})
 		if del.Error != nil {
 			return del.Error
 		}
 
-		if len(playback) == 0 {
-			return nil
-		}
-
 		for i := range playback {
 			if playback[i].ID == uuid.Nil {
 				playback[i].ID = uuid.New()
 			}
-			playback[i].OperationID = operationID
+			playback[i].ExerciseID = exerciseID
 			playback[i].Provider = provider
 		}
 
@@ -118,11 +143,49 @@ func ReplaceMediaPlaybackForOperationProvider(operationID uuid.UUID, provider st
 	})
 }
 
-// SetOperationMediaRetrievedAt stamps the per-activity pull guard so the UI can
+// SetExerciseMediaRetrievedAt stamps the per-session pull guard so the UI can
 // distinguish "pulled, found nothing" from "never pulled".
-func SetOperationMediaRetrievedAt(operationID uuid.UUID, at time.Time) error {
-	record := Instance.Model(&models.Operation{}).
-		Where("`operations`.id = ?", operationID).
+func SetExerciseMediaRetrievedAt(exerciseID uuid.UUID, at time.Time) error {
+	record := Instance.Model(&models.Exercise{}).
+		Where("`exercises`.id = ?", exerciseID).
 		Update("media_retrieved_at", at)
 	return record.Error
+}
+
+// SetExerciseMediaSettled flips the one-time settle guard so the reconcile cron
+// leaves the session alone from then on (see docs/media.md).
+func SetExerciseMediaSettled(exerciseID uuid.UUID, settled bool) error {
+	record := Instance.Model(&models.Exercise{}).
+		Where("`exercises`.id = ?", exerciseID).
+		Update("media_settled", settled)
+	return record.Error
+}
+
+// GetExercisesForMediaReconcile returns the caller's recently-created sessions that
+// still owe media work — never pulled (media_retrieved_at IS NULL) or pulled but not
+// yet settled (media_settled = 0) — bounded to a recent lookback so the hourly scan
+// doesn't re-walk all history. The reconcile job runs the first-pull / settle state
+// machine over these (see docs/media.md).
+//
+// since is bound in its own (local) location on purpose: the sqlite backend stores
+// timestamps as local-offset RFC3339 text and compares lexically, so binding UTC would
+// misalign the ordering; MySQL/Postgres compare instants regardless of location.
+func GetExercisesForMediaReconcile(userID uuid.UUID, since time.Time) ([]models.Exercise, error) {
+	var exercises []models.Exercise
+
+	record := Instance.
+		Where("`exercises`.enabled = ?", 1).
+		Where("`exercises`.created_at >= ?", since).
+		Where("(`exercises`.media_retrieved_at IS NULL OR `exercises`.media_settled = ?)", 0).
+		Joins("JOIN `exercise_days` on `exercises`.exercise_day_id = `exercise_days`.id").
+		Where("`exercise_days`.enabled = ?", 1).
+		Where("`exercise_days`.user_id = ?", userID).
+		Order("`exercises`.`time` ASC").
+		Find(&exercises)
+
+	if record.Error != nil {
+		return nil, record.Error
+	}
+
+	return exercises, nil
 }

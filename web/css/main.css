@@ -2739,7 +2739,7 @@ label {
   padding: 0 1rem;
 }
 
-.notifications-wrapper, .settings-wrapper, .strava-wrapper, .hevy-wrapper, .plex-wrapper, .spotify-wrapper, .mail-notifications-wrapper, .pat-wrapper, .wheel-wrapper {
+.notifications-wrapper, .settings-wrapper, .strava-wrapper, .hevy-wrapper, .plex-wrapper, .spotify-wrapper, .audiobookshelf-wrapper, .mail-notifications-wrapper, .pat-wrapper, .wheel-wrapper {
   display: none;
   flex-direction: column;
   flex-wrap: wrap;

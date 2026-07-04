@@ -53,6 +53,16 @@ type Exercise struct {
 	ExerciseDay   ExerciseDay    `json:"exercise_day" gorm:"not null"`
 	Time          *time.Time     `json:"time"`
 	HevyWorkoutID *string        `json:"hevy_workout_id" gorm:"default: null"`
+	// MediaRetrievedAt is the per-session media-pull guard. A non-null value
+	// distinguishes "pulled, found nothing" from "never pulled", which drives the
+	// re-pull button state. Lives on the session because the soundtrack is matched
+	// against the session window, not per operation (see docs/media.md).
+	MediaRetrievedAt *time.Time `json:"media_retrieved_at" gorm:"default: null"`
+	// MediaSettled marks that the one-time delayed "settle" re-pull has run (or that
+	// the session was retired from it — no trustworthy window, or already old at first
+	// pull). The reconcile cron does a single settle pass to catch providers whose
+	// history lags (Spotify); once true it's left alone (see docs/media.md).
+	MediaSettled bool `json:"media_settled" gorm:"not null; default: false"`
 }
 
 type ExerciseUpdateRequest struct {
@@ -80,6 +90,10 @@ type ExerciseObject struct {
 	StravaID      []string          `json:"strava_id"`
 	HevyWorkoutID *string           `json:"hevy_workout_id"`
 	Time          time.Time         `json:"time"`
+	// MediaPlayback is the listening timeline overlaid on this session, enriched
+	// only when the media feature is enabled (see docs/media.md).
+	MediaPlayback    []MediaPlaybackObject `json:"media_playback"`
+	MediaRetrievedAt *time.Time            `json:"media_retrieved_at"`
 }
 
 type ExerciseDayCreationRequest struct {

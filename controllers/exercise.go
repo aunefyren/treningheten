@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/aunefyren/treningheten/database"
+	"github.com/aunefyren/treningheten/files"
 	"github.com/aunefyren/treningheten/logger"
 	"github.com/aunefyren/treningheten/middlewares"
 	"github.com/aunefyren/treningheten/models"
@@ -975,6 +976,22 @@ func ConvertExerciseToExerciseObject(exercise models.Exercise) (exerciseObject m
 	exerciseObject.UpdatedAt = exercise.UpdatedAt
 	exerciseObject.Duration = exercise.Duration
 	exerciseObject.HevyWorkoutID = exercise.HevyWorkoutID
+
+	exerciseObject.MediaRetrievedAt = exercise.MediaRetrievedAt
+	exerciseObject.MediaPlayback = []models.MediaPlaybackObject{}
+
+	// Overlay the listening timeline only when the media feature is enabled, to
+	// avoid an extra query per session on installs that don't use it. The soundtrack
+	// is a session-level fact (matched against the session window), so it lives here
+	// rather than on individual operations (see docs/media.md).
+	if files.ConfigFile.Media.Enabled {
+		playback, err := database.GetMediaPlaybackForExercise(exercise.ID)
+		if err != nil {
+			logger.Log.Info("Failed to get media playback for exercise. Error: " + err.Error())
+			return exerciseObject, errors.New("Failed to get media playback for exercise.")
+		}
+		exerciseObject.MediaPlayback = ConvertMediaPlaybackToObjects(playback)
+	}
 
 	return
 }

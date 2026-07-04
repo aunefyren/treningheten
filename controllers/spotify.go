@@ -314,16 +314,16 @@ func spotifySmallestImage(images []models.SpotifyImage) string {
 	return images[len(images)-1].URL
 }
 
-// SpotifySyncOperationForUser pulls the Spotify listening history overlapping one
-// operation's window and stores it (delete-and-replace per provider), stamping the
+// SpotifySyncExerciseForUser pulls the Spotify listening history overlapping a
+// session's window and stores it (delete-and-replace per provider), stamping the
 // pull guard regardless of outcome.
-func SpotifySyncOperationForUser(user models.User, operation models.Operation) error {
+func SpotifySyncExerciseForUser(user models.User, exercise models.Exercise) error {
 	connection, err := database.GetMediaConnectionForUserProvider(user.ID, models.MediaProviderSpotify)
 	if err != nil {
 		return err
 	}
 	if connection == nil || connection.AccessToken == nil {
-		return database.SetOperationMediaRetrievedAt(operation.ID, time.Now())
+		return database.SetExerciseMediaRetrievedAt(exercise.ID, time.Now())
 	}
 
 	token, err := spotifyEnsureToken(connection)
@@ -331,14 +331,12 @@ func SpotifySyncOperationForUser(user models.User, operation models.Operation) e
 		return err
 	}
 
-	exercise, err := database.GetExerciseByIDAndUserID(operation.ExerciseID, user.ID)
-	if err != nil {
-		return err
-	} else if exercise == nil {
-		return errors.New("exercise not found for media sync")
+	start, end, ok := resolveSessionWindow(exercise, sessionFallbackSeconds(exercise))
+	if !ok {
+		// No real clock time for the session — nothing to place a soundtrack against.
+		logger.Log.Trace("Session has no trustworthy time for media match; stamping guard only.")
+		return database.SetExerciseMediaRetrievedAt(exercise.ID, time.Now())
 	}
-
-	start, end := activityWindowForExercise(*exercise)
 
 	items, err := spotifyFetchRecentlyPlayed(token)
 	if err != nil {
@@ -347,10 +345,10 @@ func SpotifySyncOperationForUser(user models.User, operation models.Operation) e
 
 	playback := buildSpotifyPlaybackForWindow(items, start, end)
 
-	if err := database.ReplaceMediaPlaybackForOperationProvider(operation.ID, models.MediaProviderSpotify, playback); err != nil {
+	if err := database.ReplaceMediaPlaybackForExerciseProvider(exercise.ID, models.MediaProviderSpotify, playback); err != nil {
 		return err
 	}
-	if err := database.SetOperationMediaRetrievedAt(operation.ID, time.Now()); err != nil {
+	if err := database.SetExerciseMediaRetrievedAt(exercise.ID, time.Now()); err != nil {
 		return err
 	}
 
@@ -360,6 +358,6 @@ func SpotifySyncOperationForUser(user models.User, operation models.Operation) e
 		logger.Log.Warn("Failed to update Spotify connection last-synced time. Error: " + err.Error())
 	}
 
-	logger.Log.Info("Synced " + strconv.Itoa(len(playback)) + " Spotify playback rows for operation " + operation.ID.String())
+	logger.Log.Info("Synced " + strconv.Itoa(len(playback)) + " Spotify playback rows for session " + exercise.ID.String())
 	return nil
 }

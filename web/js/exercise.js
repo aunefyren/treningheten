@@ -289,6 +289,7 @@ function renderWorkoutSummary(exercise, count) {
                 <div class="wv-activities">
                     ${subCards}
                 </div>
+                ${mediaTimelineHTML(exercise)}
             </div>
         </div>
     `;
@@ -373,14 +374,16 @@ function activityDescriptionHTML(operation) {
     return "";
 }
 
-// The "soundtrack" overlay: the activity's listening history plotted against the
+// The "soundtrack" overlay: the session's listening history plotted against the
 // session clock (see docs/media.md). Only shown when the media feature is enabled;
-// the re-pull action re-matches the activity window against the connected provider.
-function mediaTimelineHTML(operation, exercise) {
+// the re-pull action re-matches the session window against the connected provider.
+// It is a session-level fact — the match window is one session window, so a
+// multi-operation session shares one soundtrack rather than duplicating per activity.
+function mediaTimelineHTML(exercise) {
     if (!media_enabled) return "";
 
-    const items = operation.media_playback || [];
-    const repull = `<button class="wv-media-repull" title="Match listening history" onclick="mediaSyncOperation('${operation.id}')"><img src="/assets/refresh-cw.svg" alt="Re-match"></button>`;
+    const items = exercise.media_playback || [];
+    const repull = `<button class="wv-media-repull" title="Match listening history" onclick="mediaSyncExercise('${exercise.id}')"><img src="/assets/refresh-cw.svg" alt="Re-match"></button>`;
     const eq = `<span class="wv-eq" aria-hidden="true"><i></i><i></i><i></i></span>`;
 
     if (items.length === 0) {
@@ -391,10 +394,17 @@ function mediaTimelineHTML(operation, exercise) {
         </div>`;
     }
 
-    // Session start anchors elapsed time; the Strava set's streams (if any) let us
-    // average effort over each track's window.
+    // Source is plumbing, not content — show it only when a session genuinely spans
+    // more than one provider, where a per-row tag disambiguates interleaved plays.
+    const crossSource = new Set(items.map(it => it.provider).filter(Boolean)).size > 1;
+
+    // Session start anchors elapsed time; the effort per track comes from a Strava
+    // activity's streams when the session has one. A session can hold several
+    // activities but only one carries streams in practice, so use the first found —
+    // effort stats are best-effort for multi-activity sessions (see docs/media.md).
     const sessionStartMs = (exercise && exercise.time) ? Date.parse(exercise.time) : NaN;
-    const streamSet = (operation.operation_sets || []).find(s => s && s.strava_streams);
+    const streamOp = (exercise.operations || []).find(op => op && (op.operation_sets || []).some(s => s && s.strava_streams));
+    const streamSet = streamOp ? (streamOp.operation_sets || []).find(s => s && s.strava_streams) : null;
     const streams = streamSet ? streamSet.strava_streams : null;
 
     // First pass: each track's elapsed stamp + effort over its play window. A track
@@ -415,8 +425,12 @@ function mediaTimelineHTML(operation, exercise) {
             stamp = padNumber(d.getHours(), 2) + ":" + padNumber(d.getMinutes(), 2);
         }
 
+        // Spoken media (podcast/audiobook) get minutes listened, not a per-beat effort
+        // that would be meaningless over a long talk — so skip the stream stat for them.
+        const spoken = it.media_type === 'podcast' || it.media_type === 'audiobook';
+
         let stat = null;
-        if (streams && endSec != null) {
+        if (!spoken && streams && endSec != null) {
             let startSec = it.track_length ? endSec - it.track_length
                          : (prevEndSec != null ? prevEndSec : endSec - 210);
             if (startSec < 0) startSec = 0;
@@ -424,7 +438,7 @@ function mediaTimelineHTML(operation, exercise) {
         }
         if (endSec != null) prevEndSec = endSec;
 
-        return { it, stamp, stat };
+        return { it, stamp, stat, spoken };
     });
 
     // The peak-effort track (highest average heart rate) gets a quiet highlight.
@@ -433,15 +447,22 @@ function mediaTimelineHTML(operation, exercise) {
 
     const rows = tracks.map(t => {
         const it = t.it;
-        const artist = it.artist ? `<span class="wv-track-artist">${escapeHTML(it.artist)}</span>` : "";
+        // Artist line carries the secondary label plus, on cross-source sessions only,
+        // a quiet source tag. It renders when either piece is present.
+        const parts = [];
+        if (it.artist) parts.push(`<span class="name">${escapeHTML(it.artist)}</span>`);
+        if (crossSource) parts.push(`<span class="wv-src">${escapeHTML(mediaSourceLabel(it.provider))}</span>`);
+        const artist = parts.length ? `<span class="wv-track-artist">${parts.join(" ")}</span>` : "";
         const isPeak = t.stat && t.stat.hr != null && t.stat.hr === peakHr && peakHr > 0;
+        const stat = t.spoken ? mediaSpanStatHTML(it) : trackStatHTML(t.stat, isPeak);
         return `<li class="wv-track${isPeak ? ' is-peak' : ''}">
+            ${mediaNodeHTML(it.media_type)}
             <span class="wv-track-time">${escapeHTML(t.stamp)}</span>
             <span class="wv-track-main">
                 <span class="wv-track-title">${escapeHTML(it.title)}</span>
                 ${artist}
             </span>
-            ${trackStatHTML(t.stat, isPeak)}
+            ${stat}
         </li>`;
     }).join("");
 
@@ -506,7 +527,43 @@ function trackStatHTML(stat, isPeak) {
     return `<span class="wv-track-stat"></span>`;
 }
 
-function mediaSyncOperation(operationID) {
+// mediaNodeHTML renders the rail node. A song keeps the plain amber dot; podcasts and
+// audiobooks get a typed amber glyph so a mixed session reads at a glance. The type
+// only varies once the provider classifies it (Plex podcast/audiobook detection) — so
+// today, when everything is a song, every node is the familiar dot.
+function mediaNodeHTML(mediaType) {
+    if (mediaType === 'podcast') {
+        return `<span class="wv-node wv-node--icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="2" width="6" height="11" rx="3" fill="currentColor" stroke="none"></rect><path d="M5 10.5a7 7 0 0 0 14 0"></path><line x1="12" y1="17.5" x2="12" y2="21"></line><line x1="8.5" y1="21" x2="15.5" y2="21"></line></svg></span>`;
+    }
+    if (mediaType === 'audiobook') {
+        return `<span class="wv-node wv-node--icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5.5C10 4.3 7 4 4 4.4v13.4c3-.4 6 0 8 1.2 2-1.2 5-1.6 8-1.2V4.4c-3-.4-6-.1-8 1.1z"></path><line x1="12" y1="5.5" x2="12" y2="19"></line></svg></span>`;
+    }
+    return `<span class="wv-node wv-node--song" aria-hidden="true"></span>`;
+}
+
+// mediaSpanStatHTML renders minutes listened for spoken media, from the item's track
+// length (else its played span) — the row's right-hand metric adapts to content type.
+function mediaSpanStatHTML(it) {
+    let sec = it.track_length || 0;
+    if (!sec && it.ended_at && it.started_at) {
+        sec = Math.round((Date.parse(it.ended_at) - Date.parse(it.started_at)) / 1000);
+    }
+    if (!sec || sec < 0) return `<span class="wv-track-stat"></span>`;
+    const mins = Math.max(1, Math.round(sec / 60));
+    return `<span class="wv-track-stat"><span class="wv-track-stat-value">${mins}</span><span class="wv-track-stat-unit">min</span></span>`;
+}
+
+// mediaSourceLabel is the provider display name used by the cross-source tag.
+function mediaSourceLabel(provider) {
+    switch (provider) {
+        case 'plex': return 'Plex';
+        case 'spotify': return 'Spotify';
+        case 'audiobookshelf': return 'Audiobookshelf';
+        default: return provider ? provider.charAt(0).toUpperCase() + provider.slice(1) : '';
+    }
+}
+
+function mediaSyncExercise(exerciseID) {
     var xhttp = new XMLHttpRequest();
     xhttp.onreadystatechange = function() {
         if (this.readyState == 4) {
@@ -533,7 +590,7 @@ function mediaSyncOperation(operationID) {
         }
     };
     xhttp.withCredentials = true;
-    xhttp.open("post", api_url + "auth/operations/" + operationID + "/media-sync");
+    xhttp.open("post", api_url + "auth/exercises/" + exerciseID + "/media-sync");
     xhttp.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
     xhttp.setRequestHeader("Authorization", jwt);
     xhttp.send();
@@ -626,7 +683,6 @@ function renderCardioSubCard(operation, exercise) {
             </div>
             ${mapHTML}
             ${hrHTML}
-            ${mediaTimelineHTML(operation, exercise)}
         </div>
     `;
 }
@@ -662,7 +718,6 @@ function renderStrengthSubCard(operation, exercise) {
             ${activityDescriptionHTML(operation)}
             <div class="wv-set-grid">${setChips || '<span class="wv-set wv-set-empty">No sets</span>'}</div>
             <div class="wv-rollup">${rollup}</div>
-            ${mediaTimelineHTML(operation, exercise)}
         </div>
     `;
 }
@@ -689,7 +744,6 @@ function renderTimeSubCard(operation, exercise) {
             <div class="wv-stats">
                 <div class="wv-stat"><span class="wv-stat-value">${durationHTML}</span><span class="wv-stat-label">Duration</span></div>
             </div>
-            ${mediaTimelineHTML(operation, exercise)}
         </div>
     `;
 }

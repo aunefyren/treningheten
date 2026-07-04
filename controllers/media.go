@@ -88,7 +88,7 @@ func APIDeleteMediaConnection(context *gin.Context) {
 	}
 
 	provider := context.Param("provider")
-	if provider != models.MediaProviderPlex && provider != models.MediaProviderSpotify {
+	if provider != models.MediaProviderPlex && provider != models.MediaProviderSpotify && provider != models.MediaProviderAudiobookshelf {
 		context.JSON(http.StatusBadRequest, gin.H{"error": "Unknown media provider."})
 		context.Abort()
 		return
@@ -104,10 +104,10 @@ func APIDeleteMediaConnection(context *gin.Context) {
 	context.JSON(http.StatusOK, gin.H{"message": "Provider disconnected."})
 }
 
-// APISyncMediaForOperation is the manual per-activity re-pull. It runs synchronously
+// APISyncMediaForExercise is the manual per-session re-pull. It runs synchronously
 // (the user is waiting on a button), re-pulls every connected provider for the
-// operation, and returns the refreshed operation object with its timeline.
-func APISyncMediaForOperation(context *gin.Context) {
+// session, and returns the refreshed exercise object with its timeline.
+func APISyncMediaForExercise(context *gin.Context) {
 	if !mediaEnabled() {
 		context.JSON(http.StatusNotFound, gin.H{"error": "Media integration is not enabled."})
 		context.Abort()
@@ -122,17 +122,21 @@ func APISyncMediaForOperation(context *gin.Context) {
 		return
 	}
 
-	operationID, err := uuid.Parse(context.Param("operation_id"))
+	exerciseID, err := uuid.Parse(context.Param("exercise_id"))
 	if err != nil {
-		context.JSON(http.StatusBadRequest, gin.H{"error": "Invalid operation id."})
+		context.JSON(http.StatusBadRequest, gin.H{"error": "Invalid exercise id."})
 		context.Abort()
 		return
 	}
 
-	operation, err := database.GetOperationByIDAndUserID(operationID, userID)
+	exercise, err := database.GetExerciseByIDAndUserID(exerciseID, userID)
 	if err != nil {
-		logger.Log.Info("Failed to get operation. Error: " + err.Error())
-		context.JSON(http.StatusBadRequest, gin.H{"error": "Failed to get operation."})
+		logger.Log.Info("Failed to get exercise. Error: " + err.Error())
+		context.JSON(http.StatusBadRequest, gin.H{"error": "Failed to get exercise."})
+		context.Abort()
+		return
+	} else if exercise == nil {
+		context.JSON(http.StatusBadRequest, gin.H{"error": "Exercise not found."})
 		context.Abort()
 		return
 	}
@@ -145,39 +149,29 @@ func APISyncMediaForOperation(context *gin.Context) {
 		return
 	}
 
-	// Pull every enabled provider, but don't let one provider's failure sink the
-	// others — a Spotify allowlist 403 must not discard a successful Plex sync.
-	warnings := []string{}
-	if plexEnabled() {
-		if err := PlexSyncOperationForUser(user, operation); err != nil {
-			logger.Log.Info("Failed to sync Plex media for operation. Error: " + err.Error())
-			warnings = append(warnings, "Plex: "+err.Error())
-		}
-	}
-	if spotifyEnabled() {
-		if err := SpotifySyncOperationForUser(user, operation); err != nil {
-			logger.Log.Info("Failed to sync Spotify media for operation. Error: " + err.Error())
-			warnings = append(warnings, "Spotify: "+err.Error())
-		}
-	}
+	// Pull every enabled provider (shared helper isolates one provider's failure from
+	// the others). The manual button intentionally bypasses the settle guard and does
+	// not flip MediaSettled — an early manual pull shouldn't consume the automatic
+	// settle pass that might catch later data (see docs/media.md).
+	warnings := syncMediaProvidersForExercise(user, *exercise)
 
-	operation, err = database.GetOperationByIDAndUserID(operationID, userID)
+	exercise, err = database.GetExerciseByIDAndUserID(exerciseID, userID)
 	if err != nil {
-		logger.Log.Info("Failed to reload operation. Error: " + err.Error())
-		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to reload operation."})
+		logger.Log.Info("Failed to reload exercise. Error: " + err.Error())
+		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to reload exercise."})
 		context.Abort()
 		return
 	}
 
-	operationObject, err := ConvertOperationToOperationObject(operation)
+	exerciseObject, err := ConvertExerciseToExerciseObject(*exercise)
 	if err != nil {
-		logger.Log.Info("Failed to convert operation. Error: " + err.Error())
-		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to convert operation."})
+		logger.Log.Info("Failed to convert exercise. Error: " + err.Error())
+		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to convert exercise."})
 		context.Abort()
 		return
 	}
 
-	response := gin.H{"message": "Media synced.", "operation": operationObject}
+	response := gin.H{"message": "Media synced.", "exercise": exerciseObject}
 	if len(warnings) > 0 {
 		response["warning"] = strings.Join(warnings, " · ")
 	}

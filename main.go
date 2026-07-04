@@ -192,6 +192,17 @@ func main() {
 		}
 	}
 
+	if files.ConfigFile.Media.Enabled {
+		_, err = taskScheduler.ScheduleWithCron(func(ctx context.Context) {
+			logger.Log.Info("media reconcile task executing")
+			controllers.MediaReconcileForAllUsers()
+		}, "0 45 * * * *")
+
+		if err != nil {
+			logger.Log.Info("media reconcile task was not scheduled successfully. error: " + err.Error())
+		}
+	}
+
 	// Initialize Router
 	router := initRouter(files.ConfigFile)
 
@@ -306,7 +317,8 @@ func initRouter(configFile models.ConfigStruct) *gin.Engine {
 			auth.POST("/media/plex/pin/:pin_id/check", controllers.APICheckPlexPin)
 			auth.PUT("/media/plex/server", controllers.APISetPlexServerURL)
 			auth.POST("/media/spotify/callback", controllers.APISpotifyCallback)
-			auth.POST("/operations/:operation_id/media-sync", controllers.APISyncMediaForOperation)
+			auth.POST("/media/audiobookshelf/connect", controllers.APIAudiobookshelfConnect)
+			auth.POST("/exercises/:exercise_id/media-sync", controllers.APISyncMediaForExercise)
 			auth.POST("/users/:user_id/hevy-sync", controllers.APISyncHevyForUser)
 			auth.GET("/users", controllers.GetUsers)
 			auth.POST("/users/:user_id", controllers.UpdateUser)

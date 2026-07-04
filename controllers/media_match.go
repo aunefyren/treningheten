@@ -29,8 +29,8 @@ type mediaPlayEvent struct {
 // playbackForWindow keeps the events whose start time falls within the activity
 // window (plus grace) and turns them into MediaPlayback rows. StartedAt is the play
 // time; EndedAt is StartedAt + track length, clamped to the activity end when the
-// track actually started inside the activity. Identity fields (id/operation/
-// provider) are filled later by ReplaceMediaPlaybackForOperationProvider.
+// track actually started inside the activity. Identity fields (id/exercise/
+// provider) are filled later by ReplaceMediaPlaybackForExerciseProvider.
 func playbackForWindow(events []mediaPlayEvent, start, end time.Time) []models.MediaPlayback {
 	playback := []models.MediaPlayback{}
 

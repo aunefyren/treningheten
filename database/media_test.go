@@ -9,14 +9,15 @@ import (
 	"github.com/google/uuid"
 )
 
-// makeMediaPlayback builds a minimal valid MediaPlayback row for a song.
-func makeMediaPlayback(operationID uuid.UUID, provider, title string, startedAt time.Time) models.MediaPlayback {
+// makeMediaPlayback builds a minimal valid MediaPlayback row for a song. Playback
+// is keyed to the session (exercise), not the operation.
+func makeMediaPlayback(exerciseID uuid.UUID, provider, title string, startedAt time.Time) models.MediaPlayback {
 	pb := models.MediaPlayback{
-		OperationID: operationID,
-		Provider:    provider,
-		MediaType:   models.MediaTypeSong,
-		Title:       title,
-		StartedAt:   startedAt,
+		ExerciseID: exerciseID,
+		Provider:   provider,
+		MediaType:  models.MediaTypeSong,
+		Title:      title,
+		StartedAt:  startedAt,
 	}
 	pb.ID = uuid.New()
 	return pb
@@ -81,31 +82,30 @@ func TestMediaConnectionLifecycle(t *testing.T) {
 	}
 }
 
-func TestReplaceMediaPlaybackForOperationProvider(t *testing.T) {
+func TestReplaceMediaPlaybackForExerciseProvider(t *testing.T) {
 	newTestDB(t)
 	user := makeTestUser(t, "playback@example.com", nil)
 	dayID := seedDay(t, user.ID, time.Now(), true)
 	exerciseID := seedExerciseWithID(t, dayID)
-	operationID := seedOperationWithGear(t, exerciseID, nil)
 
 	base := time.Date(2026, 6, 27, 10, 0, 0, 0, time.UTC)
 
 	// First pull: two Plex tracks plus one Spotify track (different provider).
 	plexFirst := []models.MediaPlayback{
-		makeMediaPlayback(operationID, models.MediaProviderPlex, "Song A", base),
-		makeMediaPlayback(operationID, models.MediaProviderPlex, "Song B", base.Add(3*time.Minute)),
+		makeMediaPlayback(exerciseID, models.MediaProviderPlex, "Song A", base),
+		makeMediaPlayback(exerciseID, models.MediaProviderPlex, "Song B", base.Add(3*time.Minute)),
 	}
-	if err := ReplaceMediaPlaybackForOperationProvider(operationID, models.MediaProviderPlex, plexFirst); err != nil {
+	if err := ReplaceMediaPlaybackForExerciseProvider(exerciseID, models.MediaProviderPlex, plexFirst); err != nil {
 		t.Fatalf("first plex replace failed: %v", err)
 	}
 	spotify := []models.MediaPlayback{
-		makeMediaPlayback(operationID, models.MediaProviderSpotify, "Spotify Song", base.Add(time.Minute)),
+		makeMediaPlayback(exerciseID, models.MediaProviderSpotify, "Spotify Song", base.Add(time.Minute)),
 	}
-	if err := ReplaceMediaPlaybackForOperationProvider(operationID, models.MediaProviderSpotify, spotify); err != nil {
+	if err := ReplaceMediaPlaybackForExerciseProvider(exerciseID, models.MediaProviderSpotify, spotify); err != nil {
 		t.Fatalf("spotify replace failed: %v", err)
 	}
 
-	all, err := GetMediaPlaybackForOperation(operationID)
+	all, err := GetMediaPlaybackForExercise(exerciseID)
 	if err != nil {
 		t.Fatalf("get playback failed: %v", err)
 	}
@@ -116,13 +116,13 @@ func TestReplaceMediaPlaybackForOperationProvider(t *testing.T) {
 	// Re-pull Plex with a single (different) track. Delete-and-replace must wipe the
 	// old two Plex rows but leave the Spotify row untouched.
 	plexSecond := []models.MediaPlayback{
-		makeMediaPlayback(operationID, models.MediaProviderPlex, "Song C", base.Add(5*time.Minute)),
+		makeMediaPlayback(exerciseID, models.MediaProviderPlex, "Song C", base.Add(5*time.Minute)),
 	}
-	if err := ReplaceMediaPlaybackForOperationProvider(operationID, models.MediaProviderPlex, plexSecond); err != nil {
+	if err := ReplaceMediaPlaybackForExerciseProvider(exerciseID, models.MediaProviderPlex, plexSecond); err != nil {
 		t.Fatalf("second plex replace failed: %v", err)
 	}
 
-	all, err = GetMediaPlaybackForOperation(operationID)
+	all, err = GetMediaPlaybackForExercise(exerciseID)
 	if err != nil {
 		t.Fatalf("get playback failed: %v", err)
 	}
@@ -151,30 +151,31 @@ func TestReplaceMediaPlaybackForOperationProvider(t *testing.T) {
 		t.Errorf("expected ascending started_at order, got %v then %v", all[0].StartedAt, all[1].StartedAt)
 	}
 
-	// Replacing with an empty slice clears the provider's rows.
-	if err := ReplaceMediaPlaybackForOperationProvider(operationID, models.MediaProviderPlex, nil); err != nil {
+	// Non-destructive empty guard: an empty pull must NOT delete existing rows — it
+	// means "nothing new / outside my window" (e.g. a Spotify pull past its ~24h
+	// window), not "authoritatively zero". Both providers' rows survive untouched.
+	if err := ReplaceMediaPlaybackForExerciseProvider(exerciseID, models.MediaProviderPlex, nil); err != nil {
 		t.Fatalf("empty replace failed: %v", err)
 	}
-	all, _ = GetMediaPlaybackForOperation(operationID)
-	if len(all) != 1 {
-		t.Fatalf("expected only the spotify row left, got %d", len(all))
+	all, _ = GetMediaPlaybackForExercise(exerciseID)
+	if len(all) != 2 {
+		t.Fatalf("empty pull must preserve existing rows, got %d", len(all))
 	}
 }
 
-func TestSetOperationMediaRetrievedAt(t *testing.T) {
+func TestSetExerciseMediaRetrievedAt(t *testing.T) {
 	newTestDB(t)
 	user := makeTestUser(t, "guard@example.com", nil)
 	dayID := seedDay(t, user.ID, time.Now(), true)
 	exerciseID := seedExerciseWithID(t, dayID)
-	operationID := seedOperationWithGear(t, exerciseID, nil)
 
 	stamp := time.Date(2026, 6, 27, 12, 0, 0, 0, time.UTC)
-	if err := SetOperationMediaRetrievedAt(operationID, stamp); err != nil {
+	if err := SetExerciseMediaRetrievedAt(exerciseID, stamp); err != nil {
 		t.Fatalf("stamp failed: %v", err)
 	}
 
-	reloaded := models.Operation{}
-	if err := Instance.Where("id = ?", operationID).First(&reloaded).Error; err != nil {
+	reloaded := models.Exercise{}
+	if err := Instance.Where("id = ?", exerciseID).First(&reloaded).Error; err != nil {
 		t.Fatalf("reload failed: %v", err)
 	}
 	if reloaded.MediaRetrievedAt == nil {
@@ -182,5 +183,78 @@ func TestSetOperationMediaRetrievedAt(t *testing.T) {
 	}
 	if !reloaded.MediaRetrievedAt.Equal(stamp) {
 		t.Errorf("got %v, want %v", reloaded.MediaRetrievedAt, stamp)
+	}
+}
+
+func TestSetExerciseMediaSettled(t *testing.T) {
+	newTestDB(t)
+	user := makeTestUser(t, "settled@example.com", nil)
+	dayID := seedDay(t, user.ID, time.Now(), true)
+	exerciseID := seedExerciseWithID(t, dayID)
+
+	// Defaults to false on a freshly created session.
+	reloaded := models.Exercise{}
+	if err := Instance.Where("id = ?", exerciseID).First(&reloaded).Error; err != nil {
+		t.Fatalf("reload failed: %v", err)
+	}
+	if reloaded.MediaSettled {
+		t.Fatalf("expected media_settled to default to false")
+	}
+
+	if err := SetExerciseMediaSettled(exerciseID, true); err != nil {
+		t.Fatalf("settle failed: %v", err)
+	}
+	if err := Instance.Where("id = ?", exerciseID).First(&reloaded).Error; err != nil {
+		t.Fatalf("reload failed: %v", err)
+	}
+	if !reloaded.MediaSettled {
+		t.Errorf("expected media_settled to be true after set")
+	}
+}
+
+func TestGetExercisesForMediaReconcile(t *testing.T) {
+	newTestDB(t)
+	user := makeTestUser(t, "reconcile@example.com", nil)
+	dayID := seedDay(t, user.ID, time.Now(), true)
+
+	// Never-pulled and pulled-but-not-settled sessions are candidates.
+	neverPulled := seedExerciseWithID(t, dayID)
+	pulledUnsettled := seedExerciseWithID(t, dayID)
+	if err := SetExerciseMediaRetrievedAt(pulledUnsettled, time.Now()); err != nil {
+		t.Fatalf("stamp failed: %v", err)
+	}
+
+	// A settled session is excluded.
+	settled := seedExerciseWithID(t, dayID)
+	if err := SetExerciseMediaRetrievedAt(settled, time.Now()); err != nil {
+		t.Fatalf("stamp failed: %v", err)
+	}
+	if err := SetExerciseMediaSettled(settled, true); err != nil {
+		t.Fatalf("settle failed: %v", err)
+	}
+
+	got, err := GetExercisesForMediaReconcile(user.ID, time.Now().Add(-24*time.Hour))
+	if err != nil {
+		t.Fatalf("reconcile query failed: %v", err)
+	}
+
+	ids := map[uuid.UUID]bool{}
+	for _, e := range got {
+		ids[e.ID] = true
+	}
+	if !ids[neverPulled] || !ids[pulledUnsettled] {
+		t.Errorf("expected never-pulled and pulled-unsettled sessions, got %v", ids)
+	}
+	if ids[settled] {
+		t.Errorf("settled session must be excluded from reconcile scan")
+	}
+
+	// A lookback that predates every session's creation returns nothing.
+	none, err := GetExercisesForMediaReconcile(user.ID, time.Now().Add(1*time.Hour))
+	if err != nil {
+		t.Fatalf("reconcile query failed: %v", err)
+	}
+	if len(none) != 0 {
+		t.Errorf("expected no sessions outside the lookback, got %d", len(none))
 	}
 }

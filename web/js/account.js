@@ -13,6 +13,7 @@ function load_page(result) {
             spotify_enabled = login_data.spotify_enabled;
             spotify_client_id = login_data.spotify_client_id;
             spotify_redirect_uri = login_data.spotify_redirect_uri;
+            audiobookshelf_enabled = login_data.audiobookshelf_enabled;
 
             // Premade variables
             user_id = login_data.data.id
@@ -28,6 +29,7 @@ function load_page(result) {
             spotify_enabled = false;
             spotify_client_id = "";
             spotify_redirect_uri = "";
+            audiobookshelf_enabled = false;
 
             user_id = 0
             admin = false
@@ -45,6 +47,7 @@ function load_page(result) {
         spotify_enabled = false;
         spotify_client_id = "";
         spotify_redirect_uri = "";
+        audiobookshelf_enabled = false;
 
         user_id = 0
         admin = false
@@ -218,6 +221,17 @@ function load_page(result) {
                     </div>
                 </div>
 
+                <div class="account-section" style="display: none;" id="audiobookshelf-section">
+
+                    <div class="account-section-tab clickable" style="" onclick="toggleSection('audiobookshelf-wrapper', 'section-button-audiobookshelf')">
+                        <div class="">Audiobookshelf</div>
+                        <img id="section-button-audiobookshelf" src="assets/chevron-right.svg" class="color-invert" style="margin: 0.5em;">
+                    </div>
+
+                    <div id="audiobookshelf-wrapper" class="audiobookshelf-wrapper minimized">
+                    </div>
+                </div>
+
                 <div class="account-section" id="wheel-section">
 
                     <div class="account-section-tab clickable" style="" onclick="toggleSection('wheel-wrapper', 'section-button-wheel')">
@@ -270,7 +284,7 @@ function load_page(result) {
         GetProfileImage(user_id);
         CheckForSubscription();
         renderPATSection(admin);
-        if(plex_enabled || spotify_enabled) {
+        if(plex_enabled || spotify_enabled || audiobookshelf_enabled) {
             renderMediaSection();
         }
     } else {
@@ -674,11 +688,14 @@ function renderMediaSection() {
 
             var plexConnection = null;
             var spotifyConnection = null;
+            var audiobookshelfConnection = null;
             (result.connections || []).forEach(function(connection) {
                 if(connection.provider == "plex") {
                     plexConnection = connection;
                 } else if(connection.provider == "spotify") {
                     spotifyConnection = connection;
+                } else if(connection.provider == "audiobookshelf") {
+                    audiobookshelfConnection = connection;
                 }
             });
 
@@ -687,6 +704,9 @@ function renderMediaSection() {
             }
             if(spotify_enabled) {
                 renderSpotifySection(spotifyConnection);
+            }
+            if(audiobookshelf_enabled) {
+                renderAudiobookshelfSection(audiobookshelfConnection);
             }
         }
     };
@@ -972,6 +992,121 @@ function disconnectSpotify() {
     };
     xhttp.withCredentials = true;
     xhttp.open("delete", api_url + "auth/media/spotify");
+    xhttp.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
+    xhttp.setRequestHeader("Authorization", jwt);
+    xhttp.send();
+    return false;
+}
+
+// --- Media / Audiobookshelf -------------------------------------------------
+
+function renderAudiobookshelfSection(connection) {
+    var absHTML = `
+        <p style="width: 100%; text-align: center;">
+            Connect Audiobookshelf to overlay the audiobooks and podcasts you listened to onto your workouts. Enter your server URL and an API token from your Audiobookshelf account settings.
+        </p>
+
+        <div class="notification-options" id="" style="">
+            <input id="abs_server_url" type="text" placeholder="https://abs.example.com" autocomplete="off" value="" style="width: 18em;">
+        </div>
+        <div class="notification-options" id="" style="">
+            <input id="abs_token" type="password" placeholder="API token" autocomplete="off" value="" style="width: 18em;">
+            <button onclick="connectAudiobookshelf();" class="" style="width: 12em;" type="submit" href="">Connect</button>
+        </div>
+    `;
+
+    if(connection && connection.connected) {
+        var serverValue = connection.server_url ? escapeHTML(connection.server_url) : "";
+        absHTML = `
+            <p style="width: 100%; text-align: center;">
+                Audiobookshelf is connected. Your listening history is matched onto activities by time.
+            </p>
+
+            <div class="notification-options" id="" style="">
+                <input id="abs_server_url" type="text" placeholder="https://abs.example.com" autocomplete="off" value="${serverValue}" style="width: 18em;">
+            </div>
+            <div class="notification-options" id="" style="">
+                <input id="abs_token" type="password" placeholder="New API token (to update)" autocomplete="off" value="" style="width: 18em;">
+                <button onclick="connectAudiobookshelf();" class="" style="width: 12em;" type="submit" href="">Reconnect</button>
+            </div>
+
+            <div class="notification-options" id="" style="">
+                <button onclick="disconnectAudiobookshelf();" class="danger-button" style="width: 12em;" type="submit" href="">Disconnect</button>
+            </div>
+        `;
+    }
+
+    document.getElementById("audiobookshelf-wrapper").innerHTML = absHTML;
+    document.getElementById('audiobookshelf-section').style.display = 'flex';
+}
+
+// connectAudiobookshelf validates the entered server URL + API token server-side and
+// stores the connection.
+function connectAudiobookshelf() {
+    var serverURL = document.getElementById("abs_server_url").value.trim();
+    var token = document.getElementById("abs_token").value.trim();
+    if(serverURL == "") {
+        error("Please enter your Audiobookshelf server URL.");
+        return false;
+    }
+    if(token == "") {
+        error("Please enter an Audiobookshelf API token.");
+        return false;
+    }
+
+    var xhttp = new XMLHttpRequest();
+    xhttp.onreadystatechange = function() {
+        if (this.readyState == 4) {
+            var result;
+            try {
+                result = JSON.parse(this.responseText);
+            } catch(e) {
+                console.log(e + ' - Response: ' + this.responseText);
+                error("Could not reach API.");
+                return;
+            }
+
+            if(result.error) {
+                error(result.error);
+            } else {
+                success(result.message);
+                renderMediaSection();
+            }
+        } else {
+            info("Connecting...");
+        }
+    };
+    xhttp.withCredentials = true;
+    xhttp.open("post", api_url + "auth/media/audiobookshelf/connect");
+    xhttp.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
+    xhttp.setRequestHeader("Authorization", jwt);
+    xhttp.send(JSON.stringify({ server_url: serverURL, token: token }));
+    return false;
+}
+
+function disconnectAudiobookshelf() {
+    var xhttp = new XMLHttpRequest();
+    xhttp.onreadystatechange = function() {
+        if (this.readyState == 4) {
+            var result;
+            try {
+                result = JSON.parse(this.responseText);
+            } catch(e) {
+                console.log(e + ' - Response: ' + this.responseText);
+                error("Could not reach API.");
+                return;
+            }
+
+            if(result.error) {
+                error(result.error);
+            } else {
+                success(result.message);
+                renderMediaSection();
+            }
+        }
+    };
+    xhttp.withCredentials = true;
+    xhttp.open("delete", api_url + "auth/media/audiobookshelf");
     xhttp.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
     xhttp.setRequestHeader("Authorization", jwt);
     xhttp.send();

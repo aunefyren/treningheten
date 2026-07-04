@@ -46,10 +46,20 @@ type ConfigStruct struct {
 // is the AES-256-GCM key used to encrypt stored provider credentials at rest, and
 // is generated automatically on first run (see files/config.go).
 type MediaSettings struct {
-	Enabled  bool            `json:"enabled"`
-	TokenKey string          `json:"token_key"`
-	Plex     PlexSettings    `json:"plex"`
-	Spotify  SpotifySettings `json:"spotify"`
+	Enabled        bool                   `json:"enabled"`
+	TokenKey       string                 `json:"token_key"`
+	Plex           PlexSettings           `json:"plex"`
+	Spotify        SpotifySettings        `json:"spotify"`
+	Audiobookshelf AudiobookshelfSettings `json:"audiobookshelf"`
+}
+
+// AudiobookshelfSettings is the Audiobookshelf provider gate. Enabled is the
+// per-provider flag (a provider is usable only when both Media.Enabled and this are
+// true). Unlike Plex/Spotify it needs no app-level credentials — the connection is a
+// self-hosted server URL + per-user API token entered by the user, so this struct is
+// just the on/off switch.
+type AudiobookshelfSettings struct {
+	Enabled bool `json:"enabled"`
 }
 
 // SpotifySettings is the Spotify provider gate. Unlike Plex (a self-hosted PIN
