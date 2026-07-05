@@ -170,6 +170,28 @@ func SetExerciseMediaSettled(exerciseID uuid.UUID, settled bool) error {
 // since is bound in its own (local) location on purpose: the sqlite backend stores
 // timestamps as local-offset RFC3339 text and compares lexically, so binding UTC would
 // misalign the ordering; MySQL/Postgres compare instants regardless of location.
+// GetAllExercisesForMediaSync returns every enabled session for a user, regardless of
+// its media pull state — used by the admin re-sync endpoint to force a fresh match over
+// a user's whole history (unlike GetExercisesForMediaReconcile, which only returns
+// sessions still owing work within the reconcile lookback).
+func GetAllExercisesForMediaSync(userID uuid.UUID) ([]models.Exercise, error) {
+	var exercises []models.Exercise
+
+	record := Instance.
+		Where("`exercises`.enabled = ?", 1).
+		Joins("JOIN `exercise_days` on `exercises`.exercise_day_id = `exercise_days`.id").
+		Where("`exercise_days`.enabled = ?", 1).
+		Where("`exercise_days`.user_id = ?", userID).
+		Order("`exercises`.`time` ASC").
+		Find(&exercises)
+
+	if record.Error != nil {
+		return nil, record.Error
+	}
+
+	return exercises, nil
+}
+
 func GetExercisesForMediaReconcile(userID uuid.UUID, since time.Time) ([]models.Exercise, error) {
 	var exercises []models.Exercise
 

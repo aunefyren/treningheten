@@ -383,6 +383,8 @@ func initRouter(configFile models.ConfigStruct) *gin.Engine {
 			admin.POST("/exercises/correlate", controllers.APICorrelateAllExercises)
 
 			admin.POST("/strava/sync-activities-for-users", controllers.APISyncStravaActivitiesForUsers)
+
+			admin.POST("/media/sync-for-users", controllers.APISyncMediaForUsers)
 		}
 
 	}

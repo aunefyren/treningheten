@@ -307,6 +307,17 @@ never-pulled.
   every connected provider and returns the refreshed session. The session's
   🎧 button (`web/js/exercise.js`) calls it. Covers late connects, transient
   failures, and durable-history backfill.
+- **Admin bulk re-sync:** `POST /api/admin/media/sync-for-users`
+  (`APISyncMediaForUsers`, mirrors the Strava `sync-activities-for-users` endpoint).
+  Body is two optional filters — `user_ids` (empty = every user with a media
+  connection) and `exercise_ids` (empty = all of each user's sessions). It runs in the
+  **background** (returns `202 Accepted`) and force re-pulls every enabled provider for
+  each matched session via `syncMediaProvidersForExercise`, bypassing the
+  `MediaRetrievedAt` guard — so it re-matches over a user's whole history, not just
+  sessions still owing work. To re-sync only your own history: `{"user_ids":
+  ["<your-user-id>"]}`. Safe to re-run (the delete-and-replace primitive is idempotent
+  and no-ops on an empty pull). Durable providers (Plex, Audiobookshelf) backfill fully;
+  Spotify only returns rows for sessions inside its ~24h window.
 - **Matching** (`buildPlexPlaybackForWindow`, pure + unit-tested): a history item
   matches when its scrobble time (`viewedAt`) falls in `[start, end]` ± a 5-minute
   grace. `StartedAt` = `viewedAt`; `EndedAt` = `StartedAt + TrackLength`, clamped to

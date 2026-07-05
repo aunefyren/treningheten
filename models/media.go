@@ -71,6 +71,15 @@ type MediaPlayback struct {
 	TrackLength *int64 `json:"track_length" gorm:"default: null"`
 }
 
+// MediaSyncForUsersRequest is the admin bulk media re-sync payload. Both filters are
+// optional: an empty UserIDs re-syncs every user with a media connection, and an empty
+// ExerciseIDs re-syncs all of each user's sessions. To re-sync just your own history,
+// pass your user id in UserIDs (mirrors the Strava sync-activities-for-users endpoint).
+type MediaSyncForUsersRequest struct {
+	UserIDs     []string `json:"user_ids"`
+	ExerciseIDs []string `json:"exercise_ids"`
+}
+
 // MediaConnectionObject is the enriched/safe read shape for a connection: identity
 // and status without the credential fields, so it is safe to hand to the API.
 type MediaConnectionObject struct {
