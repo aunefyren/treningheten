@@ -3232,3 +3232,14 @@ label {
     margin: 0.5em auto;
     resize: vertical;
 }
+
+/* Soundtrack sub-heading in the activity statistics section. Amber marks the audio
+   layer, matching the --wv-audio accent used by the workout media rail (defined in
+   workout.css, which this page does not load — hence the literal colour here). */
+.activity-soundtrack-heading {
+    color: #f0b429;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    font-size: 0.85em;
+}

@@ -134,9 +134,35 @@ type ActionCreationRequest struct {
 }
 
 type ActionStatistics struct {
-	Action     Action                `json:"action"`
-	Statistics StatisticsCompilation `json:"statistics"`
-	Operations []OperationObject     `json:"operations"`
+	Action     Action                 `json:"action"`
+	Statistics StatisticsCompilation  `json:"statistics"`
+	Operations []OperationObject      `json:"operations"`
+	Media      *ActionMediaStatistics `json:"media"`
+}
+
+// ActionMediaStatistics is the aggregated soundtrack overlay for an action's
+// statistics period. It is nil unless media is enabled and at least one matched
+// session had playback rows, so the frontend renders the block only when relevant.
+// The soundtrack is a session-level fact (keyed to the Exercise, not the operation),
+// so these figures aggregate over the distinct sessions the matched operations belong
+// to — a session's tracks are counted once regardless of how many of its operations
+// matched. Spoken audio (podcasts/audiobooks) is folded into SpokenTime rather than
+// the song-centric track/artist tallies. Durations hold a seconds count (repo
+// convention), not nanoseconds.
+type ActionMediaStatistics struct {
+	Songs         int             `json:"songs"`
+	UniqueArtists int             `json:"unique_artists"`
+	ListeningTime time.Duration   `json:"listening_time"`
+	SpokenTime    time.Duration   `json:"spoken_time"`
+	TopTrack      *MediaCountItem `json:"top_track"`
+	TopArtist     *MediaCountItem `json:"top_artist"`
+}
+
+// MediaCountItem is a most-played tally (a track or an artist) with its play count.
+type MediaCountItem struct {
+	Title  string `json:"title"`
+	Artist string `json:"artist"`
+	Count  int    `json:"count"`
 }
 
 type StatisticsCompilation struct {

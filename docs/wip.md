@@ -88,11 +88,24 @@ time-based activities. Full design + decisions now live in [`docs/media.md`](med
   section + mapper/classify tests. Config gate `media.audiobookshelf.enabled` (no app
   credentials). V1 caveat: coarse ABS listening sessions match on **start** time, so a
   listen begun before the workout is missed (overlap match is the later refinement).
+- **MCP soundtrack exposure (DONE):** `list_exercises`/`get_workout` carry a
+  `has_soundtrack` flag and a new `get_workout_soundtrack` tool returns the session's
+  matched tracks on demand (mirrors the `has_streams`/`get_workout_streams` pattern —
+  keeps the list responses lean). Session-level, `media.enabled`-gated, fails soft.
+  `controllers/mcp_media.go`; see `docs/mcp.md`.
 
 **Still to build:**
-- **Cross-activity stats:** "most listened" media, "fastest songs" (avg speed over
-  `[StartedAt, EndedAt]` from a session activity's `OperationSet.StravaStreams`) on the
-  statistics page. (Per-track avg-HR on the card already shipped.)
+- **Cross-activity stats — "most listened" DONE:** the `/statistics` "Activity statistics"
+  section now overlays a **Soundtrack** block (top song, top artist by play count, songs
+  played, unique artists, music listened, spoken-audio minutes) aggregated over the matched
+  action's distinct **sessions** in the period. Only shown when `media.enabled` and the
+  matched sessions had playback (`ActionStatistics.Media` is nil otherwise). Spoken audio
+  (podcast/audiobook) folds into a minutes stat, not the song tallies. Backend
+  `computeActionMediaStatistics` (`controllers/operation.go`, pure + unit-tested);
+  frontend `placeActivityMediaStatistics` (`web/js/statistics.js`).
+- **Cross-activity stats — still to build:** "fastest songs" (avg speed over
+  `[StartedAt, EndedAt]` from a session activity's `OperationSet.StravaStreams`), which
+  needs the stream-windowing done per track. (Per-track avg-HR on the card already shipped.)
 - **Plex artwork:** Plex thumbs need the server token to fetch — store via a proxy
   rather than embedding the credential in a stored URL. (Spotify artwork already works.)
 - **Audiobook/podcast classification:** Plex audiobooks surface as `track` → currently

@@ -925,6 +925,10 @@ func APIGetActionStatistics(context *gin.Context) {
 	}
 
 	finalOperationObjects := []models.OperationObject{}
+	// Distinct sessions the matched operations belong to. The soundtrack is a
+	// session-level fact, so media stats aggregate per session (counted once) rather
+	// than per matching operation.
+	matchedSessionIDs := map[uuid.UUID]bool{}
 	actionStatistics := models.ActionStatistics{}
 	actionStatisticsCompilation := models.StatisticsCompilation{}
 
@@ -959,6 +963,7 @@ func APIGetActionStatistics(context *gin.Context) {
 				for _, operationObject := range operationObjects {
 					if operationObject.Action != nil && operationObject.Action.ID == actionID {
 						finalOperationObjects = append(finalOperationObjects, operationObject)
+						matchedSessionIDs[operationObject.Exercise] = true
 					}
 				}
 
@@ -1053,7 +1058,97 @@ func APIGetActionStatistics(context *gin.Context) {
 	actionStatistics.Operations = finalOperationObjects
 	actionStatistics.Action = action
 
+	// Overlay soundtrack stats when media is enabled. Gather the distinct matched
+	// sessions' playback rows and aggregate; a nil result (no rows) keeps the block
+	// absent so the frontend renders it only when there is something to show.
+	if files.ConfigFile.Media.Enabled {
+		playback := []models.MediaPlaybackObject{}
+		for sessionID := range matchedSessionIDs {
+			rows, err := database.GetMediaPlaybackForExercise(sessionID)
+			if err != nil {
+				logger.Log.Warn("Failed to get media playback for session. Error: " + err.Error())
+				continue
+			}
+			playback = append(playback, ConvertMediaPlaybackToObjects(rows)...)
+		}
+		actionStatistics.Media = computeActionMediaStatistics(playback)
+	}
+
 	context.JSON(http.StatusOK, gin.H{"message": "Action statistics retrieved.", "statistics": actionStatistics})
+}
+
+// computeActionMediaStatistics aggregates a period's matched-session playback rows into
+// the soundtrack overlay. Songs drive the track/artist tallies and music listening time;
+// podcasts and audiobooks are folded into SpokenTime (their play counts aren't
+// interesting the way a repeated song is). A play's span is its TrackLength when known,
+// else the StartedAt→EndedAt gap. Returns nil when there are no rows so the caller leaves
+// the block out entirely.
+func computeActionMediaStatistics(playback []models.MediaPlaybackObject) *models.ActionMediaStatistics {
+	if len(playback) == 0 {
+		return nil
+	}
+
+	stats := models.ActionMediaStatistics{}
+	trackCounts := map[string]*models.MediaCountItem{}
+	artistCounts := map[string]*models.MediaCountItem{}
+
+	for _, row := range playback {
+		span := time.Duration(0)
+		if row.TrackLength != nil && *row.TrackLength > 0 {
+			span = time.Duration(*row.TrackLength)
+		} else if row.EndedAt != nil {
+			if seconds := int64(row.EndedAt.Sub(row.StartedAt).Seconds()); seconds > 0 {
+				span = time.Duration(seconds)
+			}
+		}
+
+		if row.MediaType == models.MediaTypePodcast || row.MediaType == models.MediaTypeAudiobook {
+			stats.SpokenTime += span
+			continue
+		}
+
+		// Song.
+		stats.Songs += 1
+		stats.ListeningTime += span
+
+		artist := ""
+		if row.Artist != nil {
+			artist = *row.Artist
+		}
+
+		trackKey := row.Title + "\x00" + artist
+		if item := trackCounts[trackKey]; item != nil {
+			item.Count += 1
+		} else {
+			trackCounts[trackKey] = &models.MediaCountItem{Title: row.Title, Artist: artist, Count: 1}
+		}
+
+		if artist != "" {
+			if item := artistCounts[artist]; item != nil {
+				item.Count += 1
+			} else {
+				artistCounts[artist] = &models.MediaCountItem{Title: artist, Count: 1}
+			}
+		}
+	}
+
+	stats.UniqueArtists = len(artistCounts)
+	stats.TopTrack = mostPlayedItem(trackCounts)
+	stats.TopArtist = mostPlayedItem(artistCounts)
+
+	return &stats
+}
+
+// mostPlayedItem returns the highest-count tally, breaking ties by Title for a stable
+// result. Returns nil for an empty map (e.g. a spoken-audio-only period has no songs).
+func mostPlayedItem(items map[string]*models.MediaCountItem) *models.MediaCountItem {
+	var best *models.MediaCountItem
+	for _, item := range items {
+		if best == nil || item.Count > best.Count || (item.Count == best.Count && item.Title < best.Title) {
+			best = item
+		}
+	}
+	return best
 }
 
 func APISyncStravaOperationSet(context *gin.Context) {

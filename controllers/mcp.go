@@ -79,6 +79,10 @@ type mcpWorkoutStreamsArgs struct {
 	MaxPoints   int    `json:"max_points,omitempty" jsonschema:"hard cap on the number of series points returned (default 2000, max 5000)"`
 }
 
+type mcpWorkoutSoundtrackArgs struct {
+	ActivityID string `json:"activity_id" jsonschema:"the id of an activity from list_exercises (must have has_soundtrack=true)"`
+}
+
 type mcpWeightsOutput struct {
 	Weights []models.MCPWeight `json:"weights"`
 }
@@ -224,6 +228,23 @@ func buildMCPServer(userID uuid.UUID) *mcp.Server {
 			return nil, models.MCPWorkoutStreams{}, err
 		}
 		return nil, streams, nil
+	})
+
+	mcp.AddTool(server, &mcp.Tool{
+		Name: "get_workout_soundtrack",
+		Description: "Get the listening history (music, podcasts, audiobooks) matched to one session by an activity id. " +
+			"Fetched on demand like streams, because it can be long. The soundtrack is a SESSION-level fact: any activity id from the same session returns the same tracks, and activities with has_soundtrack=false (or on servers without media integration) return has_soundtrack=false with an explanatory message. " +
+			"Each track has its type, title, artist/album, provider (plex/spotify/audiobookshelf) and absolute start/end times — so it can be lined up against get_workout_streams to relate what was playing to the athlete's effort.",
+	}, func(ctx context.Context, req *mcp.CallToolRequest, args mcpWorkoutSoundtrackArgs) (*mcp.CallToolResult, models.MCPWorkoutSoundtrack, error) {
+		activityID, err := uuid.Parse(args.ActivityID)
+		if err != nil {
+			return nil, models.MCPWorkoutSoundtrack{}, fmt.Errorf("invalid activity_id: %w", err)
+		}
+		soundtrack, err := assembleWorkoutSoundtrack(userID, activityID)
+		if err != nil {
+			return nil, models.MCPWorkoutSoundtrack{}, err
+		}
+		return nil, soundtrack, nil
 	})
 
 	mcp.AddTool(server, &mcp.Tool{

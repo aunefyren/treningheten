@@ -36,9 +36,10 @@ for example, give feedback on their latest run. This is Phase 3 of the auth work
 | `whoami` | — | Profile: name, email, admin, member-since |
 | `list_weights` | `limit?` | Body-weight entries, newest first |
 | `get_latest_weight` | — | Most recent weight entry |
-| `list_exercises` | `action?`, `limit?` | Logged activities (id, date, action, type, `source`, `note`, `description`, `tags`, equipment, duration, `has_streams`, per-set distance/time/moving-time/reps/weight), newest first; `action` filters by exercise type (e.g. `Run`) |
+| `list_exercises` | `action?`, `limit?` | Logged activities (id, date, action, type, `source`, `note`, `description`, `tags`, equipment, duration, `has_streams`, `has_soundtrack`, per-set distance/time/moving-time/reps/weight), newest first; `action` filters by exercise type (e.g. `Run`) |
 | `get_workout` | `activity_id` | The flat detail of one activity by id — for drilling in after `list_exercises` |
 | `get_workout_streams` | `activity_id`, `from_seconds?`, `to_seconds?`, `resolution?`, `max_points?` | Processed Strava sensor data for one activity (summary header + downsampled time-series). See below |
+| `get_workout_soundtrack` | `activity_id` | Listening history (music/podcast/audiobook) matched to the session, fetched on demand. See below |
 | `get_statistics` | — | Per-window totals (activity count, km distance, seconds time) over three **rolling** windows: trailing ~1 month, trailing 12 months, all-time. Counts span **all** exercise types; distance/time only count activities that record them. Plus **personal** day/week activity streaks (current + best) |
 | `list_seasons` | `active_only?` | The seasons the user has joined, newest first, with the user's weekly goal / competing / sickleave-left; `active_only` limits to ongoing seasons |
 | `get_season` | `season_id` | One season + the user's personal goal data (`joined=false` with no goal fields if not joined) |
@@ -47,7 +48,7 @@ for example, give feedback on their latest run. This is Phase 3 of the auth work
 | `list_achievement_delegations` | `limit?`, `offset?`, `achievement_id?` | The user's achievement awards (newest first), paginated, optionally filtered to one achievement; response includes `total` |
 | `get_achievement_delegation` | `delegation_id` | One of the user's awards (ownership-checked) |
 
-Each activity carries a stable `id` (the operation id) used to address `get_workout` / `get_workout_streams`, and a `has_streams` flag so the model knows whether stream detail is available before asking for it. It also reports a `source` (`strava` / `hevy` / `manual`) so the model knows the activity's provenance — Strava (set id present), Hevy (parent exercise has a Hevy workout id), or hand-logged. It also carries the user's `note` and `description` (the latter is the Strava description for imported activities, or the per-exercise note for Hevy custom exercises) plus `tags` from the fixed vocabulary (`race`, `long-run`, `workout`, `commute`, `for-a-cause`, `recovery`, `with-pet`, `with-kid`). Because each activity is one operation, its `description`/`tags` belong unambiguously to that activity's `action`, even when an exercise day spans multiple action types.
+Each activity carries a stable `id` (the operation id) used to address `get_workout` / `get_workout_streams` / `get_workout_soundtrack`, and `has_streams` / `has_soundtrack` flags so the model knows whether stream detail or listening history is available before asking for it (both are fetched on demand to keep the list responses lean). It also reports a `source` (`strava` / `hevy` / `manual`) so the model knows the activity's provenance — Strava (set id present), Hevy (parent exercise has a Hevy workout id), or hand-logged. It also carries the user's `note` and `description` (the latter is the Strava description for imported activities, or the per-exercise note for Hevy custom exercises) plus `tags` from the fixed vocabulary (`race`, `long-run`, `workout`, `commute`, `for-a-cause`, `recovery`, `with-pet`, `with-kid`). Because each activity is one operation, its `description`/`tags` belong unambiguously to that activity's `action`, even when an exercise day spans multiple action types.
 
 **Hevy custom exercises** have no global `Action` (they're private to the user), so their name is stored on the operation's note. The flattener mirrors the frontend's title fallback: when an operation has no `Action`, its note is promoted to `action` (and the real per-exercise note lives in `description`), rather than reporting `action: "Unknown"`.
 
@@ -95,6 +96,31 @@ Energy/elevation are integrated using the time deltas, so totals stay correct ev
 when the series is not 1 Hz. Durations follow the seconds-as-int convention (see
 above).
 
+### Workout soundtrack (`get_workout_soundtrack`)
+
+The media integration (see [`docs/media.md`](media.md)) overlays a user's listening
+history onto time-based sessions. The soundtrack is a **session-level** fact — matched
+against one session window and keyed to the `Exercise`, not an `Operation` — so it is
+exposed on demand rather than inlined into every activity:
+
+- `list_exercises` / `get_workout` carry a `has_soundtrack` flag (true when any
+  `MediaPlayback` row is matched to the session). Because it is session-level, every
+  activity of the same session shares the same flag and the same tracks.
+- `get_workout_soundtrack(activity_id)` resolves the activity's session and returns
+  `has_soundtrack`, `retrieved_at` (last pull), and `tracks[]` in play order (earliest
+  `started_at` first). Each track is `{type` (song/podcast/audiobook)`, title, artist,
+  album, provider` (plex/spotify/audiobookshelf)`, started_at, ended_at,
+  track_length_seconds}`.
+
+It **fails soft**, mirroring `get_workout_streams`: when media is disabled on the
+server, no provider is connected, or nothing was matched, it returns
+`has_soundtrack=false` with an explanatory `message` rather than an error. The absolute
+`started_at`/`ended_at` timestamps let the model line a track up against
+`get_workout_streams` to relate what was playing to the athlete's effort.
+
+Reads honour the `media.enabled` config gate — when off, the operation-level presence
+check short-circuits without a query and the tool reports the feature is disabled.
+
 ### Example use cases
 
 > "Give me feedback on my newest run."
@@ -102,6 +128,12 @@ above).
 The client calls `list_exercises(action:"Run", limit:1)`, receives the activity (with
 its `id` and `has_streams`), then — if `has_streams` is true — `get_workout_streams(id)`
 for HR/pace/elevation trends, and composes feedback.
+
+> "What was I listening to on my long run, and did the fast bits line up with the music?"
+
+The model calls `list_exercises`, sees `has_soundtrack` (and `has_streams`) true, then
+`get_workout_soundtrack(id)` for the tracks and `get_workout_streams(id)` for the pace
+series, and correlates the two on their shared absolute timestamps.
 
 > "Did I fade on the final climb?"
 

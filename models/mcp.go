@@ -81,7 +81,33 @@ type MCPActivity struct {
 	Equipment       string           `json:"equipment,omitempty"`
 	DurationSeconds *int64           `json:"duration_seconds,omitempty"`
 	HasStreams      bool             `json:"has_streams" jsonschema:"true if this activity has Strava sensor streams; call get_workout_streams for the time-series detail"`
+	HasSoundtrack   bool             `json:"has_soundtrack" jsonschema:"true if listening history (music/podcast/audiobook) was matched to this session; call get_workout_soundtrack for the tracks. The soundtrack is a session-level fact, so every activity in the same session shares it"`
 	Sets            []MCPActivitySet `json:"sets,omitempty"`
+}
+
+// MCPSoundtrackTrack is one item the user listened to during a session, flattened
+// for the LLM. Durations are seconds; times are absolute so the LLM can place a
+// track within the workout (and, with get_workout_streams, correlate it to effort).
+type MCPSoundtrackTrack struct {
+	Type               string     `json:"type" jsonschema:"song, podcast or audiobook"`
+	Title              string     `json:"title"`
+	Artist             *string    `json:"artist,omitempty"`
+	Album              *string    `json:"album,omitempty"`
+	Provider           string     `json:"provider" jsonschema:"where the play was recorded: plex, spotify or audiobookshelf"`
+	StartedAt          time.Time  `json:"started_at"`
+	EndedAt            *time.Time `json:"ended_at,omitempty"`
+	TrackLengthSeconds *int64     `json:"track_length_seconds,omitempty" jsonschema:"full length of the item in seconds (not necessarily how long it was played)"`
+}
+
+// MCPWorkoutSoundtrack is the listening history matched to one session. Like streams,
+// it is fetched on demand (it can be long) rather than inlined into the activity.
+// The soundtrack is session-level: any activity id belonging to the session returns
+// the same tracks.
+type MCPWorkoutSoundtrack struct {
+	HasSoundtrack bool                 `json:"has_soundtrack"`
+	Message       string               `json:"message,omitempty"`
+	RetrievedAt   *time.Time           `json:"retrieved_at,omitempty" jsonschema:"when the listening history for this session was last pulled"`
+	Tracks        []MCPSoundtrackTrack `json:"tracks,omitempty" jsonschema:"tracks in play order (earliest started_at first)"`
 }
 
 // MCPStreamStat is a simple avg/min/max summary of a single sensor channel.

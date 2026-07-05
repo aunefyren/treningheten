@@ -80,8 +80,12 @@ func flattenActivities(dayObjects []models.ExerciseDayObject, actionFilter strin
 	activities := []models.MCPActivity{}
 	for _, day := range dayObjects {
 		for _, exercise := range day.Exercises {
+			// Soundtrack is a session-level fact, so it is the same for every operation
+			// of the exercise. The day tree already carries it (media is filled during
+			// ConvertExerciseToExerciseObject when Media.Enabled), so this is free here.
+			hasSoundtrack := len(exercise.MediaPlayback) > 0
 			for _, op := range exercise.Operations {
-				activity := operationObjectToActivity(op, exercise.Time, exercise.HevyWorkoutID)
+				activity := operationObjectToActivity(op, exercise.Time, exercise.HevyWorkoutID, hasSoundtrack)
 
 				if actionFilter != "" && !strings.Contains(strings.ToLower(activity.Action), actionFilter) {
 					continue
@@ -104,8 +108,10 @@ func flattenActivities(dayObjects []models.ExerciseDayObject, actionFilter strin
 // operationObjectToActivity flattens one enriched OperationObject into an
 // MCPActivity. HasStreams flags whether any set carries Strava sensor data, so the
 // LLM knows it can call get_workout_streams for the time-series detail. hevyWorkoutID
-// is the parent exercise's Hevy id (provenance), used to set Source.
-func operationObjectToActivity(op models.OperationObject, date time.Time, hevyWorkoutID *string) models.MCPActivity {
+// is the parent exercise's Hevy id (provenance), used to set Source. hasSoundtrack is
+// the session-level listening-history flag; the tracks are fetched on demand via
+// get_workout_soundtrack (mirrors the streams pattern).
+func operationObjectToActivity(op models.OperationObject, date time.Time, hevyWorkoutID *string, hasSoundtrack bool) models.MCPActivity {
 	note := derefString(op.Note)
 	actionName := "Unknown"
 	if op.Action != nil {
@@ -145,6 +151,7 @@ func operationObjectToActivity(op models.OperationObject, date time.Time, hevyWo
 		Equipment:       derefString(op.Equipment),
 		DurationSeconds: durationToSeconds(op.Duration),
 		HasStreams:      hasStreams,
+		HasSoundtrack:   hasSoundtrack,
 		Sets:            mapSets(op.OperationSets, op.WeightUnit, op.DistanceUnit),
 	}
 }
@@ -163,7 +170,10 @@ func assembleSingleActivity(userID uuid.UUID, activityID uuid.UUID) (models.MCPA
 	}
 
 	date, hevyWorkoutID := resolveExerciseDate(userID, operation.ExerciseID)
-	return operationObjectToActivity(opObject, date, hevyWorkoutID), nil
+	// Unlike the list path, this operation-level path doesn't carry the session's
+	// media, so resolve the flag directly (a no-op query when Media is disabled).
+	hasSoundtrack := exerciseHasSoundtrack(operation.ExerciseID)
+	return operationObjectToActivity(opObject, date, hevyWorkoutID, hasSoundtrack), nil
 }
 
 // resolveExerciseDate mirrors ConvertExerciseToExerciseObject's time fallback:

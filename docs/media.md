@@ -17,8 +17,10 @@ stats like most-listened media and "fastest songs".
 > layer, read-path enrichment, the **Plex**, **Spotify**, and **Audiobookshelf**
 > connections, and the **history pull** (server history fetch + timestamp matching, the
 > Strava-sync creation trigger, the manual per-session re-pull endpoint + button, and the
-> session-level timeline). Next increments: cross-activity stats ("most listened",
-> "fastest songs"), artwork, and **Plex** audiobook classification (Audiobookshelf already
+> session-level timeline), and the first **cross-activity stats** — the `/statistics`
+> **Soundtrack** block (most-listened track/artist by play count, songs, unique artists,
+> music + spoken-audio time). Next increments: "fastest songs" (stream-windowed avg speed
+> per track), artwork, and **Plex** audiobook classification (Audiobookshelf already
 > classifies audiobook vs podcast natively).
 
 ## Feature flags
@@ -449,6 +451,33 @@ only on genuine heterogeneity:
   Spotify connected; it pairs with the cross-provider de-dupe open question below.) A
   static design exploration of the mixed rail lives in
   [`docs/sketches/soundtrack-mixed.html`](sketches/soundtrack-mixed.html).
+
+## Activity-statistics soundtrack block
+
+The `/statistics` "Activity statistics" section (filter by action + date range,
+`APIGetActionStatistics` in `controllers/operation.go`) overlays an aggregated
+**Soundtrack** block below the distance/time pills. Because the soundtrack is a
+**session-level** fact but that endpoint is operation-centric, the handler collects the
+**distinct parent sessions** of the matched operations (`matchedSessionIDs`, keyed on
+`OperationObject.Exercise`) and aggregates each session's `MediaPlayback` **once** —
+never per matching operation.
+
+`computeActionMediaStatistics` (pure, unit-tested) produces `ActionStatistics.Media`
+(`*models.ActionMediaStatistics`):
+
+- **Songs** count, **unique artists**, **music listening time** (Σ `TrackLength`, or the
+  `StartedAt`→`EndedAt` span when length is absent), and the **top track** / **top
+  artist** by play count (ties broken by title).
+- **Spoken audio** (`podcast`/`audiobook`) folds into a single **`SpokenTime`** minutes
+  stat rather than the song tallies — a repeated song is interesting, a repeated podcast
+  segment isn't.
+- **Relevance gate:** the field is `nil` unless `media.enabled` **and** at least one
+  matched session had playback, so the frontend (`placeActivityMediaStatistics` in
+  `web/js/statistics.js`) renders the block only when there is a real soundtrack. Durations
+  hold a **seconds** count (repo convention), read by `secondsToDurationString`. The
+  section heading uses the amber audio accent (`.activity-soundtrack-heading`).
+
+"Fastest songs" (stream-windowed avg speed per track) is the remaining cross-activity stat.
 
 ## Open questions
 

@@ -1275,11 +1275,90 @@ function placeActivityStatistics(statistics) {
         `;
     }
 
+    // Soundtrack overlay: only rendered when media is enabled and the matched sessions
+    // had playback (the backend leaves statistics.media null otherwise).
+    placeActivityMediaStatistics(statistics.media);
+
     // Remove loading gif
     document.getElementById("loading-dumbbell-activities").style.display = "none";
 
     // Draw the GPS heatmap from the same operations, inheriting the activity + date filter.
     renderActivityHeatmap(statistics.operations);
+}
+
+// placeActivityMediaStatistics renders the aggregated soundtrack stats for the chosen
+// activity + period as pills under a "Soundtrack" heading, marked with the amber audio
+// accent used by the workout media rail. It is a no-op when there is no media block, so
+// the section stays hidden unless relevant soundtracks were listened to in the period.
+function placeActivityMediaStatistics(media) {
+    if (!media) {
+        return;
+    }
+
+    var wrapper = document.getElementById("activity-statistics-element-wrapper-div");
+    var pills = "";
+
+    if (media.top_track) {
+        var trackArtist = media.top_track.artist ? " — " + media.top_track.artist : "";
+        var trackPlays = media.top_track.count > 1 ? ` (${media.top_track.count} plays)` : "";
+        pills += `
+            <div class="season-statistics-element unselectable">
+                Top song: ${media.top_track.title}${trackArtist}${trackPlays}🎵
+            </div>
+        `;
+    }
+
+    if (media.top_artist) {
+        var artistPlays = media.top_artist.count > 1 ? ` (${media.top_artist.count} plays)` : "";
+        pills += `
+            <div class="season-statistics-element unselectable">
+                Top artist: ${media.top_artist.title}${artistPlays}🎤
+            </div>
+        `;
+    }
+
+    if (media.songs > 0) {
+        pills += `
+            <div class="season-statistics-element unselectable">
+                Songs played: ${media.songs}🎧
+            </div>
+        `;
+    }
+
+    if (media.unique_artists > 0) {
+        pills += `
+            <div class="season-statistics-element unselectable">
+                Different artists: ${media.unique_artists}👥
+            </div>
+        `;
+    }
+
+    if (media.listening_time > 0) {
+        pills += `
+            <div class="season-statistics-element unselectable">
+                Music listened: ${secondsToDurationString(media.listening_time)}⏱️
+            </div>
+        `;
+    }
+
+    if (media.spoken_time > 0) {
+        pills += `
+            <div class="season-statistics-element unselectable">
+                Spoken audio: ${secondsToDurationString(media.spoken_time)}🎙️
+            </div>
+        `;
+    }
+
+    if (!pills) {
+        return;
+    }
+
+    wrapper.innerHTML += `
+        <div class="text-body activity-soundtrack-heading" style="text-align: center; width: 100%; margin-top: 1em;">
+            Soundtrack
+        </div>
+        ${pills}
+    `;
 }
 
 function placeDefaultDates() {
