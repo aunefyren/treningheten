@@ -1137,228 +1137,293 @@ function getActivityStatistics(activityID, startTime, endTime){
     return false;
 }
 
+// escapeStat makes user-provided media text safe for innerHTML (titles, artists and
+// artwork URLs come from third-party providers).
+function escapeStat(value) {
+    return String(value == null ? "" : value)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#39;");
+}
+
+// statCard renders one metric as a dark readout card: a quiet label above a big
+// condensed value. family sets the accent stripe (movement/effort/strength/time/audio/
+// neutral) so a card's colour encodes what kind of metric it is, not decoration.
+function statCard(label, value, unit, family) {
+    var unitHtml = unit ? `<span class="stat-card-unit">${escapeStat(unit)}</span>` : "";
+    return `
+        <div class="stat-card" data-family="${family}">
+            <div class="stat-card-label">${escapeStat(label)}</div>
+            <div class="stat-card-value">${escapeStat(value)}${unitHtml}</div>
+        </div>`;
+}
+
+// statSection wraps a group of cards under a quiet heading; renders nothing when the
+// group is empty, so activities without that data simply omit the section.
+function statSection(title, cards) {
+    if (!cards.length) {
+        return "";
+    }
+    return `
+        <div class="stat-section">
+            <div class="stat-section-title">${escapeStat(title)}</div>
+            <div class="stat-grid">${cards.join("")}</div>
+        </div>`;
+}
+
+// computeStreamMetrics folds the per-set Strava sensor streams (already loaded for the
+// GPS heatmap) into period aggregates: heart rate is averaged and peaked, elevation is
+// the summed positive altitude change, cadence and power are averaged over active
+// samples. Each "has*" flag stays false when no activity in the period carried that
+// stream, so the matching cards are skipped for activities that don't record it.
+function computeStreamMetrics(operations) {
+    var hrSum = 0, hrCount = 0, hrMax = 0;
+    var cadSum = 0, cadCount = 0;
+    var powSum = 0, powCount = 0;
+    var elevation = 0;
+
+    for (var i = 0; i < operations.length; i++) {
+        var sets = operations[i].operation_sets || [];
+        for (var j = 0; j < sets.length; j++) {
+            var streams = sets[j].strava_streams;
+            if (!streams) {
+                continue;
+            }
+
+            if (streams.heartrate && streams.heartrate.data) {
+                var hrData = streams.heartrate.data;
+                for (var k = 0; k < hrData.length; k++) {
+                    if (hrData[k] > 0) {
+                        hrSum += hrData[k];
+                        hrCount++;
+                        if (hrData[k] > hrMax) {
+                            hrMax = hrData[k];
+                        }
+                    }
+                }
+            }
+
+            if (streams.cadence && streams.cadence.data) {
+                var cadData = streams.cadence.data;
+                for (var k = 0; k < cadData.length; k++) {
+                    if (cadData[k] > 0) {
+                        cadSum += cadData[k];
+                        cadCount++;
+                    }
+                }
+            }
+
+            if (streams.watts && streams.watts.data) {
+                var powData = streams.watts.data;
+                for (var k = 0; k < powData.length; k++) {
+                    if (powData[k] > 0) {
+                        powSum += powData[k];
+                        powCount++;
+                    }
+                }
+            }
+
+            if (streams.altitude && streams.altitude.data && streams.altitude.data.length > 1) {
+                var altData = streams.altitude.data;
+                for (var k = 1; k < altData.length; k++) {
+                    var delta = altData[k] - altData[k - 1];
+                    if (delta > 0) {
+                        elevation += delta;
+                    }
+                }
+            }
+        }
+    }
+
+    return {
+        hasHR: hrCount > 0,
+        hrAvg: hrCount > 0 ? Math.round(hrSum / hrCount) : 0,
+        hrMax: hrMax,
+        hasCadence: cadCount > 0,
+        cadenceAvg: cadCount > 0 ? Math.round(cadSum / cadCount) : 0,
+        hasPower: powCount > 0,
+        powerAvg: powCount > 0 ? Math.round(powSum / powCount) : 0,
+        elevationGain: elevation
+    };
+}
+
+// sumSetField totals a numeric field across a "top" record's operation sets (a top is a
+// whole activity, so its distance/time/etc. is the sum of its sets).
+function sumSetField(topRecord, field) {
+    var total = 0;
+    (topRecord.operation_sets || []).forEach(function(operationSet) {
+        total += operationSet[field] || 0;
+    });
+    return total;
+}
+
+// placeActivityStatistics renders the chosen activity + period as a dark instrument
+// readout: metrics grouped into Totals / Averages / Bests / Sensors, each card carrying
+// a family accent, plus the soundtrack panel. Only the metrics an activity actually has
+// are shown, so a run and a lift produce different readouts.
 function placeActivityStatistics(statistics) {
-    if(statistics.statistics.sums.operations == 0) {
-        // Remove loading gif
-        document.getElementById("loading-dumbbell-activities").style.display = "none";
-        document.getElementById("activity-statistics-element-wrapper-div").innerHTML += `
-            <div class="season-statistics-element unselectable">
-                No activities in period :(
-            </div>
-        `;
+    var wrapper = document.getElementById("activity-statistics-element-wrapper-div");
+    var loading = document.getElementById("loading-dumbbell-activities");
+    var stats = statistics.statistics;
+    var operations = statistics.operations || [];
+
+    if (!stats || !stats.sums || stats.sums.operations == 0) {
+        wrapper.innerHTML = `<div class="stat-empty">No activities in this period.</div>`;
+        placeActivityMediaStatistics(statistics.media);
+        if (loading) { loading.style.display = "none"; }
+        renderActivityHeatmap(operations);
+        return;
     }
 
-    // Sums
-    if(statistics.statistics.sums.distance) {
-        document.getElementById("activity-statistics-element-wrapper-div").innerHTML += `
-            <div class="season-statistics-element unselectable">
-                Distance in period: ${statistics.statistics.sums.distance.toFixed(2)} ${statistics.operations[0].distance_unit}
-            </div>
-        `;
-    }
+    var distanceUnit = operations.length ? (operations[0].distance_unit || "") : "";
+    var weightUnit = operations.length ? (operations[0].weight_unit || "") : "";
 
-    if(statistics.statistics.sums.time) {
-        document.getElementById("activity-statistics-element-wrapper-div").innerHTML += `
-            <div class="season-statistics-element unselectable">
-                Time spent in period: ${secondsToDurationString(statistics.statistics.sums.time)}
-            </div>
-        `;
-    }
-
-    if(statistics.statistics.sums.repetition) {
-        document.getElementById("activity-statistics-element-wrapper-div").innerHTML += `
-            <div class="season-statistics-element unselectable">
-                Repetitions in period: ${statistics.statistics.sums.repetition}
-            </div>
-        `;
-    }
-
-    if(statistics.statistics.sums.weight) {
-        document.getElementById("activity-statistics-element-wrapper-div").innerHTML += `
-            <div class="season-statistics-element unselectable">
-                Weight in period: ${statistics.statistics.sums.weight.toFixed(2)} ${statistics.operations[0].weight_unit}
-            </div>
-        `;
-    }
-
-    if(statistics.statistics.sums.operations) {
-        document.getElementById("activity-statistics-element-wrapper-div").innerHTML += `
-            <div class="season-statistics-element unselectable">
-                Amount in period: ${statistics.statistics.sums.operations}
-            </div>
-        `;
-    }
+    // Totals
+    var totals = [];
+    if (stats.sums.distance) { totals.push(statCard("Distance", stats.sums.distance.toFixed(2), distanceUnit, "movement")); }
+    if (stats.sums.time) { totals.push(statCard("Time", secondsToDurationString(stats.sums.time), "", "time")); }
+    if (stats.sums.repetition) { totals.push(statCard("Reps", stats.sums.repetition, "", "strength")); }
+    if (stats.sums.weight) { totals.push(statCard("Weight moved", stats.sums.weight.toFixed(2), weightUnit, "strength")); }
+    if (stats.sums.operations) { totals.push(statCard("Sessions", stats.sums.operations, "", "neutral")); }
 
     // Averages
-    if(statistics.statistics.averages.distance) {
-        document.getElementById("activity-statistics-element-wrapper-div").innerHTML += `
-            <div class="season-statistics-element unselectable">
-                Average distance: ${statistics.statistics.averages.distance.toFixed(2)} ${statistics.operations[0].distance_unit}
-            </div>
-        `;
+    var averages = [];
+    if (stats.averages.distance) { averages.push(statCard("Avg distance", stats.averages.distance.toFixed(2), distanceUnit, "movement")); }
+    if (stats.averages.time) { averages.push(statCard("Avg time", secondsToDurationString(stats.averages.time), "", "time")); }
+    if (stats.averages.repetition) { averages.push(statCard("Avg reps", Math.round(stats.averages.repetition), "", "strength")); }
+    if (stats.averages.weight) { averages.push(statCard("Avg weight", stats.averages.weight.toFixed(2), weightUnit, "strength")); }
+
+    // Bests
+    var bests = [];
+    if (stats.tops.distance) { bests.push(statCard("Furthest", sumSetField(stats.tops.distance, "distance").toFixed(2), stats.tops.distance.distance_unit || distanceUnit, "movement")); }
+    if (stats.tops.time) { bests.push(statCard("Longest", secondsToDurationString(sumSetField(stats.tops.time, "time")), "", "time")); }
+    if (stats.tops.repetition) { bests.push(statCard("Most reps", sumSetField(stats.tops.repetition, "repetitions"), "", "strength")); }
+    if (stats.tops.weight) { bests.push(statCard("Heaviest", sumSetField(stats.tops.weight, "weight").toFixed(2), weightUnit, "strength")); }
+
+    // Sensors (from Strava streams)
+    var stream = computeStreamMetrics(operations);
+    var sensors = [];
+    if (stream.hasHR) {
+        sensors.push(statCard("Avg heart rate", stream.hrAvg, "bpm", "effort"));
+        sensors.push(statCard("Max heart rate", stream.hrMax, "bpm", "effort"));
     }
+    if (stream.elevationGain > 0) { sensors.push(statCard("Elevation gain", Math.round(stream.elevationGain), "m", "movement")); }
+    if (stream.hasCadence) { sensors.push(statCard("Avg cadence", stream.cadenceAvg, "rpm", "movement")); }
+    if (stream.hasPower) { sensors.push(statCard("Avg power", stream.powerAvg, "W", "effort")); }
 
-    if(statistics.statistics.averages.time) {
-        document.getElementById("activity-statistics-element-wrapper-div").innerHTML += `
-            <div class="season-statistics-element unselectable">
-                Average time: ${secondsToDurationString(statistics.statistics.averages.time)}
-            </div>
-        `;
-    }
+    var body = statSection("Totals", totals)
+        + statSection("Averages", averages)
+        + statSection("Bests", bests)
+        + statSection("Sensors", sensors);
 
-    if(statistics.statistics.averages.repetition) {
-        document.getElementById("activity-statistics-element-wrapper-div").innerHTML += `
-            <div class="season-statistics-element unselectable">
-                Average repetitions: ${statistics.statistics.averages.repetition}
-            </div>
-        `;
-    }
-
-    if(statistics.statistics.averages.weight) {
-        document.getElementById("activity-statistics-element-wrapper-div").innerHTML += `
-            <div class="season-statistics-element unselectable">
-                Average weight: ${statistics.statistics.averages.weight.toFixed(2)} ${statistics.operations[0].weight_unit}
-            </div>
-        `;
-    }
-
-    // Tops
-    if(statistics.statistics.tops.distance) {
-        distance = 0;
-        statistics.statistics.tops.distance.operation_sets.forEach(operationSet => {
-            distance += operationSet.distance;
-        });
-
-        document.getElementById("activity-statistics-element-wrapper-div").innerHTML += `
-            <div class="season-statistics-element unselectable">
-                Furthest activity: ${distance.toFixed(2)} ${statistics.statistics.tops.distance.distance_unit}
-            </div>
-        `;
-    }
-
-    if(statistics.statistics.tops.time) {
-        time = 0;
-        statistics.statistics.tops.time.operation_sets.forEach(operationSet => {
-            time += operationSet.time;
-        });
-
-        document.getElementById("activity-statistics-element-wrapper-div").innerHTML += `
-            <div class="season-statistics-element unselectable">
-                Longest activity: ${secondsToDurationString(time)}
-            </div>
-        `;
-    }
-
-    if(statistics.statistics.tops.repetition) {
-        repetitions = 0;
-        statistics.statistics.tops.repetition.operation_sets.forEach(operationSet => {
-            repetitions += operationSet.repetitions;
-        });
-
-        document.getElementById("activity-statistics-element-wrapper-div").innerHTML += `
-            <div class="season-statistics-element unselectable">
-                Most repetitions: ${repetitions}
-            </div>
-        `;
-    }
-
-    if(statistics.statistics.tops.weight) {
-        weight = 0;
-        statistics.statistics.tops.weight.operation_sets.forEach(operationSet => {
-            weight += operationSet.weight;
-        });
-
-        document.getElementById("activity-statistics-element-wrapper-div").innerHTML += `
-            <div class="season-statistics-element unselectable">
-                Highest weight: ${weight.toFixed(2)} ${statistics.operations[0].weight_unit}
-            </div>
-        `;
-    }
+    wrapper.innerHTML = `<div class="stat-panel">${body}</div>`;
 
     // Soundtrack overlay: only rendered when media is enabled and the matched sessions
     // had playback (the backend leaves statistics.media null otherwise).
     placeActivityMediaStatistics(statistics.media);
 
     // Remove loading gif
-    document.getElementById("loading-dumbbell-activities").style.display = "none";
+    if (loading) { loading.style.display = "none"; }
 
     // Draw the GPS heatmap from the same operations, inheriting the activity + date filter.
-    renderActivityHeatmap(statistics.operations);
+    renderActivityHeatmap(operations);
 }
 
-// placeActivityMediaStatistics renders the aggregated soundtrack stats for the chosen
-// activity + period as pills under a "Soundtrack" heading, marked with the amber audio
-// accent used by the workout media rail. It is a no-op when there is no media block, so
-// the section stays hidden unless relevant soundtracks were listened to in the period.
+// soundtrackSub joins an artist and a play count into a "Artist · N plays" subline.
+function soundtrackSub(artist, count) {
+    var parts = [];
+    if (artist) { parts.push(artist); }
+    if (count > 1) { parts.push(count + " plays"); }
+    return parts.join(" · ");
+}
+
+// soundtrackTopRow renders a highlighted media item: cover art (or a typed glyph when the
+// provider gave no artwork) beside a label / title / subline.
+function soundtrackTopRow(label, title, sub, artwork, glyph) {
+    var art = artwork
+        ? `<div class="soundtrack-art" style="background-image:url('${escapeStat(artwork)}')"></div>`
+        : `<div class="soundtrack-art soundtrack-art-glyph">${glyph}</div>`;
+    var subHtml = sub ? `<div class="soundtrack-top-sub">${escapeStat(sub)}</div>` : "";
+    return `
+        <div class="soundtrack-top">
+            ${art}
+            <div class="soundtrack-top-body">
+                <div class="soundtrack-top-label">${escapeStat(label)}</div>
+                <div class="soundtrack-top-title">${escapeStat(title)}</div>
+                ${subHtml}
+            </div>
+        </div>`;
+}
+
+// soundtrackColumn is one side of the soundtrack panel (Music or Spoken): its top rows
+// and a row of pill-shaped totals. Returns "" when there is nothing to show.
+function soundtrackColumn(title, rows, meta) {
+    if (!rows && !meta.length) {
+        return "";
+    }
+    var metaHtml = meta.length
+        ? `<div class="soundtrack-meta">${meta.map(function(m) { return `<span>${escapeStat(m)}</span>`; }).join("")}</div>`
+        : "";
+    return `
+        <div class="soundtrack-col">
+            <div class="soundtrack-col-title">${escapeStat(title)}</div>
+            ${rows}
+            ${metaHtml}
+        </div>`;
+}
+
+// placeActivityMediaStatistics renders the aggregated soundtrack as its own amber-marked
+// panel, split into Music and Spoken columns so a run soundtracked by a podcast reads as
+// richly as one soundtracked by songs. It is a no-op when there is no media block, so the
+// panel stays hidden unless soundtracks were listened to in the period.
 function placeActivityMediaStatistics(media) {
     if (!media) {
         return;
     }
 
     var wrapper = document.getElementById("activity-statistics-element-wrapper-div");
-    var pills = "";
 
+    // Music column.
+    var musicRows = "";
     if (media.top_track) {
-        var trackArtist = media.top_track.artist ? " — " + media.top_track.artist : "";
-        var trackPlays = media.top_track.count > 1 ? ` (${media.top_track.count} plays)` : "";
-        pills += `
-            <div class="season-statistics-element unselectable">
-                Top song: ${media.top_track.title}${trackArtist}${trackPlays}🎵
-            </div>
-        `;
+        musicRows += soundtrackTopRow("Top song", media.top_track.title, soundtrackSub(media.top_track.artist, media.top_track.count), media.top_track.artwork, "♪");
     }
-
     if (media.top_artist) {
-        var artistPlays = media.top_artist.count > 1 ? ` (${media.top_artist.count} plays)` : "";
-        pills += `
-            <div class="season-statistics-element unselectable">
-                Top artist: ${media.top_artist.title}${artistPlays}🎤
-            </div>
-        `;
+        musicRows += soundtrackTopRow("Top artist", media.top_artist.title, soundtrackSub("", media.top_artist.count), media.top_artist.artwork, "♫");
     }
+    var musicMeta = [];
+    if (media.songs > 0) { musicMeta.push(media.songs + (media.songs == 1 ? " song" : " songs")); }
+    if (media.unique_artists > 0) { musicMeta.push(media.unique_artists + (media.unique_artists == 1 ? " artist" : " artists")); }
+    if (media.listening_time > 0) { musicMeta.push(secondsToDurationString(media.listening_time)); }
+    var musicCol = soundtrackColumn("Music", musicRows, musicMeta);
 
-    if (media.songs > 0) {
-        pills += `
-            <div class="season-statistics-element unselectable">
-                Songs played: ${media.songs}🎧
-            </div>
-        `;
+    // Spoken column.
+    var spokenRows = "";
+    if (media.top_podcast) {
+        var episodes = media.top_podcast.count;
+        var episodesLabel = episodes > 0 ? (episodes + (episodes == 1 ? " episode" : " episodes")) : "";
+        spokenRows += soundtrackTopRow("Top podcast", media.top_podcast.title, episodesLabel, media.top_podcast.artwork, "🎙");
     }
-
-    if (media.unique_artists > 0) {
-        pills += `
-            <div class="season-statistics-element unselectable">
-                Different artists: ${media.unique_artists}👥
-            </div>
-        `;
+    if (media.top_audiobook) {
+        spokenRows += soundtrackTopRow("Top audiobook", media.top_audiobook.title, media.top_audiobook.artist, media.top_audiobook.artwork, "📖");
     }
+    var spokenMeta = [];
+    if (media.podcast_episodes > 0) { spokenMeta.push(media.podcast_episodes + (media.podcast_episodes == 1 ? " episode" : " episodes")); }
+    if (media.audiobooks > 0) { spokenMeta.push(media.audiobooks + (media.audiobooks == 1 ? " book" : " books")); }
+    if (media.spoken_time > 0) { spokenMeta.push(secondsToDurationString(media.spoken_time)); }
+    var spokenCol = soundtrackColumn("Spoken", spokenRows, spokenMeta);
 
-    if (media.listening_time > 0) {
-        pills += `
-            <div class="season-statistics-element unselectable">
-                Music listened: ${secondsToDurationString(media.listening_time)}⏱️
-            </div>
-        `;
-    }
-
-    if (media.spoken_time > 0) {
-        pills += `
-            <div class="season-statistics-element unselectable">
-                Spoken audio: ${secondsToDurationString(media.spoken_time)}🎙️
-            </div>
-        `;
-    }
-
-    if (!pills) {
+    if (!musicCol && !spokenCol) {
         return;
     }
 
     wrapper.innerHTML += `
-        <div class="text-body activity-soundtrack-heading" style="text-align: center; width: 100%; margin-top: 1em;">
-            Soundtrack
-        </div>
-        ${pills}
-    `;
+        <div class="soundtrack-panel">
+            <div class="soundtrack-head"><span class="soundtrack-mark">♫</span>Soundtrack</div>
+            <div class="soundtrack-cols">${musicCol}${spokenCol}</div>
+        </div>`;
 }
 
 function placeDefaultDates() {

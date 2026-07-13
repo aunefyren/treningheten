@@ -156,13 +156,27 @@ type ActionMediaStatistics struct {
 	SpokenTime    time.Duration   `json:"spoken_time"`
 	TopTrack      *MediaCountItem `json:"top_track"`
 	TopArtist     *MediaCountItem `json:"top_artist"`
+	// Spoken-audio detail, split so podcasts and audiobooks each get their own figures
+	// rather than being folded into the single SpokenTime lump. PodcastEpisodes counts
+	// distinct episodes and Audiobooks counts distinct books; TopPodcast is grouped by
+	// show (its Count is that show's episode count) and TopAudiobook by book (Artist is
+	// the author). Any of these may be nil/zero when no such media was matched.
+	PodcastTime     time.Duration   `json:"podcast_time"`
+	AudiobookTime   time.Duration   `json:"audiobook_time"`
+	PodcastEpisodes int             `json:"podcast_episodes"`
+	Audiobooks      int             `json:"audiobooks"`
+	TopPodcast      *MediaCountItem `json:"top_podcast"`
+	TopAudiobook    *MediaCountItem `json:"top_audiobook"`
 }
 
-// MediaCountItem is a most-played tally (a track or an artist) with its play count.
+// MediaCountItem is a most-played tally (a track, artist, podcast, or audiobook) with
+// its play count. Artwork is the cover image when the provider supplied one (songs from
+// Spotify/Plex usually do; ABS spoken items usually do not), and is empty otherwise.
 type MediaCountItem struct {
-	Title  string `json:"title"`
-	Artist string `json:"artist"`
-	Count  int    `json:"count"`
+	Title   string `json:"title"`
+	Artist  string `json:"artist"`
+	Count   int    `json:"count"`
+	Artwork string `json:"artwork,omitempty"`
 }
 
 type StatisticsCompilation struct {

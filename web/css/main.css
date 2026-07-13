@@ -3236,10 +3236,232 @@ label {
 /* Soundtrack sub-heading in the activity statistics section. Amber marks the audio
    layer, matching the --wv-audio accent used by the workout media rail (defined in
    workout.css, which this page does not load — hence the literal colour here). */
-.activity-soundtrack-heading {
-    color: #f0b429;
+/* ===== Activity statistics — dark instrument readout =====
+   The activity block is redrawn as dark navy panels (echoing the workout view) so the
+   condensed numerals read as instruments. Family accents encode metric kind: movement
+   (blue), effort (red), strength (amber), audio (warm amber), time/neutral (muted).
+   Scoped to the activity + soundtrack panels; the season/weight pills are untouched. */
+.stat-panel {
+    width: 100%;
+    max-width: 62em;
+    margin: 1rem auto;
+    box-sizing: border-box;
+    background: var(--darkblue);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    border-radius: 1em;
+    padding: 1.25rem 1.25rem 1.5rem;
+    color: #e6ebf2;
+}
+
+.stat-section + .stat-section {
+    margin-top: 1.5rem;
+}
+
+.stat-section-title {
+    font-family: 'Hanken Grotesk', sans-serif;
+    font-size: 0.7rem;
     font-weight: 600;
-    letter-spacing: 0.08em;
+    letter-spacing: 0.18em;
     text-transform: uppercase;
-    font-size: 0.85em;
+    color: #7488a3;
+    margin-bottom: 0.75rem;
+    padding-bottom: 0.4rem;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.stat-grid {
+    display: grid;
+    /* auto-fit packs more cards per row as the panel widens (using the desktop space),
+       while the 15rem cap keeps a sparse row from stretching cards to absurd widths;
+       centering keeps a short row balanced instead of hugging the left. On mobile the
+       panel is narrow, so this collapses to one comfortable column. */
+    grid-template-columns: repeat(auto-fit, minmax(8.5rem, 15rem));
+    justify-content: center;
+    gap: 0.6rem;
+}
+
+.stat-card {
+    position: relative;
+    background: rgba(255, 255, 255, 0.035);
+    border-radius: 0.6em;
+    padding: 0.7rem 0.85rem 0.75rem 1rem;
+    overflow: hidden;
+}
+
+.stat-card::before {
+    content: "";
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 3px;
+    background: var(--stat-accent, #55677f);
+}
+
+.stat-card[data-family="movement"] { --stat-accent: #4a9fe0; }
+.stat-card[data-family="effort"]   { --stat-accent: #f2545b; }
+.stat-card[data-family="strength"] { --stat-accent: #ffb020; }
+.stat-card[data-family="audio"]    { --stat-accent: #f0b429; }
+.stat-card[data-family="time"]     { --stat-accent: #8ea0b8; }
+.stat-card[data-family="neutral"]  { --stat-accent: #55677f; }
+
+.stat-card-label {
+    font-family: 'Hanken Grotesk', sans-serif;
+    font-size: 0.72rem;
+    font-weight: 500;
+    color: #93a4bd;
+    margin-bottom: 0.15rem;
+}
+
+.stat-card-value {
+    font-family: 'Saira Semi Condensed', sans-serif;
+    font-weight: 600;
+    font-size: 1.7rem;
+    line-height: 1.05;
+    color: #f3f6fb;
+    display: flex;
+    align-items: baseline;
+    gap: 0.28em;
+}
+
+.stat-card-unit {
+    font-size: 0.85rem;
+    font-weight: 500;
+    color: #7f93ad;
+    letter-spacing: 0.02em;
+}
+
+.stat-empty {
+    text-align: center;
+    color: #6b7f99;
+    font-family: 'Hanken Grotesk', sans-serif;
+    padding: 1.5rem;
+    width: 100%;
+}
+
+/* ===== Soundtrack panel — the signature: Music vs Spoken, amber territory ===== */
+.soundtrack-panel {
+    width: 100%;
+    max-width: 62em;
+    margin: 1rem auto;
+    box-sizing: border-box;
+    background: var(--darkblue);
+    border: 1px solid rgba(240, 180, 41, 0.22);
+    border-radius: 1em;
+    padding: 1.1rem 1.25rem 1.35rem;
+    color: #e6ebf2;
+}
+
+.soundtrack-head {
+    font-family: 'Hanken Grotesk', sans-serif;
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: #f0b429;
+    display: flex;
+    align-items: center;
+    gap: 0.5em;
+    margin-bottom: 1rem;
+}
+
+.soundtrack-mark {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 1.6em;
+    height: 1.6em;
+    border-radius: 50%;
+    background: rgba(240, 180, 41, 0.15);
+    font-size: 0.9em;
+}
+
+.soundtrack-cols {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(13rem, 1fr));
+    gap: 1.25rem;
+}
+
+.soundtrack-col-title {
+    font-family: 'Hanken Grotesk', sans-serif;
+    font-size: 0.68rem;
+    font-weight: 600;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: #7488a3;
+    margin-bottom: 0.7rem;
+}
+
+.soundtrack-top {
+    display: flex;
+    align-items: center;
+    gap: 0.7rem;
+    margin-bottom: 0.7rem;
+}
+
+.soundtrack-art {
+    flex: 0 0 auto;
+    width: 2.8rem;
+    height: 2.8rem;
+    border-radius: 0.4em;
+    background-size: cover;
+    background-position: center;
+    background-color: rgba(240, 180, 41, 0.12);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.2rem;
+}
+
+.soundtrack-art-glyph {
+    color: #f0b429;
+}
+
+.soundtrack-top-body {
+    min-width: 0;
+}
+
+.soundtrack-top-label {
+    font-family: 'Hanken Grotesk', sans-serif;
+    font-size: 0.62rem;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: #7488a3;
+    margin-bottom: 0.1rem;
+}
+
+.soundtrack-top-title {
+    font-family: 'Saira Semi Condensed', sans-serif;
+    font-weight: 600;
+    font-size: 1.05rem;
+    color: #f3f6fb;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.soundtrack-top-sub {
+    font-family: 'Hanken Grotesk', sans-serif;
+    font-size: 0.75rem;
+    color: #93a4bd;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.soundtrack-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+    margin-top: 0.5rem;
+}
+
+.soundtrack-meta span {
+    font-family: 'Hanken Grotesk', sans-serif;
+    font-size: 0.72rem;
+    color: #b9c6da;
+    background: rgba(255, 255, 255, 0.05);
+    padding: 0.2rem 0.55rem;
+    border-radius: 10rem;
 }

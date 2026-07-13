@@ -99,3 +99,50 @@ func TestBuildAudiobookshelfPlaybackForWindow(t *testing.T) {
 		t.Errorf("podcast media type: got %q", podcast.MediaType)
 	}
 }
+
+// A podcast/audiobook started before the workout but still playing through it must be
+// retrieved (matched on interval overlap, not just its start time). This is the ABS
+// "started earlier" case reported for the soundtrack feature.
+func TestBuildAudiobookshelfPlaybackForWindowStartedBeforeWindow(t *testing.T) {
+	start := time.Date(2026, 6, 28, 10, 0, 0, 0, time.UTC)
+	end := start.Add(time.Hour)
+
+	ms := func(min int) int64 { return start.Add(time.Duration(min) * time.Minute).UnixMilli() }
+
+	sessions := []models.AudiobookshelfListenSession{
+		{
+			// Started 15 min before the workout, last activity 30 min into it: overlaps.
+			ID:            "early",
+			LibraryItemID: "li-early",
+			DisplayTitle:  "Long Episode",
+			MediaType:     "podcast",
+			StartedAt:     ms(-15),
+			UpdatedAt:     ms(30),
+		},
+		{
+			// Ended well before the workout (no overlap) — must stay excluded.
+			ID:           "done",
+			DisplayTitle: "Finished Earlier",
+			MediaType:    "podcast",
+			StartedAt:    ms(-90),
+			UpdatedAt:    ms(-60),
+		},
+	}
+
+	got := buildAudiobookshelfPlaybackForWindow(sessions, start, end)
+	if len(got) != 1 {
+		t.Fatalf("expected only the overlapping session, got %d (%+v)", len(got), got)
+	}
+	row := got[0]
+	if row.Title != "Long Episode" {
+		t.Fatalf("wrong session matched: %q", row.Title)
+	}
+	// Display start is clamped up to the workout start.
+	if !row.StartedAt.Equal(start) {
+		t.Errorf("StartedAt should clamp to workout start %v, got %v", start, row.StartedAt)
+	}
+	// End is the real session end (UpdatedAt), inside the window.
+	if row.EndedAt == nil || !row.EndedAt.Equal(start.Add(30*time.Minute)) {
+		t.Errorf("EndedAt should be the session UpdatedAt, got %v", row.EndedAt)
+	}
+}

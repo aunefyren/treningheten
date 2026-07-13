@@ -85,8 +85,48 @@ func TestComputeActionMediaStatisticsSpokenFolded(t *testing.T) {
 	if int64(stats.SpokenTime) != 3000 {
 		t.Errorf("SpokenTime = %d, want 3000 seconds", int64(stats.SpokenTime))
 	}
+	if int64(stats.PodcastTime) != 1200 {
+		t.Errorf("PodcastTime = %d, want 1200 seconds", int64(stats.PodcastTime))
+	}
+	if int64(stats.AudiobookTime) != 1800 {
+		t.Errorf("AudiobookTime = %d, want 1800 seconds", int64(stats.AudiobookTime))
+	}
 	if stats.TopTrack == nil || stats.TopTrack.Title != "Run" {
 		t.Errorf("TopTrack = %+v, want Run", stats.TopTrack)
+	}
+}
+
+// TestComputeActionMediaStatisticsSpokenDetail: podcasts group by show (its Count is the
+// episode count) and audiobooks group by book with the author on Artist, so a spoken
+// soundtrack surfaces real detail instead of a single lump.
+func TestComputeActionMediaStatisticsSpokenDetail(t *testing.T) {
+	playback := []models.MediaPlaybackObject{
+		mediaPlay(models.MediaTypePodcast, "Episode 1", "Hardcore History", 1000),
+		mediaPlay(models.MediaTypePodcast, "Episode 2", "Hardcore History", 1000),
+		mediaPlay(models.MediaTypePodcast, "Solo Show", "Other Show", 500),
+		mediaPlay(models.MediaTypeAudiobook, "Dune", "Frank Herbert", 2400),
+		mediaPlay(models.MediaTypeAudiobook, "Dune", "Frank Herbert", 600),
+	}
+
+	stats := computeActionMediaStatistics(playback)
+	if stats == nil {
+		t.Fatal("expected non-nil stats")
+	}
+	if stats.PodcastEpisodes != 3 {
+		t.Errorf("PodcastEpisodes = %d, want 3", stats.PodcastEpisodes)
+	}
+	if stats.Audiobooks != 1 {
+		t.Errorf("Audiobooks = %d, want 1", stats.Audiobooks)
+	}
+	if stats.TopPodcast == nil || stats.TopPodcast.Title != "Hardcore History" || stats.TopPodcast.Count != 2 {
+		t.Errorf("TopPodcast = %+v, want Hardcore History x2", stats.TopPodcast)
+	}
+	if stats.TopAudiobook == nil || stats.TopAudiobook.Title != "Dune" || stats.TopAudiobook.Artist != "Frank Herbert" {
+		t.Errorf("TopAudiobook = %+v, want Dune by Frank Herbert", stats.TopAudiobook)
+	}
+	// A songless period has no track/artist tallies.
+	if stats.TopTrack != nil || stats.TopArtist != nil {
+		t.Errorf("expected no song tallies, got track=%+v artist=%+v", stats.TopTrack, stats.TopArtist)
 	}
 }
 

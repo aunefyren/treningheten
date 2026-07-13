@@ -39,6 +39,12 @@ func Connect(dbType string, timezone string, dbUsername string, dbPassword strin
 			PreferSimpleProtocol: true,
 		}), &gorm.Config{
 			PrepareStmt: true,
+			// Manage relationships at the application layer, not with DB-level foreign
+			// keys. AutoMigrate otherwise aborts table creation (MySQL errno 150) when a
+			// new child table's FK column collation differs from an older parent table's
+			// id column — which silently left gear/media_* tables uncreated. GORM still
+			// uses the struct foreignKey/references tags for joins and preloads.
+			DisableForeignKeyConstraintWhenMigrating: true,
 		})
 		if dbError != nil {
 			logger.Log.Error("failed to connect to database. error: " + dbError.Error())
@@ -63,7 +69,11 @@ func Connect(dbType string, timezone string, dbUsername string, dbPassword strin
 			return errors.New("failed to open database")
 		}
 
-		Instance, dbError = gorm.Open(sqlite.Dialector{Conn: dbSQL}, &gorm.Config{})
+		Instance, dbError = gorm.Open(sqlite.Dialector{Conn: dbSQL}, &gorm.Config{
+			// See the postgres branch: relationships are enforced at the application
+			// layer, so AutoMigrate never creates DB-level foreign keys.
+			DisableForeignKeyConstraintWhenMigrating: true,
+		})
 		if dbError != nil {
 			logger.Log.Error("failed to connect to database. error: " + dbError.Error())
 			return errors.New("failed to connect to database")
@@ -74,7 +84,12 @@ func Connect(dbType string, timezone string, dbUsername string, dbPassword strin
 		connStrDb := dbUsername + ":" + dbPassword + "@tcp(" + dbIP + ":" + strconv.Itoa(dbPort) + ")/" + dbName + "?parseTime=True&loc=Local&charset=utf8mb4"
 
 		// Connect to DB without DB Name
-		Instance, dbError = gorm.Open(mysql.Open(connStrDb), &gorm.Config{})
+		Instance, dbError = gorm.Open(mysql.Open(connStrDb), &gorm.Config{
+			// See the postgres branch: relationships are enforced at the application
+			// layer, so AutoMigrate never creates DB-level foreign keys (avoids MySQL
+			// errno 150 on collation-mismatched parent/child id columns).
+			DisableForeignKeyConstraintWhenMigrating: true,
+		})
 		if dbError != nil {
 
 			if strings.Contains(dbError.Error(), "Unknown database '"+dbName+"'") {
@@ -82,7 +97,12 @@ func Connect(dbType string, timezone string, dbUsername string, dbPassword strin
 				if err != nil {
 					return err
 				} else {
-					Instance, dbError = gorm.Open(mysql.Open(connStrDb), &gorm.Config{})
+					Instance, dbError = gorm.Open(mysql.Open(connStrDb), &gorm.Config{
+			// See the postgres branch: relationships are enforced at the application
+			// layer, so AutoMigrate never creates DB-level foreign keys (avoids MySQL
+			// errno 150 on collation-mismatched parent/child id columns).
+			DisableForeignKeyConstraintWhenMigrating: true,
+		})
 					if dbError != nil {
 						return dbError
 					}
@@ -145,10 +165,9 @@ func Migrate() {
 	// One-time cleanup: MediaPlayback moved from per-operation to per-session. The
 	// AutoMigrate above adds the NOT NULL exercise_id column, which backfills existing
 	// (legacy per-operation) rows with an empty string — a value that references no
-	// exercise, so the FK constraint can't be added while those rows exist (MySQL
-	// errno 1452). These rows are cheap, derived, and duplicated per operation, so drop
-	// any row whose exercise_id points at no real exercise and let the next sync
-	// repopulate per session. Self-limiting: once gone, this is a no-op on later boots.
+	// exercise. These rows are cheap, derived, and duplicated per operation, so drop any
+	// row whose exercise_id points at no real exercise and let the next sync repopulate
+	// per session. Self-limiting: once gone, this is a no-op on later boots.
 	cleanup := Instance.Unscoped().
 		Where("exercise_id IS NULL OR exercise_id = '' OR exercise_id NOT IN (SELECT id FROM exercises)").
 		Delete(&models.MediaPlayback{})
@@ -156,15 +175,6 @@ func Migrate() {
 		logger.Log.Warn("Failed to clean up legacy per-operation media playback rows. Error: " + cleanup.Error.Error())
 	} else if cleanup.RowsAffected > 0 {
 		logger.Log.Info("Removed " + strconv.FormatInt(cleanup.RowsAffected, 10) + " legacy per-operation media playback rows (will re-sync per session).")
-	}
-
-	// AutoMigrate's FK add fails on the transition boot because the legacy rows above
-	// still had an invalid exercise_id at that point; now that they're gone, add the
-	// constraint it skipped so it doesn't retry-and-fail on every subsequent startup.
-	if cleanup.Error == nil && !Instance.Migrator().HasConstraint(&models.MediaPlayback{}, "Exercise") {
-		if err := Instance.Migrator().CreateConstraint(&models.MediaPlayback{}, "Exercise"); err != nil {
-			logger.Log.Warn("Failed to add media_playbacks exercise foreign key. Error: " + err.Error())
-		}
 	}
 
 	// Drop the now-dead operation_id column. AutoMigrate never drops columns, so the old

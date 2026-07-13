@@ -23,6 +23,12 @@ type mediaPlayEvent struct {
 	providerItemID string
 	artworkURL     string
 	startedAt      time.Time
+	// coverageEnd is the real wall-clock end of the listen, when the provider knows it.
+	// It lets a long item (a podcast/audiobook started well before the activity but
+	// still playing through it) match on interval overlap. Zero = unknown, and the
+	// match falls back to start-only — fine for scrobble providers (Plex/Spotify) whose
+	// timestamp is logged at finish and so already lands inside the window.
+	coverageEnd    time.Time
 	trackLengthSec int64 // 0 = unknown
 }
 
@@ -38,7 +44,18 @@ func playbackForWindow(events []mediaPlayEvent, start, end time.Time) []models.M
 	matchEnd := end.Add(mediaMatchGrace)
 
 	for _, event := range events {
-		if event.startedAt.IsZero() || event.startedAt.Before(matchStart) || event.startedAt.After(matchEnd) {
+		if event.startedAt.IsZero() {
+			continue
+		}
+
+		// Match on interval overlap: keep the event when its play span
+		// [startedAt, coverageEnd] intersects the (grace-widened) activity window.
+		// With coverageEnd unknown this collapses to the original start-only test.
+		coverageEnd := event.coverageEnd
+		if coverageEnd.Before(event.startedAt) {
+			coverageEnd = event.startedAt
+		}
+		if event.startedAt.After(matchEnd) || coverageEnd.Before(matchStart) {
 			continue
 		}
 
@@ -51,10 +68,17 @@ func playbackForWindow(events []mediaPlayEvent, start, end time.Time) []models.M
 			title = "Unknown"
 		}
 
+		// Clamp the displayed start up to the activity start, so an item that began
+		// before the workout renders its overlapping portion rather than spilling left.
+		displayStart := event.startedAt
+		if displayStart.Before(start) {
+			displayStart = start
+		}
+
 		row := models.MediaPlayback{
 			MediaType: mediaType,
 			Title:     title,
-			StartedAt: event.startedAt,
+			StartedAt: displayStart,
 		}
 		if artist := strings.TrimSpace(event.artist); artist != "" {
 			row.Artist = &artist
@@ -72,9 +96,23 @@ func playbackForWindow(events []mediaPlayEvent, start, end time.Time) []models.M
 		if event.trackLengthSec > 0 {
 			length := event.trackLengthSec
 			row.TrackLength = &length
-			ended := event.startedAt.Add(time.Duration(length) * time.Second)
+		}
+
+		// EndedAt is the display span end: the real end when the provider knows it
+		// (coverageEnd), otherwise startedAt + track length. Clamp to the activity end
+		// when the item started inside it, and never let it precede the clamped start.
+		ended := time.Time{}
+		if !event.coverageEnd.IsZero() {
+			ended = event.coverageEnd
+		} else if event.trackLengthSec > 0 {
+			ended = event.startedAt.Add(time.Duration(event.trackLengthSec) * time.Second)
+		}
+		if !ended.IsZero() {
 			if !event.startedAt.After(end) && ended.After(end) {
 				ended = end
+			}
+			if ended.Before(displayStart) {
+				ended = displayStart
 			}
 			row.EndedAt = &ended
 		}

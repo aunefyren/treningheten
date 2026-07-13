@@ -198,12 +198,26 @@ func buildAudiobookshelfPlaybackForWindow(sessions []models.AudiobookshelfListen
 			lengthSeconds = int64(session.TimeListening)
 		}
 
+		startedAt := time.UnixMilli(session.StartedAt).UTC()
+
+		// coverageEnd is the wall-clock end of the session. Prefer UpdatedAt (last
+		// activity) since a session started before the workout can still be playing
+		// through it; TimeListening excludes pauses and would end the span too early.
+		// Fall back to startedAt + listened seconds when UpdatedAt is absent.
+		coverageEnd := time.Time{}
+		if session.UpdatedAt > session.StartedAt {
+			coverageEnd = time.UnixMilli(session.UpdatedAt).UTC()
+		} else if lengthSeconds > 0 {
+			coverageEnd = startedAt.Add(time.Duration(lengthSeconds) * time.Second)
+		}
+
 		events = append(events, mediaPlayEvent{
 			mediaType:      absClassifyMediaType(session.MediaType),
 			title:          session.DisplayTitle,
 			artist:         session.DisplayAuthor,
 			providerItemID: session.LibraryItemID,
-			startedAt:      time.UnixMilli(session.StartedAt).UTC(),
+			startedAt:      startedAt,
+			coverageEnd:    coverageEnd,
 			trackLengthSec: lengthSeconds,
 		})
 	}

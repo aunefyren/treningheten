@@ -1078,11 +1078,13 @@ func APIGetActionStatistics(context *gin.Context) {
 }
 
 // computeActionMediaStatistics aggregates a period's matched-session playback rows into
-// the soundtrack overlay. Songs drive the track/artist tallies and music listening time;
-// podcasts and audiobooks are folded into SpokenTime (their play counts aren't
-// interesting the way a repeated song is). A play's span is its TrackLength when known,
-// else the StartedAt→EndedAt gap. Returns nil when there are no rows so the caller leaves
-// the block out entirely.
+// the soundtrack overlay. Songs drive the track/artist tallies and music listening time.
+// Spoken audio is split by type: podcasts group by show (TopPodcast.Count = that show's
+// episode count) and audiobooks group by book (Artist holds the author), each with its
+// own listening time — so a spoken-audio soundtrack reads as more than one number.
+// SpokenTime is kept as the podcast+audiobook total for compatibility. A play's span is
+// its TrackLength when known, else the StartedAt→EndedAt gap. Returns nil when there are
+// no rows so the caller leaves the block out entirely.
 func computeActionMediaStatistics(playback []models.MediaPlaybackObject) *models.ActionMediaStatistics {
 	if len(playback) == 0 {
 		return nil
@@ -1091,6 +1093,9 @@ func computeActionMediaStatistics(playback []models.MediaPlaybackObject) *models
 	stats := models.ActionMediaStatistics{}
 	trackCounts := map[string]*models.MediaCountItem{}
 	artistCounts := map[string]*models.MediaCountItem{}
+	podcastShows := map[string]*models.MediaCountItem{}
+	audiobooks := map[string]*models.MediaCountItem{}
+	podcastEpisodes := map[string]bool{}
 
 	for _, row := range playback {
 		span := time.Duration(0)
@@ -1102,8 +1107,48 @@ func computeActionMediaStatistics(playback []models.MediaPlaybackObject) *models
 			}
 		}
 
-		if row.MediaType == models.MediaTypePodcast || row.MediaType == models.MediaTypeAudiobook {
+		artist := ""
+		if row.Artist != nil {
+			artist = *row.Artist
+		}
+		album := ""
+		if row.Album != nil {
+			album = *row.Album
+		}
+		artwork := ""
+		if row.ArtworkURL != nil {
+			artwork = *row.ArtworkURL
+		}
+
+		switch row.MediaType {
+		case models.MediaTypePodcast:
 			stats.SpokenTime += span
+			stats.PodcastTime += span
+			// Group by show. Providers put the show in the artist (ABS DisplayAuthor,
+			// Plex GrandparentTitle); fall back to album, then the episode title.
+			show := firstNonEmpty(artist, album, row.Title)
+			podcastEpisodes[show+"\x00"+row.Title] = true
+			if item := podcastShows[show]; item != nil {
+				item.Count += 1
+				if item.Artwork == "" {
+					item.Artwork = artwork
+				}
+			} else {
+				podcastShows[show] = &models.MediaCountItem{Title: show, Count: 1, Artwork: artwork}
+			}
+			continue
+		case models.MediaTypeAudiobook:
+			stats.SpokenTime += span
+			stats.AudiobookTime += span
+			// Group by book title; the artist is the author.
+			if item := audiobooks[row.Title]; item != nil {
+				item.Count += 1
+				if item.Artwork == "" {
+					item.Artwork = artwork
+				}
+			} else {
+				audiobooks[row.Title] = &models.MediaCountItem{Title: row.Title, Artist: artist, Count: 1, Artwork: artwork}
+			}
 			continue
 		}
 
@@ -1111,23 +1156,24 @@ func computeActionMediaStatistics(playback []models.MediaPlaybackObject) *models
 		stats.Songs += 1
 		stats.ListeningTime += span
 
-		artist := ""
-		if row.Artist != nil {
-			artist = *row.Artist
-		}
-
 		trackKey := row.Title + "\x00" + artist
 		if item := trackCounts[trackKey]; item != nil {
 			item.Count += 1
+			if item.Artwork == "" {
+				item.Artwork = artwork
+			}
 		} else {
-			trackCounts[trackKey] = &models.MediaCountItem{Title: row.Title, Artist: artist, Count: 1}
+			trackCounts[trackKey] = &models.MediaCountItem{Title: row.Title, Artist: artist, Count: 1, Artwork: artwork}
 		}
 
 		if artist != "" {
 			if item := artistCounts[artist]; item != nil {
 				item.Count += 1
+				if item.Artwork == "" {
+					item.Artwork = artwork
+				}
 			} else {
-				artistCounts[artist] = &models.MediaCountItem{Title: artist, Count: 1}
+				artistCounts[artist] = &models.MediaCountItem{Title: artist, Count: 1, Artwork: artwork}
 			}
 		}
 	}
@@ -1135,8 +1181,23 @@ func computeActionMediaStatistics(playback []models.MediaPlaybackObject) *models
 	stats.UniqueArtists = len(artistCounts)
 	stats.TopTrack = mostPlayedItem(trackCounts)
 	stats.TopArtist = mostPlayedItem(artistCounts)
+	stats.PodcastEpisodes = len(podcastEpisodes)
+	stats.Audiobooks = len(audiobooks)
+	stats.TopPodcast = mostPlayedItem(podcastShows)
+	stats.TopAudiobook = mostPlayedItem(audiobooks)
 
 	return &stats
+}
+
+// firstNonEmpty returns the first non-empty (after trimming) value, or "" if all blank.
+// Used to pick a podcast show label from the artist/album/title fallbacks.
+func firstNonEmpty(values ...string) string {
+	for _, value := range values {
+		if strings.TrimSpace(value) != "" {
+			return value
+		}
+	}
+	return ""
 }
 
 // mostPlayedItem returns the highest-count tally, breaking ties by Title for a stable
