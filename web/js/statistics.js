@@ -23,7 +23,7 @@ function load_page(result) {
                     
                     <div class="module">
                     
-                        <div class="text-body" style="text-align: center;">
+                        <div class="text-body u-text-center">
                             Here you can see statistics and track certain health values.
                         </div>
 
@@ -56,12 +56,12 @@ function load_page(result) {
                         <div id="season-statistics-element-wrapper-div" class="season-statistics-element-wrapper-div">
                         </div>
 
-                        <div id="chart-canvas-div" style="max-width: 40em; margin: 1em auto; padding: 0 0.5em; background-color: var(--white); border-radius: 1em;">
-                            <canvas id="myChart" style="max-width: 100%; width: 1000px; display:none;"></canvas>
+                        <div id="chart-canvas-div" class="panel-card">
+                            <canvas id="myChart" class="panel-wide" style="display:none;"></canvas>
                         </div>
 
-                        <div id="chart-canvas-div-two" style="max-width: 40em; margin: 1em auto; padding: 0 0.5em; background-color: var(--white); border-radius: 1em;">
-                            <canvas id="myChartTwo" style="max-width: 100%; width: 1000px; display:none;"></canvas>
+                        <div id="chart-canvas-div-two" class="panel-card">
+                            <canvas id="myChartTwo" class="panel-wide" style="display:none;"></canvas>
                         </div>
 
                     </div>
@@ -83,8 +83,8 @@ function load_page(result) {
                             <option value="null">Choose activity</option>
                         </select>
 
-                        <input style="" class="" type="date" id="activityStartTime" name="activityStartTime" value="" onchange="chooseActivity()" required>
-                        <input style="" class="" type="date" id="activityEndTime" name="activityEndTime" value="" onchange="chooseActivity()" required>
+                        <input class="" type="date" id="activityStartTime" name="activityStartTime" value="" onchange="chooseActivity()" required>
+                        <input class="" type="date" id="activityEndTime" name="activityEndTime" value="" onchange="chooseActivity()" required>
                     </div>
 
                     <div>
@@ -96,12 +96,12 @@ function load_page(result) {
                         <div id="activity-statistics-element-wrapper-div" class="season-statistics-element-wrapper-div">
                         </div>
 
-                        <div id="chart-canvas-div-activity" style="max-width: 40em; margin: 1em auto; padding: 0 0.5em; background-color: var(--white); border-radius: 1em;">
-                            <canvas id="myActivityChart" style="max-width: 100%; width: 1000px; display:none;"></canvas>
+                        <div id="chart-canvas-div-activity" class="panel-card">
+                            <canvas id="myActivityChart" class="panel-wide" style="display:none;"></canvas>
                         </div>
 
                         <div id="activity-heatmap-wrapper" style="display: none;">
-                            <div class="text-body" style="text-align: center; margin-top: 1em;">
+                            <div class="text-body u-text-center u-mt-1">
                                 Heatmap of this activity's GPS tracks.
                             </div>
                             <div id="activity-heatmap-canvas" class="heatmap-canvas" style="display: none;"></div>
@@ -120,12 +120,12 @@ function load_page(result) {
                         Weight statistics
                     </div>
 
-                    <div class="addActionWrapper clickable hover" id="" title="Weight data" onclick="getWeights(true);" style="">
-                        <img src="/assets/database.svg" class="button-icon" style="width: 100%; margin: 0.25em;">
+                    <div class="addActionWrapper clickable hover" id="" title="Weight data" onclick="getWeights(true);">
+                        <img src="/assets/database.svg" class="button-icon u-w-full u-m-1">
                     </div>
 
-                    <div id="chart-canvas-div" style="max-width: 40em; margin: 1em auto; padding: 0 0.5em; background-color: var(--white); border-radius: 1em;">
-                        <canvas id="myChartWeights" style="max-width: 100%; width: 1000px; display:none;"></canvas>
+                    <div id="chart-canvas-div" class="panel-card">
+                        <canvas id="myChartWeights" class="panel-wide" style="display:none;"></canvas>
                     </div>
                 </div>
     `;
@@ -514,11 +514,11 @@ function choose_season() {
     // Purge data
     canvas_div = document.getElementById("chart-canvas-div");
     canvas_div.innerHTML = "";
-    canvas_div.innerHTML = '<canvas id="myChart" style="max-width: 100%; width: 1000px; display:none;"></canvas>';
+    canvas_div.innerHTML = '<canvas id="myChart" class="panel-wide" style="display:none;"></canvas>';
 
     canvas_div_two = document.getElementById("chart-canvas-div-two");
     canvas_div_two.innerHTML = "";
-    canvas_div_two.innerHTML = '<canvas id="myChartTwo" style="max-width: 100%; width: 1000px; display:none;"></canvas>';
+    canvas_div_two.innerHTML = '<canvas id="myChartTwo" class="panel-wide" style="display:none;"></canvas>';
 
     document.getElementById("season-statistics-element-wrapper-div").innerHTML = "";
 
@@ -922,11 +922,11 @@ function viewWeight(weights) {
         const timeString = GetDateString(dateObject, false)
         weightsHTML += `
             <div class="weight-value">
-                <div style="width: 8em;"><div style="font-size: 0.75em;">${timeString}</div></div>
-                <div style="width: 5em;">${weight.weight} KG</div>
+                <div class="u-w-8"><div style="font-size: 0.75em;">${timeString}</div></div>
+                <div class="u-w-5">${weight.weight} KG</div>
                 <div style="width: 8em; display: flex; justify-content: flex-end;">
-                    <div class="addActionWrapper clickable hover" id="" title="Weight data" onclick="deleteWeight('${weight.id}');" style="">
-                        <img src="/assets/trash-2.svg" class="button-icon" style="width: 100%; margin: 0.25em;">
+                    <div class="addActionWrapper clickable hover" id="" title="Weight data" onclick="deleteWeight('${weight.id}');">
+                        <img src="/assets/trash-2.svg" class="button-icon u-w-full u-m-1">
                     </div>
                 </div>
             </div>
@@ -943,7 +943,7 @@ function viewWeight(weights) {
                 <label for="weightTime">Time of weight</label><br>
                 <input type="date" name="weightTime" id="weightTime" style="min-width: 10em;" placeholder="" autocomplete="off" value="${now.toISOString().split('T')[0]}" />
             </div>
-            <div><button id="register-button" type="submit" href="/" onclick="addWeight()" style="width: 5em;">Save</button></div>
+            <div><button class="btn u-w-5" id="register-button" type="submit" href="/" onclick="addWeight()">Save</button></div>
         </div>
         <hr>
         <div class="weight-values-wrapper">
@@ -1093,7 +1093,7 @@ function chooseActivity() {
     // Purge data
     canvas_div = document.getElementById("chart-canvas-div-activity");
     canvas_div.innerHTML = "";
-    canvas_div.innerHTML = '<canvas id="myActivityChart" style="max-width: 100%; width: 1000px; display:none;"></canvas>';
+    canvas_div.innerHTML = '<canvas id="myActivityChart" class="panel-wide" style="display:none;"></canvas>';
 
     document.getElementById("activity-statistics-element-wrapper-div").innerHTML = "";
 

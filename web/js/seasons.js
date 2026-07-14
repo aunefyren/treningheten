@@ -23,7 +23,7 @@ function load_page(result) {
                     
                     <div class="module">
                     
-                        <div class="text-body" style="text-align: center;">
+                        <div class="text-body u-text-center">
                             Here are all the seasons of {{.appName}}.
                         </div>
 
@@ -145,7 +145,7 @@ function place_seasons(seasons_array) {
                 html += '</div>';
 
                 html += '<div id="season-button-expand-' + seasons_array[i].id + '" class="season-button minimized">';
-                    html += `<button type="submit" onclick="get_leaderboard('${seasons_array[i].id}');" id="goal_amount_button" style=""><p2 style="margin: 0 0 0 0.5em;">Expand</p2><img id="season-button-image-${seasons_array[i].id}" src="assets/chevron-right.svg" class="btn_logo color-invert" style="padding: 0; margin: 0 0.5em 0 0;"></button>`;
+                    html += `<button type="submit" onclick="get_leaderboard('${seasons_array[i].id}');" id="goal_amount_button"><p2 style="margin: 0 0 0 0.5em;">Expand</p2><img id="season-button-image-${seasons_array[i].id}" src="assets/chevron-right.svg" class="btn_logo color-invert" style="padding: 0; margin: 0 0.5em 0 0;"></button>`;
                 html += '</div>';
 
             html += '</div>'
@@ -268,7 +268,7 @@ function place_leaderboard(weeks_array, season_id) {
     if(weeks_array.length == 0) {
         html = `
             <div id="" class="leaderboard-weeks">
-                <p id="" style="margin: 0.5em; text-align: center;">Season has not started yet.</p>
+                <p id="" class="u-m-2 u-text-center">Season has not started yet.</p>
             </div>
         `;
     } else {
@@ -307,7 +307,7 @@ function place_leaderboard(weeks_array, season_id) {
 
                 var result_html = `
                 <div class="leaderboard-week-result" id="">
-                    <div class="leaderboard-week-result-user clickable grey-underline" style="" onclick="location.href='/users/${weeks_array[i].users[j].user_id}'">
+                    <div class="leaderboard-week-result-user clickable grey-underline" onclick="location.href='/users/${weeks_array[i].users[j].user_id}'">
                         ` + userList[weeks_array[i].users[j].user_id].first_name + `
                     </div>
                     <div class="leaderboard-week-result-exercise ` + clickable_str  + `" onclick="` + onclick_command_str  + `">
@@ -329,7 +329,7 @@ function place_leaderboard(weeks_array, season_id) {
                     var joined_image = `
                     <div class="leaderboard-week-member" style="cursor:hover;" id="member-${season_id}-${weeks_array[i].users[j].user_id}" title="${weeks_array[i].users[j].user_id} ${weeks_array[i].users[j].user_id}" onclick="location.href='/users/${weeks_array[i].users[j].user_id}'">
                         <div class="leaderboard-week-member-image">
-                            <img style="width: 100%; height: 100%;" class="leaderboard-week-member-image-img" src="${profileImageURL(weeks_array[i].users[j].user_id, true)}" onerror="${IMAGE_FALLBACK_ONERROR}">
+                            <img class="u-fill leaderboard-week-member-image-img" src="${profileImageURL(weeks_array[i].users[j].user_id, true)}" onerror="${IMAGE_FALLBACK_ONERROR}">
                         </div>
                         ${userList[weeks_array[i].users[j].user_id].first_name}
                     </div>

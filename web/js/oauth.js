@@ -16,7 +16,7 @@ function load_page(result) {
 
     var html = `
         <div class="" id="front-page">    
-            <div class="module" id="barbell-gif" style="">
+            <div class="module" id="barbell-gif">
                 <img src="/assets/images/barbell.gif">
             </div>
         </div>

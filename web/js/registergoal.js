@@ -44,11 +44,11 @@ function load_page(result) {
                     <h3 id="register_season_title" style="margin: 0 0 0.5em 0;">Loading...</h3>
                     <p id="register_season_start">...</p>
                     <p id="register_season_end">...</p>
-                    <p style="margin-top: 1em; text-align: center;" id="register_season_desc">...</p>
+                    <p class="u-mt-1 u-text-center" id="register_season_desc">...</p>
 
-                    <p style="margin-top: 1em; text-align: center;" id="register_season_jointext">...</p>
+                    <p class="u-mt-1 u-text-center" id="register_season_jointext">...</p>
 
-                    <hr style="margin: 1em 0;">
+                    <hr class="u-my-1">
 
                     <label for="commitment" title="How many days a week are you going to work out?">Weekly exercise goal</label>
                     <div class="number-box" id="commitment">
@@ -59,19 +59,19 @@ function load_page(result) {
                         <img src="assets/plus.svg" class="small-button-icon" onclick="IncreaseNumberInput('commitment', 1, 21);">
                     </div>
 
-                    <hr style="margin: 1em 0;">
+                    <hr class="u-my-1">
 
-                    <input style="margin: 0;" type="checkbox" id="compete" class="clickable" name="compete" value="compete">
-                    <label for="compete" class="clickable" style="user-select: none; text-align: center;" title="If I fail to complete my goal, I must spin a wheel of fortune and provide a prize to the winner."> I want to compete with others to uphold my workout streak.</label><br>
+                    <input class="u-m-0 clickable" type="checkbox" id="compete" name="compete" value="compete">
+                    <label for="compete" class="clickable u-noselect u-text-center" title="If I fail to complete my goal, I must spin a wheel of fortune and provide a prize to the winner."> I want to compete with others to uphold my workout streak.</label><br>
 
-                    <p id="prize-title" style="margin-top: 2em;">Potential prize:</p>
+                    <p id="prize-title" class="u-mt-2">Potential prize:</p>
                     <div class="prize-wrapper">
                         <div id="register-prize-text" class="prize-text">...</div>
                     </div>
 
-                    <hr style="margin: 1em 0;">
+                    <hr class="u-my-1">
 
-                    <button type="submit" onclick="registerGoal('${seasonID}');" id="register_goal_button" style=""><img src="assets/done.svg" class="btn_logo color-invert"><p2>Join season</p2></button>
+                    <button type="submit" onclick="registerGoal('${seasonID}');" id="register_goal_button"><img src="assets/done.svg" class="btn_logo color-invert"><p2>Join season</p2></button>
 
                 </div>
 
@@ -354,7 +354,7 @@ function placeDebtSpin(overview) {
     document.getElementById("unspun-wheel").innerHTML = `
         You failed to reach your goal for week ${date_str} and must spin the wheel.
         <div id="canvas-buttons" class="canvas-buttons">
-            <button id="go-to-wheel" onclick="location.replace('/wheel?debt_id=${overview.debt_lost[0].id}');">Take me there</button>
+            <button class="btn" id="go-to-wheel" onclick="location.replace('/wheel?debt_id=${overview.debt_lost[0].id}');">Take me there</button>
         </div>
     `;
     return;

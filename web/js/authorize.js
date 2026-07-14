@@ -79,8 +79,8 @@ function render_consent(info, req) {
     <ul>` + scopeHtml + `</ul>
     <hr>
     <div class="action-block">
-        <button id="approve-button" type="button">Approve</button>
-        <button id="deny-button" type="button" style="margin-top:0.5em;">Deny</button>
+        <button class="btn" id="approve-button" type="button">Approve</button>
+        <button class="btn u-mt-sm" id="deny-button" type="button">Deny</button>
     </div>
     `;
 

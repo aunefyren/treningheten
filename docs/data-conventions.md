@@ -3,6 +3,11 @@
 Cross-cutting conventions in the data model that are non-obvious and have bitten real
 code. Read this before touching read paths, durations, or distances.
 
+For **what the entities are and how they relate** (the entity catalog, the domain-spine
+diagram, and the model / `Object` / DTO struct flavors), see
+[data-model.md](data-model.md). This doc covers the *gotchas* that apply to those
+entities.
+
 ## The `Convert*Object` read layer
 
 Database access returns raw GORM models (`Exercise`, `Operation`, `OperationSet`,
@@ -24,25 +29,32 @@ handlers, the MCP data layer, jobs) should consume `…Object` structs rather th
 re-walking raw GORM models — otherwise the enrichment/fallback logic gets duplicated
 and drifts.
 
-## Durations are stored as **seconds**, not nanoseconds
+## Durations are a raw **seconds** count (`int64`), not nanoseconds
 
-Several fields are typed `*time.Duration` but **hold a plain integer count of
-seconds**, not Go's native nanoseconds:
+A handful of fields hold a workout/set duration as a plain integer count of
+**seconds**:
 
-- `Operation.Duration`
-- `OperationSet.Time`
-- `OperationSet.MovingTime`
+- `Exercise.Duration`, `Operation.Duration`
+- `OperationSet.Time`, `OperationSet.MovingTime`
+- the derived statistics totals: `StatisticsSumCompilation.Time` /
+  `StatisticsAverageCompilation.Time`, the `UserStatistics*Compilation.Time` fields,
+  and the `ActionMediaStatistics` times (`ListeningTime`, `SpokenTime`, …)
 
-Strava import casts seconds straight in (`time.Duration(activity.ElapsedTime)` in
-`controllers/strava.go`), and stats read them back as raw integers
-(`int(*set.Time)`). Nothing in the app calls `.Seconds()`/`.Minutes()` on them.
+They are typed **`*int64`** (nullable on persisted rows) or **`int64`** (the computed
+stats) — *not* `time.Duration`. The DB column is a `BIGINT` holding the seconds value
+directly, and the JSON is a plain integer of seconds (the frontend formats it with
+`secondsToDurationString`). Strava/Hevy import store seconds straight in
+(`int64(activity.ElapsedTime)`); reads and the MCP layer consume the integer as-is.
 
-**Rule:** treat these as a seconds count — convert with `int64(*d)`, **never**
-`d.Seconds()`.
+**Rule:** treat these as a seconds count. When you derive one from a real elapsed
+time, convert explicitly — `int64(end.Sub(start).Seconds())` — and never assign a
+`time.Duration` to these fields.
 
-> This caused a real bug: the MCP layer was the first consumer to interpret the field
-> as a true duration (`int64(d.Seconds())`), which divided a seconds-count by 1e9 and
-> returned `0` for every Strava time. Fixed by switching to `int64(*d)`.
+> These were historically typed `*time.Duration` while holding a seconds count — a lie
+> the compiler couldn't catch. The MCP layer once read one with `.Seconds()`, dividing
+> the seconds value by 1e9 and returning `0` for every Strava time. The fields were
+> retyped to `int64`; **no data or schema migration was needed** — the stored values
+> were already seconds and GORM maps both `time.Duration` and `int64` to `BIGINT`.
 
 ## Units: distance and weight are per-operation, free-form
 

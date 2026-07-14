@@ -66,8 +66,8 @@ type MediaPlayback struct {
 	ArtworkURL     *string    `json:"artwork_url" gorm:"type:varchar(512); default: null"`
 	StartedAt      time.Time  `json:"started_at" gorm:"not null"`
 	EndedAt        *time.Time `json:"ended_at" gorm:"default: null"`
-	// TrackLength is the full item length in seconds (repo convention: *time.Duration
-	// and duration-ish ints hold a seconds count), display-only.
+	// TrackLength is the full item length in seconds (repo convention: duration-ish
+	// fields hold a plain seconds count as int64), display-only.
 	TrackLength *int64 `json:"track_length" gorm:"default: null"`
 }
 

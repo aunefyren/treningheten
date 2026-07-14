@@ -1202,7 +1202,7 @@ func APIGetUserStatistics(context *gin.Context) {
 				logger.Log.Tracef("exercise operation with no object processing")
 
 				actionDistance := 0.0
-				actionTime := time.Duration(0)
+				actionTime := int64(0)
 				actionRepetitions := 0.0
 				actionWeight := 0.0
 
@@ -1214,7 +1214,7 @@ func APIGetUserStatistics(context *gin.Context) {
 						actionDistance += *operationSet.Distance
 					}
 					if operationSet.Time != nil {
-						actionTime = time.Duration(actionTime + *operationSet.Time)
+						actionTime += *operationSet.Time
 					}
 					if operationSet.Repetitions != nil {
 						actionRepetitions += *operationSet.Repetitions
@@ -1251,7 +1251,7 @@ func APIGetUserStatistics(context *gin.Context) {
 						userStatisticsReply.ActivityStatistics.PastYear.Sums.Operations += 1
 
 						userStatisticsReply.ActivityStatistics.PastYear.Sums.Distance += actionDistance
-						userStatisticsReply.ActivityStatistics.PastYear.Sums.Time += time.Duration(actionTime)
+						userStatisticsReply.ActivityStatistics.PastYear.Sums.Time += actionTime
 						userStatisticsReply.ActivityStatistics.PastYear.Sums.Weight += actionWeight
 
 						if actionDistance > userStatisticsReply.ActivityStatistics.PastYear.Tops.Distance {
@@ -1293,17 +1293,17 @@ func APIGetUserStatistics(context *gin.Context) {
 
 	if userStatisticsReply.ActivityStatistics.PastMonth.Sums.Operations > 0 {
 		userStatisticsReply.ActivityStatistics.PastMonth.Averages.Distance = float64(userStatisticsReply.ActivityStatistics.PastMonth.Sums.Distance / float64(userStatisticsReply.ActivityStatistics.PastMonth.Sums.Operations))
-		userStatisticsReply.ActivityStatistics.PastMonth.Averages.Time = time.Duration(float64(userStatisticsReply.ActivityStatistics.PastMonth.Sums.Time) / float64(userStatisticsReply.ActivityStatistics.PastMonth.Sums.Operations))
+		userStatisticsReply.ActivityStatistics.PastMonth.Averages.Time = int64(float64(userStatisticsReply.ActivityStatistics.PastMonth.Sums.Time) / float64(userStatisticsReply.ActivityStatistics.PastMonth.Sums.Operations))
 		userStatisticsReply.ActivityStatistics.PastMonth.Averages.Weight = float64(userStatisticsReply.ActivityStatistics.PastMonth.Sums.Weight / float64(userStatisticsReply.ActivityStatistics.PastMonth.Sums.Operations))
 	}
 	if userStatisticsReply.ActivityStatistics.PastYear.Sums.Operations > 0 {
 		userStatisticsReply.ActivityStatistics.PastYear.Averages.Distance = float64(userStatisticsReply.ActivityStatistics.PastYear.Sums.Distance / float64(userStatisticsReply.ActivityStatistics.PastYear.Sums.Operations))
-		userStatisticsReply.ActivityStatistics.PastYear.Averages.Time = time.Duration(float64(userStatisticsReply.ActivityStatistics.PastYear.Sums.Time) / float64(userStatisticsReply.ActivityStatistics.PastYear.Sums.Operations))
+		userStatisticsReply.ActivityStatistics.PastYear.Averages.Time = int64(float64(userStatisticsReply.ActivityStatistics.PastYear.Sums.Time) / float64(userStatisticsReply.ActivityStatistics.PastYear.Sums.Operations))
 		userStatisticsReply.ActivityStatistics.PastYear.Averages.Weight = float64(userStatisticsReply.ActivityStatistics.PastYear.Sums.Weight / float64(userStatisticsReply.ActivityStatistics.PastYear.Sums.Operations))
 	}
 	if userStatisticsReply.ActivityStatistics.AllTime.Sums.Operations > 0 {
 		userStatisticsReply.ActivityStatistics.AllTime.Averages.Distance = float64(userStatisticsReply.ActivityStatistics.AllTime.Sums.Distance / float64(userStatisticsReply.ActivityStatistics.AllTime.Sums.Operations))
-		userStatisticsReply.ActivityStatistics.AllTime.Averages.Time = time.Duration(float64(userStatisticsReply.ActivityStatistics.AllTime.Sums.Time) / float64(userStatisticsReply.ActivityStatistics.AllTime.Sums.Operations))
+		userStatisticsReply.ActivityStatistics.AllTime.Averages.Time = int64(float64(userStatisticsReply.ActivityStatistics.AllTime.Sums.Time) / float64(userStatisticsReply.ActivityStatistics.AllTime.Sums.Operations))
 		userStatisticsReply.ActivityStatistics.AllTime.Averages.Weight = float64(userStatisticsReply.ActivityStatistics.AllTime.Sums.Weight / float64(userStatisticsReply.ActivityStatistics.AllTime.Sums.Operations))
 	}
 

@@ -249,11 +249,11 @@ function invalid_session() {
     document.getElementById('content').innerHTML = `
     <div class="" id="front-page">
         <div class="module">
-            <div class="text-body" id="front-page-text" style="text-align: center;">
+            <div class="text-body u-text-center" id="front-page-text">
                 Log in to use the platform.
             </div>
             <div id="log-in-button" style="margin-top: 2em; display: flex; width: 10em;">
-                <button id="update-button" type="submit" href="#" onclick="window.location = '/login';">Log in</button>
+                <button class="btn" id="update-button" type="submit" href="#" onclick="window.location = '/login';">Log in</button>
             </div>
         </div>
     </div>

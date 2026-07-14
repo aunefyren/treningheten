@@ -118,7 +118,7 @@ func TestBuildPlexPlaybackClampsToActivityEnd(t *testing.T) {
 
 func TestResolveSessionWindow(t *testing.T) {
 	startTime := time.Date(2026, 6, 27, 8, 0, 0, 0, time.UTC)
-	duration := time.Duration(3600) // raw seconds count (repo convention)
+	duration := int64(3600) // raw seconds count (repo convention)
 
 	// Explicit session Duration wins.
 	ex := models.Exercise{Time: &startTime, Duration: &duration}

@@ -11,9 +11,9 @@ import (
 func f64(v float64) *float64 { return &v }
 
 // secondsDuration wraps a raw seconds count in a time.Duration, matching how the
-// app stores durations (seconds, not nanoseconds — see durationToSeconds).
-func secondsDuration(seconds int64) *time.Duration {
-	d := time.Duration(seconds)
+// app stores durations as a raw seconds count in an int64 (not nanoseconds).
+func secondsDuration(seconds int64) *int64 {
+	d := seconds
 	return &d
 }
 

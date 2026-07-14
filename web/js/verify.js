@@ -19,7 +19,7 @@ function load_page(result) {
                             {{.appName}}
                         </div>
 
-                        <div class="text-body" style="text-align: center;">
+                        <div class="text-body u-text-center">
                             You must verify your account by giving us the access code we e-mailed you.
                         </div>
 
@@ -30,13 +30,13 @@ function load_page(result) {
                         <form action="" onsubmit="event.preventDefault(); verifyAccount();">
                             <label for="email_code">Code:</label><br>
                             <input type="text" name="email_code" id="email_code" placeholder="Code" autocomplete="one-time-code" required />
-                            <button id="verify-button" type="submit" href="/">Verify</button>
+                            <button class="btn" id="verify-button" type="submit" href="/">Verify</button>
                         </form>
 
                     </div>
 
                     <div class="module">
-                        <a style="font-size:0.75em;cursor:pointer;" onclick="newCode();">Send me a new code!</i>
+                        <a class="u-fs-sm u-pointer" onclick="newCode();">Send me a new code!</i>
                     </div>
 
                 </div>

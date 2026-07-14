@@ -8,6 +8,12 @@ architecture overview.
 - [conventions.md](conventions.md) — code conventions: naming (camelCase, `ID`
   uppercase), Go error handling, API response shapes, frontend JS patterns, tests, and
   migrations.
+- [styleguide.md](styleguide.md) — the frontend **visual system**: the CSS layer/file
+  layout, design tokens, and the shared components (`.btn`, cards, chips, the `.trm`
+  modal, `.u-*` utilities). Read before building or restyling UI.
+- [data-model.md](data-model.md) — what the core entities are and how they relate: the
+  three struct flavors (model / `Object` / DTO), the domain-spine ER diagram, and a
+  per-entity reference. Read this before touching the data layer.
 - [data-conventions.md](data-conventions.md) — data-model gotchas: the `Convert*Object`
   read layer, durations stored as seconds, per-operation units, soft deletes.
 

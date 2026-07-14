@@ -149,7 +149,7 @@ func operationObjectToActivity(op models.OperationObject, date time.Time, hevyWo
 		Description:     derefString(op.Description),
 		Tags:            op.Tags,
 		Equipment:       derefString(op.Equipment),
-		DurationSeconds: durationToSeconds(op.Duration),
+		DurationSeconds: copySecondsPtr(op.Duration),
 		HasStreams:      hasStreams,
 		HasSoundtrack:   hasSoundtrack,
 		Sets:            mapSets(op.OperationSets, op.WeightUnit, op.DistanceUnit),
@@ -269,8 +269,8 @@ func mapSets(sets []models.OperationSetObject, weightUnit string, distanceUnit s
 			Repetitions:       s.Repetitions,
 			Weight:            s.Weight,
 			Distance:          s.Distance,
-			TimeSeconds:       durationToSeconds(s.Time),
-			MovingTimeSeconds: durationToSeconds(s.MovingTime),
+			TimeSeconds:       copySecondsPtr(s.Time),
+			MovingTimeSeconds: copySecondsPtr(s.MovingTime),
 		}
 		if s.Weight != nil {
 			set.WeightUnit = weightUnit
@@ -283,14 +283,14 @@ func mapSets(sets []models.OperationSetObject, weightUnit string, distanceUnit s
 	return result
 }
 
-// durationToSeconds converts a stored duration to seconds. NOTE: these fields hold
-// a raw seconds count, not real nanosecond durations, so we cast the value directly
-// rather than calling .Seconds() (which would divide by 1e9 and yield 0).
-func durationToSeconds(d *time.Duration) *int64 {
-	if d == nil {
+// copySecondsPtr returns a copy of a nullable seconds value. The duration-ish fields
+// (Operation.Duration, OperationSet.Time/MovingTime) store a raw seconds count in an
+// int64, and the MCP *Seconds fields are seconds too, so this is a straight copy.
+func copySecondsPtr(v *int64) *int64 {
+	if v == nil {
 		return nil
 	}
-	seconds := int64(*d)
+	seconds := *v
 	return &seconds
 }
 

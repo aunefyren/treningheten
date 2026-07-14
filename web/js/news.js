@@ -23,7 +23,7 @@ function load_page(result) {
                     
                     <div class="module">
                     
-                        <div class="text-body" style="text-align: center;">
+                        <div class="text-body u-text-center">
                             The following posts are created by the website administrator.
                         </div>
 
@@ -50,7 +50,7 @@ function load_page(result) {
                             <label for="news_date">When was this posted?</label><br>
                             <input type="date" name="news_date" id="news_date" placeholder="Post date" autocomplete="off" required />
                             
-                            <button id="register-button" type="submit" href="/">Create post</button>
+                            <button class="btn" id="register-button" type="submit" href="/">Create post</button>
 
                         </form>
                     </div>

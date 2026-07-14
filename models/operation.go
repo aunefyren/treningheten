@@ -8,21 +8,21 @@ import (
 
 type Operation struct {
 	GormModel
-	Enabled      bool           `json:"enabled" gorm:"not null; default: true"`
-	ExerciseID   uuid.UUID      `json:"" gorm:"type:varchar(100);"`
-	Exercise     Exercise       `json:"exercise" gorm:"not null;"`
-	ActionID     *uuid.UUID     `json:"" gorm:"type:varchar(100);"`
-	Action       *Action        `json:"action" gorm:""`
-	GearID       *uuid.UUID     `json:"" gorm:"type:varchar(100);"`
-	Gear         *Gear          `json:"gear" gorm:""`
-	Type         string         `json:"type" gorm:"not null; default: lifting"`
-	WeightUnit   string         `json:"weight_unit" gorm:"not null; default: kg"`
-	DistanceUnit string         `json:"distance_unit" gorm:"not null; default: km"`
-	Equipment    *string        `json:"equipment" gorm:""`
-	Note         *string        `json:"note" gorm:"default: null;"`
-	Description  *string        `json:"description" gorm:"type:longtext;default: null;"`
-	Tags         TagList        `json:"tags" gorm:"type:longtext;default: null;"`
-	Duration     *time.Duration `json:"duration"`
+	Enabled      bool       `json:"enabled" gorm:"not null; default: true"`
+	ExerciseID   uuid.UUID  `json:"" gorm:"type:varchar(100);"`
+	Exercise     Exercise   `json:"exercise" gorm:"not null;"`
+	ActionID     *uuid.UUID `json:"" gorm:"type:varchar(100);"`
+	Action       *Action    `json:"action" gorm:""`
+	GearID       *uuid.UUID `json:"" gorm:"type:varchar(100);"`
+	Gear         *Gear      `json:"gear" gorm:""`
+	Type         string     `json:"type" gorm:"not null; default: lifting"`
+	WeightUnit   string     `json:"weight_unit" gorm:"not null; default: kg"`
+	DistanceUnit string     `json:"distance_unit" gorm:"not null; default: km"`
+	Equipment    *string    `json:"equipment" gorm:""`
+	Note         *string    `json:"note" gorm:"default: null;"`
+	Description  *string    `json:"description" gorm:"type:longtext;default: null;"`
+	Tags         TagList    `json:"tags" gorm:"type:longtext;default: null;"`
+	Duration     *int64     `json:"duration"`
 }
 
 type OperationCreationRequest struct {
@@ -61,7 +61,7 @@ type OperationObject struct {
 	Note          *string              `json:"note"`
 	Description   *string              `json:"description"`
 	Tags          []string             `json:"tags"`
-	Duration      *time.Duration       `json:"duration"`
+	Duration      *int64               `json:"duration"`
 }
 
 type OperationSet struct {
@@ -72,8 +72,8 @@ type OperationSet struct {
 	Repetitions           *float64           `json:"repetitions" gorm:"default: null"`
 	Weight                *float64           `json:"weight" gorm:"default: null"`
 	Distance              *float64           `json:"distance" gorm:"default: null"`
-	Time                  *time.Duration     `json:"time" gorm:"default: null"`
-	MovingTime            *time.Duration     `json:"moving_time" gorm:"default: null"`
+	Time                  *int64             `json:"time" gorm:"default: null"`
+	MovingTime            *int64             `json:"moving_time" gorm:"default: null"`
 	StravaID              *string            `json:"strava_id" gorm:"default: null;"`
 	StravaStreams         *StravaStreamsJSON `json:"strava_streams" gorm:"type:longtext;default: null;"`
 	StravaDataRetrievedAt *time.Time         `json:"strava_data_retrieved_at" gorm:"default: null;"`
@@ -83,18 +83,18 @@ type OperationSet struct {
 }
 
 type OperationSetCreationRequest struct {
-	OperationID uuid.UUID      `json:"operation_id"`
-	Repetitions *float64       `json:"repetitions"`
-	Weight      *float64       `json:"weight"`
-	Distance    *float64       `json:"distance"`
-	Time        *time.Duration `json:"time"`
+	OperationID uuid.UUID `json:"operation_id"`
+	Repetitions *float64  `json:"repetitions"`
+	Weight      *float64  `json:"weight"`
+	Distance    *float64  `json:"distance"`
+	Time        *int64    `json:"time"`
 }
 
 type OperationSetUpdateRequest struct {
-	Repetitions *float64       `json:"repetitions"`
-	Weight      *float64       `json:"weight"`
-	Distance    *float64       `json:"distance"`
-	MovingTime  *time.Duration `json:"moving_time"`
+	Repetitions *float64 `json:"repetitions"`
+	Weight      *float64 `json:"weight"`
+	Distance    *float64 `json:"distance"`
+	MovingTime  *int64   `json:"moving_time"`
 }
 
 type OperationSetObject struct {
@@ -104,8 +104,8 @@ type OperationSetObject struct {
 	Repetitions           *float64           `json:"repetitions"`
 	Weight                *float64           `json:"weight"`
 	Distance              *float64           `json:"distance"`
-	Time                  *time.Duration     `json:"time"`
-	MovingTime            *time.Duration     `json:"moving_time"`
+	Time                  *int64             `json:"time"`
+	MovingTime            *int64             `json:"moving_time"`
 	StravaID              *string            `json:"strava_id"`
 	StravaStreams         *StravaStreamsJSON `json:"strava_streams"`
 	StravaDataRetrievedAt *time.Time         `json:"strava_data_retrieved_at"`
@@ -147,13 +147,13 @@ type ActionStatistics struct {
 // so these figures aggregate over the distinct sessions the matched operations belong
 // to — a session's tracks are counted once regardless of how many of its operations
 // matched. Spoken audio (podcasts/audiobooks) is folded into SpokenTime rather than
-// the song-centric track/artist tallies. Durations hold a seconds count (repo
-// convention), not nanoseconds.
+// the song-centric track/artist tallies. The time fields hold a plain seconds count
+// (int64), per the repo duration convention.
 type ActionMediaStatistics struct {
 	Songs         int             `json:"songs"`
 	UniqueArtists int             `json:"unique_artists"`
-	ListeningTime time.Duration   `json:"listening_time"`
-	SpokenTime    time.Duration   `json:"spoken_time"`
+	ListeningTime int64           `json:"listening_time"`
+	SpokenTime    int64           `json:"spoken_time"`
 	TopTrack      *MediaCountItem `json:"top_track"`
 	TopArtist     *MediaCountItem `json:"top_artist"`
 	// Spoken-audio detail, split so podcasts and audiobooks each get their own figures
@@ -161,8 +161,8 @@ type ActionMediaStatistics struct {
 	// distinct episodes and Audiobooks counts distinct books; TopPodcast is grouped by
 	// show (its Count is that show's episode count) and TopAudiobook by book (Artist is
 	// the author). Any of these may be nil/zero when no such media was matched.
-	PodcastTime     time.Duration   `json:"podcast_time"`
-	AudiobookTime   time.Duration   `json:"audiobook_time"`
+	PodcastTime     int64           `json:"podcast_time"`
+	AudiobookTime   int64           `json:"audiobook_time"`
 	PodcastEpisodes int             `json:"podcast_episodes"`
 	Audiobooks      int             `json:"audiobooks"`
 	TopPodcast      *MediaCountItem `json:"top_podcast"`
@@ -186,18 +186,18 @@ type StatisticsCompilation struct {
 }
 
 type StatisticsSumCompilation struct {
-	Distance   float64       `json:"distance"`
-	Time       time.Duration `json:"time"`
-	Repetition float64       `json:"repetition"`
-	Weight     float64       `json:"weight"`
-	Operations int64         `json:"operations"`
+	Distance   float64 `json:"distance"`
+	Time       int64   `json:"time"`
+	Repetition float64 `json:"repetition"`
+	Weight     float64 `json:"weight"`
+	Operations int64   `json:"operations"`
 }
 
 type StatisticsAverageCompilation struct {
-	Distance   float64       `json:"distance"`
-	Time       time.Duration `json:"time"`
-	Repetition float64       `json:"repetition"`
-	Weight     float64       `json:"weight"`
+	Distance   float64 `json:"distance"`
+	Time       int64   `json:"time"`
+	Repetition float64 `json:"repetition"`
+	Weight     float64 `json:"weight"`
 }
 
 type StatisticsTopCompilation struct {

@@ -130,23 +130,23 @@ type UserStatisticsCompilation struct {
 }
 
 type UserStatisticsTopCompilation struct {
-	Distance              float64       `json:"distance"`
-	DistanceExerciseDayID *uuid.UUID    `json:"distance_exercise_day_id"`
-	Time                  time.Duration `json:"time"`
-	TimeExerciseDayID     *uuid.UUID    `json:"time_exercise_day_id"`
-	Weight                float64       `json:"weight"`
-	WeightExerciseDayID   *uuid.UUID    `json:"weight_exercise_day_id"`
+	Distance              float64    `json:"distance"`
+	DistanceExerciseDayID *uuid.UUID `json:"distance_exercise_day_id"`
+	Time                  int64      `json:"time"`
+	TimeExerciseDayID     *uuid.UUID `json:"time_exercise_day_id"`
+	Weight                float64    `json:"weight"`
+	WeightExerciseDayID   *uuid.UUID `json:"weight_exercise_day_id"`
 }
 
 type UserStatisticsSumCompilation struct {
-	Distance   float64       `json:"distance"`
-	Time       time.Duration `json:"time"`
-	Weight     float64       `json:"weight"`
-	Operations int64         `json:"operations"`
+	Distance   float64 `json:"distance"`
+	Time       int64   `json:"time"`
+	Weight     float64 `json:"weight"`
+	Operations int64   `json:"operations"`
 }
 
 type UserStatisticsAverageCompilation struct {
-	Distance float64       `json:"distance"`
-	Time     time.Duration `json:"time"`
-	Weight   float64       `json:"weight"`
+	Distance float64 `json:"distance"`
+	Time     int64   `json:"time"`
+	Weight   float64 `json:"weight"`
 }

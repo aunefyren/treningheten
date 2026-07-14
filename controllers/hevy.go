@@ -266,7 +266,7 @@ func HevySyncWorkoutForUser(user models.User, workout models.HevyWorkout, templa
 	// raw seconds count, per the duration convention).
 	exercise.Note = strings.TrimSpace(workout.Title)
 	if workout.EndTime.After(workout.StartTime) {
-		duration := time.Duration(int64(workout.EndTime.Sub(workout.StartTime).Seconds()))
+		duration := int64(workout.EndTime.Sub(workout.StartTime).Seconds())
 		exercise.Duration = &duration
 	}
 
@@ -354,7 +354,7 @@ func HevySyncWorkoutForUser(user models.User, workout models.HevyWorkout, templa
 			}
 			if set.DurationSeconds != nil {
 				// Stored as a raw seconds count, per the duration convention.
-				duration := time.Duration(int64(*set.DurationSeconds))
+				duration := int64(*set.DurationSeconds)
 				operationSet.Time = &duration
 			}
 

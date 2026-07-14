@@ -51,7 +51,7 @@ function load_page(result) {
                     
         <div class="module" id="wheel-module" style="display: none;">
 
-            <div style="" id="spinner-winner-image-wrapper" class="spinner-winner-image-wrapper">
+            <div id="spinner-winner-image-wrapper" class="spinner-winner-image-wrapper">
                 <div class="title">
                     Winner!
                 </div>
@@ -71,7 +71,7 @@ function load_page(result) {
 
             <div id="canvas-buttons" class="canvas-buttons">
 
-                <button id="bigButton" class="bigButton" onclick="calculatePrize(); this.disabled=true;">Spin the Wheel</button>
+                <button id="bigButton" class="btn btn--primary" onclick="calculatePrize(); this.disabled=true;">Spin the Wheel</button>
                 <a href="javascript:void(0);" id="reset-button" style="display: none;" onclick="theWheel.stopAnimation(false); theWheel.rotationAngle=0; theWheel.draw(); drawTriangle(); bigButton.disabled=false; clearResponse(); resetPage();">Reset</a>
                 <a href="javascript:void(0);" id="reload-button" style="display: none;" onclick="location.reload();">Replay</a>
             </div>

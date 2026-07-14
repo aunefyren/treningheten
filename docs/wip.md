@@ -79,6 +79,126 @@ Per-exercise feedback in its own dedicated space (not the front-page greeting).
 - How to avoid spamming the LMM
 - Little model, can the feedback be decent?
 
+### Style guide
+- There is old (meh), simplistic UI (/seasons, cards on front page) thats needs fixing
+- There is new, over the top UI elements (gear modal)
+- Page needs a coherent style guide, somewhere in between
+- Every button, card, page should be gone through to ensure coherent style
+- Good opportunity to rework CSS, split into multiple shared files, less globals, more variables
+
+**Direction (confirmed):** *light/simple-first — modern bones, calm skin.* NOT converting the
+app to the dark gear/workout-modal look. Keep the modern discipline (one token system,
+consistent spacing, shared components, navy + green accent) but on **mostly light, calm
+surfaces**, **sentence case**, subtle depth. Deep-navy instrument panels (`.trm`,
+`.workout-view`, richest stat readouts) are the **sparingly-used exception** for data-dense
+widgets only. Display font = numerals/readouts only; green accent used sparingly. (This
+corrected an early over-commit to the instrument look; `.btn` was re-skinned to match — see
+`styleguide.md` decisions log.)
+
+**Current state (audit):** `web/css/main.css` is one ~3990-line monolith (of ~5200 total
+across main/workout/modal/admin). It's visibly two eras: a legacy Bootstrap-derived top
+half (three competing button systems — `.btn`, `.regular-button`, `.danger-button`; a
+stray `rgba(0,123,255)` blue focus ring not in the palette) and a newer "instrument-panel"
+bottom half (from ~line 3012, sectioned with `── … ──` comments — stat/streak cards,
+activity tabs/tags) which is the target aesthetic. Root problems:
+- **No token layer.** 18 colour vars but two palettes mixed (navy instrument set vs legacy
+  semantic red/yellow/green) + ~80 hardcoded hexes in main.css. Zero spacing/radius/shadow/
+  typography tokens — every value is a magic number, so there's nothing to be consistent to.
+- **Styling lives in JS.** ~374 inline `style=` strings + heavy `.style.` use (frontpage,
+  statistics, account, user worst). A CSS-only style guide can't be enforced while half the
+  visual decisions happen at render time in JS.
+- **Arbitrary split.** `modal.css` and `main.css` both define "Modal Content" (dup). No
+  `docs/styleguide.md` exists; the style is undocumented.
+
+**Phased plan (foundations first, each phase reviewable on its own):**
+1. **Token layer — DONE.** Deduped palette + spacing/radius/shadow/type scales +
+   *semantic* aliases now live in `web/css/tokens.css`, documented in
+   [`styleguide.md`](styleguide.md). `--trm-*`/`--wv-*` prefixes removed;
+   `main.css`/`modal.css`/`workout.css` (+ one inline style in `exercise.js`) repointed
+   at the semantic names; `tokens.css` linked first in all 20 HTML heads. Values-preserving
+   refactor — no intended visual change (maintainer to confirm visually).
+   **Approach as executed:** the instrument-panel language already existed as tokens twice
+   (`--trm-*` in modal.css, `--wv-*` in workout.css — near-identical). Phase 1:
+   - New `web/css/tokens.css` = the single authoritative `:root`. `<link>`ed before
+     `main.css` in all 20 HTML heads (no shared head partial exists).
+   - Move the legacy `main.css` palette (`--red/--yellow/--green/--lightblue/…`) into it
+     unchanged, and delete `main.css`'s `:root` (values identical → no visual change).
+   - Migrate `modal.css` + `workout.css` off the `--trm-*/--wv-*` prefixes onto the new
+     semantic names; delete both prefix blocks. Canonical values for the near-dupes:
+     `--text: #f3f6fb`, `--text-dim: #9fb0c7`, `--surface-hi: rgba(255,255,255,.08)`
+     (the workout/wheelview values — most recent surface; diffs are imperceptible).
+   - Net-new scales (biggest gap today): `--space-*`, `--radius-*` (standardize on
+     `.5rem`/`1rem`/pill), `--shadow-*`, `--font-display`/`--font-body`.
+   - Saira/Hanken referenced but never loaded (only Roboto is) — keep the token, defer
+     actually loading the webfonts to the component phase. Flagged, not fixed.
+   - Verify by grep (zero remaining `--trm-*/--wv-*`, values preserved); maintainer does
+     the visual pass. Ships with the Phase 5 `docs/styleguide.md` skeleton.
+2. **Component primitives** — one button, one card, one form-control, one chip. Adopt the
+   instrument-panel look as target; retrofit legacy pages to it.
+   - **Button (`.btn`) — DONE.** BEM system (`.btn` + `--primary/--danger/--ghost/--sm/
+     --block`) in main.css, documented in [`styleguide.md`](styleguide.md). All 68 `<button>`
+     call sites migrated off `regular-button`/`danger-button`/`trm-btn`/`btn-primary`/
+     classless (legacy selectors deleted); `.btn` is self-defining so it overrides the
+     still-standing global `button` rule. Bespoke buttons (wheel/builder/modal/tabs) left
+     for the Phase 6 sweep. Saira/Hanken webfonts now loaded on all 20 pages.
+   - Remaining Phase 2: card, form-control, chip primitives.
+3. **CSS restructure — DONE.** `main.css` (3983 lines) split **sequentially** into
+   `base.css` (reset/nav/forms/buttons) + `components.css` (legacy components) +
+   `instrument.css` (new design system) — cuts on section boundaries so
+   `cat base components instrument` reproduced `main.css` byte-for-byte (verified) →
+   zero cascade change. All linked in order after `tokens.css` on all 20 pages; `main.css`
+   removed. Dead image-lightbox modal removed (`.modal`/`.modal-content`/`#caption`/`.close`,
+   0 usages — `#myModal` was long ago replaced by TRModal). Per-page extraction deliberately
+   deferred: `.stat-card` (statistics+user) and `.soundtrack` (exercise+statistics) are
+   shared, so page-splitting them would break pages; all three sheets stay global for now.
+4. **Migrate JS inline styles → classes** — page by page, worst offenders first.
+   **Status: 374 → 128 inline styles, all 20 JS files done.** Approach = hybrid:
+   `utilities.css` (`.u-*` atomic helpers, values preserved verbatim, loaded last) + component
+   classes (`.integration-btn`, `.panel-card`, `.panel-wide` in components.css). Removed 95
+   empty `style=""` globally; migrated the 4 worst (account/frontpage/user/statistics) then
+   all 16 remaining files. Visibility (`display:none` + `.style.display`, 97 JS toggles) left
+   inline on purpose — it's state, not theme; dynamic `${…}` and `!important` overrides too.
+   **Guardrail:** converting a standalone `style="…"`→`class="…"` collides when the element
+   already has a non-adjacent `class=` (duplicate attr → second ignored, style lost). Fix =
+   grep `class="…"[^>]*class="` and merge the two attrs (regex:
+   `s#class="([^"]*)"([^>]*) class="([^"]*)"#class="\1 \3"\2#`). Verified zero duplicates.
+   **Residual (128): 56 legitimately inline** (49 visibility, 5 dynamic, 2 `!important`);
+   **72 bespoke one-offs** — mostly per-context **skeleton-loader / preview-box sizes**
+   (`width×height×border-radius`), font-size combos, ad-hoc flex. Refinement left: dedicated
+   **skeleton size classes** for those; optionally tokenise the verbatim `em` utility values.
+5. **`docs/styleguide.md` — DONE.** Authoritative frontend visual reference: CSS layer/file
+   layout + load order, the three token tiers, all shared components (`.btn`, cards,
+   chips/tags, form controls, the `.trm` TRModal, alerts, `.u-*` utilities), an "Adding new
+   UI — the rules" section, a decisions log (Phases 1–4), and a "Known gaps" list. Indexed
+   in `docs/README.md` under Conventions.
+6. **Page sweep old→new** — light/simple-first, page by page, maintainer verifies each live.
+   Per-page checklist: buttons on `.btn`; surfaces calm/light + token-based; sentence case,
+   display font for numerals only; finish inline-style tail; retire page-specific legacy cruft.
+   **Migration mechanism:** the shared `.card` shell (mediumblue + white text, all 20 pages)
+   is flipped light via an opt-in `.card--light` modifier added per page — inner dark-card
+   widgets get light-friendly overrides scoped under it. Once every page carries it, flip the
+   base `.card` and delete the modifier.
+   - **Front page — IN PROGRESS.** `.card--light` = **soft eggshell card** so the content
+     "module" blocks (`.season`/`.current-week`/`.debt-module`/`.prize-module`/`.leaderboard`/
+     `.week_days`/`.ai-message-card`, all already white + `0.5rem` radius) read as one consistent
+     set of **white panels + thin border + soft shadow** — fixes the white-on-white the
+     maintainer flagged. `.ai-message-card` (was dark-instrument translucent) folded into the
+     same panel profile. Removed a redundant inline `cursor:pointer`.
+     **Unified module panel + single accent** (via `/frontend-design`): multi-colour domain bars
+     were jarring → reverted to **one** shared style for every module — white, hairline border,
+     a single **blue** `--module-accent` left bar (blue theme; other hues reserved for
+     success/warning/error signals), soft shadow, `--radius-md`, `overflow:hidden` so inner
+     headers/progress bars clip to the rounded corners (fixes the top-overlap). Inner tones calmed
+     (lightblue `week_info` → eggshell; progress track eggshell, blue fill). Headings/title navy;
+     AI shimmer fixed (dark sweep). One shared rule drives all modules; documented as the
+     **module-panel** pattern in `styleguide.md`. **Awaiting visual review.**
+     Deferred signature: the weekly goal as a big navy display-font number + green ring (the app's
+     core loop as the hero). Inline-style tail (~7) still to tidy.
+   - Then: seasons, account, and the rest; pull the over-the-top gear modal toward the middle.
+
+Recommended first PR: Phase 1 (tokens) + the skeleton of the Phase 5 doc together — small,
+low-risk, and the anchor for all later work.
+
 ### /exercises rebuild — searchable activity timeline (IN PROGRESS)
 Replacing the year → week → day accordion on `/exercises` with a searchable, sortable
 **activity timeline** that floats key metrics inline so you don't have to click into a day.
@@ -161,13 +281,3 @@ The gear feature shipped (see [`docs/gear.md`](gear.md)). Open refinements left 
 
 ### Site loads
 But sometimes not? Server asleep?
-
-### Durations are stored as **seconds**, not nanoseconds
-- See more in data-conventions.md
-- Should be fixed
-- Require migration?
-
-### Need data object doc
-- Should cover models and DB objects and what they are and how they relate
-- Should be read by Claude before doing development
-- Should be a part of the conventions.md file maybe? Is that file read by Claude? Or should there be a development.md doc?

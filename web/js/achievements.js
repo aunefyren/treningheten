@@ -23,7 +23,7 @@ function load_page(result) {
                     
                     <div class="module">
                     
-                        <div class="text-body" style="text-align: center;">
+                        <div class="text-body u-text-center">
                             These are the achievements you can win. Most achievements are given the week after, season-based are given when the season is over.
                         </div>
 
@@ -31,15 +31,15 @@ function load_page(result) {
 
                     <div class="module">
                         Progress:
-                        <div class="progress-bar-number" id="progress-bar-number" style="margin-top:0.5em;"></div>
+                        <div class="progress-bar-number u-mt-sm" id="progress-bar-number"></div>
                         <div class="progress-bar-wrapper">
-                            <div id="progress-bar" class="progress-bar" style=""></div>
+                            <div id="progress-bar" class="progress-bar"></div>
                         </div>
                     </div>
 
                     <div class="module" id="achievements-module" style="display: none;">
 
-                        <div id="achievements-title" class="title" style="margin-bottom: 1em;">
+                        <div id="achievements-title" class="title u-mb-1">
                             Achievements:
                         </div>
 
@@ -254,10 +254,10 @@ function PlaceUserAchievements(achievementArrayPersonal, achievementArray, userI
             <div class="overlay">
                 <div class="text-achievement"> 
                     ${categoryText}
-                    <div style="margin-bottom: 0.5em;"> 
+                    <div class="u-mb-2"> 
                         ${achievementArray[i].name}
                     </div>
-                    <div style="" class="achievement-description" id="achievement-description-${achievementArray[i].id}"> 
+                    <div class="achievement-description" id="achievement-description-${achievementArray[i].id}"> 
                         ${achievementArray[i].description}
                     </div>
                     ${stackableHTML}
