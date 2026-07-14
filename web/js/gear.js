@@ -28,7 +28,7 @@ function load_page(result) {
         <div id="front-page">
 
             <div class="module">
-                <div class="text-body" style="text-align: center;">
+                <div class="text-body u-text-center">
                     Manage your shoes, bikes and other equipment. Assign gear to a session from an
                     exercise and its distance tallies up here.
                 </div>

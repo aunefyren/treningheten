@@ -1,0 +1,795 @@
+/* Base — reset, body, typography, tables, button primitive, forms, top-nav.
+   Loaded after tokens.css, before components.css / instrument.css.
+   Part of the main.css split (style guide, Phase 3). See docs/styleguide.md. */
+
+/* Design tokens (palette, scales, semantic aliases) live in web/css/tokens.css,
+   which is loaded before this file on every page. Reference them with var(). */
+
+  body{
+    margin:0;
+    font-size:1rem;
+    line-height:1.5;
+    color:var(--black);
+    text-align:left;
+    background-color: var(--lightblue);
+    /*background-image: url("../assets/pattern.png");*/
+    background-repeat: repeat;
+    font-weight: normal;
+    box-sizing: content-box;
+    font-family: 'Roboto', sans-serif;
+  }
+  
+  pre {
+    font-family: Arial;
+    margin: auto;
+    width: 100%;
+    width: -webkit-fill-available;
+    width: -moz-available;
+    height: 100%;
+    min-height: 2rem;
+    line-height: 120%;
+    display: inline-block;
+    word-wrap: break-word;
+    white-space: pre-wrap;
+  }
+  
+  p {
+    margin: 0;
+    font-size: 1rem;
+  }
+  h1 {
+    font-size: 2.5rem;
+    margin: auto;
+  }
+  
+  h2 {
+    font-size: 2rem;
+    margin: auto;
+  }
+  
+  h3 {
+    font-size: 1.25rem;
+    margin: 0;
+  }
+  
+  h4 {
+    font-size: 1.5rem;
+    margin: auto;
+  }
+  
+  h5 {
+    font-size: 1.25rem;
+    margin: auto;
+  }
+  
+  .profile {
+    width: 20rem;
+    max-width: 100% !important;
+    height: 100%;
+    display: inline-block;
+    box-sizing: border-box;
+    margin: 0;
+    padding: 1rem;
+    margin: auto;
+  }
+
+  .image {
+    width: 100%;
+    width: -webkit-fill-available;
+    width: -moz-available;
+    display: inline-block;
+    margin: auto;
+    object-fit: cover;
+    height: 20rem;
+    box-sizing: inherit;
+  }
+  
+  /* Table design */
+  table, th, td {
+  border: 1px solid black;
+  border-collapse: collapse;
+  }
+  th, td {
+  padding: 15px;
+  text-align: right !important;
+  }
+  
+  /* Chat boks */
+  .chat_modul_right {
+    position: fixed;
+    bottom: 0;
+    right: 0;
+    border: 1px solid #ced4da;
+  }
+  
+  .card{
+    position:relative;
+    display:-webkit-box;
+    display:-ms-flexbox;
+    display:flex;
+    -webkit-box-orient:vertical;
+    -webkit-box-direction:normal;
+    -ms-flex-direction:column;
+    flex-direction:column;
+    min-width:0;
+    word-wrap:break-word;
+    background-color: var(--mediumblue);
+    background-clip:border-box;
+    margin-bottom: 25%;
+    border-radius: 1rem;
+    /*
+    border: 2px solid var(--grey);
+    border-radius: 0.25rem;
+    border:1px solid rgba(0,0,0,.125);
+    border-radius:.25rem;*/
+  }
+  
+  .card-header{
+    padding:.75rem 1.25rem;
+    margin-bottom:0;
+    background-color:var(--trans-lightblue);
+    border: 0.2rem solid var(--mediumblue);
+    text-align: center;
+    font-size: 0.8rem;
+    font-weight:200;
+    border-top-right-radius: 1rem;
+    border-top-left-radius: 1rem;
+    color: var(--white);
+  }
+  
+  .content {
+    border-bottom-right-radius: 1rem;
+    border-bottom-left-radius: 1rem;
+  }
+
+  .container{
+    padding-top: 5rem !important;
+    width: -webkit-fill-available;
+    margin-right:auto;
+    margin-left:auto;
+  }
+  
+  @media (min-width:576px){
+    .container{
+        max-width:540px;
+    }
+  }
+  @media (min-width:768px){
+    .container{
+        max-width:720px;
+    }
+  }
+  @media (min-width:992px){
+    .container{
+        max-width:960px;
+    }
+  }
+  @media (min-width:1200px){
+    .container{
+        max-width:1140px;
+    }
+  }
+  
+  .card-body{
+    -webkit-box-flex:1;
+    -ms-flex:1 1 auto;
+    flex:1 1 auto;
+    padding:1.25rem;
+    color: var(--white);
+  }
+ 
+  /* ── Button primitive ─────────────────────────────────────────────────────
+     The one button system (style guide). Light/simple-first: solid calm fills,
+     sentence case, body font (the display font is reserved for numerals/readouts).
+     Fully self-defining so it overrides the legacy global `button` rule wherever
+     `.btn` is applied. Variants: --primary (green CTA), --danger, --ghost; size
+     --sm; layout --block. See docs/styleguide.md. */
+  .btn {
+    box-sizing: border-box;
+    display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem;
+    width: auto; margin: 0;
+    padding: 0.55rem 1.1rem;
+    border: 1px solid transparent;
+    border-radius: var(--radius-sm);
+    background: var(--mediumblue);
+    color: var(--white);
+    font-family: var(--font-body);
+    font-size: 0.95rem; font-weight: 600;
+    line-height: 1.2; text-align: center; white-space: nowrap;
+    cursor: pointer; user-select: none;
+    transition: background-color 0.15s, filter 0.15s, transform 0.15s;
+  }
+  .btn:hover { filter: brightness(1.08); transform: translateY(-1px); text-decoration: none; }
+  .btn:active { transform: translateY(0); }
+  .btn:focus-visible { outline: 0; box-shadow: 0 0 0 0.2rem var(--accent-soft); }
+  .btn:disabled { opacity: 0.55; cursor: not-allowed; transform: none; filter: none; }
+  .btn img { width: 1rem; height: 1rem; }
+
+  .btn--primary { background: var(--lightgreen); }
+  .btn--danger  { background: var(--red); }
+  .btn--ghost   { background: transparent; color: var(--mediumblue); border-color: var(--mediumblue); }
+  .btn--ghost:hover { background: var(--trans-lightblue); }
+  .btn--sm { padding: 0.35rem 0.7rem; font-size: 0.85rem; }
+  .btn--block { width: 100%; }
+  
+  .form-control:disabled,.form-control[readonly]{background-color:#e9ecef;opacity:1;box-sizing: border-box;}
+  
+  .alert{position:relative;padding:.75rem 1.25rem;margin-bottom:1rem;border:1px solid transparent;border-radius:0.5em}
+  .alert-success{color:var(--green);background-color:var(--green-success);border-color:var(--green-success-border)}
+  .alert-info{color:var(--mediumblue);background-color: var(--grey); border-color: var(--mediumblue);}
+  .alert-danger{color:var(--red);background-color:var(--red-error);border-color:var(--red-error-border)}
+  
+  .navbar {
+    background-color: var(--mediumblue);
+    overflow: hidden;
+    top: 0;
+    width: 100%;
+    position: relative;
+    padding: 0rem;
+    display: block;
+    text-align: center;
+    z-index: 9;
+    /*box-shadow: 0 2px 4px 0 rgba(0, 0, 0, 0.2), 0 3px 10px 0 rgba(0, 0, 0, 0.19);*/
+    border-bottom: var(--trans-lightblue) 0.2rem solid;
+    color: var(--white);
+  }
+  
+  .nav-item {
+    float: left;
+    display: none;
+    color: var(--white);
+    text-align: center;
+    padding: 1rem;
+    text-decoration: none;
+    font-size: 1rem;
+    margin: auto;
+    height: 2rem;
+    line-height: 2rem;
+  }
+  
+  .nav-item.enabled {
+    display: block;
+  }
+  
+  .nav-item.disabled {
+    display: none;
+  }
+  
+  .nav-title {
+    float: left;
+    display: inline-block;
+    text-align: center;
+    padding: 1rem;
+    text-decoration: none;
+    font-size: 1rem;
+    margin: auto;
+    height: 2rem;
+    line-height: 2rem;
+    max-width: 10rem;
+    color: var(--white);
+  }
+  
+  .nav-item:hover, .nav-title:hover{
+    background-color: var(--darkblue);
+    color: var(--white);
+    text-decoration: none;
+  }
+  
+  .nav-item:active {
+    background-color: var(--darkblue);
+    color: var(--black);
+  }
+  
+  .nav-icon {
+    display: none;
+    margin: 0;
+    padding: 0.5rem;
+    height: 4rem;
+    position: fixed;
+    top: 0;
+    float: right;
+    right: 0;
+  }
+  
+  .nav-logo {
+    display: block;
+    margin: auto;
+    padding: 0rem;
+    height: 4rem;
+    float: left;
+    box-sizing: border-box;
+    position: relative;
+  }
+  
+  .box{
+    display: flex;
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-content: center;
+    justify-content: flex-start;
+    align-items: flex-start;
+    width: fit-content;
+    max-width: 100%;
+    max-width: -webkit-fill-available;
+    max-width: -moz-available;
+    margin: auto;
+  }
+  
+.module{
+  display: flex;
+  flex-direction: column;
+  flex-wrap: nowrap;
+  align-content: center;
+  justify-content: center;
+  align-items: center;
+  width: 100%;
+  width: -webkit-fill-available;
+  width: -moz-available;
+  margin: 2rem 0;
+  box-sizing: border-box;
+}
+
+.action-block {
+  width: 100%;
+  width: -webkit-fill-available;
+  width: -moz-available;
+  margin: 1rem;
+}
+
+form {
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: center;
+  align-content: center;
+  width: 100%;
+  width: -webkit-fill-available;
+  width: -moz-available;
+  margin: 1rem 0;
+}
+
+/* Baseline form-control look for un-styled inputs across the app. Wrapped in :where()
+   so it carries ZERO specificity: it still applies to any plain input/select (author
+   styles beat the browser default regardless of specificity), but a component only needs
+   a single class to override it — no parent-scoping or !important gymnastics. Before this,
+   the element+attribute selector below was (0,1,1) and silently beat component classes,
+   which is why gear/modal/workout/pat all had to out-specify it. Keep new form styling as
+   plain classes and it will just work. */
+:where(input[type=text], input[type=password], input[type=email], input[type=date], input[type=file], input[type=number], input[type=time], select) {
+  width: 100%;
+  width: -webkit-fill-available;
+  width: -moz-available;
+  height: 2rem;
+  padding: 0.25rem 0.5rem;
+  margin: 0.5rem 1rem 1rem 1rem;
+  background: var(--white);
+  box-sizing: inherit;
+  border-radius: 0.5rem;
+  font-size: 1rem;
+  border: solid 0.2rem var(--grey);
+  resize: vertical;
+  min-height: 2rem;
+  max-height: 25rem;
+  font-family: Roboto,Noto,sans-serif;
+  box-sizing: content-box;
+}
+
+.btn-block {
+  margin-top: 1rem;
+  text-align: center;
+}
+button {
+  width: 100%;
+  width: -webkit-fill-available;
+  width: -moz-available;
+  padding: 0.75rem 0;
+  margin: 1rem;
+  border-radius: 5px; 
+  border: none;
+  background: var(--lightblue); 
+  border: solid 0.1rem var(--mediumblue);
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--white);
+  cursor: pointer;
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-content: center;
+  justify-content: center;
+  align-items: center;
+}
+
+button:hover {
+  background: var(--trans-lightblue);
+}
+
+button:disabled {
+  cursor:default;
+  opacity: 0.5;
+}
+
+.groups, .wishlists, .wishes {
+  width: 100%;
+  width: -webkit-fill-available;
+  width: -moz-available;
+}
+
+.group, .wishlist, .wish {
+  width: 100%;
+  width: -webkit-fill-available;
+  width: -moz-available;
+  padding: 0.5rem;
+  border: 0.2rem solid var(--eggshell);
+  margin: 1rem 1rem;
+  border-radius: 1rem;
+  background-color: var(--mediumblue);
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  align-content: center;
+}
+
+.wishlist:hover, .wish:hover, .group:hover {
+  background-color: var(--lightblue);
+  transition: 1s;
+}
+
+.clickable {
+  cursor: pointer;
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  -khtml-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+}
+
+.clickable:hover{
+  opacity: 0.5;
+}
+
+.grey-underline {
+  border-bottom: solid 0.1rem var(--eggshell);
+}
+
+.group-title, .wishlist-title, .wish-title {
+  max-width: 50%;
+  margin: 0.5rem 0;
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: center;
+  align-content: center;
+}
+
+.wish-title, .group-title, .wishlist-title {
+  margin: 0 !important;
+  padding: 0.5rem 0 !important;
+}
+
+.wish, .group, .wishlist {
+  margin: 0 !important;
+  border: none;
+}
+
+.profile {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  justify-content: center;;
+  align-items: center;
+  align-content: center;
+  margin: 0;
+  padding: 0;
+  width: auto;
+  max-width: 50%;
+}
+ .profile-name {
+  max-width: 75%;
+  margin: 0 0.5rem;
+ }
+
+.profile-icon {
+  margin: 0 0.5rem;
+  border-radius: 100%;
+  border: 0.15rem solid white;
+  width: 2rem;
+  height: 2rem;
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  align-content: center;
+}
+
+.icon-img {
+  margin: auto;
+}
+
+.color-invert {
+  filter: invert(100%);
+}
+
+.wish-wrapper, .group-wrapper, .wishlist-wrapper {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  align-content: center;
+  margin: 1rem 1rem;
+  border: 0.2rem solid var(--eggshell);
+  border-radius: 1rem;
+  background-color: var(--lightblue);
+  transition: 2s;
+}
+
+.wish-note, .group-members {
+  display: none;
+  width: 100%;
+  width: -webkit-fill-available;
+  width: -moz-available;
+  padding: 0;
+  margin: 0.5rem;
+  border-radius: 0 0 1rem 1rem;
+  transition: 2s;
+}
+
+.group-member {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  justify-content: space-between;;
+  align-items: center;
+  align-content: center;
+  border-radius: 1rem;
+}
+
+.group-member:hover {
+  background-color: var(--mediumblue);
+  transition: 1s;
+}
+
+.wish-input, .group-input, .wishlist-input {
+  display: none;
+  width: 100%;
+  width: -webkit-fill-available;
+  width: -moz-available;
+  margin: 5rem 1rem 1rem 1rem;
+}
+
+.group-input, .wishlist-input {
+  display: inline-block !important;
+}
+
+.text-body{
+  text-align: center;
+  margin: 0.5rem 1rem;
+}
+
+.text-date{
+  text-align: center;
+  margin: 0;
+  text-align: end;
+  font-size: 0.75rem;
+}
+
+.title{
+  font-weight: 200;
+  font-size: 1.25rem;
+  text-align: center;
+}
+
+/* When the screen is less than 600 pixels wide, hide all links, except for the first one ("Home"). Show the link that contains should open and close the topnav (.icon) */
+@media screen and (max-width: 65em) {
+  .nav-item.enabled {
+      display: none !important;
+  }
+  .nav-title {
+      text-align: center;
+      margin: auto;
+      float: none;
+  }
+  .nav-icon {
+      float: right;
+      display: block;
+  }
+  .nav-bar {
+      position: relative !important;
+  }
+  .nav-logo{
+      position: fixed;
+  }
+}
+
+/* The "responsive" class is added to the topnav with JavaScript when the user clicks on the icon. This class makes the topnav look good on small screens (display the links vertically instead of horizontally) */
+@media screen and (max-width: 65em) {
+.navbar.responsive {position: fixed !important;}
+.navbar.responsive .nav-icon {
+  position: fixed !important;
+  right: 0;
+  top: 0;
+}
+.navbar.responsive .nav-item.enabled {
+  float: none;
+  display: block !important;
+  text-align: left;
+  width: 100%;
+  width: -webkit-fill-available;
+  width: -moz-available;
+}
+.navbar {
+  position: fixed;
+}
+.nav-logo.responsive {
+  position: fixed;
+}
+}
+
+.transparent {
+  opacity: 0.5;
+}
+
+.wishlist-info, .group-info {
+  border-radius: 1rem;
+  padding: 1rem;
+  margin: 0 1rem 2rem 1rem;
+  background-color: var(--mediumblue);
+  border: 0.2rem solid var(--eggshell);
+  width: 100%;
+  width: -webkit-fill-available;
+  width: -moz-available;
+}
+
+
+hr {
+  border: 0.025rem solid var(--eggshell);
+  background-color: var(--eggshell);
+  width: 100%;
+  width: -webkit-fill-available;
+  width: -moz-available;
+  opacity: 0.5;
+  border-radius: 1rem;
+}
+
+.divider {
+  width: 100%;
+  width: -webkit-fill-available;
+  width: -moz-available;
+}
+
+.news-post {
+  margin: 2rem 0;
+  padding: 0.5rem;
+  background-color: var(--white);
+  border-radius: 1rem;
+}
+
+.news, .seasons, .goals {
+  width: 100%;
+  width: -webkit-fill-available;
+  width: -moz-available;
+  color: var(--black);
+}
+
+.exercises {
+  width: auto;
+  max-width: 100%;
+  margin: 1rem;
+  display: flex;
+  flex-direction: column;
+  flex-wrap: nowrap;
+  justify-content: center;
+  align-content: center;
+  align-items: center;
+  border-radius: 0.5rem;
+  width: 20rem;
+  max-width: 100%;
+  max-width: -webkit-fill-available;
+  max-width: -moz-available;
+  color: var(--black);
+}
+
+.week_info {
+  background-color: var(--lightblue);
+  width: -webkit-fill-available;
+  text-align: center;
+  border-radius: 0.5rem 0.5rem 0 0;
+  padding: 0.25rem;
+}
+
+.week_days {
+  display: flex;
+  flex-direction: column;
+  flex-wrap: wrap;
+  align-content: center;
+  justify-content: space-between;
+  align-items: center;
+  background-color: var(--white);
+  border-radius: 0.5rem;
+  width: 100%;
+  width: -webkit-fill-available;
+  width: -moz-available;
+  box-sizing: border-box;
+  transition: 1s;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-content: center;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.5rem;
+  box-sizing: inherit;
+  width: 100%;
+  width: -webkit-fill-available;
+  width: -moz-available;
+}
+
+.day-check {
+  flex-direction: column;
+  flex-wrap: wrap;
+  align-content: center;
+  justify-content: space-between;
+  align-items: center;
+  display: flex;
+  width: 6rem;
+  max-width: 100%;
+  max-width: -webkit-fill-available;
+  max-width: -moz-available;
+  color: var(--black)
+}
+
+.day-note {
+  width: auto;
+  box-sizing: inherit;
+  width: 12rem;
+  overflow: auto;
+}
+
+.day-note-area {
+  box-sizing: inherit;
+  border-radius: 0.5rem;
+  font-size: 1rem;
+  width: 100%;
+  width: -webkit-fill-available;
+  width: -moz-available;
+  margin: 0.5rem;
+  /*box-shadow: 0.1rem 0.2rem 0.5rem rgba(0,0,0,.09);*/
+  border: solid 2px var(--grey); 
+  resize: vertical;
+  min-height: 2rem;
+  max-height: 25rem;
+  font-family: Roboto,Noto,sans-serif;
+}
+
+.form-control{
+  width: 100%;
+  width: -webkit-fill-available;
+  width: -moz-available;
+  height: 2rem !important;
+  padding: 0.5rem !important;
+  margin: 1rem;
+  box-sizing: content-box;
+}
+
+.form-control-small{
+  width: 2.5rem;
+}
+
+.btn_logo {
+  width: 1rem;
+  height: 1rem;
+  margin: 0;
+  padding: 0 0.5rem 0 0;
+}
+

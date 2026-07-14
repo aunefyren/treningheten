@@ -46,12 +46,12 @@ function load_page(result) {
             <div class="user-profile-row">
             <div class="account-section account-section--profile" id="account-section-details">
                 <div class="user-active-profile-photo">
-                    <img style="width: 100%; height: 100%;" class="user-active-profile-photo-img" id="user-active-profile-photo-img" src="/assets/images/barbell.gif">
+                    <img class="user-active-profile-photo-img u-fill" id="user-active-profile-photo-img" src="/assets/images/barbell.gif">
                 </div>
 
                 <b><p id="user_name" style="margin-top: 1em; font-size: 1.25em;"></p></b>
-                <p id="join_date" style=""></p>
-                <p id="user_admin" style=""></p>
+                <p id="join_date"></p>
+                <p id="user_admin"></p>
 
                 <div class="user-links" id="user-links" style="display:none; margin-top: 1em; gap: 0.75em;">
                 </div>
@@ -92,7 +92,7 @@ function load_page(result) {
 
         <div class="module" id="achievements-module" style="display: none;">
 
-            <div id="achievements-title" class="title" style="margin-bottom: 1em;">
+            <div id="achievements-title" class="title u-mb-1">
                 Achievements:
             </div>
 
@@ -193,7 +193,7 @@ function PlaceUserData(user_object) {
 
         userLinks.innerHTML += `
             <div onclick="window.open('https://www.strava.com/athletes/${user_object.strava_id}', '_blank');" class="clickable" style="width: 2em; height: 2em;" title="Strava profile">
-                <img src="/assets/strava-logo.svg" style="" class="">
+                <img src="/assets/strava-logo.svg" class="">
             </div>
         `;
     }
@@ -325,7 +325,7 @@ function PlaceUserAchievements(achievementArray) {
                 ${delegationSumHTML}
 
                 <div class="achievement-image" style="border: solid 0.2em ${categoryColor};">
-                    <img style="width: 100%; height: 100%;" class="achievement-img" src="${achievementImageURL(achievementArray[i].id, true)}" onerror="${IMAGE_FALLBACK_ONERROR}">
+                    <img class="achievement-img u-fill" src="${achievementImageURL(achievementArray[i].id, true)}" onerror="${IMAGE_FALLBACK_ONERROR}">
                 </div>
 
                 <div class="achievement-title">
@@ -341,10 +341,10 @@ function PlaceUserAchievements(achievementArray) {
             <div class="overlay">
                 <div class="text-achievement"> 
                     ${categoryText}
-                    <div style="margin-bottom: 0.5em;"> 
+                    <div class="u-mb-2"> 
                         ${achievementArray[i].name}
                     </div>
-                    <div style="" class="achievement-description"> 
+                    <div class="achievement-description"> 
                         ${achievementArray[i].description}
                     </div>
                     ${stackableHTML}
@@ -435,7 +435,7 @@ function PlaceUserStats(data) {
                         <div class="streak-overlay-text">
                             <div style="font-size: 1.1em;">🔥 Week streak</div>
                             <div>Current: <b>${data.streak_weeks} wk</b></div>
-                            <div style="opacity: 0.7;">Best: <b>${data.streak_weeks_top} wk</b></div>
+                            <div class="u-dim">Best: <b>${data.streak_weeks_top} wk</b></div>
                         </div>
                     </div>
                 </div>
@@ -449,7 +449,7 @@ function PlaceUserStats(data) {
                         <div class="streak-overlay-text">
                             <div style="font-size: 1.1em;">🔥 Day streak</div>
                             <div>Current: <b>${data.streak_days} d</b></div>
-                            <div style="opacity: 0.7;">Best: <b>${data.streak_days_top} d</b></div>
+                            <div class="u-dim">Best: <b>${data.streak_days_top} d</b></div>
                         </div>
                     </div>
                 </div>

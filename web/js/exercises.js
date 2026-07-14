@@ -58,12 +58,12 @@ function load_page(result) {
         <div id="front-page">
 
             <div class="module">
-                <div class="text-body" style="text-align: center;">
+                <div class="text-body u-text-center">
                     Your activity timeline. Scroll recent sessions, or filter and sort to find a
                     specific one — your longest run, a certain padel match, your oldest ride.
                 </div>
                 <div class="button-collection">
-                    <button onclick="window.location.href = '/gear';" class="regular-button" type="submit">Manage gear</button>
+                    <button onclick="window.location.href = '/gear';" class="btn" type="submit">Manage gear</button>
                 </div>
             </div>
 
@@ -89,7 +89,7 @@ function load_page(result) {
 
                 <div class="feed-loading" id="feed-loading" style="display:none;"><div class="trh-spinner"></div></div>
                 <div class="feed-more" id="feed-more" style="display:none;">
-                    <button class="regular-button" onclick="loadFeed(false)">Load more</button>
+                    <button class="btn" onclick="loadFeed(false)">Load more</button>
                 </div>
 
             </div>

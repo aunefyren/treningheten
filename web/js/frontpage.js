@@ -35,12 +35,12 @@ function load_page(result) {
                             {{.appName}}
                         </div>
 
-                        <div class="text-body" id="front-page-text" style="text-align: center;">
+                        <div class="text-body u-text-center" id="front-page-text">
        
                         </div>
 
                         <div id="log-in-button" style="margin-top: 2em; display: none; width: 10em;">
-                            <button id="update-button" type="submit" href="#" onclick="window.location = '/login';">Log in</button>
+                            <button class="btn" id="update-button" type="submit" href="#" onclick="window.location = '/login';">Log in</button>
                         </div>
 
                         <div class="module" id="barbell-gif" style="display: none;">
@@ -64,8 +64,8 @@ function load_page(result) {
 
                                 <div class="week_days" id='calendar'>
 
-                                    <div id="week-progress-bar-wrapper" class="week-progress-bar-wrapper" style="width: 20em;">
-                                        <div id="week-progress-bar" class="week-progress-bar" style="">
+                                    <div id="week-progress-bar-wrapper" class="week-progress-bar-wrapper u-w-20">
+                                        <div id="week-progress-bar" class="week-progress-bar">
                                             <div class="calender_status unselectable" id="calender_status">
                                                 <a id="workout_this_week">...</a>
                                                 /
@@ -75,16 +75,16 @@ function load_page(result) {
                                         </div>
                                     </div>
 
-                                    <div class="form-group" style="" id="day_1_group">
+                                    <div class="form-group" id="day_1_group">
                                         <div class="day-check">
-                                            <label style="margin: 0;" for="day_1_check" title="Have you been working out?">Monday</label>
+                                            <label class="u-m-0" for="day_1_check" title="Have you been working out?">Monday</label>
                                             <div class="number-box" id="day_1_check">
                                                 0
                                             </div>
                                             <div class="day-buttons" id="day_1_buttons">
                                                 <img src="assets/minus.svg" class="small-button-icon clickable" onclick="DecreaseNumberInput('day_1_check', 0, 3);">
                                                 <img src="assets/plus.svg" class="small-button-icon clickable" onclick="IncreaseNumberInput('day_1_check', 0, 3);">
-                                                <img src="assets/edit-3.svg" style="padding: 0.40em;" class="small-button-icon clickable" onclick="EditExercise(1);">
+                                                <img src="assets/edit-3.svg" class="small-button-icon clickable u-p-1" onclick="EditExercise(1);">
                                             </div>
                                         </div>
                                         <div class="day-note">
@@ -95,18 +95,18 @@ function load_page(result) {
                                         <input type="hidden" value="" id="day_1_id">
                                     </div>
 
-                                    <hr style="margin: 0.25em;">
+                                    <hr class="u-m-1">
 
-                                    <div class="form-group" style="" id="day_2_group">
+                                    <div class="form-group" id="day_2_group">
                                         <div class="day-check">
-                                            <label style="margin: 0;" for="day_2_check" title="Have you been working out?">Tuesday</label>
+                                            <label class="u-m-0" for="day_2_check" title="Have you been working out?">Tuesday</label>
                                             <div class="number-box" id="day_2_check">
                                                 0
                                             </div>
                                             <div class="day-buttons" id="day_2_buttons">
                                                 <img src="assets/minus.svg" class="small-button-icon clickable" onclick="DecreaseNumberInput('day_2_check', 0, 3);">
                                                 <img src="assets/plus.svg" class="small-button-icon clickable" onclick="IncreaseNumberInput('day_2_check', 0, 3);">
-                                                <img src="assets/edit-3.svg" style="padding: 0.40em;" class="small-button-icon clickable" onclick="EditExercise(2);">
+                                                <img src="assets/edit-3.svg" class="small-button-icon clickable u-p-1" onclick="EditExercise(2);">
                                             </div>
                                         </div>
                                         <div class="day-note">
@@ -117,18 +117,18 @@ function load_page(result) {
                                         <input type="hidden" value="" id="day_2_id">
                                     </div>
 
-                                    <hr style="margin: 0.25em;">
+                                    <hr class="u-m-1">
 
-                                    <div class="form-group" style="" id="day_3_group">
+                                    <div class="form-group" id="day_3_group">
                                         <div class="day-check">
-                                            <label style="margin: 0;" for="day_3_check" title="Have you been working out?">Wednesday</label>
+                                            <label class="u-m-0" for="day_3_check" title="Have you been working out?">Wednesday</label>
                                             <div class="number-box" id="day_3_check">
                                                 0
                                             </div>
                                             <div class="day-buttons" id="day_3_buttons">
                                                 <img src="assets/minus.svg" class="small-button-icon clickable" onclick="DecreaseNumberInput('day_3_check', 0, 3);">
                                                 <img src="assets/plus.svg" class="small-button-icon clickable" onclick="IncreaseNumberInput('day_3_check', 0, 3);">
-                                                <img src="assets/edit-3.svg" style="padding: 0.40em;" class="small-button-icon clickable" onclick="EditExercise(3);">
+                                                <img src="assets/edit-3.svg" class="small-button-icon clickable u-p-1" onclick="EditExercise(3);">
                                             </div>
                                         </div>
                                         <div class="day-note">
@@ -139,18 +139,18 @@ function load_page(result) {
                                         <input type="hidden" value="" id="day_3_id">
                                     </div>
 
-                                    <hr style="margin: 0.25em;">
+                                    <hr class="u-m-1">
 
-                                    <div class="form-group" style="" id="day_4_group">
+                                    <div class="form-group" id="day_4_group">
                                         <div class="day-check">
-                                            <label style="margin: 0;" for="day_4_check" title="Have you been working out?">Thursday</label>
+                                            <label class="u-m-0" for="day_4_check" title="Have you been working out?">Thursday</label>
                                             <div class="number-box" id="day_4_check">
                                                 0
                                             </div>
                                             <div class="day-buttons" id="day_4_buttons">
                                                 <img src="assets/minus.svg" class="small-button-icon clickable" onclick="DecreaseNumberInput('day_4_check', 0, 3);">
                                                 <img src="assets/plus.svg" class="small-button-icon clickable" onclick="IncreaseNumberInput('day_4_check', 0, 3);">
-                                                <img src="assets/edit-3.svg" style="padding: 0.40em;" class="small-button-icon clickable" onclick="EditExercise(4);">
+                                                <img src="assets/edit-3.svg" class="small-button-icon clickable u-p-1" onclick="EditExercise(4);">
                                             </div>
                                         </div>
                                         <div class="day-note">
@@ -161,18 +161,18 @@ function load_page(result) {
                                         <input type="hidden" value="" id="day_4_id">
                                     </div>
 
-                                    <hr style="margin: 0.25em;">
+                                    <hr class="u-m-1">
 
-                                    <div class="form-group" style="" id="day_5_group">
+                                    <div class="form-group" id="day_5_group">
                                         <div class="day-check">
-                                            <label style="margin: 0;" for="day_5_check" title="Have you been working out?">Friday</label>
+                                            <label class="u-m-0" for="day_5_check" title="Have you been working out?">Friday</label>
                                             <div class="number-box" id="day_5_check">
                                                 0
                                             </div>
                                             <div class="day-buttons" id="day_5_buttons">
                                                 <img src="assets/minus.svg" class="small-button-icon clickable" onclick="DecreaseNumberInput('day_5_check', 0, 3);">
                                                 <img src="assets/plus.svg" class="small-button-icon clickable" onclick="IncreaseNumberInput('day_5_check', 0, 3);">
-                                                <img src="assets/edit-3.svg" style="padding: 0.40em;" class="small-button-icon clickable" onclick="EditExercise(5);">
+                                                <img src="assets/edit-3.svg" class="small-button-icon clickable u-p-1" onclick="EditExercise(5);">
                                             </div>
                                         </div>
                                         <div class="day-note">
@@ -183,18 +183,18 @@ function load_page(result) {
                                         <input type="hidden" value="" id="day_5_id">
                                     </div>
 
-                                    <hr style="margin: 0.25em;">
+                                    <hr class="u-m-1">
 
-                                    <div class="form-group" style="" id="day_6_group">
+                                    <div class="form-group" id="day_6_group">
                                         <div class="day-check">
-                                            <label style="margin: 0;" for="day_6_check" title="Have you been working out?">Saturday</label>
+                                            <label class="u-m-0" for="day_6_check" title="Have you been working out?">Saturday</label>
                                             <div class="number-box" id="day_6_check">
                                                 0
                                             </div>
                                             <div class="day-buttons" id="day_6_buttons">
                                                 <img src="assets/minus.svg" class="small-button-icon clickable" onclick="DecreaseNumberInput('day_6_check', 0, 3);">
                                                 <img src="assets/plus.svg" class="small-button-icon clickable" onclick="IncreaseNumberInput('day_6_check', 0, 3);">
-                                                <img src="assets/edit-3.svg" style="padding: 0.40em;" class="small-button-icon clickable" onclick="EditExercise(6);">
+                                                <img src="assets/edit-3.svg" class="small-button-icon clickable u-p-1" onclick="EditExercise(6);">
                                             </div>
                                         </div>
                                         <div class="day-note">
@@ -205,18 +205,18 @@ function load_page(result) {
                                         <input type="hidden" value="" id="day_6_id">
                                     </div>
 
-                                    <hr style="margin: 0.25em;">
+                                    <hr class="u-m-1">
 
-                                    <div class="form-group" style="" id="day_7_group">
+                                    <div class="form-group" id="day_7_group">
                                         <div class="day-check">
-                                            <label style="margin: 0;" for="day_7_check" title="Have you been working out?">Sunday</label>
+                                            <label class="u-m-0" for="day_7_check" title="Have you been working out?">Sunday</label>
                                             <div class="number-box" id="day_7_check">
                                                 0
                                             </div>
                                             <div class="day-buttons" id="day_7_buttons">
                                                 <img src="assets/minus.svg" class="small-button-icon clickable" onclick="DecreaseNumberInput('day_7_check', 0, 3);">
                                                 <img src="assets/plus.svg" class="small-button-icon clickable" onclick="IncreaseNumberInput('day_7_check', 0, 3);">
-                                                <img src="assets/edit-3.svg" style="padding: 0.40em;" class="small-button-icon clickable" onclick="EditExercise(7);">
+                                                <img src="assets/edit-3.svg" class="small-button-icon clickable u-p-1" onclick="EditExercise(7);">
                                             </div>
                                         </div>
                                         <div class="day-note">
@@ -242,8 +242,8 @@ function load_page(result) {
 
                                 <div id="season-module" class="season" style="padding: 0 1em 1em 1em;">
 
-                                    <div id="season-progress-bar-wrapper" class="season-progress-bar-wrapper" style="width: 20em;">
-                                        <div id="season-progress-bar" class="season-progress-bar" style="">
+                                    <div id="season-progress-bar-wrapper" class="season-progress-bar-wrapper u-w-20">
+                                        <div id="season-progress-bar" class="season-progress-bar">
                                             <div class="calender_status unselectable" id="season_status">
                                                 <a id="weeks_so_far">...</a>
                                                 /
@@ -254,15 +254,15 @@ function load_page(result) {
                                     </div>
 
                                     <h3 id="season_title">Loading...</h3>
-                                    <p id="season_desc" style="text-align: center;">...</p>
+                                    <p id="season_desc" class="u-text-center">...</p>
 
-                                    <p id="season_start_title" style="margin-top: 1em;">Season start: <a id="season_start">...</a></p>
-                                    <p id="season_end_title" style="">Season end: <a id="season_end">...</a></p>
+                                    <p id="season_start_title" class="u-mt-1">Season start: <a id="season_start">...</a></p>
+                                    <p id="season_end_title">Season end: <a id="season_end">...</a></p>
 
                                     <p id="week_goal_title" style="margin: 1em 0 0 0;">Weekly goal: <b><a id="week_goal">0</a></b></p>
-                                    <p id="goal_sickleave_title" style="">Sick leave left: <b><a id="goal_sickleave">0</a></b></p>
+                                    <p id="goal_sickleave_title">Sick leave left: <b><a id="goal_sickleave">0</a></b></p>
 
-                                    <p id="prize-title" style="margin-top: 1em;">Potential prize:</p>
+                                    <p id="prize-title" class="u-mt-1">Potential prize:</p>
                                     <div class="prize-wrapper" id="prize-wrapper">
                                         <div id="prize-text" class="prize-text">...</div>
                                     </div>
@@ -319,7 +319,7 @@ function load_page(result) {
 
                                 <div id="activities" class="activities">
 
-                                    <h3 style="margin: 0.5em;">Activities</h3>
+                                    <h3 class="u-m-2">Activities</h3>
 
                                     <div id="activities-week" class="activities-week">
                                         <p style="margin-bottom: 0.5em; text-align:center;">No public activities yet this week...</p>
@@ -330,7 +330,7 @@ function load_page(result) {
 
                                 <div id="leaderboard" class="leaderboard">
 
-                                    <h3 style="margin: 0.5em;">Previous weeks</h3>
+                                    <h3 class="u-m-2">Previous weeks</h3>
 
                                     <div id="leaderboard-weeks" class="leaderboard-weeks">
                                         <div class="fp-skeleton">
@@ -1067,7 +1067,7 @@ function place_leaderboard(weeks_array) {
     if(weeks_array.length == 0) {
         leaderboardWeeks.innerHTML = `
             <div id="" class="leaderboard-weeks">
-                <p id="" style="margin: 0.5em; text-align: center;">No past weeks.</p>
+                <p id="" class="u-m-2 u-text-center">No past weeks.</p>
             </div>
         `;
         return;
@@ -1191,14 +1191,14 @@ function place_current_week(week_array) {
         html += `
             <div class="current-week-user unselectable" id="">
 
-                <div style="" class="">
+                <div class="">
 
                     <div class="" style="font-size: 0.8em;">
                         <b>${user.first_name}</b>
                     </div>
 
                     <div class="current-week-user-photo" title="` + user.first_name + ` ` + user.last_name + `" onclick="location.href='/users/${week_array.users[i].user_id}'">
-                        <img style="width: 100%; height: 100%;" class="current-week-user-photo-img" src="${profileImageURL(week_array.users[i].user_id, true)}" onerror="${IMAGE_FALLBACK_ONERROR}">
+                        <img class="current-week-user-photo-img u-fill" src="${profileImageURL(week_array.users[i].user_id, true)}" onerror="${IMAGE_FALLBACK_ONERROR}">
                     </div>
                 </div>
 
@@ -1367,7 +1367,7 @@ function placeDebtSpin(overview) {
     document.getElementById("unspun-wheel").innerHTML = `
         You failed to reach your goal for week ${date_str} and must spin the wheel.
         <div id="canvas-buttons" class="canvas-buttons">
-            <button id="go-to-wheel" onclick="location.replace('/wheel?debt_id=${overview.debt_lost[0].id}');">Take me there</button>
+            <button class="btn" id="go-to-wheel" onclick="location.replace('/wheel?debt_id=${overview.debt_lost[0].id}');">Take me there</button>
         </div>
     `;
     return;
@@ -1830,7 +1830,7 @@ function generateActivityHTML(activity) {
             if(action.has_logo) {
                 activityLogoBarHTML += `
                     <div class="activity-logo">
-                        <img style="width: 100%;" src="assets/actions/${action.name}.svg" class="" title="${action.name}"></img>
+                        <img class="u-w-full" src="assets/actions/${action.name}.svg" title="${action.name}"></img>
                     </div>
                 `;
             }

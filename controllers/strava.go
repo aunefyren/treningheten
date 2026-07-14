@@ -706,7 +706,7 @@ func StravaSyncOperationForActivity(activity models.StravaGetActivitiesRequestRe
 	}
 
 	stravaID := strconv.Itoa(int(activity.ID))
-	durationTime := time.Duration(activity.ElapsedTime)
+	durationTime := int64(activity.ElapsedTime)
 	operation.Duration = &durationTime
 	operation.Note = &activity.Name
 
@@ -748,9 +748,9 @@ func StravaSyncOperationForActivity(activity models.StravaGetActivitiesRequestRe
 
 	operationSet.StravaID = &stravaID
 	operationSet.OperationID = operation.ID
-	movingTime := time.Duration(activity.MovingTime)
+	movingTime := int64(activity.MovingTime)
 	operationSet.MovingTime = &movingTime
-	totalTime := time.Duration(activity.ElapsedTime)
+	totalTime := int64(activity.ElapsedTime)
 	operationSet.Time = &totalTime
 
 	now := time.Now()
@@ -809,7 +809,7 @@ func SyncStravaOperationsToExerciseSession(exerciseID uuid.UUID, userID uuid.UUI
 		return errors.New("Failed to convert exercise to exercise object.")
 	}
 
-	var newDuration time.Duration = time.Duration(0)
+	var newDuration int64 = 0
 	for _, operation := range exerciseObject.Operations {
 		if operation.Duration != nil {
 			newDuration += *operation.Duration

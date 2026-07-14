@@ -1,0 +1,978 @@
+/* Instrument-panel design system — profile, heatmap, stat/streak cards, tabs, chips, activity statistics, soundtrack, gear, exercises timeline.
+   Loaded after components.css.
+   Part of the main.css split (style guide, Phase 3). See docs/styleguide.md. */
+
+/* ── User profile row (photo + stats side by side on desktop) ── */
+.user-profile-row {
+  display: flex;
+  flex-direction: row;
+  align-items: flex-start;
+  justify-content: center;
+  flex-wrap: wrap;
+  width: 100%;
+  box-sizing: inherit;
+}
+
+.account-section--profile {
+  flex: 0 0 auto;
+  width: auto;
+  min-width: 20rem;
+  border-bottom: none;
+  border-right: 0.15rem solid var(--trans-lightblue);
+  padding: 1.5rem 2rem;
+  margin: auto 0;
+  box-sizing: inherit;
+}
+
+.account-section--stats {
+  flex: 1 1 0;
+  min-width: 18rem;
+  align-items: flex-start;
+  justify-content: flex-start;
+  border-bottom: none;
+  padding: 1.5rem 2rem;
+}
+
+@media (max-width: 640px) {
+  .user-profile-row { flex-direction: column; }
+  .account-section--profile {
+    width: 100%;
+    border-right: none;
+    border-bottom: 0.15rem solid var(--trans-lightblue);
+    padding: 1.5rem 1rem;
+  }
+  .account-section--stats { width: 100%; padding: 1.25rem 1rem; }
+}
+
+/* ── Activity heatmap (statistics page) ── */
+.heatmap-canvas {
+  width: 100%;
+  max-width: 50em;
+  height: 30em;
+  margin: 1em auto 0 auto;
+  border-radius: 1em;
+  overflow: hidden;
+  z-index: 0;
+}
+
+/* ── Front-page push-notification prompt ── */
+.push-prompt {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75em 1em;
+  margin-top: 1.5em;
+  padding: 0.75em 1em;
+  border: 0.1rem solid var(--trans-lightblue);
+  border-radius: 0.5em;
+  background-color: var(--trans-lightblue);
+  max-width: 28em;
+}
+.push-prompt-text { display: flex; align-items: center; gap: 0.5em; }
+.push-prompt-icon { font-size: 1.2em; line-height: 1; }
+.push-prompt-actions { display: flex; gap: 0.5em; }
+.push-prompt-enable, .push-prompt-dismiss {
+  width: auto !important;
+  margin: 0 !important;
+  padding: 0.4em 1em;
+  float: none !important;
+}
+.push-prompt-dismiss { background-color: var(--lightblue); }
+
+/* ── Inline loading spinner ── */
+.exercise-loading { display: flex; justify-content: center; align-items: center; padding: 1.5em 0; }
+.trh-spinner {
+  width: 1.75em;
+  height: 1.75em;
+  border: 0.22em solid var(--trans-lightblue);
+  border-top-color: var(--mediumblue);
+  border-radius: 50%;
+  animation: trh-spin 0.8s linear infinite;
+}
+@keyframes trh-spin { to { transform: rotate(360deg); } }
+
+/* ── Skeleton loader ── */
+.user-stats-skeleton { display: flex; flex-direction: column; gap: 0.4em; padding: 0.25em; }
+.skeleton-block { background: linear-gradient(90deg, rgba(255,255,255,0.07) 25%, rgba(255,255,255,0.15) 50%, rgba(255,255,255,0.07) 75%); background-size: 200% 100%; animation: skeleton-shimmer 1.4s infinite; }
+@keyframes skeleton-shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+
+/* ── Frontpage skeleton ── */
+.fp-skeleton { display: flex; flex-direction: column; gap: 0.75em; padding: 0.5em; width: 100%; box-sizing: border-box; }
+.fp-skeleton-row { display: flex; flex-wrap: wrap; gap: 1em; justify-content: center; }
+.fp-skeleton-user {
+  width: 5rem;
+  height: 5.5rem;
+  border-radius: 0.5rem;
+  background: linear-gradient(90deg, rgba(0,0,0,0.06) 25%, rgba(0,0,0,0.12) 50%, rgba(0,0,0,0.06) 75%);
+  background-size: 200% 100%;
+  animation: skeleton-shimmer 1.4s infinite;
+}
+.fp-skeleton-week-row { display: flex; flex-direction: row; align-items: flex-start; gap: 0.75em; padding: 0.5em 0; border-bottom: 0.05em solid rgba(0,0,0,0.08); }
+.fp-skeleton-week-label {
+  width: 4.5em;
+  height: 2.5em;
+  border-radius: 0.4em;
+  flex-shrink: 0;
+  background: linear-gradient(90deg, rgba(0,0,0,0.06) 25%, rgba(0,0,0,0.12) 50%, rgba(0,0,0,0.06) 75%);
+  background-size: 200% 100%;
+  animation: skeleton-shimmer 1.4s infinite;
+}
+.fp-skeleton-week-grid { display: flex; flex-wrap: wrap; gap: 0.4em; flex: 1; }
+.fp-skeleton-week-user {
+  width: 3.5em;
+  height: 4.5em;
+  border-radius: 0.5em;
+  background: linear-gradient(90deg, rgba(0,0,0,0.06) 25%, rgba(0,0,0,0.12) 50%, rgba(0,0,0,0.06) 75%);
+  background-size: 200% 100%;
+  animation: skeleton-shimmer 1.4s infinite;
+}
+
+/* ── AI message widget ── */
+.ai-button-row { display: flex; flex-direction: column; align-items: center; gap: 0.75em; width: 100%; margin-top: 1em; }
+@media (min-width: 600px) { .ai-button-row { flex-direction: row; align-items: center; justify-content: center; } }
+#ai-message-inline { width: 100%; max-width: 28em; }
+.ai-message-card { background: rgba(255,255,255,0.05); border: 0.05em solid rgba(255,255,255,0.1); border-radius: 0.6em; padding: 0.75em 1em; display: flex; align-items: center; gap: 0.6em; min-height: 2.8em; box-sizing: border-box; width: 100%; }
+.ai-message-label { font-size: 0.6em; opacity: 0.45; text-transform: uppercase; letter-spacing: 0.08em; white-space: nowrap; flex-shrink: 0; }
+.ai-message-text { font-size: 0.85em; opacity: 0.85; line-height: 1.5; text-align: left; }
+.ai-message-skeleton { height: 1em; border-radius: 0.3em; flex: 1; }
+
+/* ── Stats layout ── */
+.user-stats-section { display: flex; flex-direction: column; gap: 0.5em; padding: 0.75em 0; }
+.user-stats-section + .user-stats-section { border-top: 0.1rem solid rgba(255,255,255,0.08); }
+.user-stats-section-title { font-size: 0.7em; opacity: 0.55; text-transform: uppercase; letter-spacing: 0.07em; margin-bottom: 0.1em; }
+.user-stats-row { display: flex; flex-wrap: wrap; gap: 0.5em; }
+
+/* ── Stat cards ── */
+.user-stat-card { display: flex; flex-direction: column; align-items: center; background: rgba(255,255,255,0.07); border-radius: 0.6em; padding: 0.5em 0.9em; min-width: 5em; }
+.user-stat-value { font-size: 1.1em; font-weight: bold; }
+.user-stat-label { font-size: 0.65em; opacity: 0.6; margin-top: 0.15em; }
+
+/* ── Streak cards ── */
+.user-streak-card {
+  position: relative;
+  overflow: hidden;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  background: rgba(255,255,255,0.07);
+  border-radius: 0.6em;
+  padding: 0.6em 1.2em;
+  min-width: 5.5em;
+}
+.user-streak-card:focus .streak-overlay,
+.user-streak-card:hover .streak-overlay {
+  opacity: 1;
+}
+.user-streak-card-base { display: flex; flex-direction: column; align-items: center; }
+.streak-overlay {
+  position: absolute;
+  top: 0; bottom: 0; left: 0; right: 0;
+  opacity: 0;
+  transition: 0.3s ease;
+  background-color: var(--lightblue);
+  border-radius: 0.6em;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 0.6em;
+}
+.streak-overlay-text {
+  color: var(--white);
+  font-size: 0.8rem;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.3em;
+}
+.user-streak-number { font-size: 1.7em; font-weight: bold; line-height: 1; }
+.user-streak-unit { font-size: 0.5em; opacity: 0.7; margin-left: 0.15em; }
+.user-streak-top { font-size: 0.65em; opacity: 0.45; margin-top: 0.3em; }
+
+/* ── Activity tabs ── */
+.user-stat-tabs { display: flex; gap: 0.3em; margin-bottom: 0.4em; width: 100%; }
+.user-stat-tab { flex: 1; background: rgba(255,255,255,0.06); border: none; color: inherit; border-radius: 0.5em; padding: 0.3em 0.6em; font-size: 0.75em; cursor: pointer; opacity: 0.55; transition: opacity 0.15s; }
+.user-stat-tab:hover { opacity: 0.85; }
+.user-stat-tab-active { background: rgba(255,255,255,0.15); opacity: 1; font-weight: bold; }
+/* ── Activity tags ── */
+/* Solid colours so chips are legible on both the mediumblue summary card and the
+   white operation editor card. */
+.tag-list { display: flex; flex-wrap: wrap; gap: 0.4em; justify-content: center; margin: 0.5em 0; }
+.tag-selector { display: flex; flex-wrap: wrap; gap: 0.4em; justify-content: center; margin: 1em 0; }
+.tag-chip {
+    display: inline-block;
+    padding: 0.2em 0.7em;
+    border-radius: 1em;
+    font-size: 0.75em;
+    background: var(--lightblue);
+    color: var(--white);
+    border: 1px solid transparent;
+    user-select: none;
+    transition: background 0.15s, opacity 0.15s;
+}
+/* Unselected chips in the editor read as "off". */
+.tag-selector .tag-chip { opacity: 0.55; }
+.tag-selector .tag-chip:hover { opacity: 0.85; }
+.tag-chip-selected { background: var(--lightgreen); opacity: 1 !important; font-weight: bold; }
+.tag-chip-readonly { cursor: default; }
+
+/* Per-operation description in the editor. */
+.operation-description-area {
+    width: 90%;
+    margin: 0.5em auto;
+    resize: vertical;
+}
+
+/* Soundtrack sub-heading in the activity statistics section. Amber marks the audio
+   layer, matching the --wv-audio accent used by the workout media rail (defined in
+   workout.css, which this page does not load — hence the literal colour here). */
+/* ===== Activity statistics — dark instrument readout =====
+   The activity block is redrawn as dark navy panels (echoing the workout view) so the
+   condensed numerals read as instruments. Family accents encode metric kind: movement
+   (blue), effort (red), strength (amber), audio (warm amber), time/neutral (muted).
+   Scoped to the activity + soundtrack panels; the season/weight pills are untouched. */
+.stat-panel {
+    width: 100%;
+    max-width: 62em;
+    margin: 1rem auto;
+    box-sizing: border-box;
+    background: var(--darkblue);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    border-radius: 1em;
+    padding: 1.25rem 1.25rem 1.5rem;
+    color: #e6ebf2;
+}
+
+.stat-section + .stat-section {
+    margin-top: 1.5rem;
+}
+
+.stat-section-title {
+    font-family: 'Hanken Grotesk', sans-serif;
+    font-size: 0.7rem;
+    font-weight: 600;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: #7488a3;
+    margin-bottom: 0.75rem;
+    padding-bottom: 0.4rem;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.stat-grid {
+    display: grid;
+    /* auto-fit packs more cards per row as the panel widens (using the desktop space),
+       while the 15rem cap keeps a sparse row from stretching cards to absurd widths;
+       centering keeps a short row balanced instead of hugging the left. On mobile the
+       panel is narrow, so this collapses to one comfortable column. */
+    grid-template-columns: repeat(auto-fit, minmax(8.5rem, 15rem));
+    justify-content: center;
+    gap: 0.6rem;
+}
+
+.stat-card {
+    position: relative;
+    background: rgba(255, 255, 255, 0.035);
+    border-radius: 0.6em;
+    padding: 0.7rem 0.85rem 0.75rem 1rem;
+    overflow: hidden;
+}
+
+.stat-card::before {
+    content: "";
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 3px;
+    background: var(--stat-accent, #55677f);
+}
+
+.stat-card[data-family="movement"] { --stat-accent: #4a9fe0; }
+.stat-card[data-family="effort"]   { --stat-accent: #f2545b; }
+.stat-card[data-family="strength"] { --stat-accent: #ffb020; }
+.stat-card[data-family="audio"]    { --stat-accent: #f0b429; }
+.stat-card[data-family="time"]     { --stat-accent: #8ea0b8; }
+.stat-card[data-family="neutral"]  { --stat-accent: #55677f; }
+
+.stat-card-label {
+    font-family: 'Hanken Grotesk', sans-serif;
+    font-size: 0.72rem;
+    font-weight: 500;
+    color: #93a4bd;
+    margin-bottom: 0.15rem;
+}
+
+.stat-card-value {
+    font-family: 'Saira Semi Condensed', sans-serif;
+    font-weight: 600;
+    font-size: 1.7rem;
+    line-height: 1.05;
+    color: #f3f6fb;
+    display: flex;
+    align-items: baseline;
+    gap: 0.28em;
+}
+
+.stat-card-unit {
+    font-size: 0.85rem;
+    font-weight: 500;
+    color: #7f93ad;
+    letter-spacing: 0.02em;
+}
+
+.stat-empty {
+    text-align: center;
+    color: #6b7f99;
+    font-family: 'Hanken Grotesk', sans-serif;
+    padding: 1.5rem;
+    width: 100%;
+}
+
+/* ===== Soundtrack panel — the signature: Music vs Spoken, amber territory ===== */
+.soundtrack-panel {
+    width: 100%;
+    max-width: 62em;
+    margin: 1rem auto;
+    box-sizing: border-box;
+    background: var(--darkblue);
+    border: 1px solid rgba(240, 180, 41, 0.22);
+    border-radius: 1em;
+    padding: 1.1rem 1.25rem 1.35rem;
+    color: #e6ebf2;
+}
+
+.soundtrack-head {
+    font-family: 'Hanken Grotesk', sans-serif;
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: #f0b429;
+    display: flex;
+    align-items: center;
+    gap: 0.5em;
+    margin-bottom: 1rem;
+}
+
+.soundtrack-mark {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 1.6em;
+    height: 1.6em;
+    border-radius: 50%;
+    background: rgba(240, 180, 41, 0.15);
+    font-size: 0.9em;
+}
+
+.soundtrack-cols {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(13rem, 1fr));
+    gap: 1.25rem;
+}
+
+.soundtrack-col-title {
+    font-family: 'Hanken Grotesk', sans-serif;
+    font-size: 0.68rem;
+    font-weight: 600;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: #7488a3;
+    margin-bottom: 0.7rem;
+}
+
+.soundtrack-top {
+    display: flex;
+    align-items: center;
+    gap: 0.7rem;
+    margin-bottom: 0.7rem;
+}
+
+.soundtrack-art {
+    flex: 0 0 auto;
+    width: 2.8rem;
+    height: 2.8rem;
+    border-radius: 0.4em;
+    background-size: cover;
+    background-position: center;
+    background-color: rgba(240, 180, 41, 0.12);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.2rem;
+}
+
+.soundtrack-art-glyph {
+    color: #f0b429;
+}
+
+.soundtrack-top-body {
+    min-width: 0;
+}
+
+.soundtrack-top-label {
+    font-family: 'Hanken Grotesk', sans-serif;
+    font-size: 0.62rem;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: #7488a3;
+    margin-bottom: 0.1rem;
+}
+
+.soundtrack-top-title {
+    font-family: 'Saira Semi Condensed', sans-serif;
+    font-weight: 600;
+    font-size: 1.05rem;
+    color: #f3f6fb;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.soundtrack-top-sub {
+    font-family: 'Hanken Grotesk', sans-serif;
+    font-size: 0.75rem;
+    color: #93a4bd;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.soundtrack-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+    margin-top: 0.5rem;
+}
+
+.soundtrack-meta span {
+    font-family: 'Hanken Grotesk', sans-serif;
+    font-size: 0.72rem;
+    color: #b9c6da;
+    background: rgba(255, 255, 255, 0.05);
+    padding: 0.2rem 0.55rem;
+    border-radius: 10rem;
+}
+
+/* ===== Gear page (/gear) — dark instrument panel, green gear accent =====
+   Same dark surface + Saira/Hanken language as the stat panels, echoing the green
+   accent of the exercise-page gear modal so the two read as one feature. */
+.gear-panel {
+    width: 100%;
+    max-width: 52em;
+    margin: 1rem auto;
+    box-sizing: border-box;
+    background: var(--darkblue);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    border-radius: 1em;
+    padding: 1.25rem;
+    color: #e6ebf2;
+}
+
+.gear-loading {
+    display: flex;
+    justify-content: center;
+    padding: 1.5rem 0;
+}
+
+.gear-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.7rem;
+}
+
+.gear-empty {
+    text-align: center;
+    color: #7488a3;
+    font-family: 'Hanken Grotesk', sans-serif;
+    padding: 1.25rem 0;
+}
+
+.gear-item {
+    display: flex;
+    align-items: center;
+    gap: 0.85rem;
+    background: rgba(255, 255, 255, 0.035);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    border-left: 3px solid #00d27a;
+    border-radius: 0.7em;
+    padding: 0.8rem 0.95rem;
+}
+
+.gear-item-retired {
+    opacity: 0.55;
+    border-left-color: #55677f;
+}
+
+.gear-glyph {
+    flex: 0 0 auto;
+    width: 2.6rem;
+    height: 2.6rem;
+    border-radius: 0.55em;
+    background: rgba(0, 210, 122, 0.12);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.35rem;
+}
+
+.gear-main {
+    flex: 1 1 auto;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.45rem;
+}
+
+.gear-row-top {
+    display: flex;
+    align-items: center;
+    gap: 0.45rem;
+}
+
+.gear-row-top .gear-name {
+    flex: 1 1 auto;
+    min-width: 0;
+}
+
+.gear-row-top .gear-select {
+    flex: 0 0 6.2rem;
+}
+
+.gear-row-toggles {
+    display: flex;
+    align-items: center;
+    gap: 1.1rem;
+}
+
+/* Scoped under .gear-panel (specificity 0,2,0) so these win over main.css's global
+   `input[type=...], select` block (0,1,1) and `select { height: 10rem }` (0,0,1), which
+   otherwise force a white background, Roboto, big margins and a 10rem-tall listbox. The
+   height/margin/appearance resets restate a normal, single-line dark field — same
+   approach workout.css and modal.css already use for their controls. */
+.gear-panel .gear-input,
+.gear-panel .gear-select {
+    font-family: 'Hanken Grotesk', sans-serif;
+    font-size: 0.9rem;
+    color: #eef3fb;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 0.5em;
+    padding: 0.42rem 0.6rem;
+    box-sizing: border-box;
+    width: 100%;
+    margin: 0;
+    height: auto;
+    min-height: 0;
+    max-height: none;
+    overflow: visible;
+    transition: border-color 0.15s, background 0.15s;
+}
+
+.gear-input:focus,
+.gear-select:focus {
+    outline: none;
+    border-color: #00d27a;
+    background: rgba(255, 255, 255, 0.08);
+}
+
+.gear-input:disabled,
+.gear-select:disabled {
+    color: #93a4bd;
+    background: rgba(255, 255, 255, 0.02);
+    cursor: not-allowed;
+}
+
+.gear-select option {
+    color: #111;
+}
+
+.gear-toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    font-family: 'Hanken Grotesk', sans-serif;
+    font-size: 0.8rem;
+    color: #93a4bd;
+    cursor: pointer;
+}
+
+.gear-toggle input {
+    accent-color: #00d27a;
+    cursor: pointer;
+}
+
+.gear-del {
+    margin-left: auto;
+    width: 1.05rem;
+    height: 1.05rem;
+    opacity: 0.55;
+    filter: invert(100%);
+    cursor: pointer;
+    transition: opacity 0.15s;
+}
+
+.gear-del:hover {
+    opacity: 1;
+}
+
+.gear-badge {
+    flex: 0 0 auto;
+    font-family: 'Hanken Grotesk', sans-serif;
+    font-size: 0.62rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: #fc4c02;
+    border: 1px solid rgba(252, 76, 2, 0.5);
+    border-radius: 10rem;
+    padding: 0.12rem 0.5rem;
+}
+
+.gear-distance {
+    flex: 0 0 auto;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    line-height: 1;
+}
+
+.gear-distance-value {
+    font-family: 'Saira Semi Condensed', sans-serif;
+    font-weight: 600;
+    font-size: 1.65rem;
+    color: #f3f6fb;
+}
+
+.gear-distance-unit {
+    font-family: 'Hanken Grotesk', sans-serif;
+    font-size: 0.72rem;
+    color: #7f93ad;
+    margin-top: 0.1rem;
+}
+
+.gear-add {
+    margin-top: 1.35rem;
+    padding-top: 1.1rem;
+    border-top: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.gear-add-title {
+    font-family: 'Hanken Grotesk', sans-serif;
+    font-size: 0.7rem;
+    font-weight: 600;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: #7488a3;
+    margin-bottom: 0.7rem;
+}
+
+.gear-add-fields {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    align-items: center;
+}
+
+.gear-add-fields .gear-input {
+    flex: 1 1 10rem;
+    width: auto;
+}
+
+.gear-add-fields .gear-select {
+    flex: 0 0 7rem;
+    width: auto;
+}
+
+.gear-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    font-family: 'Hanken Grotesk', sans-serif;
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: #04231a;
+    background: #00d27a;
+    border: none;
+    border-radius: 0.5em;
+    padding: 0.5rem 0.9rem;
+    cursor: pointer;
+    transition: filter 0.15s;
+}
+
+.gear-btn:hover {
+    filter: brightness(1.08);
+}
+
+.gear-btn img {
+    width: 0.95rem;
+    height: 0.95rem;
+}
+
+@media (max-width: 480px) {
+    .gear-item {
+        flex-wrap: wrap;
+    }
+    .gear-distance {
+        flex-direction: row;
+        align-items: baseline;
+        gap: 0.3rem;
+        margin-left: auto;
+    }
+}
+
+/* ===== /exercises activity timeline — dark instrument panel ===== */
+.feed-panel {
+    width: 100%;
+    max-width: 54em;
+    margin: 1rem auto;
+    box-sizing: border-box;
+    background: var(--darkblue);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    border-radius: 1em;
+    padding: 1.15rem 1.15rem 1.35rem;
+    color: #e6ebf2;
+}
+
+.feed-controls {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    align-items: center;
+}
+
+.feed-controls-secondary {
+    margin-top: 0.5rem;
+}
+
+.feed-panel .feed-input {
+    font-family: 'Hanken Grotesk', sans-serif;
+    font-size: 0.88rem;
+    color: #eef3fb;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 0.5em;
+    padding: 0.45rem 0.6rem;
+    margin: 0;
+    height: auto;
+    min-height: 0;
+    box-sizing: border-box;
+}
+
+.feed-panel select.feed-input {
+    flex: 0 0 auto;
+    width: auto;
+}
+
+.feed-panel #feed-q {
+    flex: 1 1 12rem;
+    width: auto;
+    min-width: 0;
+}
+
+.feed-panel .feed-input:focus {
+    outline: none;
+    border-color: #4a9fe0;
+    background: rgba(255, 255, 255, 0.08);
+}
+
+.feed-panel .feed-input option {
+    color: #111;
+}
+
+.feed-daterange {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    font-family: 'Hanken Grotesk', sans-serif;
+    font-size: 0.75rem;
+    color: #93a4bd;
+}
+
+.feed-daterange .feed-input {
+    font-size: 0.8rem;
+    padding: 0.3rem 0.45rem;
+}
+
+.feed-check {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    font-family: 'Hanken Grotesk', sans-serif;
+    font-size: 0.8rem;
+    color: #93a4bd;
+    cursor: pointer;
+}
+
+.feed-check input {
+    accent-color: #4a9fe0;
+    cursor: pointer;
+}
+
+.feed-count {
+    font-family: 'Hanken Grotesk', sans-serif;
+    font-size: 0.72rem;
+    letter-spacing: 0.04em;
+    color: #7488a3;
+    margin: 1rem 0 0.5rem;
+}
+
+.feed-empty {
+    text-align: center;
+    color: #7488a3;
+    font-family: 'Hanken Grotesk', sans-serif;
+    padding: 2rem 0;
+}
+
+/* Browse groups */
+.feed-day + .feed-day {
+    margin-top: 1.4rem;
+}
+
+.feed-day-header {
+    font-family: 'Saira Semi Condensed', sans-serif;
+    font-weight: 600;
+    font-size: 0.95rem;
+    letter-spacing: 0.02em;
+    color: #4a9fe0;
+    padding-bottom: 0.4rem;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    margin-bottom: 0.6rem;
+}
+
+.feed-session {
+    margin-bottom: 0.8rem;
+}
+
+.feed-session-header {
+    display: flex;
+    align-items: baseline;
+    gap: 0.6rem;
+    margin: 0.35rem 0 0.35rem 0.2rem;
+}
+
+.feed-session-time {
+    font-family: 'Saira Semi Condensed', sans-serif;
+    font-weight: 600;
+    font-size: 0.9rem;
+    color: #cdd7e6;
+}
+
+.feed-session-count {
+    font-family: 'Hanken Grotesk', sans-serif;
+    font-size: 0.68rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: #7488a3;
+}
+
+/* Activity row (shared by browse + find) */
+.feed-row {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    background: rgba(255, 255, 255, 0.035);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    border-radius: 0.6em;
+    padding: 0.6rem 0.8rem;
+    margin-bottom: 0.4rem;
+    transition: background 0.15s, border-color 0.15s;
+}
+
+.feed-row:hover {
+    background: rgba(255, 255, 255, 0.07);
+    border-color: rgba(74, 159, 224, 0.4);
+}
+
+.feed-rank {
+    flex: 0 0 auto;
+    width: 1.7rem;
+    font-family: 'Saira Semi Condensed', sans-serif;
+    font-weight: 700;
+    font-size: 1.2rem;
+    color: #4a9fe0;
+    text-align: center;
+}
+
+.feed-row-icon {
+    flex: 0 0 auto;
+    width: 2.1rem;
+    height: 2.1rem;
+    border-radius: 0.5em;
+    background: rgba(255, 255, 255, 0.06);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.15rem;
+}
+
+.feed-logo {
+    width: 1.3rem;
+    height: 1.3rem;
+}
+
+.feed-row-body {
+    flex: 1 1 auto;
+    min-width: 0;
+}
+
+.feed-row-title {
+    font-family: 'Saira Semi Condensed', sans-serif;
+    font-weight: 600;
+    font-size: 1.05rem;
+    color: #f3f6fb;
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+}
+
+.feed-note {
+    font-size: 0.8rem;
+    opacity: 0.8;
+}
+
+.feed-row-metrics {
+    font-family: 'Hanken Grotesk', sans-serif;
+    font-size: 0.8rem;
+    color: #9fb0c8;
+    margin-top: 0.1rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.feed-row-when {
+    flex: 0 0 auto;
+    font-family: 'Hanken Grotesk', sans-serif;
+    font-size: 0.7rem;
+    line-height: 1.25;
+    color: #7f93ad;
+    text-align: right;
+}
+
+.feed-loading {
+    display: flex;
+    justify-content: center;
+    padding: 1.25rem 0;
+}
+
+.feed-more {
+    text-align: center;
+    margin-top: 0.8rem;
+}
+
+@media (max-width: 480px) {
+    .feed-row-metrics {
+        white-space: normal;
+    }
+    .feed-panel select.feed-input,
+    .feed-panel #feed-q {
+        flex: 1 1 100%;
+    }
+}

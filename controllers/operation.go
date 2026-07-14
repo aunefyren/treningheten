@@ -1015,7 +1015,7 @@ func APIGetActionStatistics(context *gin.Context) {
 		}
 
 		statisticsSums.Repetition += repetition
-		statisticsSums.Time += time.Duration(timeSum)
+		statisticsSums.Time += int64(timeSum)
 		statisticsSums.Weight += weight
 		statisticsSums.Distance += distance
 
@@ -1045,7 +1045,7 @@ func APIGetActionStatistics(context *gin.Context) {
 	if statisticsSums.Operations > 0 {
 		statisticsAverages := models.StatisticsAverageCompilation{
 			Distance:   (statisticsSums.Distance / float64(statisticsSums.Operations)),
-			Time:       time.Duration(float64(statisticsSums.Time) / float64(statisticsSums.Operations)),
+			Time:       int64(float64(statisticsSums.Time) / float64(statisticsSums.Operations)),
 			Repetition: (statisticsSums.Repetition / float64(statisticsSums.Operations)),
 			Weight:     (statisticsSums.Weight / float64(statisticsSums.Operations)),
 		}
@@ -1098,12 +1098,12 @@ func computeActionMediaStatistics(playback []models.MediaPlaybackObject) *models
 	podcastEpisodes := map[string]bool{}
 
 	for _, row := range playback {
-		span := time.Duration(0)
+		span := int64(0)
 		if row.TrackLength != nil && *row.TrackLength > 0 {
-			span = time.Duration(*row.TrackLength)
+			span = *row.TrackLength
 		} else if row.EndedAt != nil {
 			if seconds := int64(row.EndedAt.Sub(row.StartedAt).Seconds()); seconds > 0 {
-				span = time.Duration(seconds)
+				span = seconds
 			}
 		}
 

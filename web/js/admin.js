@@ -44,7 +44,7 @@ function load_page(result) {
                             <div class="invite-list" id="invite-list">
                             </div>
 
-                            <button type="submit" onclick="generate_invite();" id="generate_invite_button" style=""><img src="assets/plus.svg" class="btn_logo color-invert"><p2>Generate</p2></button>
+                            <button type="submit" onclick="generate_invite();" id="generate_invite_button"><img src="assets/plus.svg" class="btn_logo color-invert"><p2>Generate</p2></button>
                         
                         </div>
 
@@ -59,13 +59,13 @@ function load_page(result) {
                             <form action="" onsubmit="event.preventDefault(); generate_debt();">
                                 
                                 <label for="debt-week" class="clickable">Week with debt</label><br>
-                                <input style="" class="" type="date" id="debt-week" name="debt-week" value="" required>
+                                <input class="" type="date" id="debt-week" name="debt-week" value="" required>
 
                                 <select id="selectUser" class="form-control" onchange="">
                                     <option value="null">Choose optional user</option>
                                 </select>
 
-                                <button type="submit" onclick="" id="generate-debt-button" style=""><img src="assets/plus.svg" class="btn_logo color-invert"><p2>Generate debt</p2></button>
+                                <button type="submit" onclick="" id="generate-debt-button"><img src="assets/plus.svg" class="btn_logo color-invert"><p2>Generate debt</p2></button>
 
                             </form>
 
@@ -79,7 +79,7 @@ function load_page(result) {
 
                             <h3 id="correlate-module-title">Correlate all exercise:</h3>
 
-                            <button type="submit" onclick="correlate_exercises();" id="correlate-exercise-button" style=""><img src="assets/done.svg" class="btn_logo color-invert"><p2>Correlate</p2></button>
+                            <button type="submit" onclick="correlate_exercises();" id="correlate-exercise-button"><img src="assets/done.svg" class="btn_logo color-invert"><p2>Correlate</p2></button>
 
                         </div>
 
@@ -94,12 +94,12 @@ function load_page(result) {
                             <form action="" onsubmit="event.preventDefault(); add_prize();">
                                 
                                 <label for="prize-name" class="clickable">Name of prize</label><br>
-                                <input style="" class="" type="text" id="prize-name" name="prize-name" value="" autocomplete="off" required>
+                                <input class="" type="text" id="prize-name" name="prize-name" value="" autocomplete="off" required>
 
                                 <label for="prize-quantity" class="clickable">Quantity of prize</label><br>
-                                <input style="" class="" type="number" id="prize-quantity" name="prize-quantity" value="1" min="1" required>
+                                <input class="" type="number" id="prize-quantity" name="prize-quantity" value="1" min="1" required>
 
-                                <button type="submit" onclick="" id="add-prize-button" style=""><img src="assets/done.svg" class="btn_logo color-invert"><p2>Add prize</p2></button>
+                                <button type="submit" onclick="" id="add-prize-button"><img src="assets/done.svg" class="btn_logo color-invert"><p2>Add prize</p2></button>
 
                             </form>
 
@@ -116,25 +116,25 @@ function load_page(result) {
                             <form action="" onsubmit="event.preventDefault(); add_season();">
 
                                 <label for="season-start" class="clickable">Start of season (monday)</label><br>
-                                <input style="" class="" type="date" id="season-start" name="season-start" value="" required>
+                                <input class="" type="date" id="season-start" name="season-start" value="" required>
 
                                 <label for="season-end" class="clickable">End of season (sunday)</label><br>
-                                <input style="" class="" type="date" id="season-end" name="season-end" value="" required>
+                                <input class="" type="date" id="season-end" name="season-end" value="" required>
                                 
-                                <input style="" class="" type="text" id="season-name" name="season-name" value="" placeholder="Name" autocomplete="off" required>
-                                <textarea style="" class="" type="text" id="season-desc" name="season-desc" value="" placeholder="Description" autocomplete="off" required></textarea>
+                                <input class="" type="text" id="season-name" name="season-name" value="" placeholder="Name" autocomplete="off" required>
+                                <textarea class="" type="text" id="season-desc" name="season-desc" value="" placeholder="Description" autocomplete="off" required></textarea>
 
                                 <label for="season-sickleave" class="clickable">Season sick leave</label><br>
-                                <input style="" class="" type="number" id="season-sickleave" name="season-sickleave" value="0" min="0" max="99" placeholder="" autocomplete="off" required>
+                                <input class="" type="number" id="season-sickleave" name="season-sickleave" value="0" min="0" max="99" placeholder="" autocomplete="off" required>
 
                                 <label for="season-prize" class="clickable">Season prize</label><br>
-                                <select style="" class="form-control" id="season-prize" name="season-prize" value="" required>
+                                <select class="form-control" id="season-prize" name="season-prize" value="" required>
                                 </select>
 
-                                <input style="" type="checkbox" id="join_anytime" class="clickable" name="join_anytime" value="join_anytime">
-                                <label for="join_anytime" class="clickable" style="user-select: none; text-align: center;" title="Should people be able to join after season start?">Let users join the season at any point.</label><br>
+                                <input type="checkbox" id="join_anytime" class="clickable" name="join_anytime" value="join_anytime">
+                                <label for="join_anytime" class="clickable u-noselect u-text-center" title="Should people be able to join after season start?">Let users join the season at any point.</label><br>
 
-                                <button type="submit" onclick="" id="add-season-button" style=""><img src="assets/done.svg" class="btn_logo color-invert"><p2>Add season</p2></button>
+                                <button type="submit" onclick="" id="add-season-button"><img src="assets/done.svg" class="btn_logo color-invert"><p2>Add season</p2></button>
 
                             </form>
 

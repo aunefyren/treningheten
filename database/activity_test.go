@@ -10,8 +10,8 @@ import (
 	"gorm.io/gorm/clause"
 )
 
-func f64Ptr(v float64) *float64        { return &v }
-func durPtr(v time.Duration) *time.Duration { return &v }
+func f64Ptr(v float64) *float64 { return &v }
+func durPtr(v int64) *int64     { return &v }
 
 // insertRow writes a single row without touching its associations, so seeding the tree by
 // scalar foreign keys never upserts a blank parent.
@@ -65,7 +65,7 @@ func makeOperation(t *testing.T, exerciseID uuid.UUID, actionID *uuid.UUID) mode
 	return op
 }
 
-func makeSet(t *testing.T, operationID uuid.UUID, distance, weight, reps *float64, dur *time.Duration) {
+func makeSet(t *testing.T, operationID uuid.UUID, distance, weight, reps *float64, dur *int64) {
 	t.Helper()
 	set := models.OperationSet{OperationID: operationID, Enabled: true, Distance: distance, Weight: weight, Repetitions: reps, Time: dur}
 	set.ID = uuid.New()
@@ -86,15 +86,15 @@ func seedActivityFeed(t *testing.T) (userID uuid.UUID, runID uuid.UUID, s2ID uui
 	day1 := makeDay(t, user.ID, time.Date(2025, 5, 4, 0, 0, 0, 0, time.UTC))
 	s1 := makeSession(t, day1.ID, time.Date(2025, 5, 4, 9, 0, 0, 0, time.UTC))
 	run1 := makeOperation(t, s1.ID, &run.ID)
-	makeSet(t, run1.ID, f64Ptr(21.1), nil, nil, durPtr(time.Duration(7110)))
+	makeSet(t, run1.ID, f64Ptr(21.1), nil, nil, durPtr(7110))
 
 	// Day 2 (older) — a session with a run AND a padel match.
 	day2 := makeDay(t, user.ID, time.Date(2025, 4, 12, 0, 0, 0, 0, time.UTC))
 	s2 := makeSession(t, day2.ID, time.Date(2025, 4, 12, 18, 0, 0, 0, time.UTC))
 	run2 := makeOperation(t, s2.ID, &run.ID)
-	makeSet(t, run2.ID, f64Ptr(18.0), nil, nil, durPtr(time.Duration(6000)))
+	makeSet(t, run2.ID, f64Ptr(18.0), nil, nil, durPtr(6000))
 	padel1 := makeOperation(t, s2.ID, &padel.ID)
-	makeSet(t, padel1.ID, nil, nil, nil, durPtr(time.Duration(5400)))
+	makeSet(t, padel1.ID, nil, nil, nil, durPtr(5400))
 
 	// Day 3 — a lift with three sets, no distance.
 	day3 := makeDay(t, user.ID, time.Date(2025, 6, 1, 0, 0, 0, 0, time.UTC))
@@ -198,11 +198,11 @@ func TestActivityFeedExcludesOffSessions(t *testing.T) {
 
 	onSession := makeSession(t, day.ID, time.Date(2025, 5, 4, 9, 0, 0, 0, time.UTC))
 	onOp := makeOperation(t, onSession.ID, &run.ID)
-	makeSet(t, onOp.ID, f64Ptr(10), nil, nil, durPtr(time.Duration(3000)))
+	makeSet(t, onOp.ID, f64Ptr(10), nil, nil, durPtr(3000))
 
 	offSession := makeSessionOff(t, day.ID, time.Date(2025, 5, 4, 18, 0, 0, 0, time.UTC))
 	offOp := makeOperation(t, offSession.ID, &run.ID)
-	makeSet(t, offOp.ID, f64Ptr(99), nil, nil, durPtr(time.Duration(9000)))
+	makeSet(t, offOp.ID, f64Ptr(99), nil, nil, durPtr(9000))
 
 	items, total, err := GetActivityFeedForUser(user.ID, models.ActivityFeedFilter{Sort: "date", Order: "desc", Limit: 30})
 	if err != nil {

@@ -85,14 +85,14 @@ function action_login() {
             
             <hr>
 
-            <button id="log-in-button" type="submit" href="/">Log in</button>
+            <button class="btn" id="log-in-button" type="submit" href="/">Log in</button>
 
         </form>
     </div>
     `;
 
     var html2 = `
-    <a style="font-size:0.75em;cursor:pointer;" onclick="action_newpassword();">I forgot my password!</a>
+    <a class="u-fs-sm u-pointer" onclick="action_newpassword();">I forgot my password!</a>
     `;
 
     document.getElementById("action").innerHTML = html;
@@ -130,14 +130,14 @@ function action_newpassword() {
 
             <hr>
 
-            <button id="reset-button" type="submit" href="/">Reset password</button>
+            <button class="btn" id="reset-button" type="submit" href="/">Reset password</button>
 
         </form>
     </div>
     `;
 
     var html2 = `
-    <a style="font-size:0.75em;cursor:pointer;" onclick="action_login();">Log in!</a>
+    <a class="u-fs-sm u-pointer" onclick="action_login();">Log in!</a>
     `;
 
     document.getElementById("action").innerHTML = html;
@@ -176,14 +176,14 @@ function action_resetpassword(reset_code) {
 
             <hr>
 
-            <button id="reset-button" type="submit" href="/">Change password</button>
+            <button class="btn" id="reset-button" type="submit" href="/">Change password</button>
 
         </form>
     </div>
     `;
 
     var html2 = `
-    <a style="font-size:0.75em;cursor:pointer;" onclick="action_login();">Log in!</a>
+    <a class="u-fs-sm u-pointer" onclick="action_login();">Log in!</a>
     `;
 
     document.getElementById("action").innerHTML = html;

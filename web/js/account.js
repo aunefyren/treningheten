@@ -61,68 +61,68 @@ function load_page(result) {
         <div class="module">
 
             <div class="user-active-profile-photo">
-                <img style="width: 100%; height: 100%;" class="user-active-profile-photo-img" id="user-active-profile-photo-img" src="/assets/images/barbell.gif">
+                <img class="user-active-profile-photo-img u-fill" id="user-active-profile-photo-img" src="/assets/images/barbell.gif">
             </div>
 
             <b><p id="user_name" style="margin-top: 1em; font-size: 1.25em;"></p></b>
-            <p id="join_date" style=""></p>
-            <p id="user_admin" style=""></p>
+            <p id="join_date"></p>
+            <p id="user_admin"></p>
 
             <div class="button-collection">
-                <button onclick="window.location.href = '/users/${user_id}';"class="regular-button" style="" type="submit" href="">Public profile</button>
-                <button onclick="window.location.href = '/gear';" class="regular-button" style="" type="submit" href="">Manage gear</button>
+                <button onclick="window.location.href = '/users/${user_id}';"class="btn" type="submit" href="">Public profile</button>
+                <button onclick="window.location.href = '/gear';" class="btn" type="submit" href="">Manage gear</button>
             </div>
 
             <div class="account-section-wrapper">
 
-                <div class="account-section" style="">
+                <div class="account-section">
 
                     <div class="account-section-tab clickable" onclick="toggleSection('notifications-wrapper', 'section-button-notifications')">
                         <div class="">Device Notifications</div>
-                        <img id="section-button-notifications"  src="assets/chevron-right.svg" class="color-invert" style="margin: 0.5em;">
+                        <img id="section-button-notifications"  src="assets/chevron-right.svg" class="color-invert u-m-2">
                     </div>
 
                     <div id="notifications-wrapper" class="notifications-wrapper minimized">
-                        <div class="notification-options" id="" style="">
-                            <div class="notification-option" id="" style="">
-                                <input style="" class="clickable" type="checkbox" id="notification-reminder-toggle" name="notification-reminder-toggle" value="">
-                                <label for="notification-reminder-toggle" style="margin: 0;" class="clickable">Logging reminders</label><br>
+                        <div class="notification-options" id="">
+                            <div class="notification-option" id="">
+                                <input class="clickable" type="checkbox" id="notification-reminder-toggle" name="notification-reminder-toggle" value="">
+                                <label for="notification-reminder-toggle" class="clickable u-m-0">Logging reminders</label><br>
                             </div>
 
-                            <div class="notification-option" id="" style="">
-                                <input style="" class="clickable" type="checkbox" id="notification-achievement-toggle" name="notification-achievement-toggle" value="">
-                                <label for="notification-achievement-toggle" style="margin: 0;" class="clickable">Achievements</label><br>
+                            <div class="notification-option" id="">
+                                <input class="clickable" type="checkbox" id="notification-achievement-toggle" name="notification-achievement-toggle" value="">
+                                <label for="notification-achievement-toggle" class="clickable u-m-0">Achievements</label><br>
                             </div>
 
-                            <div class="notification-option" id="" style="">
-                                <input style="" class="clickable" type="checkbox" id="notification-news-toggle" name="notification-news-toggle" value="">
-                                <label for="notification-news-toggle" style="margin: 0;" class="clickable">News</label><br>
+                            <div class="notification-option" id="">
+                                <input class="clickable" type="checkbox" id="notification-news-toggle" name="notification-news-toggle" value="">
+                                <label for="notification-news-toggle" class="clickable u-m-0">News</label><br>
                             </div>
                         
                         </div>
 
                         <div id="notification_button_div" style="margin-top: 2em; display: flex; height: 3em; flex-direction: row; flex-wrap: nowrap; align-content: center; justify-content: center;align-items: center;">
-                            <button type="submit" class="btn btn-primary" style="float: none !important;" id="" onclick="create_push('${vapid_public_key}'); return false;">
+                            <button type="submit" class="btn btn--primary" style="float: none !important;" id="" onclick="create_push('${vapid_public_key}'); return false;">
                                 Notify me on this device
                             </button>
                         </div>
                     </div>
                 </div>
 
-                <div class="account-section" style="">
+                <div class="account-section">
 
                     <div class="account-section-tab clickable" onclick="toggleSection('mail-notifications-wrapper', 'section-button-mail-notifications')">
                         <div class="">E-mail Notifications</div>
-                        <img id="section-button-mail-notifications" src="assets/chevron-right.svg" class="color-invert" style="margin: 0.5em;">
+                        <img id="section-button-mail-notifications" src="assets/chevron-right.svg" class="color-invert u-m-2">
                     </div>
 
                     <div id="mail-notifications-wrapper" class="mail-notifications-wrapper minimized">
                         
-                        <div class="notification-options" id="" style="">
+                        <div class="notification-options" id="">
 
-                            <div class="notification-option" id="" style="">
-                                <input style="margin-top: 3em;" class="clickable" type="checkbox" id="sunday_alert" name="sunday_alert" value="sunday_alert" onchange="updateAccountValue('sunday_alert');">
-                                <label for="sunday_alert" style="margin: 0;" class="clickable">Send me e-mail logging reminders on Sundays.</label><br>
+                            <div class="notification-option" id="">
+                                <input class="clickable u-mt-3" type="checkbox" id="sunday_alert" name="sunday_alert" value="sunday_alert" onchange="updateAccountValue('sunday_alert');">
+                                <label for="sunday_alert" class="clickable u-m-0">Send me e-mail logging reminders on Sundays.</label><br>
                             </div>
 
                         </div>
@@ -130,11 +130,11 @@ function load_page(result) {
                     </div>
                 </div>
 
-                <div class="account-section" style="">
+                <div class="account-section">
 
-                    <div class="account-section-tab clickable" style="" onclick="toggleSection('settings-wrapper', 'section-button-settings')">
+                    <div class="account-section-tab clickable" onclick="toggleSection('settings-wrapper', 'section-button-settings')">
                         <div class="">Account Settings</div>
-                        <img id="section-button-settings" src="assets/chevron-right.svg" class="color-invert" style="margin: 0.5em;">
+                        <img id="section-button-settings" src="assets/chevron-right.svg" class="color-invert u-m-2">
                     </div>
                     
                     <div id="settings-wrapper" class="settings-wrapper minimized">
@@ -146,15 +146,15 @@ function load_page(result) {
                             <label id="form-input-icon" for="birth_date">Birth date:</label>
                             <input type="date" name="birth_date" id="birth_date" placeholder="dd-mm-yyyy" value="" />
 
-                            <label id="form-input-icon" for="new_profile_image" style="margin-top: 2em;">Replace profile image:</label>
+                            <label id="form-input-icon" for="new_profile_image" class="u-mt-2">Replace profile image:</label>
                             <input type="file" name="new_profile_image" id="new_profile_image" style="height:2.5em;" placeholder="" value="" accept="image/png, image/jpeg" />
 
-                            <input onclick="change_password_toggle();" style="margin-top: 3em;" class="clickable" type="checkbox" id="password-toggle" name="confirm" value="confirm" >
-                            <label for="password-toggle" style="margin: 0;" class="clickable">Change my password.</label><br>
+                            <input onclick="change_password_toggle();" class="clickable u-mt-3" type="checkbox" id="password-toggle" name="confirm" value="confirm" >
+                            <label for="password-toggle" class="clickable u-m-0">Change my password.</label><br>
 
                             <div id="change-password-box" style="display:none;">
 
-                                <label id="form-input-icon" style="" for="password"></label>
+                                <label id="form-input-icon" for="password"></label>
                                 <input type="password" name="password" id="password" placeholder="New password" />
 
                                 <label id="form-input-icon" for="password_repeat"></label>
@@ -162,16 +162,16 @@ function load_page(result) {
 
                             </div>
 
-                            <input style="margin-top: 3em;" class="clickable" type="checkbox" id="share_activities" name="share_activities" value="share_activities">
-                            <label for="share_activities" style="margin: 0;" class="clickable">Share my activities on the activity feed.</label><br>
+                            <input class="clickable u-mt-3" type="checkbox" id="share_activities" name="share_activities" value="share_activities">
+                            <label for="share_activities" class="clickable u-m-0">Share my activities on the activity feed.</label><br>
 
-                            <input style="margin-top: 3em;" class="clickable" type="checkbox" id="share_statistics" name="share_statistics" value="share_statistics">
-                            <label for="share_statistics" style="margin: 0;" class="clickable">Share my statistics on my page.</label><br>
+                            <input class="clickable u-mt-3" type="checkbox" id="share_statistics" name="share_statistics" value="share_statistics">
+                            <label for="share_statistics" class="clickable u-m-0">Share my statistics on my page.</label><br>
 
                             <label style="margin-top: 5em;" id="form-input-icon" for="password_old">Current password:</label>
                             <input type="password" name="password_old" id="password_old" placeholder="To save your changes, type your current password." required />
 
-                            <button id="update-button" style="margin-top: 2em;" type="submit" href="/">Update account</button>
+                            <button class="btn u-mt-2" id="update-button" type="submit" href="/">Update account</button>
 
                         </form>
                     </div>
@@ -180,9 +180,9 @@ function load_page(result) {
 
                 <div class="account-section" style="display: none;" id="strava-section">
 
-                    <div class="account-section-tab clickable" style="" onclick="toggleSection('strava-wrapper', 'section-button-strava')">
+                    <div class="account-section-tab clickable" onclick="toggleSection('strava-wrapper', 'section-button-strava')">
                         <div class="">Strava</div>
-                        <img id="section-button-strava" src="assets/chevron-right.svg" class="color-invert" style="margin: 0.5em;">
+                        <img id="section-button-strava" src="assets/chevron-right.svg" class="color-invert u-m-2">
                     </div>
 
                     <div id="strava-wrapper" class="strava-wrapper minimized">
@@ -191,9 +191,9 @@ function load_page(result) {
 
                 <div class="account-section" style="display: none;" id="hevy-section">
 
-                    <div class="account-section-tab clickable" style="" onclick="toggleSection('hevy-wrapper', 'section-button-hevy')">
+                    <div class="account-section-tab clickable" onclick="toggleSection('hevy-wrapper', 'section-button-hevy')">
                         <div class="">Hevy</div>
-                        <img id="section-button-hevy" src="assets/chevron-right.svg" class="color-invert" style="margin: 0.5em;">
+                        <img id="section-button-hevy" src="assets/chevron-right.svg" class="color-invert u-m-2">
                     </div>
 
                     <div id="hevy-wrapper" class="hevy-wrapper minimized">
@@ -202,9 +202,9 @@ function load_page(result) {
 
                 <div class="account-section" style="display: none;" id="plex-section">
 
-                    <div class="account-section-tab clickable" style="" onclick="toggleSection('plex-wrapper', 'section-button-plex')">
+                    <div class="account-section-tab clickable" onclick="toggleSection('plex-wrapper', 'section-button-plex')">
                         <div class="">Plex</div>
-                        <img id="section-button-plex" src="assets/chevron-right.svg" class="color-invert" style="margin: 0.5em;">
+                        <img id="section-button-plex" src="assets/chevron-right.svg" class="color-invert u-m-2">
                     </div>
 
                     <div id="plex-wrapper" class="plex-wrapper minimized">
@@ -213,9 +213,9 @@ function load_page(result) {
 
                 <div class="account-section" style="display: none;" id="spotify-section">
 
-                    <div class="account-section-tab clickable" style="" onclick="toggleSection('spotify-wrapper', 'section-button-spotify')">
+                    <div class="account-section-tab clickable" onclick="toggleSection('spotify-wrapper', 'section-button-spotify')">
                         <div class="">Spotify</div>
-                        <img id="section-button-spotify" src="assets/chevron-right.svg" class="color-invert" style="margin: 0.5em;">
+                        <img id="section-button-spotify" src="assets/chevron-right.svg" class="color-invert u-m-2">
                     </div>
 
                     <div id="spotify-wrapper" class="spotify-wrapper minimized">
@@ -224,9 +224,9 @@ function load_page(result) {
 
                 <div class="account-section" style="display: none;" id="audiobookshelf-section">
 
-                    <div class="account-section-tab clickable" style="" onclick="toggleSection('audiobookshelf-wrapper', 'section-button-audiobookshelf')">
+                    <div class="account-section-tab clickable" onclick="toggleSection('audiobookshelf-wrapper', 'section-button-audiobookshelf')">
                         <div class="">Audiobookshelf</div>
-                        <img id="section-button-audiobookshelf" src="assets/chevron-right.svg" class="color-invert" style="margin: 0.5em;">
+                        <img id="section-button-audiobookshelf" src="assets/chevron-right.svg" class="color-invert u-m-2">
                     </div>
 
                     <div id="audiobookshelf-wrapper" class="audiobookshelf-wrapper minimized">
@@ -235,9 +235,9 @@ function load_page(result) {
 
                 <div class="account-section" id="wheel-section">
 
-                    <div class="account-section-tab clickable" style="" onclick="toggleSection('wheel-wrapper', 'section-button-wheel')">
+                    <div class="account-section-tab clickable" onclick="toggleSection('wheel-wrapper', 'section-button-wheel')">
                         <div class="">Wheel appearance</div>
-                        <img id="section-button-wheel" src="assets/chevron-right.svg" class="color-invert" style="margin: 0.5em;">
+                        <img id="section-button-wheel" src="assets/chevron-right.svg" class="color-invert u-m-2">
                     </div>
 
                     <div id="wheel-wrapper" class="wheel-wrapper minimized">
@@ -246,9 +246,9 @@ function load_page(result) {
 
                 <div class="account-section" id="pat-section">
 
-                    <div class="account-section-tab clickable" style="" onclick="toggleSection('pat-wrapper', 'section-button-pat')">
+                    <div class="account-section-tab clickable" onclick="toggleSection('pat-wrapper', 'section-button-pat')">
                         <div class="">Developer access tokens</div>
-                        <img id="section-button-pat" src="assets/chevron-right.svg" class="color-invert" style="margin: 0.5em;">
+                        <img id="section-button-pat" src="assets/chevron-right.svg" class="color-invert u-m-2">
                     </div>
 
                     <div id="pat-wrapper" class="pat-wrapper minimized">
@@ -259,15 +259,15 @@ function load_page(result) {
             </div>
 
 
-            <div class="module" id="" style="">
+            <div class="module" id="">
                 <hr>
             </div>
 
             <div class="button-collection">
 
-                <button onclick="leave_season();"class="danger-button" style="" type="submit" href="">Leave season</button>
+                <button onclick="leave_season();"class="btn btn--danger" type="submit" href="">Leave season</button>
 
-                <button onclick="delete_account();" class="danger-button" style="" type="submit" href="">Delete account</button>
+                <button onclick="delete_account();" class="btn btn--danger" type="submit" href="">Delete account</button>
 
             </div>
 
@@ -546,11 +546,11 @@ function renderStravaSection(user_object) {
     var hevyEnabled = stravaHevyEnabled;
 
     var stravaHTML = `
-        <p style="width: 100%; text-align: center;">
+        <p class="u-w-full u-text-center">
             Strava exercises sync automatically every hour. Be careful to only log your sessions to either Strava or {{.appName}}.
         </p>
 
-        <button onclick="window.location.href='${stravaOauth}';" class="" style="width: 10em;" type="submit" href="">Connect Strava</button>
+        <button onclick="window.location.href='${stravaOauth}';" class="btn u-w-10" type="submit" href="">Connect Strava</button>
     `;
 
     if(user_object.strava_code && user_object.strava_code != "") {
@@ -562,32 +562,32 @@ function renderStravaSection(user_object) {
         if(hevyEnabled) {
             var skipHevyHTML = user_object.strava_skip_hevy ? "checked" : "";
             skipHevyOption = `
-                <div class="strava-option" id="" style="">
-                    <input style="" class="clickable" type="checkbox" id="strava_skip_hevy" name="strava_skip_hevy" value="" onchange="updateAccountValue('strava_skip_hevy');" ${skipHevyHTML}>
-                    <label for="strava_skip_hevy" style="margin: 0;" class="clickable">Skip Strava activities already in Hevy</label><br>
+                <div class="strava-option" id="">
+                    <input class="clickable" type="checkbox" id="strava_skip_hevy" name="strava_skip_hevy" value="" onchange="updateAccountValue('strava_skip_hevy');" ${skipHevyHTML}>
+                    <label for="strava_skip_hevy" class="clickable u-m-0">Skip Strava activities already in Hevy</label><br>
                 </div>
             `;
         }
 
         stravaHTML = `
-            <p style="width: 100%; text-align: center;">
+            <p class="u-w-full u-text-center">
                 Strava is connected. Exercises sync automatically every hour. Be careful to only log your sessions to either Strava or {{.appName}}.
             </p>
 
-            <div class="notification-options" id="" style="">
-                <button onclick="syncStrava('${user_object.id}');" class="" style="width: 12em;" type="submit" href="">Sync Strava now</button>
-                <button onclick="disconnectStrava('${user_object.id}');" class="danger-button" style="width: 12em;" type="submit" href="">Disconnect Strava</button>
+            <div class="notification-options" id="">
+                <button onclick="syncStrava('${user_object.id}');" class="btn integration-btn" type="submit" href="">Sync Strava now</button>
+                <button onclick="disconnectStrava('${user_object.id}');" class="btn btn--danger integration-btn" type="submit" href="">Disconnect Strava</button>
             </div>
 
-            <div class="notification-options" id="" style="">
-                <div class="strava-option" id="" style="">
-                    <input style="" class="clickable" type="checkbox" id="strava_walks" name="strava_walks" value="" onchange="updateAccountValue('strava_walks');" ${walksHTML}>
-                    <label for="strava_walks" style="margin: 0;" class="clickable">Ignore walks</label><br>
+            <div class="notification-options" id="">
+                <div class="strava-option" id="">
+                    <input class="clickable" type="checkbox" id="strava_walks" name="strava_walks" value="" onchange="updateAccountValue('strava_walks');" ${walksHTML}>
+                    <label for="strava_walks" class="clickable u-m-0">Ignore walks</label><br>
                 </div>
 
-                <div class="strava-option" id="" style="">
-                    <input style="" class="clickable" type="checkbox" id="strava_public" name="strava_public" value="" onchange="updateAccountValue('strava_public');" ${publicHTML}>
-                    <label for="strava_public" style="margin: 0;" class="clickable">Show my Strava on my profile</label><br>
+                <div class="strava-option" id="">
+                    <input class="clickable" type="checkbox" id="strava_public" name="strava_public" value="" onchange="updateAccountValue('strava_public');" ${publicHTML}>
+                    <label for="strava_public" class="clickable u-m-0">Show my Strava on my profile</label><br>
                 </div>
 
                 ${skipHevyOption}
@@ -626,13 +626,13 @@ function refreshStravaSection(user_id) {
 
 function renderHevySection(user_object) {
     var hevyHTML = `
-        <p style="width: 100%; text-align: center;">
+        <p class="u-w-full u-text-center">
             Connect Hevy to sync your workouts automatically. Your Hevy API key is found under Settings in the Hevy app and requires a Hevy PRO subscription.
         </p>
 
-        <div class="notification-options" id="" style="">
-            <input id="hevy_api_key" type="password" placeholder="Hevy API key" autocomplete="off" style="width: 16em;">
-            <button onclick="setHevy('${user_object.id}');" class="" style="width: 12em;" type="submit" href="">Connect Hevy</button>
+        <div class="notification-options" id="">
+            <input id="hevy_api_key" type="password" placeholder="Hevy API key" autocomplete="off" class="u-w-16">
+            <button onclick="setHevy('${user_object.id}');" class="btn integration-btn" type="submit" href="">Connect Hevy</button>
         </div>
     `;
 
@@ -640,21 +640,21 @@ function renderHevySection(user_object) {
         var hevyPublicHTML = user_object.hevy_public ? "checked" : "";
 
         hevyHTML = `
-            <p style="width: 100%; text-align: center;">
+            <p class="u-w-full u-text-center">
                 Hevy is connected. Workouts sync automatically. Be careful to only log your sessions to either Hevy or {{.appName}}.
             </p>
 
-            <div class="notification-options" id="" style="">
-                <input id="hevy_api_key" type="password" placeholder="Replace Hevy API key" autocomplete="off" style="width: 16em;">
-                <button onclick="setHevy('${user_object.id}');" class="" style="width: 12em;" type="submit" href="">Update key</button>
-                <button onclick="syncHevy('${user_object.id}');" class="" style="width: 12em;" type="submit" href="">Sync Hevy now</button>
-                <button onclick="disconnectHevy('${user_object.id}');" class="danger-button" style="width: 12em;" type="submit" href="">Disconnect Hevy</button>
+            <div class="notification-options" id="">
+                <input id="hevy_api_key" type="password" placeholder="Replace Hevy API key" autocomplete="off" class="u-w-16">
+                <button onclick="setHevy('${user_object.id}');" class="btn integration-btn" type="submit" href="">Update key</button>
+                <button onclick="syncHevy('${user_object.id}');" class="btn integration-btn" type="submit" href="">Sync Hevy now</button>
+                <button onclick="disconnectHevy('${user_object.id}');" class="btn btn--danger integration-btn" type="submit" href="">Disconnect Hevy</button>
             </div>
 
-            <div class="notification-options" id="" style="">
-                <div class="strava-option" id="" style="">
-                    <input style="" class="clickable" type="checkbox" id="hevy_public" name="hevy_public" value="" onchange="updateAccountValue('hevy_public');" ${hevyPublicHTML}>
-                    <label for="hevy_public" style="margin: 0;" class="clickable">Show my Hevy on my profile</label><br>
+            <div class="notification-options" id="">
+                <div class="strava-option" id="">
+                    <input class="clickable" type="checkbox" id="hevy_public" name="hevy_public" value="" onchange="updateAccountValue('hevy_public');" ${hevyPublicHTML}>
+                    <label for="hevy_public" class="clickable u-m-0">Show my Hevy on my profile</label><br>
                 </div>
             </div>
         `;
@@ -721,12 +721,12 @@ function renderMediaSection() {
 
 function renderPlexSection(connection) {
     var plexHTML = `
-        <p style="width: 100%; text-align: center;">
+        <p class="u-w-full u-text-center">
             Connect Plex to overlay what you listened to onto your workouts. You will be sent to Plex to approve the connection.
         </p>
 
-        <div class="notification-options" id="" style="">
-            <button onclick="connectPlex();" class="" style="width: 12em;" type="submit" href="">Connect Plex</button>
+        <div class="notification-options" id="">
+            <button onclick="connectPlex();" class="btn integration-btn" type="submit" href="">Connect Plex</button>
         </div>
     `;
 
@@ -737,22 +737,22 @@ function renderPlexSection(connection) {
             : "No server auto-detected. Enter the URL you reach Plex on, e.g. https://plex.example.com";
 
         plexHTML = `
-            <p style="width: 100%; text-align: center;">
+            <p class="u-w-full u-text-center">
                 Plex is connected. Your listening history is matched onto activities by time.
             </p>
 
-            <div class="notification-options" id="" style="">
-                <input id="plex_server_url" type="text" placeholder="https://plex.example.com" autocomplete="off" value="${serverValue}" style="width: 18em;">
-                <button onclick="savePlexServerURL();" class="" style="width: 12em;" type="submit" href="">Save server URL</button>
+            <div class="notification-options" id="">
+                <input id="plex_server_url" type="text" placeholder="https://plex.example.com" autocomplete="off" value="${serverValue}" class="u-w-18">
+                <button onclick="savePlexServerURL();" class="btn integration-btn" type="submit" href="">Save server URL</button>
             </div>
 
             <p style="width: 100%; text-align: center; opacity: 0.7; font-size: 0.85em;">
                 ${serverHint}
             </p>
 
-            <div class="notification-options" id="" style="">
-                <button onclick="connectPlex();" class="" style="width: 12em;" type="submit" href="">Reconnect Plex</button>
-                <button onclick="disconnectPlex();" class="danger-button" style="width: 12em;" type="submit" href="">Disconnect Plex</button>
+            <div class="notification-options" id="">
+                <button onclick="connectPlex();" class="btn integration-btn" type="submit" href="">Reconnect Plex</button>
+                <button onclick="disconnectPlex();" class="btn btn--danger integration-btn" type="submit" href="">Disconnect Plex</button>
             </div>
         `;
     }
@@ -933,24 +933,24 @@ function savePlexServerURL() {
 
 function renderSpotifySection(connection) {
     var spotifyHTML = `
-        <p style="width: 100%; text-align: center;">
+        <p class="u-w-full u-text-center">
             Connect Spotify to overlay what you listened to onto your workouts. Spotify only keeps the last ~24 hours of listening, so connect it before (or soon after) you train.
         </p>
 
-        <div class="notification-options" id="" style="">
-            <button onclick="connectSpotify();" class="" style="width: 12em;" type="submit" href="">Connect Spotify</button>
+        <div class="notification-options" id="">
+            <button onclick="connectSpotify();" class="btn integration-btn" type="submit" href="">Connect Spotify</button>
         </div>
     `;
 
     if(connection && connection.connected) {
         spotifyHTML = `
-            <p style="width: 100%; text-align: center;">
+            <p class="u-w-full u-text-center">
                 Spotify is connected. Recent listening is matched onto activities by time. Because Spotify only exposes the last ~24 hours, older workouts can't be back-filled.
             </p>
 
-            <div class="notification-options" id="" style="">
-                <button onclick="connectSpotify();" class="" style="width: 12em;" type="submit" href="">Reconnect Spotify</button>
-                <button onclick="disconnectSpotify();" class="danger-button" style="width: 12em;" type="submit" href="">Disconnect Spotify</button>
+            <div class="notification-options" id="">
+                <button onclick="connectSpotify();" class="btn integration-btn" type="submit" href="">Reconnect Spotify</button>
+                <button onclick="disconnectSpotify();" class="btn btn--danger integration-btn" type="submit" href="">Disconnect Spotify</button>
             </div>
         `;
     }
@@ -1003,36 +1003,36 @@ function disconnectSpotify() {
 
 function renderAudiobookshelfSection(connection) {
     var absHTML = `
-        <p style="width: 100%; text-align: center;">
+        <p class="u-w-full u-text-center">
             Connect Audiobookshelf to overlay the audiobooks and podcasts you listened to onto your workouts. Enter your server URL and an API token from your Audiobookshelf account settings.
         </p>
 
-        <div class="notification-options" id="" style="">
-            <input id="abs_server_url" type="text" placeholder="https://abs.example.com" autocomplete="off" value="" style="width: 18em;">
+        <div class="notification-options" id="">
+            <input id="abs_server_url" type="text" placeholder="https://abs.example.com" autocomplete="off" value="" class="u-w-18">
         </div>
-        <div class="notification-options" id="" style="">
-            <input id="abs_token" type="password" placeholder="API token" autocomplete="off" value="" style="width: 18em;">
-            <button onclick="connectAudiobookshelf();" class="" style="width: 12em;" type="submit" href="">Connect</button>
+        <div class="notification-options" id="">
+            <input id="abs_token" type="password" placeholder="API token" autocomplete="off" value="" class="u-w-18">
+            <button onclick="connectAudiobookshelf();" class="btn integration-btn" type="submit" href="">Connect</button>
         </div>
     `;
 
     if(connection && connection.connected) {
         var serverValue = connection.server_url ? escapeHTML(connection.server_url) : "";
         absHTML = `
-            <p style="width: 100%; text-align: center;">
+            <p class="u-w-full u-text-center">
                 Audiobookshelf is connected. Your listening history is matched onto activities by time.
             </p>
 
-            <div class="notification-options" id="" style="">
-                <input id="abs_server_url" type="text" placeholder="https://abs.example.com" autocomplete="off" value="${serverValue}" style="width: 18em;">
+            <div class="notification-options" id="">
+                <input id="abs_server_url" type="text" placeholder="https://abs.example.com" autocomplete="off" value="${serverValue}" class="u-w-18">
             </div>
-            <div class="notification-options" id="" style="">
-                <input id="abs_token" type="password" placeholder="New API token (to update)" autocomplete="off" value="" style="width: 18em;">
-                <button onclick="connectAudiobookshelf();" class="" style="width: 12em;" type="submit" href="">Reconnect</button>
+            <div class="notification-options" id="">
+                <input id="abs_token" type="password" placeholder="New API token (to update)" autocomplete="off" value="" class="u-w-18">
+                <button onclick="connectAudiobookshelf();" class="btn integration-btn" type="submit" href="">Reconnect</button>
             </div>
 
-            <div class="notification-options" id="" style="">
-                <button onclick="disconnectAudiobookshelf();" class="danger-button" style="width: 12em;" type="submit" href="">Disconnect</button>
+            <div class="notification-options" id="">
+                <button onclick="disconnectAudiobookshelf();" class="btn btn--danger integration-btn" type="submit" href="">Disconnect</button>
             </div>
         `;
     }
@@ -1396,7 +1396,7 @@ function renderWheelSection(user_object) {
     var borderCustom = isAccountHex(wheelState.border) ? wheelState.border : "#000000";
 
     var html = `
-        <p style="width:100%; text-align:center;">Choose how you appear on the prize wheel. Leave a value unset to be auto-assigned.</p>
+        <p class="u-w-full u-text-center">Choose how you appear on the prize wheel. Leave a value unset to be auto-assigned.</p>
 
         <div id="wheel-preview" class="wheel-preview"></div>
 
@@ -1536,12 +1536,12 @@ function renderPATSection(isAdmin) {
         adminCheckbox = `
             <div class="pat-option">
                 <input class="clickable" type="checkbox" id="pat_admin" name="pat_admin">
-                <label for="pat_admin" style="margin:0;" class="clickable">Include admin access</label>
+                <label for="pat_admin" class="clickable u-m-0">Include admin access</label>
             </div>`;
     }
 
     var html = `
-    <div class="text-body" style="margin-bottom:1em;">
+    <div class="text-body u-mb-1">
         Personal access tokens let your own scripts and integrations use the API on your behalf.
         Treat them like passwords &mdash; anyone with a token can act as you.
     </div>
@@ -1561,7 +1561,7 @@ function renderPATSection(isAdmin) {
             <option value="365">Expires in 365 days</option>
         </select>
         ` + adminCheckbox + `
-        <button type="submit" style="width:12em;">Create token</button>
+        <button class="btn u-w-12" type="submit">Create token</button>
     </form>
 
     <div id="pat-new-token" style="margin-top:1em;"></div>
@@ -1613,7 +1613,7 @@ function renderPATList(pats) {
                 <b>${escapeHTML(p.name)}</b>
                 <span class="pat-meta">${escapeHTML(p.scope)} &middot; expires ${expires} &middot; last used ${lastUsed}</span>
             </div>
-            <button class="danger-button pat-revoke" onclick="revokePAT('${p.id}')">Revoke</button>
+            <button class="btn btn--danger pat-revoke" onclick="revokePAT('${p.id}')">Revoke</button>
         </div>`;
     }
     document.getElementById("pat-list").innerHTML = rows;
@@ -1662,11 +1662,11 @@ function submitPAT() {
 function showNewPAT(token) {
     var html = `
     <div class="pat-new-token-box">
-        <div class="text-body" style="margin-bottom:0.5em;">
+        <div class="text-body u-mb-2">
             Copy your new token now &mdash; you won't be able to see it again.
         </div>
         <code class="pat-token-value" id="pat-token-value">${escapeHTML(token)}</code>
-        <button type="button" style="width:8em; margin-top:0.5em;" onclick="copyPAT()">Copy</button>
+        <button class="btn" type="button" style="width:8em; margin-top:0.5em;" onclick="copyPAT()">Copy</button>
     </div>`;
     document.getElementById("pat-new-token").innerHTML = html;
 }

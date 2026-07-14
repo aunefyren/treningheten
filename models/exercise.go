@@ -45,14 +45,14 @@ type ExerciseDaySummary struct {
 
 type Exercise struct {
 	GormModel
-	Note          string         `json:"note"`
-	Duration      *time.Duration `json:"duration"`
-	Enabled       bool           `json:"enabled" gorm:"not null; default: true"`
-	IsOn          bool           `json:"is_on" gorm:"not null; default: true"`
-	ExerciseDayID uuid.UUID      `json:"" gorm:"type:varchar(100);"`
-	ExerciseDay   ExerciseDay    `json:"exercise_day" gorm:"not null"`
-	Time          *time.Time     `json:"time"`
-	HevyWorkoutID *string        `json:"hevy_workout_id" gorm:"default: null"`
+	Note          string      `json:"note"`
+	Duration      *int64      `json:"duration"`
+	Enabled       bool        `json:"enabled" gorm:"not null; default: true"`
+	IsOn          bool        `json:"is_on" gorm:"not null; default: true"`
+	ExerciseDayID uuid.UUID   `json:"" gorm:"type:varchar(100);"`
+	ExerciseDay   ExerciseDay `json:"exercise_day" gorm:"not null"`
+	Time          *time.Time  `json:"time"`
+	HevyWorkoutID *string     `json:"hevy_workout_id" gorm:"default: null"`
 	// MediaRetrievedAt is the per-session media-pull guard. A non-null value
 	// distinguishes "pulled, found nothing" from "never pulled", which drives the
 	// re-pull button state. Lives on the session because the soundtrack is matched
@@ -66,23 +66,23 @@ type Exercise struct {
 }
 
 type ExerciseUpdateRequest struct {
-	Note     string         `json:"note"`
-	IsOn     bool           `json:"is_on"`
-	Duration *time.Duration `json:"duration"`
-	Time     string         `json:"time"`
+	Note     string `json:"note"`
+	IsOn     bool   `json:"is_on"`
+	Duration *int64 `json:"duration"`
+	Time     string `json:"time"`
 }
 
 type ExerciseCreationRequest struct {
-	ExerciseDayID uuid.UUID      `json:"exercise_day_id"`
-	Note          string         `json:"note"`
-	IsOn          bool           `json:"is_on"`
-	Duration      *time.Duration `json:"duration"`
+	ExerciseDayID uuid.UUID `json:"exercise_day_id"`
+	Note          string    `json:"note"`
+	IsOn          bool      `json:"is_on"`
+	Duration      *int64    `json:"duration"`
 }
 
 type ExerciseObject struct {
 	GormModel
 	Note          string            `json:"note"`
-	Duration      *time.Duration    `json:"duration"`
+	Duration      *int64            `json:"duration"`
 	Enabled       bool              `json:"enabled"`
 	IsOn          bool              `json:"is_on"`
 	ExerciseDay   uuid.UUID         `json:"exercise_day"`

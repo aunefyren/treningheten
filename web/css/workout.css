@@ -6,21 +6,9 @@
    ============================================================================ */
 
 .workout-view {
-  --wv-font-display: 'Saira Semi Condensed', 'Roboto', sans-serif;
-  --wv-font-body: 'Hanken Grotesk', 'Roboto', sans-serif;
-
-  --wv-ink: #f3f6fb;          /* primary text on dark */
-  --wv-ink-dim: #9fb0c7;      /* muted labels */
-  --wv-line: rgba(255, 255, 255, 0.10);
-  --wv-surface: rgba(255, 255, 255, 0.045);
-  --wv-surface-hi: rgba(255, 255, 255, 0.08);
-  --wv-accent: #00d27a;       /* energetic green — active/positive only */
-  --wv-strava: #fc4c02;
-  --wv-audio: #f0b429;        /* warm amber — the "soundtrack" listening layer */
-  --wv-node-cut: #101d2c;     /* solid ~matching the media card, to break the spine behind an icon node */
-
-  font-family: var(--wv-font-body);
-  color: var(--wv-ink);
+  /* Design tokens live in web/css/tokens.css (consumed via var() below). */
+  font-family: var(--font-body);
+  color: var(--text);
   width: 100%;
   display: flex;
   justify-content: center;
@@ -33,7 +21,7 @@
   margin: 1rem 0 2.5rem;
   padding: 1.5rem clamp(1rem, 4vw, 2rem) 1.75rem;
   border-radius: 1.25rem;
-  border: 1px solid var(--wv-line);
+  border: 1px solid var(--line);
   position: relative;
   overflow: hidden;
   /* Depth: deep navy base + a soft top-left light source, not a flat fill. */
@@ -70,12 +58,12 @@
   font-size: 0.72rem;
   letter-spacing: 0.18em;
   text-transform: uppercase;
-  color: var(--wv-ink-dim);
+  color: var(--text-dim);
   font-weight: 600;
 }
 
 .wv-session-summary {
-  font-family: var(--wv-font-display);
+  font-family: var(--font-display);
   font-weight: 600;
   font-size: clamp(1.5rem, 5vw, 2.1rem);
   line-height: 1.05;
@@ -91,19 +79,19 @@
 }
 
 .wv-total-value {
-  font-family: var(--wv-font-display);
+  font-family: var(--font-display);
   font-weight: 700;
   font-size: clamp(1.8rem, 6vw, 2.6rem);
   line-height: 1;
   font-variant-numeric: tabular-nums;
-  color: var(--wv-accent);
+  color: var(--accent);
 }
 
 .wv-total-label {
   font-size: 0.65rem;
   letter-spacing: 0.2em;
   text-transform: uppercase;
-  color: var(--wv-ink-dim);
+  color: var(--text-dim);
   margin-top: 0.15rem;
 }
 
@@ -115,7 +103,7 @@
   gap: 0.25rem;
   margin-top: 0.75rem;
   padding-top: 0.75rem;
-  border-top: 1px solid var(--wv-line);
+  border-top: 1px solid var(--line);
 }
 
 .wv-action-icon {
@@ -127,22 +115,22 @@
   filter: invert(100%);       /* the source SVGs are black; flip them for the dark surface */
   transition: opacity 0.15s, background 0.15s;
 }
-.wv-action-icon:hover { opacity: 1; background: var(--wv-surface-hi); }
-.wv-combine { width: 1.1rem; height: 1.1rem; margin-right: 0.4rem; accent-color: var(--wv-accent); }
+.wv-action-icon:hover { opacity: 1; background: var(--surface-hi); }
+.wv-combine { width: 1.1rem; height: 1.1rem; margin-right: 0.4rem; accent-color: var(--accent); }
 
 /* ── Activities (vertical list, reads well on phone + desktop) ───────────── */
 .wv-activities { display: flex; flex-direction: column; gap: 1rem; margin-top: 1.25rem; }
 
 .wv-activity {
-  background: var(--wv-surface);
-  border: 1px solid var(--wv-line);
+  background: var(--surface);
+  border: 1px solid var(--line);
   border-radius: 1rem;
   padding: 1.1rem 1.2rem;
-  border-left: 3px solid var(--wv-line);
+  border-left: 3px solid var(--line);
 }
-.wv-activity-cardio   { border-left-color: var(--wv-accent); }
+.wv-activity-cardio   { border-left-color: var(--accent); }
 .wv-activity-strength { border-left-color: #ffb020; }
-.wv-activity-time     { border-left-color: var(--wv-strava); }
+.wv-activity-time     { border-left-color: var(--strava); }
 
 .wv-activity-head {
   display: flex;
@@ -156,7 +144,7 @@
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  font-family: var(--wv-font-display);
+  font-family: var(--font-display);
   font-weight: 600;
   font-size: 1.25rem;
   letter-spacing: 0.01em;
@@ -180,20 +168,20 @@
   padding: 0.25rem 0.55rem;
   border-radius: 0.5rem;
   text-decoration: none;
-  border: 1px solid var(--wv-line);
-  color: var(--wv-ink-dim);
+  border: 1px solid var(--line);
+  color: var(--text-dim);
 }
 .wv-source img { height: 0.8rem; width: auto; }
-.wv-source-strava { color: var(--wv-strava); border-color: rgba(252, 76, 2, 0.4); }
-.wv-source-hevy { color: var(--wv-ink); border-color: rgba(255, 255, 255, 0.25); }
+.wv-source-strava { color: var(--strava); border-color: rgba(252, 76, 2, 0.4); }
+.wv-source-hevy { color: var(--text); border-color: rgba(255, 255, 255, 0.25); }
 .wv-source-hevy img { border-radius: 0.2rem; }
-.wv-source-manual { color: var(--wv-ink-dim); }
+.wv-source-manual { color: var(--text-dim); }
 
 .wv-description {
   white-space: pre-wrap;
   font-size: 0.9rem;
   line-height: 1.5;
-  color: var(--wv-ink-dim);
+  color: var(--text-dim);
   margin: 0.5rem 0 0.75rem;
 }
 
@@ -206,7 +194,7 @@
   margin: 0.9rem 0 0.35rem;
   padding: 0.85rem 1rem 0.95rem;
   border-radius: 0.7rem;
-  border: 1px solid var(--wv-line);
+  border: 1px solid var(--line);
   background: rgba(255, 255, 255, 0.025);
 }
 
@@ -225,15 +213,15 @@
   font-weight: 700;
   letter-spacing: 0.2em;
   text-transform: uppercase;
-  color: var(--wv-ink-dim);
+  color: var(--text-dim);
 }
 
 .wv-media-count {
-  font-family: var(--wv-font-display);
+  font-family: var(--font-display);
   font-weight: 700;
   font-size: 0.95rem;
   letter-spacing: 0.02em;
-  color: var(--wv-audio);
+  color: var(--audio);
   font-variant-numeric: tabular-nums;
 }
 
@@ -248,7 +236,7 @@
 }
 .wv-eq i {
   flex: 1;
-  background: var(--wv-audio);
+  background: var(--audio);
   border-radius: 1px;
 }
 .wv-eq i:nth-child(1) { height: 55%; }
@@ -270,7 +258,7 @@
   opacity: 0.65;
   transition: opacity 0.15s ease, background 0.15s ease;
 }
-.wv-media-repull:hover { opacity: 1; background: var(--wv-surface-hi); }
+.wv-media-repull:hover { opacity: 1; background: var(--surface-hi); }
 .wv-media-repull img { height: 1rem; filter: invert(100%); } /* source SVG is black */
 
 /* Time-rail list: a hairline spine with an amber node per track. */
@@ -298,7 +286,7 @@
   top: 0;
   bottom: 0;
   width: 1px;
-  background: var(--wv-line);
+  background: var(--line);
 }
 .wv-tracklist .wv-track:first-child::before { top: 0.66rem; }
 .wv-tracklist .wv-track:last-child::before { bottom: calc(100% - 0.66rem); }
@@ -319,7 +307,7 @@
   width: 6px;
   height: 6px;
   border-radius: 50%;
-  background: var(--wv-audio);
+  background: var(--audio);
   box-shadow: 0 0 0 3px rgba(240, 180, 41, 0.12);
 }
 .wv-node--icon {
@@ -328,18 +316,18 @@
   width: 17px;
   height: 17px;
   border-radius: 50%;
-  background: var(--wv-node-cut);   /* interrupts the hairline spine behind the glyph */
-  color: var(--wv-audio);
+  background: var(--panel-solid);   /* interrupts the hairline spine behind the glyph */
+  color: var(--audio);
 }
 .wv-node--icon svg { width: 13px; height: 13px; display: block; }
 
 .wv-track-time {
-  font-family: var(--wv-font-display);
+  font-family: var(--font-display);
   font-weight: 600;
   font-size: 0.92rem;
   font-variant-numeric: tabular-nums;
   letter-spacing: 0.01em;
-  color: var(--wv-ink);
+  color: var(--text);
   white-space: nowrap;
 }
 
@@ -353,7 +341,7 @@
 .wv-track-title {
   font-size: 0.9rem;
   line-height: 1.25;
-  color: var(--wv-ink);
+  color: var(--text);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -362,7 +350,7 @@
 .wv-track-artist {
   font-size: 0.75rem;
   line-height: 1.25;
-  color: var(--wv-ink-dim);
+  color: var(--text-dim);
   display: flex;
   align-items: center;
   gap: 0.45rem;
@@ -384,8 +372,8 @@
   text-transform: uppercase;
   padding: 0.06rem 0.32rem;
   border-radius: 0.5rem;
-  border: 1px solid var(--wv-line);
-  color: var(--wv-ink-dim);
+  border: 1px solid var(--line);
+  color: var(--text-dim);
   opacity: 0.85;
 }
 
@@ -398,22 +386,22 @@
   white-space: nowrap;
 }
 .wv-track-stat-value {
-  font-family: var(--wv-font-display);
+  font-family: var(--font-display);
   font-weight: 600;
   font-size: 0.92rem;
   font-variant-numeric: tabular-nums;
-  color: var(--wv-ink-dim);
+  color: var(--text-dim);
 }
 .wv-track-stat-unit {
   font-size: 0.6rem;
   letter-spacing: 0.06em;
   text-transform: lowercase;
-  color: var(--wv-ink-dim);
+  color: var(--text-dim);
   opacity: 0.7;
 }
 
 /* Hardest-effort track: amber stat + a brighter node. */
-.wv-track.is-peak .wv-track-stat-value { color: var(--wv-audio); }
+.wv-track.is-peak .wv-track-stat-value { color: var(--audio); }
 .wv-track.is-peak .wv-node--song {
   width: 7px;
   height: 7px;
@@ -430,7 +418,7 @@
 }
 .wv-media-empty-text {
   font-size: 0.8rem;
-  color: var(--wv-ink-dim);
+  color: var(--text-dim);
 }
 
 /* ── Stat row (cardio / time) ────────────────────────────────────────────── */
@@ -444,7 +432,7 @@
 .wv-stat { display: flex; flex-direction: column; gap: 0.15rem; }
 
 .wv-stat-value {
-  font-family: var(--wv-font-display);
+  font-family: var(--font-display);
   font-weight: 600;
   font-size: 1.6rem;
   line-height: 1;
@@ -456,7 +444,7 @@
   font-size: 0.62rem;
   letter-spacing: 0.16em;
   text-transform: uppercase;
-  color: var(--wv-ink-dim);
+  color: var(--text-dim);
 }
 
 /* ── Strength: scoreboard set grid ───────────────────────────────────────── */
@@ -468,24 +456,24 @@
 }
 
 .wv-set {
-  font-family: var(--wv-font-display);
+  font-family: var(--font-display);
   font-weight: 600;
   font-size: 1.05rem;
   font-variant-numeric: tabular-nums;
-  background: var(--wv-surface-hi);
-  border: 1px solid var(--wv-line);
+  background: var(--surface-hi);
+  border: 1px solid var(--line);
   border-radius: 0.5rem;
   padding: 0.3rem 0.6rem;
   letter-spacing: 0.02em;
 }
 .wv-set-mult { opacity: 0.45; margin: 0 0.12em; font-weight: 500; }
-.wv-set-empty { color: var(--wv-ink-dim); font-family: var(--wv-font-body); font-weight: 400; }
+.wv-set-empty { color: var(--text-dim); font-family: var(--font-body); font-weight: 400; }
 
 .wv-rollup {
   margin-top: 0.7rem;
   font-size: 0.75rem;
   letter-spacing: 0.04em;
-  color: var(--wv-ink-dim);
+  color: var(--text-dim);
   font-variant-numeric: tabular-nums;
 }
 
@@ -507,7 +495,7 @@
 
 /* ── Back-to-summary button (editor mode) ────────────────────────────────── */
 .back-to-summary-btn {
-  font-family: var(--wv-font-body);
+  font-family: var(--font-body);
   font-size: 0.8rem;
   font-weight: 600;
   letter-spacing: 0.03em;
@@ -526,9 +514,9 @@
 /* ── Tag chips inside the dashboard (override the light global chip) ──────── */
 .workout-view .tag-list { justify-content: flex-start; margin: 0.4rem 0 0.2rem; }
 .workout-view .tag-chip {
-  background: var(--wv-surface-hi);
-  border: 1px solid var(--wv-line);
-  color: var(--wv-ink);
+  background: var(--surface-hi);
+  border: 1px solid var(--line);
+  color: var(--text);
   font-size: 0.68rem;
   letter-spacing: 0.04em;
 }
@@ -552,7 +540,7 @@
   margin: 1rem 0 2.5rem;
   padding: 1.5rem clamp(1rem, 4vw, 2rem) 1.75rem;
   border-radius: 1.25rem;
-  border: 1px solid var(--wv-line);
+  border: 1px solid var(--line);
   position: relative;
   overflow: hidden;
   background:
@@ -572,7 +560,7 @@
   font-size: 0.72rem;
   letter-spacing: 0.18em;
   text-transform: uppercase;
-  color: var(--wv-ink-dim);
+  color: var(--text-dim);
   font-weight: 600;
 }
 .we-session-actions { display: flex; align-items: center; gap: 0.25rem; }
@@ -583,11 +571,11 @@
 .we-type-select,
 .we-equipment-select,
 .we-note {
-  font-family: var(--wv-font-body);
+  font-family: var(--font-body);
   font-size: 1rem;
-  color: var(--wv-ink);
+  color: var(--text);
   background: rgba(0, 0, 0, 0.22);
-  border: 1px solid var(--wv-line);
+  border: 1px solid var(--line);
   border-radius: 0.55rem;
   padding: 0.55rem 0.65rem;
   box-sizing: border-box;
@@ -599,7 +587,7 @@
 .we-equipment-select:focus,
 .we-note:focus {
   outline: none;
-  border-color: var(--wv-accent);
+  border-color: var(--accent);
   background: rgba(0, 0, 0, 0.30);
 }
 .we-input::placeholder,
@@ -612,7 +600,7 @@
   font-size: 0.62rem;
   letter-spacing: 0.16em;
   text-transform: uppercase;
-  color: var(--wv-ink-dim);
+  color: var(--text-dim);
 }
 
 .we-note { margin-top: 0.9rem; resize: vertical; line-height: 1.45; }
@@ -623,7 +611,7 @@
   align-items: center;
   gap: 0.4rem;
   font-size: 0.78rem;
-  color: var(--wv-strava);
+  color: var(--strava);
   text-decoration: none;
   opacity: 0.85;
 }
@@ -634,9 +622,9 @@
 .we-exercise-list { display: flex; flex-direction: column; gap: 1rem; }
 
 .we-exercise {
-  background: var(--wv-surface);
-  border: 1px solid var(--wv-line);
-  border-left: 3px solid var(--wv-accent);
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-left: 3px solid var(--accent);
   border-radius: 1rem;
   padding: 1rem 1.1rem 1.1rem;
 }
@@ -647,7 +635,7 @@
 .we-action-input { width: 100%; }
 .we-exercise-head .wv-action-icon { padding: 0.5rem; }
 
-.we-equipment-select { margin-top: 0.6rem; color: var(--wv-ink-dim); }
+.we-equipment-select { margin-top: 0.6rem; color: var(--text-dim); }
 
 .we-op-note { margin-top: 0.6rem; }
 
@@ -669,25 +657,25 @@
   font-size: 0.6rem;
   letter-spacing: 0.12em;
   text-transform: uppercase;
-  color: var(--wv-ink-dim);
+  color: var(--text-dim);
 }
 .we-set-input { text-align: center; padding: 0.5rem 0.3rem; -moz-appearance: textfield; }
 .we-set-input::-webkit-outer-spin-button,
 .we-set-input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
 
 .we-set-num {
-  font-family: var(--wv-font-display);
+  font-family: var(--font-display);
   font-weight: 700;
   font-size: 1.05rem;
-  color: var(--wv-ink);
-  background: var(--wv-surface-hi);
-  border: 1px solid var(--wv-line);
+  color: var(--text);
+  background: var(--surface-hi);
+  border: 1px solid var(--line);
   border-radius: 0.5rem;
   padding: 0.4rem 0;
   transition: background 0.15s, color 0.15s;
 }
 .we-set-num:hover { background: rgba(208, 0, 0, 0.7); color: #fff; }
-.we-set-avg { font-variant-numeric: tabular-nums; color: var(--wv-ink-dim); font-size: 0.9rem; }
+.we-set-avg { font-variant-numeric: tabular-nums; color: var(--text-dim); font-size: 0.9rem; }
 
 /* Column visibility per activity type — header and rows share the same rules,
    so they can never desync. */
@@ -708,12 +696,12 @@
   align-items: center;
   justify-content: center;
   gap: 0.4rem;
-  font-family: var(--wv-font-body);
+  font-family: var(--font-body);
   font-weight: 600;
   font-size: 0.85rem;
-  color: var(--wv-ink);
-  background: var(--wv-surface-hi);
-  border: 1px dashed var(--wv-line);
+  color: var(--text);
+  background: var(--surface-hi);
+  border: 1px dashed var(--line);
   border-radius: 0.6rem;
   padding: 0.55rem 1rem;
   cursor: pointer;
@@ -722,7 +710,7 @@
 .we-add-set { width: 100%; margin-top: 0.6rem; }
 .we-add-exercise { width: 100%; margin-top: 1rem; }
 .we-add-set:hover,
-.we-add-exercise:hover { border-color: var(--wv-accent); background: rgba(0, 210, 122, 0.12); }
+.we-add-exercise:hover { border-color: var(--accent); background: rgba(0, 210, 122, 0.12); }
 .we-add-set img,
 .we-add-exercise img { height: 0.9rem; filter: invert(100%); }
 
@@ -742,15 +730,15 @@
 .workout-view .we-equipment-select,
 .workout-view .we-note {
   background: rgba(0, 0, 0, 0.22);
-  color: var(--wv-ink);
-  border: 1px solid var(--wv-line);
+  color: var(--text);
+  border: 1px solid var(--line);
   border-radius: 0.55rem;
   margin: 0;
   height: auto;
   min-height: 0;
   max-height: none;
   box-sizing: border-box;
-  font-family: var(--wv-font-body);
+  font-family: var(--font-body);
   font-size: 1rem;
   overflow: visible;
   -webkit-appearance: none;
@@ -773,7 +761,7 @@
 .workout-view .we-equipment-select:focus,
 .workout-view .we-note:focus {
   outline: none;
-  border-color: var(--wv-accent);
+  border-color: var(--accent);
   background: rgba(0, 0, 0, 0.30);
 }
 
@@ -782,7 +770,7 @@
 .workout-view .we-type-select option,
 .workout-view .we-equipment-select option {
   background: #16263c;
-  color: var(--wv-ink);
+  color: var(--text);
 }
 
 /* Custom caret for the selects (native arrow is gone with appearance:none). */
@@ -798,18 +786,18 @@
 .workout-view .dropdown-actions-wrapper {
   margin: 0;
   background: #1b2c44;
-  border: 1px solid var(--wv-line);
-  color: var(--wv-ink);
+  border: 1px solid var(--line);
+  color: var(--text);
   border-radius: 0.6rem;
   box-shadow: 0 0.75rem 1.5rem rgba(0, 0, 0, 0.45);
 }
 .workout-view .dropdown-action {
-  color: var(--wv-ink);
-  border-bottom: 1px solid var(--wv-line);
+  color: var(--text);
+  border-bottom: 1px solid var(--line);
   font-size: 0.9rem;
 }
 .workout-view .dropdown-action:last-child { border-bottom: none; }
-.workout-view .dropdown-action:hover { background: var(--wv-surface-hi); }
+.workout-view .dropdown-action:hover { background: var(--surface-hi); }
 
 /* Global `button { width:100%; margin:1rem; background:lightblue }` leaks into our
    editor buttons; pin them down under .workout-view. */

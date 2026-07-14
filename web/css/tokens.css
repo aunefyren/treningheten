@@ -1,0 +1,96 @@
+/* ============================================================================
+   Design tokens — the single source of truth for the Treningheten style guide.
+   ----------------------------------------------------------------------------
+   Loaded FIRST on every page (before main.css / modal.css / workout.css), so
+   every stylesheet resolves its values from here. Nothing else should declare a
+   `:root` colour/scale variable — add it here and reference it with var().
+
+   Three tiers:
+     1. Primitives — raw palette values (the two eras: instrument-panel + legacy).
+     2. Semantic   — role aliases components consume (--text, --surface, --accent…).
+     3. Scales     — spacing / radius / shadow / type.
+
+   See docs/styleguide.md for the full guide and the canonical-value decisions.
+   ============================================================================ */
+
+:root {
+  /* ── 1. Primitives ──────────────────────────────────────────────────────
+     Instrument-panel palette (was duplicated as --trm-* in modal.css and
+     --wv-* in workout.css; unified here). Near-duplicates resolved to one
+     canonical value each — see docs/styleguide.md. */
+  --navy-900: #0b121c;   /* deepest panel base */
+  --navy-850: #0d1b2a;   /* == legacy --darkblue */
+  --navy-800: #101d2c;   /* solid panel fill behind nodes/icons */
+  --navy-750: #141f2e;   /* panel top / lighter instrument surface */
+  --ink-050:  #f3f6fb;   /* near-white text on dark */
+  --ink-300:  #9fb0c7;   /* muted labels */
+  --emerald:  #00d27a;   /* energetic accent — active/positive only */
+  --orange:   #fc4c02;   /* Strava brand */
+  --amber:    #f0b429;   /* audio / "soundtrack" listening layer */
+
+  /* Legacy palette (moved verbatim from main.css — values unchanged). */
+  --red: #d00000;
+  --red-error: #f8d7da;
+  --red-error-border: #f5c6cb;
+  --yellow: #ffd500;
+  --yellow-light: #FFEB85;
+  --green: #003e1f;
+  --green-success: #d4edda;
+  --green-success-border: #c3e6cb;
+  --lightgreen: #00A352;
+  --eggshell: #e0e1dd;
+  --lightblue: #778da9;
+  --trans-lightblue: #778da980;
+  --mediumblue: #415a77;
+  --darkblue: #0d1b2a;
+  --black: #181818;
+  --white: #ffffff;
+  --grey: #cecece;
+
+  /* ── 2. Semantic aliases (the layer components should consume) ──────────── */
+  --text: var(--ink-050);
+  --text-dim: var(--ink-300);
+  --line: rgba(255, 255, 255, 0.10);
+  --line-soft: rgba(255, 255, 255, 0.055);
+  --surface: rgba(255, 255, 255, 0.045);
+  --surface-hi: rgba(255, 255, 255, 0.08);
+  --panel-top: var(--navy-750);
+  --panel-bottom: var(--navy-900);
+  --panel-solid: var(--navy-800);
+  --accent: var(--emerald);
+  --accent-soft: rgba(0, 210, 122, 0.18);
+  --danger: var(--red);
+  --strava: var(--orange);
+  --audio: var(--amber);
+
+  /* ── 3. Scales ──────────────────────────────────────────────────────────
+     Typography. Saira/Hanken are referenced but NOT yet loaded (only Roboto
+     is); they fall back to Roboto today. Loading the webfonts is deferred to
+     the component phase — see docs/styleguide.md. */
+  --font-display: 'Saira Semi Condensed', 'Roboto', sans-serif;
+  --font-body: 'Hanken Grotesk', 'Roboto', sans-serif;
+
+  /* Spacing — .25rem step. */
+  --space-0: 0;
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-5: 1.5rem;
+  --space-6: 2rem;
+  --space-7: 2.5rem;
+  --space-8: 3rem;
+
+  /* Radius — the app standardises on sm/md; pill for chips, circle for avatars. */
+  --radius-xs: 0.25rem;
+  --radius-sm: 0.5rem;
+  --radius-md: 1rem;
+  --radius-lg: 1.25rem;
+  --radius-pill: 999px;
+  --radius-circle: 50%;
+
+  /* Elevation. */
+  --shadow-sm: 0.1rem 0.2rem 0.5rem rgba(0, 0, 0, 0.09);
+  --shadow-md: 0 2px 4px rgba(0, 0, 0, 0.2), 0 3px 10px rgba(0, 0, 0, 0.19);
+  --shadow-lg: 0 1.5rem 3rem rgba(0, 0, 0, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.04);
+}

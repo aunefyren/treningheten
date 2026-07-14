@@ -28,15 +28,15 @@ function load_page(result) {
                     <h3 id="countdown_season_title" style="margin: 0 0 0.5em 0;">Loading...</h3>
                     <p id="countdown_season_start">...</p>
                     <p id="countdown_season_end">...</p>
-                    <p style="margin-top: 1em; text-align: center;" id="countdown_season_desc">...</p>
+                    <p class="u-mt-1 u-text-center" id="countdown_season_desc">...</p>
 
-                    <p style="margin-top: 1em; text-align: center;" id="register_season_jointext">...</p>
+                    <p class="u-mt-1 u-text-center" id="register_season_jointext">...</p>
 
-                    <hr style="margin: 1em 0;">
+                    <hr class="u-my-1">
 
-                    <p style="text-align: center;" id="countdown_goal">...</p>
+                    <p class="u-text-center" id="countdown_goal">...</p>
 
-                    <hr style="margin: 1em 0;">
+                    <hr class="u-my-1">
 
                     <p id="countdown_title">Starting in:</p>
                     
