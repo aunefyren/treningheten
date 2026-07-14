@@ -1977,6 +1977,7 @@ function renderGearModalBody() {
             <input class="trm-input" type="text" id="new-gear-brand" placeholder="Brand (optional)">
         </div>
         <button type="submit" class="trm-btn" onclick="createGear();"><img src="/assets/plus.svg">Add gear</button>
+        <p class="trm-gear-empty" style="margin-top: 0.9rem;"><a href="/gear" style="color: var(--trm-accent);">Open the full gear page →</a></p>
     `);
 }
 

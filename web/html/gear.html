@@ -11,10 +11,12 @@
 
         <!-- Custom CSS -->
         <link rel="stylesheet" type="text/css" href="/css/main.css">
+        <link rel="stylesheet" type="text/css" href="/css/modal.css">
         <link rel="manifest" href="/manifest.json" />
-        <script src="/js/exercises.js"></script>
+        <script src="/js/gear.js"></script>
         <script src="/js/functions.js"></script>
-                
+        <script src="/js/modal.js"></script>
+
         <!-- Fonts -->
         <link rel="preconnect" href="https://fonts.googleapis.com">
         <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -50,16 +52,6 @@
         <!-- Application name for Microsoft Windows app tile -->
         <meta name="{{.appName}}" content="{{.appDescription}}" />
 
-        <!-- Application icons for Microsoft Windows app tile -->
-        <meta name="msapplication-TileImage" content="assets/favicons/ms-tile-144x144.png" />
-        <meta name="msapplication-square70x70logo" content="assets/favicons/ms-tile-70x70.png" />
-        <meta name="msapplication-square150x150logo" content="assets/favicons/ms-tile-150x150.png" />
-        <meta name="msapplication-wide310x150logo" content="assets/favicons/ms-tile-310x150.png" />
-        <meta name="msapplication-square310x310logo" content="assets/favicons/ms-tile-310x310.png" />
-
-        <!-- Application config file for Microsoft browsers -->
-        <meta name="msapplication-config" content="config.xml" />
-
         <meta name="apple-mobile-web-app-capable" content="yes" /> <meta name="mobile-web-app-capable" content="yes" />
 
     </head>
@@ -85,15 +77,15 @@
                 <a class="nav-item disabled" href="/exercises" id='exercises-tab'>Exercises</a>
                 <a class="nav-item disabled" href="/statistics" id='statistics-tab'>Statistics</a>
                 <a class="nav-item disabled" href="/achievements" id='achievements-tab'>Achievements</a>
-                
+
                 <a class="nav-item disabled" href="/account" id='account'>Account</a>
 
                 <a class="nav-item disabled" href="/admin" id='admin'>Admin</a>
-                
+
                 <a class="nav-item enabled" href="/login" id='login'>Log in</a>
                 <a class="nav-item enabled" href="/register" id='register'>Register</a>
                 <a class="nav-item disabled" href="#" onclick="logout()" id='logout'>Log out</a>
-            
+
             </nav>
         </div>
         <!-- /navbar -->
@@ -113,19 +105,18 @@
                     </div>
                 </div>
             </div>
-        </main> 
+        </main>
         <!-- /container -->
-      
+
         <script>
 
             var ignoreNav = document.getElementById('nav');
-            var groups;
             var jwt;
             info('Loading...');
             showLoggedOutMenu();
             jwt = get_cookie('treningheten');
             get_login(jwt);
-            
+
         </script>
 
         <noscript>

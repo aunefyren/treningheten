@@ -9,6 +9,10 @@ Ideas for tags:
 
 Must respect Strava sync
 
+### Sick leave is per season/goal
+- makes sense that different seasons have different sick leave
+- makes little sense that you can join multiple seasons at once, but only use sick leave on one goal
+
 ### Remove walk filter from Strava sync
 - Instead, add a boolean to exercises, like "count toward goal" or similar
 - Let users set on Strava settings whether any activity type count toward goal
@@ -158,7 +162,62 @@ Per-exercise feedback in its own dedicated space (not the front-page greeting).
 (Done, separately: the front-page greeting can now occasionally comment on the most
 recent workout via the optional `latest_workout` payload block — see `docs/ollama.md`.)
 
+### /exercises rebuild — searchable activity timeline (IN PROGRESS)
+Replacing the year → week → day accordion on `/exercises` with a searchable, sortable
+**activity timeline** that floats key metrics inline so you don't have to click into a day.
+
+**Model recap:** `ExerciseDay` (calendar day = the `/exercises/:id` builder) → `Exercise`
+(session; several per day) → `Operation` (one activity type, has an `Action`) →
+`OperationSet` (reps/weight/distance/time/HR streams). Search targets ("longest run", "a
+padel match", "oldest run") live at the **Operation** grain; browsing wants **session**
+grouping. So the feed is activity-grained with session/day grouping metadata.
+
+**Decisions (agreed):**
+- **Hybrid feed.** Browse mode = grouped by day + session; find mode = flat ranked
+  activities when a metric sort or type filter is active. One endpoint, client picks mode.
+- **Query-time aggregation** for v1 (no schema change). New endpoint aggregates
+  `operation_sets` in SQL (`GROUP BY` operation → SUM distance/time/reps, MAX weight,
+  COUNT sets). API shaped so we can swap in precomputed Operation rollup columns later
+  **without changing the response**. HR avg/max deferred to the detail view for v1 (lives
+  in the stream blobs; too heavy for a list).
+- **Pure timeline** — drop the year accordion + goals-by-year from `/exercises` (goals live
+  on Seasons/Statistics). Keep the "Manage gear" link.
+
+**Backend (new, list-first):**
+- `GET /auth/activities` — filters: `action_id`, `start`/`end` (date range), `q` (note /
+  action name), `has_distance`; sort: `date|distance|duration|weight|reps` + `order`;
+  pagination `limit`/`offset`. Returns slim per-activity items (operation id, `exercise_id`,
+  `exercise_day_id`, day date, session time, action {name/type/logo}, session activity
+  count, note, tags, aggregated metrics {distance+unit, duration, reps, top weight+unit,
+  set count}, `has_strava`/`has_gps`) — **no `strava_streams`** in the list. Plus `total`
+  and `has_more`. A small companion count map gives `session_activity_count` per returned
+  `exercise_id`.
+- Reuses the existing enabled-chain joins (operations→exercises→exercise_days→users) from
+  `GetOperationsByUserID`.
+
+**Frontend:** `web/js/exercises.js` rewritten to a filter/search bar + infinite-scroll
+timeline; browse groups adjacent same-session activities under day headers, find mode shows
+a flat ranked list with the sorted metric prominent. Each card links to `/exercises/:dayID`.
+Dark instrument-panel styling consistent with the stats/gear redesign.
+
+**Builder considerations (`/exercises/:id`, NOT in this pass — captured for the fast-follow):**
+- The builder still exposes gear at the **session** level only, though the schema stores it
+  per **operation** — a genuinely multi-type/mixed-gear session can't be edited per activity
+  (see the gear follow-ups above). The multi-type representation problem is the same root:
+  the builder doesn't cleanly show/organise a session that has several `Operation`s of
+  different `Action`s.
+- The per-activity **aggregate shape** built for `/auth/activities` is exactly what a better
+  **session summary header** on the builder should consume (activity chips + per-activity
+  metrics) — reuse it there rather than re-deriving.
+- When the builder is redone: consider a per-`Operation` card layout (each activity type its
+  own sub-card with its own gear/metrics/sets), a session header summarising the mix, and
+  clearer affordances for adding a *second activity type* to an existing session vs a *second
+  session* to the day.
+- Watch the media/soundtrack coupling: soundtrack is session-scoped (`Exercise`), so builder
+  changes to session time/duration affect the match window (already noted under media).
+
 ### Better gear management
+- Or maybe this is finished now that we have a /gear page?
 
 ### Make first day of the week changeable
 - Default monday, but choose
@@ -168,3 +227,13 @@ recent workout via the optional `latest_workout` payload block — see `docs/oll
 
 ### Site loads
 But sometimes not? Server asleep?
+
+### Durations are stored as **seconds**, not nanoseconds
+- See more in data-conventions.md
+- Should be fixed
+- Require migration?
+
+### Need data object doc
+- Should cover models and DB objects and what they are and how they relate
+- Should be read by Claude before doing development
+- Should be a part of the conventions.md file maybe? Is that file read by Claude? Or should there be a development.md doc?

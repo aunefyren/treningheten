@@ -331,7 +331,14 @@ form {
   margin: 1rem 0;
 }
 
-input[type=text], input[type=password], input[type=email], input[type=date], input[type=file], input[type=number], input[type=time], select {
+/* Baseline form-control look for un-styled inputs across the app. Wrapped in :where()
+   so it carries ZERO specificity: it still applies to any plain input/select (author
+   styles beat the browser default regardless of specificity), but a component only needs
+   a single class to override it — no parent-scoping or !important gymnastics. Before this,
+   the element+attribute selector below was (0,1,1) and silently beat component classes,
+   which is why gear/modal/workout/pat all had to out-specify it. Keep new form styling as
+   plain classes and it will just work. */
+:where(input[type=text], input[type=password], input[type=email], input[type=date], input[type=file], input[type=number], input[type=time], select) {
   width: 100%;
   width: -webkit-fill-available;
   width: -moz-available;
@@ -342,17 +349,12 @@ input[type=text], input[type=password], input[type=email], input[type=date], inp
   box-sizing: inherit;
   border-radius: 0.5rem;
   font-size: 1rem;
-  border: solid 0.2rem var(--grey); 
+  border: solid 0.2rem var(--grey);
   resize: vertical;
   min-height: 2rem;
   max-height: 25rem;
   font-family: Roboto,Noto,sans-serif;
   box-sizing: content-box;
-}
-
-select {
-  height: 10rem;
-  overflow-y: scroll;
 }
 
 .btn-block {
@@ -3464,4 +3466,521 @@ label {
     background: rgba(255, 255, 255, 0.05);
     padding: 0.2rem 0.55rem;
     border-radius: 10rem;
+}
+
+/* ===== Gear page (/gear) — dark instrument panel, green gear accent =====
+   Same dark surface + Saira/Hanken language as the stat panels, echoing the green
+   accent of the exercise-page gear modal so the two read as one feature. */
+.gear-panel {
+    width: 100%;
+    max-width: 52em;
+    margin: 1rem auto;
+    box-sizing: border-box;
+    background: var(--darkblue);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    border-radius: 1em;
+    padding: 1.25rem;
+    color: #e6ebf2;
+}
+
+.gear-loading {
+    display: flex;
+    justify-content: center;
+    padding: 1.5rem 0;
+}
+
+.gear-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.7rem;
+}
+
+.gear-empty {
+    text-align: center;
+    color: #7488a3;
+    font-family: 'Hanken Grotesk', sans-serif;
+    padding: 1.25rem 0;
+}
+
+.gear-item {
+    display: flex;
+    align-items: center;
+    gap: 0.85rem;
+    background: rgba(255, 255, 255, 0.035);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    border-left: 3px solid #00d27a;
+    border-radius: 0.7em;
+    padding: 0.8rem 0.95rem;
+}
+
+.gear-item-retired {
+    opacity: 0.55;
+    border-left-color: #55677f;
+}
+
+.gear-glyph {
+    flex: 0 0 auto;
+    width: 2.6rem;
+    height: 2.6rem;
+    border-radius: 0.55em;
+    background: rgba(0, 210, 122, 0.12);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.35rem;
+}
+
+.gear-main {
+    flex: 1 1 auto;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.45rem;
+}
+
+.gear-row-top {
+    display: flex;
+    align-items: center;
+    gap: 0.45rem;
+}
+
+.gear-row-top .gear-name {
+    flex: 1 1 auto;
+    min-width: 0;
+}
+
+.gear-row-top .gear-select {
+    flex: 0 0 6.2rem;
+}
+
+.gear-row-toggles {
+    display: flex;
+    align-items: center;
+    gap: 1.1rem;
+}
+
+/* Scoped under .gear-panel (specificity 0,2,0) so these win over main.css's global
+   `input[type=...], select` block (0,1,1) and `select { height: 10rem }` (0,0,1), which
+   otherwise force a white background, Roboto, big margins and a 10rem-tall listbox. The
+   height/margin/appearance resets restate a normal, single-line dark field — same
+   approach workout.css and modal.css already use for their controls. */
+.gear-panel .gear-input,
+.gear-panel .gear-select {
+    font-family: 'Hanken Grotesk', sans-serif;
+    font-size: 0.9rem;
+    color: #eef3fb;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 0.5em;
+    padding: 0.42rem 0.6rem;
+    box-sizing: border-box;
+    width: 100%;
+    margin: 0;
+    height: auto;
+    min-height: 0;
+    max-height: none;
+    overflow: visible;
+    transition: border-color 0.15s, background 0.15s;
+}
+
+.gear-input:focus,
+.gear-select:focus {
+    outline: none;
+    border-color: #00d27a;
+    background: rgba(255, 255, 255, 0.08);
+}
+
+.gear-input:disabled,
+.gear-select:disabled {
+    color: #93a4bd;
+    background: rgba(255, 255, 255, 0.02);
+    cursor: not-allowed;
+}
+
+.gear-select option {
+    color: #111;
+}
+
+.gear-toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    font-family: 'Hanken Grotesk', sans-serif;
+    font-size: 0.8rem;
+    color: #93a4bd;
+    cursor: pointer;
+}
+
+.gear-toggle input {
+    accent-color: #00d27a;
+    cursor: pointer;
+}
+
+.gear-del {
+    margin-left: auto;
+    width: 1.05rem;
+    height: 1.05rem;
+    opacity: 0.55;
+    filter: invert(100%);
+    cursor: pointer;
+    transition: opacity 0.15s;
+}
+
+.gear-del:hover {
+    opacity: 1;
+}
+
+.gear-badge {
+    flex: 0 0 auto;
+    font-family: 'Hanken Grotesk', sans-serif;
+    font-size: 0.62rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: #fc4c02;
+    border: 1px solid rgba(252, 76, 2, 0.5);
+    border-radius: 10rem;
+    padding: 0.12rem 0.5rem;
+}
+
+.gear-distance {
+    flex: 0 0 auto;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    line-height: 1;
+}
+
+.gear-distance-value {
+    font-family: 'Saira Semi Condensed', sans-serif;
+    font-weight: 600;
+    font-size: 1.65rem;
+    color: #f3f6fb;
+}
+
+.gear-distance-unit {
+    font-family: 'Hanken Grotesk', sans-serif;
+    font-size: 0.72rem;
+    color: #7f93ad;
+    margin-top: 0.1rem;
+}
+
+.gear-add {
+    margin-top: 1.35rem;
+    padding-top: 1.1rem;
+    border-top: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.gear-add-title {
+    font-family: 'Hanken Grotesk', sans-serif;
+    font-size: 0.7rem;
+    font-weight: 600;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: #7488a3;
+    margin-bottom: 0.7rem;
+}
+
+.gear-add-fields {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    align-items: center;
+}
+
+.gear-add-fields .gear-input {
+    flex: 1 1 10rem;
+    width: auto;
+}
+
+.gear-add-fields .gear-select {
+    flex: 0 0 7rem;
+    width: auto;
+}
+
+.gear-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    font-family: 'Hanken Grotesk', sans-serif;
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: #04231a;
+    background: #00d27a;
+    border: none;
+    border-radius: 0.5em;
+    padding: 0.5rem 0.9rem;
+    cursor: pointer;
+    transition: filter 0.15s;
+}
+
+.gear-btn:hover {
+    filter: brightness(1.08);
+}
+
+.gear-btn img {
+    width: 0.95rem;
+    height: 0.95rem;
+}
+
+@media (max-width: 480px) {
+    .gear-item {
+        flex-wrap: wrap;
+    }
+    .gear-distance {
+        flex-direction: row;
+        align-items: baseline;
+        gap: 0.3rem;
+        margin-left: auto;
+    }
+}
+
+/* ===== /exercises activity timeline — dark instrument panel ===== */
+.feed-panel {
+    width: 100%;
+    max-width: 54em;
+    margin: 1rem auto;
+    box-sizing: border-box;
+    background: var(--darkblue);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    border-radius: 1em;
+    padding: 1.15rem 1.15rem 1.35rem;
+    color: #e6ebf2;
+}
+
+.feed-controls {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    align-items: center;
+}
+
+.feed-controls-secondary {
+    margin-top: 0.5rem;
+}
+
+.feed-panel .feed-input {
+    font-family: 'Hanken Grotesk', sans-serif;
+    font-size: 0.88rem;
+    color: #eef3fb;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 0.5em;
+    padding: 0.45rem 0.6rem;
+    margin: 0;
+    height: auto;
+    min-height: 0;
+    box-sizing: border-box;
+}
+
+.feed-panel select.feed-input {
+    flex: 0 0 auto;
+    width: auto;
+}
+
+.feed-panel #feed-q {
+    flex: 1 1 12rem;
+    width: auto;
+    min-width: 0;
+}
+
+.feed-panel .feed-input:focus {
+    outline: none;
+    border-color: #4a9fe0;
+    background: rgba(255, 255, 255, 0.08);
+}
+
+.feed-panel .feed-input option {
+    color: #111;
+}
+
+.feed-daterange {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    font-family: 'Hanken Grotesk', sans-serif;
+    font-size: 0.75rem;
+    color: #93a4bd;
+}
+
+.feed-daterange .feed-input {
+    font-size: 0.8rem;
+    padding: 0.3rem 0.45rem;
+}
+
+.feed-check {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    font-family: 'Hanken Grotesk', sans-serif;
+    font-size: 0.8rem;
+    color: #93a4bd;
+    cursor: pointer;
+}
+
+.feed-check input {
+    accent-color: #4a9fe0;
+    cursor: pointer;
+}
+
+.feed-count {
+    font-family: 'Hanken Grotesk', sans-serif;
+    font-size: 0.72rem;
+    letter-spacing: 0.04em;
+    color: #7488a3;
+    margin: 1rem 0 0.5rem;
+}
+
+.feed-empty {
+    text-align: center;
+    color: #7488a3;
+    font-family: 'Hanken Grotesk', sans-serif;
+    padding: 2rem 0;
+}
+
+/* Browse groups */
+.feed-day + .feed-day {
+    margin-top: 1.4rem;
+}
+
+.feed-day-header {
+    font-family: 'Saira Semi Condensed', sans-serif;
+    font-weight: 600;
+    font-size: 0.95rem;
+    letter-spacing: 0.02em;
+    color: #4a9fe0;
+    padding-bottom: 0.4rem;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    margin-bottom: 0.6rem;
+}
+
+.feed-session {
+    margin-bottom: 0.8rem;
+}
+
+.feed-session-header {
+    display: flex;
+    align-items: baseline;
+    gap: 0.6rem;
+    margin: 0.35rem 0 0.35rem 0.2rem;
+}
+
+.feed-session-time {
+    font-family: 'Saira Semi Condensed', sans-serif;
+    font-weight: 600;
+    font-size: 0.9rem;
+    color: #cdd7e6;
+}
+
+.feed-session-count {
+    font-family: 'Hanken Grotesk', sans-serif;
+    font-size: 0.68rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: #7488a3;
+}
+
+/* Activity row (shared by browse + find) */
+.feed-row {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    background: rgba(255, 255, 255, 0.035);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    border-radius: 0.6em;
+    padding: 0.6rem 0.8rem;
+    margin-bottom: 0.4rem;
+    transition: background 0.15s, border-color 0.15s;
+}
+
+.feed-row:hover {
+    background: rgba(255, 255, 255, 0.07);
+    border-color: rgba(74, 159, 224, 0.4);
+}
+
+.feed-rank {
+    flex: 0 0 auto;
+    width: 1.7rem;
+    font-family: 'Saira Semi Condensed', sans-serif;
+    font-weight: 700;
+    font-size: 1.2rem;
+    color: #4a9fe0;
+    text-align: center;
+}
+
+.feed-row-icon {
+    flex: 0 0 auto;
+    width: 2.1rem;
+    height: 2.1rem;
+    border-radius: 0.5em;
+    background: rgba(255, 255, 255, 0.06);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.15rem;
+}
+
+.feed-logo {
+    width: 1.3rem;
+    height: 1.3rem;
+}
+
+.feed-row-body {
+    flex: 1 1 auto;
+    min-width: 0;
+}
+
+.feed-row-title {
+    font-family: 'Saira Semi Condensed', sans-serif;
+    font-weight: 600;
+    font-size: 1.05rem;
+    color: #f3f6fb;
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+}
+
+.feed-note {
+    font-size: 0.8rem;
+    opacity: 0.8;
+}
+
+.feed-row-metrics {
+    font-family: 'Hanken Grotesk', sans-serif;
+    font-size: 0.8rem;
+    color: #9fb0c8;
+    margin-top: 0.1rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.feed-row-when {
+    flex: 0 0 auto;
+    font-family: 'Hanken Grotesk', sans-serif;
+    font-size: 0.7rem;
+    line-height: 1.25;
+    color: #7f93ad;
+    text-align: right;
+}
+
+.feed-loading {
+    display: flex;
+    justify-content: center;
+    padding: 1.25rem 0;
+}
+
+.feed-more {
+    text-align: center;
+    margin-top: 0.8rem;
+}
+
+@media (max-width: 480px) {
+    .feed-row-metrics {
+        white-space: normal;
+    }
+    .feed-panel select.feed-input,
+    .feed-panel #feed-q {
+        flex: 1 1 100%;
+    }
 }

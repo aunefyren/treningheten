@@ -103,22 +103,6 @@ func UpdateExerciseDayNoteInDatabase(goalID uuid.UUID, startDayString string, en
 	return err
 }
 
-func UpdateExerciseDayIntervalInDatabase(goalID uuid.UUID, startDayString string, endDayString string, exerciseInterval int) (err error) {
-
-	err = nil
-	var exercisestruct models.ExerciseDay
-
-	exerciserecordtwo := Instance.Model(exercisestruct).Where("`exercise_days`.enabled = ?", 1).Where("`exercise_days`.goal_id = ?", goalID).Where("`exercise_days`.date >= ?", startDayString).Where("`exercise_days`.date <= ?", endDayString).Update("exercise_interval", exerciseInterval)
-	if exerciserecordtwo.Error != nil {
-		return exerciserecordtwo.Error
-	} else if exerciserecordtwo.RowsAffected != 1 {
-		return errors.New("Exercise interval not updated in the database.")
-	}
-
-	return err
-
-}
-
 func GetExerciseDaysBetweenDatesUsingDates(goalID uuid.UUID, startDate time.Time, endDate time.Time) ([]models.ExerciseDay, error) {
 
 	var exercises []models.ExerciseDay

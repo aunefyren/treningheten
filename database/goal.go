@@ -78,7 +78,7 @@ func GetGoalsForUserUsingUserID(userID uuid.UUID) ([]models.Goal, error) {
 	var goals []models.Goal
 
 	goalRecord := Instance.
-		Order("created_at desc").
+		Order("`goals`.created_at desc").
 		Where("`goals`.enabled = ?", 1).
 		Where("`goals`.user_id = ?", userID).
 		Joins("JOIN seasons on `goals`.season_id = `seasons`.ID").

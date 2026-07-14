@@ -70,6 +70,7 @@ function load_page(result) {
 
             <div class="button-collection">
                 <button onclick="window.location.href = '/users/${user_id}';"class="regular-button" style="" type="submit" href="">Public profile</button>
+                <button onclick="window.location.href = '/gear';" class="regular-button" style="" type="submit" href="">Manage gear</button>
             </div>
 
             <div class="account-section-wrapper">
