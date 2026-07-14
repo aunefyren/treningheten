@@ -1,4 +1,5 @@
 # Work in progress
+This doc should contains plans, ideas, problems, bugs and so on. Finished stuff should not live here, it should be moved to /docs in relevant files. If none fit, it should probably be made. If features are in between start and done implementation, one can still create a doc which get's updated over time.
 
 ## Plans & Ideas
 
@@ -6,7 +7,6 @@
 Ideas for tags:
 - Easy
 - Splits
-
 Must respect Strava sync
 
 ### Sick leave is per season/goal
@@ -16,8 +16,10 @@ Must respect Strava sync
 ### Remove walk filter from Strava sync
 - Instead, add a boolean to exercises, like "count toward goal" or similar
 - Let users set on Strava settings whether any activity type count toward goal
+  - Maybe not a Strava setting, maybe a global setting?
 - Only on initial sync, if you edit any workout, simply change the bool if you want to count it
 - Must be incorporated into every logic/if where the program counts amount of valid exercises
+- Good opportunity to create helper functions? ExerciseCountTowardGoal() or/and IsSickLeave()?
 
 ### Flexible workouts
 Work out more one week, have the extra effort carry over.
@@ -56,18 +58,7 @@ time-based activities. Full design + decisions now live in [`docs/media.md`](med
 - Cross-provider de-dupe if a user has overlapping sources (e.g. casting Spotify through Plex)?
   (Per-provider rows side-step it for now; only matters once 2+ providers are connected.)
 
-### Gear tracker — possible follow-ups
-The gear feature shipped (see [`docs/gear.md`](gear.md)). Open refinements left for later:
-- **Per-operation gear UI.** The schema stores gear on the operation, but the builder only
-  exposes a session-level selector. A combined Strava session that genuinely mixes gear can't
-  be edited per-activity yet.
-- **Auto-assign primary.** The selector *suggests* the user's primary gear for a session with
-  no gear, but it isn't persisted until the user interacts. Could auto-assign on the first
-  operation instead.
-- **Primary per type.** Only one primary per user today; a primary shoe *and* a primary bike
-  might be more useful.
-
-### leave season button is not working
+### Leave season button is not working
 - Which season? all?
 - Not broken, never built function, only button is present
 
@@ -75,7 +66,7 @@ The gear feature shipped (see [`docs/gear.md`](gear.md)). Open refinements left 
 - What gets left behind? Do seasons you joined still show you? Show 'Deleted user'?
 - Not broken, never built function, only button is present
 
-### best effort system
+### Best effort system
 - Manual programming per activity?
 - "fastest 5K"...
 - Must be calculated at save or during runtime?
@@ -142,8 +133,25 @@ Dark instrument-panel styling consistent with the stats/gear redesign.
 - Watch the media/soundtrack coupling: soundtrack is session-scoped (`Exercise`), so builder
   changes to session time/duration affect the match window (already noted under media).
 
+### /exercises has been refined, let the MCP server benefit
+- Users can now more easily find exercises on /exercises
+- The MCP server should also be able to find exercises
+- Allow MCP to find relevant exercises without shifting through tons of data
+
+### Gear tracker — possible follow-ups
+The gear feature shipped (see [`docs/gear.md`](gear.md)). Open refinements left for later:
+- **Per-operation gear UI.** The schema stores gear on the operation, but the builder only
+  exposes a session-level selector. A combined Strava session that genuinely mixes gear can't
+  be edited per-activity yet.
+- **Auto-assign primary.** The selector *suggests* the user's primary gear for a session with
+  no gear, but it isn't persisted until the user interacts. Could auto-assign on the first
+  operation instead.
+- **Primary per type.** Only one primary per user today; a primary shoe *and* a primary bike
+  might be more useful.
+
 ### Better gear management
 - Or maybe this is finished now that we have a /gear page?
+- The modal covers the entire /gear page? Move stuff away from modal? Remove modal?
 
 ### Make first day of the week changeable
 - Default monday, but choose
