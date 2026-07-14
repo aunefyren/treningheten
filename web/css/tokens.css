@@ -27,6 +27,7 @@
   --emerald:  #00d27a;   /* energetic accent — active/positive only */
   --orange:   #fc4c02;   /* Strava brand */
   --amber:    #f0b429;   /* audio / "soundtrack" listening layer */
+  --blue:     #4a9fe0;   /* friendly sky blue — the theme accent */
 
   /* Legacy palette (moved verbatim from main.css — values unchanged). */
   --red: #d00000;
@@ -62,6 +63,11 @@
   --danger: var(--red);
   --strava: var(--orange);
   --audio: var(--amber);
+
+  /* One calm accent for the unified module panels (left bar, progress). The app runs a
+     blue theme; other hues are reserved for signals (success/warning/error). Single knob
+     so the whole set stays coherent — change here to recolour every module. */
+  --module-accent: var(--blue);
 
   /* ── 3. Scales ──────────────────────────────────────────────────────────
      Typography. Saira/Hanken are referenced but NOT yet loaded (only Roboto

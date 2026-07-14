@@ -64,7 +64,7 @@ function load_page(result) {
 
                                 <div class="week_days" id='calendar'>
 
-                                    <div id="week-progress-bar-wrapper" class="week-progress-bar-wrapper u-w-20">
+                                    <div id="week-progress-bar-wrapper" class="week-progress-bar-wrapper">
                                         <div id="week-progress-bar" class="week-progress-bar">
                                             <div class="calender_status unselectable" id="calender_status">
                                                 <a id="workout_this_week">...</a>
@@ -232,7 +232,7 @@ function load_page(result) {
 
                                     <button type="submit" onclick="update_exercises(false, 0);" id="goal_amount_button" style="margin-bottom: 0em; transition: 1s;"><img src="assets/done.svg" class="btn_logo color-invert"><p2>Save</p2></button>
 
-                                    <a style="margin: 0.5em; font-size:0.75em;cursor:pointer;" onclick="use_sickleave();">Use sick leave</i></a>
+                                    <a class="u-m-2 u-fs-sm u-pointer" onclick="use_sickleave();">Use sick leave</i></a>
 
                                 </div>
 
@@ -240,9 +240,9 @@ function load_page(result) {
 
                             <div class="module-two">
 
-                                <div id="season-module" class="season" style="padding: 0 1em 1em 1em;">
+                                <div id="season-module" class="season">
 
-                                    <div id="season-progress-bar-wrapper" class="season-progress-bar-wrapper u-w-20">
+                                    <div id="season-progress-bar-wrapper" class="season-progress-bar-wrapper">
                                         <div id="season-progress-bar" class="season-progress-bar">
                                             <div class="calender_status unselectable" id="season_status">
                                                 <a id="weeks_so_far">...</a>
@@ -322,7 +322,7 @@ function load_page(result) {
                                     <h3 class="u-m-2">Activities</h3>
 
                                     <div id="activities-week" class="activities-week">
-                                        <p style="margin-bottom: 0.5em; text-align:center;">No public activities yet this week...</p>
+                                        <p class="u-mb-2 u-text-center">No public activities yet this week...</p>
                                     </div>
 
                                 </div>
@@ -1114,7 +1114,7 @@ function place_leaderboard(weeks_array) {
 
             var result_html = `
             <div class="leaderboard-week-result" id="">
-                <div class="leaderboard-week-result-user clickable" style="cursor: pointer;" onclick="location.href='/users/${weeks_array[i].users[j].user_id}'">
+                <div class="leaderboard-week-result-user clickable" onclick="location.href='/users/${weeks_array[i].users[j].user_id}'">
                     ` + userDisplayName(weeks_array[i].users[j].user_id).first_name + `
                 </div>
                 <div class="leaderboard-week-result-exercise ` + clickable_str  + `" onclick="` + onclick_command_str  + `">
@@ -1869,7 +1869,7 @@ function generateActivityHTML(activity) {
             <div class="activity-sections">
                 <div class="activity-photo-wrapper">
                     <div class="activity-user-photo" title="` + activity.user.first_name + ` ` + activity.user.last_name + `" onclick="location.href='/users/${activity.user.id}'">
-                        <img style="width: 100%; height: 100%; border-radius: 100%; object-fit: cover; overflow: hidden;" class="activity-user-photo-img" src="${profileImageURL(activity.user.id, true)}" onerror="${IMAGE_FALLBACK_ONERROR}">
+                        <img class="activity-user-photo-img" src="${profileImageURL(activity.user.id, true)}" onerror="${IMAGE_FALLBACK_ONERROR}">
                     </div>
                 </div>
 

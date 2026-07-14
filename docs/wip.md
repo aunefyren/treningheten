@@ -171,8 +171,30 @@ activity tabs/tags) which is the target aesthetic. Root problems:
    chips/tags, form controls, the `.trm` TRModal, alerts, `.u-*` utilities), an "Adding new
    UI — the rules" section, a decisions log (Phases 1–4), and a "Known gaps" list. Indexed
    in `docs/README.md` under Conventions.
-6. **Page sweep old→new** — `/seasons` + frontpage cards first (the "meh"), then pull the
-   over-the-top gear modal down toward the middle.
+6. **Page sweep old→new** — light/simple-first, page by page, maintainer verifies each live.
+   Per-page checklist: buttons on `.btn`; surfaces calm/light + token-based; sentence case,
+   display font for numerals only; finish inline-style tail; retire page-specific legacy cruft.
+   **Migration mechanism:** the shared `.card` shell (mediumblue + white text, all 20 pages)
+   is flipped light via an opt-in `.card--light` modifier added per page — inner dark-card
+   widgets get light-friendly overrides scoped under it. Once every page carries it, flip the
+   base `.card` and delete the modifier.
+   - **Front page — IN PROGRESS.** `.card--light` = **soft eggshell card** so the content
+     "module" blocks (`.season`/`.current-week`/`.debt-module`/`.prize-module`/`.leaderboard`/
+     `.week_days`/`.ai-message-card`, all already white + `0.5rem` radius) read as one consistent
+     set of **white panels + thin border + soft shadow** — fixes the white-on-white the
+     maintainer flagged. `.ai-message-card` (was dark-instrument translucent) folded into the
+     same panel profile. Removed a redundant inline `cursor:pointer`.
+     **Unified module panel + single accent** (via `/frontend-design`): multi-colour domain bars
+     were jarring → reverted to **one** shared style for every module — white, hairline border,
+     a single **blue** `--module-accent` left bar (blue theme; other hues reserved for
+     success/warning/error signals), soft shadow, `--radius-md`, `overflow:hidden` so inner
+     headers/progress bars clip to the rounded corners (fixes the top-overlap). Inner tones calmed
+     (lightblue `week_info` → eggshell; progress track eggshell, blue fill). Headings/title navy;
+     AI shimmer fixed (dark sweep). One shared rule drives all modules; documented as the
+     **module-panel** pattern in `styleguide.md`. **Awaiting visual review.**
+     Deferred signature: the weekly goal as a big navy display-font number + green ring (the app's
+     core loop as the hero). Inline-style tail (~7) still to tidy.
+   - Then: seasons, account, and the rest; pull the over-the-top gear modal toward the middle.
 
 Recommended first PR: Phase 1 (tokens) + the skeleton of the Phase 5 doc together — small,
 low-risk, and the anchor for all later work.

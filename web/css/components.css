@@ -1807,6 +1807,9 @@ label {
   height: 100%;
   height: -webkit-fill-available;
   height: -moz-available;
+  border-radius: 100%;
+  object-fit: cover;
+  overflow: hidden;
 }
 
 .strava-logo-img {
@@ -2133,3 +2136,105 @@ label {
   border-radius: 1em;
 }
 .panel-wide { max-width: 100%; width: 1000px; }  /* wide panel; hidden-by-default keeps display:none inline */
+
+/* ── Light card — Phase 6 page sweep (light/simple-first) ──────────────────
+   Opt-in modifier that flips the shared mediumblue `.card` shell to a calm light
+   surface. The card is a soft eggshell so the content "module" blocks — which are
+   white — read as one consistent set of panels sitting on it (rather than white-on-
+   white). Applied per page as swept; once every page carries it, flip the base
+   `.card` and delete this. */
+.card.card--light {
+  background-color: var(--eggshell);
+  color: var(--black);
+  border: 1px solid var(--grey);
+  box-shadow: var(--shadow-sm);
+}
+.card--light .card-header {
+  background-color: transparent;
+  color: var(--darkblue);
+  border-color: var(--grey);
+}
+.card--light .card-body { color: var(--black); }
+.card--light .title { color: var(--darkblue); }
+
+/* Module panel — ONE shared style for every content block on the light card:
+   white surface, hairline border, a single calm green left accent bar, soft shadow,
+   rounded and `overflow: hidden` so inner headers / progress bars clip to the corners
+   (no more square bars poking past the rounded top). One rule = one look. Documented
+   in docs/styleguide.md as the module-panel pattern. */
+.card--light .season,
+.card--light .current-week,
+.card--light .server-info,
+.card--light .invites,
+.card--light .debt-module,
+.card--light .prize-module,
+.card--light .add-season-module,
+.card--light .correlate-module,
+.card--light .leaderboard,
+.card--light .activities,
+.card--light .week_days,
+.card--light .ai-message-card {
+  background: var(--white);
+  color: var(--black);
+  border: 1px solid var(--grey);
+  border-left: 4px solid var(--module-accent);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-sm);
+  overflow: hidden;
+  padding: var(--space-4);   /* one consistent inner padding; inner blocks inset, not flush */
+}
+
+/* Calm the inner tones so they don't fight the accent: neutralise the lightblue header
+   strip and progress track to eggshell, blue accent for the fill. Inner blocks that used to
+   sit flush at the panel top get full corners now that padding insets them. `width: 100%`
+   on the progress wrapper drops its fixed 20em width so it lines up with the padded day rows. */
+.card--light .week_info,
+.card--light .week-progress-bar-wrapper,
+.card--light .season-progress-bar-wrapper {
+  background-color: var(--eggshell);
+  border-radius: var(--radius-sm);
+}
+.card--light .week-progress-bar-wrapper,
+.card--light .season-progress-bar-wrapper { width: 100%; box-sizing: border-box; }
+.card--light .week-progress-bar,
+.card--light .season-progress-bar { background-color: var(--module-accent); }
+.card--light .week_info { color: var(--black); }
+
+/* Inner boxes share one convention: eggshell fill, hairline edge — no ad-hoc heavy borders.
+   The debt notice keeps a red left bar as a warning signal (per the colour rules). */
+.card--light .debt-module-notification-view,
+.card--light .debt-module-notification-prize,
+.card--light .debt-module-notification-debt {
+  background-color: var(--eggshell);
+  border: 1px solid var(--grey) !important;
+  border-radius: var(--radius-sm);
+}
+.card--light .debt-module-notification-debt { border-left: 3px solid var(--red) !important; }
+
+/* No divider line under a module title — panels carry no internal header rules. */
+.card--light .activities-week { border-top: none; }
+.card--light .activity { border-bottom-color: var(--grey); }
+
+/* Joinable / countdown season list items (rendered inside the season module) — inner
+   clickable boxes matching the inner-box convention, so they fit the panel look. */
+.card--light .potentialSeason,
+.card--light .countdownSeason {
+  background-color: var(--eggshell);
+  border: 1px solid var(--grey);
+  border-radius: var(--radius-sm);
+  padding: var(--space-3);
+  margin: var(--space-2) 0;
+  cursor: pointer;
+}
+.card--light .potentialSeason:hover { background-color: var(--grey); }
+
+/* Calendar day rows: drop the extra side padding and left-align the day-check so the
+   number box lines up with the notes field on one edge (was centred → looked ragged). */
+.card--light .form-group { padding-left: 0; padding-right: 0; }
+.card--light .day-check { align-items: flex-start; }
+
+/* Skeleton shimmer must sweep dark on the light card (the default is white-on-dark). */
+.card--light .skeleton-block {
+  background: linear-gradient(90deg, rgba(0,0,0,0.06) 25%, rgba(0,0,0,0.12) 50%, rgba(0,0,0,0.06) 75%);
+  background-size: 200% 100%;
+}

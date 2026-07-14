@@ -49,8 +49,18 @@ Two eras exist in the codebase and both are kept light-leaning:
 
 **Typography:** body font (`--font-body`) for everything by default, sentence case. The
 condensed **display font (`--font-display`) is reserved for numerals / stat readouts** — big
-metrics, scoreboards — not general buttons, labels, or headings. **The green accent
-(`--accent`)** is a highlight, used sparingly, not a fill for whole surfaces.
+metrics, scoreboards — not general buttons, labels, or headings.
+
+**Blue theme; other colours only to signal.** The app runs a **blue** theme — the accent
+(`--module-accent`, a friendly `--blue` #4a9fe0) carries identity (module left bars, progress
+fills, navy headings), applied as a thin *label*, never a coat of paint. Reach for a
+**different** hue only when it **communicates something specific**: green = success/complete,
+amber = warning, red = error/destructive (e.g. the debt notice keeps a red left bar). A rainbow
+of decorative per-module colours is clutter — don't.
+
+**Inside a module, keep it flat.** Inner blocks share one convention — eggshell fill, hairline
+edge, no ad-hoc heavy borders or divider lines under titles. Let the panel frame do the
+separating; don't add a second border system inside it.
 
 ## Tokens
 
@@ -90,6 +100,7 @@ used by legacy components until they're migrated.
 | `--danger` | destructive/error |
 | `--strava` | Strava brand orange |
 | `--audio` | soundtrack / listening layer amber |
+| `--module-accent` | the single blue theme accent for module panels (left bar + progress). One knob recolours the whole set. |
 
 ### 3. Scales
 
@@ -144,13 +155,23 @@ migrated buttons until they're individually retired.
 Use light content cards for ordinary UI; reserve the dark **instrument** stat cards for
 data-dense metric readouts (statistics/gear/profile), per the light-first direction.
 
+**Module panel** (light pages): the shared style for content blocks that sit on a
+`.card--light` page — `.season`, `.current-week`, `.debt-module`, `.prize-module`,
+`.leaderboard`, `.activities`, `.week_days`, `.ai-message-card`, … They render as **one identical panel**:
+white surface, hairline grey border, a single blue `--module-accent` **left bar**, soft
+shadow, `--radius-md`, `overflow: hidden`, and **one consistent inner padding
+(`--space-4`)** — inner blocks (headers, progress bars) sit **inset, never flush** to the
+edge. Driven by **one shared rule** (scoped under `.card--light` in `components.css`) — keep
+every module on that rule; don't give a module its own colour, border, or padding.
+
 | Class | Use | Status |
 |---|---|---|
 | `.stat-card` | metric tile; `data-family="movement\|effort\|strength\|audio\|time\|neutral"` sets a per-family accent stripe (`--stat-accent`). Sub-elements `.stat-card-label` / `.stat-card-value` / `.stat-card-unit`. | **target** |
 | `.user-stat-card`, `.user-streak-card` | profile stat / streak tiles | target |
 | `.ai-message-card` | the AI greeting widget | target |
 | `.panel-card` | centred white content-card wrapper (extracted Phase 4) | transitional |
-| `.card` / `.card-header` / `.card-body` | legacy Bootstrap-ish card (frontpage/seasons) | **legacy — migrate on touch** |
+| `.card` / `.card-header` / `.card-body` | the shared page-shell wrapper (all 20 pages); mediumblue with white text | **legacy — being flipped light** |
+| `.card--light` | opt-in modifier on `.card` → light surface + dark text (page sweep). Add it per page as swept; inner widgets built for the dark card get light-friendly overrides scoped under it. Once every page carries it, flip the base `.card` and delete the modifier. | **sweep-in-progress** |
 
 ### Chips & tags
 
