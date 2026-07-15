@@ -205,12 +205,28 @@
   .btn:disabled { opacity: 0.55; cursor: not-allowed; transform: none; filter: none; }
   .btn img { width: 1rem; height: 1rem; }
 
-  .btn--primary { background: var(--lightgreen); }
+  /* Primary is the SAME solid mediumblue/white as .btn — emphasis comes from being the one main
+     action + its placement, not a unique colour. (A bright accent fill can't carry legible white
+     text — white on --blue is ~2.7:1 — so the app uses one button blue and reserves the bright
+     accent for rings/progress. Secondary/quiet actions use .btn--ghost.) See docs/styleguide.md. */
+  .btn--primary { background: var(--mediumblue); color: var(--white); }
   .btn--danger  { background: var(--red); }
   .btn--ghost   { background: transparent; color: var(--mediumblue); border-color: var(--mediumblue); }
   .btn--ghost:hover { background: var(--trans-lightblue); }
   .btn--sm { padding: 0.35rem 0.7rem; font-size: 0.85rem; }
   .btn--block { width: 100%; }
+  /* Icon-only square button (replaces the bespoke .small-button-icon). Light neutral by
+     default so the app's dark SVG icons stay legible; add a colour variant (with a white/
+     inverted icon) for emphasis. Works applied to a <button> or directly to a clickable
+     <img>. */
+  .btn--icon {
+    width: 2.1rem; height: 2.1rem; padding: 0.4rem;
+    background: var(--eggshell); color: var(--mediumblue);
+    border: 1px solid var(--grey);
+  }
+  .btn--icon img { width: 1.15rem; height: 1.15rem; }
+  /* Button group — lays a row of buttons out with consistent spacing. */
+  .btn-group { display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: center; justify-content: center; }
   
   .form-control:disabled,.form-control[readonly]{background-color:#e9ecef;opacity:1;box-sizing: border-box;}
   

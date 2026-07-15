@@ -55,7 +55,9 @@
   z-index: 0;
 }
 
-/* ── Front-page push-notification prompt ── */
+/* ── Front-page push-notification prompt ──
+   An inset block (see styleguide): palest-sky fill + hairline edge, sitting inside the hero
+   panel. Its actions use the shared button system (.btn / .btn--ghost), not bespoke buttons. */
 .push-prompt {
   display: flex;
   flex-direction: row;
@@ -65,21 +67,15 @@
   gap: 0.75em 1em;
   margin-top: 1.5em;
   padding: 0.75em 1em;
-  border: 0.1rem solid var(--trans-lightblue);
-  border-radius: 0.5em;
-  background-color: var(--trans-lightblue);
+  border: 1px solid var(--inset-border);
+  border-radius: var(--radius-sm);
+  background-color: var(--inset-bg);
+  color: var(--darkblue);
   max-width: 28em;
 }
 .push-prompt-text { display: flex; align-items: center; gap: 0.5em; }
-.push-prompt-icon { font-size: 1.2em; line-height: 1; }
+.push-prompt-icon { width: 1.1em; height: 1.1em; line-height: 1; }
 .push-prompt-actions { display: flex; gap: 0.5em; }
-.push-prompt-enable, .push-prompt-dismiss {
-  width: auto !important;
-  margin: 0 !important;
-  padding: 0.4em 1em;
-  float: none !important;
-}
-.push-prompt-dismiss { background-color: var(--lightblue); }
 
 /* ── Inline loading spinner ── */
 .exercise-loading { display: flex; justify-content: center; align-items: center; padding: 1.5em 0; }

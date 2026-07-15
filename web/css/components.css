@@ -616,26 +616,34 @@ input[type=checkbox]
   width: -moz-available;
 }
 
+/* Avatar — one shared circle pattern (documented in docs/styleguide.md). The WRAPPER is the
+   circle: it carries the ring border, clips its content (`overflow: hidden`), and is
+   `border-box` so the ring sits inside the fixed size. The IMG simply fills it and covers.
+   Without the clip the square image poked past the ring (the bug this fixes). */
 .current-week-user-photo, .leaderboard-week-member-image {
-  border-radius: 10rem;
+  border-radius: var(--radius-circle);
   margin: auto;
   width: 3rem;
   height: 3rem;
   border: solid 0.2rem var(--lightblue);
   background-color: var(--white);
+  overflow: hidden;
+  box-sizing: border-box;
   cursor: pointer;
 }
 
 .current-week-user-photo-img, .user-active-profile-photo-img, .leaderboard-week-member-image-img, .achievement-img, .user-photo-img {
-  border-radius: 10rem;
+  width: 100%;
+  height: 100%;
+  border-radius: var(--radius-circle);
   object-fit: cover;
-  overflow: hidden;
-  background-image: var(--white);
+  display: block;
+  background-color: var(--white);
   box-sizing: border-box;
 }
 
 .user-active-profile-photo {
-  border-radius: 10rem;
+  border-radius: var(--radius-circle);
   margin: auto;
   width: 10rem;
   height: 10rem;
@@ -643,6 +651,8 @@ input[type=checkbox]
   max-height: 100%;
   border: solid 0.2rem var(--lightblue);
   background-color: var(--white);
+  overflow: hidden;
+  box-sizing: border-box;
 }
 
 .leaderboard-week-members {
@@ -1637,26 +1647,7 @@ label {
   align-items: center;
 }
 
-.potentialSeason {
-  width: 100%;
-  width: -webkit-fill-available;
-  width: -moz-available;
-  border-radius: 1rem;
-  margin: 0.25rem;
-  background-color: var(--lightblue);
-  color: var(--white);
-  height: 2rem;
-  display: flex;
-  flex-direction:row;
-  flex-wrap: wrap;
-  align-content: center;
-  justify-content: center;
-  align-items: center;
-}
-
-.countdownSeason {
-
-}
+/* .potentialSeason removed — joinable seasons are now .btn buttons (see placePotentialSeasons). */
 
 .activityWrapper {
   width: 100%;
@@ -1746,13 +1737,14 @@ label {
 }
 
 .activity-user-photo {
-  border-radius: 10rem;
+  border-radius: var(--radius-circle);
   width: 3rem;
   height: 3rem;
   border: solid 0.2rem var(--lightblue);
   background-color: var(--white);
   cursor: pointer;
-  box-sizing: inherit;
+  overflow: hidden;
+  box-sizing: border-box;
 }
 
 .activity-date {
@@ -1802,14 +1794,10 @@ label {
 
 .activity-user-photo-img{
   width: 100%;
-  width: -webkit-fill-available;
-  width: -moz-available;
   height: 100%;
-  height: -webkit-fill-available;
-  height: -moz-available;
-  border-radius: 100%;
+  border-radius: var(--radius-circle);
   object-fit: cover;
-  overflow: hidden;
+  display: block;
 }
 
 .strava-logo-img {
@@ -2157,6 +2145,69 @@ label {
 .card--light .card-body { color: var(--black); }
 .card--light .title { color: var(--darkblue); }
 
+/* Hero — the weekly-goal ring at the top of the front page: the app's core loop as the thesis.
+   A clean centred white panel (no left accent bar — it's the hero, not a module) with the ring
+   as centrepiece. Documented in docs/styleguide.md. */
+.card--light .hero {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: var(--space-3);
+  background: var(--white);
+  border: 1px solid var(--grey);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-sm);
+  padding: var(--space-5);
+  max-width: 32rem;            /* cap on desktop; full-width on mobile via the 100% base */
+  margin: var(--space-4) auto; /* centre the capped panel */
+}
+
+/* --pct (0–100, set from JS) animates so the arc sweeps up like the old progress bar; falls back
+   to a snap where @property is unsupported. */
+@property --pct {
+  syntax: '<number>';
+  inherits: false;
+  initial-value: 0;
+}
+/* Conic-gradient donut: the blue arc fills to --pct over the palest-sky track; the inner white
+   disc turns it into a ring. Snaps to green when the week is complete. */
+.hero-ring {
+  --pct: 0;
+  --ring-fill: var(--blue);
+  width: 9rem;
+  height: 9rem;
+  box-sizing: border-box;
+  padding: 0.7rem;                 /* ring thickness */
+  border-radius: var(--radius-circle);
+  background: conic-gradient(var(--ring-fill) calc(var(--pct) * 1%), var(--inset-bg) 0);
+  display: flex;
+  transition: --pct 1.2s ease, background 0.4s ease;
+}
+.hero-ring.complete { --ring-fill: var(--success); }
+.hero-ring-figures {
+  flex: 1;
+  border-radius: var(--radius-circle);
+  background: var(--white);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.1rem;
+}
+.hero-ring-count {
+  font-family: var(--font-display);
+  font-size: 2.25rem;
+  font-weight: 700;
+  line-height: 1;
+  color: var(--darkblue);
+}
+.hero-ring-count a { color: inherit; text-decoration: none; }
+.hero-ring-caption {
+  font-size: 0.8rem;
+  color: var(--lightblue);
+}
+
 /* Module panel — ONE shared style for every content block on the light card:
    white surface, hairline border, a single calm green left accent bar, soft shadow,
    rounded and `overflow: hidden` so inner headers / progress bars clip to the corners
@@ -2181,6 +2232,7 @@ label {
   border-radius: var(--radius-md);
   box-shadow: var(--shadow-sm);
   overflow: hidden;
+  box-sizing: border-box;    /* padding stays inside the width — some modules default to content-box */
   padding: var(--space-4);   /* one consistent inner padding; inner blocks inset, not flush */
 }
 
@@ -2188,53 +2240,220 @@ label {
    strip and progress track to eggshell, blue accent for the fill. Inner blocks that used to
    sit flush at the panel top get full corners now that padding insets them. `width: 100%`
    on the progress wrapper drops its fixed 20em width so it lines up with the padded day rows. */
+/* Inset block — ONE convention for every box nested in a module panel: palest-sky fill
+   (--inset-bg) + hairline grey edge (--inset-border) + radius-sm. Progress tracks, debt
+   notices, joinable-season rows and the number box all share it, so nothing varies. The
+   accent fill (progress bar) and the red debt bar are the only signal exceptions. */
 .card--light .week_info,
 .card--light .week-progress-bar-wrapper,
-.card--light .season-progress-bar-wrapper {
-  background-color: var(--eggshell);
+.card--light .season-progress-bar-wrapper,
+.card--light .number-box {
+  background-color: var(--inset-bg);
   border-radius: var(--radius-sm);
 }
 .card--light .week-progress-bar-wrapper,
-.card--light .season-progress-bar-wrapper { width: 100%; box-sizing: border-box; }
+.card--light .season-progress-bar-wrapper {
+  width: 100%;
+  box-sizing: border-box;
+  border: none;                 /* drop the legacy eggshell bottom-border */
+  border-radius: var(--radius-sm);  /* full rounding, not the legacy top-only */
+}
 .card--light .week-progress-bar,
 .card--light .season-progress-bar { background-color: var(--module-accent); }
 .card--light .week_info { color: var(--black); }
 
-/* Inner boxes share one convention: eggshell fill, hairline edge — no ad-hoc heavy borders.
-   The debt notice keeps a red left bar as a warning signal (per the colour rules). */
 .card--light .debt-module-notification-view,
 .card--light .debt-module-notification-prize,
 .card--light .debt-module-notification-debt {
-  background-color: var(--eggshell);
-  border: 1px solid var(--grey) !important;
+  background-color: var(--inset-bg);
+  border: 1px solid var(--inset-border) !important;
   border-radius: var(--radius-sm);
 }
-.card--light .debt-module-notification-debt { border-left: 3px solid var(--red) !important; }
+.card--light .debt-module-notification-debt { border-left: 3px solid var(--error) !important; }
 
-/* No divider line under a module title — panels carry no internal header rules. */
+/* One divider treatment inside a light module: a single hairline in --grey. Applies to <hr>
+   (calendar/season) and every internal border (activities, previous-weeks) so nothing uses the
+   old faint-eggshell or bluish --trans-lightblue lines. Documented in docs/styleguide.md. */
+.card--light hr {
+  border: none;
+  border-top: 1px solid var(--grey);
+  background: none;
+  opacity: 1;
+}
 .card--light .activities-week { border-top: none; }
-.card--light .activity { border-bottom-color: var(--grey); }
+.card--light .activity { border-bottom: 1px solid var(--grey); }
+.card--light .leaderboard-weeks { border-top: 1px solid var(--grey); }
+.card--light .leaderboard-week { border-bottom: 1px solid var(--grey); }
 
-/* Joinable / countdown season list items (rendered inside the season module) — inner
-   clickable boxes matching the inner-box convention, so they fit the panel look. */
-.card--light .potentialSeason,
+/* Countdown-season info card (rendered inside the season module) — an inset block, matching
+   the panel look. (Joinable seasons are now real .btn buttons — see placePotentialSeasons.) */
 .card--light .countdownSeason {
-  background-color: var(--eggshell);
-  border: 1px solid var(--grey);
+  background-color: var(--inset-bg);
+  border: 1px solid var(--inset-border);
   border-radius: var(--radius-sm);
   padding: var(--space-3);
   margin: var(--space-2) 0;
-  cursor: pointer;
 }
-.card--light .potentialSeason:hover { background-color: var(--grey); }
+/* Joinable-season buttons stack full-width in their list. */
+.potentialSeasonList .btn { margin: var(--space-1) 0; }
 
-/* Calendar day rows: drop the extra side padding and left-align the day-check so the
-   number box lines up with the notes field on one edge (was centred → looked ragged). */
-.card--light .form-group { padding-left: 0; padding-right: 0; }
-.card--light .day-check { align-items: flex-start; }
+/* Uniform panel width so every module matches (Activities/leaderboard were a fixed 20rem
+   while siblings varied). The AI greeting card is intentionally excluded — it's a wider
+   featured banner, not a module. */
+.card--light .season,
+.card--light .current-week,
+.card--light .debt-module,
+.card--light .prize-module,
+.card--light .leaderboard,
+.card--light .activities,
+.card--light .week_days {
+  width: 20rem;
+  max-width: 100%;
+}
+
+/* Day row — each day stacks vertically (documented in docs/styleguide.md): day label, then the
+   number box + its −/+/✎ icon buttons on one line, then the notes field full-width beneath. One
+   consistent layout whether or not the action buttons are shown (they only appear up to today),
+   so the notes never get squeezed into a narrow, wrapping column. */
+.card--light .form-group {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: var(--space-2);
+  padding: var(--space-3) 0;
+}
+.card--light .day-check {
+  flex-flow: row wrap;
+  align-items: center;
+  justify-content: flex-start;
+  gap: var(--space-2);
+  width: 100%;
+  max-width: none;
+  margin: 0;
+}
+.card--light .day-check > label {
+  flex: 1 0 100%;
+  margin: 0;
+  text-align: left;
+  font-weight: 600;
+}
+.card--light .day-buttons { flex-wrap: nowrap; gap: var(--space-1); margin: 0; }
+.card--light .number-box { margin: 0; }
+.card--light .day-note { width: 100%; margin: 0; }
+.card--light .day-note-area { width: 100%; margin: 0; box-sizing: border-box; }
 
 /* Skeleton shimmer must sweep dark on the light card (the default is white-on-dark). */
 .card--light .skeleton-block {
   background: linear-gradient(90deg, rgba(0,0,0,0.06) 25%, rgba(0,0,0,0.12) 50%, rgba(0,0,0,0.06) 75%);
   background-size: 200% 100%;
 }
+
+/* ══ Profile page (/users/:id) — Phase 6 light sweep ═══════════════════════════════════════
+   Scoped under .card--light so /account and /achievements (which share these classes but aren't
+   swept yet) stay on the dark card until their own pass. Reuses the module-panel, inset, avatar,
+   divider and display-font conventions from the front page; adds the light metric tile, segmented
+   tab, meta tag and skeleton size classes (all documented in docs/styleguide.md). */
+
+/* Profile+stats row and achievements each read as a module panel. */
+.card--light .user-profile-row,
+.card--light .achievements-module {
+  background: var(--white);
+  color: var(--black);
+  border: 1px solid var(--grey);
+  border-left: 4px solid var(--module-accent);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-sm);
+  box-sizing: border-box;
+  padding: var(--space-4);
+  margin: var(--space-4) auto;
+  max-width: 48rem;
+}
+.card--light .achievements-module { flex-direction: column; align-items: center; }
+
+/* The two sections are the panel's inner columns — the panel supplies the outer padding, so they
+   carry only inner spacing around the one grey hairline divider (was a bluish --trans-lightblue). */
+.card--light .account-section--profile { padding: 0 var(--space-4) 0 0; border-right: 1px solid var(--grey); }
+.card--light .account-section--stats   { padding: 0 0 0 var(--space-4); }
+@media (max-width: 640px) {
+  .card--light .account-section--profile {
+    padding: 0 0 var(--space-4) 0;
+    border-right: none;
+    border-bottom: 1px solid var(--grey);
+  }
+  .card--light .account-section--stats { padding: var(--space-4) 0 0 0; }
+}
+
+/* Section titles → navy label; the between-section rule → grey hairline. */
+.card--light .user-stats-section-title { color: var(--darkblue); opacity: 1; font-weight: 700; }
+.card--light .user-stats-section + .user-stats-section { border-top: 1px solid var(--grey); }
+
+/* Light metric tiles — inset fill + hairline; numerals in the display font, navy. */
+.card--light .user-stat-card,
+.card--light .user-streak-card {
+  background: var(--inset-bg);
+  border: 1px solid var(--inset-border);
+  color: var(--darkblue);
+}
+.card--light .user-stat-value,
+.card--light .user-streak-number { font-family: var(--font-display); color: var(--darkblue); }
+.card--light .user-stat-label { color: var(--lightblue); opacity: 1; }
+/* Hover overlay → mediumblue so its white text passes contrast (was --lightblue). */
+.card--light .streak-overlay { background-color: var(--mediumblue); }
+
+/* Segmented tabs — light inset pills; the active segment is solid mediumblue/white. */
+.card--light .user-stat-tab {
+  background: var(--inset-bg);
+  color: var(--darkblue);
+  border: 1px solid var(--inset-border);
+  opacity: 1;
+  font-family: var(--font-body);
+}
+.card--light .user-stat-tab:hover { filter: brightness(0.97); opacity: 1; }
+.card--light .user-stat-tab-active {
+  background: var(--mediumblue);
+  color: var(--white);
+  border-color: var(--mediumblue);
+}
+
+/* Achievement tiles → inset fill to match the page (scoped; shared /achievements stays dark).
+   The category colour comes in as --cat-color from the markup (data-driven). */
+.card--light .achievement-base { background-color: var(--inset-bg); }
+.card--light .achievement-title,
+.card--light .achievement-date { color: var(--darkblue); }
+.card--light .achievement-image { border: solid 0.2em var(--cat-color, var(--grey)); }
+
+/* ── Profile bits promoted out of inline styles (new, page-specific classes) ── */
+.user-name { margin-top: var(--space-4); font-size: 1.25em; font-weight: 700; }
+.user-links { display: flex; gap: var(--space-3); margin-top: var(--space-4); }
+.user-link { width: 2em; height: 2em; cursor: pointer; }
+.user-link img { width: 100%; height: 100%; object-fit: contain; border-radius: var(--radius-xs); }
+.user-stats-content { display: flex; flex-direction: column; gap: var(--space-2); }
+
+/* Streak-heat flame colours (tiers set from JS by streak length). */
+.flame-0 { color: var(--grey); }
+.flame-1 { color: var(--flame-1); }
+.flame-2 { color: var(--flame-2); }
+.flame-3 { color: var(--flame-3); }
+.flame-icon { font-size: 1.2em; }
+
+/* Meta tag — a small hairline label (achievement category, "Stackable"). */
+.meta-tag {
+  display: inline-block;
+  width: auto;
+  font-size: 0.70em;
+  border: 1px solid currentColor;
+  border-radius: var(--radius-sm);
+  padding: 0.12rem 0.35rem;
+}
+
+/* Activity logo in a stats section title. */
+.stat-title-logo { height: 1.4em; width: 1.4em; vertical-align: middle; margin-right: 0.4em; }
+.streak-overlay-title { font-size: 1.1em; }
+
+/* Skeleton size classes (replaces per-block inline width/height; closes a styleguide gap). */
+.skel-row { display: flex; gap: var(--space-2); margin-top: var(--space-2); flex-wrap: wrap; }
+.skel-label { width: 5em; height: 0.8em; border-radius: var(--radius-xs); }
+.skel-mt { margin-top: var(--space-5); }
+.skel-streak { width: 6em; height: 5em; border-radius: var(--radius-sm); }
+.skel-tile { width: 5.5em; height: 3.5em; border-radius: var(--radius-sm); }
+.skel-bar { width: 18em; max-width: 100%; height: 1.8em; border-radius: var(--radius-sm); margin-top: var(--space-2); }

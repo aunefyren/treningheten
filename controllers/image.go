@@ -84,11 +84,21 @@ func safeImageFilePath(baseDir string, fileName string) (string, error) {
 	return joined, nil
 }
 
-// serveImageBytes writes raw image bytes for direct use in an <img> tag, with caching
-// headers so the browser can reuse and dedupe them. The MIME type is detected from the
-// content (resized photos are JPEG; the profile default is an SVG). It honours
-// If-None-Match for cheap revalidation once the max-age window expires.
-func serveImageBytes(context *gin.Context, imageBytes []byte) {
+// serveImageBytes writes raw image bytes for direct use in an <img> tag. The MIME type is
+// detected from the content (resized photos are JPEG; the profile default is an SVG).
+//
+// When cacheable, it sets `private, max-age=300` + an ETag and honours If-None-Match for cheap
+// revalidation. The default placeholder must be served with cacheable=false (`no-store`): a
+// "no photo yet" response cached under the real image URL would otherwise be served from the
+// browser cache for up to 5 minutes and mask a photo uploaded later — the stale-default bug that
+// previously forced callers to append cache-busting query strings.
+func serveImageBytes(context *gin.Context, imageBytes []byte, cacheable bool) {
+	if !cacheable {
+		context.Header("Cache-Control", "no-store")
+		context.Data(http.StatusOK, detectImageMimeType(imageBytes), imageBytes)
+		return
+	}
+
 	etag := fmt.Sprintf("\"%x\"", md5.Sum(imageBytes))
 	context.Header("Cache-Control", "private, max-age=300")
 	context.Header("ETag", etag)
@@ -170,6 +180,7 @@ func APIGetUserProfileImage(context *gin.Context) {
 	}
 
 	imageBytes, err := loadResizedImageCached(filePath, imageWidth, imageHeight)
+	servedDefault := false
 	if err != nil {
 		// No profile image on disk: serve the (unresized) default placeholder.
 		imageBytes, err = LoadDefaultProfileImage()
@@ -179,10 +190,12 @@ func APIGetUserProfileImage(context *gin.Context) {
 			context.Abort()
 			return
 		}
+		servedDefault = true
 	}
 
-	// Reply with the raw image bytes so it can be loaded directly into an <img> tag.
-	serveImageBytes(context, imageBytes)
+	// Reply with the raw image bytes so it can be loaded directly into an <img> tag. The real
+	// photo is cacheable; the default placeholder is not, so it can't mask a later upload.
+	serveImageBytes(context, imageBytes, !servedDefault)
 
 }
 
@@ -415,7 +428,8 @@ func APIGetAchievementsImage(context *gin.Context) {
 		return
 	}
 
-	// Reply with the raw image bytes so it can be loaded directly into an <img> tag.
-	serveImageBytes(context, imageBytes)
+	// Reply with the raw image bytes so it can be loaded directly into an <img> tag. Achievement
+	// images always exist here (missing → error above), so they are always cacheable.
+	serveImageBytes(context, imageBytes, true)
 
 }

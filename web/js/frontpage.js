@@ -29,14 +29,23 @@ function load_page(result) {
     var html = `
                 <div class="" id="front-page">
                     
-                    <div class="module" id="top-module">
-                    
-                        <div class="title">
-                            {{.appName}}
+                    <div class="module hero" id="top-module">
+
+                        <!-- Weekly-goal ring: the app's core loop as the hero. The ring fills
+                             blue with this week's completion %, snaps green at 100%. Hidden until
+                             a season/week populates it (placeWeekProgress). -->
+                        <div class="hero-ring" id="hero-ring" style="display: none;">
+                            <div class="hero-ring-figures">
+                                <span class="hero-ring-count"><a id="workout_this_week">0</a> / <a id="goal_this_week">0</a></span>
+                                <span class="hero-ring-caption">this week</span>
+                            </div>
                         </div>
 
+                        <!-- The nav already shows the app name; the ring + CTA carry the hero, so no
+                             redundant title/subtitle here. #front-page-text is used for the logged-out
+                             prompt only (hidden when logged in). -->
                         <div class="text-body u-text-center" id="front-page-text">
-       
+
                         </div>
 
                         <div id="log-in-button" style="margin-top: 2em; display: none; width: 10em;">
@@ -49,7 +58,7 @@ function load_page(result) {
 
                         <div class="ai-button-row">
                             <div id="ai-message-inline" style="display: none;"></div>
-                            <button type="submit" onclick="" id="add-exercise-button" style="display: none; margin: 0em; width: 12em;"><img src="assets/plus.svg" class="btn_logo color-invert"><p2>Start new workout</p2></button>
+                            <button type="submit" onclick="" id="add-exercise-button" class="btn btn--primary" style="display: none;"><img src="assets/plus.svg" class="color-invert">Start new workout</button>
                         </div>
 
                         <div id="push-prompt" class="push-prompt" style="display: none;"></div>
@@ -64,17 +73,6 @@ function load_page(result) {
 
                                 <div class="week_days" id='calendar'>
 
-                                    <div id="week-progress-bar-wrapper" class="week-progress-bar-wrapper">
-                                        <div id="week-progress-bar" class="week-progress-bar">
-                                            <div class="calender_status unselectable" id="calender_status">
-                                                <a id="workout_this_week">...</a>
-                                                /
-                                                <a id="goal_this_week">...</a>
-                                                this week
-                                            </div>
-                                        </div>
-                                    </div>
-
                                     <div class="form-group" id="day_1_group">
                                         <div class="day-check">
                                             <label class="u-m-0" for="day_1_check" title="Have you been working out?">Monday</label>
@@ -82,9 +80,9 @@ function load_page(result) {
                                                 0
                                             </div>
                                             <div class="day-buttons" id="day_1_buttons">
-                                                <img src="assets/minus.svg" class="small-button-icon clickable" onclick="DecreaseNumberInput('day_1_check', 0, 3);">
-                                                <img src="assets/plus.svg" class="small-button-icon clickable" onclick="IncreaseNumberInput('day_1_check', 0, 3);">
-                                                <img src="assets/edit-3.svg" class="small-button-icon clickable u-p-1" onclick="EditExercise(1);">
+                                                <img src="assets/minus.svg" class="btn btn--icon clickable" onclick="DecreaseNumberInput('day_1_check', 0, 3);">
+                                                <img src="assets/plus.svg" class="btn btn--icon clickable" onclick="IncreaseNumberInput('day_1_check', 0, 3);">
+                                                <img src="assets/edit-3.svg" class="btn btn--icon clickable" onclick="EditExercise(1);">
                                             </div>
                                         </div>
                                         <div class="day-note">
@@ -104,9 +102,9 @@ function load_page(result) {
                                                 0
                                             </div>
                                             <div class="day-buttons" id="day_2_buttons">
-                                                <img src="assets/minus.svg" class="small-button-icon clickable" onclick="DecreaseNumberInput('day_2_check', 0, 3);">
-                                                <img src="assets/plus.svg" class="small-button-icon clickable" onclick="IncreaseNumberInput('day_2_check', 0, 3);">
-                                                <img src="assets/edit-3.svg" class="small-button-icon clickable u-p-1" onclick="EditExercise(2);">
+                                                <img src="assets/minus.svg" class="btn btn--icon clickable" onclick="DecreaseNumberInput('day_2_check', 0, 3);">
+                                                <img src="assets/plus.svg" class="btn btn--icon clickable" onclick="IncreaseNumberInput('day_2_check', 0, 3);">
+                                                <img src="assets/edit-3.svg" class="btn btn--icon clickable" onclick="EditExercise(2);">
                                             </div>
                                         </div>
                                         <div class="day-note">
@@ -126,9 +124,9 @@ function load_page(result) {
                                                 0
                                             </div>
                                             <div class="day-buttons" id="day_3_buttons">
-                                                <img src="assets/minus.svg" class="small-button-icon clickable" onclick="DecreaseNumberInput('day_3_check', 0, 3);">
-                                                <img src="assets/plus.svg" class="small-button-icon clickable" onclick="IncreaseNumberInput('day_3_check', 0, 3);">
-                                                <img src="assets/edit-3.svg" class="small-button-icon clickable u-p-1" onclick="EditExercise(3);">
+                                                <img src="assets/minus.svg" class="btn btn--icon clickable" onclick="DecreaseNumberInput('day_3_check', 0, 3);">
+                                                <img src="assets/plus.svg" class="btn btn--icon clickable" onclick="IncreaseNumberInput('day_3_check', 0, 3);">
+                                                <img src="assets/edit-3.svg" class="btn btn--icon clickable" onclick="EditExercise(3);">
                                             </div>
                                         </div>
                                         <div class="day-note">
@@ -148,9 +146,9 @@ function load_page(result) {
                                                 0
                                             </div>
                                             <div class="day-buttons" id="day_4_buttons">
-                                                <img src="assets/minus.svg" class="small-button-icon clickable" onclick="DecreaseNumberInput('day_4_check', 0, 3);">
-                                                <img src="assets/plus.svg" class="small-button-icon clickable" onclick="IncreaseNumberInput('day_4_check', 0, 3);">
-                                                <img src="assets/edit-3.svg" class="small-button-icon clickable u-p-1" onclick="EditExercise(4);">
+                                                <img src="assets/minus.svg" class="btn btn--icon clickable" onclick="DecreaseNumberInput('day_4_check', 0, 3);">
+                                                <img src="assets/plus.svg" class="btn btn--icon clickable" onclick="IncreaseNumberInput('day_4_check', 0, 3);">
+                                                <img src="assets/edit-3.svg" class="btn btn--icon clickable" onclick="EditExercise(4);">
                                             </div>
                                         </div>
                                         <div class="day-note">
@@ -170,9 +168,9 @@ function load_page(result) {
                                                 0
                                             </div>
                                             <div class="day-buttons" id="day_5_buttons">
-                                                <img src="assets/minus.svg" class="small-button-icon clickable" onclick="DecreaseNumberInput('day_5_check', 0, 3);">
-                                                <img src="assets/plus.svg" class="small-button-icon clickable" onclick="IncreaseNumberInput('day_5_check', 0, 3);">
-                                                <img src="assets/edit-3.svg" class="small-button-icon clickable u-p-1" onclick="EditExercise(5);">
+                                                <img src="assets/minus.svg" class="btn btn--icon clickable" onclick="DecreaseNumberInput('day_5_check', 0, 3);">
+                                                <img src="assets/plus.svg" class="btn btn--icon clickable" onclick="IncreaseNumberInput('day_5_check', 0, 3);">
+                                                <img src="assets/edit-3.svg" class="btn btn--icon clickable" onclick="EditExercise(5);">
                                             </div>
                                         </div>
                                         <div class="day-note">
@@ -192,9 +190,9 @@ function load_page(result) {
                                                 0
                                             </div>
                                             <div class="day-buttons" id="day_6_buttons">
-                                                <img src="assets/minus.svg" class="small-button-icon clickable" onclick="DecreaseNumberInput('day_6_check', 0, 3);">
-                                                <img src="assets/plus.svg" class="small-button-icon clickable" onclick="IncreaseNumberInput('day_6_check', 0, 3);">
-                                                <img src="assets/edit-3.svg" class="small-button-icon clickable u-p-1" onclick="EditExercise(6);">
+                                                <img src="assets/minus.svg" class="btn btn--icon clickable" onclick="DecreaseNumberInput('day_6_check', 0, 3);">
+                                                <img src="assets/plus.svg" class="btn btn--icon clickable" onclick="IncreaseNumberInput('day_6_check', 0, 3);">
+                                                <img src="assets/edit-3.svg" class="btn btn--icon clickable" onclick="EditExercise(6);">
                                             </div>
                                         </div>
                                         <div class="day-note">
@@ -214,9 +212,9 @@ function load_page(result) {
                                                 0
                                             </div>
                                             <div class="day-buttons" id="day_7_buttons">
-                                                <img src="assets/minus.svg" class="small-button-icon clickable" onclick="DecreaseNumberInput('day_7_check', 0, 3);">
-                                                <img src="assets/plus.svg" class="small-button-icon clickable" onclick="IncreaseNumberInput('day_7_check', 0, 3);">
-                                                <img src="assets/edit-3.svg" class="small-button-icon clickable u-p-1" onclick="EditExercise(7);">
+                                                <img src="assets/minus.svg" class="btn btn--icon clickable" onclick="DecreaseNumberInput('day_7_check', 0, 3);">
+                                                <img src="assets/plus.svg" class="btn btn--icon clickable" onclick="IncreaseNumberInput('day_7_check', 0, 3);">
+                                                <img src="assets/edit-3.svg" class="btn btn--icon clickable" onclick="EditExercise(7);">
                                             </div>
                                         </div>
                                         <div class="day-note">
@@ -230,7 +228,7 @@ function load_page(result) {
                                     <input type="hidden" value="" id="calendar_user_id">
                                     <input type="hidden" value="" id="calendar_season_id">
 
-                                    <button type="submit" onclick="update_exercises(false, 0);" id="goal_amount_button" style="margin-bottom: 0em; transition: 1s;"><img src="assets/done.svg" class="btn_logo color-invert"><p2>Save</p2></button>
+                                    <button type="submit" onclick="update_exercises(false, 0);" id="goal_amount_button" class="btn btn--block" style="margin-bottom: 0em; transition: 1s;"><img src="assets/done.svg" class="color-invert">Save</button>
 
                                     <a class="u-m-2 u-fs-sm u-pointer" onclick="use_sickleave();">Use sick leave</i></a>
 
@@ -368,7 +366,7 @@ function load_page(result) {
 
                     </div>
 
-                    <div class="module" id="unspun-wheel" style="display: none;">
+                    <div class="module hero" id="unspun-wheel" style="display: none;">
 
                     </div>
 
@@ -393,7 +391,7 @@ function load_page(result) {
     if(result !== false) {
         showLoggedInMenu();
         get_season(user_id, true, activeSeason);
-        document.getElementById('front-page-text').innerHTML = 'Remember to log your workouts.';
+        document.getElementById('front-page-text').style.display = 'none';
         if ("{{.ollamaEnabled}}" == "true") {
             load_ai_message();
         }
@@ -463,12 +461,12 @@ function maybeShowPushPrompt() {
 
             prompt.innerHTML = `
                 <div class="push-prompt-text">
-                    <img src="assets/bell.svg" class="btn_logo color-invert push-prompt-icon">
+                    <img src="assets/bell.svg" class="push-prompt-icon">
                     <span>${promptMessage}</span>
                 </div>
                 <div class="push-prompt-actions">
-                    <button type="submit" class="push-prompt-enable" onclick="enablePushFromPrompt(); return false;">Enable</button>
-                    <button type="submit" class="push-prompt-dismiss" onclick="dismissPushPrompt(); return false;">Not now</button>
+                    <button type="submit" class="btn btn--sm" onclick="enablePushFromPrompt(); return false;">Enable</button>
+                    <button type="submit" class="btn btn--ghost btn--sm" onclick="dismissPushPrompt(); return false;">Not now</button>
                 </div>
             `;
             prompt.style.display = 'flex';
@@ -1287,7 +1285,7 @@ function placeDebtOverview(overviewArray) {
         html += `
             <div class="debt-module-notification-view" id="">
                 ${overviewArray.debt_unviewed[i].debt.loser.first_name} ${overviewArray.debt_unviewed[i].debt.loser.last_name} spun the wheel for week ${date_str}.<br>See if you won!<br>
-                <img src="assets/arrow-right.svg" class="small-button-icon clickable" onclick="location.replace('/wheel?debt_id=${overviewArray.debt_unviewed[i].debt.id}'); ">
+                <img src="assets/arrow-right.svg" class="btn btn--icon clickable" onclick="location.replace('/wheel?debt_id=${overviewArray.debt_unviewed[i].debt.id}'); ">
             </div>
         `;
     }
@@ -1309,7 +1307,7 @@ function placeDebtOverview(overviewArray) {
         html += `
             <div class="debt-module-notification-prize" id="">
                 ${overviewArray.debt_won[i].loser.first_name} ${overviewArray.debt_won[i].loser.last_name} spun the wheel for week ${date_str} and you won <b>${overviewArray.debt_won[i].season.prize.quantity} ${overviewArray.debt_won[i].season.prize.name}</b>!<br>Have you received it?<br>
-                <img src="assets/done.svg" class="small-button-icon clickable" onclick="setPrizeReceived('${overviewArray.debt_won[i].id}');">
+                <img src="assets/done.svg" class="btn btn--icon clickable" onclick="setPrizeReceived('${overviewArray.debt_won[i].id}');">
             </div>
         `;
     }
@@ -1443,7 +1441,7 @@ function placeSeasonProgress(seasonStartObject, seasonEndObject) {
     }
 }
 
-function placeWeekProgress(percentage, exercise, exerciseGoal) {
+function placeWeekProgress(percentage) {
 
     console.log("This weeks progress: " + percentage)
 
@@ -1451,16 +1449,22 @@ function placeWeekProgress(percentage, exercise, exerciseGoal) {
         percentage = 100;
     }
 
-    document.getElementById("week-progress-bar").style.width  = percentage + "%"
+    var ring = document.getElementById("hero-ring");
+    if(!ring) {
+        return;
+    }
+
+    // Reveal the ring (hidden until a season populates it) and fill its arc to the completion %.
+    ring.style.display = "flex";
+    ring.style.setProperty("--pct", percentage);
 
     if(percentage > 99) {
-        document.getElementById("week-progress-bar-wrapper").classList.remove('transparent');
-        setTimeout(function() {
-            document.getElementById("week-progress-bar").classList.add("blink")
-        }, 1500);
-        setTimeout(function() {
-            document.getElementById("week-progress-bar").classList.remove('blink');
-        }, 2500);
+        // Complete: snap the ring green and give it a brief celebratory pulse.
+        ring.classList.add("complete");
+        setTimeout(function() { ring.classList.add("blink"); }, 1500);
+        setTimeout(function() { ring.classList.remove("blink"); }, 2500);
+    } else {
+        ring.classList.remove("complete");
     }
 
 }
@@ -1566,9 +1570,9 @@ function placePotentialSeasons(seasonsArray) {
         var html = "Seasons you can join:<br><div class='potentialSeasonList'><hr>";
         for(var i = 0; i < seasonsArray.length; i++) {
             html += `
-                <div class="potentialSeason hover clickable" onclick="document.location.href = '/registergoal?season_id=${seasonsArray[i].id}'">
+                <button class="btn btn--block" onclick="document.location.href = '/registergoal?season_id=${seasonsArray[i].id}'">
                     ${seasonsArray[i].name}
-                </div>
+                </button>
             `
         }
         html += '</div>'

@@ -28,6 +28,13 @@
   --orange:   #fc4c02;   /* Strava brand */
   --amber:    #f0b429;   /* audio / "soundtrack" listening layer */
   --blue:     #4a9fe0;   /* friendly sky blue — the theme accent */
+  --blue-050: #e3eefa;   /* palest sky tint — progress tracks / inset fills */
+
+  /* Streak-heat scale — a decorative warm ramp for the 🔥 flame by streak length (documented
+     exception, like the fireworks hues; not for general UI). --flame-0 uses --grey (no streak). */
+  --flame-1: #f5a623;   /* warming */
+  --flame-2: #f07800;   /* hot */
+  --flame-3: #e63000;   /* blazing */
 
   /* Legacy palette (moved verbatim from main.css — values unchanged). */
   --red: #d00000;
@@ -40,9 +47,11 @@
   --green-success-border: #c3e6cb;
   --lightgreen: #00A352;
   --eggshell: #e0e1dd;
-  --lightblue: #778da9;
-  --trans-lightblue: #778da980;
-  --mediumblue: #415a77;
+  /* Blues warmed onto ONE sky hue (~206°) so nav/buttons/rings read as the same family
+     as the --blue accent (was a slate ~213° that clashed with it). See docs/styleguide.md. */
+  --lightblue: #7fa8cf;         /* was #778da9 — avatar rings, ghost borders, secondary */
+  --trans-lightblue: #7fa8cf80; /* 50% --lightblue */
+  --mediumblue: #3a6ea5;        /* was #415a77 — nav, neutral .btn, solid fills */
   --darkblue: #0d1b2a;
   --black: #181818;
   --white: #ffffff;
@@ -60,7 +69,7 @@
   --panel-solid: var(--navy-800);
   --accent: var(--emerald);
   --accent-soft: rgba(0, 210, 122, 0.18);
-  --danger: var(--red);
+  --danger: var(--error);
   --strava: var(--orange);
   --audio: var(--amber);
 
@@ -68,6 +77,19 @@
      blue theme; other hues are reserved for signals (success/warning/error). Single knob
      so the whole set stays coherent — change here to recolour every module. */
   --module-accent: var(--blue);
+
+  /* Inset block — the ONE convention for small boxes nested inside a module panel
+     (number box, debt notices, joinable-season rows, progress track, push prompt):
+     palest sky fill + hairline grey edge. One knob keeps every inner box identical. */
+  --inset-bg: var(--blue-050);
+  --inset-border: var(--grey);
+
+  /* Signal colours — tuned to sit with --blue (similar saturation/brightness) so the palette
+     reads as ONE set rather than the hot legacy hues. Use these to communicate state. The
+     vivid legacy --red/--yellow/--green stay for un-migrated legacy code. */
+  --success: #2fa866;   /* complete / positive */
+  --warning: #eaa72c;   /* caution */
+  --error:   #e5555b;   /* error / destructive (softer than legacy --red) */
 
   /* ── 3. Scales ──────────────────────────────────────────────────────────
      Typography. Saira/Hanken are referenced but NOT yet loaded (only Roboto

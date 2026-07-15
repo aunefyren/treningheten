@@ -49,45 +49,41 @@ function load_page(result) {
                     <img class="user-active-profile-photo-img u-fill" id="user-active-profile-photo-img" src="/assets/images/barbell.gif">
                 </div>
 
-                <b><p id="user_name" style="margin-top: 1em; font-size: 1.25em;"></p></b>
+                <p id="user_name" class="user-name"></p>
                 <p id="join_date"></p>
                 <p id="user_admin"></p>
 
-                <div class="user-links" id="user-links" style="display:none; margin-top: 1em; gap: 0.75em;">
+                <div class="user-links" id="user-links" style="display:none;">
                 </div>
             </div>
 
             <div id="account-section-stats" class="account-section account-section--stats">
                 <div id="user-stats-skeleton" class="user-stats-skeleton">
                     <!-- Streaks label + two cards -->
-                    <div class="skeleton-block" style="width: 5em; height: 0.8em; border-radius: 0.3em;"></div>
-                    <div style="display:flex; gap: 0.5em; margin-top: 0.5em;">
-                        <div class="skeleton-block" style="width: 6em; height: 5em; border-radius: 0.6em;"></div>
-                        <div class="skeleton-block" style="width: 6em; height: 5em; border-radius: 0.6em;"></div>
+                    <div class="skeleton-block skel-label"></div>
+                    <div class="skel-row">
+                        <div class="skeleton-block skel-streak"></div>
+                        <div class="skeleton-block skel-streak"></div>
                     </div>
                     <!-- Sessions label + three cards -->
-                    <div class="skeleton-block" style="width: 5em; height: 0.8em; border-radius: 0.3em; margin-top: 1.2em;"></div>
-                    <div style="display:flex; gap: 0.5em; margin-top: 0.5em;">
-                        <div class="skeleton-block" style="width: 5em; height: 3.5em; border-radius: 0.6em;"></div>
-                        <div class="skeleton-block" style="width: 5em; height: 3.5em; border-radius: 0.6em;"></div>
-                        <div class="skeleton-block" style="width: 5em; height: 3.5em; border-radius: 0.6em;"></div>
+                    <div class="skeleton-block skel-label skel-mt"></div>
+                    <div class="skel-row">
+                        <div class="skeleton-block skel-tile"></div>
+                        <div class="skeleton-block skel-tile"></div>
+                        <div class="skeleton-block skel-tile"></div>
                     </div>
                     <!-- Activity label + tab bar + stat cards -->
-                    <div class="skeleton-block" style="width: 7em; height: 0.8em; border-radius: 0.3em; margin-top: 1.2em;"></div>
-                    <div class="skeleton-block" style="width: 18em; max-width: 100%; height: 1.8em; border-radius: 0.5em; margin-top: 0.5em;"></div>
-                    <div style="display:flex; gap: 0.5em; margin-top: 0.5em; flex-wrap: wrap;">
-                        <div class="skeleton-block" style="width: 5.5em; height: 3.5em; border-radius: 0.6em;"></div>
-                        <div class="skeleton-block" style="width: 5.5em; height: 3.5em; border-radius: 0.6em;"></div>
-                        <div class="skeleton-block" style="width: 5.5em; height: 3.5em; border-radius: 0.6em;"></div>
+                    <div class="skeleton-block skel-label skel-mt"></div>
+                    <div class="skeleton-block skel-bar"></div>
+                    <div class="skel-row">
+                        <div class="skeleton-block skel-tile"></div>
+                        <div class="skeleton-block skel-tile"></div>
+                        <div class="skeleton-block skel-tile"></div>
                     </div>
                 </div>
-                <div id="user-stats-content" style="display:none; width: 100%;"></div>
+                <div id="user-stats-content" class="user-stats-content" style="display:none;"></div>
             </div>
             </div><!-- /.user-profile-row -->
-        </div>
-
-        <div class="module" id="achievements-hr" style="display: none;">
-            <hr>
         </div>
 
         <div class="module" id="achievements-module" style="display: none;">
@@ -124,6 +120,8 @@ function GetProfileImage(userID) {
         return;
     }
     img.onerror = function() { this.onerror = null; this.src = '/assets/images/barbell.gif'; };
+    // No cache-buster needed: the API serves the default placeholder with `no-store`, so a
+    // "no photo yet" response can't stick and mask a later upload, while real photos still cache.
     img.src = profileImageURL(userID, false);
 
 }
@@ -192,8 +190,8 @@ function PlaceUserData(user_object) {
         userLinks.style.display = "flex"
 
         userLinks.innerHTML += `
-            <div onclick="window.open('https://www.strava.com/athletes/${user_object.strava_id}', '_blank');" class="clickable" style="width: 2em; height: 2em;" title="Strava profile">
-                <img src="/assets/strava-logo.svg" class="">
+            <div onclick="window.open('https://www.strava.com/athletes/${user_object.strava_id}', '_blank');" class="user-link clickable" title="Strava profile">
+                <img src="/assets/strava-logo.svg">
             </div>
         `;
     }
@@ -204,8 +202,8 @@ function PlaceUserData(user_object) {
         userLinks.style.display = "flex"
 
         userLinks.innerHTML += `
-            <div onclick="window.open('${user_object.hevy_profile_url}', '_blank');" class="clickable" style="width: 2em; height: 2em;" title="Hevy profile">
-                <img src="/assets/hevy.png" style="width: 100%; height: 100%; object-fit: contain; border-radius: 0.3rem;" class="">
+            <div onclick="window.open('${user_object.hevy_profile_url}', '_blank');" class="user-link clickable" title="Hevy profile">
+                <img src="/assets/hevy.png">
             </div>
         `;
     }
@@ -264,7 +262,6 @@ function PlaceUserAchievements(achievementArray) {
 
     if(achievementArray.length > 0) {
         document.getElementById("achievements-module").style.display = "flex"
-        document.getElementById("achievements-hr").style.display = "flex"
     } else {
         return;
     }
@@ -289,20 +286,12 @@ function PlaceUserAchievements(achievementArray) {
         var categoryColor = `var(--${achievementArray[i].category_color})`;
         var categoryText = ""
         if(achievementArray[i].category !== "Default") {
-            categoryText = `
-            <div style="font-size: 0.70em; margin-bottom: 1em; border: solid 0.12rem; border-radius: 0.5em; width: auto; padding: 0.12rem 0.25rem;"> 
-                ${achievementArray[i].category}
-            </div>
-            `;
+            categoryText = `<div class="meta-tag u-mb-1">${achievementArray[i].category}</div>`;
         }
 
         var stackableHTML = ``
         if(achievementArray[i].multiple_delegations) {
-            stackableHTML = `
-                <div style="font-size: 0.70em; margin-top: 1em; border: solid 0.12rem; border-radius: 0.5em; width: auto; padding: 0.12rem 0.25rem;"> 
-                    Stackable
-                </div>
-            `;
+            stackableHTML = `<div class="meta-tag u-mt-1">Stackable</div>`;
         }
 
         var delegationSum = achievementArray[i].achievement_delegations.length
@@ -324,7 +313,7 @@ function PlaceUserAchievements(achievementArray) {
 
                 ${delegationSumHTML}
 
-                <div class="achievement-image" style="border: solid 0.2em ${categoryColor};">
+                <div class="achievement-image" style="--cat-color: ${categoryColor};">
                     <img class="achievement-img u-fill" src="${achievementImageURL(achievementArray[i].id, true)}" onerror="${IMAGE_FALLBACK_ONERROR}">
                 </div>
 
@@ -410,11 +399,8 @@ function PlaceUserStats(data) {
             </div>`;
     }
     function flameIcon(count) {
-        var color = count <= 0  ? "var(--grey, #888)"
-                  : count < 4   ? "#f5a623"
-                  : count < 12  ? "#f07800"
-                  :               "#e63000";
-        return `<span style="color:${color}; font-size:1.2em;">🔥</span>`;
+        var tier = count <= 0 ? 0 : count < 4 ? 1 : count < 12 ? 2 : 3;
+        return `<span class="flame-icon flame-${tier}">🔥</span>`;
     }
 
     // ── streak section ───────────────────────────────────────────────────────
@@ -433,7 +419,7 @@ function PlaceUserStats(data) {
                     </div>
                     <div class="streak-overlay">
                         <div class="streak-overlay-text">
-                            <div style="font-size: 1.1em;">🔥 Week streak</div>
+                            <div class="streak-overlay-title">🔥 Week streak</div>
                             <div>Current: <b>${data.streak_weeks} wk</b></div>
                             <div class="u-dim">Best: <b>${data.streak_weeks_top} wk</b></div>
                         </div>
@@ -447,7 +433,7 @@ function PlaceUserStats(data) {
                     </div>
                     <div class="streak-overlay">
                         <div class="streak-overlay-text">
-                            <div style="font-size: 1.1em;">🔥 Day streak</div>
+                            <div class="streak-overlay-title">🔥 Day streak</div>
                             <div>Current: <b>${data.streak_days} d</b></div>
                             <div class="u-dim">Best: <b>${data.streak_days_top} d</b></div>
                         </div>
@@ -473,7 +459,7 @@ function PlaceUserStats(data) {
     if (act && act.action) {
         var actionName  = act.action.name || "";
         var actionLogo  = act.action.has_logo
-            ? `<img src="/assets/actions/${act.action.name}.svg" class="color-invert" style="height:1.4em; width:1.4em; vertical-align:middle; margin-right:0.4em;" onerror="this.style.display='none'">`
+            ? `<img src="/assets/actions/${act.action.name}.svg" class="stat-title-logo" onerror="this.style.display='none'">`
             : "";
 
         function actPeriodHTML(period, label) {
@@ -520,9 +506,7 @@ function PlaceUserStats(data) {
 
     content.innerHTML = streakHTML + countsHTML + actHTML;
     skeleton.style.display = "none";
-    content.style.display  = "flex";
-    content.style.flexDirection = "column";
-    content.style.gap = "0.5em";
+    content.style.display  = "flex";   // reveal (visibility is state); layout is in .user-stats-content
 }
 
 function switchStatTab(key) {

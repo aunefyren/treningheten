@@ -191,10 +191,42 @@ activity tabs/tags) which is the target aesthetic. Root problems:
      headers/progress bars clip to the rounded corners (fixes the top-overlap). Inner tones calmed
      (lightblue `week_info` → eggshell; progress track eggshell, blue fill). Headings/title navy;
      AI shimmer fixed (dark sweep). One shared rule drives all modules; documented as the
-     **module-panel** pattern in `styleguide.md`. **Awaiting visual review.**
-     Deferred signature: the weekly goal as a big navy display-font number + green ring (the app's
-     core loop as the hero). Inline-style tail (~7) still to tidy.
-   - Then: seasons, account, and the rest; pull the over-the-top gear modal toward the middle.
+     **module-panel** pattern in `styleguide.md`.
+     **Refinement pass (via `/frontend-design`, from the maintainer's 2026-07-15 screenshots) — DONE, awaiting visual review:**
+     - **One sky-hue blue.** The theme had two blue families — a slate `--mediumblue`/`--lightblue`
+       (~213°) clashing with the brighter `--blue` accent (~206°). Warmed the slates onto the
+       accent's hue (`#415a77`→`#3a6ea5`, `#778da9`→`#7fa8cf`); added `--blue-050` tint +
+       `--inset-bg`/`--inset-border`. App-wide token change (intended coherence).
+     - **Primary CTA → blue.** `.btn--primary` off green onto the bright `--blue` accent with navy
+       text (white fails contrast on `--blue`); green is now signals-only.
+     - **Avatars** clip to their ring (`overflow:hidden` on the wrapper) — fixes photos escaping.
+     - **Day row** is a 2-column grid (label + number/±/✎ cluster | notes) — fixes the ragged calendar.
+     - **Inset blocks:** one `--inset-bg`/`--inset-border` convention for every nested box (progress
+       track, debt notices, season rows, number box, push prompt). Push-prompt buttons → `.btn`/`.btn--ghost`.
+     - **Signature shipped:** the weekly-goal **ring hero** (`.hero-ring`) — display-font `workouts/goal`
+       + conic-gradient arc filling blue, green at 100%; replaces the calendar's week bar. All documented
+       in `styleguide.md` (palette, Avatars, Day row, Hero, Inset blocks + decisions log).
+     **Refinement pass 2 (from live review) — DONE, awaiting visual review:**
+     - **One button blue.** Walked back the bright-accent primary (couldn't carry white text; navy-on-bright
+       clashed with the neutral buttons) → every solid button is `--mediumblue`/white; `.btn--primary` is
+       now visually identical to `.btn`. Bright accent reserved for rings/progress only.
+     - **Hero trimmed:** dropped the redundant app-name title + subtitle (nav names the app; ring + CTA carry it).
+     - **Module width fixed:** `.leaderboard`/`.activities` were content-box, so panel padding pushed them to
+       22rem — added `box-sizing: border-box` to the module-panel rule.
+     - **Dividers unified** to one `--grey` hairline (were eggshell `<hr>` + bluish `--trans-lightblue` lines).
+     - **Debt-spin state swept** onto `.hero`.
+     Inline-style tail (~7) still to tidy. (Verify state is the separate `/verify` page — out of this sweep.)
+   - **`/users/:id` — DONE, awaiting visual review.** Shell → `.card--light`; profile+stats row and
+     achievements are module panels; metric/streak tiles relit as light inset tiles with display-font
+     navy numerals; activity switcher → segmented tabs; category/"Stackable" → `.meta-tag`; dividers →
+     grey hairline. Inline styles moved to CSS (skeletons → `.skel-*`, flame → `.flame-*` + `--flame-*`
+     tokens, brand links → `.user-link`); only `display:none` state + the data-driven `--cat-color` stay
+     inline. All scoped under `.card--light` so shared classes on `/account` + `/achievements` are
+     untouched until their sweep. New patterns documented in `styleguide.md` (Segmented tabs, Meta tags,
+     Skeletons, light metric tile).
+   - Then: seasons, account, achievements, and the rest; pull the over-the-top gear modal toward the middle.
+     Note when sweeping `/account`/`/achievements`: they already carry `.user-stat-card`/`.achievement-*`,
+     so adding `.card--light` will pick up the light treatment automatically — just verify.
 
 Recommended first PR: Phase 1 (tokens) + the skeleton of the Phase 5 doc together — small,
 low-risk, and the anchor for all later work.
