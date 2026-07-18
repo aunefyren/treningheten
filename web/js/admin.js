@@ -57,15 +57,20 @@ function load_page(result) {
                             <h3 id="debt-module-title">Debt:</h3>
 
                             <form action="" onsubmit="event.preventDefault(); generate_debt();">
-                                
-                                <label for="debt-week" class="clickable">Week with debt</label><br>
-                                <input class="" type="date" id="debt-week" name="debt-week" value="" required>
 
-                                <select id="selectUser" class="form-control" onchange="">
-                                    <option value="null">Choose optional user</option>
-                                </select>
+                                <div class="field">
+                                    <label for="debt-week" class="field-label">Week with debt</label>
+                                    <input type="date" id="debt-week" name="debt-week" required>
+                                </div>
 
-                                <button type="submit" onclick="" id="generate-debt-button" class="btn btn--block"><img src="assets/plus.svg" class="color-invert">Generate debt</button>
+                                <div class="field">
+                                    <label for="selectUser" class="field-label">User <span class="field-hint">(optional)</span></label>
+                                    <select id="selectUser" onchange="">
+                                        <option value="null">Choose optional user</option>
+                                    </select>
+                                </div>
+
+                                <button type="submit" id="generate-debt-button" class="btn btn--block"><img src="assets/plus.svg" class="color-invert">Generate debt</button>
 
                             </form>
 
@@ -92,14 +97,18 @@ function load_page(result) {
                             <h3 id="prize-module-title">Prize:</h3>
 
                             <form action="" onsubmit="event.preventDefault(); add_prize();">
-                                
-                                <label for="prize-name" class="clickable">Name of prize</label><br>
-                                <input class="" type="text" id="prize-name" name="prize-name" value="" autocomplete="off" required>
 
-                                <label for="prize-quantity" class="clickable">Quantity of prize</label><br>
-                                <input class="" type="number" id="prize-quantity" name="prize-quantity" value="1" min="1" required>
+                                <div class="field">
+                                    <label for="prize-name" class="field-label">Name of prize</label>
+                                    <input type="text" id="prize-name" name="prize-name" autocomplete="off" required>
+                                </div>
 
-                                <button type="submit" onclick="" id="add-prize-button" class="btn btn--block"><img src="assets/done.svg" class="color-invert">Add prize</button>
+                                <div class="field">
+                                    <label for="prize-quantity" class="field-label">Quantity of prize</label>
+                                    <input type="number" id="prize-quantity" name="prize-quantity" value="1" min="1" required>
+                                </div>
+
+                                <button type="submit" id="add-prize-button" class="btn btn--block"><img src="assets/done.svg" class="color-invert">Add prize</button>
 
                             </form>
 
@@ -115,26 +124,43 @@ function load_page(result) {
 
                             <form action="" onsubmit="event.preventDefault(); add_season();">
 
-                                <label for="season-start" class="clickable">Start of season (monday)</label><br>
-                                <input class="" type="date" id="season-start" name="season-start" value="" required>
+                                <div class="field-row">
+                                    <div class="field">
+                                        <label for="season-start" class="field-label">Start of season (monday)</label>
+                                        <input type="date" id="season-start" name="season-start" required>
+                                    </div>
+                                    <div class="field">
+                                        <label for="season-end" class="field-label">End of season (sunday)</label>
+                                        <input type="date" id="season-end" name="season-end" required>
+                                    </div>
+                                </div>
 
-                                <label for="season-end" class="clickable">End of season (sunday)</label><br>
-                                <input class="" type="date" id="season-end" name="season-end" value="" required>
-                                
-                                <input class="" type="text" id="season-name" name="season-name" value="" placeholder="Name" autocomplete="off" required>
-                                <textarea class="" type="text" id="season-desc" name="season-desc" value="" placeholder="Description" autocomplete="off" required></textarea>
+                                <div class="field">
+                                    <label for="season-name" class="field-label">Name</label>
+                                    <input type="text" id="season-name" name="season-name" placeholder="e.g. Spring 2026" autocomplete="off" required>
+                                </div>
 
-                                <label for="season-sickleave" class="clickable">Season sick leave</label><br>
-                                <input class="" type="number" id="season-sickleave" name="season-sickleave" value="0" min="0" max="99" placeholder="" autocomplete="off" required>
+                                <div class="field">
+                                    <label for="season-desc" class="field-label">Description</label>
+                                    <textarea id="season-desc" name="season-desc" placeholder="What is this season about?" autocomplete="off" required></textarea>
+                                </div>
 
-                                <label for="season-prize" class="clickable">Season prize</label><br>
-                                <select class="form-control" id="season-prize" name="season-prize" value="" required>
-                                </select>
+                                <div class="field">
+                                    <label for="season-sickleave" class="field-label">Season sick leave</label>
+                                    <input type="number" id="season-sickleave" name="season-sickleave" value="0" min="0" max="99" required>
+                                </div>
 
-                                <input type="checkbox" id="join_anytime" class="clickable" name="join_anytime" value="join_anytime">
-                                <label for="join_anytime" class="clickable u-noselect u-text-center" title="Should people be able to join after season start?">Let users join the season at any point.</label><br>
+                                <div class="field">
+                                    <label for="season-prize" class="field-label">Season prize</label>
+                                    <select id="season-prize" name="season-prize" required></select>
+                                </div>
 
-                                <button type="submit" onclick="" id="add-season-button" class="btn btn--block"><img src="assets/done.svg" class="color-invert">Add season</button>
+                                <div class="field-check">
+                                    <input type="checkbox" id="join_anytime" name="join_anytime" value="join_anytime">
+                                    <label for="join_anytime" title="Should people be able to join after season start?">Let users join the season at any point.</label>
+                                </div>
+
+                                <button type="submit" id="add-season-button" class="btn btn--block"><img src="assets/done.svg" class="color-invert">Add season</button>
 
                             </form>
 

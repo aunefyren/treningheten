@@ -565,7 +565,7 @@
 .gear-panel .gear-input,
 .gear-panel .gear-select {
     font-family: var(--font-body);
-    font-size: 0.9rem;
+    font-size: 1rem;   /* 16px — keeps iOS from zooming the page on focus */
     color: var(--darkblue);
     background: var(--white);
     border: 1px solid var(--grey);
@@ -584,8 +584,9 @@
 .gear-input:focus,
 .gear-select:focus {
     outline: none;
-    border-color: var(--blue);
+    border-color: var(--mediumblue);
     background: var(--inset-bg);
+    box-shadow: 0 0 0 3px var(--focus-ring);
 }
 
 .gear-input:disabled,
@@ -740,7 +741,7 @@
 
 .feed-panel .feed-input {
     font-family: var(--font-body);
-    font-size: 0.88rem;
+    font-size: 1rem;   /* 16px — keeps iOS from zooming the page on focus */
     color: var(--darkblue);
     background: var(--white);
     border: 1px solid var(--grey);
@@ -765,8 +766,9 @@
 
 .feed-panel .feed-input:focus {
     outline: none;
-    border-color: var(--blue);
+    border-color: var(--mediumblue);
     background: var(--inset-bg);
+    box-shadow: 0 0 0 3px var(--focus-ring);
 }
 
 .feed-panel .feed-input option {
@@ -783,7 +785,7 @@
 }
 
 .feed-daterange .feed-input {
-    font-size: 0.8rem;
+    font-size: 1rem;   /* 16px — no iOS zoom (was 0.8rem) */
     padding: 0.3rem 0.45rem;
 }
 

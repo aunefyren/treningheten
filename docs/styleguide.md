@@ -131,6 +131,7 @@ used by legacy components until they're migrated.
 | `--surface` / `--surface-hi` | translucent raised fills (default / hover) |
 | `--panel-top` / `--panel-bottom` / `--panel-solid` | solid navy panel surfaces |
 | `--accent` / `--accent-soft` | positive/active accent + its tint (rings, glows) |
+| `--focus-ring` | the **one** blue focus halo for every focusable control (form fields, `.btn`, modal) — a translucent `--blue`. Not the green `--accent`. |
 | `--success` / `--warning` / `--error` | state signals (green / amber / red), tuned to the blue |
 | `--danger` | destructive (points at `--error`) |
 | `--strava` | Strava brand orange |
@@ -340,12 +341,77 @@ new named size class here rather than an inline `width/height` when a new skelet
 
 ### Form controls
 
-An unopinionated baseline styles bare inputs/selects via
-`:where(input[type=text|password|email|date|file|number|time], select)` in `base.css`
-(low specificity — easy to override). Inside the modal, use the modal's own
-`.trm-field` / `.trm-label` / `.trm-input` / `.trm-select`. `workout.css` sets its own
-editor input type (≥16px so iOS doesn't zoom on focus). No single unified control yet —
-prefer the modal fields in modals, the baseline elsewhere.
+**One field for the whole app.** Text-like inputs (`text`/`email`/`date`/`number`/`file`/
+`search`/…), `<select>` and `<textarea>` share a single light skin defined on the
+zero-specificity `:where(…)` baseline in `base.css`. Because it carries **no specificity**, it
+styles *any* plain field with **no class needed** — and a component overrides it with a single
+class. Buttons and toggle inputs (`submit`/`button`/`reset`/`checkbox`/`radio`/`range`/`color`)
+are excluded from the skin (they carry their own look). The modal's `.trm-*` fields resolve to
+the **same values** (via the token remap on the `.trm` root), so a field is **identical on a page
+and in a dialog** — don't build a third variant.
+
+| State | Treatment |
+|---|---|
+| **Rest** | `--white` fill · `1px solid var(--grey)` hairline · `--radius-sm` · `--font-body` · `1rem` (16px — stops iOS zoom-on-focus) · `--darkblue` text · `box-sizing: border-box` |
+| **Placeholder** | `--lightblue` |
+| **Hover** | border → `--lightblue` |
+| **Focus** | border → `--mediumblue` · fill → `--inset-bg` · `0 0 0 3px var(--focus-ring)` halo (the **one** blue focus ring — see below) |
+| **Disabled / `readonly`** | `--inset-bg` fill · `--lightblue` text · `not-allowed` cursor (reads as read-only, e.g. Strava-synced gear) |
+
+- **Textarea** adds `resize: vertical`, `min-height: 4.5rem`, `line-height: 1.45`. The front-page
+  calendar notes (`.day-note-area`) and the admin season description are the **same** textarea —
+  both inherit this skin; only `.day-note-area`'s day-row *layout* is scoped in `components.css`.
+- **Checkbox / radio** stay native, tinted with `accent-color: var(--mediumblue)` so ticks read in
+  the theme blue everywhere (accessible, no custom markup). The `.day-check` day toggles and the
+  `.auth-consent` row are layout wrappers around native checkboxes, not a separate control.
+- **In a modal**, prefer the explicit `.trm-field` / `.trm-label` / `.trm-input` / `.trm-select`
+  wrappers for structure; the underlying control is this same field.
+- **The one blue focus ring — `--focus-ring`.** Every focusable control — form fields **and**
+  `.btn` **and** the modal — uses `0 0 0 (3px|.2rem) var(--focus-ring)` (a translucent `--blue`).
+  **Green is signals-only and is never a focus ring** (the global `--accent`/`--accent-soft` are
+  green — do not use them for focus). Change the ring in one place: the `--focus-ring` token.
+
+### Fields & labels
+
+**One label-over-control group for page forms: `.field`** — the non-modal sibling of the modal's
+`.trm-field`. Wrap every labelled control in a `.field`; don't fall back to the legacy
+`<label>…</label><br><input>` (which the global `label { text-align:center }` rule centred and left
+ragged). One field per control keeps label, control and hint together with consistent rhythm.
+
+```
+<div class="field">
+  <label for="season-name" class="field-label">Name</label>
+  <input type="text" id="season-name" …>
+  <span class="field-hint">Shown on the season card.</span>   <!-- optional -->
+</div>
+
+<div class="field-row">            <!-- two fields on one line; wraps when narrow -->
+  <div class="field"> … start date … </div>
+  <div class="field"> … end date … </div>
+</div>
+
+<div class="field-check">          <!-- checkbox + label on one line -->
+  <input type="checkbox" id="join_anytime" …>
+  <label for="join_anytime">Let users join the season at any point.</label>
+</div>
+```
+
+| Class | Role |
+|---|---|
+| `.field` | the group: stacks `.field-label` → control (→ `.field-hint`), left-aligned, one `--space-4` bottom margin. Zeroes the control's own baseline margin so the group gap sets the rhythm. |
+| `.field-label` | the label — **sentence-case, body font**, `--darkblue`, semibold. *Not* the modal's uppercase display eyebrow (`--font-display` is numerals-only per Design language). |
+| `.field-hint` | small muted (`--lightblue`) helper/secondary text — under a control, or inline in a label (e.g. "User (optional)"). |
+| `.field-req` | wrap a required-marker `*` (renders `--error`). |
+| `.field-row` | lay two `.field`s side by side; wraps to stacked once the row is too narrow. |
+| `.field-check` | checkbox/radio + label on one line, aligned to the label's first line. Generalises `.auth-consent`. |
+
+- **Every control still uses the one field skin** (see Form controls) — `.field` only handles the
+  *label + layout*, not the control's look.
+- **In a modal, use the `.trm-*` siblings** (`.trm-field` / `.trm-label` / `.trm-row`), which carry
+  the modal's denser eyebrow label — not `.field`.
+- **Labels are written in sentence case, no trailing colon** ("Birth date", not "Birth date:").
+- **Placeholder-only inputs are fine** where a visible label would be noise (the `.auth-panel` login /
+  register fields lean on placeholders by design) — don't force a `.field-label` on those.
 
 ### Modal — `.trm` (TRModal)
 
@@ -359,11 +425,31 @@ explicit `.btn` class to opt into the button system. The `.trm` root **overrides
 tokens** to light values, so the whole panel relights from one place. **Never hand-render a
 modal** — extend TRModal.
 
+**This is the preferred surface for forms, config, and per-action feedback** — reach for it before
+the top alert bar (see Alerts for why), especially in complex multi-section spaces like `/account`.
+A modal keeps the task and its result in view without scrolling the page.
+
 ### Alerts
 
 `.alert-success` / `.alert-info` / `.alert-danger` (in `base.css`) — legacy light-theme
 status banners, still on the legacy semantic palette. Fine to use; will be re-skinned toward
 the instrument look in the page sweep.
+
+**Prefer a modal over the top alert bar.** These banners render at the **top of the page**, so on
+a long/scrolled page the user has to **scroll back up** to see the feedback — the alert is easy to
+miss and the required scroll jump is jarring. So lean on them **less**, and reach for the `.trm`
+modal **more**:
+
+- **Feedback / confirmation** (success, error, "are you sure?") on a long page → surface it in a
+  modal (or a modal-anchored message), not a banner the user has scrolled away from. A modal appears
+  in view, wherever the user is.
+- **Complex, multi-section spaces** — e.g. `/account` settings with several accordion sub-sections —
+  should **do their forms and config actions in a modal** rather than editing inline and reporting the
+  result via a top banner. Opening a focused modal keeps the action and its feedback together, in
+  view, without moving the page. Treat the accordion as navigation *into* a modal-driven task, not a
+  page full of inline forms each reporting up to the shared top banner.
+- Keep the alert bar for genuinely **page-level, persistent** notices (e.g. a global state banner) —
+  not per-action feedback.
 
 ### Utilities — `.u-*`
 
@@ -411,6 +497,48 @@ not theme — left inline on purpose. Dynamic (`${…}`) values stay inline too.
 
 ## Decisions log
 
+- **Exercise-builder set inputs — already migrated; removed the dead legacy CSS.** Investigating the
+  reps/weight/time/distance/duration inputs (the intended target of a "migrate to the unified field"
+  pass) showed they were **already** on the light workout editor's `.we-set-input`/`.we-input`
+  (`workout.css`, unified field + `--focus-ring`) from the `/exercise` sweep. The old
+  `.operation-set-*-input` / `.exercise-time-input` / `.operation-set-input*` / `.operation-set-title`
+  / `.operation-type-input-lifting` rules in `components.css` (an `!important` block with `--eggshell`
+  fills, `1rem`/`0.1rem`/`0.2rem` conflicting borders, duplicate `.exercise-time-input` definitions)
+  were **dead**: those class names are only used as element `id`s (read via `getElementById`), and the
+  single `class="exercise-time-input"` sat on a `type="hidden"` input. Deleted the block and the dead
+  class. No visual change.
+- **Field/label system (`.field`) for page forms.** Non-modal forms used a legacy
+  `<label class="clickable">…</label><br><input>` pattern that the global `label { text-align:center }`
+  rule centred and left ragged (and some inputs had no label at all — placeholder-only, or an empty
+  `<label>`). Added a `.field` group (label-over-control) with `.field-label` (sentence-case **body**
+  font — deliberately not the modal's uppercase display eyebrow, per the numerals-only display-font
+  rule), `.field-hint`, `.field-req`, `.field-row` (side-by-side, wraps), and `.field-check` (checkbox
+  row, generalising `.auth-consent`). Migrated **admin** (all field types — the canonical form; also
+  gave the previously label-less season name/description real labels), **news**, **registergoal**
+  (compete checkbox), **account** (settings text fields + inline share/password checkboxes), and the
+  **weight-log modal** (to the `.trm-*` siblings, since it's modal content). **Deliberately left** (not
+  a label-over-field, a bespoke component layout): account's notification/strava/hevy **toggle cards**
+  (`.notification-option` 10rem centred cards, `.strava-option`) — a redesign for a dedicated account
+  pass, not this system. See Fields & labels.
+- **Form controls unified into one field (+ one blue focus ring).** There were ~four disagreeing
+  input systems: the `:where()` baseline (chunky `0.2rem` border, hardcoded `Roboto`, **no focus
+  state**, and it didn't even cover `<textarea>`), the bespoke `.day-note-area`, the admin season
+  description (literally `class=""` → raw browser default), and the good modal `.trm-*` fields.
+  Promoted the modal's quality to the app-wide baseline: hairline `--grey` border, `--radius-sm`,
+  `--font-body`, `1rem`, and real `:hover`/`:focus`/`::placeholder`/`:disabled` states — now
+  including `<select>` and `<textarea>`, so the two example textareas (calendar notes + season
+  description) are one shared control. Checkboxes/radios stay native with `accent-color:
+  var(--mediumblue)`. Folded `.day-note-area`/`.form-control(-small)` onto the baseline (dropped the
+  `!important` legacy overrides + the hardcoded `#e9ecef` disabled fill); cleaned the admin
+  textarea's invalid `type="text"`/`value=""`. Added **`--focus-ring`** (translucent `--blue`) as
+  the single focus halo for fields **and** `.btn` **and** the modal — fixing that `.btn:focus-visible`
+  and the modal ring were previously **green** (`--accent-soft`), off the blue theme. See Form controls.
+- **Prefer modals over the top alert bar for feedback + complex forms.** The `.alert-*` banners
+  render at the top of the page, so on a long/scrolled page the user must scroll up to see them —
+  noisy and easy to miss. New per-action feedback (success/error/confirm) should surface in a modal
+  in view instead, and complex multi-section spaces (e.g. `/account` settings) should run their
+  forms/config actions in a `.trm` modal rather than inline forms reporting up to the shared top
+  banner. The alert bar is reserved for page-level persistent notices. (See Alerts + Modal.)
 - **Base `.card` flipped light; `.card--light` modifier retired (endgame).** With every page swept,
   the light shell + `.card-header`/`.card-body` moved into the base `.card` rule (`base.css`, was
   mediumblue/white), and all `.card--light .X` scoped selectors became `.card .X` (in `components.css`;
@@ -599,8 +727,14 @@ Small residuals (safe to use as-is; migrate on touch). Phase status lives in [`w
 
 - **The whole app is light** — every page + the shared modal were swept and the base `.card` was
   flipped light (the `.card--light` modifier is gone). No dark instrument surfaces remain.
-- **Form-controls / alerts** aren't unified into a single component — the `:where()` input baseline
-  (`base.css`), the modal's own fields, and `.alert-*` coexist. All light; unify on touch.
+- **Form controls are unified** (one `:where()` field skin — text inputs, `select`, `textarea` — that
+  the modal fields match; one `--focus-ring`). **Alerts** are the remaining un-unified control: `.alert-*`
+  still sits on the legacy semantic palette (and see the modal-over-alert-bar direction in Alerts). Unify on touch.
+- **Fields & labels are systematised** (`.field` / `.field-label` / `.field-row` / `.field-check`);
+  admin, news, registergoal, account (text fields) and the weight modal are migrated. **One known
+  remainder:** account's **toggle-card** components (`.notification-option`, `.strava-option`) —
+  bespoke centred-card layouts, a dedicated account redesign, not the `.field` system. (The
+  exercise-builder set inputs are already on the unified field via `.we-set-input`/`.we-input`.)
 - **Bespoke buttons** (`.wheel-*`, `.we-add-*`, `.user-stat-tab`, `.wv-media-repull`, `.trm-close`)
   and the **legacy global `button`** rule still stand (all light now; `.gear-btn` was retired).
 - **Inline styles** — a few static one-offs remain (e.g. a couple of weight-log layout widths). The

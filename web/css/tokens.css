@@ -69,6 +69,10 @@
   --panel-solid: var(--navy-800);
   --accent: var(--emerald);
   --accent-soft: rgba(0, 210, 122, 0.18);
+  /* Focus halo — ONE blue ring for every focusable control (form fields + buttons + the
+     modal). Translucent --blue so it reads on light surfaces and just outside solid-blue
+     buttons alike. Green (--accent-soft) is signals-only and must NOT be a focus ring. */
+  --focus-ring: rgba(74, 159, 224, 0.40);
   --danger: var(--error);
   --strava: var(--orange);
   --audio: var(--amber);

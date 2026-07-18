@@ -20,7 +20,7 @@
   --panel-top: var(--white);
   --panel-bottom: var(--white);
   --accent: var(--mediumblue);
-  --accent-soft: var(--blue-050);
+  --accent-soft: var(--focus-ring);  /* same blue focus halo as page fields/buttons */
 
   position: fixed;
   inset: 0;
@@ -164,12 +164,12 @@
 #trm-root .trm-body select,
 #trm-root .trm-body textarea {
   font-family: var(--font-body);
-  font-size: 0.95rem;
+  font-size: 1rem;               /* matches the page-field baseline (base.css) */
   color: var(--text);
   background: var(--white);
   border: 1px solid var(--grey);
-  border-radius: 0.6rem;
-  padding: 0.6rem 0.7rem;
+  border-radius: var(--radius-sm);
+  padding: 0.5rem 0.7rem;
   width: 100%;
   box-sizing: border-box;
   height: auto;

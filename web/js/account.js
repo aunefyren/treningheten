@@ -140,36 +140,54 @@ function load_page(result) {
                     <div id="settings-wrapper" class="settings-wrapper minimized">
                         <form action="" onsubmit="event.preventDefault(); send_update('${user_id}');">
 
-                            <label for="email">Replace email:</label>
-                            <input type="email" name="email" id="email" placeholder="Email" value="" required/>
+                            <div class="field">
+                                <label for="email" class="field-label">Replace email</label>
+                                <input type="email" name="email" id="email" placeholder="Email" required/>
+                            </div>
 
-                            <label for="birth_date">Birth date:</label>
-                            <input type="date" name="birth_date" id="birth_date" placeholder="dd-mm-yyyy" value="" />
+                            <div class="field">
+                                <label for="birth_date" class="field-label">Birth date</label>
+                                <input type="date" name="birth_date" id="birth_date" />
+                            </div>
 
-                            <label for="new_profile_image" class="u-mt-2">Replace profile image:</label>
-                            <input type="file" name="new_profile_image" id="new_profile_image" placeholder="" value="" accept="image/png, image/jpeg" />
+                            <div class="field">
+                                <label for="new_profile_image" class="field-label">Replace profile image</label>
+                                <input type="file" name="new_profile_image" id="new_profile_image" accept="image/png, image/jpeg" />
+                            </div>
 
-                            <input onclick="change_password_toggle();" class="clickable u-mt-3" type="checkbox" id="password-toggle" name="confirm" value="confirm" >
-                            <label for="password-toggle" class="clickable u-m-0">Change my password.</label><br>
+                            <div class="field-check">
+                                <input onclick="change_password_toggle();" type="checkbox" id="password-toggle" name="confirm" value="confirm">
+                                <label for="password-toggle">Change my password.</label>
+                            </div>
 
                             <div id="change-password-box" style="display:none;">
 
-                                <label for="password"></label>
-                                <input type="password" name="password" id="password" placeholder="New password" />
+                                <div class="field">
+                                    <label for="password" class="field-label">New password</label>
+                                    <input type="password" name="password" id="password" placeholder="New password" />
+                                </div>
 
-                                <label for="password_repeat"></label>
-                                <input type="password" name="password_repeat" id="password_repeat" placeholder="Repeat the password" />
+                                <div class="field">
+                                    <label for="password_repeat" class="field-label">Repeat password</label>
+                                    <input type="password" name="password_repeat" id="password_repeat" placeholder="Repeat the password" />
+                                </div>
 
                             </div>
 
-                            <input class="clickable u-mt-3" type="checkbox" id="share_activities" name="share_activities" value="share_activities">
-                            <label for="share_activities" class="clickable u-m-0">Share my activities on the activity feed.</label><br>
+                            <div class="field-check">
+                                <input type="checkbox" id="share_activities" name="share_activities" value="share_activities">
+                                <label for="share_activities">Share my activities on the activity feed.</label>
+                            </div>
 
-                            <input class="clickable u-mt-3" type="checkbox" id="share_statistics" name="share_statistics" value="share_statistics">
-                            <label for="share_statistics" class="clickable u-m-0">Share my statistics on my page.</label><br>
+                            <div class="field-check">
+                                <input type="checkbox" id="share_statistics" name="share_statistics" value="share_statistics">
+                                <label for="share_statistics">Share my statistics on my page.</label>
+                            </div>
 
-                            <label class="u-mt-3" for="password_old">Current password:</label>
-                            <input type="password" name="password_old" id="password_old" placeholder="To save your changes, type your current password." required />
+                            <div class="field">
+                                <label for="password_old" class="field-label">Current password</label>
+                                <input type="password" name="password_old" id="password_old" placeholder="To save your changes, type your current password." required />
+                            </div>
 
                             <button class="btn btn--primary u-mt-2" id="update-button" type="submit">Update account</button>
 

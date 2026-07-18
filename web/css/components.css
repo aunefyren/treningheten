@@ -1436,48 +1436,11 @@ input[type=checkbox]
   border-radius: 10%;
 }
 
-.operation-set-rep-input, .operation-set-weight-input, .operation-set-time-input, .operation-set-distance-input, .exercise-time-input, .operation-set-average-input {
-  width: 100%;
-  width: -webkit-fill-available;
-  width: -moz-available;
-  background-color: var(--eggshell) !important;
-  padding: 0 !important;
-  margin: 0.12rem !important;
-  border-radius: 1rem !important;
-  height: 1.5rem !important;
-  font-size: 1rem !important;
-  text-align: center !important;
-  border: none !important;
-}
-
-.exercise-time-input {
-  border: solid 0.1rem var(--grey) !important;
-}
-
-.operation-set-input-wide {
-  width: 6rem !important;
-}
-
-.operation-set-input {
-  width: 5rem;
-}
-
-.operation-set-title {
-  background-color: none;
-  padding: 0;
-  margin: 0 0.5rem;
-  font-size: 0.75rem;
-  font-weight: 200;
-}
-
-.operation-type-input-lifting {
-  background-image: url("/assets/logo.svg");
-}
-
-.exercise-time-input {
-  background-color: var(--white) !important;
-  border: solid 0.2rem var(--grey);
-}
+/* The exercise-builder set inputs (reps/weight/time/distance + duration) now live on the
+   light workout editor's `.we-set-input` / `.we-input` (web/css/workout.css) — on the unified
+   field system. The old `.operation-set-*-input` / `.exercise-time-input` class rules that sat
+   here were dead: those strings are only used as element `id`s (JS reads them via getElementById),
+   and the sole `class="exercise-time-input"` was on a `type="hidden"` input. Removed. */
 
 .bottom-row {
   width: 100%;
@@ -2413,9 +2376,17 @@ label {
 .card .achievement-title,
 .card .achievement-date { color: var(--darkblue); }
 .card .achievement-image { border: solid 0.2em var(--cat-color, var(--grey)); }
-/* Achievement icon padded square inside its bordered box (not the circular avatar crop the shared
-   .achievement-img rule gives). Was an inline style on /achievements. */
-.achievement-img-logo { padding: 1.5em; border-radius: 0; }
+/* Achievement icon: a glyph inside the circular bordered box, rounded to match the circular container
+   (and the unlocked state, which JS relights to a full circular image). Was an inline style on
+   /achievements. */
+.achievement-img-logo { padding: 1.1em; border-radius: var(--radius-circle); }
+/* Locked achievements (.transparent) have no real image, just the 🔒 glyph. Clear the white disc behind
+   it — on the container AND the <img> (which carries a white bg from the shared .achievement-img rule) —
+   so the ring's interior shows the panel instead of a white ring. (achievements.js also sets these
+   transparent inline on the locked path; this is the CSS-side / pre-script safety net.) */
+.transparent .achievement-image,
+.transparent .achievement-img,
+.transparent .achievement-img-logo { background-color: transparent; }
 
 /* /achievements progress bar → inset track + blue fill (matches the front-page bars). */
 .card .progress-bar-wrapper { background-color: var(--inset-bg); border: 1px solid var(--grey); }
@@ -2491,6 +2462,47 @@ label {
   padding: var(--space-3) var(--space-4);
   margin: var(--space-2) 0 var(--space-3);
 }
+
+/* ── Fields & labels ──────────────────────────────────────────────────────────────
+   One label-over-control group for page forms — the non-modal sibling of the modal's
+   `.trm-field`. A `.field` stacks its `.field-label` above the control (left-aligned),
+   with an optional `.field-hint` beneath; `.field-row` lays two side by side; `.field-check`
+   is the checkbox + label row. Documented in docs/styleguide.md ("Fields & labels").
+   Labels are sentence-case body font (the display font is numerals-only per the guide). */
+.field {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: var(--space-2);
+  text-align: left;
+  width: 100%;
+  margin: 0 0 var(--space-4);
+}
+/* The control owns its width from the baseline; drop its stray margin so the group gap
+   (not the input's own 1rem margin) sets the label→control and field→field rhythm. */
+.field > :where(input, select, textarea) { margin: 0; }
+.field-label {
+  font-family: var(--font-body);
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--darkblue);
+  line-height: 1.3;
+}
+.field-req { color: var(--error); }              /* the required-marker asterisk */
+.field-hint { font-size: 0.8rem; color: var(--lightblue); line-height: 1.35; }
+
+/* Two fields on one line (e.g. start + end dates); each keeps its own bottom margin and
+   wraps to its own line once the row gets too narrow. */
+.field-row { display: flex; flex-wrap: wrap; gap: 0 var(--space-3); width: 100%; }
+.field-row > * { flex: 1 1 10rem; min-width: 0; }
+
+/* Checkbox + label on one line, aligned to the label's first line (generalises .auth-consent). */
+.field-check {
+  display: flex; align-items: flex-start; gap: var(--space-2);
+  text-align: left; width: 100%; margin: 0 0 var(--space-4);
+}
+.field-check input { width: auto; margin: 0.15rem 0 0 0; flex: 0 0 auto; }
+.field-check label { margin: 0; text-align: left; font-size: 0.9rem; line-height: 1.35; }
 
 /* ══ Account page (/account) — Phase 6 light sweep ═════════════════════════════════════════
    The collapsible settings accordion sits in one white module panel; section rows are separated

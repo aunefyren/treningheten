@@ -120,9 +120,9 @@ function load_page(result) {
                         Weight statistics
                     </div>
 
-                    <div class="addActionWrapper clickable hover" id="" title="Weight data" onclick="getWeights(true);">
-                        <img src="/assets/database.svg" class="button-icon u-w-full u-m-1">
-                    </div>
+                    <button type="button" class="btn btn--icon" title="Weight data" aria-label="Weight data" onclick="getWeights(true);">
+                        <img src="/assets/database.svg">
+                    </button>
 
                     <div id="chart-canvas-div" class="panel-card">
                         <canvas id="myChartWeights" class="panel-wide" style="display:none;"></canvas>
@@ -925,26 +925,26 @@ function viewWeight(weights) {
                 <div class="u-w-8"><div class="u-fs-sm">${timeString}</div></div>
                 <div class="u-w-5">${weight.weight} KG</div>
                 <div class="u-w-8 u-flex-end">
-                    <div class="addActionWrapper clickable hover" id="" title="Weight data" onclick="deleteWeight('${weight.id}');">
-                        <img src="/assets/trash-2.svg" class="button-icon u-w-full u-m-1">
-                    </div>
+                    <button type="button" class="btn btn--icon" title="Delete weight" aria-label="Delete weight" onclick="deleteWeight('${weight.id}');">
+                        <img src="/assets/trash-2.svg">
+                    </button>
                 </div>
             </div>
         `;
     }
 
     var htmlContent = `
-        <div class="weight-input-wrapper">
-            <div class="weight-input">
-                <label for="weightValue">Weight (KG)</label><br>
-                <input type="number" name="weightValue" id="weightValue" placeholder="" autocomplete="off" min="0" max="500" value="0" />
+        <div class="trm-row">
+            <div class="trm-field">
+                <label class="trm-label" for="weightValue">Weight (KG)</label>
+                <input type="number" name="weightValue" id="weightValue" autocomplete="off" min="0" max="500" value="0" />
             </div>
-            <div class="weight-input">
-                <label for="weightTime">Time of weight</label><br>
-                <input type="date" name="weightTime" id="weightTime" style="min-width: 10em;" placeholder="" autocomplete="off" value="${now.toISOString().split('T')[0]}" />
+            <div class="trm-field">
+                <label class="trm-label" for="weightTime">Time of weight</label>
+                <input type="date" name="weightTime" id="weightTime" autocomplete="off" value="${now.toISOString().split('T')[0]}" />
             </div>
-            <div><button class="btn u-w-5" id="register-button" type="submit" href="/" onclick="addWeight()">Save</button></div>
         </div>
+        <button class="btn btn--primary btn--block" id="register-button" type="submit" onclick="addWeight()">Save</button>
         <hr>
         <div class="weight-values-wrapper">
             ${weightsHTML}

@@ -204,7 +204,7 @@
   }
   .btn:hover { filter: brightness(1.08); transform: translateY(-1px); text-decoration: none; }
   .btn:active { transform: translateY(0); }
-  .btn:focus-visible { outline: 0; box-shadow: 0 0 0 0.2rem var(--accent-soft); }
+  .btn:focus-visible { outline: 0; box-shadow: 0 0 0 0.2rem var(--focus-ring); }
   .btn:disabled { opacity: 0.55; cursor: not-allowed; transform: none; filter: none; }
   .btn img { width: 1rem; height: 1rem; }
 
@@ -230,8 +230,6 @@
   .btn--icon img { width: 1.15rem; height: 1.15rem; }
   /* Button group — lays a row of buttons out with consistent spacing. */
   .btn-group { display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: center; justify-content: center; }
-  
-  .form-control:disabled,.form-control[readonly]{background-color:#e9ecef;opacity:1;box-sizing: border-box;}
   
   .alert{position:relative;padding:.75rem 1.25rem;margin-bottom:1rem;border:1px solid transparent;border-radius:0.5em}
   .alert-success{color:var(--green);background-color:var(--green-success);border-color:var(--green-success-border)}
@@ -369,31 +367,81 @@ form {
   margin: 1rem 0;
 }
 
-/* Baseline form-control look for un-styled inputs across the app. Wrapped in :where()
-   so it carries ZERO specificity: it still applies to any plain input/select (author
-   styles beat the browser default regardless of specificity), but a component only needs
-   a single class to override it — no parent-scoping or !important gymnastics. Before this,
-   the element+attribute selector below was (0,1,1) and silently beat component classes,
-   which is why gear/modal/workout/pat all had to out-specify it. Keep new form styling as
-   plain classes and it will just work. */
-:where(input[type=text], input[type=password], input[type=email], input[type=date], input[type=file], input[type=number], input[type=time], select) {
+/* ── The unified form control ─────────────────────────────────────────────────────
+   ONE light field for the whole app: text inputs, selects and textareas share this
+   skin (calm white fill, hairline --grey border, --radius-sm, body font, a blue focus
+   halo). Documented in docs/styleguide.md ("Form controls").
+
+   Wrapped in :where() so it carries ZERO specificity: it still applies to any plain
+   input/select/textarea (author styles beat the browser default regardless of
+   specificity), but a component only needs a single class to override it — no
+   parent-scoping or !important gymnastics. The modal's own .trm-* fields resolve to the
+   same values via the token remap on the .trm root, so a field looks identical on a page
+   and in a dialog. Keep new form styling as plain classes and it will just work. */
+/* --field: every text-like input (text/email/date/number/file/search/…, incl. future
+   types), plus <select> and <textarea>. Buttons and toggle controls (submit/button/reset/
+   checkbox/radio/range/color/image/hidden) are excluded — they carry their own look. */
+:where(
+  input:not([type=submit], [type=button], [type=reset], [type=checkbox],
+            [type=radio], [type=range], [type=color], [type=image], [type=hidden]),
+  select, textarea
+) {
   width: 100%;
   width: -webkit-fill-available;
   width: -moz-available;
-  height: 2rem;
-  padding: 0.25rem 0.5rem;
+  padding: 0.5rem 0.7rem;
   margin: 0.5rem 1rem 1rem 1rem;
   background: var(--white);
-  box-sizing: inherit;
-  border-radius: 0.5rem;
-  font-size: 1rem;
-  border: solid 0.2rem var(--grey);
-  resize: vertical;
-  min-height: 2rem;
-  max-height: 25rem;
-  font-family: Roboto,Noto,sans-serif;
-  box-sizing: content-box;
+  color: var(--darkblue);
+  border: 1px solid var(--grey);
+  border-radius: var(--radius-sm);
+  font-size: 1rem;               /* 16px — keeps iOS from zooming on focus */
+  font-family: var(--font-body);
+  box-sizing: border-box;
+  transition: border-color 0.18s, background 0.18s, box-shadow 0.18s;
 }
+:where(
+  input:not([type=submit], [type=button], [type=reset], [type=checkbox],
+            [type=radio], [type=range], [type=color], [type=image], [type=hidden]),
+  select, textarea
+)::placeholder { color: var(--lightblue); }
+:where(
+  input:not([type=submit], [type=button], [type=reset], [type=checkbox],
+            [type=radio], [type=range], [type=color], [type=image], [type=hidden]),
+  select, textarea
+):hover { border-color: var(--lightblue); }
+:where(
+  input:not([type=submit], [type=button], [type=reset], [type=checkbox],
+            [type=radio], [type=range], [type=color], [type=image], [type=hidden]),
+  select, textarea
+):focus {
+  outline: none;
+  border-color: var(--mediumblue);
+  background: var(--inset-bg);
+  box-shadow: 0 0 0 3px var(--focus-ring);
+}
+:where(
+  input:not([type=submit], [type=button], [type=reset], [type=checkbox],
+            [type=radio], [type=range], [type=color], [type=image], [type=hidden]),
+  select, textarea
+):disabled,
+:where(
+  input:not([type=submit], [type=button], [type=reset], [type=checkbox],
+            [type=radio], [type=range], [type=color], [type=image], [type=hidden]),
+  select, textarea
+)[readonly] {
+  background: var(--inset-bg);
+  color: var(--lightblue);
+  cursor: not-allowed;
+}
+:where(textarea) {
+  resize: vertical;
+  min-height: 4.5rem;
+  max-height: 25rem;
+  line-height: 1.45;
+}
+/* Tick controls read in the theme blue everywhere (native — accessible, no custom markup). */
+input[type=checkbox], input[type=radio] { accent-color: var(--mediumblue); }
 
 .btn-block {
   margin-top: 1rem;
@@ -775,35 +823,10 @@ hr {
   overflow: auto;
 }
 
-.day-note-area {
-  box-sizing: inherit;
-  border-radius: 0.5rem;
-  font-size: 1rem;
-  width: 100%;
-  width: -webkit-fill-available;
-  width: -moz-available;
-  margin: 0.5rem;
-  /*box-shadow: 0.1rem 0.2rem 0.5rem rgba(0,0,0,.09);*/
-  border: solid 2px var(--grey); 
-  resize: vertical;
-  min-height: 2rem;
-  max-height: 25rem;
-  font-family: Roboto,Noto,sans-serif;
-}
-
-.form-control{
-  width: 100%;
-  width: -webkit-fill-available;
-  width: -moz-available;
-  height: 2rem !important;
-  padding: 0.5rem !important;
-  margin: 1rem;
-  box-sizing: content-box;
-}
-
-.form-control-small{
-  width: 2.5rem;
-}
+/* .day-note-area (calendar notes) is a <textarea> — it inherits the unified field skin
+   from the :where() baseline above; its front-page layout lives in `.card .day-note-area`
+   (components.css). .form-control (on the season/prize/user <select>s) likewise inherits
+   the baseline; no separate skin needed. */
 
 .btn_logo {
   width: 1rem;

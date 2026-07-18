@@ -238,7 +238,7 @@ function generateExerciseHTML(exercise, count, forceFullEditor = false) {
                     Contains ${exercise.operations.length} exercise(s).
                 </p>
 
-                <input class="exercise-time-input" type="hidden" id="exercise-time-input-${exercise.id}" name="exercise-time-input" pattern="[0-9:]{0,}" placeholder="hh:mm:ss" value="${secondsToDurationString(exercise.duration)}">
+                <input type="hidden" id="exercise-time-input-${exercise.id}" name="exercise-time-input" pattern="[0-9:]{0,}" placeholder="hh:mm:ss" value="${secondsToDurationString(exercise.duration)}">
                 <textarea class="day-note-area u-mt-1" id="exercise-note-${exercise.id}" name="exercise-exercise-note" rows="3" cols="33" placeholder="Notes" style="display: none;">${exercise.note}</textarea>
 
                 <button type="submit" onclick="updateExercise('${exercise.id}', true, ${count}, '${exercise.time});" id="restore-exercise-button-${exercise.id}" class="btn u-w-8"><img src="/assets/refresh-cw.svg" class="color-invert">Restore</button>

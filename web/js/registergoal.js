@@ -50,7 +50,7 @@ function load_page(result) {
 
                     <hr class="u-my-1">
 
-                    <label for="commitment" title="How many days a week are you going to work out?">Weekly exercise goal</label>
+                    <label for="commitment" class="field-label u-text-center" title="How many days a week are you going to work out?">Weekly exercise goal</label>
                     <div class="number-box" id="commitment">
                         0
                     </div>
@@ -61,8 +61,10 @@ function load_page(result) {
 
                     <hr class="u-my-1">
 
-                    <input class="u-m-0 clickable" type="checkbox" id="compete" name="compete" value="compete">
-                    <label for="compete" class="clickable u-noselect u-text-center" title="If I fail to complete my goal, I must spin a wheel of fortune and provide a prize to the winner."> I want to compete with others to uphold my workout streak.</label><br>
+                    <div class="field-check">
+                        <input type="checkbox" id="compete" name="compete" value="compete">
+                        <label for="compete" title="If I fail to complete my goal, I must spin a wheel of fortune and provide a prize to the winner.">I want to compete with others to uphold my workout streak.</label>
+                    </div>
 
                     <p id="prize-title" class="u-mt-2">Potential prize:</p>
                     <div class="prize-wrapper">

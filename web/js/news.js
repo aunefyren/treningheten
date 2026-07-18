@@ -43,13 +43,21 @@ function load_page(result) {
                     <div class="module" id="new-news" style="display:none;">
                         <form action="" onsubmit="event.preventDefault(); create_news();">
                             
-                            <label for="news_title">Create post:</label><br>
-                            <input type="text" name="news_title" id="news_title" placeholder="Post title" autocomplete="off" required />
-                            
-                            <input type="text" name="news_body" id="news_body" placeholder="Post body" autocomplete="off" required />
-                            <label for="news_date">When was this posted?</label><br>
-                            <input type="date" name="news_date" id="news_date" placeholder="Post date" autocomplete="off" required />
-                            
+                            <div class="field">
+                                <label for="news_title" class="field-label">Post title</label>
+                                <input type="text" name="news_title" id="news_title" placeholder="Post title" autocomplete="off" required />
+                            </div>
+
+                            <div class="field">
+                                <label for="news_body" class="field-label">Post body</label>
+                                <input type="text" name="news_body" id="news_body" placeholder="Post body" autocomplete="off" required />
+                            </div>
+
+                            <div class="field">
+                                <label for="news_date" class="field-label">When was this posted?</label>
+                                <input type="date" name="news_date" id="news_date" autocomplete="off" required />
+                            </div>
+
                             <button class="btn btn--primary btn--block" id="register-button" type="submit">Create post</button>
 
                         </form>

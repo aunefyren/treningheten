@@ -269,7 +269,15 @@ function PlaceUserAchievements(achievementArrayPersonal, achievementArray, userI
             achImg.onerror = function() { this.onerror = null; this.src = '/assets/images/barbell.gif'; };
             achImg.src = achievementImageURL(achievementArray[i].id, true)
         } else {
-            document.getElementById("achievement-img-" + achievementArray[i].id).src  = "/assets/lock.svg"
+            var lockImg = document.getElementById("achievement-img-" + achievementArray[i].id);
+            lockImg.src = "/assets/lock.svg"
+            // Locked: only the 🔒 glyph, no photo. Clear the white photo-backing on the icon AND its
+            // circular container so the ring's interior shows the panel (no white disc), round it to
+            // match the circle, and give the lock a little breathing room.
+            lockImg.style.backgroundColor = "transparent"
+            lockImg.style.borderRadius = "10em"
+            lockImg.style.padding = "1.1em"
+            if (lockImg.parentElement) { lockImg.parentElement.style.backgroundColor = "transparent" }
         }
 
     }
