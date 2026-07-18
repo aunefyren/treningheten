@@ -20,7 +20,7 @@ web/css/instrument.css    data-dense components (profile, heatmap, stat/streak c
                           activity statistics, soundtrack, gear, exercises timeline) — being
                           converted from the old dark "instrument" skin to the light system
 web/css/utilities.css     atomic helpers (spacing / alignment / sizing) — loaded last so they win
-web/css/modal.css        the shared "telemetry panel" modal (TRModal, .trm-*)
+web/css/modal.css        the shared light modal (TRModal, .trm-*) — app-wide dialogs
 web/css/workout.css      the workout summary view (.workout-view, .wv-*)
 web/css/admin.css        admin page
 ```
@@ -226,20 +226,20 @@ the same verb through the flow (a "Publish" button → a "Published" toast).
 
 ### Cards
 
-All cards are light. Ordinary content uses the **module panel**; data-dense metric readouts use
-**light metric tiles** (inset fill, hairline, display-font navy numerals — see `.user-stat-card`).
-The old dark "instrument" stat cards are **legacy being converted**, not a look to keep.
+All cards are light — the base **`.card`** shell is a calm eggshell surface (see `base.css`); the
+old `.card--light` modifier is **retired** (the whole app is light, so it lives in the base). Ordinary
+content uses the **module panel**; data-dense metric readouts use **light metric tiles** (inset fill,
+hairline, display-font navy numerals — see `.user-stat-card`).
 
-**Module panel** (light pages): the shared style for content blocks that sit on a
-`.card--light` page — `.season`, `.current-week`, `.debt-module`, `.prize-module`,
-`.leaderboard`, `.activities`, `.week_days`, `.ai-message-card`, … They render as **one identical panel**:
-white surface, hairline grey border, a single blue `--module-accent` **left bar**, soft
-shadow, `--radius-md`, `overflow: hidden`, `box-sizing: border-box` (so the padding stays
-inside the width — some modules default to content-box and would otherwise render wider), and
-**one consistent inner padding (`--space-4`)** — inner blocks (headers, progress bars) sit
-**inset, never flush** to the edge. Driven by **one shared rule** (scoped under `.card--light`
-in `components.css`) — keep every module on that rule; don't give a module its own colour,
-border, or padding.
+**Module panel**: the shared style for content blocks that sit on the `.card` — `.season`,
+`.current-week`, `.debt-module`, `.prize-module`, `.leaderboard`, `.activities`, `.week_days`,
+`.ai-message-card`, … They render as **one identical panel**: white surface, hairline grey border, a
+single blue `--module-accent` **left bar**, soft shadow, `--radius-md`, `overflow: hidden`,
+`box-sizing: border-box` (so the padding stays inside the width — some modules default to content-box
+and would otherwise render wider), and **one consistent inner padding (`--space-4`)** — inner blocks
+(headers, progress bars) sit **inset, never flush** to the edge. Driven by **one shared rule** (scoped
+under `.card` in `components.css`) — keep every module on that rule; don't give a module its own
+colour, border, or padding.
 
 **Dividers:** one treatment inside a light module — a single hairline in `--grey`. `<hr>` and
 every internal border (activity rows, previous-weeks) use it; never the old faint-eggshell `<hr>`
@@ -247,12 +247,11 @@ or the bluish `--trans-lightblue` borders.
 
 | Class | Use | Status |
 |---|---|---|
-| `.stat-card` | metric tile; `data-family="movement\|effort\|strength\|audio\|time\|neutral"` sets a per-family accent stripe (`--stat-accent`). Sub-elements `.stat-card-label` / `.stat-card-value` / `.stat-card-unit`. | **target** |
-| `.user-stat-card`, `.user-streak-card` | profile stat / streak tiles. **On a `.card--light` page** these become light **metric tiles**: `--inset-bg` fill + `--inset-border` hairline, the value in `--font-display` navy, muted `--lightblue` label. The dark-card look is kept for un-swept pages (`/account`). | target |
-| `.ai-message-card` | the AI greeting widget | target |
+| `.stat-card` | metric tile (statistics); `data-family="movement\|effort\|strength\|audio\|time\|neutral"` sets a per-family accent stripe (`--stat-accent`, tokenised). Sub-elements `.stat-card-label` / `.stat-card-value` / `.stat-card-unit`. | **light** |
+| `.user-stat-card`, `.user-streak-card` | profile stat / streak tiles — light **metric tiles**: `--inset-bg` fill + `--inset-border` hairline, value in `--font-display` navy, muted `--lightblue` label. | light |
+| `.ai-message-card` | the AI greeting widget | light |
 | `.panel-card` | centred white content-card wrapper (extracted Phase 4) | transitional |
-| `.card` / `.card-header` / `.card-body` | the shared page-shell wrapper (all 20 pages); mediumblue with white text | **legacy — being flipped light** |
-| `.card--light` | opt-in modifier on `.card` → light surface + dark text (page sweep). Add it per page as swept; inner widgets built for the dark card get light-friendly overrides scoped under it. Once every page carries it, flip the base `.card` and delete the modifier. | **sweep-in-progress** |
+| `.card` / `.card-header` / `.card-body` | the shared page-shell wrapper (all pages) — **light** eggshell surface, navy text (`base.css`) | **light (base)** |
 
 **Inset blocks** (inside a module panel): every small box nested in a panel — the number box,
 progress-bar track, debt notices, joinable/countdown-season rows, the push prompt — shares **one**
@@ -271,7 +270,7 @@ omit the clip.
 
 ### Day row
 
-The front-page week calendar **stacks each day vertically** (`.card--light .form-group`): the day
+The front-page week calendar **stacks each day vertically** (`.card .form-group`): the day
 label, then the number box + its `−`/`+`/`✎` `.btn--icon` buttons on one line, then the notes field
 full-width beneath. One consistent layout whether or not the action buttons show (they only appear
 up to today), so notes never get squeezed into a narrow, wrapping column. (Replaced a fixed 6rem
@@ -283,7 +282,7 @@ The front page opens on its core loop: a **conic-gradient progress ring** (`.her
 `workouts / goal` for the week in the **display font**, over a palest-sky track. A JS-set `--pct`
 (0–100) fills the blue arc — animated via `@property --pct` where supported, snapping otherwise —
 and it flips to `--success` green at 100% with a brief pulse. The ring lives in a clean centred
-white **hero panel** (`.card--light .hero`, capped `max-width` and centred) with *no* left accent
+white **hero panel** (`.card .hero`, capped `max-width` and centred) with *no* left accent
 bar (it's the thesis, not a module). Hidden until a season populates it. No app-name title or
 subtitle sits in the hero — the nav already names the app, and the ring + CTA carry it. This is the
 page's signature element — keep the rest of the page quiet so it stays the one memorable thing.
@@ -321,7 +320,7 @@ In a `.tag-selector`, chips render dimmed until `.tag-chip-selected` (solid gree
 ### Segmented tabs
 
 `.user-stat-tab` in a `.user-stat-tabs` bar — a segmented control for switching a panel (e.g. the
-profile's month / year / all-time stats). On a `.card--light` page each segment is a light
+profile's month / year / all-time stats). Each segment is a light
 `--inset-bg` pill; the active one (`.user-stat-tab-active`) is solid `--mediumblue`/white — the same
 "active = solid mediumblue" rule as buttons. Use this for in-panel period/section switches; it is
 *not* the top nav and not `.btn`.
@@ -334,7 +333,7 @@ static descriptor on a tile; for interactive tag selection use `.tag-chip` inste
 
 ### Skeletons
 
-Loading placeholders are `.skeleton-block` (the shimmer; auto-darkens on `.card--light`). **Size
+Loading placeholders are `.skeleton-block` (the shimmer; sweeps dark on the light card). **Size
 them with classes, never inline** — the profile page uses `.skel-label`, `.skel-streak`,
 `.skel-tile`, `.skel-bar` (+ `.skel-row` to lay a row out, `.skel-mt` for section spacing). Add a
 new named size class here rather than an inline `width/height` when a new skeleton shape appears.
@@ -350,14 +349,15 @@ prefer the modal fields in modals, the baseline elsewhere.
 
 ### Modal — `.trm` (TRModal)
 
-The one shared modal ("telemetry panel"), driven by `web/js/modal.js` (`TRModal`); markup
-is generated, not hand-written. Structure: `.trm` (overlay/root) → `.trm-overlay` (backdrop)
-→ `.trm-panel` → `.trm-head` (`.trm-title`, `.trm-close`) + `.trm-body`. Inside the body use
-`.trm-section-label`, `.trm-row` (side-by-side), `.trm-divider`, `.trm-field`/`.trm-label`/
-`.trm-input`/`.trm-select`, `.trm-badge`, `.trm-eyebrow`. Buttons inside `.trm-body` default
-to the primary look; add an explicit `.btn` class to opt into the button system. **Never
-hand-render a modal** — extend TRModal. (The old `#myModal` image lightbox was removed in
-Phase 3.)
+The one shared modal (**light**: white panel, thin blue top keyline, neutral dimmed backdrop),
+driven by `web/js/modal.js` (`TRModal`); markup is generated, not hand-written. Structure: `.trm`
+(overlay/root) → `.trm-overlay` (backdrop) → `.trm-panel` → `.trm-head` (`.trm-title`,
+`.trm-close`) + `.trm-body`. Inside the body use `.trm-section-label`, `.trm-row` (side-by-side),
+`.trm-divider`, `.trm-field`/`.trm-label`/`.trm-input`/`.trm-select`, `.trm-badge`, `.trm-eyebrow`.
+Buttons inside `.trm-body` default to the primary look (mediumblue/white, sentence case); add an
+explicit `.btn` class to opt into the button system. The `.trm` root **overrides the semantic
+tokens** to light values, so the whole panel relights from one place. **Never hand-render a
+modal** — extend TRModal.
 
 ### Alerts
 
@@ -411,6 +411,58 @@ not theme — left inline on purpose. Dynamic (`${…}`) values stay inline too.
 
 ## Decisions log
 
+- **Base `.card` flipped light; `.card--light` modifier retired (endgame).** With every page swept,
+  the light shell + `.card-header`/`.card-body` moved into the base `.card` rule (`base.css`, was
+  mediumblue/white), and all `.card--light .X` scoped selectors became `.card .X` (in `components.css`;
+  the compound `.card.card--light` override was deleted). Removed `card--light` from all 19 HTML shells
+  (now `class="card"`). Net effect: the app is light from the base with no opt-in modifier — one fewer
+  class to remember. Historical decisions-log entries below still say "`.card--light`" (accurate for
+  when they were written).
+- **`/countdown` removed (dead page).** The full-page countdown was never hit in production — the
+  front-page inline "seasons you are waiting for" list (`getCountdownSeasons` etc.) is the live
+  feature. Deleted `countdown.html`/`countdown.js` + the `countdownRedirect()` flow; the front page
+  now renders normally for an upcoming primary season instead of redirecting. **With this, the
+  light sweep is complete — every page is light.**
+- **`/statistics` converted to light (last content page).** `.stat-panel` / `.soundtrack-panel` →
+  white module panels (soundtrack keeps an amber `--audio` left bar for the audio layer); `.stat-card`
+  → light inset tiles with **tokenised family accents** (movement `--blue`, effort `--error`, strength
+  `--warning`, audio `--audio`, time `--lightblue`, neutral `--grey`), display-font navy value;
+  section titles + soundtrack text → navy/`--lightblue`; amber album-art/mark tints kept. The heatmap
+  is a Leaflet map (unchanged) and the Chart.js charts use library defaults (dark-grey text, already
+  fine on light — no per-chart config here, unlike the exercise HR chart). Added a `.u-flex-end`
+  utility.
+- **Gear form de-duplicated into one shared component.** The `/gear` page and the exercise-page
+  "Manage gear" modal were two full copies (two renderers, `createGear`/`updateGearField`/`deleteGear`
+  duplicated in both files, `.gear-*` vs `.trm-gear-*` classes, two CSS blocks) — which is how the
+  disabled-field styling drifted. Consolidated: new **`web/js/gear-shared.js`** (`gearList`,
+  `gearItemHTML`, `gearListHTML`, `gearAddFormHTML`, and one copy of the CRUD) loaded on both pages;
+  each page sets an `onGearChanged` hook to re-render its own view. One **`.gear-*`** class set +
+  one CSS block (base rules made light, so page and modal match; the `.card--light .gear-*` overrides
+  and the dark `.trm-gear-*`/`.gear-btn` were deleted). Delete now confirms in both places.
+- **`.trm` modal converted to light (app-wide).** Same token-override technique on the `.trm` root
+  relit the whole modal; hardcoded bits fixed directly: the green-glow/noise backdrop → a **calm
+  neutral scrim** (`rgba(13,27,42,.45)` + light blur); panel → white with a soft shadow and a thin
+  blue top keyline (dropped the accent **bloom/glow** and the **corner register brackets** — both
+  off-style now, `.trm-corner { display:none }`); inputs → white/grey with blue focus; the default
+  modal button → the `.btn` look (mediumblue/white, **sentence case, body font**, no glow); gear-del
+  un-inverted; Strava badge → orange outline. This turns **every page's dialogs** light (weight log,
+  confirms, add-action, manage-gear). The exercise gear modal uses `.trm-gear-*`, so it came along
+  for free — no `.gear-*` fold-back was needed (that class is `/gear`-only).
+- **`/exercise` converted to light (builder + summary; modal is the next pass).** The whole
+  `workout.css` (`.workout-view` summary + `.we-*` editor) went dark→light. **Technique worth
+  reusing:** the view consumes semantic tokens (`--text`, `--surface`, `--line`, `--accent`, …), so
+  overriding those tokens **on the `.workout-view` root** relit the entire subtree in one block;
+  only rules with hardcoded values (navy gradient + noise `::before`, `rgba()` fills, `filter:
+  invert`, `#ffb020`) were fixed directly. Session panels → module panels; activity/exercise tiles →
+  inset with type-accent left bars (cardio blue, strength `--warning`, time `--strava`); editor
+  inputs → white/grey with blue focus; icons un-inverted; the salmon "combine" and legacy Restore
+  buttons → `.btn`; `.addExerciseWrapper` → dashed inset add-tile. Amber soundtrack node-glows kept
+  (audio layer). The activity-title action icon dropped `color-invert` (was white), and the **HR
+  Chart.js chart** now reads its axis-tick / gridline colours from the tokens at runtime
+  (`getComputedStyle(...).getPropertyValue('--lightblue' / '--grey')`) instead of hardcoded white —
+  reuse that pattern for the statistics charts/heatmap. **Deferred to the modal pass:** the `.trm` modal + the gear modal (`.trm-gear-*`)
+  it opens, and two `.trm-*` inline styles in `exercise.js` — so the exercise page's dialogs are
+  still dark for now.
 - **`/gear` converted to light.** The `.gear-*` classes are **shared with the exercise-page gear
   modal** (still dark), so the light versions are **scoped under `.card--light`** (dark base kept for
   the modal until that page is swept — fold back then). Panel → light module panel; gear items →
@@ -543,16 +595,14 @@ not theme — left inline on purpose. Dynamic (`${…}`) values stay inline too.
 
 ## Known gaps
 
-Not yet unified (safe to use as-is; migrate on touch). Phase status lives in [`wip.md`](wip.md).
+Small residuals (safe to use as-is; migrate on touch). Phase status lives in [`wip.md`](wip.md).
 
-- **Cards / form-controls / alerts** aren't fully unified — legacy (`.card`, `.alert-*`, the
-  `:where()` input baseline) and any remaining **dark instrument** surfaces coexist with the light
-  system. Everything is going light: convert dark surfaces to module panels + light inset tiles on
-  touch (never keep the dark skin). Unify toward the calm, light shared version.
-- **Bespoke buttons** (`.wheel-*`, `.we-add-*`, `.gear-btn`, `.user-stat-tab`,
-  `.wv-media-repull`, `.trm-close`) and the **legacy global `button`** rule still stand.
-  (The front-page push-prompt buttons were migrated onto `.btn`/`.btn--ghost`.)
-- **Inline styles** still remain on un-swept pages (mostly skeleton-loader sizes and bespoke
-  one-offs). The **skeleton size-class** pattern now exists (`.skel-*`, front page + profile);
-  extend it as pages are swept rather than re-adding inline `width/height`.
+- **The whole app is light** — every page + the shared modal were swept and the base `.card` was
+  flipped light (the `.card--light` modifier is gone). No dark instrument surfaces remain.
+- **Form-controls / alerts** aren't unified into a single component — the `:where()` input baseline
+  (`base.css`), the modal's own fields, and `.alert-*` coexist. All light; unify on touch.
+- **Bespoke buttons** (`.wheel-*`, `.we-add-*`, `.user-stat-tab`, `.wv-media-repull`, `.trm-close`)
+  and the **legacy global `button`** rule still stand (all light now; `.gear-btn` was retired).
+- **Inline styles** — a few static one-offs remain (e.g. a couple of weight-log layout widths). The
+  **skeleton size-class** pattern (`.skel-*`) is the preferred alternative.
 - The **`.u-*` em values** could be tokenised to `--space-*` (a visual decision, deferred).

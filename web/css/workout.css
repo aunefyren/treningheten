@@ -6,7 +6,20 @@
    ============================================================================ */
 
 .workout-view {
-  /* Design tokens live in web/css/tokens.css (consumed via var() below). */
+  /* Light conversion: the whole view consumes these semantic tokens, so overriding them here
+     relights the entire subtree. Only rules with hardcoded dark values (gradients, rgba literals,
+     filter:invert) are fixed directly below. --audio (amber) / --strava (orange) keep their
+     brand/layer identity. */
+  --text: var(--darkblue);
+  --text-dim: var(--lightblue);
+  --line: var(--grey);
+  --line-soft: var(--grey);
+  --surface: var(--inset-bg);
+  --surface-hi: var(--inset-bg);
+  --panel-solid: var(--white);
+  --accent: var(--mediumblue);
+  --accent-soft: var(--blue-050);
+
   font-family: var(--font-body);
   color: var(--text);
   width: 100%;
@@ -20,25 +33,13 @@
   max-width: 46rem;
   margin: 1rem 0 2.5rem;
   padding: 1.5rem clamp(1rem, 4vw, 2rem) 1.75rem;
-  border-radius: 1.25rem;
-  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--grey);
+  border-left: 4px solid var(--module-accent);
   position: relative;
   overflow: hidden;
-  /* Depth: deep navy base + a soft top-left light source, not a flat fill. */
-  background:
-    radial-gradient(120% 80% at 0% 0%, rgba(0, 210, 122, 0.10) 0%, transparent 42%),
-    linear-gradient(160deg, #16263c 0%, #0d1b2a 100%);
-  box-shadow: 0 1.5rem 3rem rgba(0, 0, 0, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.04);
-}
-
-/* Fine grain overlay for texture. */
-.wv-session::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  opacity: 0.5;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.025'/%3E%3C/svg%3E");
+  background: var(--white);
+  box-shadow: var(--shadow-sm);
 }
 
 .wv-session > * { position: relative; z-index: 1; }
@@ -111,8 +112,7 @@
   width: 1.1rem;
   padding: 0.6rem;            /* keeps tap target ~44px */
   border-radius: 0.6rem;
-  opacity: 0.7;
-  filter: invert(100%);       /* the source SVGs are black; flip them for the dark surface */
+  opacity: 0.7;                /* source SVGs are black — no invert on the light surface */
   transition: opacity 0.15s, background 0.15s;
 }
 .wv-action-icon:hover { opacity: 1; background: var(--surface-hi); }
@@ -129,7 +129,7 @@
   border-left: 3px solid var(--line);
 }
 .wv-activity-cardio   { border-left-color: var(--accent); }
-.wv-activity-strength { border-left-color: #ffb020; }
+.wv-activity-strength { border-left-color: var(--warning); }
 .wv-activity-time     { border-left-color: var(--strava); }
 
 .wv-activity-head {
@@ -172,8 +172,8 @@
   color: var(--text-dim);
 }
 .wv-source img { height: 0.8rem; width: auto; }
-.wv-source-strava { color: var(--strava); border-color: rgba(252, 76, 2, 0.4); }
-.wv-source-hevy { color: var(--text); border-color: rgba(255, 255, 255, 0.25); }
+.wv-source-strava { color: var(--strava); border-color: var(--strava); }
+.wv-source-hevy { color: var(--text); border-color: var(--grey); }
 .wv-source-hevy img { border-radius: 0.2rem; }
 .wv-source-manual { color: var(--text-dim); }
 
@@ -195,7 +195,7 @@
   padding: 0.85rem 1rem 0.95rem;
   border-radius: 0.7rem;
   border: 1px solid var(--line);
-  background: rgba(255, 255, 255, 0.025);
+  background: var(--inset-bg);
 }
 
 .wv-media-head {
@@ -259,7 +259,7 @@
   transition: opacity 0.15s ease, background 0.15s ease;
 }
 .wv-media-repull:hover { opacity: 1; background: var(--surface-hi); }
-.wv-media-repull img { height: 1rem; filter: invert(100%); } /* source SVG is black */
+.wv-media-repull img { height: 1rem; } /* source SVG is black — fine on the light surface */
 
 /* Time-rail list: a hairline spine with an amber node per track. */
 .wv-tracklist {
@@ -500,16 +500,16 @@
   font-weight: 600;
   letter-spacing: 0.03em;
   color: var(--white);
-  background: var(--trans-lightblue);
-  border: 1px solid var(--lightblue);
+  background: var(--mediumblue);
+  border: 1px solid var(--mediumblue);
   border-radius: 0.6rem;
   padding: 0.5rem 1rem;
   margin: 0 auto 1.25rem;
   display: block;
   cursor: pointer;
-  transition: background 0.15s;
+  transition: filter 0.15s;
 }
-.back-to-summary-btn:hover { background: var(--lightblue); }
+.back-to-summary-btn:hover { filter: brightness(1.08); }
 
 /* ── Tag chips inside the dashboard (override the light global chip) ──────── */
 .workout-view .tag-list { justify-content: flex-start; margin: 0.4rem 0 0.2rem; }
@@ -539,14 +539,13 @@
   max-width: 46rem;
   margin: 1rem 0 2.5rem;
   padding: 1.5rem clamp(1rem, 4vw, 2rem) 1.75rem;
-  border-radius: 1.25rem;
-  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--grey);
+  border-left: 4px solid var(--module-accent);
   position: relative;
   overflow: hidden;
-  background:
-    radial-gradient(120% 80% at 0% 0%, rgba(0, 210, 122, 0.10) 0%, transparent 42%),
-    linear-gradient(160deg, #16263c 0%, #0d1b2a 100%);
-  box-shadow: 0 1.5rem 3rem rgba(0, 0, 0, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.04);
+  background: var(--white);
+  box-shadow: var(--shadow-sm);
 }
 
 .we-session-head {
@@ -574,7 +573,7 @@
   font-family: var(--font-body);
   font-size: 1rem;
   color: var(--text);
-  background: rgba(0, 0, 0, 0.22);
+  background: var(--white);
   border: 1px solid var(--line);
   border-radius: 0.55rem;
   padding: 0.55rem 0.65rem;
@@ -588,11 +587,11 @@
 .we-note:focus {
   outline: none;
   border-color: var(--accent);
-  background: rgba(0, 0, 0, 0.30);
+  background: var(--inset-bg);
 }
 .we-input::placeholder,
 .we-set-input::placeholder,
-.we-note::placeholder { color: rgba(255, 255, 255, 0.35); }
+.we-note::placeholder { color: var(--lightblue); }
 
 .we-session-fields { display: flex; gap: 0.75rem; flex-wrap: wrap; }
 .we-field { display: flex; flex-direction: column; gap: 0.3rem; flex: 1; min-width: 7rem; }
@@ -674,7 +673,7 @@
   padding: 0.4rem 0;
   transition: background 0.15s, color 0.15s;
 }
-.we-set-num:hover { background: rgba(208, 0, 0, 0.7); color: #fff; }
+.we-set-num:hover { background: var(--error); color: var(--white); }
 .we-set-avg { font-variant-numeric: tabular-nums; color: var(--text-dim); font-size: 0.9rem; }
 
 /* Column visibility per activity type — header and rows share the same rules,
@@ -710,9 +709,9 @@
 .we-add-set { width: 100%; margin-top: 0.6rem; }
 .we-add-exercise { width: 100%; margin-top: 1rem; }
 .we-add-set:hover,
-.we-add-exercise:hover { border-color: var(--accent); background: rgba(0, 210, 122, 0.12); }
+.we-add-exercise:hover { border-color: var(--accent); background: var(--blue-050); }
 .we-add-set img,
-.we-add-exercise img { height: 0.9rem; filter: invert(100%); }
+.we-add-exercise img { height: 0.9rem; }
 
 /* The action autocomplete popover sits over the dark card; keep it readable. */
 .we-action .dropdown-actions-wrapper { top: 3.1rem; z-index: 5; }
@@ -729,7 +728,7 @@
 .workout-view .we-type-select,
 .workout-view .we-equipment-select,
 .workout-view .we-note {
-  background: rgba(0, 0, 0, 0.22);
+  background: var(--white);
   color: var(--text);
   border: 1px solid var(--line);
   border-radius: 0.55rem;
@@ -762,20 +761,20 @@
 .workout-view .we-note:focus {
   outline: none;
   border-color: var(--accent);
-  background: rgba(0, 0, 0, 0.30);
+  background: var(--inset-bg);
 }
 
 /* The native options popup inherits the select's translucent background and
    renders as low-contrast grey; give the options a solid dark fill instead. */
 .workout-view .we-type-select option,
 .workout-view .we-equipment-select option {
-  background: #16263c;
+  background: var(--white);
   color: var(--text);
 }
 
 /* Custom caret for the selects (native arrow is gone with appearance:none). */
 .workout-view .we-equipment-select {
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%239fb0c7'/%3E%3C/svg%3E");
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%230d1b2a'/%3E%3C/svg%3E");
   background-repeat: no-repeat;
   background-position: right 0.7rem center;
   padding-right: 1.8rem;
@@ -785,11 +784,11 @@
    editor (the global rule makes it white with our inherited light text → unreadable). */
 .workout-view .dropdown-actions-wrapper {
   margin: 0;
-  background: #1b2c44;
+  background: var(--white);
   border: 1px solid var(--line);
   color: var(--text);
   border-radius: 0.6rem;
-  box-shadow: 0 0.75rem 1.5rem rgba(0, 0, 0, 0.45);
+  box-shadow: var(--shadow-md);
 }
 .workout-view .dropdown-action {
   color: var(--text);
@@ -814,7 +813,7 @@
 
 /* ── Gear ─────────────────────────────────────────────────────────────────── */
 /* Session-level gear selector sits inside .we-session-fields next to Time/Duration.
-   The manage-gear modal body lives in the shared modal.css (.trm-gear-*). */
+   The manage-gear modal renders the shared .gear-* component (instrument.css + gear-shared.js). */
 .we-gear-row { display: flex; align-items: center; gap: 0.4rem; }
 .we-gear-row .we-gear-select { flex: 1; }
 .we-gear-row .wv-action-icon { padding: 0.5rem; flex: 0 0 auto; }

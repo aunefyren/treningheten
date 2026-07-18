@@ -255,8 +255,32 @@ the `.card--light` modifier (endgame).
 **Status:**
 - ✅ **Content swept:** front page, `/users/:id`, `/login`, `/register`, `/account`, `/verify`,
   `/authorize`, `/offline`, `/seasons`, `/admin`, `/registergoal`, `/achievements`, `/news`,
-  `/wheel`, `/exercises`, `/gear`. (`/oauth` = transient.)
-- ⬜ **Shell is light, content NOT yet swept:** countdown, exercise, statistics.
+  `/wheel`, `/exercises`, `/gear`, `/exercise` (builder + summary + dialogs), `/statistics`.
+  (`/oauth` = transient.)
+- ✅ **App-wide: the `.trm` modal (`modal.css`) is light** — every page's dialogs (weight log,
+  confirms, add-action, manage-gear) went light in one pass via the token-override trick.
+- 🗑️ **`/countdown` removed** — the full-page countdown was dead in production (the front-page
+  inline "seasons you are waiting for" list is what users see). Deleted `countdown.html` +
+  `countdown.js`, the `countdownRedirect()` defs (frontpage + registergoal) and the front-page
+  redirect (an upcoming primary season now just renders the front page + inline list). Kept the
+  inline countdown (`getCountdownSeasons`/`placeCountdownSeasons`/`activateCountdown`,
+  `?countdown=true`, `.countdownSeason*`/`.countdown_number`).
+- ✅ **The light sweep is COMPLETE — every page is light.** (19 pages, `/countdown` gone.)
+- ✅ **Endgame done: base `.card` flipped light, `.card--light` modifier retired.** The light shell
+  moved into the base `.card`/`.card-header`/`.card-body` (`base.css`); all `.card--light .X`
+  selectors became `.card .X`; all 19 HTML shells are now `class="card"`. No opt-in modifier left.
+- **Nothing outstanding for the light migration.** Residual polish only (see styleguide "Known
+  gaps"): unify form-controls/alerts into one component, retire the last bespoke buttons + the legacy
+  global `button` rule, tidy the few remaining static inline styles, optionally tokenise `.u-*` ems.
+- **Gear de-duplicated (done):** `/gear` + the exercise "Manage gear" modal now share
+  `web/js/gear-shared.js` (render + CRUD) and one light `.gear-*` CSS block; the duplicate renderers,
+  CRUD copies, `.trm-gear-*` and `.card--light .gear-*` are gone. **Test:** gear add/edit/delete +
+  Strava-synced (disabled) + primary/retired, on both the page and the modal, plus the session gear
+  selector on `/exercise`.
+- **Notes:** The **token-override trick** (relight a whole
+  subtree by overriding its consumed semantic tokens on the root — used for `.workout-view` and
+  `.trm`) and the **chart-token pattern** (read `--lightblue`/`--grey` at runtime for Chart.js axes)
+  are both directly reusable for `statistics` (stat cards + heatmap + charts).
 - **Coupling note:** `/gear`'s light `.gear-*` styles are scoped under `.card--light`; the **dark
   base `.gear-*` is kept for the exercise-page gear modal**. When `/exercise` is swept, convert the
   modal too and fold the `.card--light .gear-*` overrides back into the base (drop the dark values +

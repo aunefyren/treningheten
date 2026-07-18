@@ -113,7 +113,10 @@
     flex-direction:column;
     min-width:0;
     word-wrap:break-word;
-    background-color: var(--mediumblue);
+    background-color: var(--eggshell);
+    color: var(--black);
+    border: 1px solid var(--grey);
+    box-shadow: var(--shadow-sm);
     background-clip:border-box;
     margin-bottom: 25%;
     border-radius: 1rem;
@@ -127,14 +130,14 @@
   .card-header{
     padding:.75rem 1.25rem;
     margin-bottom:0;
-    background-color:var(--trans-lightblue);
-    border: 0.2rem solid var(--mediumblue);
+    background-color: transparent;
+    border: 0.2rem solid var(--grey);
     text-align: center;
     font-size: 0.8rem;
     font-weight:200;
     border-top-right-radius: 1rem;
     border-top-left-radius: 1rem;
-    color: var(--white);
+    color: var(--darkblue);
   }
   
   .content {
@@ -175,7 +178,7 @@
     -ms-flex:1 1 auto;
     flex:1 1 auto;
     padding:1.25rem;
-    color: var(--white);
+    color: var(--black);
   }
  
   /* ── Button primitive ─────────────────────────────────────────────────────

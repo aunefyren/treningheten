@@ -625,12 +625,7 @@ function get_season(user_id, loadingMessage, activeSeason){
                         userList[season.goals[i].user.id] = season.goals[i].user
                     }
 
-                    var date_start = new Date(season.start);
-                    var now = Date.now();
-
-                    if(user_found && now < date_start) {
-                        countdownRedirect()
-                    } else if(user_found) {
+                    if(user_found) {
                         get_calendar(false, user_id, loadingMessage);
                         place_season(season, user_id, seasonAlternatives);
                         get_leaderboard(season, goal, true, false);
@@ -1475,11 +1470,6 @@ function verifyPageRedirect() {
 
 }
 
-function countdownRedirect() {
-
-    window.location = '/countdown'
-    
-}
 
 function registerGoalRedirect() {
 

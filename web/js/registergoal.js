@@ -182,12 +182,6 @@ function getSeason(userID, seasonID){
 
 }
 
-function countdownRedirect() {
-
-    window.location = '/countdown'
-
-}
-
 function frontPageRedirect() {
 
     window.location = '/'

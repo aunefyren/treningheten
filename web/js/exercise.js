@@ -17,9 +17,9 @@ function tagLabel(slug) {
     return tag ? tag.label : slug;
 }
 
-// The user's gear, loaded once on page load and refreshed when the manage-gear
-// modal changes it (see gear functions near the bottom of this file).
-let gearList = [];
+// The user's gear (`gearList`), the render helpers and the CRUD (createGear/updateGearField/
+// deleteGear) are shared with the /gear page — see web/js/gear-shared.js. This file keeps only
+// the exercise-specific session gear *selector* and the modal open/render glue.
 
 function escapeHTML(value) {
     return String(value)
@@ -101,16 +101,16 @@ function load_page(result) {
                     </div>
                 </div>
 
-                <hr class="invert" style="border: 0.025em solid var(--white); margin: 4em 0;">
+                <hr class="u-my-1">
 
                 <div class="exercisesWrapper" id="exercisesWrapper"></div>
 
                 <div class="addExerciseWrapper clickable hover" id="addExerciseWrapper" title="Add session" onclick="addExercise('${exerciseDayID}');">
-                    <img src="/assets/plus.svg" class="button-icon" style="height: 100%; margin: 1em;">
+                    <img src="/assets/plus.svg" class="button-icon">
                 </div>
 
-                <div class="" style="margin-top: 5em; display: none;" id="stravaCombineButtonWrapper">
-                    <button type="submit" class="btn btn--primary" style="width: 15em; background-color: salmon; font-size:0.75em;" id="" onclick="combineStravaExercises(); return false;">
+                <div class="u-mt-3" style="display: none;" id="stravaCombineButtonWrapper">
+                    <button type="submit" class="btn" id="" onclick="combineStravaExercises(); return false;">
                         Combine Strava exercises
                     </button>
                 </div>
@@ -239,11 +239,11 @@ function generateExerciseHTML(exercise, count, forceFullEditor = false) {
                 </p>
 
                 <input class="exercise-time-input" type="hidden" id="exercise-time-input-${exercise.id}" name="exercise-time-input" pattern="[0-9:]{0,}" placeholder="hh:mm:ss" value="${secondsToDurationString(exercise.duration)}">
-                <textarea class="day-note-area" id="exercise-note-${exercise.id}" name="exercise-exercise-note" rows="3" cols="33" placeholder="Notes" style="margin-top: 1em; width: 20em; display: none;">${exercise.note}</textarea>
+                <textarea class="day-note-area u-mt-1" id="exercise-note-${exercise.id}" name="exercise-exercise-note" rows="3" cols="33" placeholder="Notes" style="display: none;">${exercise.note}</textarea>
 
-                <button type="submit" onclick="updateExercise('${exercise.id}', true, ${count}, '${exercise.time});" id="restore-exercise-button-${exercise.id}" style="margin-bottom: 0em; width: 8em;"><img src="/assets/refresh-cw.svg" class="btn_logo color-invert"><p2>Restore</p2></button>
+                <button type="submit" onclick="updateExercise('${exercise.id}', true, ${count}, '${exercise.time});" id="restore-exercise-button-${exercise.id}" class="btn u-w-8"><img src="/assets/refresh-cw.svg" class="color-invert">Restore</button>
 
-                <hr class="invert" style="border: 0.025em solid var(--white); margin: 4em 0;">
+                <hr class="u-my-1">
             </div>
         `;
     }
@@ -337,7 +337,7 @@ function renderActivitySubCard(operation, exercise) {
 function activityActionIcon(operation) {
     const action = operation.action;
     if (action && action.has_logo) {
-        return `<img src="/assets/actions/${action.name}.svg" class="color-invert wv-activity-icon" alt="">`;
+        return `<img src="/assets/actions/${action.name}.svg" class="wv-activity-icon" alt="">`;
     }
     const emoji = operation.type === 'lifting' ? '🏋️' : operation.type === 'timing' ? '⏱️' : '🏃';
     return `<span class="wv-activity-emoji">${emoji}</span>`;
@@ -806,7 +806,10 @@ function renderHeartrateChart(canvasID, timeData, hrData, maxSecs) {
 
     if (points.length === 0) return;
 
-    var tickColor = "rgba(255,255,255,0.6)";
+    // Read the theme tokens so the chart's axis text/grid match the light surface (was white-on-dark).
+    var rootStyle = getComputedStyle(document.documentElement);
+    var tickColor = rootStyle.getPropertyValue("--lightblue").trim() || "#7fa8cf";
+    var gridColor = rootStyle.getPropertyValue("--grey").trim() || "#cecece";
 
     new Chart(canvas, {
         type: "line",
@@ -828,7 +831,7 @@ function renderHeartrateChart(canvasID, timeData, hrData, maxSecs) {
             scales: {
                 xAxes: [{
                     type: "linear",
-                    gridLines: { color: "rgba(255,255,255,0.1)" },
+                    gridLines: { color: gridColor },
                     ticks: {
                         fontColor: tickColor,
                         autoSkip: true,
@@ -841,7 +844,7 @@ function renderHeartrateChart(canvasID, timeData, hrData, maxSecs) {
                     }
                 }],
                 yAxes: [{
-                    gridLines: { color: "rgba(255,255,255,0.1)" },
+                    gridLines: { color: gridColor },
                     ticks: {
                         fontColor: tickColor,
                         beginAtZero: false,
@@ -1899,176 +1902,23 @@ function setExerciseGear(exerciseID, gearID) {
 
 function openGearModal() {
     closeAllLists();
-    TRModal.open({ eyebrow: "Equipment", title: "Manage gear", body: `<div class="trm-gear-loading trm-gear-empty">Loading gear…</div>` });
-    refreshGearModal();
+    // While the modal is open, any gear change re-renders its body and refreshes the on-page selectors.
+    onGearChanged = function() { renderGearModalBody(); refreshGearSelectors(); };
+    TRModal.open({ eyebrow: "Equipment", title: "Manage gear", body: `<div class="gear-empty">Loading gear…</div>` });
+    getGear();
 }
 
-// Reload gear (so distances/identity are fresh), then render the modal body and
-// refresh the on-page selectors.
-function refreshGearModal() {
-    var xhttp = new XMLHttpRequest();
-    xhttp.onreadystatechange = function() {
-        if (this.readyState == 4) {
-            try {
-                result = JSON.parse(this.responseText);
-            } catch(e) {
-                return;
-            }
-            if (!result.error) {
-                gearList = result.gear || [];
-            }
-            renderGearModalBody();
-            refreshGearSelectors();
-        }
-    };
-    xhttp.withCredentials = true;
-    xhttp.open("get", api_url + "auth/gear");
-    xhttp.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
-    xhttp.setRequestHeader("Authorization", jwt);
-    xhttp.send();
-}
-
+// Renders the shared gear list + add form into the modal body (same `.gear-*` markup as the /gear
+// page, via gear-shared.js), plus a link out to the full page.
 function renderGearModalBody() {
-    const typeOptions = (selected) => ["shoe", "bike", "other"]
-        .map(t => `<option value="${t}" ${t === selected ? "selected" : ""}>${t.charAt(0).toUpperCase() + t.slice(1)}</option>`)
-        .join("");
-
-    let listHTML = "";
-    if (gearList.length === 0) {
-        listHTML = `<p class="trm-gear-empty">No gear yet. Add a pair of shoes or a bike below.</p>`;
-    } else {
-        gearList.forEach(gear => {
-            const isStrava = !!gear.strava_gear_id;
-            const dist = gear.distance ? gear.distance.toFixed(1) + " km" : "0.0 km";
-            const readonly = isStrava ? "disabled" : "";
-            const stravaTag = isStrava ? `<span class="trm-badge">Strava</span>` : "";
-            const brand = gear.brand || "";
-            listHTML += `
-                <div class="trm-gear-item" id="gear-item-${gear.id}">
-                    <div class="trm-gear-head">
-                        <input class="trm-input" type="text" value="${escapeHTML(gear.name)}" ${readonly} onchange="updateGearField('${gear.id}', 'name', this.value)" title="Name">
-                        <select class="trm-select" ${readonly} onchange="updateGearField('${gear.id}', 'type', this.value)" title="Type">${typeOptions(gear.type)}</select>
-                        ${stravaTag}
-                    </div>
-                    <div class="trm-gear-meta">
-                        <input class="trm-input" type="text" value="${escapeHTML(brand)}" ${readonly} placeholder="Brand" onchange="updateGearField('${gear.id}', 'brand', this.value)">
-                        <span class="trm-gear-distance" title="Total logged distance">${dist}</span>
-                    </div>
-                    <div class="trm-gear-toggles">
-                        <label class="trm-gear-toggle"><input type="checkbox" ${gear.is_primary ? "checked" : ""} onchange="updateGearField('${gear.id}', 'is_primary', this.checked)"> Primary</label>
-                        <label class="trm-gear-toggle"><input type="checkbox" ${gear.retired ? "checked" : ""} onchange="updateGearField('${gear.id}', 'retired', this.checked)"> Retired</label>
-                        <img src="/assets/trash-2.svg" class="trm-gear-del clickable" title="Delete gear" onclick="deleteGear('${gear.id}')">
-                    </div>
-                </div>
-            `;
-        });
-    }
-
     TRModal.setBody(`
-        <div class="trm-gear-list">${listHTML}</div>
-        <hr class="trm-divider">
-        <p class="trm-section-label">Add gear</p>
-        <div class="trm-field">
-            <span class="trm-label">Name</span>
-            <input class="trm-input" type="text" id="new-gear-name" placeholder="e.g. Nike Pegasus">
-        </div>
-        <div class="trm-row" style="margin-bottom: 0.95rem;">
-            <select class="trm-select" id="new-gear-type">${typeOptions("shoe")}</select>
-            <input class="trm-input" type="text" id="new-gear-brand" placeholder="Brand (optional)">
-        </div>
-        <button type="submit" class="btn btn--primary" onclick="createGear();"><img src="/assets/plus.svg">Add gear</button>
-        <p class="trm-gear-empty" style="margin-top: 0.9rem;"><a href="/gear" style="color: var(--accent);">Open the full gear page →</a></p>
+        <div class="gear-list">${gearListHTML()}</div>
+        ${gearAddFormHTML()}
+        <p class="gear-empty u-mt-sm"><a href="/gear">Open the full gear page →</a></p>
     `);
 }
 
-function createGear() {
-    const name = document.getElementById("new-gear-name").value.trim();
-    if (name === "") {
-        error("Gear must have a name.");
-        return;
-    }
-    const brand = document.getElementById("new-gear-brand").value.trim();
-    var form_obj = {
-        "name": name,
-        "type": document.getElementById("new-gear-type").value,
-        "brand": brand !== "" ? brand : null
-    };
-    var xhttp = new XMLHttpRequest();
-    xhttp.onreadystatechange = function() {
-        if (this.readyState == 4) {
-            try {
-                result = JSON.parse(this.responseText);
-            } catch(e) {
-                error("Could not reach API.");
-                return;
-            }
-            if (result.error) {
-                error(result.error);
-            } else {
-                success("Gear added.");
-                refreshGearModal();
-            }
-        }
-    };
-    xhttp.withCredentials = true;
-    xhttp.open("post", api_url + "auth/gear");
-    xhttp.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
-    xhttp.setRequestHeader("Authorization", jwt);
-    xhttp.send(JSON.stringify(form_obj));
-}
-
-function updateGearField(gearID, field, value) {
-    var form_obj = {};
-    form_obj[field] = value;
-    var xhttp = new XMLHttpRequest();
-    xhttp.onreadystatechange = function() {
-        if (this.readyState == 4) {
-            try {
-                result = JSON.parse(this.responseText);
-            } catch(e) {
-                error("Could not reach API.");
-                return;
-            }
-            if (result.error) {
-                error(result.error);
-            } else {
-                success("Gear updated.");
-                // Setting one gear primary demotes the others, so reload the list.
-                refreshGearModal();
-            }
-        }
-    };
-    xhttp.withCredentials = true;
-    xhttp.open("put", api_url + "auth/gear/" + gearID);
-    xhttp.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
-    xhttp.setRequestHeader("Authorization", jwt);
-    xhttp.send(JSON.stringify(form_obj));
-}
-
-function deleteGear(gearID) {
-    var xhttp = new XMLHttpRequest();
-    xhttp.onreadystatechange = function() {
-        if (this.readyState == 4) {
-            try {
-                result = JSON.parse(this.responseText);
-            } catch(e) {
-                error("Could not reach API.");
-                return;
-            }
-            if (result.error) {
-                error(result.error);
-            } else {
-                success("Gear deleted.");
-                refreshGearModal();
-            }
-        }
-    };
-    xhttp.withCredentials = true;
-    xhttp.open("delete", api_url + "auth/gear/" + gearID);
-    xhttp.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
-    xhttp.setRequestHeader("Authorization", jwt);
-    xhttp.send();
-}
+// createGear / updateGearField / deleteGear now live in web/js/gear-shared.js (shared with /gear).
 
 function createAction(operationID) {
     var name = document.getElementById('new-action-name-english-input-' + operationID).value

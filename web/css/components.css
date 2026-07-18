@@ -1192,8 +1192,11 @@ input[type=checkbox]
 .addExerciseWrapper {
   width: 6rem;
   height: 6rem;
-  background-color: var(--trans-lightblue);
-  border-radius: 10%;
+  background-color: var(--inset-bg);
+  border: 1px dashed var(--grey);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  box-sizing: border-box;
   display: flex;
   flex-direction: column;
   flex-wrap: wrap;
@@ -1201,6 +1204,8 @@ input[type=checkbox]
   justify-content: center;
   align-items: center;
 }
+.addExerciseWrapper .button-icon { height: 100%; margin: 1em; }
+.addExerciseWrapper:hover { border-color: var(--module-accent); }
 
 .exercisesWrapper {
   width: 100%;
@@ -2125,30 +2130,16 @@ label {
 }
 .panel-wide { max-width: 100%; width: 1000px; }  /* wide panel; hidden-by-default keeps display:none inline */
 
-/* ── Light card — Phase 6 page sweep (light/simple-first) ──────────────────
-   Opt-in modifier that flips the shared mediumblue `.card` shell to a calm light
-   surface. The card is a soft eggshell so the content "module" blocks — which are
-   white — read as one consistent set of panels sitting on it (rather than white-on-
-   white). Applied per page as swept; once every page carries it, flip the base
-   `.card` and delete this. */
-.card.card--light {
-  background-color: var(--eggshell);
-  color: var(--black);
-  border: 1px solid var(--grey);
-  box-shadow: var(--shadow-sm);
-}
-.card--light .card-header {
-  background-color: transparent;
-  color: var(--darkblue);
-  border-color: var(--grey);
-}
-.card--light .card-body { color: var(--black); }
-.card--light .title { color: var(--darkblue); }
+/* ── Light card (light/simple-first) ───────────────────────────────────────
+   The `.card` shell + `.card-header`/`.card-body` are now light by default (see base.css) — the
+   old `.card--light` modifier was retired once every page was swept. The rules below style the
+   content "module" blocks that sit on the card as one consistent set of white panels. */
+.card .title { color: var(--darkblue); }
 
 /* Hero — the weekly-goal ring at the top of the front page: the app's core loop as the thesis.
    A clean centred white panel (no left accent bar — it's the hero, not a module) with the ring
    as centrepiece. Documented in docs/styleguide.md. */
-.card--light .hero {
+.card .hero {
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -2213,18 +2204,18 @@ label {
    rounded and `overflow: hidden` so inner headers / progress bars clip to the corners
    (no more square bars poking past the rounded top). One rule = one look. Documented
    in docs/styleguide.md as the module-panel pattern. */
-.card--light .season,
-.card--light .current-week,
-.card--light .server-info,
-.card--light .invites,
-.card--light .debt-module,
-.card--light .prize-module,
-.card--light .add-season-module,
-.card--light .correlate-module,
-.card--light .leaderboard,
-.card--light .activities,
-.card--light .week_days,
-.card--light .ai-message-card {
+.card .season,
+.card .current-week,
+.card .server-info,
+.card .invites,
+.card .debt-module,
+.card .prize-module,
+.card .add-season-module,
+.card .correlate-module,
+.card .leaderboard,
+.card .activities,
+.card .week_days,
+.card .ai-message-card {
   background: var(--white);
   color: var(--black);
   border: 1px solid var(--grey);
@@ -2244,50 +2235,50 @@ label {
    (--inset-bg) + hairline grey edge (--inset-border) + radius-sm. Progress tracks, debt
    notices, joinable-season rows and the number box all share it, so nothing varies. The
    accent fill (progress bar) and the red debt bar are the only signal exceptions. */
-.card--light .week_info,
-.card--light .week-progress-bar-wrapper,
-.card--light .season-progress-bar-wrapper,
-.card--light .number-box {
+.card .week_info,
+.card .week-progress-bar-wrapper,
+.card .season-progress-bar-wrapper,
+.card .number-box {
   background-color: var(--inset-bg);
   border-radius: var(--radius-sm);
 }
-.card--light .week-progress-bar-wrapper,
-.card--light .season-progress-bar-wrapper {
+.card .week-progress-bar-wrapper,
+.card .season-progress-bar-wrapper {
   width: 100%;
   box-sizing: border-box;
   border: none;                 /* drop the legacy eggshell bottom-border */
   border-radius: var(--radius-sm);  /* full rounding, not the legacy top-only */
 }
-.card--light .week-progress-bar,
-.card--light .season-progress-bar { background-color: var(--module-accent); }
-.card--light .week_info { color: var(--black); }
+.card .week-progress-bar,
+.card .season-progress-bar { background-color: var(--module-accent); }
+.card .week_info { color: var(--black); }
 
-.card--light .debt-module-notification-view,
-.card--light .debt-module-notification-prize,
-.card--light .debt-module-notification-debt {
+.card .debt-module-notification-view,
+.card .debt-module-notification-prize,
+.card .debt-module-notification-debt {
   background-color: var(--inset-bg);
   border: 1px solid var(--inset-border) !important;
   border-radius: var(--radius-sm);
 }
-.card--light .debt-module-notification-debt { border-left: 3px solid var(--error) !important; }
+.card .debt-module-notification-debt { border-left: 3px solid var(--error) !important; }
 
 /* One divider treatment inside a light module: a single hairline in --grey. Applies to <hr>
    (calendar/season) and every internal border (activities, previous-weeks) so nothing uses the
    old faint-eggshell or bluish --trans-lightblue lines. Documented in docs/styleguide.md. */
-.card--light hr {
+.card hr {
   border: none;
   border-top: 1px solid var(--grey);
   background: none;
   opacity: 1;
 }
-.card--light .activities-week { border-top: none; }
-.card--light .activity { border-bottom: 1px solid var(--grey); }
-.card--light .leaderboard-weeks { border-top: 1px solid var(--grey); }
-.card--light .leaderboard-week { border-bottom: 1px solid var(--grey); }
+.card .activities-week { border-top: none; }
+.card .activity { border-bottom: 1px solid var(--grey); }
+.card .leaderboard-weeks { border-top: 1px solid var(--grey); }
+.card .leaderboard-week { border-bottom: 1px solid var(--grey); }
 
 /* Countdown-season info card (rendered inside the season module) — an inset block, matching
    the panel look. (Joinable seasons are now real .btn buttons — see placePotentialSeasons.) */
-.card--light .countdownSeason {
+.card .countdownSeason {
   background-color: var(--inset-bg);
   border: 1px solid var(--inset-border);
   border-radius: var(--radius-sm);
@@ -2300,13 +2291,13 @@ label {
 /* Uniform panel width so every module matches (Activities/leaderboard were a fixed 20rem
    while siblings varied). The AI greeting card is intentionally excluded — it's a wider
    featured banner, not a module. */
-.card--light .season,
-.card--light .current-week,
-.card--light .debt-module,
-.card--light .prize-module,
-.card--light .leaderboard,
-.card--light .activities,
-.card--light .week_days {
+.card .season,
+.card .current-week,
+.card .debt-module,
+.card .prize-module,
+.card .leaderboard,
+.card .activities,
+.card .week_days {
   width: 20rem;
   max-width: 100%;
 }
@@ -2315,14 +2306,14 @@ label {
    number box + its −/+/✎ icon buttons on one line, then the notes field full-width beneath. One
    consistent layout whether or not the action buttons are shown (they only appear up to today),
    so the notes never get squeezed into a narrow, wrapping column. */
-.card--light .form-group {
+.card .form-group {
   display: flex;
   flex-direction: column;
   align-items: stretch;
   gap: var(--space-2);
   padding: var(--space-3) 0;
 }
-.card--light .day-check {
+.card .day-check {
   flex-flow: row wrap;
   align-items: center;
   justify-content: flex-start;
@@ -2331,33 +2322,33 @@ label {
   max-width: none;
   margin: 0;
 }
-.card--light .day-check > label {
+.card .day-check > label {
   flex: 1 0 100%;
   margin: 0;
   text-align: left;
   font-weight: 600;
 }
-.card--light .day-buttons { flex-wrap: nowrap; gap: var(--space-1); margin: 0; }
-.card--light .number-box { margin: 0; }
-.card--light .day-note { width: 100%; margin: 0; }
-.card--light .day-note-area { width: 100%; margin: 0; box-sizing: border-box; }
+.card .day-buttons { flex-wrap: nowrap; gap: var(--space-1); margin: 0; }
+.card .number-box { margin: 0; }
+.card .day-note { width: 100%; margin: 0; }
+.card .day-note-area { width: 100%; margin: 0; box-sizing: border-box; }
 
 /* Skeleton shimmer must sweep dark on the light card (the default is white-on-dark). */
-.card--light .skeleton-block {
+.card .skeleton-block {
   background: linear-gradient(90deg, rgba(0,0,0,0.06) 25%, rgba(0,0,0,0.12) 50%, rgba(0,0,0,0.06) 75%);
   background-size: 200% 100%;
 }
 
 /* ══ Profile page (/users/:id) — Phase 6 light sweep ═══════════════════════════════════════
-   Scoped under .card--light so /account and /achievements (which share these classes but aren't
+   Scoped under .cardso /account and /achievements (which share these classes but aren't
    swept yet) stay on the dark card until their own pass. Reuses the module-panel, inset, avatar,
    divider and display-font conventions from the front page; adds the light metric tile, segmented
    tab, meta tag and skeleton size classes (all documented in docs/styleguide.md). */
 
 /* Profile+stats row and achievements each read as a module panel. (Achievements is targeted by
    its id — the element is `class="module" id="achievements-module"`, shared by /users + /achievements.) */
-.card--light .user-profile-row,
-.card--light #achievements-module {
+.card .user-profile-row,
+.card #achievements-module {
   background: var(--white);
   color: var(--black);
   border: 1px solid var(--grey);
@@ -2369,48 +2360,48 @@ label {
   margin: var(--space-4) auto;
   max-width: 48rem;
 }
-.card--light #achievements-module { flex-direction: column; align-items: center; }
+.card #achievements-module { flex-direction: column; align-items: center; }
 
 /* The two sections are the panel's inner columns — the panel supplies the outer padding, so they
    carry only inner spacing around the one grey hairline divider (was a bluish --trans-lightblue). */
-.card--light .account-section--profile { padding: 0 var(--space-4) 0 0; border-right: 1px solid var(--grey); }
-.card--light .account-section--stats   { padding: 0 0 0 var(--space-4); }
+.card .account-section--profile { padding: 0 var(--space-4) 0 0; border-right: 1px solid var(--grey); }
+.card .account-section--stats   { padding: 0 0 0 var(--space-4); }
 @media (max-width: 640px) {
-  .card--light .account-section--profile {
+  .card .account-section--profile {
     padding: 0 0 var(--space-4) 0;
     border-right: none;
     border-bottom: 1px solid var(--grey);
   }
-  .card--light .account-section--stats { padding: var(--space-4) 0 0 0; }
+  .card .account-section--stats { padding: var(--space-4) 0 0 0; }
 }
 
 /* Section titles → navy label; the between-section rule → grey hairline. */
-.card--light .user-stats-section-title { color: var(--darkblue); opacity: 1; font-weight: 700; }
-.card--light .user-stats-section + .user-stats-section { border-top: 1px solid var(--grey); }
+.card .user-stats-section-title { color: var(--darkblue); opacity: 1; font-weight: 700; }
+.card .user-stats-section + .user-stats-section { border-top: 1px solid var(--grey); }
 
 /* Light metric tiles — inset fill + hairline; numerals in the display font, navy. */
-.card--light .user-stat-card,
-.card--light .user-streak-card {
+.card .user-stat-card,
+.card .user-streak-card {
   background: var(--inset-bg);
   border: 1px solid var(--inset-border);
   color: var(--darkblue);
 }
-.card--light .user-stat-value,
-.card--light .user-streak-number { font-family: var(--font-display); color: var(--darkblue); }
-.card--light .user-stat-label { color: var(--lightblue); opacity: 1; }
+.card .user-stat-value,
+.card .user-streak-number { font-family: var(--font-display); color: var(--darkblue); }
+.card .user-stat-label { color: var(--lightblue); opacity: 1; }
 /* Hover overlay → mediumblue so its white text passes contrast (was --lightblue). */
-.card--light .streak-overlay { background-color: var(--mediumblue); }
+.card .streak-overlay { background-color: var(--mediumblue); }
 
 /* Segmented tabs — light inset pills; the active segment is solid mediumblue/white. */
-.card--light .user-stat-tab {
+.card .user-stat-tab {
   background: var(--inset-bg);
   color: var(--darkblue);
   border: 1px solid var(--inset-border);
   opacity: 1;
   font-family: var(--font-body);
 }
-.card--light .user-stat-tab:hover { filter: brightness(0.97); opacity: 1; }
-.card--light .user-stat-tab-active {
+.card .user-stat-tab:hover { filter: brightness(0.97); opacity: 1; }
+.card .user-stat-tab-active {
   background: var(--mediumblue);
   color: var(--white);
   border-color: var(--mediumblue);
@@ -2418,17 +2409,17 @@ label {
 
 /* Achievement tiles → inset fill (used by /users and /achievements, both light). The category
    colour comes in as --cat-color from the markup (data-driven). */
-.card--light .achievement-base { background-color: var(--inset-bg); }
-.card--light .achievement-title,
-.card--light .achievement-date { color: var(--darkblue); }
-.card--light .achievement-image { border: solid 0.2em var(--cat-color, var(--grey)); }
+.card .achievement-base { background-color: var(--inset-bg); }
+.card .achievement-title,
+.card .achievement-date { color: var(--darkblue); }
+.card .achievement-image { border: solid 0.2em var(--cat-color, var(--grey)); }
 /* Achievement icon padded square inside its bordered box (not the circular avatar crop the shared
    .achievement-img rule gives). Was an inline style on /achievements. */
 .achievement-img-logo { padding: 1.5em; border-radius: 0; }
 
 /* /achievements progress bar → inset track + blue fill (matches the front-page bars). */
-.card--light .progress-bar-wrapper { background-color: var(--inset-bg); border: 1px solid var(--grey); }
-.card--light .progress-bar { background-color: var(--module-accent); }
+.card .progress-bar-wrapper { background-color: var(--inset-bg); border: 1px solid var(--grey); }
+.card .progress-bar { background-color: var(--module-accent); }
 
 /* ── Profile bits promoted out of inline styles (new, page-specific classes) ── */
 .user-name { margin-top: var(--space-4); font-size: 1.25em; font-weight: 700; }
@@ -2504,8 +2495,8 @@ label {
 /* ══ Account page (/account) — Phase 6 light sweep ═════════════════════════════════════════
    The collapsible settings accordion sits in one white module panel; section rows are separated
    by the single grey hairline; chevrons render dark on the light surface. Scoped under
-   .card--light. Documented in docs/styleguide.md as the settings-accordion pattern. */
-.card--light .account-section-wrapper {
+   `.card` (the light shell). Documented in docs/styleguide.md as the settings-accordion pattern. */
+.card .account-section-wrapper {
   background: var(--white);
   border: 1px solid var(--grey);
   border-radius: var(--radius-md);
@@ -2515,18 +2506,18 @@ label {
   margin: var(--space-4) auto;
   max-width: 40rem;
 }
-.card--light .account-section { border-bottom: 1px solid var(--grey); }
-.card--light .account-section:last-child { border-bottom: none; }
-.card--light .account-section-tab { padding: var(--space-3) var(--space-2); }
-.card--light .account-section-tab img { filter: none; }   /* dark chevron on the light surface */
+.card .account-section { border-bottom: 1px solid var(--grey); }
+.card .account-section:last-child { border-bottom: none; }
+.card .account-section-tab { padding: var(--space-3) var(--space-2); }
+.card .account-section-tab img { filter: none; }   /* dark chevron on the light surface */
 /* File-upload control keeps a comfortable height (was an inline style). */
-.card--light input[type="file"] { height: 2.5em; }
+.card input[type="file"] { height: 2.5em; }
 
 /* ══ Seasons page (/seasons) — Phase 6 light sweep ═════════════════════════════════════════
    Each season is a module panel (white, hairline + blue left bar, soft shadow) instead of the
    old thick lightblue border; its expandable leaderboard reuses the front-page leaderboard with
-   the one grey hairline for internal dividers. Scoped under .card--light. */
-.card--light .season-object-wrapper {
+   the one grey hairline for internal dividers. Scoped under `.card` (the light shell). */
+.card .season-object-wrapper {
   background: var(--white);
   border: 1px solid var(--grey);
   border-left: 4px solid var(--module-accent);
@@ -2535,20 +2526,20 @@ label {
   overflow: hidden;
   box-sizing: border-box;
 }
-.card--light .season-object { background: transparent; border-radius: 0; }
-.card--light .season-leaderboard { border-top: 1px solid var(--grey); }
-.card--light .leaderboard-week-two { border-bottom: 1px solid var(--grey); }
+.card .season-object { background: transparent; border-radius: 0; }
+.card .season-leaderboard { border-top: 1px solid var(--grey); }
+.card .leaderboard-week-two { border-bottom: 1px solid var(--grey); }
 
 /* Registergoal: the goal form is a tall .season panel — lift the base max-height cap so it
    isn't clipped (was an inline max-height:none !important). */
-.card--light #registergoal .season { max-height: none; }
+.card #registergoal .season { max-height: none; }
 
 /* /wheel canvas wrapper — clips + caps the spinner width (was two inline styles). */
 .wheel-canvas-wrap { overflow: hidden; max-width: 35em; }
 .wheel-canvas-wrap canvas { max-width: 100%; }
 
 /* /news posts → module panels (white + hairline + blue left bar + soft shadow) on the light card. */
-.card--light .news-post {
+.card .news-post {
   border: 1px solid var(--grey);
   border-left: 4px solid var(--module-accent);
   border-radius: var(--radius-md);

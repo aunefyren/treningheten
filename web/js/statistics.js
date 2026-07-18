@@ -922,9 +922,9 @@ function viewWeight(weights) {
         const timeString = GetDateString(dateObject, false)
         weightsHTML += `
             <div class="weight-value">
-                <div class="u-w-8"><div style="font-size: 0.75em;">${timeString}</div></div>
+                <div class="u-w-8"><div class="u-fs-sm">${timeString}</div></div>
                 <div class="u-w-5">${weight.weight} KG</div>
-                <div style="width: 8em; display: flex; justify-content: flex-end;">
+                <div class="u-w-8 u-flex-end">
                     <div class="addActionWrapper clickable hover" id="" title="Weight data" onclick="deleteWeight('${weight.id}');">
                         <img src="/assets/trash-2.svg" class="button-icon u-w-full u-m-1">
                     </div>
