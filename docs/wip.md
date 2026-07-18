@@ -224,9 +224,57 @@ activity tabs/tags) which is the target aesthetic. Root problems:
      inline. All scoped under `.card--light` so shared classes on `/account` + `/achievements` are
      untouched until their sweep. New patterns documented in `styleguide.md` (Segmented tabs, Meta tags,
      Skeletons, light metric tile).
-   - Then: seasons, account, achievements, and the rest; pull the over-the-top gear modal toward the middle.
-     Note when sweeping `/account`/`/achievements`: they already carry `.user-stat-card`/`.achievement-*`,
-     so adding `.card--light` will pick up the light treatment automatically — just verify.
+   - **`/login` — DONE, awaiting visual review.** Already had `.card--light` + `.btn`; finished it:
+     form wrapped in a centred **`.auth-panel`** (hero-style card, no left bar), went flat inside
+     (dropped internal `<hr>`s + empty duplicate-id `#form-input-icon` labels), submits →
+     full-width `.btn.btn--primary.btn--block`. New `.auth-panel` pattern documented.
+
+#### Phase 6 page-sweep — process & status (RESUME HERE)
+
+**Important:** all 20 HTML shells **already carry `.card--light`** (added broadly in the "css
+imprvoements" commit). So the remaining work per page is **not** the shell — it's migrating that
+page's **JS-rendered content** to the light system, moving inline styles into CSS, and reusing the
+shared patterns. Once every page's content is verified, flip the base `.card` to light and delete
+the `.card--light` modifier (endgame).
+
+**Per-page checklist (repeatable):**
+1. Read the page's `web/html/<page>.html` (confirm `.card--light`) and `web/js/<page>.js`.
+2. **Group content into module panels** (`.card--light`-scoped) — reuse the module-panel rule or
+   `.hero`/`.auth-panel` for centred single-purpose pages.
+3. **Buttons** → `.btn` (+ `--primary`/`--ghost`/`--block`); one primary per view. Kill bespoke buttons.
+4. **Reuse components before inventing:** avatars (wrapper clips), inset blocks (`--inset-bg`/`--inset-border`),
+   light metric tiles (`.user-stat-*`), segmented tabs, `.meta-tag`, chips, dividers = one `--grey` hairline,
+   display font for numerals only.
+5. **Move CSS out of JS:** static inline `style=` → classes (skeletons → `.skel-*`, colour tiers → token-backed
+   classes, etc.). Leave inline ONLY: visibility (`display:none`) state and genuinely dynamic (`${…}`/CSS-var) values.
+6. **Scope new overrides under `.card--light`** so shared classes on un-swept pages stay put.
+7. **No hardcoded hex/px** — use tokens; if a value is new, add the token + document it.
+8. **Document** every new pattern/decision in `styleguide.md` (component + decisions log) and tick this list.
+9. `go build ./...`, `node --check` the JS; maintainer does the visual pass (don't self-screenshot).
+
+**Status:**
+- ✅ **Content swept:** front page, `/users/:id`, `/login`, `/register`, `/account`, `/verify`,
+  `/authorize`, `/offline`, `/seasons`, `/admin`, `/registergoal`, `/achievements`, `/news`,
+  `/wheel`, `/exercises`, `/gear`. (`/oauth` = transient.)
+- ⬜ **Shell is light, content NOT yet swept:** countdown, exercise, statistics.
+- **Coupling note:** `/gear`'s light `.gear-*` styles are scoped under `.card--light`; the **dark
+  base `.gear-*` is kept for the exercise-page gear modal**. When `/exercise` is swept, convert the
+  modal too and fold the `.card--light .gear-*` overrides back into the base (drop the dark values +
+  the now-dead `.gear-btn` rule).
+- **Direction clarified: NO dark exception — everything goes light.** The dark "instrument" skin is
+  legacy to convert (Design-language section updated). `/exercises` was the first heavy conversion:
+  the `.feed-*` timeline went dark→light (module panel + inset rows + navy text + tokens).
+- **Remaining data-dense pages still on the dark instrument skin — convert to light:** `exercise`
+  (builder / `.workout-view`), `gear`, `statistics` (stat cards + heatmap). Plus the `.trm` modal
+  (shared, dark) will need converting eventually. `countdown` still pending keep/remove.
+- The `.account-section`, `.auth-panel`, module-panel + `.hero` patterns are reusable.
+- **Heaviest (data-dense, instrument panels legit):** `exercise` (builder), `exercises` (timeline),
+  `gear`, `wheel`, `statistics`.
+- **Countdown pending a decision** (see the "/countdown still in use?" note): keep+sweep or remove+rework front page.
+- **Heaviest (data-dense, instrument panels legit):** `exercise` (builder), `statistics`, `gear`, `wheel`.
+- **Heaviest:** `exercise` (builder), `statistics` (charts/heatmap), `gear`, `wheel` — data-dense; instrument
+  panels are legit there, migrate carefully.
+- **Endgame:** when all content is swept + verified, flip base `.card` → light and delete `.card--light`.
 
 Recommended first PR: Phase 1 (tokens) + the skeleton of the Phase 5 doc together — small,
 low-risk, and the anchor for all later work.

@@ -44,7 +44,7 @@ function load_page(result) {
                             <div class="invite-list" id="invite-list">
                             </div>
 
-                            <button type="submit" onclick="generate_invite();" id="generate_invite_button"><img src="assets/plus.svg" class="btn_logo color-invert"><p2>Generate</p2></button>
+                            <button type="submit" onclick="generate_invite();" id="generate_invite_button" class="btn"><img src="assets/plus.svg" class="color-invert">Generate</button>
                         
                         </div>
 
@@ -65,7 +65,7 @@ function load_page(result) {
                                     <option value="null">Choose optional user</option>
                                 </select>
 
-                                <button type="submit" onclick="" id="generate-debt-button"><img src="assets/plus.svg" class="btn_logo color-invert"><p2>Generate debt</p2></button>
+                                <button type="submit" onclick="" id="generate-debt-button" class="btn btn--block"><img src="assets/plus.svg" class="color-invert">Generate debt</button>
 
                             </form>
 
@@ -79,7 +79,7 @@ function load_page(result) {
 
                             <h3 id="correlate-module-title">Correlate all exercise:</h3>
 
-                            <button type="submit" onclick="correlate_exercises();" id="correlate-exercise-button"><img src="assets/done.svg" class="btn_logo color-invert"><p2>Correlate</p2></button>
+                            <button type="submit" onclick="correlate_exercises();" id="correlate-exercise-button" class="btn"><img src="assets/done.svg" class="color-invert">Correlate</button>
 
                         </div>
 
@@ -99,7 +99,7 @@ function load_page(result) {
                                 <label for="prize-quantity" class="clickable">Quantity of prize</label><br>
                                 <input class="" type="number" id="prize-quantity" name="prize-quantity" value="1" min="1" required>
 
-                                <button type="submit" onclick="" id="add-prize-button"><img src="assets/done.svg" class="btn_logo color-invert"><p2>Add prize</p2></button>
+                                <button type="submit" onclick="" id="add-prize-button" class="btn btn--block"><img src="assets/done.svg" class="color-invert">Add prize</button>
 
                             </form>
 
@@ -134,7 +134,7 @@ function load_page(result) {
                                 <input type="checkbox" id="join_anytime" class="clickable" name="join_anytime" value="join_anytime">
                                 <label for="join_anytime" class="clickable u-noselect u-text-center" title="Should people be able to join after season start?">Let users join the season at any point.</label><br>
 
-                                <button type="submit" onclick="" id="add-season-button"><img src="assets/done.svg" class="btn_logo color-invert"><p2>Add season</p2></button>
+                                <button type="submit" onclick="" id="add-season-button" class="btn btn--block"><img src="assets/done.svg" class="color-invert">Add season</button>
 
                             </form>
 
@@ -431,7 +431,7 @@ function place_invites(invites_array) {
                         <div class="leaderboard-object-user">
                             Not used
                         </div>
-                        <img class="icon-img clickable" onclick="delete_invite(` + invites_array[i].id + `)" src="/assets/trash-2.svg"></img>
+                        <img class="btn btn--icon clickable" onclick="delete_invite(` + invites_array[i].id + `)" src="/assets/trash-2.svg"></img>
                     `;
             }
 

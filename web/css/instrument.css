@@ -723,17 +723,70 @@
     }
 }
 
-/* ===== /exercises activity timeline — dark instrument panel ===== */
+/* ===== /gear — light conversion =====
+   The .gear-* classes are shared with the exercise-page gear modal (still on the dark instrument
+   skin until that page is swept), so the light versions are scoped under .card--light. When the
+   exercise modal is converted, fold these back into the base rules and drop the dark values above.
+   Green "gear accent" retired: active gear now uses the blue --module-accent bar (green is
+   signals-only); retired stays grey. */
+.card--light .gear-panel {
+    background: var(--white);
+    border: 1px solid var(--grey);
+    border-left: 4px solid var(--module-accent);
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-sm);
+    color: var(--black);
+}
+.card--light .gear-empty,
+.card--light .gear-add-title { color: var(--lightblue); }
+.card--light .gear-item {
+    background: var(--inset-bg);
+    border: 1px solid var(--inset-border);
+    border-left: 3px solid var(--module-accent);
+}
+.card--light .gear-item-retired { border-left-color: var(--grey); }
+.card--light .gear-glyph {
+    background: var(--white);
+    border: 1px solid var(--inset-border);
+}
+.card--light .gear-panel .gear-input,
+.card--light .gear-panel .gear-select {
+    color: var(--darkblue);
+    background: var(--white);
+    border: 1px solid var(--grey);
+}
+.card--light .gear-input:focus,
+.card--light .gear-select:focus {
+    border-color: var(--blue);
+    background: var(--inset-bg);
+}
+.card--light .gear-input:disabled,
+.card--light .gear-select:disabled {
+    color: var(--lightblue);
+    background: var(--inset-bg);
+}
+.card--light .gear-select option { color: var(--black); }
+.card--light .gear-toggle { color: var(--lightblue); }
+.card--light .gear-toggle input { accent-color: var(--blue); }
+.card--light .gear-del { filter: none; }   /* dark trash icon on the light surface */
+.card--light .gear-badge { color: var(--strava); border-color: var(--strava); }
+.card--light .gear-distance-value { color: var(--darkblue); }
+.card--light .gear-distance-unit { color: var(--lightblue); }
+.card--light .gear-add { border-top: 1px solid var(--grey); }
+
+/* ===== /exercises activity timeline — light module panel ===== */
 .feed-panel {
     width: 100%;
     max-width: 54em;
     margin: 1rem auto;
     box-sizing: border-box;
-    background: var(--darkblue);
-    border: 1px solid rgba(255, 255, 255, 0.06);
-    border-radius: 1em;
+    background: var(--white);
+    border: 1px solid var(--grey);
+    border-left: 4px solid var(--module-accent);
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-sm);
     padding: 1.15rem 1.15rem 1.35rem;
-    color: #e6ebf2;
+    color: var(--black);
 }
 
 .feed-controls {
@@ -748,12 +801,12 @@
 }
 
 .feed-panel .feed-input {
-    font-family: 'Hanken Grotesk', sans-serif;
+    font-family: var(--font-body);
     font-size: 0.88rem;
-    color: #eef3fb;
-    background: rgba(255, 255, 255, 0.05);
-    border: 1px solid rgba(255, 255, 255, 0.12);
-    border-radius: 0.5em;
+    color: var(--darkblue);
+    background: var(--white);
+    border: 1px solid var(--grey);
+    border-radius: var(--radius-sm);
     padding: 0.45rem 0.6rem;
     margin: 0;
     height: auto;
@@ -774,21 +827,21 @@
 
 .feed-panel .feed-input:focus {
     outline: none;
-    border-color: #4a9fe0;
-    background: rgba(255, 255, 255, 0.08);
+    border-color: var(--blue);
+    background: var(--inset-bg);
 }
 
 .feed-panel .feed-input option {
-    color: #111;
+    color: var(--black);
 }
 
 .feed-daterange {
     display: inline-flex;
     align-items: center;
     gap: 0.35rem;
-    font-family: 'Hanken Grotesk', sans-serif;
+    font-family: var(--font-body);
     font-size: 0.75rem;
-    color: #93a4bd;
+    color: var(--lightblue);
 }
 
 .feed-daterange .feed-input {
@@ -800,29 +853,29 @@
     display: inline-flex;
     align-items: center;
     gap: 0.4rem;
-    font-family: 'Hanken Grotesk', sans-serif;
+    font-family: var(--font-body);
     font-size: 0.8rem;
-    color: #93a4bd;
+    color: var(--lightblue);
     cursor: pointer;
 }
 
 .feed-check input {
-    accent-color: #4a9fe0;
+    accent-color: var(--blue);
     cursor: pointer;
 }
 
 .feed-count {
-    font-family: 'Hanken Grotesk', sans-serif;
+    font-family: var(--font-body);
     font-size: 0.72rem;
     letter-spacing: 0.04em;
-    color: #7488a3;
+    color: var(--lightblue);
     margin: 1rem 0 0.5rem;
 }
 
 .feed-empty {
     text-align: center;
-    color: #7488a3;
-    font-family: 'Hanken Grotesk', sans-serif;
+    color: var(--lightblue);
+    font-family: var(--font-body);
     padding: 2rem 0;
 }
 
@@ -832,13 +885,13 @@
 }
 
 .feed-day-header {
-    font-family: 'Saira Semi Condensed', sans-serif;
-    font-weight: 600;
+    font-family: var(--font-body);
+    font-weight: 700;
     font-size: 0.95rem;
     letter-spacing: 0.02em;
-    color: #4a9fe0;
+    color: var(--darkblue);
     padding-bottom: 0.4rem;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    border-bottom: 1px solid var(--grey);
     margin-bottom: 0.6rem;
 }
 
@@ -854,18 +907,18 @@
 }
 
 .feed-session-time {
-    font-family: 'Saira Semi Condensed', sans-serif;
+    font-family: var(--font-display);
     font-weight: 600;
     font-size: 0.9rem;
-    color: #cdd7e6;
+    color: var(--darkblue);
 }
 
 .feed-session-count {
-    font-family: 'Hanken Grotesk', sans-serif;
+    font-family: var(--font-body);
     font-size: 0.68rem;
     letter-spacing: 0.08em;
     text-transform: uppercase;
-    color: #7488a3;
+    color: var(--lightblue);
 }
 
 /* Activity row (shared by browse + find) */
@@ -873,26 +926,26 @@
     display: flex;
     align-items: center;
     gap: 0.75rem;
-    background: rgba(255, 255, 255, 0.035);
-    border: 1px solid rgba(255, 255, 255, 0.05);
-    border-radius: 0.6em;
+    background: var(--inset-bg);
+    border: 1px solid var(--inset-border);
+    border-radius: var(--radius-sm);
     padding: 0.6rem 0.8rem;
     margin-bottom: 0.4rem;
     transition: background 0.15s, border-color 0.15s;
 }
 
 .feed-row:hover {
-    background: rgba(255, 255, 255, 0.07);
-    border-color: rgba(74, 159, 224, 0.4);
+    background: var(--white);
+    border-color: var(--blue);
 }
 
 .feed-rank {
     flex: 0 0 auto;
     width: 1.7rem;
-    font-family: 'Saira Semi Condensed', sans-serif;
+    font-family: var(--font-display);
     font-weight: 700;
     font-size: 1.2rem;
-    color: #4a9fe0;
+    color: var(--mediumblue);
     text-align: center;
 }
 
@@ -900,8 +953,9 @@
     flex: 0 0 auto;
     width: 2.1rem;
     height: 2.1rem;
-    border-radius: 0.5em;
-    background: rgba(255, 255, 255, 0.06);
+    border-radius: var(--radius-sm);
+    background: var(--white);
+    border: 1px solid var(--inset-border);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -919,10 +973,10 @@
 }
 
 .feed-row-title {
-    font-family: 'Saira Semi Condensed', sans-serif;
+    font-family: var(--font-body);
     font-weight: 600;
     font-size: 1.05rem;
-    color: #f3f6fb;
+    color: var(--darkblue);
     display: flex;
     align-items: center;
     gap: 0.4rem;
@@ -930,13 +984,13 @@
 
 .feed-note {
     font-size: 0.8rem;
-    opacity: 0.8;
+    opacity: 0.7;
 }
 
 .feed-row-metrics {
-    font-family: 'Hanken Grotesk', sans-serif;
+    font-family: var(--font-body);
     font-size: 0.8rem;
-    color: #9fb0c8;
+    color: var(--lightblue);
     margin-top: 0.1rem;
     white-space: nowrap;
     overflow: hidden;
@@ -945,10 +999,10 @@
 
 .feed-row-when {
     flex: 0 0 auto;
-    font-family: 'Hanken Grotesk', sans-serif;
+    font-family: var(--font-body);
     font-size: 0.7rem;
     line-height: 1.25;
-    color: #7f93ad;
+    color: var(--lightblue);
     text-align: right;
 }
 

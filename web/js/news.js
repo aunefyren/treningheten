@@ -50,7 +50,7 @@ function load_page(result) {
                             <label for="news_date">When was this posted?</label><br>
                             <input type="date" name="news_date" id="news_date" placeholder="Post date" autocomplete="off" required />
                             
-                            <button class="btn" id="register-button" type="submit" href="/">Create post</button>
+                            <button class="btn btn--primary btn--block" id="register-button" type="submit">Create post</button>
 
                         </form>
                     </div>
@@ -147,20 +147,20 @@ function place_news(news_array) {
         html += '<div class="news-post">'
 
         if(admin) {
-            html += `<div id="news-delete" class="text-date">`;
-            html += `<img src="assets/trash-2.svg" style="height: 1.5em; width: 1.5em;" onclick="deleteNews(${news_array[i].id})" class="btn_logo clickable">`
+            html += `<div class="text-date">`;
+            html += `<img src="assets/trash-2.svg" onclick="deleteNews(${news_array[i].id})" class="btn btn--icon clickable">`
             html += '</div>';
         }
         
-        html += '<div id="news-title" class="title">';
+        html += '<div class="title">';
         html += news_array[i].title
         html += '</div>';
 
-        html += '<div id="news-body" class="text-body">';
+        html += '<div class="text-body">';
         html += news_array[i].body
         html += '</div>';
 
-        html += '<div id="news-date" class="text-date">';
+        html += '<div class="text-date">';
         html += date_string
         html += '</div>';
 

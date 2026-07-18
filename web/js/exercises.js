@@ -62,7 +62,7 @@ function load_page(result) {
                     Your activity timeline. Scroll recent sessions, or filter and sort to find a
                     specific one — your longest run, a certain padel match, your oldest ride.
                 </div>
-                <div class="button-collection">
+                <div class="btn-group">
                     <button onclick="window.location.href = '/gear';" class="btn" type="submit">Manage gear</button>
                 </div>
             </div>
@@ -346,7 +346,7 @@ function feedActivityRow(item, opts) {
 // feedActionIcon prefers the action's SVG logo, falling back to a type-based glyph.
 function feedActionIcon(item) {
     if (item.action_has_logo && item.action_name) {
-        return `<img src="/assets/actions/${encodeURIComponent(item.action_name)}.svg" class="feed-logo color-invert" onerror="this.outerHTML='${feedActionGlyph(item.action_type)}'">`;
+        return `<img src="/assets/actions/${encodeURIComponent(item.action_name)}.svg" class="feed-logo" onerror="this.outerHTML='${feedActionGlyph(item.action_type)}'">`;
     }
     return feedActionGlyph(item.action_type);
 }

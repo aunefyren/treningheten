@@ -6,11 +6,8 @@ function load_page(result) {
     var html = `
                 <div class="" id="forside">
 
-                    <div class="module" id="news_feed">
-                    </div>
-                    
-                    <div class="module">
-                    
+                    <div class="module auth-panel">
+
                         <div class="title">
                             Register
                         </div>
@@ -19,42 +16,31 @@ function load_page(result) {
                             Did you get an invitation?
                         </div>
 
-                        <br>
-                        <br>
-
                         <div class="action-block">
                             <form action="" onsubmit="event.preventDefault(); send_registration();">
 
-                                <hr>
-
-                                <label id="form-input-icon" for="email"></label>
                                 <input type="email" name="email" id="email" placeholder="Email" autocomplete="email" required/>
 
-                                <label id="form-input-icon" for="first_name"></label>
                                 <input type="text" name="first_name" id="first_name" placeholder="First name" required/>
 
-                                <label id="form-input-icon" for="last_name"></label>
                                 <input type="text" name="last_name" id="last_name" placeholder="Last name" required/>
 
-                                <label id="form-input-icon" for="password"></label>
                                 <input type="password" name="password" id="password" placeholder="Password" autocomplete="new-password" required/>
 
-                                <label id="form-input-icon" for="password_repeat"></label>
                                 <input type="password" name="password_repeat" id="password_repeat" placeholder="Repeat the password" autocomplete="new-password" required/>
 
-                                <label id="form-input-icon" for="invitation_code"></label>
                                 <input type="text" name="invitation_code" id="invitation_code" placeholder="Invitation code" autocomplete="one-time-code" required/>
-                                
-                                <input class="u-mt-2 clickable" type="checkbox" id="confirm" name="confirm" value="confirm" required>
-                                <label for="confirm" class="clickable"> I confirm that {{.appName}} can store relevant information about me and that I am at least thirteen years of age.</label><br>
 
-                                <hr>
+                                <div class="auth-consent">
+                                    <input class="clickable" type="checkbox" id="confirm" name="confirm" value="confirm" required>
+                                    <label for="confirm" class="clickable">I confirm that {{.appName}} can store relevant information about me and that I am at least thirteen years of age.</label>
+                                </div>
 
-                                <button class="btn" id="register-button" type="submit" href="/">Register</button>
+                                <button class="btn btn--primary btn--block" id="register-button" type="submit">Register</button>
 
                             </form>
                         </div>
-                        
+
                     </div>
 
                 </div>

@@ -12,9 +12,9 @@ function load_page(result) {
 
     var html = `
                 <div class="" id="front-page">
-                    
-                    <div class="module">
-                    
+
+                    <div class="module auth-panel">
+
                         <div class="title">
                             {{.appName}}
                         </div>
@@ -23,20 +23,17 @@ function load_page(result) {
                             You must verify your account by giving us the access code we e-mailed you.
                         </div>
 
-                    </div>
-
-                    <div class="module">
-
-                        <form action="" onsubmit="event.preventDefault(); verifyAccount();">
-                            <label for="email_code">Code:</label><br>
-                            <input type="text" name="email_code" id="email_code" placeholder="Code" autocomplete="one-time-code" required />
-                            <button class="btn" id="verify-button" type="submit" href="/">Verify</button>
-                        </form>
+                        <div class="action-block">
+                            <form action="" onsubmit="event.preventDefault(); verifyAccount();">
+                                <input type="text" name="email_code" id="email_code" placeholder="Code" autocomplete="one-time-code" required />
+                                <button class="btn btn--primary btn--block" id="verify-button" type="submit">Verify</button>
+                            </form>
+                        </div>
 
                     </div>
 
-                    <div class="module">
-                        <a class="u-fs-sm u-pointer" onclick="newCode();">Send me a new code!</i>
+                    <div class="module auth-alt">
+                        <a class="u-fs-sm u-pointer" onclick="newCode();">Send me a new code!</a>
                     </div>
 
                 </div>

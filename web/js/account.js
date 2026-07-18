@@ -64,11 +64,11 @@ function load_page(result) {
                 <img class="user-active-profile-photo-img u-fill" id="user-active-profile-photo-img" src="/assets/images/barbell.gif">
             </div>
 
-            <b><p id="user_name" style="margin-top: 1em; font-size: 1.25em;"></p></b>
+            <p id="user_name" class="user-name"></p>
             <p id="join_date"></p>
             <p id="user_admin"></p>
 
-            <div class="button-collection">
+            <div class="btn-group">
                 <button onclick="window.location.href = '/users/${user_id}';"class="btn" type="submit" href="">Public profile</button>
                 <button onclick="window.location.href = '/gear';" class="btn" type="submit" href="">Manage gear</button>
             </div>
@@ -101,8 +101,8 @@ function load_page(result) {
                         
                         </div>
 
-                        <div id="notification_button_div" style="margin-top: 2em; display: flex; height: 3em; flex-direction: row; flex-wrap: nowrap; align-content: center; justify-content: center;align-items: center;">
-                            <button type="submit" class="btn btn--primary" style="float: none !important;" id="" onclick="create_push('${vapid_public_key}'); return false;">
+                        <div class="btn-group u-mt-3">
+                            <button type="submit" class="btn btn--primary" onclick="create_push('${vapid_public_key}'); return false;">
                                 Notify me on this device
                             </button>
                         </div>
@@ -138,26 +138,26 @@ function load_page(result) {
                     </div>
                     
                     <div id="settings-wrapper" class="settings-wrapper minimized">
-                        <form action="" style="margin: 0;" onsubmit="event.preventDefault(); send_update('${user_id}');">
+                        <form action="" onsubmit="event.preventDefault(); send_update('${user_id}');">
 
-                            <label id="form-input-icon" for="email">Replace email:</label>
+                            <label for="email">Replace email:</label>
                             <input type="email" name="email" id="email" placeholder="Email" value="" required/>
 
-                            <label id="form-input-icon" for="birth_date">Birth date:</label>
+                            <label for="birth_date">Birth date:</label>
                             <input type="date" name="birth_date" id="birth_date" placeholder="dd-mm-yyyy" value="" />
 
-                            <label id="form-input-icon" for="new_profile_image" class="u-mt-2">Replace profile image:</label>
-                            <input type="file" name="new_profile_image" id="new_profile_image" style="height:2.5em;" placeholder="" value="" accept="image/png, image/jpeg" />
+                            <label for="new_profile_image" class="u-mt-2">Replace profile image:</label>
+                            <input type="file" name="new_profile_image" id="new_profile_image" placeholder="" value="" accept="image/png, image/jpeg" />
 
                             <input onclick="change_password_toggle();" class="clickable u-mt-3" type="checkbox" id="password-toggle" name="confirm" value="confirm" >
                             <label for="password-toggle" class="clickable u-m-0">Change my password.</label><br>
 
                             <div id="change-password-box" style="display:none;">
 
-                                <label id="form-input-icon" for="password"></label>
+                                <label for="password"></label>
                                 <input type="password" name="password" id="password" placeholder="New password" />
 
-                                <label id="form-input-icon" for="password_repeat"></label>
+                                <label for="password_repeat"></label>
                                 <input type="password" name="password_repeat" id="password_repeat" placeholder="Repeat the password" />
 
                             </div>
@@ -168,10 +168,10 @@ function load_page(result) {
                             <input class="clickable u-mt-3" type="checkbox" id="share_statistics" name="share_statistics" value="share_statistics">
                             <label for="share_statistics" class="clickable u-m-0">Share my statistics on my page.</label><br>
 
-                            <label style="margin-top: 5em;" id="form-input-icon" for="password_old">Current password:</label>
+                            <label class="u-mt-3" for="password_old">Current password:</label>
                             <input type="password" name="password_old" id="password_old" placeholder="To save your changes, type your current password." required />
 
-                            <button class="btn u-mt-2" id="update-button" type="submit" href="/">Update account</button>
+                            <button class="btn btn--primary u-mt-2" id="update-button" type="submit">Update account</button>
 
                         </form>
                     </div>
@@ -263,7 +263,7 @@ function load_page(result) {
                 <hr>
             </div>
 
-            <div class="button-collection">
+            <div class="btn-group">
 
                 <button onclick="leave_season();"class="btn btn--danger" type="submit" href="">Leave season</button>
 
@@ -746,7 +746,7 @@ function renderPlexSection(connection) {
                 <button onclick="savePlexServerURL();" class="btn integration-btn" type="submit" href="">Save server URL</button>
             </div>
 
-            <p style="width: 100%; text-align: center; opacity: 0.7; font-size: 0.85em;">
+            <p class="u-w-full u-text-center u-dim u-fs-sm">
                 ${serverHint}
             </p>
 
@@ -1564,9 +1564,9 @@ function renderPATSection(isAdmin) {
         <button class="btn u-w-12" type="submit">Create token</button>
     </form>
 
-    <div id="pat-new-token" style="margin-top:1em;"></div>
+    <div id="pat-new-token" class="u-mt-1"></div>
 
-    <div id="pat-list" style="margin-top:1em; width:100%;">Loading...</div>
+    <div id="pat-list" class="u-mt-1 u-w-full">Loading...</div>
     `;
 
     document.getElementById("pat-wrapper").innerHTML = html;
@@ -1666,7 +1666,7 @@ function showNewPAT(token) {
             Copy your new token now &mdash; you won't be able to see it again.
         </div>
         <code class="pat-token-value" id="pat-token-value">${escapeHTML(token)}</code>
-        <button class="btn" type="button" style="width:8em; margin-top:0.5em;" onclick="copyPAT()">Copy</button>
+        <button class="btn u-w-8 u-mt-sm" type="button" onclick="copyPAT()">Copy</button>
     </div>`;
     document.getElementById("pat-new-token").innerHTML = html;
 }

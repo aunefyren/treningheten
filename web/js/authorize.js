@@ -70,17 +70,19 @@ function render_consent(info, req) {
     }
 
     var html = `
-    <div class="title">` + info.client_name + `</div>
-    <div class="text-body">
-        <b>` + info.client_name + `</b> wants to access your Treningheten account.
-    </div>
-    <br>
-    <div class="text-body">This will grant the following access:</div>
-    <ul>` + scopeHtml + `</ul>
-    <hr>
-    <div class="action-block">
-        <button class="btn" id="approve-button" type="button">Approve</button>
-        <button class="btn u-mt-sm" id="deny-button" type="button">Deny</button>
+    <div class="auth-panel">
+        <div class="title">` + info.client_name + `</div>
+        <div class="text-body">
+            <b>` + info.client_name + `</b> wants to access your Treningheten account.
+        </div>
+
+        <div class="text-body">This will grant the following access:</div>
+        <ul class="auth-scopes">` + scopeHtml + `</ul>
+
+        <div class="action-block">
+            <button class="btn btn--primary btn--block" id="approve-button" type="button">Approve</button>
+            <button class="btn btn--ghost btn--block u-mt-2" id="deny-button" type="button">Deny</button>
+        </div>
     </div>
     `;
 

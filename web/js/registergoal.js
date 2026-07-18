@@ -39,9 +39,9 @@ function load_page(result) {
             
             <div class="module" id="registergoal" style="display: none;">
 
-                <div id="season" class="season" style="max-height: none !important;">
+                <div id="season" class="season">
 
-                    <h3 id="register_season_title" style="margin: 0 0 0.5em 0;">Loading...</h3>
+                    <h3 id="register_season_title" class="u-mb-2">Loading...</h3>
                     <p id="register_season_start">...</p>
                     <p id="register_season_end">...</p>
                     <p class="u-mt-1 u-text-center" id="register_season_desc">...</p>
@@ -55,8 +55,8 @@ function load_page(result) {
                         0
                     </div>
                     <div class="two-buttons">
-                        <img src="assets/minus.svg" class="small-button-icon" onclick="DecreaseNumberInput('commitment', 1, 21);">
-                        <img src="assets/plus.svg" class="small-button-icon" onclick="IncreaseNumberInput('commitment', 1, 21);">
+                        <img src="assets/minus.svg" class="btn btn--icon clickable" onclick="DecreaseNumberInput('commitment', 1, 21);">
+                        <img src="assets/plus.svg" class="btn btn--icon clickable" onclick="IncreaseNumberInput('commitment', 1, 21);">
                     </div>
 
                     <hr class="u-my-1">
@@ -71,13 +71,13 @@ function load_page(result) {
 
                     <hr class="u-my-1">
 
-                    <button type="submit" onclick="registerGoal('${seasonID}');" id="register_goal_button"><img src="assets/done.svg" class="btn_logo color-invert"><p2>Join season</p2></button>
+                    <button type="submit" onclick="registerGoal('${seasonID}');" id="register_goal_button" class="btn btn--primary btn--block"><img src="assets/done.svg" class="color-invert">Join season</button>
 
                 </div>
 
             </div>
 
-            <div class="module" id="unspun-wheel" style="display: none;">
+            <div class="module hero" id="unspun-wheel" style="display: none;">
 
             </div>
 
@@ -286,7 +286,7 @@ function placeDebtOverview(overviewArray) {
         html += `
             <div class="debt-module-notification-view" id="">
                 ${overviewArray.debt_unviewed[i].debt.loser.first_name} ${overviewArray.debt_unviewed[i].debt.loser.last_name} spun the wheel for week ${date_str}.<br>See if you won!<br>
-                <img src="assets/arrow-right.svg" class="small-button-icon" onclick="location.replace('/wheel?debt_id=${overviewArray.debt_unviewed[i].debt.id}'); ">
+                <img src="assets/arrow-right.svg" class="btn btn--icon clickable" onclick="location.replace('/wheel?debt_id=${overviewArray.debt_unviewed[i].debt.id}'); ">
             </div>
             `;
     }
@@ -308,7 +308,7 @@ function placeDebtOverview(overviewArray) {
         html += `
             <div class="debt-module-notification-prize" id="">
                 ${overviewArray.debt_won[i].loser.first_name} ${overviewArray.debt_won[i].loser.last_name} spun the wheel for week ${date_str} and you won <b>${overviewArray.debt_won[i].season.prize.quantity} ${overviewArray.debt_won[i].season.prize.name}</b>!<br>Have you received it?<br>
-                <img src="assets/done.svg" class="small-button-icon" onclick="setPrizeReceived(${overviewArray.debt_won[i].id});">
+                <img src="assets/done.svg" class="btn btn--icon clickable" onclick="setPrizeReceived(${overviewArray.debt_won[i].id});">
             </div>
             `;
     }

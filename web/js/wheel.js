@@ -63,8 +63,8 @@ function load_page(result) {
             <div id="spinner-info" class="spinner-info">
             </div>
 
-            <div style="overflow: hidden; max-width: 35em;">
-                <canvas id='canvas' width='1000' height='1000' style="max-width: 100%;">
+            <div class="wheel-canvas-wrap">
+                <canvas id='canvas' width='1000' height='1000'>
                     Canvas not supported, use another browser.
                 </canvas>
             </div>
@@ -72,8 +72,8 @@ function load_page(result) {
             <div id="canvas-buttons" class="canvas-buttons">
 
                 <button id="bigButton" class="btn btn--primary" onclick="calculatePrize(); this.disabled=true;">Spin the Wheel</button>
-                <a href="javascript:void(0);" id="reset-button" style="display: none;" onclick="theWheel.stopAnimation(false); theWheel.rotationAngle=0; theWheel.draw(); drawTriangle(); bigButton.disabled=false; clearResponse(); resetPage();">Reset</a>
-                <a href="javascript:void(0);" id="reload-button" style="display: none;" onclick="location.reload();">Replay</a>
+                <a href="javascript:void(0);" id="reset-button" class="btn btn--ghost" style="display: none;" onclick="theWheel.stopAnimation(false); theWheel.rotationAngle=0; theWheel.draw(); drawTriangle(); bigButton.disabled=false; clearResponse(); resetPage();">Reset</a>
+                <a href="javascript:void(0);" id="reload-button" class="btn btn--ghost" style="display: none;" onclick="location.reload();">Replay</a>
             </div>
         </div>
     `;

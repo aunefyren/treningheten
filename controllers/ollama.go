@@ -94,15 +94,15 @@ const latestWorkoutMaxAgeDays = 3
 // pre-computed so the model never has to derive goal progress, streaks or stakes.
 // All values are derived from the single shared weekly workout count.
 type ollamaSeasonPayload struct {
-	Name                     string `json:"name"`
-	WeeklyGoalWorkouts       int    `json:"weekly_goal_workouts"`
-	WeeklyGoalMet            bool   `json:"weekly_goal_met"`
-	WorkoutsRemaining        int    `json:"workouts_remaining_to_meet_goal"`
-	CurrentStreakWeeks       int    `json:"current_streak_weeks"`
-	Competing                 bool `json:"competing"`
-	PrizeEntriesIfYouMeetGoal int  `json:"prize_entries_to_win_if_a_rival_fails,omitempty"`
-	SickleaveUsedThisWeek     bool `json:"sickleave_used_this_week"`
-	SickleaveDaysLeft        int    `json:"sickleave_days_left"`
+	Name                      string `json:"name"`
+	WeeklyGoalWorkouts        int    `json:"weekly_goal_workouts"`
+	WeeklyGoalMet             bool   `json:"weekly_goal_met"`
+	WorkoutsRemaining         int    `json:"workouts_remaining_to_meet_goal"`
+	CurrentStreakWeeks        int    `json:"current_streak_weeks"`
+	Competing                 bool   `json:"competing"`
+	PrizeEntriesIfYouMeetGoal int    `json:"prize_entries_to_win_if_a_rival_fails,omitempty"`
+	SickleaveUsedThisWeek     bool   `json:"sickleave_used_this_week"`
+	SickleaveDaysLeft         int    `json:"sickleave_days_left"`
 }
 
 type ollamaPromptPayload struct {
@@ -544,7 +544,7 @@ func OllamaAsyncRefreshCacheForUser(userID uuid.UUID) {
 		cancel()
 	}()
 
-	logger.Log.Error("Ollama cache refresh: starting for user " + userID.String())
+	logger.Log.Info("Ollama cache refresh: starting for user " + userID.String())
 
 	_, err := OllamaGenerateFrontPageMessage(ctx, userID, time.Now())
 	if err != nil {

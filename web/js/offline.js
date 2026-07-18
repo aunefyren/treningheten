@@ -28,11 +28,11 @@ function load_page(result) {
 
     var html = `
         <div class="" id="front-page">
-            <div class="module" id="">
-                You are offline :/    
+            <div class="module">
+                You are offline :/
             </div>
-            <div class="module" id="">
-                <button type="submit" onclick="frontPageRedirect();" id="goal_amount_button" style="margin-bottom: 0em; transition: 1s;"><img src="assets/refresh-cw.svg" class="btn_logo color-invert"><p2>Reload</p2></button>
+            <div class="module">
+                <button type="button" onclick="frontPageRedirect();" class="btn btn--primary"><img src="assets/refresh-cw.svg" class="color-invert">Reload</button>
             </div>
         </div>
     `;

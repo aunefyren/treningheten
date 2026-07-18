@@ -2354,9 +2354,10 @@ label {
    divider and display-font conventions from the front page; adds the light metric tile, segmented
    tab, meta tag and skeleton size classes (all documented in docs/styleguide.md). */
 
-/* Profile+stats row and achievements each read as a module panel. */
+/* Profile+stats row and achievements each read as a module panel. (Achievements is targeted by
+   its id — the element is `class="module" id="achievements-module"`, shared by /users + /achievements.) */
 .card--light .user-profile-row,
-.card--light .achievements-module {
+.card--light #achievements-module {
   background: var(--white);
   color: var(--black);
   border: 1px solid var(--grey);
@@ -2368,7 +2369,7 @@ label {
   margin: var(--space-4) auto;
   max-width: 48rem;
 }
-.card--light .achievements-module { flex-direction: column; align-items: center; }
+.card--light #achievements-module { flex-direction: column; align-items: center; }
 
 /* The two sections are the panel's inner columns — the panel supplies the outer padding, so they
    carry only inner spacing around the one grey hairline divider (was a bluish --trans-lightblue). */
@@ -2415,12 +2416,19 @@ label {
   border-color: var(--mediumblue);
 }
 
-/* Achievement tiles → inset fill to match the page (scoped; shared /achievements stays dark).
-   The category colour comes in as --cat-color from the markup (data-driven). */
+/* Achievement tiles → inset fill (used by /users and /achievements, both light). The category
+   colour comes in as --cat-color from the markup (data-driven). */
 .card--light .achievement-base { background-color: var(--inset-bg); }
 .card--light .achievement-title,
 .card--light .achievement-date { color: var(--darkblue); }
 .card--light .achievement-image { border: solid 0.2em var(--cat-color, var(--grey)); }
+/* Achievement icon padded square inside its bordered box (not the circular avatar crop the shared
+   .achievement-img rule gives). Was an inline style on /achievements. */
+.achievement-img-logo { padding: 1.5em; border-radius: 0; }
+
+/* /achievements progress bar → inset track + blue fill (matches the front-page bars). */
+.card--light .progress-bar-wrapper { background-color: var(--inset-bg); border: 1px solid var(--grey); }
+.card--light .progress-bar { background-color: var(--module-accent); }
 
 /* ── Profile bits promoted out of inline styles (new, page-specific classes) ── */
 .user-name { margin-top: var(--space-4); font-size: 1.25em; font-weight: 700; }
@@ -2457,3 +2465,94 @@ label {
 .skel-streak { width: 6em; height: 5em; border-radius: var(--radius-sm); }
 .skel-tile { width: 5.5em; height: 3.5em; border-radius: var(--radius-sm); }
 .skel-bar { width: 18em; max-width: 100%; height: 1.8em; border-radius: var(--radius-sm); margin-top: var(--space-2); }
+
+/* ══ Auth pages (login / reset) — Phase 6 light sweep ══════════════════════════════════════
+   The form sits in a centred white panel — the same calm centred-panel treatment as the
+   front-page hero (no left accent bar) — on the eggshell card. Flat inside: no internal <hr>
+   dividers, the panel frame does the separating. Documented in docs/styleguide.md. */
+.auth-panel {
+  width: 100%;
+  max-width: 24rem;
+  margin: var(--space-4) auto;
+  padding: var(--space-5);
+  background: var(--white);
+  border: 1px solid var(--grey);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-sm);
+  box-sizing: border-box;
+}
+.auth-panel .action-block,
+.auth-panel form { margin: 0; }
+.auth-panel input { margin: var(--space-2) 0; box-sizing: border-box; }
+.auth-alt { margin-top: var(--space-3); text-align: center; }
+
+/* Consent row (register) — checkbox + left-aligned label, aligned to the label's first line. */
+.auth-consent { display: flex; align-items: flex-start; gap: var(--space-2); text-align: left; margin: var(--space-2) 0 var(--space-3); font-size: 0.9em; }
+.auth-consent input { width: auto; margin: 0.15rem 0 0 0; flex: 0 0 auto; }
+
+/* Scope list (OAuth authorize consent) — the requested permissions as a left-aligned inset block. */
+.auth-scopes {
+  list-style: disc inside;
+  text-align: left;
+  background: var(--inset-bg);
+  border: 1px solid var(--inset-border);
+  border-radius: var(--radius-sm);
+  padding: var(--space-3) var(--space-4);
+  margin: var(--space-2) 0 var(--space-3);
+}
+
+/* ══ Account page (/account) — Phase 6 light sweep ═════════════════════════════════════════
+   The collapsible settings accordion sits in one white module panel; section rows are separated
+   by the single grey hairline; chevrons render dark on the light surface. Scoped under
+   .card--light. Documented in docs/styleguide.md as the settings-accordion pattern. */
+.card--light .account-section-wrapper {
+  background: var(--white);
+  border: 1px solid var(--grey);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-sm);
+  box-sizing: border-box;
+  padding: 0 var(--space-4);
+  margin: var(--space-4) auto;
+  max-width: 40rem;
+}
+.card--light .account-section { border-bottom: 1px solid var(--grey); }
+.card--light .account-section:last-child { border-bottom: none; }
+.card--light .account-section-tab { padding: var(--space-3) var(--space-2); }
+.card--light .account-section-tab img { filter: none; }   /* dark chevron on the light surface */
+/* File-upload control keeps a comfortable height (was an inline style). */
+.card--light input[type="file"] { height: 2.5em; }
+
+/* ══ Seasons page (/seasons) — Phase 6 light sweep ═════════════════════════════════════════
+   Each season is a module panel (white, hairline + blue left bar, soft shadow) instead of the
+   old thick lightblue border; its expandable leaderboard reuses the front-page leaderboard with
+   the one grey hairline for internal dividers. Scoped under .card--light. */
+.card--light .season-object-wrapper {
+  background: var(--white);
+  border: 1px solid var(--grey);
+  border-left: 4px solid var(--module-accent);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-sm);
+  overflow: hidden;
+  box-sizing: border-box;
+}
+.card--light .season-object { background: transparent; border-radius: 0; }
+.card--light .season-leaderboard { border-top: 1px solid var(--grey); }
+.card--light .leaderboard-week-two { border-bottom: 1px solid var(--grey); }
+
+/* Registergoal: the goal form is a tall .season panel — lift the base max-height cap so it
+   isn't clipped (was an inline max-height:none !important). */
+.card--light #registergoal .season { max-height: none; }
+
+/* /wheel canvas wrapper — clips + caps the spinner width (was two inline styles). */
+.wheel-canvas-wrap { overflow: hidden; max-width: 35em; }
+.wheel-canvas-wrap canvas { max-width: 100%; }
+
+/* /news posts → module panels (white + hairline + blue left bar + soft shadow) on the light card. */
+.card--light .news-post {
+  border: 1px solid var(--grey);
+  border-left: 4px solid var(--module-accent);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-sm);
+  box-sizing: border-box;
+  padding: var(--space-4);
+}

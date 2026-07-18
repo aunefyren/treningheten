@@ -6,10 +6,10 @@ function load_page(result) {
     var html = `
         <div class="" id="forside">
 
-            <div class="module" id="action">
+            <div class="module auth-panel" id="action">
             </div>
 
-            <div class="module" id="change_action">
+            <div class="module auth-alt" id="change_action">
             </div>
 
         </div>
@@ -66,26 +66,17 @@ function action_login() {
     </div>
 
     <div class="text-body">
-        To log your workouts you need to login in...
+        To log your workouts you need to log in.
     </div>
-
-    <br>
-    <br>
 
     <div class="action-block">
         <form action="" onsubmit="event.preventDefault(); send_log_in();">
 
-            <hr>
-
-            <label id="form-input-icon" for="email"></label>
             <input type="email" name="email" id="email" value="` + email + `" placeholder="Email" autocomplete="email" required/>
 
-            <label id="form-input-icon" for="password"></label>
             <input type="password" name="password" id="password" placeholder="Password" autocomplete="current-password" required/>
-            
-            <hr>
 
-            <button class="btn" id="log-in-button" type="submit" href="/">Log in</button>
+            <button class="btn btn--primary btn--block" id="log-in-button" type="submit">Log in</button>
 
         </form>
     </div>
@@ -117,20 +108,12 @@ function action_newpassword() {
         Maybe try to remember it this time?
     </div>
 
-    <br>
-    <br>
-
     <div class="action-block">
         <form action="" onsubmit="event.preventDefault(); reset_password_request();">
 
-            <hr>
-
-            <label id="form-input-icon" for="email"></label>
             <input type="email" name="email" id="email" value="` + email + `" placeholder="Email" required/>
 
-            <hr>
-
-            <button class="btn" id="reset-button" type="submit" href="/">Reset password</button>
+            <button class="btn btn--primary btn--block" id="reset-button" type="submit">Reset password</button>
 
         </form>
     </div>
@@ -158,25 +141,16 @@ function action_resetpassword(reset_code) {
         Pick something you'll remember this time.
     </div>
 
-    <br>
-    <br>
-
     <div class="action-block">
         <form action="" onsubmit="event.preventDefault(); reset_password();">
 
-            <hr>
-
-            <label id="form-input-icon" for="password"></label>
             <input type="password" name="password" id="password" placeholder="New password" />
 
-            <label id="form-input-icon" for="password_repeat"></label>
             <input type="password" name="password_repeat" id="password_repeat" placeholder="Repeat the password" />
 
             <input type="hidden" name="reset_code" id="reset_code" value="` + reset_code + `" />
 
-            <hr>
-
-            <button class="btn" id="reset-button" type="submit" href="/">Change password</button>
+            <button class="btn btn--primary btn--block" id="reset-button" type="submit">Change password</button>
 
         </form>
     </div>

@@ -170,20 +170,12 @@ function PlaceUserAchievements(achievementArrayPersonal, achievementArray, userI
         var categoryColor = `var(--${achievementArray[i].category_color})`;
         var categoryText = ""
         if(achievementArray[i].category !== "Default") {
-            categoryText = `
-            <div style="font-size: 0.70em; margin-bottom: 1em; border: solid 0.12rem; border-radius: 0.5em; width: auto; padding: 0.12rem 0.25rem;"> 
-                ${achievementArray[i].category}
-            </div>
-            `;
+            categoryText = `<div class="meta-tag u-mb-1">${achievementArray[i].category}</div>`;
         }
 
         var stackableHTML = ``
         if(achievementArray[i].multiple_delegations) {
-            stackableHTML = `
-                <div style="font-size: 0.70em; margin-top: 1em; border: solid 0.12rem; border-radius: 0.5em; width: auto; padding: 0.12rem 0.25rem;"> 
-                    Stackable
-                </div>
-            `;
+            stackableHTML = `<div class="meta-tag u-mt-1">Stackable</div>`;
         }
 
         alternativeDescription = achievementArray[i].description
@@ -237,8 +229,8 @@ function PlaceUserAchievements(achievementArrayPersonal, achievementArray, userI
 
                 ${delegationSumHTML}
 
-                <div class="achievement-image" style="border: solid 0.2em ${categoryColor};">
-                    <img style="width: 100%; height: 100%; padding: 1.5em; border-radius: 0;" class="achievement-img" id="achievement-img-${achievementArray[i].id}" src="/assets/images/barbell.gif">
+                <div class="achievement-image" style="--cat-color: ${categoryColor};">
+                    <img class="achievement-img achievement-img-logo" id="achievement-img-${achievementArray[i].id}" src="/assets/images/barbell.gif">
                 </div>
 
                 <div class="achievement-title">

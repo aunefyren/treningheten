@@ -16,8 +16,9 @@ Design language). New rules go in the right layer (see Where things live).
 web/css/tokens.css       the single source of truth: palette, scales, semantic aliases
 web/css/base.css         reset, body, typography, tables, button primitive, forms, top-nav
 web/css/components.css    legacy component layer: fireworks, cards, notifications, dropdowns, builder inputs
-web/css/instrument.css    the new instrument-panel design system: profile, heatmap, stat/streak cards,
-                          tabs, chips, activity statistics, soundtrack, gear, exercises timeline
+web/css/instrument.css    data-dense components (profile, heatmap, stat/streak cards, tabs, chips,
+                          activity statistics, soundtrack, gear, exercises timeline) — being
+                          converted from the old dark "instrument" skin to the light system
 web/css/utilities.css     atomic helpers (spacing / alignment / sizing) — loaded last so they win
 web/css/modal.css        the shared "telemetry panel" modal (TRModal, .trm-*)
 web/css/workout.css      the workout summary view (.workout-view, .wv-*)
@@ -40,12 +41,15 @@ discipline of the modern work — one token system, consistent spacing, shared c
 navy + a green accent — but on **mostly light, calm surfaces**, in **sentence case**, with
 **subtle** depth (thin borders, soft shadows; no glows or decorative brackets).
 
-Two eras exist in the codebase and both are kept light-leaning:
-- **Ordinary pages** (seasons, account, forms, frontpage, news): light surfaces, the
-  mediumblue/lightblue palette, simple cards. This is the default.
-- **Deep-navy instrument panels** (`.trm` modal, `.workout-view`, and the richest stat/gear
-  readouts) are the **exception, used sparingly** — reserved for genuinely data-dense widgets
-  where a scoreboard feel earns its keep. Don't spread them across ordinary UI.
+**Light everywhere — no dark exception.** The whole app is going light. The deep-navy
+"instrument" surfaces (translucent-white tiles on navy panels, `.workout-view`, the
+exercises/gear/stats readouts, and the `.trm` modal) are **legacy being converted**, *not* a
+look we keep for data-dense widgets. When you touch a dark instrument surface, convert it to the
+light system — a **module panel** with **light inset tiles** and **display-font navy numerals**.
+Data density is expressed with layout, tokens and the display font, **never** with a dark skin.
+If a dense widget needs something the guide doesn't have yet, design a **light** component that
+fits these rules and add it here. (Historically the guide reserved dark instrument panels "used
+sparingly" — that framing is retired; the migration finishes them off.)
 
 **Typography:** body font (`--font-body`) for everything by default, sentence case. The
 condensed **display font (`--font-display`) is reserved for numerals / stat readouts** — big
@@ -222,8 +226,9 @@ the same verb through the flow (a "Publish" button → a "Published" toast).
 
 ### Cards
 
-Use light content cards for ordinary UI; reserve the dark **instrument** stat cards for
-data-dense metric readouts (statistics/gear/profile), per the light-first direction.
+All cards are light. Ordinary content uses the **module panel**; data-dense metric readouts use
+**light metric tiles** (inset fill, hairline, display-font navy numerals — see `.user-stat-card`).
+The old dark "instrument" stat cards are **legacy being converted**, not a look to keep.
 
 **Module panel** (light pages): the shared style for content blocks that sit on a
 `.card--light` page — `.season`, `.current-week`, `.debt-module`, `.prize-module`,
@@ -284,6 +289,28 @@ subtitle sits in the hero — the nav already names the app, and the ring + CTA 
 page's signature element — keep the rest of the page quiet so it stays the one memorable thing.
 The **debt-spin** state ("you must spin the wheel") reuses `.hero` so it reads as a panel, not
 bare text.
+
+### Auth panel
+
+`.auth-panel` — the centred white card that holds the **login / register / password-reset /
+change-password / verify-code / OAuth-consent** form on the light auth pages. Same calm centred-panel treatment as the hero
+(capped `max-width`, centred, soft shadow, **no left accent bar**). Keep it **flat inside** per the
+module rule: no internal `<hr>` dividers or empty label spacers — the panel frame separates. One
+primary action per form: a full-width `.btn.btn--primary.btn--block`. The alternate action below
+(e.g. "I forgot my password") is a quiet `.u-fs-sm` link in `.auth-alt`. A consent checkbox + label
+goes in `.auth-consent` (checkbox left, label wraps, aligned to the label's first line). The OAuth
+authorize screen lists the requested scopes in a left-aligned inset `.auth-scopes`, with **Approve**
+as the `.btn--primary` and **Deny** as a `.btn--ghost` (both `.btn--block`).
+
+### Settings accordion
+
+The `/account` settings live in a collapsible accordion inside **one white module panel**
+(`.account-section-wrapper`). Each `.account-section` is a row separated from the next by the
+single **`--grey` hairline** (last row none); its `.account-section-tab` is the clickable header
+(title + a chevron `<img>` that swaps `chevron-right`↔`chevron-down` on toggle — rendered **dark**
+on the light surface, `filter: none`, not `color-invert`). Bodies (`…-wrapper`) toggle `display`.
+Rows of buttons use `.btn-group`; each section's own submit is a `.btn` (its primary action may be
+`.btn--primary`); destructive actions (`Leave season`, `Delete account`) are `.btn--danger`.
 
 ### Chips & tags
 
@@ -384,6 +411,77 @@ not theme — left inline on purpose. Dynamic (`${…}`) values stay inline too.
 
 ## Decisions log
 
+- **`/gear` converted to light.** The `.gear-*` classes are **shared with the exercise-page gear
+  modal** (still dark), so the light versions are **scoped under `.card--light`** (dark base kept for
+  the modal until that page is swept — fold back then). Panel → light module panel; gear items →
+  inset tiles; inputs/toggles/glyph/distance relit to tokens; trash icon un-inverted. **Dropped the
+  green "gear accent"** — active gear now uses the blue `--module-accent` left bar (green is
+  signals-only), retired stays grey. "Add gear" moved off the bespoke green `.gear-btn` → `.btn--primary`.
+- **Dark-instrument look retired; `/exercises` converted to light.** Recalibrated the direction:
+  the deep-navy instrument skin is **legacy being converted**, not a data-dense exception (Design
+  language + Cards + Known-gaps updated to match). Applied it to the `/exercises` timeline — the
+  whole `.feed-*` block went from `--darkblue`/translucent-white to a **light module panel** (white
+  + hairline + blue left bar), **inset activity rows**, navy text, `--lightblue` muted labels,
+  display-font only for numerals (rank, session time), tokenised fonts/colours (no hardcoded hex or
+  `'Saira'`/`'Hanken'` strings). Dropped `color-invert` on the action logo (was invisible on light)
+  and moved `.button-collection` → `.btn-group`.
+- **`/wheel` swept light.** Turned out light-friendly already (white winner card, text info, the
+  spinner is a JS-drawn `<canvas>`), so it was a light touch: the two canvas inline styles →
+  `.wheel-canvas-wrap`, and the Reset/Replay `<a>` actions → `.btn.btn--ghost` (Spin was already
+  `.btn--primary`). The bespoke `.wheel-*` swatch/clear picker controls (on `/account`) remain
+  intentionally separate. Only visibility `display:none` inline remains.
+- **`/news` swept light.** Posts (`.news-post`) became module panels (white + hairline + blue left
+  bar + shadow); the admin "Create post" submit → `.btn--primary.btn--block`, the delete trash icon
+  → `.btn.btn--icon` (off `.btn_logo` + inline size). Stripped the per-post duplicate ids
+  (`news-title/body/date/delete` were repeated on every post; the container `#news-title` that JS
+  reads is kept). Only visibility `display:none` inline remains.
+- **`/achievements` swept light.** Reused the `/users` achievement patterns wholesale: `.meta-tag`
+  badges, the `--cat-color` image border, and the `.card--light .achievement-*` inset relighting.
+  Added `.achievement-img-logo` (padded square icon, was inline) and relit the progress bar
+  (`.progress-bar-wrapper`/`.progress-bar` → inset track + blue fill). **Fixed a latent bug from the
+  `/users` sweep:** the achievements panel rule used a class selector `.achievements-module`, but the
+  element is `id="achievements-module"` — switched to `#achievements-module`, so the panel now applies
+  on both pages.
+- **`/registergoal` swept light.** The goal form is a `.season` module panel (inherits the panel
+  rule) with a scoped `max-height` lift (was an inline `!important`); "Join season" → `.btn--primary
+  .btn--block`, the goal counter `−`/`+` and debt-notice icons → `.btn.btn--icon` (off
+  `.small-button-icon`), and the debt-spin state reuses `.hero` like the front page. Only
+  visibility `display:none` inline remains.
+- **`/admin` swept light.** Its cards (`.server-info`, `.invites`, `.debt-module`, `.prize-module`,
+  `.add-season-module`, `.correlate-module`) were **already in the module-panel rule**, so they
+  panelled automatically — the work was the buttons: all 5 form/action buttons moved off the legacy
+  bare `<button>` (with `<p2>` + `.btn_logo` + `color-invert` icons) onto `.btn` (form submits
+  `.btn--block`), and the delete-invite `.icon-img` → `.btn.btn--icon`. Aligned `admin.css`'s
+  `.info-section` to the inset tokens (`--inset-bg`/`--inset-border`/`--radius-sm`). Zero inline
+  styles to begin with; no new pattern.
+- **`/seasons` swept light.** Each season is now a **module panel** (white + hairline + blue left
+  bar + soft shadow, `overflow: hidden`) instead of the old thick-lightblue-border card; the
+  expandable per-season leaderboard reuses the front-page `.leaderboard-*` with the grey hairline for
+  internal dividers. The "Expand" toggle moved off the legacy bare `<button>` (with `<p2>` +
+  duplicate `id="goal_amount_button"` + inline styles) onto `.btn.btn--sm` with a `color-invert`
+  chevron. Also removed an invalid `cursor:hover` inline and fixed a member tooltip that showed the
+  UUID twice. No new pattern — reuse of module-panel + leaderboard.
+- **Small auth pages swept: `/verify`, `/authorize`, `/offline`.** `verify` (code entry) and
+  `authorize` (OAuth consent) reuse `.auth-panel` — flat inside, one `.btn--primary.btn--block`
+  submit; `authorize` adds `.auth-scopes` (inset scope list) + a `.btn--ghost` Deny. `offline`'s
+  Reload button moved off the legacy bare `<button>` onto `.btn--primary` (dropped the `<p2>` tag +
+  inline style). `/oauth` is a transient "Authorizing…" redirect (nav hidden) — nothing to sweep.
+- **`/account` swept light.** The collapsible settings accordion now sits in one white module
+  panel (`.account-section-wrapper`), section rows separated by the grey hairline, chevrons dark
+  (`filter: none`). Reused: the avatar + `.user-name`, `.btn-group` (from the retired
+  `.button-collection`), `.integration-btn`, `.btn--primary`/`--danger`. Moved every static inline
+  style to classes/utilities (the notification button row → `.btn-group`; file-input height, form
+  margin, label spacing, plex hint, PAT spacings → utilities/scoped CSS); stripped the duplicate
+  `id="form-input-icon"`. Only visibility (`display:none`) + the dynamic `.wheel-swatch` colour stay
+  inline. New settings-accordion pattern documented.
+- **`/register` swept light.** Mirrors `/login`: form in a centred `.auth-panel`, flat inside
+  (removed `<hr>`s + empty `#form-input-icon` labels), submit → `.btn.btn--primary.btn--block`,
+  consent checkbox+label moved into a left-aligned `.auth-consent` row. Dropped the dead empty
+  `#news_feed` module.
+- **`/login` swept light.** Already had `.card--light` + `.btn`; finished it: the form now sits in a
+  centred **`.auth-panel`** (hero-style centred card, no left bar), went **flat inside** (removed the
+  internal `<hr>` dividers and the empty duplicate-id `#form-input-icon` label spacers), and each
+  submit became a full-width `.btn.btn--primary.btn--block`. New `.auth-panel` pattern documented.
 - **`/users/:id` swept light (first page after the front page).** Shell → `.card--light`; the
   profile+stats row and achievements each became a **module panel**; the metric/streak tiles were
   relit as light **inset tiles** with display-font navy numerals; the activity switcher became the
@@ -447,10 +545,10 @@ not theme — left inline on purpose. Dynamic (`${…}`) values stay inline too.
 
 Not yet unified (safe to use as-is; migrate on touch). Phase status lives in [`wip.md`](wip.md).
 
-- **Cards / form-controls / alerts** aren't unified — legacy (`.card`, `.alert-*`, the
-  `:where()` input baseline) coexists with the darker instrument versions. Light-first: the
-  light legacy forms are fine for ordinary UI; use instrument styling only for data-dense
-  widgets. Unify toward a calm, light shared version when touched.
+- **Cards / form-controls / alerts** aren't fully unified — legacy (`.card`, `.alert-*`, the
+  `:where()` input baseline) and any remaining **dark instrument** surfaces coexist with the light
+  system. Everything is going light: convert dark surfaces to module panels + light inset tiles on
+  touch (never keep the dark skin). Unify toward the calm, light shared version.
 - **Bespoke buttons** (`.wheel-*`, `.we-add-*`, `.gear-btn`, `.user-stat-tab`,
   `.wv-media-repull`, `.trm-close`) and the **legacy global `button`** rule still stand.
   (The front-page push-prompt buttons were migrated onto `.btn`/`.btn--ghost`.)

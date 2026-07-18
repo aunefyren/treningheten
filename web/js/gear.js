@@ -50,7 +50,7 @@ function load_page(result) {
                             <option value="other">Other</option>
                         </select>
                         <input class="gear-input" type="text" id="new-gear-brand" placeholder="Brand (optional)">
-                        <button class="gear-btn" type="submit" onclick="createGear();"><img src="/assets/plus.svg">Add gear</button>
+                        <button class="btn btn--primary" type="submit" onclick="createGear();"><img src="/assets/plus.svg" class="color-invert">Add gear</button>
                     </div>
                 </div>
 
