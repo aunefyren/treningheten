@@ -1865,6 +1865,7 @@ label {
 }
 
 .wheel-swatch {
+  font-size: 1rem;   /* self-contained: the em sizing below no longer inherits the retired global button font-size */
   width: 1.8em;
   height: 1.8em;
   border-radius: 50%;
@@ -1899,10 +1900,6 @@ label {
 .wheel-controls input[type="text"] {
   width: 6em;
   text-align: center;
-}
-
-.wheel-clear {
-  cursor: pointer;
 }
 
 .pat-form {
@@ -2059,21 +2056,18 @@ label {
 .weight-value .weight-amount { flex: 0 0 auto; white-space: nowrap; }
 .weight-value .weight-actions { flex: 0 0 auto; margin-left: auto; }
 
-.footer-wrapper {
-  display: flex;
-  flex-direction: row;
-  flex-wrap: nowrap;
-  align-content: center;
-  justify-content: center;
-  align-items: center;
-  box-sizing: inherit;
-  font-size: 0.75rem;
-  color: var(--grey);
-  width: 100%;
-  width: -webkit-fill-available;
-  width: -moz-available;
-  margin: 0.5rem 0;
+/* Site footer — the quiet provenance line closing every page (app name + version).
+   Minimal: centred, muted, sits on the --lightblue page canvas below the content.
+   The flex-column body (base.css) lets it rest at the viewport bottom on short pages. */
+.site-footer {
+  flex: none;
+  padding: var(--space-5) var(--space-4);
   text-align: center;
+  font-family: var(--font-body);
+  font-size: 0.8rem;
+  letter-spacing: 0.01em;
+  color: var(--darkblue);
+  opacity: 0.65;
 }
 
 .exercise-input {

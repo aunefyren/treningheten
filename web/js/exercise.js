@@ -930,10 +930,10 @@ function injectBackButton(exerciseID) {
     const exercise = exerciseCache[exerciseID];
     if (exercise && exercise.is_on === false) return;
     const subWrapper = document.getElementById('exercise-sub-' + exerciseID);
-    if (!subWrapper || subWrapper.querySelector('.back-to-summary-btn')) return;
+    if (!subWrapper || subWrapper.querySelector('.back-to-summary')) return;
     const backBtn = document.createElement('button');
     backBtn.textContent = '← Back to summary';
-    backBtn.className = 'back-to-summary-btn';
+    backBtn.className = 'btn back-to-summary';
     backBtn.onclick = function() { switchToSummary(exerciseID); };
     subWrapper.insertBefore(backBtn, subWrapper.firstChild);
 }

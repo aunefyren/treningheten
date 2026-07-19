@@ -339,6 +339,8 @@ function showLoggedInMenu() {
 
     document.getElementById('register').classList.add('disabled');
     document.getElementById('register').classList.remove('enabled');
+
+    markActiveNavItem();
 }
 
 // Remove options not accessable when not logged in
@@ -369,6 +371,8 @@ function showLoggedOutMenu() {
 
     document.getElementById('register').classList.add('enabled');
     document.getElementById('register').classList.remove('disabled');
+
+    markActiveNavItem();
 }
 
 function showAdminMenu(admin) {
@@ -381,39 +385,40 @@ function showAdminMenu(admin) {
     }
 }
 
-// Toggle navar expansion
+// Open/close the mobile nav dropdown, keeping the toggle's aria-expanded in sync.
 function toggle_navbar() {
-    var x = document.getElementById("navbar");
-    var y = document.getElementById("nav-logo");
-    if (!x.classList.contains("responsive")) {
-        x.classList.add("responsive");
-        x.classList.add("responsive");
-        x.classList.remove("unresponsive");
-        x.classList.remove("unresponsive");
+    var navbar = document.getElementById("navbar");
+    var open = navbar.classList.toggle("nav-open");
+    var toggle = document.getElementById("nav-toggle");
+    if (toggle) {
+        toggle.setAttribute("aria-expanded", open ? "true" : "false");
+    }
+}
 
-        var cols = document.getElementsByClassName('nav-item');
-        for(i = 0; i < cols.length; i++) {
-            cols[i].style.backgroundColor = 'var(--lightblue)';
+// Mark the nav link for the current page with the accent "you are here" state.
+function markActiveNavItem() {
+    var items = document.getElementsByClassName('nav-item');
+    for (var i = 0; i < items.length; i++) {
+        var href = items[i].getAttribute('href');
+        if (!href || href.charAt(0) === '#') {
+            continue;
         }
-    } else {
-        x.classList.add("unresponsive");
-        x.classList.add("unresponsive");
-        x.classList.remove("responsive");
-        x.classList.remove("responsive");
-
-        var cols = document.getElementsByClassName('nav-item');
-        for(i = 0; i < cols.length; i++) {
-            cols[i].style.backgroundColor = 'none';
+        var path = new URL(href, window.location.origin).pathname;
+        if (path === window.location.pathname) {
+            items[i].classList.add('nav-item-active');
+        } else {
+            items[i].classList.remove('nav-item-active');
         }
     }
 }
 
-// Toggle navbar if clicked outside (modal backdrop dismissal is handled by TRModal)
+// Close the open mobile dropdown when clicking outside the nav (modal backdrop
+// dismissal is handled by TRModal).
 document.addEventListener('click', function(event) {
     var isClickInsideElement = ignoreNav.contains(event.target);
     if (!isClickInsideElement) {
         var nav_classlist = document.getElementById('navbar').classList;
-        if (nav_classlist.contains('responsive')) {
+        if (nav_classlist.contains('nav-open')) {
             toggle_navbar();
         }
     }

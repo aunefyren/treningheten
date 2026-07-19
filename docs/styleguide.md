@@ -153,13 +153,53 @@ used by legacy components until they're migrated.
 
 ## Components
 
+### Top navigation
+
+The app-wide chrome bar (`.navbar` inside the `#nav` wrapper) — one **sticky flex bar** on the
+`--mediumblue` identity surface, white text/icons, `--font-body`, sentence case. The bar owns its
+height via a **deliberate `min-height` (3.25rem / 52px)** — don't let the logo box or item padding
+set it (that left arbitrary dead space); the logo is a centered mark sized to sit inside it. It carries a thin
+`--blue` **bottom keyline** (the same accent used for the modal's top keyline and module left-bars).
+The bar names the app (brand: logo + wordmark, both link home) and routes between sections; nav
+items are hidden until `.enabled` (auth state, toggled in `functions.js`).
+
+**The accent marks "you are here."** The current page's link gets `.nav-item-active` — a `--blue`
+**underline on desktop**, and in the mobile dropdown a `--blue` **left-bar** (the exact device
+`.card` module panels use). `markActiveNavItem()` sets it by matching `location.pathname`. This is
+the nav's signature: wayfinding speaks the app's existing accent language rather than inventing a
+highlight. Hover is a subtle translucent-white raise (`--surface-hi`), focus is the one
+`--focus-ring`.
+
+**Sticky lives on `#nav`, not `.navbar`** — a sticky element is confined to its parent's box, and
+`#nav`'s parent is `<body>` (the scroll container), so the bar stays pinned across the whole page.
+
+**Mobile (< 64em):** the links collapse into a dropdown revealed by the **hamburger** — a
+three-bar button (`.nav-toggle` / `.nav-toggle-bars`, built in CSS, no asset) that **morphs into an
+✕** when open (`prefers-reduced-motion` → instant). `toggle_navbar()` toggles `.nav-open` on the
+bar and keeps `aria-expanded` in sync; a document click-outside closes it. Rows are ≥3rem tap
+targets. The dropdown is **absolutely positioned** below the bar (not a wrapped flex line), so the
+bar keeps its row height on mobile and the menu overlays the page rather than pushing it down. **Never** re-introduce the retired float layout, the `.nav-icon`/`.responsive` classes, or
+the JS inline-`backgroundColor` hack — state lives in CSS.
+
+### Site footer
+
+`.site-footer` — the one **quiet provenance line** closing **every** page: the app name + version
+(`{{.appName}} · {{.appVersion}}`), centred, muted (`--darkblue` at low opacity on the `--lightblue`
+page canvas), `--font-body`, small. Minimal by design — it states where you are, nothing more; it
+carries no nav (the top bar does that) and no decoration. A semantic `<footer>`, last child of
+`<body>` on all pages. It rests at the **viewport bottom on short pages** (login, verify, offline)
+because the `body` is a **flex column** (`min-height: 100vh`) whose `.container` grows (`flex: 1 0
+auto`) to fill the gap — so the footer never floats mid-screen. Keep it one line; if it ever needs a
+link (e.g. release notes), inherit the muted colour and underline on hover.
+
 ### Buttons — the full system
 
 **One button system for the whole app.** Every clickable action — `<button>`, or an `<a>`/`div`
 that behaves like a button — uses `.btn` plus modifiers. No page invents its own button. Calm,
 light-first look: solid fill, **sentence case**, body font, `--radius-sm` corners (no uppercase,
-no glow). `.btn` is fully self-defining, so it overrides the legacy global `button` element rule
-wherever applied.
+no glow). `.btn` is fully self-defining. The old global `button {…}` element rule has been
+**retired** — a bare `<button>` now falls back to the browser default, so every clickable action
+must carry `.btn` (or be one of the self-contained components below).
 
 **Anatomy:** always `class="btn"` + at most one **colour** variant + at most one **size** +
 optional **layout**. A leading `<img>` is auto-sized to 1rem.
@@ -221,9 +261,11 @@ the same verb through the flow (a "Publish" button → a "Published" toast).
 | `.button-collection` | `.btn-group` |
 | a bare clickable `<div>` acting as a button | a `.btn` (make it a real `<button>` where possible) |
 
-**Genuinely separate** (own components, not buttons — leave): `.wheel-clear`/`.wheel-swatch`
-(colour picker cells), `.we-add-*` (builder rows), `.trm-close` (modal ✕), `.user-stat-tab`
-(tabs). The legacy global `button` rule still stands for anything not yet migrated.
+**Genuinely separate** (own components, not buttons — leave): `.wheel-swatch` (colour picker
+cells), `.we-add-*` (builder add-rows), `.trm-close` (modal ✕), `.user-stat-tab` (segmented
+tabs), `.wv-media-repull` (subtle icon action), `.nav-toggle` (hamburger). Each is **fully
+self-contained** (sets its own box/fill/border) — required, since there is no global `button`
+fallback. Don't add new ones; reach for `.btn` (+ `--icon`/`--sm`) first.
 
 ### Cards
 
@@ -497,6 +539,28 @@ not theme — left inline on purpose. Dynamic (`${…}`) values stay inline too.
 
 ## Decisions log
 
+- **Site footer redesigned + made app-wide.** The footer existed on only two pages (`frontpage`,
+  `offline`) as a `.footer-wrapper` — a generic flex-utility name carrying `-webkit/-moz-fill-available`
+  cruft, hardcoded `0.75rem`, and `color: var(--grey)` (a *border* token, weak on the page canvas).
+  Replaced it with a semantic `<footer class="site-footer">` — centred, tokenised, muted `--darkblue`,
+  sentence-case copy (`{{.appName}} · {{.appVersion}}`, was the systemy "Running … version …"). Added
+  it as the last `<body>` child on **all 19 pages**. To stop it floating mid-screen on short pages, the
+  `body` became a **flex column** (`min-height: 100vh`) with `.container { flex: 1 0 auto }`, pinning the
+  footer to the viewport bottom. New "Site footer" component documented above.
+- **Top navigation reworked (floats → flex, accent wayfinding).** The nav was the last big
+  un-migrated surface: a **float**-based bar, a 4-line "align-justify" glyph standing in for a
+  hamburger, a JS toggle that hand-set each item's `backgroundColor` inline and juggled dead
+  `responsive`/`unresponsive` classes, and **no active-page indicator**. Rebuilt it on the system:
+  a **sticky flex bar** (sticky moved to the `#nav` wrapper so it isn't confined to its own height),
+  tokenised throughout (`--space-*`, `--font-body`, `--surface-hi` hover, `--focus-ring`), with a
+  thin `--blue` bottom keyline. Added the **accent "you are here"** state (`.nav-item-active`) — a
+  blue underline on desktop, a blue left-bar in the mobile dropdown (reusing the module-panel
+  device), set by `markActiveNavItem()` off `location.pathname`. New **CSS hamburger**
+  (`.nav-toggle-bars`, three spans) that **morphs to an ✕** (reduced-motion → instant); `toggle_navbar()`
+  now just toggles `.nav-open` + `aria-expanded`. Markup swapped on all **19 pages** to
+  `.nav-brand`/`.nav-links`/`.nav-toggle` (ids and `enabled`/`disabled` kept so the auth-menu JS is
+  untouched). Deleted the old `.nav-icon`/`.responsive`/`.nav-item:active` rules and the
+  `tab_white.svg` dependency. New "Top navigation" component documented above.
 - **Mobile scaling fixes (iPhone-width sweep).** Three narrow-viewport overflow bugs, each a
   flex sizing issue where a child couldn't shrink below its content: (1) `/exercises` — the
   `.feed-panel select.feed-input` type filter clipped past the panel's right border on `≤480px`
@@ -702,8 +766,7 @@ not theme — left inline on purpose. Dynamic (`${…}`) values stay inline too.
   the modal values were sub-perceptual).
 - **Button system (Phase 2).** BEM `.btn` + modifiers; migrated *every* call site off the
   legacy `regular-button`/`danger-button`/`trm-btn`/`btn-primary` and deleted those selectors,
-  rather than aliasing. `.btn` is self-defining so it overrides the still-standing global
-  `button` rule (kept because bespoke buttons depend on it).
+  rather than aliasing. `.btn` is self-defining.
 - **Sequential CSS split (Phase 3).** `main.css` was cut on section boundaries into
   `base`/`components`/`instrument` so concatenation reproduced it byte-for-byte — a
   provably zero-cascade-change refactor. Per-page extraction was rejected: `.stat-card`
@@ -727,6 +790,16 @@ not theme — left inline on purpose. Dynamic (`${…}`) values stay inline too.
   image so it can't escape the ring), the **day row** (a 2-column grid replacing a ragged fixed
   column), and **inset blocks** (one `--inset-bg`/`--inset-border` convention for every nested box,
   incl. the push prompt, whose bespoke buttons were retired onto `.btn`/`.btn--ghost`).
+- **Legacy global `button` rule retired (style-guide close-out).** The last two bespoke buttons
+  riding the global `button {…}` slab were migrated onto the system — `.wheel-clear` (the wheel
+  picker's Auto/None/Clear) → `.btn.btn--sm`, and `.back-to-summary-btn` (editor) → `.btn` + a
+  layout-only `.back-to-summary` centring class. The remaining non-`.btn` `<button>`s were confirmed
+  **fully self-contained** (`.nav-toggle`, `.trm-close`, `.we-add-*`, `.user-stat-tab`,
+  `.wv-media-repull`, `.wheel-swatch` — the last gained an explicit `font-size:1rem` so its `em`
+  sizing no longer leaned on the global rule). The global `button`/`:hover`/`:disabled` rules and the
+  unused `.btn-block` were then deleted from `base.css`; the `.workout-view .we-add-*` leak-fix
+  overrides went with them. A bare `<button>` now falls back to the UA default — none exist without a
+  system class.
 - **Light/simple-first recalibration.** The early direction over-committed to the dark
   instrument look (buttons went uppercase/emerald app-wide, and the guide named
   instrument-panel "the target"). Corrected to the intended middle ground: light/calm default,
@@ -749,8 +822,9 @@ Small residuals (safe to use as-is; migrate on touch). Phase status lives in [`w
   remainder:** account's **toggle-card** components (`.notification-option`, `.strava-option`) —
   bespoke centred-card layouts, a dedicated account redesign, not the `.field` system. (The
   exercise-builder set inputs are already on the unified field via `.we-set-input`/`.we-input`.)
-- **Bespoke buttons** (`.wheel-*`, `.we-add-*`, `.user-stat-tab`, `.wv-media-repull`, `.trm-close`)
-  and the **legacy global `button`** rule still stand (all light now; `.gear-btn` was retired).
+- **Buttons: nothing outstanding.** The legacy global `button` rule is **gone**; every clickable
+  action is `.btn` (+ modifier) or a self-contained component (`.we-add-*`, `.user-stat-tab`,
+  `.wv-media-repull`, `.trm-close`, `.wheel-swatch`, `.nav-toggle`). New buttons must carry `.btn`.
 - **Inline styles** — a few static one-offs remain (e.g. a couple of weight-log layout widths). The
   **skeleton size-class** pattern (`.skel-*`) is the preferred alternative.
 - The **`.u-*` em values** could be tokenised to `--space-*` (a visual decision, deferred).

@@ -72,32 +72,29 @@
         <!-- navbar -->
         <div id="nav">
             <nav class="navbar" id="navbar">
-                <div class="nav-logo" id="nav-logo">
-                    <a href="/"><img src="/assets/logo.svg" style="box-sizing: border-box; height: 4em;padding: 0.5em; margin: auto;"></img></a>
+                <div class="nav-brand">
+                    <a class="nav-logo" href="/" aria-label="{{.appName}} home">
+                        <img src="/assets/logo.svg" alt="">
+                    </a>
+                    <a class="nav-title" id="nav-title" href="/"><b>{{.appName}}</b></a>
                 </div>
 
-                <a class="nav-title" id="nav-title" href="/" id='home'>
-                    <b>{{.appName}}</b>
-                </a>
+                <button class="nav-toggle" id="nav-toggle" type="button" aria-label="Menu" aria-controls="navbar" aria-expanded="false" onclick="toggle_navbar()">
+                    <span class="nav-toggle-bars" aria-hidden="true"><span></span><span></span><span></span></span>
+                </button>
 
-                <a class="nav-icon" href="javascript:void(0);" class="icon" onclick="toggle_navbar()" style="padding: 0;">
-                    <img src="/assets/tab_white.svg" class="" style="box-sizing: border-box;height: 4em;padding: 1em;margin: auto;"></img>
-                </a>
-
-                <a class="nav-item disabled" href="/news" id='news'>News</a>
-                <a class="nav-item disabled" href="/seasons" id='seasons'>Seasons</a>
-                <a class="nav-item disabled" href="/exercises" id='exercises-tab'>Exercises</a>
-                <a class="nav-item disabled" href="/statistics" id='statistics-tab'>Statistics</a>
-                <a class="nav-item disabled" href="/achievements" id='achievements-tab'>Achievements</a>
-                
-                <a class="nav-item disabled" href="/account" id='account'>Account</a>
-
-                <a class="nav-item disabled" href="/admin" id='admin'>Admin</a>
-                
-                <a class="nav-item enabled" href="/login" id='login'>Log in</a>
-                <a class="nav-item enabled" href="/register" id='register'>Register</a>
-                <a class="nav-item disabled" href="#" onclick="logout()" id='logout'>Log out</a>
-            
+                <div class="nav-links">
+                    <a class="nav-item disabled" href="/news" id="news">News</a>
+                    <a class="nav-item disabled" href="/seasons" id="seasons">Seasons</a>
+                    <a class="nav-item disabled" href="/exercises" id="exercises-tab">Exercises</a>
+                    <a class="nav-item disabled" href="/statistics" id="statistics-tab">Statistics</a>
+                    <a class="nav-item disabled" href="/achievements" id="achievements-tab">Achievements</a>
+                    <a class="nav-item disabled" href="/account" id="account">Account</a>
+                    <a class="nav-item disabled" href="/admin" id="admin">Admin</a>
+                    <a class="nav-item enabled" href="/login" id="login">Log in</a>
+                    <a class="nav-item enabled" href="/register" id="register">Register</a>
+                    <a class="nav-item disabled" href="#" onclick="logout()" id="logout">Log out</a>
+                </div>
             </nav>
         </div>
         <!-- /navbar -->
@@ -136,6 +133,10 @@
         <noscript>
             <h3>You need JavaScript to use this website.</h3>
         </noscript>
+
+        <footer class="site-footer">
+            {{.appName}} &middot; {{.appVersion}}
+        </footer>
 
     </body>
 </html>

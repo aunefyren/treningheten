@@ -493,23 +493,15 @@
    bound the container width so the chart's own aspect ratio keeps it sensible. */
 .wv-hr-wrapper { margin: 1rem auto 0; width: 100%; max-width: 38rem; }
 
-/* ── Back-to-summary button (editor mode) ────────────────────────────────── */
-.back-to-summary-btn {
-  font-family: var(--font-body);
-  font-size: 0.8rem;
-  font-weight: 600;
-  letter-spacing: 0.03em;
-  color: var(--white);
-  background: var(--mediumblue);
-  border: 1px solid var(--mediumblue);
-  border-radius: 0.6rem;
-  padding: 0.5rem 1rem;
+/* ── Back-to-summary button (editor mode) ─────────────────────────────────────
+   The button itself is the shared .btn; this class only centres it as a
+   fit-content block (block-level flex so the auto margins actually centre it). */
+.back-to-summary {
+  display: flex;
+  width: fit-content;
+  max-width: 18rem;
   margin: 0 auto 1.25rem;
-  display: block;
-  cursor: pointer;
-  transition: filter 0.15s;
 }
-.back-to-summary-btn:hover { filter: brightness(1.08); }
 
 /* ── Tag chips inside the dashboard (override the light global chip) ──────── */
 .workout-view .tag-list { justify-content: flex-start; margin: 0.4rem 0 0.2rem; }
@@ -799,19 +791,6 @@
 }
 .workout-view .dropdown-action:last-child { border-bottom: none; }
 .workout-view .dropdown-action:hover { background: var(--surface-hi); }
-
-/* Global `button { width:100%; margin:1rem; background:lightblue }` leaks into our
-   editor buttons; pin them down under .workout-view. */
-.workout-view .we-add-set,
-.workout-view .we-add-exercise { width: 100%; margin: 0; }
-.workout-view .we-add-set { margin-top: 0.6rem; }
-.workout-view .we-add-exercise { margin-top: 1rem; }
-.workout-view .back-to-summary-btn {
-  width: auto;
-  max-width: 18rem;
-  margin: 0 auto 1.25rem;
-  padding: 0.55rem 1.2rem;
-}
 
 /* ── Gear ─────────────────────────────────────────────────────────────────── */
 /* Session-level gear selector sits inside .we-session-fields next to Time/Duration.

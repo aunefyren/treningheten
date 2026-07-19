@@ -17,6 +17,11 @@
     font-weight: normal;
     box-sizing: content-box;
     font-family: 'Roboto', sans-serif;
+    /* Flex column so the footer rests at the viewport bottom on short pages;
+       the .container grows to fill the gap (see .container { flex } below). */
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
   }
   
   pre {
@@ -150,6 +155,7 @@
     width: -webkit-fill-available;
     margin-right:auto;
     margin-left:auto;
+    flex: 1 0 auto;   /* grow to fill the flex-column body so the footer sits at the bottom */
   }
   
   @media (min-width:576px){
@@ -236,87 +242,147 @@
   .alert-info{color:var(--mediumblue);background-color: var(--grey); border-color: var(--mediumblue);}
   .alert-danger{color:var(--red);background-color:var(--red-error);border-color:var(--red-error-border)}
   
+  /* ── Top navigation ───────────────────────────────────────────────────────
+     Sticky flex bar. --mediumblue identity, white text/icons, a thin --blue
+     accent keyline along the bottom. The blue accent marks "you are here" — an
+     underline on desktop, a left-bar in the mobile dropdown — the same accent
+     language as module left-bars and the modal keyline. Mobile dropdown +
+     hamburger live in the media query below. See docs/styleguide.md. */
+  /* The #nav wrapper carries the sticky (its parent is <body>, the scroll
+     container — a sticky .navbar would be confined to #nav's own height). */
+  #nav {
+    position: sticky;
+    top: 0;
+    z-index: 20;
+  }
   .navbar {
-    background-color: var(--mediumblue);
-    overflow: hidden;
-    top: 0;
+    display: flex;
+    align-items: stretch;
+    gap: var(--space-2);
     width: 100%;
-    position: relative;
-    padding: 0rem;
-    display: block;
-    text-align: center;
-    z-index: 9;
-    /*box-shadow: 0 2px 4px 0 rgba(0, 0, 0, 0.2), 0 3px 10px 0 rgba(0, 0, 0, 0.19);*/
-    border-bottom: var(--trans-lightblue) 0.2rem solid;
-    color: var(--white);
-  }
-  
-  .nav-item {
-    float: left;
-    display: none;
-    color: var(--white);
-    text-align: center;
-    padding: 1rem;
-    text-decoration: none;
-    font-size: 1rem;
-    margin: auto;
-    height: 2rem;
-    line-height: 2rem;
-  }
-  
-  .nav-item.enabled {
-    display: block;
-  }
-  
-  .nav-item.disabled {
-    display: none;
-  }
-  
-  .nav-title {
-    float: left;
-    display: inline-block;
-    text-align: center;
-    padding: 1rem;
-    text-decoration: none;
-    font-size: 1rem;
-    margin: auto;
-    height: 2rem;
-    line-height: 2rem;
-    max-width: 10rem;
-    color: var(--white);
-  }
-  
-  .nav-item:hover, .nav-title:hover{
-    background-color: var(--darkblue);
-    color: var(--white);
-    text-decoration: none;
-  }
-  
-  .nav-item:active {
-    background-color: var(--darkblue);
-    color: var(--black);
-  }
-  
-  .nav-icon {
-    display: none;
-    margin: 0;
-    padding: 0.5rem;
-    height: 4rem;
-    position: fixed;
-    top: 0;
-    float: right;
-    right: 0;
-  }
-  
-  .nav-logo {
-    display: block;
-    margin: auto;
-    padding: 0rem;
-    height: 4rem;
-    float: left;
+    min-height: 3.25rem;   /* deliberate bar height (52px) — not a byproduct of the logo box */
     box-sizing: border-box;
-    position: relative;
+    padding: 0 var(--space-3);
+    background-color: var(--mediumblue);
+    border-bottom: 2px solid var(--blue);
+    color: var(--white);
+    font-family: var(--font-body);
   }
+
+  /* Brand — logo + wordmark, pinned left; margin-right auto pushes links right. */
+  .nav-brand {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    margin-right: auto;
+  }
+  .nav-logo {
+    display: flex;
+    align-items: center;
+    text-decoration: none;
+  }
+  .nav-logo img {
+    display: block;
+    height: 2.1rem;   /* sits balanced in the 52px bar; the bar sets height, not the logo */
+    width: auto;
+  }
+  .nav-title {
+    display: inline-flex;
+    align-items: center;
+    color: var(--white);
+    font-weight: 700;
+    font-size: 1.05rem;
+    letter-spacing: 0.01em;
+    text-decoration: none;
+    white-space: nowrap;
+  }
+  .nav-title:hover { color: var(--white); text-decoration: none; }
+
+  /* Links row (desktop). */
+  .nav-links {
+    display: flex;
+    align-items: stretch;
+    gap: var(--space-1);
+  }
+  .nav-item {
+    display: none;                    /* revealed by .enabled (auth state) */
+    align-items: center;
+    position: relative;
+    padding: 0 var(--space-3);
+    min-height: 3rem;
+    color: var(--white);
+    font-size: 0.95rem;
+    text-decoration: none;
+    border-radius: var(--radius-sm);
+    transition: background-color 0.15s ease;
+  }
+  .nav-item.enabled { display: inline-flex; }
+  .nav-item.disabled { display: none; }
+  .nav-item:hover {
+    background-color: var(--surface-hi);
+    color: var(--white);
+    text-decoration: none;
+  }
+  .nav-item:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 3px var(--focus-ring);
+  }
+  /* Active page — the accent underline (desktop). */
+  .nav-item-active::after {
+    content: "";
+    position: absolute;
+    left: var(--space-3);
+    right: var(--space-3);
+    bottom: 0;
+    height: 3px;
+    border-radius: var(--radius-pill) var(--radius-pill) 0 0;
+    background: var(--blue);
+  }
+
+  /* Hamburger — hidden on desktop; three bars that morph to an ✕ when open. */
+  .nav-toggle {
+    display: none;
+    align-items: center;
+    justify-content: center;
+    width: 3rem;
+    height: 3rem;
+    margin: 0;            /* reset the legacy global button rule's 1rem margin (was forcing the bar to ~80px) */
+    padding: 0;
+    border: none;
+    background: transparent;
+    color: var(--white);
+    cursor: pointer;
+    align-self: center;
+  }
+  .nav-toggle:hover {
+    background: var(--surface-hi);   /* match the nav-item hover, not the legacy button:hover slab */
+    border-radius: var(--radius-sm);
+  }
+  .nav-toggle:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 3px var(--focus-ring);
+    border-radius: var(--radius-sm);
+  }
+  .nav-toggle-bars {
+    position: relative;
+    width: 1.4rem;
+    height: 1rem;
+  }
+  .nav-toggle-bars span {
+    position: absolute;
+    left: 0;
+    width: 100%;
+    height: 2px;
+    border-radius: var(--radius-pill);
+    background: var(--white);
+    transition: transform 0.22s ease, opacity 0.15s ease, top 0.22s ease;
+  }
+  .nav-toggle-bars span:nth-child(1) { top: 0; }
+  .nav-toggle-bars span:nth-child(2) { top: 50%; transform: translateY(-50%); }
+  .nav-toggle-bars span:nth-child(3) { top: 100%; transform: translateY(-100%); }
+  .navbar.nav-open .nav-toggle-bars span:nth-child(1) { top: 50%; transform: translateY(-50%) rotate(45deg); }
+  .navbar.nav-open .nav-toggle-bars span:nth-child(2) { opacity: 0; }
+  .navbar.nav-open .nav-toggle-bars span:nth-child(3) { top: 50%; transform: translateY(-50%) rotate(-45deg); }
   
   .box{
     display: flex;
@@ -443,40 +509,11 @@ form {
 /* Tick controls read in the theme blue everywhere (native — accessible, no custom markup). */
 input[type=checkbox], input[type=radio] { accent-color: var(--mediumblue); }
 
-.btn-block {
-  margin-top: 1rem;
-  text-align: center;
-}
-button {
-  width: 100%;
-  width: -webkit-fill-available;
-  width: -moz-available;
-  padding: 0.75rem 0;
-  margin: 1rem;
-  border-radius: 5px; 
-  border: none;
-  background: var(--lightblue); 
-  border: solid 0.1rem var(--mediumblue);
-  font-size: 1rem;
-  font-weight: 600;
-  color: var(--white);
-  cursor: pointer;
-  display: flex;
-  flex-direction: row;
-  flex-wrap: wrap;
-  align-content: center;
-  justify-content: center;
-  align-items: center;
-}
-
-button:hover {
-  background: var(--trans-lightblue);
-}
-
-button:disabled {
-  cursor:default;
-  opacity: 0.5;
-}
+/* The legacy global `button {…}` slab rule was retired once every clickable
+   action moved to the self-defining `.btn` system (or its own self-contained
+   component: .nav-toggle, .trm-close, .we-add-*, .user-stat-tab, .wv-media-repull,
+   .wheel-swatch). Native <button>s now fall back to the UA default — none exist
+   without one of those classes. See docs/styleguide.md. */
 
 .groups, .wishlists, .wishes {
   width: 100%;
@@ -654,50 +691,54 @@ button:disabled {
   text-align: center;
 }
 
-/* When the screen is less than 600 pixels wide, hide all links, except for the first one ("Home"). Show the link that contains should open and close the topnav (.icon) */
-@media screen and (max-width: 65em) {
-  .nav-item.enabled {
-      display: none !important;
+/* Below ~64em the links collapse into a dropdown revealed by the hamburger. The
+   dropdown is absolutely positioned below the bar (not a wrapped flex line) so the
+   bar keeps its row height — and overlays the page instead of pushing it down. */
+@media screen and (max-width: 64em) {
+  .navbar { position: relative; }
+  .nav-toggle { display: inline-flex; }
+
+  .nav-links {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0;
+    background: var(--mediumblue);
+    border-bottom: 2px solid var(--blue);
+    box-shadow: var(--shadow-sm);
+    overflow: hidden;
+    max-height: 0;
+    visibility: hidden;
+    transition: max-height 0.2s ease, visibility 0s linear 0.2s;
   }
-  .nav-title {
-      text-align: center;
-      margin: auto;
-      float: none;
+  .navbar.nav-open .nav-links {
+    max-height: 80vh;
+    visibility: visible;
+    transition: max-height 0.2s ease, visibility 0s;
   }
-  .nav-icon {
-      float: right;
-      display: block;
+
+  .nav-item.enabled { display: flex; }
+  .nav-item {
+    min-height: 3rem;
+    border-radius: 0;
+    padding-left: var(--space-4);
+    border-left: 3px solid transparent;
   }
-  .nav-bar {
-      position: relative !important;
+  /* Active row → blue left-bar (module language); no underline on mobile. */
+  .nav-item-active {
+    border-left-color: var(--blue);
+    background-color: var(--surface-hi);
   }
-  .nav-logo{
-      position: fixed;
-  }
+  .nav-item-active::after { display: none; }
 }
 
-/* The "responsive" class is added to the topnav with JavaScript when the user clicks on the icon. This class makes the topnav look good on small screens (display the links vertically instead of horizontally) */
-@media screen and (max-width: 65em) {
-.navbar.responsive {position: fixed !important;}
-.navbar.responsive .nav-icon {
-  position: fixed !important;
-  right: 0;
-  top: 0;
-}
-.navbar.responsive .nav-item.enabled {
-  float: none;
-  display: block !important;
-  text-align: left;
-  width: 100%;
-  width: -webkit-fill-available;
-  width: -moz-available;
-}
-.navbar {
-  position: fixed;
-}
-.nav-logo.responsive {
-  position: fixed;
-}
+/* Reduced motion: fold the hamburger morph + dropdown reveal to an instant swap. */
+@media (prefers-reduced-motion: reduce) {
+  .nav-toggle-bars span,
+  .nav-links { transition: none !important; }
 }
 
 .transparent {

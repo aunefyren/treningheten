@@ -1423,7 +1423,7 @@ function renderWheelSection(user_object) {
             <div id="wheel-swatches-color" class="wheel-swatches">${swatches('color', wheelState.color)}</div>
             <div class="wheel-controls">
                 <input type="color" id="wheel-color-custom" value="${colorCustom}" onchange="selectWheelColor('color', this.value)">
-                <button type="button" class="wheel-clear" onclick="selectWheelColor('color', null)">Auto</button>
+                <button type="button" class="btn btn--sm" onclick="selectWheelColor('color', null)">Auto</button>
             </div>
         </div>
 
@@ -1432,7 +1432,7 @@ function renderWheelSection(user_object) {
             <div id="wheel-swatches-border" class="wheel-swatches">${swatches('border', wheelState.border)}</div>
             <div class="wheel-controls">
                 <input type="color" id="wheel-border-custom" value="${borderCustom}" onchange="selectWheelColor('border', this.value)">
-                <button type="button" class="wheel-clear" onclick="selectWheelColor('border', null)">None</button>
+                <button type="button" class="btn btn--sm" onclick="selectWheelColor('border', null)">None</button>
             </div>
         </div>
 
@@ -1440,7 +1440,7 @@ function renderWheelSection(user_object) {
             <label for="wheel-emoji-input">Emoji</label>
             <div class="wheel-controls">
                 <input type="text" id="wheel-emoji-input" maxlength="16" placeholder="🔥" value="${wheelState.emoji ? escapeHTML(wheelState.emoji) : ""}" oninput="previewWheelEmoji(this.value)" onchange="saveWheelEmoji(this.value)">
-                <button type="button" class="wheel-clear" onclick="document.getElementById('wheel-emoji-input').value=''; saveWheelEmoji('');">Clear</button>
+                <button type="button" class="btn btn--sm" onclick="document.getElementById('wheel-emoji-input').value=''; saveWheelEmoji('');">Clear</button>
             </div>
         </div>
     `;
