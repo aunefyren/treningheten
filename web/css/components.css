@@ -1023,6 +1023,7 @@ input[type=checkbox]
   align-content: center;
   justify-content: center;
   align-items: center;
+  gap: var(--space-2);   /* keep wrapped button/input rows (Strava/Hevy/Plex/…) from butting together */
   width: 100%;
   width: -webkit-fill-available;
   width: -moz-available;
@@ -2044,11 +2045,19 @@ label {
   justify-content: space-between;
   align-items: center;
   box-sizing: inherit;
+  gap: var(--space-2);
   width: 100%;
   width: -webkit-fill-available;
   width: -moz-available;
   margin: 0.25rem 0;
 }
+
+/* Flexible columns so the row never exceeds the (narrow) modal body — a fixed-width
+   sum here caused a horizontal scrollbar on phones. Date flexes and truncates; the
+   amount and delete action stay their content size. */
+.weight-value .weight-date { flex: 1 1 auto; min-width: 0; }
+.weight-value .weight-amount { flex: 0 0 auto; white-space: nowrap; }
+.weight-value .weight-actions { flex: 0 0 auto; margin-left: auto; }
 
 .footer-wrapper {
   display: flex;

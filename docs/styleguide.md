@@ -497,6 +497,20 @@ not theme — left inline on purpose. Dynamic (`${…}`) values stay inline too.
 
 ## Decisions log
 
+- **Mobile scaling fixes (iPhone-width sweep).** Three narrow-viewport overflow bugs, each a
+  flex sizing issue where a child couldn't shrink below its content: (1) `/exercises` — the
+  `.feed-panel select.feed-input` type filter clipped past the panel's right border on `≤480px`
+  because a flex item's default `min-width:auto` held it at its widest option's width; added
+  `min-width: 0` so it honours the `flex: 1 1 100%` mobile basis and the native select truncates.
+  (2) `/statistics` weight modal — each `.weight-value` row was `nowrap` with three fixed
+  `u-w-8`/`u-w-5`/`u-w-8` columns (21em) wider than the modal body, and since `.trm-body` is
+  `overflow-y:auto` the x-axis computed to `auto` too → a horizontal scrollbar; replaced the fixed
+  columns with flexible ones (`.weight-date` `flex:1 1 auto;min-width:0` truncates, `.weight-amount`
+  / `.weight-actions` stay content-size, tokened gap). Retired the now-dead `.u-flex-end` utility.
+  (3) `/account` — `.notification-options` (the wrapper for every Strava/Hevy/Plex/… button row) had
+  no `gap`, so the 12em `.integration-btn`s butted together; added `gap: var(--space-2)`. General
+  rule: any flex row of fixed/near-fixed children that must fit a narrow container needs a shrinkable
+  child (`min-width: 0`) and a `gap`.
 - **Exercise-builder set inputs — already migrated; removed the dead legacy CSS.** Investigating the
   reps/weight/time/distance/duration inputs (the intended target of a "migrate to the unified field"
   pass) showed they were **already** on the light workout editor's `.we-set-input`/`.we-input`

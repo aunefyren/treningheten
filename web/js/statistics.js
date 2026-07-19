@@ -922,9 +922,9 @@ function viewWeight(weights) {
         const timeString = GetDateString(dateObject, false)
         weightsHTML += `
             <div class="weight-value">
-                <div class="u-w-8"><div class="u-fs-sm">${timeString}</div></div>
-                <div class="u-w-5">${weight.weight} KG</div>
-                <div class="u-w-8 u-flex-end">
+                <div class="weight-date u-fs-sm">${timeString}</div>
+                <div class="weight-amount">${weight.weight} KG</div>
+                <div class="weight-actions">
                     <button type="button" class="btn btn--icon" title="Delete weight" aria-label="Delete weight" onclick="deleteWeight('${weight.id}');">
                         <img src="/assets/trash-2.svg">
                     </button>

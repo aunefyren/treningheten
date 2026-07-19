@@ -37,9 +37,6 @@
 /* Margin-top (small) */
 .u-mt-sm { margin-top: 0.5em; }
 
-/* Layout */
-.u-flex-end { display: flex; justify-content: flex-end; }
-
 /* Text & display */
 .u-text-center { text-align: center; }
 .u-dim { opacity: 0.7; }
