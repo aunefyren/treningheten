@@ -34,24 +34,24 @@ Must be user friendly and understandable in the UI
 - Auto-detect partner of enough data?
 
 ### Music / audio integration
-Connect music/audio providers on your account, then overlay your listening history onto
-time-based activities. Full design + decisions now live in [`docs/media.md`](media.md).
+Overlay your listening history onto time-based activities. The **Plex**, **Spotify**, and
+**Audiobookshelf** connections, the history pull, the session-level timeline, the
+`/statistics` Soundtrack block, Plex audiobook/podcast classification, and Plex artwork
+(via proxy) have all shipped. Full design + current status live in
+[`docs/media.md`](media.md) — keep open items there, not duplicated here.
 
 **Still to build:**
-- **Cross-activity stats — "fastest songs":** avg speed over
-  `[StartedAt, EndedAt]` from a session activity's `OperationSet.StravaStreams`, which
-  needs the stream-windowing done per track. (Per-track avg-HR on the card already shipped.)
-- **Plex artwork:** Plex thumbs need the server token to fetch — store via a proxy
-  rather than embedding the credential in a stored URL. (Spotify artwork already works.)
-- **Audiobook/podcast classification:** Plex audiobooks surface as `track` → currently
-  read as songs; classify from the Plex library section/agent instead.
-- **Per-(session, provider) pull guard:** the single `Exercise.MediaRetrievedAt` spans
-  both providers — the auto-trigger pulls all providers once together, which is fine for
-  MVP, but connecting a provider *after* a session was already pulled needs the re-pull
-  button. Generalize the guard when this becomes annoying.
-- **Edge case (note, not solving now):** editing a session's **time** changes the
-  window — the 🎧 re-pull re-matches on demand, but there's no automatic re-match on a
-  time edit. (A skipped date-only session will match once a real time is set + re-pulled.)
+- **Cross-activity stats — "fastest songs":** avg speed over `[StartedAt, EndedAt]` from a
+  session activity's `OperationSet.StravaStreams`, which needs the stream-windowing done
+  per track. The one remaining planned increment. (Per-track avg-HR on the card already
+  shipped.)
+- **Per-(session, provider) pull guard:** the single `Exercise.MediaRetrievedAt` spans all
+  providers — fine for the common case, but connecting a provider *after* a session was
+  already pulled relies on the 🎧 re-pull button. Generalize the guard when it becomes
+  annoying.
+- **Edge case (note, not solving now):** editing a session's **time** changes the match
+  window — the 🎧 re-pull re-matches on demand, but there's no automatic re-match on a time
+  edit. (A skipped date-only session will match once a real time is set + re-pulled.)
 
 **Open questions:**
 - Privacy: listening data is sensitive even self-hosted — any per-activity visibility controls?
@@ -66,6 +66,19 @@ time-based activities. Full design + decisions now live in [`docs/media.md`](med
 - What gets left behind? Do seasons you joined still show you? Show 'Deleted user'?
 - Not broken, never built function, only button is present
 
+### Generate debt button on /admin is misleading and could be improved
+- This admin function used to be for recalculating debt for a given week, after some changes happened in the DB in the back end
+- It now does this, but also more. It regenerates achievements for example
+- A typical use case:
+  - User forgets to log exercises
+  - Manually fixed in DB by adding exercises, removing debt object, removing ahcivmenent delegations
+  - Click generate debt button to "recalculate week"
+- Module/function could be remade to a "fix last week button"
+  - Add/remove exercises
+  - reset achievements/deb for week
+  - Recaluclate week
+  - Anything else?
+
 ### Best effort system
 - Manual programming per activity?
 - "fastest 5K"...
@@ -79,29 +92,25 @@ Per-exercise feedback in its own dedicated space (not the front-page greeting).
 - How to avoid spamming the LMM
 - Little model, can the feedback be decent?
 
-### Dead code on /registergoal
-- Used to be a bigger page
-- Has sections like debt overview
-- This page should only have goal registration now, nothing else
-- Needs cleanup
+### Frontpage hero is wider than other modules on mobile
+- Wider looks good on desktop, but should revert to standard width on mobile
 
 ### Locked achievements CSS bug
 - Achievements with the pad lock icon on /achievements have a rounded border around the icon, like a margin between the icon and the rounded color around the achievement
 - SVG get's cut off on the corners because of this
 
 ### /exercises builder rework (`/exercises/:id`) — fast-follow
-The searchable activity timeline shipped ([docs/exercises.md](exercises.md)). The **session
-builder** at `/exercises/:id` was deliberately left out of that pass and still needs work:
-- The builder exposes gear at the **session** level only, though the schema stores it per
-  **operation** — a genuinely multi-type/mixed-gear session can't be edited per activity (same
-  root as the gear follow-ups below: the builder doesn't cleanly show/organise a session that
-  has several `Operation`s of different `Action`s).
+The searchable activity timeline shipped ([docs/exercises.md](exercises.md)), and the session
+builder now edits **gear per operation** (each moving activity card has its own selector, with a
+session-level "Set gear for all" convenience — see [docs/gear.md](gear.md)). Remaining builder
+work:
 - The per-activity **aggregate shape** built for `/auth/activities` is exactly what a better
   **session summary header** should consume (activity chips + per-activity metrics) — reuse it
   rather than re-deriving.
-- When redone: consider a per-`Operation` card layout (each activity type its own sub-card with
-  its own gear/metrics/sets), a session header summarising the mix, and clearer affordances for
-  adding a *second activity type* to an existing session vs a *second session* to the day.
+- Consider a fuller per-`Operation` card layout (each activity type its own sub-card with its
+  own metrics/sets) and clearer affordances for adding a *second activity type* to an existing
+  session vs a *second session* to the day. (Gear is already per-operation; this is the
+  remaining organisation/metrics work.)
 - Watch the media/soundtrack coupling: soundtrack is session-scoped (`Exercise`), so builder
   changes to session time/duration affect the match window (already noted under media).
 
@@ -111,13 +120,13 @@ builder** at `/exercises/:id` was deliberately left out of that pass and still n
 - Allow MCP to find relevant exercises without shifting through tons of data
 
 ### Gear tracker — possible follow-ups
-The gear feature shipped (see [`docs/gear.md`](gear.md)). Open refinements left for later:
-- **Per-operation gear UI.** The schema stores gear on the operation, but the builder only
-  exposes a session-level selector. A combined Strava session that genuinely mixes gear can't
-  be edited per-activity yet.
-- **Auto-assign primary.** The selector *suggests* the user's primary gear for a session with
-  no gear, but it isn't persisted until the user interacts. Could auto-assign on the first
-  operation instead.
+The gear feature shipped (see [`docs/gear.md`](gear.md)), and per-operation gear editing now
+ships too — each moving activity card in the builder has its own gear selector, with a
+session-level "Set gear for all" convenience for combined sessions that mix 2+ moving
+activities. Open refinements left for later:
+- **Auto-assign primary.** The selector *suggests* the user's primary gear for a moving
+  activity with no gear, but it isn't persisted until the user interacts. Could auto-assign on
+  the first operation instead.
 - **Primary per type.** Only one primary per user today; a primary shoe *and* a primary bike
   might be more useful.
 

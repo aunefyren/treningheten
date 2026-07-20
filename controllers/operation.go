@@ -433,6 +433,31 @@ func APICreateOperationSetForUser(context *gin.Context) {
 	context.JSON(http.StatusCreated, gin.H{"message": "Operation set created.", "operation_set": operationSetObject, "operation": operationObject})
 }
 
+// resolveGearIDForUser validates an explicit gear id from an operation update.
+// An empty string clears the gear (returns nil). A non-empty value must parse as
+// a UUID and belong to the user. clientErr carries a 400-worthy message (bad id
+// or gear not owned); serverErr carries a lookup failure (500). Callers only
+// invoke this when a gear value was actually supplied.
+func resolveGearIDForUser(raw string, userID uuid.UUID) (gearID *uuid.UUID, clientErr string, serverErr error) {
+	if raw == "" {
+		return nil, "", nil
+	}
+
+	parsed, err := uuid.Parse(raw)
+	if err != nil {
+		return nil, "Failed to verify gear ID.", nil
+	}
+
+	gear, err := database.GetGearByIDAndUserID(parsed, userID)
+	if err != nil {
+		return nil, "", err
+	} else if gear == nil {
+		return nil, "Gear not found.", nil
+	}
+
+	return &parsed, "", nil
+}
+
 func APIUpdateOperation(context *gin.Context) {
 	// Initialize variables
 	var operationUpdateRequest models.OperationUpdateRequest
@@ -561,6 +586,24 @@ func APIUpdateOperation(context *gin.Context) {
 		} else {
 			operation.Description = &trimmedDescription
 		}
+	}
+
+	// Gear is replaced only when explicitly provided (non-moving op cards omit it);
+	// an empty value clears it, otherwise the gear must belong to the user.
+	if operationUpdateRequest.GearID != nil {
+		gearID, clientErr, serverErr := resolveGearIDForUser(strings.TrimSpace(*operationUpdateRequest.GearID), userID)
+		if serverErr != nil {
+			logger.Log.Error("Failed to resolve gear. Error: " + serverErr.Error())
+			context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get gear."})
+			context.Abort()
+			return
+		} else if clientErr != "" {
+			logger.Log.Warn("Rejected gear for operation update: " + clientErr)
+			context.JSON(http.StatusBadRequest, gin.H{"error": clientErr})
+			context.Abort()
+			return
+		}
+		operation.GearID = gearID
 	}
 
 	operation, err = database.UpdateOperationInDB(operation)

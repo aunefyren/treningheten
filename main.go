@@ -352,6 +352,7 @@ func initRouter(configFile models.ConfigStruct) *gin.Engine {
 		{
 			authImages.GET("/users/:user_id/image", controllers.APIGetUserProfileImage)
 			authImages.GET("/achievements/:achievement_id/image", controllers.APIGetAchievementsImage)
+			authImages.GET("/media/plex/artwork", controllers.APIGetPlexArtwork)
 		}
 
 		admin := api.Group("/admin").Use(middlewares.Auth(true))
@@ -379,8 +380,6 @@ func initRouter(configFile models.ConfigStruct) *gin.Engine {
 			admin.POST("/prizes", controllers.APIRegisterPrize)
 
 			admin.POST("/notifications/push/all-devices", controllers.APIPushNotificationToAllDevicesForUser)
-
-			admin.POST("/exercises/correlate", controllers.APICorrelateAllExercises)
 
 			admin.POST("/strava/sync-activities-for-users", controllers.APISyncStravaActivitiesForUsers)
 

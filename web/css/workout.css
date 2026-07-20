@@ -185,6 +185,16 @@
   margin: 0.5rem 0 0.75rem;
 }
 
+.wv-gear {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.8rem;
+  color: var(--text-dim);
+  margin: 0.4rem 0 0.2rem;
+}
+.wv-gear-icon { width: 0.9rem; height: 0.9rem; opacity: 0.7; }
+
 /* ── Soundtrack overlay — the listening timeline ─────────────────────────────
    Your tracks plotted against the session clock. Elapsed-time stamps reuse the
    scoreboard numerals from the splits, so a track time reads as just another

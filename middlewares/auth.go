@@ -230,6 +230,20 @@ func AuthImageReadOnly() gin.HandlerFunc {
 	}
 }
 
+// ImageRequestUserID resolves the calling user's ID from an image request that may
+// authenticate via the `treningheten` cookie instead of the Authorization header
+// (see AuthImageReadOnly) — needed by proxy image handlers that must load the caller's
+// own data (e.g. a Plex connection) rather than a path-supplied resource.
+func ImageRequestUserID(context *gin.Context) (uuid.UUID, error) {
+	authHeader := context.GetHeader("Authorization")
+	if authHeader == "" {
+		if cookie, err := context.Cookie("treningheten"); err == nil && cookie != "" {
+			authHeader = "Bearer " + cookie
+		}
+	}
+	return GetAuthUsername(authHeader)
+}
+
 // GetAuthUsername resolves the calling user's ID from either token type.
 func GetAuthUsername(tokenString string) (uuid.UUID, error) {
 	if strings.TrimPrefix(tokenString, "Bearer ") == "" {

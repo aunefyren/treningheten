@@ -79,3 +79,20 @@ func TestRankPlexServerConnections(t *testing.T) {
 		}
 	})
 }
+
+func TestPlexArtworkPathAllowed(t *testing.T) {
+	cases := map[string]bool{
+		"/library/metadata/1/thumb/9": true,
+		"/library/parts/5/file.jpg":   true,
+		"/photo/:/transcode":          false, // not a library path — reject
+		"http://evil.example/x":       false, // absolute URL — SSRF attempt
+		"//evil.example/x":            false,
+		"":                            false,
+		"/status/sessions":            false,
+	}
+	for path, want := range cases {
+		if got := plexArtworkPathAllowed(path); got != want {
+			t.Errorf("plexArtworkPathAllowed(%q) = %v, want %v", path, got, want)
+		}
+	}
+}

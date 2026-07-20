@@ -79,21 +79,6 @@ function load_page(result) {
 
             </div>
 
-            <div class="module hero" id="unspun-wheel" style="display: none;">
-
-            </div>
-
-            <div class="module">
-                <div id="debt-module" class="debt-module" style="display: none;">
-
-                    <h3 id="debt-module-title">Prizes</h3>
-
-                    <div id="debt-module-notifications" class="debt-module-notifications">
-                    </div>
-
-                </div>
-            </div>
-
         </div>
     `;
 
@@ -128,8 +113,6 @@ function getSeason(userID, seasonID){
 
                 info(result.error);
                 document.getElementById('front-page-text').innerHTML = 'An administrator must plan a new season.';
-
-                getDebtOverview();
 
             } else if(result.error) {
 
@@ -166,8 +149,6 @@ function getSeason(userID, seasonID){
                     error("Logic error :/");
                     return;
                 }
-
-                getDebtOverview();
 
             }
 
@@ -258,101 +239,5 @@ function registerGoal(seasonID) {
     xhttp.send(form_data);
     return false;
 
-}
-
-
-function placeDebtOverview(overviewArray) {
-
-    var html = "";
-
-    document.getElementById("debt-module").style.display = "flex";
-
-    for(var i = 0; i < overviewArray.debt_unviewed.length; i++) {
-
-        var date_str = ""
-        try {
-            var date = new Date(overviewArray.debt_unviewed[i].debt.date);
-            var date_week = date.getWeek(1);
-            var date_year = date.getFullYear();
-            var date_str = date_week + " (" + date_year + ")"
-        } catch {
-            date_str = "Error"
-        }
-
-        html += `
-            <div class="debt-module-notification-view" id="">
-                ${overviewArray.debt_unviewed[i].debt.loser.first_name} ${overviewArray.debt_unviewed[i].debt.loser.last_name} spun the wheel for week ${date_str}.<br>See if you won!<br>
-                <img src="assets/arrow-right.svg" class="btn btn--icon clickable" onclick="location.replace('/wheel?debt_id=${overviewArray.debt_unviewed[i].debt.id}'); ">
-            </div>
-            `;
-    }
-
-    for(var i = 0; i < overviewArray.debt_won.length; i++) {
-
-        var date_str = ""
-        try {
-            var date = new Date(overviewArray.debt_won[i].date);
-            var date_week = date.getWeek(1);
-            var date_year = date.getFullYear();
-            var date_str = date_week + " (" + date_year + ")"
-        } catch {
-            date_str = "Error"
-        }
-
-        console.log(overviewArray.debt_won)
-
-        html += `
-            <div class="debt-module-notification-prize" id="">
-                ${overviewArray.debt_won[i].loser.first_name} ${overviewArray.debt_won[i].loser.last_name} spun the wheel for week ${date_str} and you won <b>${overviewArray.debt_won[i].season.prize.quantity} ${overviewArray.debt_won[i].season.prize.name}</b>!<br>Have you received it?<br>
-                <img src="assets/done.svg" class="btn btn--icon clickable" onclick="setPrizeReceived(${overviewArray.debt_won[i].id});">
-            </div>
-            `;
-    }
-
-    for(var i = 0; i < overviewArray.debt_unpaid.length; i++) {
-
-        var date_str = ""
-        try {
-            var date = new Date(overviewArray.debt_unpaid[i].date);
-            var date_week = date.getWeek(1);
-            var date_year = date.getFullYear();
-            var date_str = date_week + " (" + date_year + ")"
-        } catch {
-            date_str = "Error"
-        }
-
-        console.log(overviewArray.debt_unpaid)
-
-        html += `
-            <div class="debt-module-notification-debt" id="">
-                You spun the wheel for week ${date_str} and ${overviewArray.debt_unpaid[i].winner.first_name} ${overviewArray.debt_unpaid[i].winner.last_name} won ${overviewArray.debt_unpaid[i].season.prize.quantity} ${overviewArray.debt_unpaid[i].season.prize.name}!<br>Provide the prize as soon as possible!<br>
-            </div>
-            `;
-    }
-
-    document.getElementById("debt-module-notifications").innerHTML = html;
-
-}
-
-function placeDebtSpin(overview) {
-    var date_str = ""
-    try {
-        var date = new Date(overview.debt_lost[0].date);
-        var date_week = date.getWeek(1);
-        var date_year = date.getFullYear();
-        var date_str = date_week + " (" + date_year + ")"
-    } catch {
-        date_str = "Error"
-    }
-    
-    document.getElementById("registergoal").style.display = "none";
-    document.getElementById("unspun-wheel").style.display = "flex";
-    document.getElementById("unspun-wheel").innerHTML = `
-        You failed to reach your goal for week ${date_str} and must spin the wheel.
-        <div id="canvas-buttons" class="canvas-buttons">
-            <button class="btn" id="go-to-wheel" onclick="location.replace('/wheel?debt_id=${overview.debt_lost[0].id}');">Take me there</button>
-        </div>
-    `;
-    return;
 }
 

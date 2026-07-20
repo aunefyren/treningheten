@@ -30,8 +30,8 @@ func TestBuildPlexPlaybackForWindow(t *testing.T) {
 	at := func(min int) int64 { return start.Add(time.Duration(min) * time.Minute).Unix() }
 
 	items := []models.PlexHistoryMetadata{
-		// Inside the window: a full song with artist/album/duration.
-		{RatingKey: "1", Title: "In Window", GrandparentTitle: "Artist", ParentTitle: "Album", Type: "track", ViewedAt: at(20), Duration: 180000},
+		// Inside the window: a full song with artist/album/duration/thumb, in the music library.
+		{RatingKey: "1", Title: "In Window", GrandparentTitle: "Artist", ParentTitle: "Album", Type: "track", ViewedAt: at(20), Duration: 180000, LibrarySectionID: "1", Thumb: "/library/metadata/1/thumb/9"},
 		// Before the window (and before grace) — excluded.
 		{RatingKey: "2", Title: "Too Early", Type: "track", ViewedAt: at(-30)},
 		// Inside grace just after the end — included.
@@ -42,7 +42,11 @@ func TestBuildPlexPlaybackForWindow(t *testing.T) {
 		{RatingKey: "5", Title: "Late Track", GrandparentTitle: "Band", Type: "track", ViewedAt: at(45)},
 	}
 
-	got := buildPlexPlaybackForWindow(items, start, end)
+	sections := map[string]models.PlexLibrarySection{
+		"1": {Key: "1", Type: "artist", Agent: "tv.plex.agents.music", Title: "Music"},
+	}
+
+	got := buildPlexPlaybackForWindow(items, sections, start, end)
 
 	if len(got) != 3 {
 		t.Fatalf("expected 3 matched rows, got %d (%+v)", len(got), got)
@@ -70,6 +74,9 @@ func TestBuildPlexPlaybackForWindow(t *testing.T) {
 	if first.TrackLength == nil || *first.TrackLength != 180 {
 		t.Errorf("track length (seconds): got %v, want 180", first.TrackLength)
 	}
+	if first.ArtworkURL == nil || *first.ArtworkURL != "/library/metadata/1/thumb/9" {
+		t.Errorf("artwork should carry the raw PMS thumb path: got %v", first.ArtworkURL)
+	}
 	if first.EndedAt == nil {
 		t.Errorf("expected EndedAt to be set when duration is known")
 	} else if want := first.StartedAt.Add(180 * time.Second); !first.EndedAt.Equal(want) {
@@ -94,6 +101,63 @@ func TestBuildPlexPlaybackForWindow(t *testing.T) {
 	}
 }
 
+func TestClassifyPlexSection(t *testing.T) {
+	cases := []struct {
+		name  string
+		agent string
+		title string
+		want  string
+	}{
+		{"music agent", "tv.plex.agents.music", "Music", models.MediaTypeSong},
+		{"audnexus agent", "com.plexapp.agents.audnexus", "My Books", models.MediaTypeAudiobook},
+		{"lazyaudio agent", "com.plexapp.agents.lazyaudio", "Shelf", models.MediaTypeAudiobook},
+		{"podcast agent", "com.plexapp.agents.podcasts", "Shows", models.MediaTypePodcast},
+		{"audiobook by title", "tv.plex.agents.music", "Audiobooks", models.MediaTypeAudiobook},
+		{"podcast by title", "tv.plex.agents.music", "My Podcasts", models.MediaTypePodcast},
+		{"unknown stays song", "", "", models.MediaTypeSong},
+		{"agent wins over title", "com.plexapp.agents.audnexus", "Podcasts", models.MediaTypeAudiobook},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			if got := classifyPlexSection(tc.agent, tc.title); got != tc.want {
+				t.Errorf("classifyPlexSection(%q, %q) = %q, want %q", tc.agent, tc.title, got, tc.want)
+			}
+		})
+	}
+}
+
+func TestBuildPlexPlaybackClassifiesByLibrary(t *testing.T) {
+	start := time.Date(2026, 6, 27, 10, 0, 0, 0, time.UTC)
+	end := start.Add(2 * time.Hour)
+	at := func(min int) int64 { return start.Add(time.Duration(min) * time.Minute).Unix() }
+
+	items := []models.PlexHistoryMetadata{
+		{RatingKey: "1", Title: "A Song", Type: "track", ViewedAt: at(5), LibrarySectionID: "1"},
+		{RatingKey: "2", Title: "A Chapter", Type: "track", ViewedAt: at(10), LibrarySectionID: "2"},
+		// A track in a library with no known section falls back to song.
+		{RatingKey: "3", Title: "Orphan", Type: "track", ViewedAt: at(15), LibrarySectionID: "99"},
+	}
+	sections := map[string]models.PlexLibrarySection{
+		"1": {Key: "1", Agent: "tv.plex.agents.music", Title: "Music"},
+		"2": {Key: "2", Agent: "com.plexapp.agents.audnexus", Title: "Audiobooks"},
+	}
+
+	got := buildPlexPlaybackForWindow(items, sections, start, end)
+	byTitle := map[string]string{}
+	for _, row := range got {
+		byTitle[row.Title] = row.MediaType
+	}
+	if byTitle["A Song"] != models.MediaTypeSong {
+		t.Errorf("music library track: got %q, want song", byTitle["A Song"])
+	}
+	if byTitle["A Chapter"] != models.MediaTypeAudiobook {
+		t.Errorf("audiobook library track: got %q, want audiobook", byTitle["A Chapter"])
+	}
+	if byTitle["Orphan"] != models.MediaTypeSong {
+		t.Errorf("unknown library track should default to song: got %q", byTitle["Orphan"])
+	}
+}
+
 func TestBuildPlexPlaybackClampsToActivityEnd(t *testing.T) {
 	start := time.Date(2026, 6, 27, 10, 0, 0, 0, time.UTC)
 	end := start.Add(30 * time.Minute) // 10:30
@@ -104,7 +168,7 @@ func TestBuildPlexPlaybackClampsToActivityEnd(t *testing.T) {
 		{RatingKey: "1", Title: "Long", Type: "track", ViewedAt: start.Add(25 * time.Minute).Unix(), Duration: 600000},
 	}
 
-	got := buildPlexPlaybackForWindow(items, start, end)
+	got := buildPlexPlaybackForWindow(items, nil, start, end)
 	if len(got) != 1 {
 		t.Fatalf("expected 1 row, got %d", len(got))
 	}

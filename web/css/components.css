@@ -253,7 +253,7 @@ input[type=checkbox]
   align-content: center;
 }
 
-.season, .current-week, .server-info, .invites, .debt-module, .prize-module, .add-season-module, .correlate-module {
+.season, .current-week, .server-info, .invites, .debt-module, .prize-module, .add-season-module {
   color: var(--black);
   width: auto;
   max-width: 100%;
@@ -2177,7 +2177,6 @@ label {
 .card .debt-module,
 .card .prize-module,
 .card .add-season-module,
-.card .correlate-module,
 .card .leaderboard,
 .card .activities,
 .card .week_days,

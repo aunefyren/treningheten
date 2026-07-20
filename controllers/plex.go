@@ -75,6 +75,17 @@ func plexRequest(method, rawURL string, token string) ([]byte, int, error) {
 	return body, resp.StatusCode, nil
 }
 
+// plexServerClient is an HTTP client for talking directly to a user's PMS (history,
+// library sections, artwork, reachability probes). plex.direct hostnames serve a
+// self-signed cert, so TLS verification is skipped — the trust model the official
+// clients use for these addresses; the stored ServerURL was probed at connect time.
+func plexServerClient(timeout time.Duration) *http.Client {
+	return &http.Client{
+		Timeout:   timeout,
+		Transport: &http.Transport{TLSClientConfig: &tls.Config{InsecureSkipVerify: true}},
+	}
+}
+
 // buildPlexAuthURL composes the browser URL the user opens to approve a PIN.
 func buildPlexAuthURL(clientIdentifier, code, product string) string {
 	v := url.Values{}
@@ -147,11 +158,7 @@ func probePlexServer(uri string, token string) bool {
 	req.Header.Set("X-Plex-Token", token)
 	req.Header.Set("X-Plex-Client-Identifier", files.ConfigFile.Media.Plex.ClientIdentifier)
 
-	client := &http.Client{
-		Timeout:   plexProbeTimeout,
-		Transport: &http.Transport{TLSClientConfig: &tls.Config{InsecureSkipVerify: true}},
-	}
-	resp, err := client.Do(req)
+	resp, err := plexServerClient(plexProbeTimeout).Do(req)
 	if err != nil {
 		return false
 	}
@@ -185,11 +192,7 @@ func resolvePlexServerAccountID(serverURL, token string, candidates ...string) s
 	req.Header.Set("X-Plex-Token", token)
 	req.Header.Set("X-Plex-Client-Identifier", files.ConfigFile.Media.Plex.ClientIdentifier)
 
-	client := &http.Client{
-		Timeout:   plexProbeTimeout,
-		Transport: &http.Transport{TLSClientConfig: &tls.Config{InsecureSkipVerify: true}},
-	}
-	resp, err := client.Do(req)
+	resp, err := plexServerClient(plexProbeTimeout).Do(req)
 	if err != nil {
 		logger.Log.Warn("Failed to fetch Plex server accounts. Error: " + err.Error())
 		return ""
@@ -488,4 +491,86 @@ func upsertMediaConnection(userID uuid.UUID, provider, accessToken string, serve
 	}
 	connection.ID = uuid.New()
 	return database.CreateMediaConnectionInDB(connection)
+}
+
+// plexArtworkPathAllowed guards the artwork proxy against SSRF: only Plex library
+// image paths may be fetched with the user's server token, never an arbitrary URL a
+// caller crafts. Plex cover thumbs are served under /library/ on the PMS.
+func plexArtworkPathAllowed(path string) bool {
+	return strings.HasPrefix(path, "/library/")
+}
+
+// APIGetPlexArtwork proxies a Plex cover-art thumbnail. Plex thumbs live on the user's
+// own PMS and need the server token to fetch, so they can't be stored as a public URL
+// (that would leak the credential). Instead the read layer points artwork_url at this
+// endpoint, which fetches from the *requesting* user's Plex server with their decrypted
+// token and streams the image back. Only /library/ paths are allowed (SSRF guard); it
+// 404s when Plex is disabled, matching the other Plex endpoints. It lives under the
+// image-auth group so an <img>/CSS background can load it via the session cookie.
+func APIGetPlexArtwork(context *gin.Context) {
+	if !requirePlexEnabled(context) {
+		return
+	}
+
+	userID, err := middlewares.ImageRequestUserID(context)
+	if err != nil {
+		logger.Log.Info("Failed to authenticate Plex artwork request. Error: " + err.Error())
+		context.JSON(http.StatusUnauthorized, gin.H{"error": "Failed to authenticate request."})
+		context.Abort()
+		return
+	}
+
+	path := context.Query("path")
+	if !plexArtworkPathAllowed(path) {
+		context.JSON(http.StatusBadRequest, gin.H{"error": "Invalid artwork path."})
+		context.Abort()
+		return
+	}
+
+	connection, err := database.GetMediaConnectionForUserProvider(userID, models.MediaProviderPlex)
+	if err != nil || connection == nil || connection.AccessToken == nil || connection.ServerURL == nil || *connection.ServerURL == "" {
+		context.JSON(http.StatusNotFound, gin.H{"error": "No Plex connection."})
+		context.Abort()
+		return
+	}
+
+	token, err := utilities.DecryptString(*connection.AccessToken, files.ConfigFile.Media.TokenKey)
+	if err != nil {
+		logger.Log.Warn("Failed to decrypt Plex token for artwork. Error: " + err.Error())
+		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to load Plex credentials."})
+		context.Abort()
+		return
+	}
+
+	req, err := http.NewRequest("GET", strings.TrimRight(*connection.ServerURL, "/")+path, nil)
+	if err != nil {
+		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to build artwork request."})
+		context.Abort()
+		return
+	}
+	req.Header.Set("X-Plex-Token", token)
+	req.Header.Set("X-Plex-Client-Identifier", files.ConfigFile.Media.Plex.ClientIdentifier)
+
+	resp, err := plexServerClient(15 * time.Second).Do(req)
+	if err != nil {
+		logger.Log.Warn("Plex artwork fetch threw error. Error: " + err.Error())
+		context.JSON(http.StatusBadGateway, gin.H{"error": "Failed to fetch artwork."})
+		context.Abort()
+		return
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		context.JSON(http.StatusNotFound, gin.H{"error": "Artwork not found."})
+		context.Abort()
+		return
+	}
+
+	contentType := resp.Header.Get("Content-Type")
+	if contentType == "" {
+		contentType = "image/jpeg"
+	}
+	// Private (per-user token) but immutable for a day — thumbs don't change under a ratingKey.
+	context.Header("Cache-Control", "private, max-age=86400")
+	context.DataFromReader(http.StatusOK, resp.ContentLength, contentType, resp.Body, nil)
 }

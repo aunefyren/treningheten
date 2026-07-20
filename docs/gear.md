@@ -37,14 +37,22 @@ list in two queries (the gear rows + one grouped distance roll-up). Operations a
 flatten their gear into `OperationObject.Gear` — but **identity only** (`Distance` left
 at zero), to avoid a roll-up query per operation in list views.
 
-## Selection — exercise level, stored per operation
+## Selection — per operation, with a session-level convenience
 
 Gear is **stored on the operation** (so a combined session that mixes activities can
-hold different gear per activity, matching Strava), but the UI selects gear for the
-**whole session**: `PUT /api/auth/exercises/:exercise_id/gear` with
-`{ "gear_id": "<uuid>" | null }` writes the chosen gear to **every** operation of the
-exercise (`APISetGearForExercise`). There is no per-operation selector in the UI yet —
-the schema supports it as a future enhancement.
+hold different gear per activity, matching Strava). The builder edits it **per
+operation**: each **moving** activity card carries its own gear selector, which writes
+through the normal operation update — `PUT /api/auth/operations/:operation_id` with
+`{ "gear_id": "<uuid>" | "" }` (empty clears it, `APIUpdateOperation` →
+`resolveGearIDForUser`). Only moving activities show the selector, mirroring Strava's
+shoe/bike model; a moving activity with no gear yet suggests the user's primary
+(unpersisted until changed).
+
+For a combined session that mixes **2+ moving activities**, a session-level "Set gear
+for all" control assigns one gear to every operation at once:
+`PUT /api/auth/exercises/:exercise_id/gear` with `{ "gear_id": "<uuid>" | null }`
+(`APISetGearForExercise`). It is a convenience over the per-operation path, not the only
+way in.
 
 ## Endpoints
 

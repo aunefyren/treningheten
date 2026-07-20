@@ -1,7 +1,6 @@
 package controllers
 
 import (
-	"crypto/tls"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -33,10 +32,31 @@ func isPlexAudioListen(plexType string) bool {
 	return strings.EqualFold(plexType, "track")
 }
 
-// classifyPlexMediaType maps an audio Plex item to Treningheten's media vocabulary.
-// Everything audio currently reads as a song; distinguishing audiobooks/podcasts
-// needs the item's library section/agent (a later refinement — see docs/media.md).
-func classifyPlexMediaType(plexType string) string {
+// classifyPlexSection maps the Plex library a "track" lives in to Treningheten's media
+// vocabulary. Plex stores audiobooks and podcasts as plain music tracks, so the only
+// signal is the library's metadata agent, or failing that a keyword in its name.
+// Anything unrecognised stays a song — a wrong label is worse than a plain dot. The
+// heuristic is setup-dependent by nature (agents vary between installs); see
+// docs/media.md.
+func classifyPlexSection(agent, title string) string {
+	a := strings.ToLower(agent)
+	switch {
+	case strings.Contains(a, "audnexus"), strings.Contains(a, "audiobook"),
+		strings.Contains(a, "lazyaudio"), strings.Contains(a, "prologue"),
+		strings.Contains(a, "booklore"), strings.Contains(a, "audible"):
+		return models.MediaTypeAudiobook
+	case strings.Contains(a, "podcast"):
+		return models.MediaTypePodcast
+	}
+
+	t := strings.ToLower(title)
+	switch {
+	case strings.Contains(t, "audiobook"), strings.Contains(t, "audio book"):
+		return models.MediaTypeAudiobook
+	case strings.Contains(t, "podcast"):
+		return models.MediaTypePodcast
+	}
+
 	return models.MediaTypeSong
 }
 
@@ -111,12 +131,14 @@ func sessionFallbackSeconds(exercise models.Exercise) int64 {
 
 // buildPlexPlaybackForWindow maps Plex history items into provider-neutral play
 // events (audio only — TV/movie plays are watching, not listening) and defers the
-// window matching + EndedAt clamp to the shared playbackForWindow.
+// window matching + EndedAt clamp to the shared playbackForWindow. The sections map
+// (library id → library) classifies each track as song/podcast/audiobook; an item
+// whose library is unknown (empty map, or a missing section) stays a song.
 //
 // Note: account scoping is handled at fetch time (the server history request), not
 // here — the server uses server-local account ids that don't match the plex.tv
 // global id, so filtering by it client-side would wrongly drop everything.
-func buildPlexPlaybackForWindow(items []models.PlexHistoryMetadata, start, end time.Time) []models.MediaPlayback {
+func buildPlexPlaybackForWindow(items []models.PlexHistoryMetadata, sections map[string]models.PlexLibrarySection, start, end time.Time) []models.MediaPlayback {
 	events := []mediaPlayEvent{}
 
 	for _, item := range items {
@@ -129,18 +151,68 @@ func buildPlexPlaybackForWindow(items []models.PlexHistoryMetadata, start, end t
 			lengthSeconds = item.Duration / 1000
 		}
 
+		mediaType := models.MediaTypeSong
+		if section, ok := sections[string(item.LibrarySectionID)]; ok {
+			mediaType = classifyPlexSection(section.Agent, section.Title)
+		}
+
 		events = append(events, mediaPlayEvent{
-			mediaType:      classifyPlexMediaType(item.Type),
+			mediaType:      mediaType,
 			title:          item.Title,
 			artist:         item.GrandparentTitle,
 			album:          item.ParentTitle,
 			providerItemID: item.RatingKey,
+			// The raw PMS-relative thumb path; the read layer rewrites it to the
+			// authenticated artwork proxy (the thumb needs the server token to fetch).
+			artworkURL:     item.Thumb,
 			startedAt:      time.Unix(item.ViewedAt, 0).UTC(),
 			trackLengthSec: lengthSeconds,
 		})
 	}
 
 	return playbackForWindow(events, start, end)
+}
+
+// plexFetchLibrarySections lists the PMS libraries keyed by section id, so a history
+// item's LibrarySectionID can be classified (music vs audiobook vs podcast). It is
+// best-effort: on any error it returns an empty map and the caller treats every item
+// as a song rather than failing the whole sync.
+func plexFetchLibrarySections(serverURL, token string) map[string]models.PlexLibrarySection {
+	sections := map[string]models.PlexLibrarySection{}
+
+	req, err := http.NewRequest("GET", strings.TrimRight(serverURL, "/")+"/library/sections", nil)
+	if err != nil {
+		logger.Log.Warn("Plex library sections request generation threw error. Error: " + err.Error())
+		return sections
+	}
+	req.Header.Set("Accept", "application/json")
+	req.Header.Set("X-Plex-Token", token)
+	req.Header.Set("X-Plex-Client-Identifier", files.ConfigFile.Media.Plex.ClientIdentifier)
+
+	resp, err := plexServerClient(15 * time.Second).Do(req)
+	if err != nil {
+		logger.Log.Warn("Plex library sections request threw error. Error: " + err.Error())
+		return sections
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		logger.Log.Warn("Plex library sections returned non-200. Status: " + strconv.Itoa(resp.StatusCode))
+		return sections
+	}
+
+	parsed := models.PlexLibrarySectionsResponse{}
+	if err := json.NewDecoder(resp.Body).Decode(&parsed); err != nil {
+		logger.Log.Warn("Failed to parse Plex library sections. Error: " + err.Error())
+		return sections
+	}
+
+	for _, section := range parsed.MediaContainer.Directory {
+		if section.Key != "" {
+			sections[section.Key] = section
+		}
+	}
+	return sections
 }
 
 // plexFetchHistory queries the PMS server history within the window, scoped to the
@@ -168,14 +240,10 @@ func plexFetchHistory(serverURL, token, accountID string, start, end time.Time) 
 	req.Header.Set("X-Plex-Token", token)
 	req.Header.Set("X-Plex-Client-Identifier", files.ConfigFile.Media.Plex.ClientIdentifier)
 
-	// Plex serves a self-signed cert on plex.direct hostnames, so skip verification
-	// (the trust model the official clients use for these addresses). The stored
-	// ServerURL was probed for reachability at connect time.
-	client := &http.Client{
-		Timeout:   15 * time.Second,
-		Transport: &http.Transport{TLSClientConfig: &tls.Config{InsecureSkipVerify: true}},
-	}
-	resp, err := client.Do(req)
+	// plexServerClient skips TLS verification for plex.direct self-signed certs (the
+	// trust model the official clients use). The stored ServerURL was probed for
+	// reachability at connect time.
+	resp, err := plexServerClient(15 * time.Second).Do(req)
 	if err != nil {
 		logger.Log.Error("Plex history request threw error. Error: " + err.Error())
 		return nil, errors.New("Plex history request threw error.")
@@ -251,7 +319,11 @@ func PlexSyncExerciseForUser(user models.User, exercise models.Exercise) error {
 		logger.Log.Info(fmt.Sprintf("Plex history: first item %q viewedAt %s, last item viewedAt %s", items[0].Title, first.Format(time.RFC3339), last.Format(time.RFC3339)))
 	}
 
-	playback := buildPlexPlaybackForWindow(items, start, end)
+	// Classify each track by the library it lives in (best-effort — a failed lookup
+	// leaves everything a song rather than sinking the sync).
+	sections := plexFetchLibrarySections(*connection.ServerURL, token)
+
+	playback := buildPlexPlaybackForWindow(items, sections, start, end)
 
 	if err := database.ReplaceMediaPlaybackForExerciseProvider(exercise.ID, models.MediaProviderPlex, playback); err != nil {
 		return err

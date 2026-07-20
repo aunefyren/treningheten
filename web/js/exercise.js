@@ -528,9 +528,9 @@ function trackStatHTML(stat, isPeak) {
 }
 
 // mediaNodeHTML renders the rail node. A song keeps the plain amber dot; podcasts and
-// audiobooks get a typed amber glyph so a mixed session reads at a glance. The type
-// only varies once the provider classifies it (Plex podcast/audiobook detection) — so
-// today, when everything is a song, every node is the familiar dot.
+// audiobooks get a typed amber glyph so a mixed session reads at a glance. Type comes
+// from the provider's classification (Audiobookshelf natively, Plex by library
+// agent/name); Spotify is music-only, so its rows are always dots.
 function mediaNodeHTML(mediaType) {
     if (mediaType === 'podcast') {
         return `<span class="wv-node wv-node--icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="2" width="6" height="11" rx="3" fill="currentColor" stroke="none"></rect><path d="M5 10.5a7 7 0 0 0 14 0"></path><line x1="12" y1="17.5" x2="12" y2="21"></line><line x1="8.5" y1="21" x2="15.5" y2="21"></line></svg></span>`;
@@ -666,6 +666,13 @@ function renderCardioSubCard(operation, exercise) {
         scheduleCardioStreamRender(setForStreams, streams, hrCanvasID, mapDivID, hasHeartrate, hasRoute, latlngData);
     }
 
+    // Surface the gear used (moving activities only) so it reads without editing.
+    var gearHTML = "";
+    if (operation.gear) {
+        const nick = operation.gear.nickname ? " (" + operation.gear.nickname + ")" : "";
+        gearHTML = `<div class="wv-gear"><img src="/assets/sliders.svg" class="wv-gear-icon" alt="">${escapeHTML(operation.gear.name + nick)}</div>`;
+    }
+
     return `
         <div class="wv-activity wv-activity-cardio">
             <div class="wv-activity-head">
@@ -673,6 +680,7 @@ function renderCardioSubCard(operation, exercise) {
                 <div class="wv-activity-head-actions">${stravaSyncButtonHTML(setForStreams.id, stravaID)}${sourceBadge(operation, stravaID, exercise)}</div>
             </div>
             ${generateTagChipsHTML(operation.tags)}
+            ${gearHTML}
             ${activityDescriptionHTML(operation)}
             <div class="wv-stats">
                 <div class="wv-stat"><span class="wv-stat-value">${durationHTML}</span><span class="wv-stat-label">Duration</span></div>
@@ -1032,6 +1040,21 @@ function generateOperationHTML(operation) {
         `<option value="${v}" ${equip === v ? 'selected' : ''}>${label}</option>`
     ).join("");
 
+    // Gear is edited per operation, but only makes sense for moving activities
+    // (shoes / bike), mirroring Strava. Non-moving cards omit the selector so
+    // updateOperation never touches their gear.
+    var gearRowHTML = "";
+    if (operation.type === 'moving') {
+        gearRowHTML = `
+            <div class="we-gear-row">
+                <select class="we-input we-op-gear-select" id="operation-gear-${operation.id}" onchange="updateOperation('${operation.id}')">
+                    ${gearOptionsHTML(currentOperationGearID(operation))}
+                </select>
+                <img src="/assets/sliders.svg" class="btn_logo clickable wv-action-icon" title="Manage gear" onclick="openGearModal()">
+            </div>
+        `;
+    }
+
     return `
         <div class="we-exercise-head">
             <select class="we-type-select" id="operation-type-text-${operation.id}" title="Type" onchange="updateOperation('${operation.id}')">
@@ -1052,6 +1075,8 @@ function generateOperationHTML(operation) {
         <select class="we-equipment-select" id="operation-equipment-text-${operation.id}" name="operation-equipment-text" onchange="updateOperation('${operation.id}')">
             ${equipHTML}
         </select>
+
+        ${gearRowHTML}
 
         ${generateTagSelectorHTML(operation)}
 
@@ -1349,6 +1374,13 @@ function updateOperation(operationID) {
         "tags": tags,
         "description": description,
     };
+
+    // Only moving ops render a gear selector; when present, send its value so
+    // an empty selection clears gear and any other selection assigns it.
+    var gearEl = document.getElementById('operation-gear-' + operationID);
+    if (gearEl) {
+        form_obj["gear_id"] = gearEl.value;
+    }
 
     var form_data = JSON.stringify(form_obj);
 
@@ -1824,6 +1856,14 @@ function currentSessionGearID(exercise) {
     return primary ? primary.id : "";
 }
 
+// Gear for a single operation: its stored gear, else (for a moving op with none)
+// suggest the user's primary — matching the session default, unpersisted until changed.
+function currentOperationGearID(operation) {
+    if (operation.gear) return operation.gear.id;
+    const primary = gearList.find(g => g.is_primary && !g.retired);
+    return primary ? primary.id : "";
+}
+
 function gearOptionLabel(gear) {
     const nick = gear.nickname ? " (" + gear.nickname + ")" : "";
     const dist = gear.distance ? " · " + gear.distance.toFixed(1) + " km" : "";
@@ -1844,11 +1884,18 @@ function gearOptionsHTML(currentID) {
     return html;
 }
 
+// Gear is edited per operation (see generateOperationHTML). This session-level
+// control is only a convenience to set every moving activity at once, so it is
+// shown only when a session actually mixes 2+ moving activities.
 function generateGearFieldHTML(exercise) {
+    const movingOps = (exercise.operations || []).filter(o => o && o.type === 'moving');
+    if (movingOps.length < 2) {
+        return "";
+    }
     const currentID = currentSessionGearID(exercise);
     return `
         <label class="we-field">
-            <span class="we-field-label">Gear</span>
+            <span class="we-field-label">Set gear for all</span>
             <div class="we-gear-row">
                 <select class="we-input we-gear-select" id="exercise-gear-${exercise.id}" onchange="setExerciseGear('${exercise.id}', this.value)">
                     ${gearOptionsHTML(currentID)}
@@ -1862,7 +1909,7 @@ function generateGearFieldHTML(exercise) {
 // Rebuild every on-page gear selector from the current gearList, preserving each
 // session's selection — used after the manage-gear modal changes the list.
 function refreshGearSelectors() {
-    document.querySelectorAll('.we-gear-select').forEach(sel => {
+    document.querySelectorAll('.we-gear-select, .we-op-gear-select').forEach(sel => {
         const current = sel.value;
         sel.innerHTML = gearOptionsHTML(current);
         sel.value = current;
@@ -1884,11 +1931,13 @@ function setExerciseGear(exerciseID, gearID) {
                 error(result.error);
             } else {
                 success("Gear updated.");
-                // Keep the cache in sync so the summary/editor reflect the change.
+                // Keep the cache in sync so the summary/editor reflect the change,
+                // then re-render the editor so the per-operation selectors follow.
                 const exercise = exerciseCache[exerciseID];
                 if (exercise && exercise.operations) {
                     const gear = gearList.find(g => g.id === gearID) || null;
                     exercise.operations.forEach(o => { o.gear = gear; });
+                    rerenderExerciseEditor(exerciseID);
                 }
             }
         }

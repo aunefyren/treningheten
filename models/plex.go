@@ -1,7 +1,24 @@
 package models
 
+import "strings"
+
 // Plex DTOs for the plex.tv PIN auth flow and resource discovery. Only the fields
 // Treningheten uses are modelled. See docs/media.md.
+
+// PlexFlexString normalises a JSON value that Plex sends inconsistently as either a
+// bare number or a quoted string (librarySectionID is the notable offender, varying by
+// PMS version) into a canonical string, so decoding never fails on the type mismatch.
+type PlexFlexString string
+
+func (f *PlexFlexString) UnmarshalJSON(b []byte) error {
+	s := string(b)
+	if s == "null" {
+		*f = ""
+		return nil
+	}
+	*f = PlexFlexString(strings.Trim(s, `"`))
+	return nil
+}
 
 // PlexPin is the plex.tv/api/v2/pins resource. AuthToken is null until the user
 // authorizes the PIN in their browser, then holds the account token.
@@ -91,15 +108,36 @@ type PlexHistoryResponse struct {
 // scrobble timestamp (unix seconds); Duration is the full item length in
 // milliseconds (not always present in history payloads). The grandparent/parent
 // titles are generic across media types: artist/show/author and album/season/series.
+// LibrarySectionID ties the item to the library it lives in — the only signal for
+// audiobook/podcast, which Plex otherwise stores as plain music "track"s.
 type PlexHistoryMetadata struct {
-	RatingKey        string `json:"ratingKey"`
-	Key              string `json:"key"`
-	Title            string `json:"title"`
-	GrandparentTitle string `json:"grandparentTitle"`
-	ParentTitle      string `json:"parentTitle"`
-	Type             string `json:"type"`
-	Thumb            string `json:"thumb"`
-	ViewedAt         int64  `json:"viewedAt"`
-	AccountID        int64  `json:"accountID"`
-	Duration         int64  `json:"duration"`
+	RatingKey        string         `json:"ratingKey"`
+	Key              string         `json:"key"`
+	Title            string         `json:"title"`
+	GrandparentTitle string         `json:"grandparentTitle"`
+	ParentTitle      string         `json:"parentTitle"`
+	Type             string         `json:"type"`
+	Thumb            string         `json:"thumb"`
+	LibrarySectionID PlexFlexString `json:"librarySectionID"`
+	ViewedAt         int64          `json:"viewedAt"`
+	AccountID        int64          `json:"accountID"`
+	Duration         int64          `json:"duration"`
+}
+
+// PlexLibrarySectionsResponse is the {server}/library/sections reply (Accept: json).
+type PlexLibrarySectionsResponse struct {
+	MediaContainer struct {
+		Directory []PlexLibrarySection `json:"Directory"`
+	} `json:"MediaContainer"`
+}
+
+// PlexLibrarySection is one library on the PMS. Key matches a history item's
+// LibrarySectionID; Type is the Plex library kind ("artist" for music) and Agent is
+// the metadata agent — together they distinguish audiobooks/podcasts, which Plex
+// otherwise stores as ordinary music tracks.
+type PlexLibrarySection struct {
+	Key   string `json:"key"`
+	Type  string `json:"type"`
+	Agent string `json:"agent"`
+	Title string `json:"title"`
 }

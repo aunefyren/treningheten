@@ -40,10 +40,12 @@ type OperationUpdateRequest struct {
 	WeightUnit   string `json:"weight_unit"`
 	DistanceUnit string `json:"distance_unit"`
 	Equipment    string `json:"equipment"`
-	// Tags and Description are pointers so an omitted field (normal operation edits)
-	// leaves the stored value untouched, while an explicit value replaces it.
+	// Tags, Description and GearID are pointers so an omitted field (e.g. a
+	// non-moving op card never sends gear) leaves the stored value untouched,
+	// while an explicit value replaces it (an empty GearID string clears gear).
 	Tags        *[]string `json:"tags"`
 	Description *string   `json:"description"`
+	GearID      *string   `json:"gear_id"`
 }
 
 type OperationObject struct {

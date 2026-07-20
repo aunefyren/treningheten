@@ -2,6 +2,7 @@ package controllers
 
 import (
 	"net/http"
+	"net/url"
 	"slices"
 	"strings"
 
@@ -303,7 +304,7 @@ func ConvertMediaPlaybackToObjects(playback []models.MediaPlayback) []models.Med
 			Artist:         item.Artist,
 			Album:          item.Album,
 			ProviderItemID: item.ProviderItemID,
-			ArtworkURL:     item.ArtworkURL,
+			ArtworkURL:     resolveMediaArtworkURL(item.Provider, item.ArtworkURL),
 			StartedAt:      item.StartedAt,
 			EndedAt:        item.EndedAt,
 			TrackLength:    item.TrackLength,
@@ -311,6 +312,21 @@ func ConvertMediaPlaybackToObjects(playback []models.MediaPlayback) []models.Med
 	}
 
 	return objects
+}
+
+// resolveMediaArtworkURL turns a stored artwork reference into a URL the browser can
+// load. Spotify (and other public-URL providers) pass through unchanged; a Plex row
+// stores a PMS-relative thumb path (which needs the server token to fetch), so it is
+// rewritten to the authenticated artwork proxy rather than exposing the credential.
+func resolveMediaArtworkURL(provider string, artwork *string) *string {
+	if artwork == nil || *artwork == "" {
+		return artwork
+	}
+	if provider == models.MediaProviderPlex && strings.HasPrefix(*artwork, "/library/") {
+		proxied := "/api/auth/media/plex/artwork?path=" + url.QueryEscape(*artwork)
+		return &proxied
+	}
+	return artwork
 }
 
 // ConvertMediaConnectionToObject builds the safe read shape for a connection,

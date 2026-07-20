@@ -714,45 +714,6 @@ func TurnOffExercisesForExerciseDayByAmount(amount int, exerciseDayID uuid.UUID)
 
 }
 
-func CorrelateAllExercises() error {
-
-	exerciseDays, err := database.GetAllEnabledExerciseDays()
-	if err != nil {
-		logger.Log.Info("Failed to get enabled exercises. Error: " + err.Error())
-		return errors.New("Failed to get enabled exercises.")
-	}
-
-	for _, exerciseDay := range exerciseDays {
-		exerciseDayObject, err := ConvertExerciseDayToExerciseDayObject(exerciseDay)
-		if err != nil {
-			logger.Log.Info("Failed to convert exercise day to exercise day object. Error: " + err.Error())
-			return errors.New("Failed to convert exercise day to exercise day object.")
-		}
-
-		err = CorrelateExerciseWithExerciseDay(exerciseDay.ID, exerciseDayObject.ExerciseInterval)
-		if err != nil {
-			logger.Log.Info("Failed to correlate exercise. Error: " + err.Error())
-			return errors.New("Failed to correlate exercise.")
-		}
-	}
-
-	return nil
-}
-
-func APICorrelateAllExercises(context *gin.Context) {
-
-	err := CorrelateAllExercises()
-	if err != nil {
-		logger.Log.Info("Failed to correlate all exercises. Error: " + err.Error())
-		context.JSON(http.StatusBadRequest, gin.H{"error": "Failed to correlate all exercises."})
-		context.Abort()
-		return
-	}
-
-	context.JSON(http.StatusOK, gin.H{"message": "All exercise correlated."})
-
-}
-
 func ConvertExerciseDayToExerciseDayObject(exerciseDay models.ExerciseDay) (exerciseDayObject models.ExerciseDayObject, err error) {
 	exerciseDayObject = models.ExerciseDayObject{}
 	err = nil

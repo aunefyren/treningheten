@@ -17,11 +17,11 @@ stats like most-listened media and "fastest songs".
 > layer, read-path enrichment, the **Plex**, **Spotify**, and **Audiobookshelf**
 > connections, and the **history pull** (server history fetch + timestamp matching, the
 > Strava-sync creation trigger, the manual per-session re-pull endpoint + button, and the
-> session-level timeline), and the first **cross-activity stats** — the `/statistics`
+> session-level timeline), the first **cross-activity stats** — the `/statistics`
 > **Soundtrack** block (most-listened track/artist by play count, songs, unique artists,
-> music + spoken-audio time). Next increments: "fastest songs" (stream-windowed avg speed
-> per track), artwork, and **Plex** audiobook classification (Audiobookshelf already
-> classifies audiobook vs podcast natively).
+> music + spoken-audio time), **Plex audiobook/podcast classification** (by library
+> agent/name), and **Plex artwork** (served through an authenticated proxy). The one
+> remaining increment is "fastest songs" (stream-windowed avg speed per track).
 
 ## Feature flags
 
@@ -326,9 +326,16 @@ never-pulled.
   the activity end when the track started inside the activity.
 - **Audio only:** `isPlexAudioListen` keeps only `track` items (music, audiobooks,
   audio podcasts — all `track` in Plex). Video plays (`episode`/`movie`/`clip`, e.g. a
-  TV show) are *watching*, not listening, and are dropped. `classifyPlexMediaType`
-  currently labels everything audio as `song`; distinguishing audiobooks/podcasts
-  needs the item's library section/agent (a later refinement).
+  TV show) are *watching*, not listening, and are dropped.
+- **Type classification (Plex):** Plex stores audiobooks and podcasts as plain music
+  `track`s, so the only signal is the **library** the item lives in. Each pull fetches
+  `/library/sections` (`plexFetchLibrarySections`, best-effort — a failed lookup leaves
+  everything a song rather than sinking the sync) and `classifyPlexSection` (pure,
+  table-tested) maps the section's **metadata agent** (audnexus/lazyaudio/audible →
+  audiobook, a podcast agent → podcast), falling back to a **keyword in the library name**
+  ("Audiobooks"/"Podcasts"), else `song`. The heuristic is setup-dependent by nature —
+  agents vary between installs — and defaults to `song` when unsure, since a wrong label is
+  worse than a plain dot. (Audiobookshelf classifies natively; Spotify is music-only.)
 - **Privacy — history is scoped to the user.** The PMS history `accountID` is a
   **server-local** id (the owner is usually `1`), *not* the plex.tv global id. At
   connect (and when the server URL is set manually), `resolvePlexServerAccountID`
@@ -337,8 +344,16 @@ never-pulled.
   that id; if it can't be resolved, the sync **fails closed** (stamps the guard,
   stores nothing) rather than pulling every user's plays. Reconnect / re-save the
   server URL to (re)resolve it.
-- **Artwork** is not stored yet (the Plex thumb needs the server token to fetch;
-  embedding it in a stored URL would leak the credential — deferred to a proxy).
+- **Artwork (Plex):** the pull stores each row's PMS-relative thumb path (e.g.
+  `/library/metadata/…/thumb/…`) in `ArtworkURL`. That path needs the server token to
+  fetch, which must never be exposed, so the **read layer** (`resolveMediaArtworkURL` in
+  `ConvertMediaPlaybackToObjects`) rewrites a Plex `/library/…` value to an authenticated
+  proxy URL — `GET /api/auth/media/plex/artwork?path=…` (`APIGetPlexArtwork`, in the
+  image-auth group so an `<img>`/CSS background loads it via the session cookie). The proxy
+  validates the path is under `/library/` (SSRF guard), then streams the thumb from the
+  **requesting user's** Plex server with their decrypted token. Spotify already carries a
+  public artwork URL (passed through unchanged); both surface in the `/statistics`
+  Soundtrack block. (The exercise rail is a hairline time-spine and shows no thumbnails.)
 - **Graceful degradation:** activities with Strava streams will get stream-based
   stats; timed activities without streams already show the listening overlay rendered
   on the card.
@@ -438,9 +453,9 @@ only on genuine heterogeneity:
   audiobooks get a typed amber glyph on a disc that cuts the spine (`.wv-node--icon`, a
   mic / open-book SVG from `mediaNodeHTML`) — all inside the one `--wv-audio` accent, no
   second colour. **Audiobookshelf** classifies natively (`book`→audiobook,
-  `podcast`→podcast), so its rows render the typed nodes for real. Plex still returns `song`
-  for all audio (`classifyPlexMediaType`, classification not built yet) and Spotify is
-  music-only, so those rows stay dots until Plex classification lands.
+  `podcast`→podcast) and **Plex** now classifies by library agent/name
+  (`classifyPlexSection`), so both render the typed nodes for real; Spotify is music-only,
+  so its rows stay dots.
 - **Metric adapts to type.** Beats-per-minute is meaningless over a 40-minute talk, so
   spoken rows show **minutes listened** (`mediaSpanStatHTML`, from `track_length` else the
   played span) instead of the stream effort, and never claim the hardest-effort peak.
