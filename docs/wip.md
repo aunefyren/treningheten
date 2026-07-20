@@ -106,13 +106,6 @@ work:
 - Watch the media/soundtrack coupling: soundtrack is session-scoped (`Exercise`), so builder
   changes to session time/duration affect the match window (already noted under media).
 
-### /exercises has been refined, let the MCP server benefit
-- Users can now more easily find exercises on /exercises
-- The MCP server should also be able to find exercises
-- Allow MCP to find relevant exercises without shifting through tons of data
-- Surface the `CountsTowardGoal` flag (now on `Exercise`, see [docs/data-model.md](data-model.md))
-  in MCP exercise/activity output so clients can tell goal-counting sessions from excluded ones
-
 ### Gear tracker — possible follow-ups
 The gear feature shipped (see [`docs/gear.md`](gear.md)), and per-operation gear editing now
 ships too — each moving activity card in the builder has its own gear selector, with a

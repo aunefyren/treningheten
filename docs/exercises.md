@@ -64,10 +64,15 @@ browse mode and shows a flat ranked list in find mode. Each card links to `/exer
 (the builder) and shows a muted "Doesn't count" badge when `counts_toward_goal` is false. Styling
 follows the dark instrument-panel system shared with stats/gear.
 
+## Related
+
+- **MCP parity — done.** The MCP `list_exercises` tool is now backed by the same query-time
+  aggregation (`GetActivityFeedForUser`): it exposes action-name, free-text, date-range,
+  `has_distance`, metric sort and pagination, returning slim summaries (with `counts_toward_goal`)
+  and deferring per-set detail to `get_workout`. See [mcp.md](mcp.md).
+
 ## Related, not yet done
 
-- **MCP parity** — `list_exercises` currently filters only by action type + limit, not the
-  richer feed search (date range, note text, metric sort). Tracked in [wip.md](wip.md).
 - **Builder rework (`/exercises/:id`)** — the session builder still exposes gear at the session
   level only and doesn't cleanly organise a multi-activity-type session. The per-activity
   aggregate shape built here is exactly what a better session-summary header should consume.

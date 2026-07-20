@@ -34,6 +34,7 @@ type ActivityFeedItem struct {
 	TopWeight            float64    `json:"top_weight"`
 	SetCount             int        `json:"set_count"`
 	HasStrava            bool       `json:"has_strava"`
+	HevyWorkoutID        *string    `json:"hevy_workout_id"`    // session-level Hevy provenance; drives source resolution (strava/hevy/manual)
 	CountsTowardGoal     bool       `json:"counts_toward_goal"` // session-level: false → shown but not tallied
 	SessionActivityCount int        `json:"session_activity_count"`
 }
@@ -43,6 +44,7 @@ type ActivityFeedItem struct {
 // controller). Limit/Offset drive pagination. A nil pointer means "no filter on that field".
 type ActivityFeedFilter struct {
 	ActionID    *uuid.UUID
+	ActionName  string // case-insensitive substring on the action name; the MCP search filters by name (LLMs have names, not action ids). The web feed leaves this empty and filters by ActionID.
 	Start       *time.Time
 	End         *time.Time
 	Query       string

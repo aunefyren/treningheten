@@ -294,6 +294,39 @@ func TestActivityFeedSearchIsCaseInsensitiveAcrossNotes(t *testing.T) {
 	}
 }
 
+func TestActivityFeedActionNameFilter(t *testing.T) {
+	newTestDB(t)
+	userID, _, _ := seedActivityFeed(t)
+
+	// The MCP search filters by action NAME (case-insensitive substring), not action id:
+	// "run" must find both runs regardless of casing, and exclude the padel and lift.
+	items, total, err := GetActivityFeedForUser(userID, models.ActivityFeedFilter{
+		ActionName: "run", Sort: "date", Order: "desc", Limit: 30,
+	})
+	if err != nil {
+		t.Fatalf("feed error: %v", err)
+	}
+	if total != 2 || len(items) != 2 {
+		t.Fatalf("action name 'run' should find 2 runs, got total %d / len %d", total, len(items))
+	}
+	for _, item := range items {
+		if item.ActionName != "Run" {
+			t.Errorf("unexpected action %q in name-filtered feed", item.ActionName)
+		}
+	}
+
+	// A substring that hits a different action isolates it.
+	lifts, total, err := GetActivityFeedForUser(userID, models.ActivityFeedFilter{
+		ActionName: "lift", Sort: "date", Order: "desc", Limit: 30,
+	})
+	if err != nil {
+		t.Fatalf("feed error: %v", err)
+	}
+	if total != 1 || len(lifts) != 1 || lifts[0].ActionName != "Lifting" {
+		t.Fatalf("action name 'lift' should isolate the lift, got total %d / len %d", total, len(lifts))
+	}
+}
+
 func TestActivityFeedHasDistanceAndPagination(t *testing.T) {
 	newTestDB(t)
 	userID, _, _ := seedActivityFeed(t)

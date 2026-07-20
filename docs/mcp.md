@@ -36,8 +36,8 @@ for example, give feedback on their latest run. This is Phase 3 of the auth work
 | `whoami` | — | Profile: name, email, admin, member-since |
 | `list_weights` | `limit?` | Body-weight entries, newest first |
 | `get_latest_weight` | — | Most recent weight entry |
-| `list_exercises` | `action?`, `limit?` | Logged activities (id, date, action, type, `source`, `note`, `description`, `tags`, equipment, duration, `has_streams`, `has_soundtrack`, per-set distance/time/moving-time/reps/weight), newest first; `action` filters by exercise type (e.g. `Run`) |
-| `get_workout` | `activity_id` | The flat detail of one activity by id — for drilling in after `list_exercises` |
+| `list_exercises` | `action?`, `query?`, `from?`, `to?`, `has_distance?`, `sort?`, `order?`, `limit?`, `offset?` | **Search** the user's activities → a slim, ranked list. Each result carries id, date, action, type, `source`, `note`, aggregated metrics (distance, duration, reps, `top_weight`, `set_count`), `has_streams` and `counts_toward_goal`, plus session grouping (`session_id`, `session_activity_count`). Response includes `total` and `has_more`. See below |
+| `get_workout` | `activity_id` | The **rich** flat detail of one activity by id (per-set distance/time/moving-time/reps/weight, `tags`, `description`, `has_soundtrack`, `counts_toward_goal`) — drill in after `list_exercises` |
 | `get_workout_streams` | `activity_id`, `from_seconds?`, `to_seconds?`, `resolution?`, `max_points?` | Processed Strava sensor data for one activity (summary header + downsampled time-series). See below |
 | `get_workout_soundtrack` | `activity_id` | Listening history (music/podcast/audiobook) matched to the session, fetched on demand. See below |
 | `get_statistics` | — | Per-window totals (activity count, km distance, seconds time) over three **rolling** windows: trailing ~1 month, trailing 12 months, all-time. Counts span **all** exercise types; distance/time only count activities that record them. Plus **personal** day/week activity streaks (current + best) |
@@ -48,7 +48,29 @@ for example, give feedback on their latest run. This is Phase 3 of the auth work
 | `list_achievement_delegations` | `limit?`, `offset?`, `achievement_id?` | The user's achievement awards (newest first), paginated, optionally filtered to one achievement; response includes `total` |
 | `get_achievement_delegation` | `delegation_id` | One of the user's awards (ownership-checked) |
 
-Each activity carries a stable `id` (the operation id) used to address `get_workout` / `get_workout_streams` / `get_workout_soundtrack`, and `has_streams` / `has_soundtrack` flags so the model knows whether stream detail or listening history is available before asking for it (both are fetched on demand to keep the list responses lean). It also reports a `source` (`strava` / `hevy` / `manual`) so the model knows the activity's provenance — Strava (set id present), Hevy (parent exercise has a Hevy workout id), or hand-logged. It also carries the user's `note` and `description` (the latter is the Strava description for imported activities, or the per-exercise note for Hevy custom exercises) plus `tags` from the fixed vocabulary (`race`, `long-run`, `workout`, `commute`, `for-a-cause`, `recovery`, `with-pet`, `with-kid`). Because each activity is one operation, its `description`/`tags` belong unambiguously to that activity's `action`, even when an exercise day spans multiple action types.
+Each activity carries a stable `id` (the operation id) used to address `get_workout` / `get_workout_streams` / `get_workout_soundtrack`, and a `has_streams` flag so the model knows whether stream detail is available before asking for it. It also reports a `source` (`strava` / `hevy` / `manual`) so the model knows the activity's provenance — Strava (set id present), Hevy (parent exercise has a Hevy workout id), or hand-logged — and `counts_toward_goal`, the session-level flag telling whether the session tallies toward the user's weekly goal or is logged-but-excluded. The richer per-set breakdown, `tags`, `description` and `has_soundtrack` live on `get_workout` (the detail shape). Because each activity is one operation, its `description`/`tags` belong unambiguously to that activity's `action`, even when an exercise day spans multiple action types.
+
+### Finding exercises (`list_exercises`)
+
+`list_exercises` is a **search over the same query-time aggregation that backs the `/exercises`
+timeline** (`database.GetActivityFeedForUser`; see [exercises.md](exercises.md)) — the filtering,
+sorting and pagination run in the database, so the model finds relevant activities without the
+server walking and converting the whole exercise-day tree. It mirrors the web feed's toolkit:
+
+- **`action`** — case-insensitive substring on the exercise type name (e.g. `Run`). LLMs have
+  names, not action ids, so this maps to `ActivityFeedFilter.ActionName` (a name filter the web
+  feed itself doesn't set — it uses a dropdown of `action_id`s).
+- **`query`** — free-text over the activity/session/day notes **and** the type name.
+- **`from` / `to`** — date range; each accepts `YYYY-MM-DD` or an RFC3339 timestamp.
+- **`has_distance`** — only activities that recorded a distance.
+- **`sort`** (`date` | `distance` | `duration` | `weight` | `reps`) + **`order`** (`asc` | `desc`).
+- **`limit`** (default 20, capped at 100) / **`offset`** for pagination; the response reports
+  `total` and `has_more`.
+
+Results are **slim, aggregated summaries** (per-set distance/time/reps SUMmed, heaviest weight as
+`top_weight`), mirroring the web's deliberate two-shape split: the list stays lean, and per-set
+detail, `tags`, `description` and soundtrack are fetched by drilling into one result with
+`get_workout`. A bad `sort`, `order` or date is a client error.
 
 **Hevy custom exercises** have no global `Action` (they're private to the user), so their name is stored on the operation's note. The flattener mirrors the frontend's title fallback: when an operation has no `Action`, its note is promoted to `action` (and the real per-exercise note lives in `description`), rather than reporting `action: "Unknown"`.
 
@@ -103,9 +125,10 @@ history onto time-based sessions. The soundtrack is a **session-level** fact —
 against one session window and keyed to the `Exercise`, not an `Operation` — so it is
 exposed on demand rather than inlined into every activity:
 
-- `list_exercises` / `get_workout` carry a `has_soundtrack` flag (true when any
-  `MediaPlayback` row is matched to the session). Because it is session-level, every
-  activity of the same session shares the same flag and the same tracks.
+- `get_workout` carries a `has_soundtrack` flag (true when any `MediaPlayback` row is
+  matched to the session). Because it is session-level, every activity of the same session
+  shares the same flag and the same tracks. (The slim `list_exercises` search omits it — drill
+  into an activity with `get_workout` to see it.)
 - `get_workout_soundtrack(activity_id)` resolves the activity's session and returns
   `has_soundtrack`, `retrieved_at` (last pull), and `tracks[]` in play order (earliest
   `started_at` first). Each track is `{type` (song/podcast/audiobook)`, title, artist,
@@ -131,7 +154,8 @@ for HR/pace/elevation trends, and composes feedback.
 
 > "What was I listening to on my long run, and did the fast bits line up with the music?"
 
-The model calls `list_exercises`, sees `has_soundtrack` (and `has_streams`) true, then
+The model searches with `list_exercises` (sorting by `distance` to find the long run and
+seeing `has_streams` true), calls `get_workout(id)` which confirms `has_soundtrack`, then
 `get_workout_soundtrack(id)` for the tracks and `get_workout_streams(id)` for the pace
 series, and correlates the two on their shared absolute timestamps.
 
@@ -178,7 +202,7 @@ Point an MCP client at `https://<your-host>/mcp`. Either:
 - `controllers/mcp_data.go` — assembly of the operation-centric model into flat DTOs.
 - `controllers/mcp_streams.go` — processing of stored Strava streams (summary + downsampled series).
 - `controllers/mcp_engagement.go` — assembly of seasons, achievements and achievement delegations (all user-scoped).
-- `models/mcp.go` — MCP DTOs (`MCPProfile`, `MCPWeight`, `MCPActivity`, `MCPStatistics`, `MCPWorkoutStreams`, `MCPSeason`, `MCPAchievement`, `MCPAchievementDelegation`).
+- `models/mcp.go` — MCP DTOs (`MCPProfile`, `MCPWeight`, `MCPActivity`, `MCPActivitySummary`, `MCPStatistics`, `MCPWorkoutStreams`, `MCPSeason`, `MCPAchievement`, `MCPAchievementDelegation`).
 - `middlewares/auth.go` — `Authenticate` (shared token/PAT validation) + `BearerChallenge`.
 - `main.go` — `router.Any("/mcp", controllers.MCPHandler())`.
 

@@ -24,10 +24,15 @@ func activityFeedBase(userID uuid.UUID, filter models.ActivityFeedFilter) *gorm.
 		Where("`o`.`enabled` = 1").
 		Where("`e`.`is_on` = 1").
 		Where("`d`.`user_id` = ?", userID).
-		Group("`o`.`id`, `o`.`exercise_id`, `e`.`exercise_day_id`, `d`.`date`, `e`.`time`, `o`.`action_id`, `a`.`name`, `a`.`type`, `a`.`has_logo`, `o`.`note`, `o`.`distance_unit`, `o`.`weight_unit`, `e`.`counts_toward_goal`")
+		Group("`o`.`id`, `o`.`exercise_id`, `e`.`exercise_day_id`, `d`.`date`, `e`.`time`, `o`.`action_id`, `a`.`name`, `a`.`type`, `a`.`has_logo`, `o`.`note`, `o`.`distance_unit`, `o`.`weight_unit`, `e`.`hevy_workout_id`, `e`.`counts_toward_goal`")
 
 	if filter.ActionID != nil {
 		query = query.Where("`o`.`action_id` = ?", *filter.ActionID)
+	}
+	if name := strings.TrimSpace(filter.ActionName); name != "" {
+		// Case-fold both sides (like the free-text query) so "run" matches "Run" regardless
+		// of column collation. Used by the MCP search, which filters by action name.
+		query = query.Where("LOWER(`a`.`name`) LIKE ?", "%"+strings.ToLower(name)+"%")
 	}
 	if filter.Start != nil {
 		query = query.Where("`d`.`date` >= ?", *filter.Start)
@@ -97,6 +102,7 @@ func GetActivityFeedForUser(userID uuid.UUID, filter models.ActivityFeedFilter) 
 			"COALESCE(MAX(`os`.`weight`), 0) AS top_weight, " +
 			"COUNT(`os`.`id`) AS set_count, " +
 			"(COALESCE(SUM(CASE WHEN `os`.`strava_id` IS NOT NULL AND `os`.`strava_id` <> '' THEN 1 ELSE 0 END), 0) > 0) AS has_strava, " +
+			"`e`.`hevy_workout_id` AS hevy_workout_id, " +
 			"`e`.`counts_toward_goal` AS counts_toward_goal").
 		Order(orderBy).
 		Limit(filter.Limit).

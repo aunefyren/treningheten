@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"strings"
 
 	"github.com/aunefyren/treningheten/auth"
 	"github.com/aunefyren/treningheten/files"
@@ -28,8 +29,15 @@ type mcpListWeightsArgs struct {
 }
 
 type mcpListExercisesArgs struct {
-	Action string `json:"action,omitempty" jsonschema:"filter to one exercise type, e.g. Run or Bicycling"`
-	Limit  int    `json:"limit,omitempty" jsonschema:"maximum number of activities to return (default 20)"`
+	Action      string `json:"action,omitempty" jsonschema:"filter to activities whose exercise type matches this text (case-insensitive substring), e.g. Run or Bicycling"`
+	Query       string `json:"query,omitempty" jsonschema:"free-text search over the activity/session/day notes and the exercise type name (case-insensitive substring)"`
+	From        string `json:"from,omitempty" jsonschema:"only activities on or after this date; accepts YYYY-MM-DD or an RFC3339 timestamp"`
+	To          string `json:"to,omitempty" jsonschema:"only activities on or before this date; accepts YYYY-MM-DD or an RFC3339 timestamp"`
+	HasDistance bool   `json:"has_distance,omitempty" jsonschema:"when true, only activities that recorded a distance (runs, rides, etc.)"`
+	Sort        string `json:"sort,omitempty" jsonschema:"sort key: date (default), distance, duration, weight or reps"`
+	Order       string `json:"order,omitempty" jsonschema:"sort direction: desc (default, newest/largest first) or asc"`
+	Limit       int    `json:"limit,omitempty" jsonschema:"maximum number of activities to return (default 20, max 100)"`
+	Offset      int    `json:"offset,omitempty" jsonschema:"number of activities to skip from the start, for pagination (default 0)"`
 }
 
 type mcpWorkoutArgs struct {
@@ -92,7 +100,9 @@ type mcpLatestWeightOutput struct {
 }
 
 type mcpActivitiesOutput struct {
-	Activities []models.MCPActivity `json:"activities"`
+	Total      int64                       `json:"total" jsonschema:"total matching activities before limit/offset are applied"`
+	HasMore    bool                        `json:"has_more" jsonschema:"whether more activities remain beyond this page"`
+	Activities []models.MCPActivitySummary `json:"activities"`
 }
 
 type mcpActivityOutput struct {
@@ -177,14 +187,21 @@ func buildMCPServer(userID uuid.UUID) *mcp.Server {
 	})
 
 	mcp.AddTool(server, &mcp.Tool{
-		Name:        "list_exercises",
-		Description: "List the user's logged exercise activities (with action type, source (strava/hevy/manual), tags, note/description, duration and per-set distance/time/reps/weight), newest first. Optionally filter by exercise type (e.g. Run).",
+		Name: "list_exercises",
+		Description: "Search the user's logged exercise activities and return a slim, ranked list — the way to find relevant workouts without pulling everything. " +
+			"Each result is one activity with its id, date, exercise type, source (strava/hevy/manual), note, aggregated metrics (distance, duration, reps, top weight, set count), has_streams and counts_toward_goal. " +
+			"Filter by action (exercise type), free-text query (notes + type name), from/to date range and has_distance; sort by date (default), distance, duration, weight or reps in asc/desc order; paginate with limit (default 20, max 100) and offset. The response reports total and has_more. " +
+			"For per-set detail, tags, description and soundtrack, drill into one result with get_workout by its id.",
 	}, func(ctx context.Context, req *mcp.CallToolRequest, args mcpListExercisesArgs) (*mcp.CallToolResult, mcpActivitiesOutput, error) {
-		activities, err := assembleUserActivities(userID, args.Action, limitOrDefault(args.Limit))
+		filter, err := activityFeedFilterFromSearchArgs(args)
 		if err != nil {
 			return nil, mcpActivitiesOutput{}, err
 		}
-		return nil, mcpActivitiesOutput{Activities: activities}, nil
+		activities, total, hasMore, err := assembleActivitySearch(userID, filter)
+		if err != nil {
+			return nil, mcpActivitiesOutput{}, err
+		}
+		return nil, mcpActivitiesOutput{Total: total, HasMore: hasMore, Activities: activities}, nil
 	})
 
 	mcp.AddTool(server, &mcp.Tool{
@@ -345,4 +362,57 @@ func limitOrDefault(limit int) int {
 		return mcpDefaultLimit
 	}
 	return limit
+}
+
+// activityFeedFilterFromSearchArgs validates the list_exercises search arguments into an
+// ActivityFeedFilter, reusing the same date parsing and sort/order whitelists as the web
+// /exercises feed (parseActivityFeedTime, activityFeedSorts). A bad date, sort or order is a
+// client error. Limit defaults to 20 and is capped at 100; a negative offset falls back to 0.
+func activityFeedFilterFromSearchArgs(args mcpListExercisesArgs) (models.ActivityFeedFilter, error) {
+	filter := models.ActivityFeedFilter{
+		ActionName:  strings.TrimSpace(args.Action),
+		Query:       strings.TrimSpace(args.Query),
+		HasDistance: args.HasDistance,
+		Sort:        "date",
+		Order:       "desc",
+		Limit:       limitOrDefault(args.Limit),
+		Offset:      args.Offset,
+	}
+
+	if value := strings.TrimSpace(args.From); value != "" {
+		parsed, err := parseActivityFeedTime(value)
+		if err != nil {
+			return filter, fmt.Errorf("invalid from date: %w", err)
+		}
+		filter.Start = &parsed
+	}
+	if value := strings.TrimSpace(args.To); value != "" {
+		parsed, err := parseActivityFeedTime(value)
+		if err != nil {
+			return filter, fmt.Errorf("invalid to date: %w", err)
+		}
+		filter.End = &parsed
+	}
+
+	if value := strings.ToLower(strings.TrimSpace(args.Sort)); value != "" {
+		if !activityFeedSorts[value] {
+			return filter, fmt.Errorf("invalid sort: %s", value)
+		}
+		filter.Sort = value
+	}
+	if value := strings.ToLower(strings.TrimSpace(args.Order)); value != "" {
+		if value != "asc" && value != "desc" {
+			return filter, fmt.Errorf("invalid order: %s", value)
+		}
+		filter.Order = value
+	}
+
+	if filter.Limit > 100 {
+		filter.Limit = 100
+	}
+	if filter.Offset < 0 {
+		filter.Offset = 0
+	}
+
+	return filter, nil
 }

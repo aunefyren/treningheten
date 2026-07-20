@@ -60,6 +60,64 @@ func assembleUserActivities(userID uuid.UUID, actionFilter string, limit int) ([
 	return flattenActivities(dayObjects, actionFilter, limit), nil
 }
 
+// assembleActivitySearch runs the query-time /exercises feed (database.GetActivityFeedForUser)
+// and maps each pre-aggregated row to a slim MCPActivitySummary. Unlike assembleUserActivities
+// it does NOT load or convert the whole exercise-day tree — the filtering, sorting and
+// pagination happen in the database, so a client can find relevant activities without pulling
+// everything. It returns the summaries plus the total match count and whether more pages remain.
+func assembleActivitySearch(userID uuid.UUID, filter models.ActivityFeedFilter) ([]models.MCPActivitySummary, int64, bool, error) {
+	items, total, err := database.GetActivityFeedForUser(userID, filter)
+	if err != nil {
+		return nil, 0, false, err
+	}
+
+	summaries := make([]models.MCPActivitySummary, 0, len(items))
+	for _, item := range items {
+		summaries = append(summaries, feedItemToSummary(item))
+	}
+
+	hasMore := int64(filter.Offset+len(items)) < total
+	return summaries, total, hasMore, nil
+}
+
+// feedItemToSummary flattens one ActivityFeedItem into the MCP search shape. Source mirrors the
+// rich path's precedence (strava first, then hevy, else manual). Distance/weight units are only
+// meaningful when a value is present, so they are dropped for zero metrics to keep the payload lean.
+func feedItemToSummary(item models.ActivityFeedItem) models.MCPActivitySummary {
+	source := "manual"
+	if item.HasStrava {
+		source = "strava"
+	} else if item.HevyWorkoutID != nil && *item.HevyWorkoutID != "" {
+		source = "hevy"
+	}
+
+	summary := models.MCPActivitySummary{
+		ID:                   item.OperationID.String(),
+		Date:                 item.Date,
+		Time:                 item.Time,
+		Action:               item.ActionName,
+		Type:                 item.ActionType,
+		Note:                 derefString(item.Note),
+		Distance:             item.Distance,
+		DurationSeconds:      item.DurationSeconds,
+		Repetitions:          item.Repetitions,
+		TopWeight:            item.TopWeight,
+		SetCount:             item.SetCount,
+		HasStreams:           item.HasStrava,
+		Source:               source,
+		CountsTowardGoal:     item.CountsTowardGoal,
+		SessionID:            item.ExerciseID.String(),
+		SessionActivityCount: item.SessionActivityCount,
+	}
+	if item.Distance > 0 {
+		summary.DistanceUnit = item.DistanceUnit
+	}
+	if item.TopWeight > 0 {
+		summary.WeightUnit = item.WeightUnit
+	}
+	return summary
+}
+
 // loadUserExerciseDayObjects loads and enriches the user's exercise days. Callers
 // that need both the flat activities and the day grouping (e.g. streaks) load once
 // and reuse, since the conversion is the expensive part.
@@ -85,7 +143,7 @@ func flattenActivities(dayObjects []models.ExerciseDayObject, actionFilter strin
 			// ConvertExerciseToExerciseObject when Media.Enabled), so this is free here.
 			hasSoundtrack := len(exercise.MediaPlayback) > 0
 			for _, op := range exercise.Operations {
-				activity := operationObjectToActivity(op, exercise.Time, exercise.HevyWorkoutID, hasSoundtrack)
+				activity := operationObjectToActivity(op, exercise.Time, exercise.HevyWorkoutID, hasSoundtrack, exercise.CountsTowardGoal)
 
 				if actionFilter != "" && !strings.Contains(strings.ToLower(activity.Action), actionFilter) {
 					continue
@@ -111,7 +169,7 @@ func flattenActivities(dayObjects []models.ExerciseDayObject, actionFilter strin
 // is the parent exercise's Hevy id (provenance), used to set Source. hasSoundtrack is
 // the session-level listening-history flag; the tracks are fetched on demand via
 // get_workout_soundtrack (mirrors the streams pattern).
-func operationObjectToActivity(op models.OperationObject, date time.Time, hevyWorkoutID *string, hasSoundtrack bool) models.MCPActivity {
+func operationObjectToActivity(op models.OperationObject, date time.Time, hevyWorkoutID *string, hasSoundtrack bool, countsTowardGoal bool) models.MCPActivity {
 	note := derefString(op.Note)
 	actionName := "Unknown"
 	if op.Action != nil {
@@ -140,19 +198,20 @@ func operationObjectToActivity(op models.OperationObject, date time.Time, hevyWo
 	}
 
 	return models.MCPActivity{
-		ID:              op.ID.String(),
-		Date:            date,
-		Action:          actionName,
-		Type:            op.Type,
-		Source:          source,
-		Note:            note,
-		Description:     derefString(op.Description),
-		Tags:            op.Tags,
-		Equipment:       derefString(op.Equipment),
-		DurationSeconds: copySecondsPtr(op.Duration),
-		HasStreams:      hasStreams,
-		HasSoundtrack:   hasSoundtrack,
-		Sets:            mapSets(op.OperationSets, op.WeightUnit, op.DistanceUnit),
+		ID:               op.ID.String(),
+		Date:             date,
+		Action:           actionName,
+		Type:             op.Type,
+		Source:           source,
+		Note:             note,
+		Description:      derefString(op.Description),
+		Tags:             op.Tags,
+		Equipment:        derefString(op.Equipment),
+		DurationSeconds:  copySecondsPtr(op.Duration),
+		HasStreams:       hasStreams,
+		HasSoundtrack:    hasSoundtrack,
+		CountsTowardGoal: countsTowardGoal,
+		Sets:             mapSets(op.OperationSets, op.WeightUnit, op.DistanceUnit),
 	}
 }
 
@@ -169,20 +228,21 @@ func assembleSingleActivity(userID uuid.UUID, activityID uuid.UUID) (models.MCPA
 		return models.MCPActivity{}, err
 	}
 
-	date, hevyWorkoutID := resolveExerciseDate(userID, operation.ExerciseID)
+	date, hevyWorkoutID, countsTowardGoal := resolveExerciseDate(userID, operation.ExerciseID)
 	// Unlike the list path, this operation-level path doesn't carry the session's
 	// media, so resolve the flag directly (a no-op query when Media is disabled).
 	hasSoundtrack := exerciseHasSoundtrack(operation.ExerciseID)
-	return operationObjectToActivity(opObject, date, hevyWorkoutID, hasSoundtrack), nil
+	return operationObjectToActivity(opObject, date, hevyWorkoutID, hasSoundtrack, countsTowardGoal), nil
 }
 
 // resolveExerciseDate mirrors ConvertExerciseToExerciseObject's time fallback:
 // the exercise's own Time, else its day's date, else now. It also returns the
-// exercise's Hevy workout id (provenance) so the activity can report its source.
-func resolveExerciseDate(userID uuid.UUID, exerciseID uuid.UUID) (time.Time, *string) {
+// exercise's Hevy workout id (provenance) so the activity can report its source,
+// and the session's counts-toward-goal flag.
+func resolveExerciseDate(userID uuid.UUID, exerciseID uuid.UUID) (time.Time, *string, bool) {
 	exercise, err := database.GetExerciseByIDAndUserID(exerciseID, userID)
 	if err != nil || exercise == nil {
-		return time.Now(), nil
+		return time.Now(), nil, false
 	}
 	date := time.Now()
 	if exercise.Time != nil {
@@ -190,7 +250,7 @@ func resolveExerciseDate(userID uuid.UUID, exerciseID uuid.UUID) (time.Time, *st
 	} else if day, err := database.GetExerciseDayByID(exercise.ExerciseDayID); err == nil && day != nil {
 		date = day.Date
 	}
-	return date, exercise.HevyWorkoutID
+	return date, exercise.HevyWorkoutID, exercise.CountsTowardGoal
 }
 
 // assembleUserStatistics derives a focused set of counts, totals and streaks from
