@@ -205,7 +205,7 @@ func TestGetExerciseDaysBetweenDates(t *testing.T) {
 	}
 }
 
-func TestGetExerciseDaysForUserAndYearAndGoal(t *testing.T) {
+func TestGetExerciseDaysForUserAndGoal(t *testing.T) {
 	newTestDB(t)
 
 	user := makeTestUser(t, "eduseryear@example.com", nil)
@@ -222,22 +222,6 @@ func TestGetExerciseDaysForUserAndYearAndGoal(t *testing.T) {
 	}
 	if len(allForUser) != 3 {
 		t.Errorf("all days: got %d, want 3", len(allForUser))
-	}
-
-	in2024, err := GetExerciseDaysForUserUsingUserIDAndYear(user.ID, 2024)
-	if err != nil {
-		t.Fatalf("GetExerciseDaysForUserUsingUserIDAndYear returned error: %v", err)
-	}
-	if len(in2024) != 2 {
-		t.Errorf("2024 days: got %d, want 2", len(in2024))
-	}
-
-	years, err := GetDistinctExerciseYearsForUser(user.ID)
-	if err != nil {
-		t.Fatalf("GetDistinctExerciseYearsForUser returned error: %v", err)
-	}
-	if len(years) != 2 || years[0] != 2024 || years[1] != 2023 {
-		t.Errorf("distinct years: got %v, want [2024 2023]", years)
 	}
 
 	byGoal, err := GetExerciseDaysForUserUsingUserIDAndGoalID(user.ID, goal.ID)

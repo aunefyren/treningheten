@@ -43,40 +43,6 @@ func TestCreateAndGetExerciseByExerciseDayID(t *testing.T) {
 	}
 }
 
-func TestGetOnExerciseCountsForExerciseDayIDs(t *testing.T) {
-	newTestDB(t)
-
-	user := makeTestUser(t, "oncounts@example.com", nil)
-	day1 := makeDay(t, user.ID, time.Now())
-	day2 := makeDay(t, user.ID, time.Now())
-
-	// day1: 2 on + 1 off → 2.
-	seedExercise(t, day1.ID, true, true)
-	seedExercise(t, day1.ID, true, true)
-	seedExercise(t, day1.ID, true, false)
-	// day2: 1 on.
-	seedExercise(t, day2.ID, true, true)
-
-	counts, err := GetOnExerciseCountsForExerciseDayIDs([]uuid.UUID{day1.ID, day2.ID})
-	if err != nil {
-		t.Fatalf("GetOnExerciseCountsForExerciseDayIDs returned error: %v", err)
-	}
-	if counts[day1.ID] != 2 {
-		t.Errorf("day1 count: got %d, want 2", counts[day1.ID])
-	}
-	if counts[day2.ID] != 1 {
-		t.Errorf("day2 count: got %d, want 1", counts[day2.ID])
-	}
-
-	empty, err := GetOnExerciseCountsForExerciseDayIDs(nil)
-	if err != nil {
-		t.Fatalf("GetOnExerciseCountsForExerciseDayIDs(nil) returned error: %v", err)
-	}
-	if len(empty) != 0 {
-		t.Errorf("no ids: got %d entries, want 0", len(empty))
-	}
-}
-
 func TestTurnExerciseOnOff(t *testing.T) {
 	newTestDB(t)
 

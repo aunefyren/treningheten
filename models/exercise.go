@@ -32,17 +32,6 @@ type ExerciseDayUpdateRequest struct {
 	Note string `json:"note"`
 }
 
-// ExerciseDaySummary is a slim view of an exercise day for listing pages that only
-// need the day header (date, note) and how many exercises are on, without walking
-// the operation/set/Strava tree. ExerciseInterval is the count of enabled, on
-// exercises for the day (matching ExerciseDayObject.ExerciseInterval).
-type ExerciseDaySummary struct {
-	ID               uuid.UUID `json:"id"`
-	Date             time.Time `json:"date"`
-	Note             string    `json:"note"`
-	ExerciseInterval int       `json:"exercise_interval"`
-}
-
 type Exercise struct {
 	GormModel
 	Note          string      `json:"note"`

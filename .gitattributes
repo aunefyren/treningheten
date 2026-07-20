@@ -1,0 +1,16 @@
+# Normalize line endings: store LF in the repo, check out LF everywhere. This stops
+# the whole-tree CRLF/LF churn that otherwise shows every file as "modified" on Windows.
+* text=auto eol=lf
+
+# Binary assets — never touch their bytes.
+*.png  binary
+*.jpg  binary
+*.jpeg binary
+*.gif  binary
+*.ico  binary
+*.webp binary
+*.woff  binary
+*.woff2 binary
+*.ttf   binary
+*.eot   binary
+*.pdf   binary

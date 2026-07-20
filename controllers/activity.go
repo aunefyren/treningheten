@@ -1,6 +1,7 @@
 package controllers
 
 import (
+	"errors"
 	"net/http"
 	"strconv"
 	"strings"
@@ -34,18 +35,11 @@ func parseActivityFeedTime(value string) (time.Time, error) {
 	return time.Parse("2006-01-02", value)
 }
 
-// APIGetActivityFeed powers the /exercises timeline: a filtered, sorted, paginated list of
-// activities (operations) with per-activity metrics aggregated from their sets. See
-// database.GetActivityFeedForUser and docs/wip.md.
-func APIGetActivityFeed(context *gin.Context) {
-	userID, err := middlewares.GetAuthUsername(context.GetHeader("Authorization"))
-	if err != nil {
-		logger.Log.Info("Failed to verify user ID. Error: " + err.Error())
-		context.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-		context.Abort()
-		return
-	}
-
+// parseActivityFeedFilter reads and validates the feed query parameters into an
+// ActivityFeedFilter. A returned error carries a client-facing message and always maps to a
+// 400. Limit is clamped to [1, 100] and an out-of-range offset falls back to 0, so the DB
+// layer never sees a nonsensical page window.
+func parseActivityFeedFilter(context *gin.Context) (models.ActivityFeedFilter, error) {
 	filter := models.ActivityFeedFilter{
 		Sort:   "date",
 		Order:  "desc",
@@ -56,9 +50,7 @@ func APIGetActivityFeed(context *gin.Context) {
 	if value := strings.TrimSpace(context.Query("action_id")); value != "" {
 		actionID, err := uuid.Parse(value)
 		if err != nil {
-			context.JSON(http.StatusBadRequest, gin.H{"error": "Invalid action id."})
-			context.Abort()
-			return
+			return filter, errors.New("Invalid action id.")
 		}
 		filter.ActionID = &actionID
 	}
@@ -66,9 +58,7 @@ func APIGetActivityFeed(context *gin.Context) {
 	if value := strings.TrimSpace(context.Query("start")); value != "" {
 		parsed, err := parseActivityFeedTime(value)
 		if err != nil {
-			context.JSON(http.StatusBadRequest, gin.H{"error": "Invalid start date."})
-			context.Abort()
-			return
+			return filter, errors.New("Invalid start date.")
 		}
 		filter.Start = &parsed
 	}
@@ -76,9 +66,7 @@ func APIGetActivityFeed(context *gin.Context) {
 	if value := strings.TrimSpace(context.Query("end")); value != "" {
 		parsed, err := parseActivityFeedTime(value)
 		if err != nil {
-			context.JSON(http.StatusBadRequest, gin.H{"error": "Invalid end date."})
-			context.Abort()
-			return
+			return filter, errors.New("Invalid end date.")
 		}
 		filter.End = &parsed
 	}
@@ -91,18 +79,14 @@ func APIGetActivityFeed(context *gin.Context) {
 
 	if value := strings.ToLower(strings.TrimSpace(context.Query("sort"))); value != "" {
 		if !activityFeedSorts[value] {
-			context.JSON(http.StatusBadRequest, gin.H{"error": "Invalid sort."})
-			context.Abort()
-			return
+			return filter, errors.New("Invalid sort.")
 		}
 		filter.Sort = value
 	}
 
 	if value := strings.ToLower(strings.TrimSpace(context.Query("order"))); value != "" {
 		if value != "asc" && value != "desc" {
-			context.JSON(http.StatusBadRequest, gin.H{"error": "Invalid order."})
-			context.Abort()
-			return
+			return filter, errors.New("Invalid order.")
 		}
 		filter.Order = value
 	}
@@ -123,6 +107,28 @@ func APIGetActivityFeed(context *gin.Context) {
 		if parsed, err := strconv.Atoi(value); err == nil && parsed >= 0 {
 			filter.Offset = parsed
 		}
+	}
+
+	return filter, nil
+}
+
+// APIGetActivityFeed powers the /exercises timeline: a filtered, sorted, paginated list of
+// activities (operations) with per-activity metrics aggregated from their sets. See
+// database.GetActivityFeedForUser and docs/exercises.md.
+func APIGetActivityFeed(context *gin.Context) {
+	userID, err := middlewares.GetAuthUsername(context.GetHeader("Authorization"))
+	if err != nil {
+		logger.Log.Info("Failed to verify user ID. Error: " + err.Error())
+		context.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		context.Abort()
+		return
+	}
+
+	filter, err := parseActivityFeedFilter(context)
+	if err != nil {
+		context.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		context.Abort()
+		return
 	}
 
 	items, total, err := database.GetActivityFeedForUser(userID, filter)

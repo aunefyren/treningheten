@@ -36,42 +36,6 @@ func GetExerciseByExerciseDayID(exerciseDayID uuid.UUID) ([]models.Exercise, err
 
 }
 
-// GetOnExerciseCountsForExerciseDayIDs returns, per exercise-day ID, the number of
-// enabled exercises that are on. It answers the whole set of days in one grouped
-// query (rather than one query per day), to feed ExerciseDaySummary.ExerciseInterval.
-func GetOnExerciseCountsForExerciseDayIDs(exerciseDayIDs []uuid.UUID) (map[uuid.UUID]int, error) {
-
-	counts := map[uuid.UUID]int{}
-	if len(exerciseDayIDs) == 0 {
-		return counts, nil
-	}
-
-	type exerciseDayCount struct {
-		ExerciseDayID uuid.UUID
-		Count         int
-	}
-
-	var rows []exerciseDayCount
-	record := Instance.Model(&models.Exercise{}).
-		Select("exercise_day_id, count(*) as count").
-		Where("`exercises`.enabled = ?", 1).
-		Where("`exercises`.is_on = ?", 1).
-		Where("`exercises`.exercise_day_id IN ?", exerciseDayIDs).
-		Group("exercise_day_id").
-		Scan(&rows)
-
-	if record.Error != nil {
-		return counts, record.Error
-	}
-
-	for _, row := range rows {
-		counts[row.ExerciseDayID] = row.Count
-	}
-
-	return counts, nil
-
-}
-
 // Turn on exercise in database
 func UpdateExerciseByTurningOnByExerciseID(exerciseID uuid.UUID) error {
 

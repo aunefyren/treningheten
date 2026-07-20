@@ -24,6 +24,8 @@ architecture overview.
   processing loop.
 - [streaks.md](streaks.md) — the **two** streak systems (personal activity streaks vs
   within-season goal streaks) and how each is computed.
+- [exercises.md](exercises.md) — the `/exercises` activity timeline: the searchable/sortable
+  feed (`GET /auth/activities`), its browse vs find modes, and the query-time aggregation.
 - [wheel-customization.md](wheel-customization.md) — per-user wheel appearance (color,
   border, emoji): storage, account-page picker, validation, and the
   distinct/stable color assignment.
