@@ -32,7 +32,7 @@ Per-user state lives on the `User` model (`models/user.go`):
 |---|---|
 | `StravaCode` | The connection credential — see [token lifecycle](#token-lifecycle) for the `c:` / `r:` scheme |
 | `StravaID` | The athlete's numeric Strava id (captured at authorization time from the auth-code exchange's `athlete` object, in `StravaGetAuthorizationForUser`'s `c:` branch — the only Strava response that includes it) |
-| `StravaIgnoreWalks` | When true, **skip** activities of sport type `walk` on import. (JSON/DB name stays `strava_walks`; the Go field is named for what it does to avoid the inverted-meaning trap.) |
+| `StravaIgnoreWalks` | **Deprecated.** Formerly skipped `walk` activities on import. Walks now import like any other activity; whether they count toward the goal is governed per-activity-type by `UserActivityGoalSetting` (see [data-model.md](data-model.md)). `Migrate()` backfills any user who had this on into a `Walking → doesn't count` setting and clears the flag. |
 | `StravaPublic` | Whether the user's Strava-derived activities are shown on their profile |
 
 ## Connecting an account (OAuth login)
@@ -161,7 +161,9 @@ Strava activity id and updates them rather than duplicating, so re-syncing a wee
 safe.
 
 **Filtering & identity**
-- If `StravaWalks` is enabled and the activity's sport type is `walk`, it is skipped.
+- No sport type is skipped anymore — every activity imports. On a **new** import the session's
+  `CountsTowardGoal` is snapshotted from the user's per-activity-type settings
+  (`stravaActivityCountsTowardGoal`); re-syncs leave it alone so a manual builder toggle sticks.
 - The user's `StravaID` is **not** set here — it is captured at authorization time (see
   `StravaCode` above). The activity loop must not save the (possibly stale) `user` struct,
   which would clobber `StravaCode`.

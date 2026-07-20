@@ -46,9 +46,11 @@ The aggregation is **query-time** (`database.GetActivityFeedForUser`): it walks 
 chain `operations → exercises → exercise_days → users` (same joins as `GetOperationsByUserID`),
 LEFT JOINs `operation_sets`, and per operation returns `SUM(distance)`, `SUM(time)` (seconds —
 repo convention), `SUM(repetitions)`, `MAX(weight)` as top weight, `COUNT(sets)`, and a
-`has_strava` flag. A companion grouped query fills `session_activity_count` (the true number of
-activities in each returned session, independent of the current filter) so a browse card can
-honestly say "2 activities".
+`has_strava` flag. It also carries the session's `counts_toward_goal` (a session-level flag, so
+every activity of the session shares it) so the feed can flag a logged-but-excluded session. A
+companion grouped query fills `session_activity_count` (the true number of activities in each
+returned session, independent of the current filter) so a browse card can honestly say
+"2 activities".
 
 Each item is a slim `models.ActivityFeedItem` — **no `strava_streams`** (too heavy for a list;
 HR/GPS detail is deferred to the builder/detail view). The response is shaped so precomputed
@@ -59,7 +61,8 @@ Operation rollup columns could back it later **without changing the JSON**.
 `web/js/exercises.js` is a filter/search bar + infinite-scroll timeline against
 `api_url + "auth/activities"`. It groups adjacent same-session activities under day headers in
 browse mode and shows a flat ranked list in find mode. Each card links to `/exercises/:dayID`
-(the builder). Styling follows the dark instrument-panel system shared with stats/gear.
+(the builder) and shows a muted "Doesn't count" badge when `counts_toward_goal` is false. Styling
+follows the dark instrument-panel system shared with stats/gear.
 
 ## Related, not yet done
 

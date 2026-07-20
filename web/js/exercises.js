@@ -327,6 +327,8 @@ function feedActivityRow(item, opts) {
     var note = (item.note && item.note.trim())
         ? `<span class="feed-note" title="${escapeHTML(item.note)}">📝</span>`
         : "";
+    var noCount = item.counts_toward_goal ? ""
+        : `<span class="feed-nocount" title="Logged but doesn't count toward your weekly goal">Doesn't count</span>`;
     var when = opts.showDate ? feedWhenLabel(item) : "";
     var rank = opts.rank ? `<div class="feed-rank">${opts.rank}</div>` : "";
 
@@ -335,7 +337,7 @@ function feedActivityRow(item, opts) {
             ${rank}
             <div class="feed-row-icon">${icon}</div>
             <div class="feed-row-body">
-                <div class="feed-row-title">${escapeHTML(item.action_name || "Activity")}${note}</div>
+                <div class="feed-row-title">${escapeHTML(item.action_name || "Activity")}${note}${noCount}</div>
                 <div class="feed-row-metrics">${chips || "&nbsp;"}</div>
             </div>
             ${when ? `<div class="feed-row-when">${when}</div>` : ""}

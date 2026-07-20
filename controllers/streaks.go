@@ -31,7 +31,7 @@ func computePersonalStreaks(dayObjects []models.ExerciseDayObject) personalStrea
 	for _, day := range dayObjects {
 		active := false
 		for _, exercise := range day.Exercises {
-			if exercise.Enabled && exercise.IsOn {
+			if exerciseCountsTowardGoal(exercise) {
 				active = true
 				break
 			}

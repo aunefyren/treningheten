@@ -216,6 +216,64 @@
 .tag-chip-selected { background: var(--lightgreen); opacity: 1 !important; font-weight: bold; }
 .tag-chip-readonly { cursor: default; }
 
+/* Goal-counting exclusion multi-select (/account "Goal counting"): a search box with a dropdown
+   of activity types to exclude, and the chosen exclusions shown as removable chips. */
+.goal-exclude { display: flex; flex-direction: column; gap: 0.75rem; width: 100%; }
+.goal-exclude-input-wrap { position: relative; width: 100%; }
+#goal-exclude-search { width: 100%; box-sizing: border-box; }
+.goal-exclude-dropdown {
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: calc(100% + 0.25rem);
+    z-index: 10;
+    background: var(--white);
+    border: 1px solid var(--grey);
+    border-radius: 0.75rem;
+    max-height: 14rem;
+    overflow-y: auto;
+    box-shadow: var(--shadow-sm);
+}
+.goal-exclude-option {
+    padding: 0.5rem 0.75rem;
+    color: var(--black);
+    border-bottom: 1px solid var(--grey);
+}
+.goal-exclude-option:last-child { border-bottom: none; }
+.goal-exclude-option:hover { background: var(--surface-hi); }
+.goal-exclude-empty { padding: 0.5rem 0.75rem; color: var(--text-dim); font-size: 0.85rem; }
+.goal-exclude-chips { display: flex; flex-wrap: wrap; gap: 0.4rem; margin-bottom: 0.75rem; }
+.goal-exclude-none { color: var(--text-dim); font-size: 0.85rem; }
+.goal-exclude-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.25em 0.35em 0.25em 0.7em;
+    border-radius: 1em;
+    font-size: 0.8rem;
+    background: var(--lightblue);
+    color: var(--white);
+}
+.goal-exclude-chip button {
+    border: none;
+    background: rgba(255, 255, 255, 0.25);
+    color: var(--white);
+    border-radius: 50%;
+    width: 1.15rem;
+    height: 1.15rem;
+    line-height: 1;
+    font-size: 0.9rem;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+.goal-exclude-chip button:hover { background: rgba(255, 255, 255, 0.45); }
+
+/* "Not everything has to count" hint shown in the connected Strava/Hevy blocks. */
+.goal-count-hint { font-size: 0.85rem; color: var(--text-dim); }
+.goal-count-hint-link { color: var(--lightblue); text-decoration: underline; }
+
 /* Per-operation description in the editor. */
 .operation-description-area {
     width: 90%;
@@ -927,6 +985,22 @@
 .feed-note {
     font-size: 0.8rem;
     opacity: 0.7;
+}
+
+/* "Doesn't count" status pill — the activity is listed but its session is excluded from the
+   weekly goal. Muted to read as a quiet status next to the title, not an alert. */
+.feed-nocount {
+    font-family: var(--font-body);
+    font-size: 0.62rem;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    text-transform: none;
+    color: var(--text-dim);
+    background: var(--surface-hi);
+    border: 1px solid var(--grey);
+    border-radius: 999px;
+    padding: 0.1rem 0.45rem;
+    white-space: nowrap;
 }
 
 .feed-row-metrics {

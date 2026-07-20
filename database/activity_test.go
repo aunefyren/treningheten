@@ -190,6 +190,51 @@ func makeSessionOff(t *testing.T, dayID uuid.UUID, at time.Time) models.Exercise
 	return session
 }
 
+// makeSessionNotCounting inserts an on session flagged not to count toward the goal. Unlike
+// an off session the feed still lists it; it must just report counts_toward_goal=false. The
+// flag is forced with an explicit column update for the same default:true reason as above.
+func makeSessionNotCounting(t *testing.T, dayID uuid.UUID, at time.Time) models.Exercise {
+	t.Helper()
+	session := makeSession(t, dayID, at)
+	if err := Instance.Model(&session).Update("counts_toward_goal", 0).Error; err != nil {
+		t.Fatalf("failed to flag session not-counting: %v", err)
+	}
+	session.CountsTowardGoal = false
+	return session
+}
+
+func TestActivityFeedReportsCountsTowardGoal(t *testing.T) {
+	newTestDB(t)
+	user := makeTestUser(t, "nocount@test.dev", nil)
+	run := makeAction(t, "Run", "cardio")
+	day := makeDay(t, user.ID, time.Date(2025, 5, 4, 0, 0, 0, 0, time.UTC))
+
+	counting := makeSession(t, day.ID, time.Date(2025, 5, 4, 9, 0, 0, 0, time.UTC))
+	makeOperation(t, counting.ID, &run.ID)
+
+	notCounting := makeSessionNotCounting(t, day.ID, time.Date(2025, 5, 4, 18, 0, 0, 0, time.UTC))
+	makeOperation(t, notCounting.ID, &run.ID)
+
+	items, total, err := GetActivityFeedForUser(user.ID, models.ActivityFeedFilter{Sort: "date", Order: "desc", Limit: 30})
+	if err != nil {
+		t.Fatalf("feed error: %v", err)
+	}
+	// Both sessions are listed — the not-counting one is visible, just flagged.
+	if total != 2 || len(items) != 2 {
+		t.Fatalf("both sessions should appear: got total %d / len %d", total, len(items))
+	}
+	got := map[uuid.UUID]bool{}
+	for _, item := range items {
+		got[item.ExerciseID] = item.CountsTowardGoal
+	}
+	if !got[counting.ID] {
+		t.Errorf("counting session: CountsTowardGoal = false, want true")
+	}
+	if got[notCounting.ID] {
+		t.Errorf("not-counting session: CountsTowardGoal = true, want false")
+	}
+}
+
 func TestActivityFeedExcludesOffSessions(t *testing.T) {
 	newTestDB(t)
 	user := makeTestUser(t, "off@test.dev", nil)

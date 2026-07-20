@@ -218,6 +218,17 @@ function load_page(result) {
                     </div>
                 </div>
 
+                <div class="account-section" style="display: none;" id="goal-counting-section">
+
+                    <div class="account-section-tab clickable" onclick="toggleSection('goal-counting-wrapper', 'section-button-goal-counting')">
+                        <div class="">Goal counting</div>
+                        <img id="section-button-goal-counting" src="assets/chevron-right.svg" class="color-invert u-m-2">
+                    </div>
+
+                    <div id="goal-counting-wrapper" class="goal-counting-wrapper minimized">
+                    </div>
+                </div>
+
                 <div class="account-section" style="display: none;" id="plex-section">
 
                     <div class="account-section-tab clickable" onclick="toggleSection('plex-wrapper', 'section-button-plex')">
@@ -305,6 +316,9 @@ function load_page(result) {
         renderPATSection(admin);
         if(plex_enabled || spotify_enabled || audiobookshelf_enabled) {
             renderMediaSection();
+        }
+        if(strava_enabled || hevy_enabled) {
+            renderGoalCountingSection();
         }
     } else {
         showLoggedOutMenu();
@@ -572,7 +586,6 @@ function renderStravaSection(user_object) {
     `;
 
     if(user_object.strava_code && user_object.strava_code != "") {
-        var walksHTML = user_object.strava_walks ? "checked" : "";
         var publicHTML = user_object.strava_public ? "checked" : "";
 
         // Only relevant when Hevy is available on this server.
@@ -597,12 +610,9 @@ function renderStravaSection(user_object) {
                 <button onclick="disconnectStrava('${user_object.id}');" class="btn btn--danger integration-btn" type="submit" href="">Disconnect Strava</button>
             </div>
 
-            <div class="notification-options" id="">
-                <div class="strava-option" id="">
-                    <input class="clickable" type="checkbox" id="strava_walks" name="strava_walks" value="" onchange="updateAccountValue('strava_walks');" ${walksHTML}>
-                    <label for="strava_walks" class="clickable u-m-0">Ignore walks</label><br>
-                </div>
+            ${goalCountingHintHTML()}
 
+            <div class="notification-options" id="">
                 <div class="strava-option" id="">
                     <input class="clickable" type="checkbox" id="strava_public" name="strava_public" value="" onchange="updateAccountValue('strava_public');" ${publicHTML}>
                     <label for="strava_public" class="clickable u-m-0">Show my Strava on my profile</label><br>
@@ -669,6 +679,8 @@ function renderHevySection(user_object) {
                 <button onclick="disconnectHevy('${user_object.id}');" class="btn btn--danger integration-btn" type="submit" href="">Disconnect Hevy</button>
             </div>
 
+            ${goalCountingHintHTML()}
+
             <div class="notification-options" id="">
                 <div class="strava-option" id="">
                     <input class="clickable" type="checkbox" id="hevy_public" name="hevy_public" value="" onchange="updateAccountValue('hevy_public');" ${hevyPublicHTML}>
@@ -680,6 +692,181 @@ function renderHevySection(user_object) {
 
     document.getElementById("hevy-wrapper").innerHTML = hevyHTML
     document.getElementById('hevy-section').style.display = 'flex'
+}
+
+// --- Goal counting ----------------------------------------------------------
+// Everything imported counts toward the goal by default; the user picks the exceptions. The UI
+// is an exclusion multi-select: a search box + dropdown to add an activity type, and the chosen
+// exclusions shown as removable chips. Storage is still per-type (counts_toward_goal=false), so
+// an excluded type is simply a stored `false`.
+
+// Latest activity-type list from the API: {action_id, action_name, counts_toward_goal}.
+var goalCountingSettings = [];
+var goalExcludeOutsideCloseRegistered = false;
+
+// renderGoalCountingSection fetches the per-activity-type preferences and renders the exclusion
+// multi-select. Excluded types (counts_toward_goal=false) don't count toward the weekly goal for
+// new Strava/Hevy imports; existing sessions keep whatever they were.
+function renderGoalCountingSection() {
+    var xhttp = new XMLHttpRequest();
+    xhttp.onreadystatechange = function() {
+        if (this.readyState == 4) {
+            var result;
+            try {
+                result = JSON.parse(this.responseText);
+            } catch(e) {
+                console.log(e + ' - Response: ' + this.responseText);
+                return;
+            }
+            if(result.error) {
+                return;
+            }
+            goalCountingSettings = result.activity_goal_settings || [];
+            placeGoalCountingSection();
+        }
+    };
+    xhttp.withCredentials = true;
+    xhttp.open("get", api_url + "auth/activity-goal-settings");
+    xhttp.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
+    xhttp.setRequestHeader("Authorization", jwt);
+    xhttp.send();
+}
+
+function placeGoalCountingSection() {
+    var html = `
+        <p class="u-w-full u-text-center">
+            Everything you import counts toward your weekly goal by default. Add any activity types below that should <strong>not</strong> count — they still show up in your history, they just don't move the needle. This only affects future Strava/Hevy imports; edit an existing session in the workout builder to change it there.
+        </p>
+        <div class="goal-exclude">
+            <div class="goal-exclude-input-wrap">
+                <input type="text" id="goal-exclude-search" autocomplete="off" placeholder="Search activity types to exclude…" onkeyup="filterGoalExcludeOptions()" onfocus="showGoalExcludeDropdown(true)">
+                <div id="goal-exclude-dropdown" class="goal-exclude-dropdown" style="display: none;"></div>
+            </div>
+            <div id="goal-exclude-chips" class="goal-exclude-chips"></div>
+        </div>
+    `;
+
+    document.getElementById("goal-counting-wrapper").innerHTML = html;
+    document.getElementById('goal-counting-section').style.display = 'flex';
+    renderGoalExcludeChips();
+    renderGoalExcludeOptions("");
+    registerGoalExcludeOutsideClose();
+}
+
+// renderGoalExcludeChips renders the currently-excluded types as removable chips.
+function renderGoalExcludeChips() {
+    var container = document.getElementById("goal-exclude-chips");
+    if(!container) return;
+
+    var excluded = goalCountingSettings.filter(function(setting) { return !setting.counts_toward_goal; });
+    if(excluded.length === 0) {
+        container.innerHTML = '<span class="goal-exclude-none">All activity types count toward your goal.</span>';
+        return;
+    }
+    container.innerHTML = excluded.map(function(setting) {
+        return `<span class="goal-exclude-chip">${escapeHTML(setting.action_name)}<button type="button" title="Count this type again" onclick="includeGoalActivity('${setting.action_id}')">×</button></span>`;
+    }).join("");
+}
+
+// renderGoalExcludeOptions fills the dropdown with the not-yet-excluded types matching the search.
+function renderGoalExcludeOptions(filterText) {
+    var dropdown = document.getElementById("goal-exclude-dropdown");
+    if(!dropdown) return;
+
+    var term = (filterText || "").trim().toLowerCase();
+    var available = goalCountingSettings.filter(function(setting) {
+        return setting.counts_toward_goal && (term === "" || setting.action_name.toLowerCase().indexOf(term) !== -1);
+    });
+
+    if(available.length === 0) {
+        dropdown.innerHTML = '<div class="goal-exclude-empty">No matching activity types.</div>';
+        return;
+    }
+    dropdown.innerHTML = available.map(function(setting) {
+        return `<div class="goal-exclude-option clickable" onclick="excludeGoalActivity('${setting.action_id}')">${escapeHTML(setting.action_name)}</div>`;
+    }).join("");
+}
+
+function filterGoalExcludeOptions() {
+    var input = document.getElementById("goal-exclude-search");
+    showGoalExcludeDropdown(true);
+    renderGoalExcludeOptions(input ? input.value : "");
+}
+
+function showGoalExcludeDropdown(show) {
+    var dropdown = document.getElementById("goal-exclude-dropdown");
+    if(dropdown) dropdown.style.display = show ? 'block' : 'none';
+}
+
+function excludeGoalActivity(actionID) { updateGoalCounting(actionID, false); }
+function includeGoalActivity(actionID) { updateGoalCounting(actionID, true); }
+
+// updateGoalCounting persists one type's preference and re-renders from the authoritative list
+// the API returns. The search is cleared and the dropdown closed after a change.
+function updateGoalCounting(actionID, countsTowardGoal) {
+    var xhttp = new XMLHttpRequest();
+    xhttp.onreadystatechange = function() {
+        if (this.readyState == 4) {
+            var result;
+            try {
+                result = JSON.parse(this.responseText);
+            } catch(e) {
+                console.log(e + ' - Response: ' + this.responseText);
+                error("Could not reach API.");
+                return;
+            }
+            if(result.error) {
+                error(result.error);
+                renderGoalCountingSection();
+                return;
+            }
+            goalCountingSettings = result.activity_goal_settings || [];
+            var input = document.getElementById("goal-exclude-search");
+            if(input) input.value = "";
+            showGoalExcludeDropdown(false);
+            renderGoalExcludeChips();
+            renderGoalExcludeOptions("");
+        }
+    };
+    xhttp.withCredentials = true;
+    xhttp.open("put", api_url + "auth/activity-goal-settings");
+    xhttp.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
+    xhttp.setRequestHeader("Authorization", jwt);
+    xhttp.send(JSON.stringify({ "action_id": actionID, "counts_toward_goal": countsTowardGoal }));
+}
+
+// openGoalCountingSection expands the Goal counting section (if collapsed) and scrolls to it —
+// the target of the "manage exclusions" hints in the Strava/Hevy blocks.
+function openGoalCountingSection() {
+    var wrapper = document.getElementById('goal-counting-wrapper');
+    var section = document.getElementById('goal-counting-section');
+    if(!wrapper || !section) return;
+    if(wrapper.classList.contains('minimized')) {
+        toggleSection('goal-counting-wrapper', 'section-button-goal-counting');
+    }
+    section.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+// goalCountingHintHTML is the shared "not everything has to count" line shown in the connected
+// Strava/Hevy blocks, linking to the Goal counting section.
+function goalCountingHintHTML() {
+    return `
+        <p class="u-w-full u-text-center goal-count-hint">
+            Not every activity has to count — pick which types are excluded under <a class="clickable goal-count-hint-link" onclick="openGoalCountingSection();">Goal counting</a>.
+        </p>
+    `;
+}
+
+// registerGoalExcludeOutsideClose closes the dropdown on any click outside the search box (added
+// once for the page — the section re-renders often, but the listener must not stack).
+function registerGoalExcludeOutsideClose() {
+    if(goalExcludeOutsideCloseRegistered) return;
+    goalExcludeOutsideCloseRegistered = true;
+    document.addEventListener('click', function(e) {
+        if(!e.target.closest('.goal-exclude-input-wrap')) {
+            showGoalExcludeDropdown(false);
+        }
+    });
 }
 
 // --- Media / Plex -----------------------------------------------------------

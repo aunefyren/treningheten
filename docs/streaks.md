@@ -8,7 +8,7 @@ document is the map.
 |---|---|---|
 | **Question** | "How long have I kept exercising?" | "How long have I kept hitting my weekly goal in this season?" |
 | **Depends on a season/goal?** | No | Yes (one per goal) |
-| **Counts a period when…** | the day/week has *any* logged activity | the week's `WeekCompletion ≥ 1` (goal met) |
+| **Counts a period when…** | the day/week has any goal-counting session | the week's `WeekCompletion ≥ 1` (goal met) |
 | **Granularity** | day **and** ISO-week | week |
 | **Sick leave aware?** | No | Yes (freezes the streak) |
 | **Stored?** | No (computed on read) | No (recomputed each time) |
@@ -17,8 +17,11 @@ document is the map.
 
 ## Personal streaks
 
-Season- and goal-independent. A day (or ISO-week) **counts** when it contains at least
-one enabled, "on" exercise — pure activity presence, regardless of any weekly goal.
+Season- and goal-independent (no *weekly-goal* threshold), but a period only **counts**
+when it contains at least one session that is enabled, "on" **and** flagged to count
+toward the goal (`exerciseCountsTowardGoal` — see [data-model.md](data-model.md)). So a
+logged-but-excluded activity (e.g. an imported walk a user opted out of) shows in the
+history without keeping the personal streak alive.
 
 For both day and week we track:
 

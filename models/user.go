@@ -23,20 +23,23 @@ type User struct {
 	SundayAlert                bool       `json:"sunday_alert" gorm:"not null; default: false"`
 	BirthDate                  *time.Time `json:"birth_date" gorm:"default: null"`
 	StravaCode                 *string    `json:"strava_code" gorm:"default: null"`
-	StravaIgnoreWalks          *bool      `json:"strava_walks" gorm:"column:strava_walks;default: true"`
-	StravaID                   *string    `json:"strava_id" gorm:"default: null"`
-	StravaPublic               *bool      `json:"strava_public" gorm:"default: true"`
-	StravaSkipHevyDuplicates   *bool      `json:"strava_skip_hevy" gorm:"default: false"`
-	HevyAPIKey                 *string    `json:"-" gorm:"default: null"`
-	HevyLastSync               *time.Time `json:"-" gorm:"default: null"`
-	HevyProfileURL             *string    `json:"hevy_profile_url" gorm:"default: null"`
-	HevyPublic                 *bool      `json:"hevy_public" gorm:"default: true"`
-	HevyConnected              bool       `json:"hevy_connected" gorm:"-"`
-	WheelColor                 *string    `json:"wheel_color" gorm:"default: null"`
-	WheelBorderColor           *string    `json:"wheel_border_color" gorm:"default: null"`
-	WheelEmoji                 *string    `json:"wheel_emoji" gorm:"default: null"`
-	ShareActivities            *bool      `json:"share_activities" gorm:"default: true"`
-	ShareStatistics            *bool      `json:"share_statistics" gorm:"default: true"`
+	// Deprecated: superseded by UserActivityGoalSetting (Walking → doesn't count). No longer
+	// read on import; the Migrate() backfill converts any lingering true value to a goal
+	// setting and clears it. Default is now false so new users don't re-trigger that migration.
+	StravaIgnoreWalks        *bool      `json:"strava_walks" gorm:"column:strava_walks;default: false"`
+	StravaID                 *string    `json:"strava_id" gorm:"default: null"`
+	StravaPublic             *bool      `json:"strava_public" gorm:"default: true"`
+	StravaSkipHevyDuplicates *bool      `json:"strava_skip_hevy" gorm:"default: false"`
+	HevyAPIKey               *string    `json:"-" gorm:"default: null"`
+	HevyLastSync             *time.Time `json:"-" gorm:"default: null"`
+	HevyProfileURL           *string    `json:"hevy_profile_url" gorm:"default: null"`
+	HevyPublic               *bool      `json:"hevy_public" gorm:"default: true"`
+	HevyConnected            bool       `json:"hevy_connected" gorm:"-"`
+	WheelColor               *string    `json:"wheel_color" gorm:"default: null"`
+	WheelBorderColor         *string    `json:"wheel_border_color" gorm:"default: null"`
+	WheelEmoji               *string    `json:"wheel_emoji" gorm:"default: null"`
+	ShareActivities          *bool      `json:"share_activities" gorm:"default: true"`
+	ShareStatistics          *bool      `json:"share_statistics" gorm:"default: true"`
 }
 
 type UserCreationRequest struct {
@@ -61,7 +64,6 @@ type UserUpdateRequest struct {
 
 type UserPartialUpdateRequest struct {
 	SundayAlert              *bool   `json:"sunday_alert"`
-	StravaIgnoreWalks        *bool   `json:"strava_walks"`
 	StravaPublic             *bool   `json:"strava_public"`
 	StravaSkipHevyDuplicates *bool   `json:"strava_skip_hevy"`
 	HevyPublic               *bool   `json:"hevy_public"`

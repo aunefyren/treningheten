@@ -798,6 +798,34 @@ func ConvertExerciseDaysToExerciseDayObjects(exerciseDays []models.ExerciseDay) 
 	return
 }
 
+// exerciseCountsTowardGoal reports whether a session tallies toward the weekly goal,
+// season streak and personal streak: it must be enabled, on (not builder-deleted) and
+// flagged to count. This mirrors the `enabled=1 AND is_on=1 AND counts_toward_goal=1`
+// filter used by the goal-counting database queries, for the in-memory paths (e.g.
+// personal-streak building) that walk ExerciseObjects rather than querying.
+func exerciseCountsTowardGoal(exercise models.ExerciseObject) bool {
+	return exercise.Enabled && exercise.IsOn && exercise.CountsTowardGoal
+}
+
+// applyCountsTowardGoalUpdate resolves the goal-counting flag to persist on an update:
+// the requested value when the caller sent one, otherwise the current stored value left
+// untouched. The request field is a pointer so an omitted flag (nil) is a no-op — update
+// paths that don't render the builder toggle must not zero it.
+func applyCountsTowardGoalUpdate(current bool, requested *bool) bool {
+	if requested != nil {
+		return *requested
+	}
+	return current
+}
+
+// countsTowardGoalChangeBlocked reports whether an update must be rejected because it would
+// change a session's goal-counting flag after its week has ended. Changing it is only
+// allowed while the week is current, mirroring the freeze on turning a session off. A nil
+// request (flag omitted) or a no-op change is never blocked.
+func countsTowardGoalChangeBlocked(current bool, requested *bool, weekIsCurrent bool) bool {
+	return requested != nil && *requested != current && !weekIsCurrent
+}
+
 func ConvertExerciseToExerciseObject(exercise models.Exercise) (exerciseObject models.ExerciseObject, err error) {
 	exerciseObject = models.ExerciseObject{}
 	err = nil
@@ -843,6 +871,7 @@ func ConvertExerciseToExerciseObject(exercise models.Exercise) (exerciseObject m
 	exerciseObject.ID = exercise.ID
 	exerciseObject.Note = exercise.Note
 	exerciseObject.IsOn = exercise.IsOn
+	exerciseObject.CountsTowardGoal = exercise.CountsTowardGoal
 	exerciseObject.UpdatedAt = exercise.UpdatedAt
 	exerciseObject.Duration = exercise.Duration
 	exerciseObject.HevyWorkoutID = exercise.HevyWorkoutID
@@ -1061,8 +1090,25 @@ func APIUpdateExercise(context *gin.Context) {
 
 	exerciseYear, exerciseWeek := exerciseDayObject.Date.ISOWeek()
 	nowYear, nowWeek := time.Now().ISOWeek()
-	if turnedOff && (nowYear != exerciseYear || exerciseWeek != nowWeek) {
+	weekIsCurrent := nowYear == exerciseYear && exerciseWeek == nowWeek
+	if turnedOff && !weekIsCurrent {
 		context.JSON(http.StatusBadRequest, gin.H{"error": "You can't remove exercise sessions after the week has ended."})
+		context.Abort()
+		return
+	}
+
+	// Restoring (turning back on) a deleted session is frozen once its week has ended too —
+	// like delete, it would rewrite a settled week's completion.
+	if turnedOn && !weekIsCurrent {
+		context.JSON(http.StatusBadRequest, gin.H{"error": "You can't restore exercise sessions after the week has ended."})
+		context.Abort()
+		return
+	}
+
+	// Whether a past session counts is frozen once its week has ended — the same reasoning
+	// as the delete freeze above: it would rewrite a settled week's completion.
+	if countsTowardGoalChangeBlocked(exercise.CountsTowardGoal, exerciseUpdateRequest.CountsTowardGoal, weekIsCurrent) {
+		context.JSON(http.StatusBadRequest, gin.H{"error": "You can't change whether a session counts after the week has ended."})
 		context.Abort()
 		return
 	}
@@ -1093,6 +1139,10 @@ func APIUpdateExercise(context *gin.Context) {
 	exercise.Note = strings.TrimSpace(exerciseUpdateRequest.Note)
 	exercise.IsOn = exerciseUpdateRequest.IsOn
 	exercise.Duration = exerciseUpdateRequest.Duration
+
+	// Only touch the goal-counting flag when the caller sent it; a nil field leaves the
+	// stored value alone so note/time/is_on edits don't silently zero it.
+	exercise.CountsTowardGoal = applyCountsTowardGoalUpdate(exercise.CountsTowardGoal, exerciseUpdateRequest.CountsTowardGoal)
 
 	if len(exercise.Note) > 255 {
 		context.JSON(http.StatusBadRequest, gin.H{"error": "Invalid note length."})
@@ -1189,6 +1239,7 @@ func APICreateExercise(context *gin.Context) {
 	}
 
 	exercise.IsOn = exerciseCreationRequest.IsOn
+	exercise.CountsTowardGoal = true // manually logged sessions count by default; the builder toggle opts out
 	exercise.Duration = exerciseCreationRequest.Duration
 	exercise.Note = strings.TrimSpace(exerciseCreationRequest.Note)
 	exercise.ExerciseDayID = exerciseCreationRequest.ExerciseDayID

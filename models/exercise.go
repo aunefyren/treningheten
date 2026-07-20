@@ -34,14 +34,20 @@ type ExerciseDayUpdateRequest struct {
 
 type Exercise struct {
 	GormModel
-	Note          string      `json:"note"`
-	Duration      *int64      `json:"duration"`
-	Enabled       bool        `json:"enabled" gorm:"not null; default: true"`
-	IsOn          bool        `json:"is_on" gorm:"not null; default: true"`
-	ExerciseDayID uuid.UUID   `json:"" gorm:"type:varchar(100);"`
-	ExerciseDay   ExerciseDay `json:"exercise_day" gorm:"not null"`
-	Time          *time.Time  `json:"time"`
-	HevyWorkoutID *string     `json:"hevy_workout_id" gorm:"default: null"`
+	Note     string `json:"note"`
+	Duration *int64 `json:"duration"`
+	Enabled  bool   `json:"enabled" gorm:"not null; default: true"`
+	IsOn     bool   `json:"is_on" gorm:"not null; default: true"`
+	// CountsTowardGoal decides whether this session tallies toward the weekly goal,
+	// season streak and personal streak. Distinct from IsOn (a reversible builder
+	// soft-delete): a session can be fully "on" and visible in the activity feed yet
+	// not count (e.g. an imported walk). Snapshotted at creation; later edits only flip
+	// it via the builder. See docs/data-model.md.
+	CountsTowardGoal bool        `json:"counts_toward_goal" gorm:"not null; default: true"`
+	ExerciseDayID    uuid.UUID   `json:"" gorm:"type:varchar(100);"`
+	ExerciseDay      ExerciseDay `json:"exercise_day" gorm:"not null"`
+	Time             *time.Time  `json:"time"`
+	HevyWorkoutID    *string     `json:"hevy_workout_id" gorm:"default: null"`
 	// MediaRetrievedAt is the per-session media-pull guard. A non-null value
 	// distinguishes "pulled, found nothing" from "never pulled", which drives the
 	// re-pull button state. Lives on the session because the soundtrack is matched
@@ -59,6 +65,9 @@ type ExerciseUpdateRequest struct {
 	IsOn     bool   `json:"is_on"`
 	Duration *int64 `json:"duration"`
 	Time     string `json:"time"`
+	// CountsTowardGoal is a pointer so an omitted field leaves the stored value
+	// untouched — existing update callers that don't send it must not zero it.
+	CountsTowardGoal *bool `json:"counts_toward_goal"`
 }
 
 type ExerciseCreationRequest struct {
@@ -70,15 +79,16 @@ type ExerciseCreationRequest struct {
 
 type ExerciseObject struct {
 	GormModel
-	Note          string            `json:"note"`
-	Duration      *int64            `json:"duration"`
-	Enabled       bool              `json:"enabled"`
-	IsOn          bool              `json:"is_on"`
-	ExerciseDay   uuid.UUID         `json:"exercise_day"`
-	Operations    []OperationObject `json:"operations"`
-	StravaID      []string          `json:"strava_id"`
-	HevyWorkoutID *string           `json:"hevy_workout_id"`
-	Time          time.Time         `json:"time"`
+	Note             string            `json:"note"`
+	Duration         *int64            `json:"duration"`
+	Enabled          bool              `json:"enabled"`
+	IsOn             bool              `json:"is_on"`
+	CountsTowardGoal bool              `json:"counts_toward_goal"`
+	ExerciseDay      uuid.UUID         `json:"exercise_day"`
+	Operations       []OperationObject `json:"operations"`
+	StravaID         []string          `json:"strava_id"`
+	HevyWorkoutID    *string           `json:"hevy_workout_id"`
+	Time             time.Time         `json:"time"`
 	// MediaPlayback is the listening timeline overlaid on this session, enriched
 	// only when the media feature is enabled (see docs/media.md).
 	MediaPlayback    []MediaPlaybackObject `json:"media_playback"`

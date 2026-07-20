@@ -893,9 +893,8 @@ func APIPartialUpdateUser(context *gin.Context) {
 		userObject.SundayAlert = *userUpdateRequest.SundayAlert
 	}
 
-	if userUpdateRequest.StravaIgnoreWalks != nil {
-		userObject.StravaIgnoreWalks = userUpdateRequest.StravaIgnoreWalks
-	}
+	// StravaIgnoreWalks is deprecated (superseded by UserActivityGoalSetting) and no longer
+	// settable from the client — see models.User.
 
 	if userUpdateRequest.StravaPublic != nil {
 		userObject.StravaPublic = userUpdateRequest.StravaPublic

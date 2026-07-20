@@ -74,6 +74,10 @@ Most tables carry an `Enabled` flag (and GORM's `DeletedAt`). "Deleting" general
 means setting `Enabled = false`; the standard getters filter on `enabled = 1`. Don't
 assume a row is gone just because it's "deleted."
 
+`Exercise` additionally has `IsOn` (a *reversible* builder soft-delete — off = removed
+from counts but restorable in the builder) and `CountsTowardGoal` (excluded from the goal
+while still visible). These are three distinct flags — see [data-model.md](data-model.md).
+
 ## Related
 
 - [seasons-and-goals.md](seasons-and-goals.md) — entities that use these conventions

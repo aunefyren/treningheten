@@ -263,9 +263,10 @@ func TestGetValidExercisesBetweenDatesUsingDatesByUserID(t *testing.T) {
 	rangeEnd := time.Date(2024, 1, 31, 0, 0, 0, 0, time.UTC)
 
 	day := makeDayFor(t, user.ID, nil, time.Date(2024, 1, 10, 8, 0, 0, 0, time.UTC))
-	makeSession(t, day.ID, time.Now())   // valid, on
-	seedExercise(t, day.ID, true, false) // off → excluded
-	seedExercise(t, day.ID, false, true) // disabled → excluded
+	makeSession(t, day.ID, time.Now())                   // valid, on
+	seedExercise(t, day.ID, true, false)                 // off → excluded
+	seedExercise(t, day.ID, false, true)                 // disabled → excluded
+	seedExerciseWithCounts(t, day.ID, true, true, false) // doesn't count toward goal → excluded
 
 	// A day out of range.
 	outDay := makeDayFor(t, user.ID, nil, time.Date(2024, 2, 10, 8, 0, 0, 0, time.UTC))

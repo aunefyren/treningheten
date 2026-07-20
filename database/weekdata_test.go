@@ -29,13 +29,21 @@ func seedDay(t *testing.T, userID uuid.UUID, date time.Time, enabled bool) uuid.
 // are set via an explicit Update for the same default-tag reason as seedDay.
 func seedExercise(t *testing.T, dayID uuid.UUID, enabled, isOn bool) {
 	t.Helper()
-	exercise := models.Exercise{Enabled: enabled, IsOn: isOn, ExerciseDayID: dayID}
+	seedExerciseWithCounts(t, dayID, enabled, isOn, true)
+}
+
+// seedExerciseWithCounts seeds an exercise with all three goal-relevant flags forced.
+// The flags go through an explicit Updates map because GORM's default:true tags would
+// otherwise override a struct field left at its false zero value on Create.
+func seedExerciseWithCounts(t *testing.T, dayID uuid.UUID, enabled, isOn, counts bool) {
+	t.Helper()
+	exercise := models.Exercise{Enabled: enabled, IsOn: isOn, CountsTowardGoal: counts, ExerciseDayID: dayID}
 	exercise.ID = uuid.New()
 	if err := Instance.Omit("ExerciseDay").Create(&exercise).Error; err != nil {
 		t.Fatalf("failed to seed exercise: %v", err)
 	}
 	if err := Instance.Model(&models.Exercise{}).Where("id = ?", exercise.ID).
-		Updates(map[string]interface{}{"enabled": enabled, "is_on": isOn}).Error; err != nil {
+		Updates(map[string]interface{}{"enabled": enabled, "is_on": isOn, "counts_toward_goal": counts}).Error; err != nil {
 		t.Fatalf("failed to set exercise flags: %v", err)
 	}
 }
@@ -50,12 +58,13 @@ func TestGetValidExercisesForUserIDsBetweenDates(t *testing.T) {
 	rangeEnd := time.Date(2024, 1, 7, 0, 0, 0, 0, time.UTC)
 	inRange := time.Date(2024, 1, 3, 0, 0, 0, 0, time.UTC)
 
-	// User A, enabled day in range: 2 valid + 1 off + 1 disabled → 2 valid.
+	// User A, enabled day in range: 2 valid + 1 off + 1 disabled + 1 not-counting → 2 valid.
 	dayA := seedDay(t, userA.ID, inRange, true)
 	seedExercise(t, dayA, true, true)
 	seedExercise(t, dayA, true, true)
-	seedExercise(t, dayA, true, false) // off
-	seedExercise(t, dayA, false, true) // disabled
+	seedExercise(t, dayA, true, false)                 // off
+	seedExercise(t, dayA, false, true)                 // disabled
+	seedExerciseWithCounts(t, dayA, true, true, false) // doesn't count toward goal
 
 	// User A, disabled day in range → excluded.
 	dayADisabled := seedDay(t, userA.ID, inRange, false)

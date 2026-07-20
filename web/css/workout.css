@@ -118,6 +118,30 @@
 .wv-action-icon:hover { opacity: 1; background: var(--surface-hi); }
 .wv-combine { width: 1.1rem; height: 1.1rem; margin-right: 0.4rem; accent-color: var(--accent); }
 
+/* Frozen action (e.g. delete/restore once the session's week has ended): shown but inert, so
+   the affordance stays discoverable while making clear it can't be used. */
+.wv-action-icon.is-frozen { opacity: 0.3; cursor: not-allowed; }
+.wv-action-icon.is-frozen:hover { opacity: 0.3; background: none; }
+.btn.is-frozen { opacity: 0.45; cursor: not-allowed; }
+
+/* "Doesn't count" pill on the session summary — the session is logged and visible but
+   excluded from the weekly goal / streaks. Muted so it reads as a status, not an error. */
+.wv-nocount-badge {
+  display: inline-block;
+  vertical-align: middle;
+  margin-left: 0.6rem;
+  padding: 0.15rem 0.5rem;
+  border-radius: 999px;
+  font-family: var(--font-body);
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: var(--text-dim);
+  background: var(--surface-hi);
+  border: 1px solid var(--grey);
+  white-space: nowrap;
+}
+
 /* ── Activities (vertical list, reads well on phone + desktop) ───────────── */
 .wv-activities { display: flex; flex-direction: column; gap: 1rem; margin-top: 1.25rem; }
 
@@ -604,6 +628,12 @@
   text-transform: uppercase;
   color: var(--text-dim);
 }
+/* Checkbox field (e.g. "Counts toward goal"): keep the label on top like the other
+   fields, but the control is a left-aligned checkbox rather than a full-width input. */
+.we-field-check { cursor: pointer; align-items: center; }
+.we-field-check .we-field-label { text-align: center; }
+.we-field-check input { width: 1.15rem; height: 1.15rem; margin: 0.35rem 0 0; }
+.we-field-check input:disabled { cursor: not-allowed; opacity: 0.45; }
 
 .we-note { margin-top: 0.9rem; resize: vertical; line-height: 1.45; }
 

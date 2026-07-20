@@ -254,11 +254,11 @@ func GetValidExercisesBetweenDatesUsingDatesByUserID(userID uuid.UUID, startDate
 	exerciserecord := Instance.
 		Where("`exercises`.enabled = ?", 1).
 		Where("`exercises`.is_on = ?", 1).
+		Where("`exercises`.counts_toward_goal = ?", 1).
 		Joins("JOIN `exercise_days` on `exercises`.exercise_day_id = `exercise_days`.id").
 		Where("`exercise_days`.enabled = ?", 1).
 		Where("`exercise_days`.user_id = ?", userID).
 		Where("`exercise_days`.Date >= ?", startDayString).
-		Where("`exercise_days`.Date <= ?", endDayString).
 		Where("`exercise_days`.Date <= ?", endDayString).
 		Find(&exercises)
 
@@ -269,7 +269,8 @@ func GetValidExercisesBetweenDatesUsingDatesByUserID(userID uuid.UUID, startDate
 	return exercises, nil
 }
 
-// GetValidExercisesForUserIDsBetweenDates returns valid (enabled, on) exercises for the
+// GetValidExercisesForUserIDsBetweenDates returns goal-counting (enabled, on, and
+// counts_toward_goal) exercises for the
 // given users whose exercise day falls between the two dates (inclusive), with the
 // exercise day preloaded so callers can bucket weekly completion by (user, week) without
 // a query per week. Returns an empty slice when no user IDs are supplied.
@@ -287,6 +288,7 @@ func GetValidExercisesForUserIDsBetweenDates(userIDs []uuid.UUID, startDate time
 		Joins("JOIN `exercise_days` on `exercises`.exercise_day_id = `exercise_days`.id").
 		Where("`exercises`.enabled = ?", 1).
 		Where("`exercises`.is_on = ?", 1).
+		Where("`exercises`.counts_toward_goal = ?", 1).
 		Where("`exercise_days`.enabled = ?", 1).
 		Where("`exercise_days`.user_id IN ?", userIDs).
 		Where("`exercise_days`.Date >= ?", startDayString).

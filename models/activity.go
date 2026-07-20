@@ -34,6 +34,7 @@ type ActivityFeedItem struct {
 	TopWeight            float64    `json:"top_weight"`
 	SetCount             int        `json:"set_count"`
 	HasStrava            bool       `json:"has_strava"`
+	CountsTowardGoal     bool       `json:"counts_toward_goal"` // session-level: false → shown but not tallied
 	SessionActivityCount int        `json:"session_activity_count"`
 }
 

@@ -13,14 +13,6 @@ Must respect Strava sync
 - makes sense that different seasons have different sick leave
 - makes little sense that you can join multiple seasons at once, but only use sick leave on one goal
 
-### Remove walk filter from Strava sync
-- Instead, add a boolean to exercises, like "count toward goal" or similar
-- Let users set on Strava settings whether any activity type count toward goal
-  - Maybe not a Strava setting, maybe a global setting?
-- Only on initial sync, if you edit any workout, simply change the bool if you want to count it
-- Must be incorporated into every logic/if where the program counts amount of valid exercises
-- Good opportunity to create helper functions? ExerciseCountTowardGoal() or/and IsSickLeave()?
-
 ### Flexible workouts
 Work out more one week, have the extra effort carry over.
 Must be season specific setting
@@ -118,6 +110,8 @@ work:
 - Users can now more easily find exercises on /exercises
 - The MCP server should also be able to find exercises
 - Allow MCP to find relevant exercises without shifting through tons of data
+- Surface the `CountsTowardGoal` flag (now on `Exercise`, see [docs/data-model.md](data-model.md))
+  in MCP exercise/activity output so clients can tell goal-counting sessions from excluded ones
 
 ### Gear tracker — possible follow-ups
 The gear feature shipped (see [`docs/gear.md`](gear.md)), and per-operation gear editing now

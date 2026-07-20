@@ -282,6 +282,9 @@ func initRouter(configFile models.ConfigStruct) *gin.Engine {
 			auth.POST("/actions", controllers.APICreateAction)
 			auth.GET("/actions/:action_id/statistics", controllers.APIGetActionStatistics)
 
+			auth.GET("/activity-goal-settings", controllers.APIGetActivityGoalSettings)
+			auth.PUT("/activity-goal-settings", controllers.APISetActivityGoalSetting)
+
 			auth.GET("/operation-sets", controllers.APIGetOperationSets)
 			auth.POST("/operation-sets", controllers.APICreateOperationSetForUser)
 			auth.PUT("/operation-sets/:operation_set_id", controllers.APIUpdateOperationSet)

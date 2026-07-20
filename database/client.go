@@ -13,6 +13,7 @@ import (
 	"github.com/aunefyren/treningheten/logger"
 	"github.com/aunefyren/treningheten/models"
 
+	"github.com/google/uuid"
 	"gorm.io/driver/mysql"
 	"gorm.io/driver/postgres"
 	"gorm.io/driver/sqlite"
@@ -98,11 +99,11 @@ func Connect(dbType string, timezone string, dbUsername string, dbPassword strin
 					return err
 				} else {
 					Instance, dbError = gorm.Open(mysql.Open(connStrDb), &gorm.Config{
-			// See the postgres branch: relationships are enforced at the application
-			// layer, so AutoMigrate never creates DB-level foreign keys (avoids MySQL
-			// errno 150 on collation-mismatched parent/child id columns).
-			DisableForeignKeyConstraintWhenMigrating: true,
-		})
+						// See the postgres branch: relationships are enforced at the application
+						// layer, so AutoMigrate never creates DB-level foreign keys (avoids MySQL
+						// errno 150 on collation-mismatched parent/child id columns).
+						DisableForeignKeyConstraintWhenMigrating: true,
+					})
 					if dbError != nil {
 						return dbError
 					}
@@ -161,6 +162,7 @@ func Migrate() {
 	Instance.AutoMigrate(&models.PersonalAccessToken{})
 	Instance.AutoMigrate(&models.MediaConnection{})
 	Instance.AutoMigrate(&models.MediaPlayback{})
+	Instance.AutoMigrate(&models.UserActivityGoalSetting{})
 
 	// One-time cleanup: MediaPlayback moved from per-operation to per-session. The
 	// AutoMigrate above adds the NOT NULL exercise_id column, which backfills existing
@@ -196,7 +198,50 @@ func Migrate() {
 		}
 	}
 
+	migrateStravaIgnoreWalksToGoalSettings()
+
 	logger.Log.Info("Database migration completed.")
+}
+
+// migrateStravaIgnoreWalksToGoalSettings is a one-time backfill: the per-user Strava "ignore
+// walks" flag (which skipped walk imports entirely) is replaced by per-activity-type goal
+// settings (models.UserActivityGoalSetting). Each user who currently has walks ignored gets an
+// explicit "Walking → doesn't count" setting, so their behaviour is preserved now that walks
+// import (with streams/media) rather than being dropped. Self-limiting: the flag is cleared per
+// migrated user and the column now defaults to false, so re-boots and newly created users don't
+// re-trigger it.
+func migrateStravaIgnoreWalksToGoalSettings() {
+	if !Instance.Migrator().HasColumn(&models.User{}, "strava_walks") {
+		return
+	}
+
+	var ignoreWalkUserIDs []uuid.UUID
+	if err := Instance.Model(&models.User{}).Where("strava_walks = ?", true).Pluck("id", &ignoreWalkUserIDs).Error; err != nil {
+		logger.Log.Warn("Failed to read strava_walks for goal-setting migration. Error: " + err.Error())
+		return
+	}
+	if len(ignoreWalkUserIDs) == 0 {
+		return
+	}
+
+	walking, actionErr := GetActionByStravaName("Walk")
+	if actionErr != nil || walking == nil {
+		logger.Log.Warn("Skipping strava_walks migration: could not resolve the Walking action.")
+		return
+	}
+
+	migrated := 0
+	for _, userID := range ignoreWalkUserIDs {
+		if err := UpsertActivityGoalSettingInDB(userID, walking.ID, false); err != nil {
+			logger.Log.Warn("Failed to migrate strava_walks for user " + userID.String() + ". Error: " + err.Error())
+			continue
+		}
+		migrated++
+	}
+	if err := Instance.Model(&models.User{}).Where("strava_walks = ?", true).Update("strava_walks", false).Error; err != nil {
+		logger.Log.Warn("Failed to clear migrated strava_walks flags. Error: " + err.Error())
+	}
+	logger.Log.Info("Migrated " + strconv.Itoa(migrated) + " users' 'ignore walks' preference to Walking goal settings.")
 }
 
 func InitializeSQLiteDB() error {

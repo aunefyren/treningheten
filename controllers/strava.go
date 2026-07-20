@@ -513,6 +513,23 @@ func decryptStravaRefreshToken(stored string) string {
 	return plaintext
 }
 
+// stravaActivityCountsTowardGoal returns whether a newly imported session of the given Strava
+// sport type should count toward the user's goal, per their per-activity-type settings. It
+// fails open (counts) on any lookup error or an unresolved sport type — silently excluding a
+// real workout is more surprising than a missed opt-out.
+func stravaActivityCountsTowardGoal(userID uuid.UUID, sportType string) bool {
+	offActions, err := loadOffCountActions(userID)
+	if err != nil {
+		logger.Log.Warn("Failed to load activity goal settings for Strava import. Error: " + err.Error())
+		return true
+	}
+	action, err := database.GetActionByStravaName(sportType)
+	if err != nil || action == nil {
+		return true
+	}
+	return countsTowardGoalForActions([]uuid.UUID{action.ID}, offActions)
+}
+
 // StravaSyncActivityForUser imports one Strava activity. hasDetail tells whether
 // activity already came from the detailed endpoint (so its Description is
 // authoritative); when false, the activity is a list-sync summary and the detailed
@@ -523,13 +540,10 @@ func StravaSyncActivityForUser(activity models.StravaGetActivitiesRequestReply, 
 
 	logger.Log.Tracef("strava activity action: %s", activity.SportType)
 
-	// skip walks if enabled
-	if user.StravaIgnoreWalks != nil && *user.StravaIgnoreWalks && strings.ToLower(activity.SportType) == "walk" {
-		logger.Log.Trace("Skipping activity because user has 'ignore walks' enabled.")
-		return nil
-	} else {
-		logger.Log.Trace("Sport type is: " + activity.SportType)
-	}
+	// Walks (and every other sport type) are always imported now — whether they count toward
+	// the goal is decided per-activity-type from the user's goal settings and snapshotted onto
+	// the new exercise below, rather than dropping the activity and losing its streams/media.
+	logger.Log.Trace("Sport type is: " + activity.SportType)
 
 	// skip activities that duplicate an imported Hevy workout (Hevy wins), when enabled
 	if user.StravaSkipHevyDuplicates != nil && *user.StravaSkipHevyDuplicates {
@@ -580,11 +594,13 @@ func StravaSyncActivityForUser(activity models.StravaGetActivitiesRequestReply, 
 		}
 	}
 
+	isNewExercise := false
 	exercise, err := database.GetExerciseForUserWithStravaID(user.ID, strconv.Itoa(int(activity.ID)))
 	if err != nil {
 		logger.Log.Error("Failed to get exercise. ID: " + user.ID.String())
 		return errors.New("Failed to get exercise.")
 	} else if exercise == nil {
+		isNewExercise = true
 		// Get exercise day
 		exerciseDay, err := database.GetExerciseDayByDateAndUserID(user.ID, activity.StartDateLocal)
 		if err != nil {
@@ -630,6 +646,12 @@ func StravaSyncActivityForUser(activity models.StravaGetActivitiesRequestReply, 
 	exercise.Enabled = true
 	exercise.IsOn = true
 	exercise.Time = &activity.StartDate
+
+	// Snapshot whether this counts toward the goal from the user's per-activity-type settings —
+	// but only for a fresh import, so a manual builder toggle survives later re-syncs.
+	if isNewExercise {
+		exercise.CountsTowardGoal = stravaActivityCountsTowardGoal(user.ID, activity.SportType)
+	}
 
 	logger.Log.Tracef("Strava activity start time %s for Strava ID %d", activity.StartDate, activity.ID)
 	logger.Log.Tracef("Strava activity local start time %s for Strava ID %d", activity.StartDateLocal, activity.ID)

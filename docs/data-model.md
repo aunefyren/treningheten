@@ -23,8 +23,8 @@ matters:
 
 Worked example — `Exercise` (a workout session):
 
-- `Exercise` — the row: `Note`, `Duration`, `IsOn`, `ExerciseDayID`, `HevyWorkoutID`,
-  `MediaRetrievedAt`, …
+- `Exercise` — the row: `Note`, `Duration`, `IsOn`, `CountsTowardGoal`, `ExerciseDayID`,
+  `HevyWorkoutID`, `MediaRetrievedAt`, …
 - `ExerciseObject` — adds `Operations []OperationObject`, rolled-up `StravaID []string`,
   a `Time` resolved with a fallback to the day's date, and the media overlay.
 - `ExerciseCreationRequest` / `ExerciseUpdateRequest` — just the client-writable fields.
@@ -107,10 +107,21 @@ Strava and media features read.
   `ExerciseDayObject.ExerciseInterval` is the count of enabled/on exercises;
   `ExerciseDaySummary` is the slim list view.
 - **Exercise** (`models/exercise.go`) — **one session** within a day (several per day
-  allowed). `IsOn` marks whether it counts; `Duration` is `*time.Duration` holding
-  **seconds**. `MediaRetrievedAt`/`MediaSettled` guard the soundtrack pull (see
-  [media.md](media.md)). The soundtrack and Strava streams attach here, at the session
-  grain.
+  allowed). `Duration` is `*time.Duration` holding **seconds**.
+  `MediaRetrievedAt`/`MediaSettled` guard the soundtrack pull (see [media.md](media.md)).
+  The soundtrack and Strava streams attach here, at the session grain. A session carries
+  **three independent booleans** — don't conflate them:
+  - `Enabled` — hard soft-delete (GORM level); a disabled row is gone from every read.
+  - `IsOn` — a **reversible builder soft-delete**. Turning a session off in the
+    `/exercises/:id` builder keeps the row (it still shows as a struck-out session with
+    its operations, and can be turned back on) but removes it from activity + goal counts.
+  - `CountsTowardGoal` — whether the session **tallies toward the weekly goal, season
+    streak and personal streak**. Distinct from `IsOn`: a session can be fully on and
+    visible in the activity feed yet not count (e.g. an imported walk). Snapshotted at
+    creation (manual sessions default `true`); later flipped via the builder toggle. The
+    goal-counting DB queries (`GetValidExercises…` in `database/exerciseday.go`) filter
+    `enabled=1 AND is_on=1 AND counts_toward_goal=1`; the in-memory equivalent is
+    `exerciseCountsTowardGoal` in `controllers/exercise.go`.
 - **Operation** (`models/operation.go`) — **one activity type** inside a session (a run,
   a lift). Points at an `Action` and optionally a `Gear`. Carries per-operation
   `WeightUnit`/`DistanceUnit` (free-form — never blindly sum across them), `Tags`
@@ -125,6 +136,11 @@ Strava and media features read.
 - **Gear** (`models/gear.go`) — a piece of equipment (shoe/bike) a user logs against,
   linked per-operation via `Operation.GearID`. Total distance is **computed** from
   linked operations, not stored (`GearObject.Distance`). See [gear.md](gear.md).
+- **UserActivityGoalSetting** (`models/useractivitygoalsetting.go`) — a per-user, per-`Action`
+  opt-out from goal counting. A `CountsTowardGoal=false` row means "imports of this activity
+  type don't count toward my goal by default"; absence of a row = counts. Sync-agnostic (keyed
+  on `Action`, applied by both Strava and Hevy import), snapshotted onto `Exercise.CountsTowardGoal`
+  at import time — later edits don't retro-apply. Replaces the old `User.StravaIgnoreWalks` flag.
 - **Tags** (`models/tag.go`) — not a table: a controlled vocabulary (`ValidTags`) stored
   as a JSON `TagList` on `Operation`. `StravaManagedTags` are owned by Strava on sync;
   the rest are user-controlled and preserved across syncs.

@@ -219,6 +219,44 @@ function placeExercises(exercises) {
     document.getElementById('exercisesWrapper').innerHTML = exercisesHTML;
 }
 
+// startOfWeek returns local midnight on the Monday of the given date's week. Used to decide
+// whether a session still sits in the current (editable) week.
+function startOfWeek(date) {
+    const d = new Date(date);
+    d.setHours(0, 0, 0, 0);
+    const monday = (d.getDay() + 6) % 7; // Mon=0 … Sun=6
+    d.setDate(d.getDate() - monday);
+    return d;
+}
+
+// isExerciseWeekEditable mirrors the backend freeze: a session can only be deleted or have
+// its goal-counting flag changed while its week is still the current week. Sessions with no
+// time (date-only) are treated as editable — the backend has the final say either way.
+function isExerciseWeekEditable(exercise) {
+    if (!exercise || !exercise.time) return true;
+    return startOfWeek(new Date(exercise.time)).getTime() === startOfWeek(new Date()).getTime();
+}
+
+// sessionDeleteButton renders the trash action, frozen (non-clickable, dimmed) once the
+// session's week has ended so the UI matches the backend's "can't remove after the week"
+// rule. Shared by the summary card and the editor so they can't drift.
+function sessionDeleteButton(exercise, count) {
+    if (!isExerciseWeekEditable(exercise)) {
+        return `<img src="/assets/trash-2.svg" class="btn_logo wv-action-icon is-frozen" title="Can't delete a session after its week has ended">`;
+    }
+    return `<img src="/assets/trash-2.svg" class="btn_logo clickable wv-action-icon" title="Delete session" onclick="updateExercise('${exercise.id}', false, ${count}, '${exercise.time}', true)">`;
+}
+
+// sessionRestoreButton renders the "Restore" action for a deleted (is_on=false) session,
+// frozen (disabled, dimmed) once its week has ended so it matches the backend's "can't
+// restore after the week" rule.
+function sessionRestoreButton(exercise, count) {
+    if (!isExerciseWeekEditable(exercise)) {
+        return `<button type="button" disabled title="Can't restore a session after its week has ended" class="btn u-w-8 is-frozen"><img src="/assets/refresh-cw.svg" class="color-invert">Restore</button>`;
+    }
+    return `<button type="submit" onclick="updateExercise('${exercise.id}', true, ${count}, '${exercise.time}', true)" id="restore-exercise-button-${exercise.id}" class="btn u-w-8"><img src="/assets/refresh-cw.svg" class="color-invert">Restore</button>`;
+}
+
 function generateExerciseHTML(exercise, count, forceFullEditor = false) {
     var exerciseHTML = null;
 
@@ -241,7 +279,7 @@ function generateExerciseHTML(exercise, count, forceFullEditor = false) {
                 <input type="hidden" id="exercise-time-input-${exercise.id}" name="exercise-time-input" pattern="[0-9:]{0,}" placeholder="hh:mm:ss" value="${secondsToDurationString(exercise.duration)}">
                 <textarea class="day-note-area u-mt-1" id="exercise-note-${exercise.id}" name="exercise-exercise-note" rows="3" cols="33" placeholder="Notes" style="display: none;">${exercise.note}</textarea>
 
-                <button type="submit" onclick="updateExercise('${exercise.id}', true, ${count}, '${exercise.time});" id="restore-exercise-button-${exercise.id}" class="btn u-w-8"><img src="/assets/refresh-cw.svg" class="color-invert">Restore</button>
+                ${sessionRestoreButton(exercise, count)}
 
                 <hr class="u-my-1">
             </div>
@@ -271,6 +309,8 @@ function renderWorkoutSummary(exercise, count) {
     const totalDuration = exercise.duration ? secondsToDurationString(exercise.duration) : "—";
     const summaryLine = operations.map(activityTitle).join("  +  ") || "Empty session";
     const subCards = operations.map(op => renderActivitySubCard(op, exercise)).join("");
+    const noCountBadge = exercise.counts_toward_goal ? ""
+        : `<span class="wv-nocount-badge" title="This session is logged but doesn't count toward your weekly goal">Doesn't count</span>`;
 
     return `
         <div class="workout-view">
@@ -278,7 +318,7 @@ function renderWorkoutSummary(exercise, count) {
                 <div class="wv-session-head">
                     <div class="wv-session-meta">
                         <span class="wv-session-date">${dateLine}</span>
-                        <span class="wv-session-summary">${escapeHTML(summaryLine)}</span>
+                        <span class="wv-session-summary">${escapeHTML(summaryLine)}${noCountBadge}</span>
                     </div>
                     <div class="wv-session-total">
                         <span class="wv-total-value">${totalDuration}</span>
@@ -311,7 +351,7 @@ function renderSessionActionRow(exercise, count) {
             ${combineHTML}
             ${divideHTML}
             <img src="/assets/edit.svg" class="btn_logo clickable wv-action-icon" title="Edit session" onclick="switchToFullEditor('${exercise.id}')">
-            <img src="/assets/trash-2.svg" class="btn_logo clickable wv-action-icon" title="Delete session" onclick="updateExercise('${exercise.id}', false, ${count}, '${exercise.time}', true)">
+            ${sessionDeleteButton(exercise, count)}
         </div>
     `;
 }
@@ -960,6 +1000,13 @@ function renderWorkoutEditor(exercise, count) {
     const durationStr = exercise.duration ? secondsToDurationString(exercise.duration) : "";
     const onChange = `updateExercise('${exercise.id}', true, ${count}, '${exercise.time}', true)`;
 
+    // The goal-counting toggle freezes with the same rule as delete: only changeable while
+    // the session's week is current (the backend rejects the change otherwise).
+    const weekEditable = isExerciseWeekEditable(exercise);
+    const countsAttrs = weekEditable
+        ? `onchange="${onChange}"`
+        : `disabled title="Can't change after the week has ended"`;
+
     // Strava source links + combine/divide (parity with the summary card).
     var stravaLinks = "", combineHTML = "", divideHTML = "";
     if (exercise.strava_id && exercise.strava_id.length > 0) {
@@ -982,7 +1029,7 @@ function renderWorkoutEditor(exercise, count) {
                     <div class="we-session-actions">
                         ${combineHTML}
                         ${divideHTML}
-                        <img src="/assets/trash-2.svg" class="btn_logo clickable wv-action-icon" title="Delete session" onclick="updateExercise('${exercise.id}', false, ${count}, '${exercise.time}', true)">
+                        ${sessionDeleteButton(exercise, count)}
                     </div>
                 </div>
                 <div class="we-session-fields">
@@ -995,6 +1042,10 @@ function renderWorkoutEditor(exercise, count) {
                         <input class="we-input" type="text" pattern="[0-9:]{0,}" id="exercise-time-input-${exercise.id}" placeholder="hh:mm:ss" value="${durationStr}" onchange="${onChange}">
                     </label>
                     ${generateGearFieldHTML(exercise)}
+                    <label class="we-field we-field-check">
+                        <span class="we-field-label">Counts toward goal</span>
+                        <input class="clickable" type="checkbox" id="exercise-counts-input-${exercise.id}" ${exercise.counts_toward_goal ? 'checked' : ''} ${countsAttrs}>
+                    </label>
                 </div>
                 <textarea class="we-note" id="exercise-note-${exercise.id}" rows="2" placeholder="Session note" onchange="${onChange}">${escapeHTML(exercise.note || '')}</textarea>
                 ${stravaLinks}
@@ -1495,6 +1546,7 @@ function updateExercise(exerciseID, on, count, originalTimeString, fromEditor = 
     const noteEl = document.getElementById('exercise-note-' + exerciseID);
     const timeEl = document.getElementById('exercise-time-input-' + exerciseID);
     const timeOfDayEl = document.getElementById('exercise-timeofday-input-' + exerciseID);
+    const countsEl = document.getElementById('exercise-counts-input-' + exerciseID);
 
     var note = noteEl ? noteEl.value : (cached.note || "")
     var time = timeEl ? timeEl.value : (cached.duration ? secondsToDurationString(cached.duration) : "")
@@ -1521,6 +1573,13 @@ function updateExercise(exerciseID, on, count, originalTimeString, fromEditor = 
         "duration": parseDurationStringToSeconds(time),
         "time": newIso
     };
+
+    // Only send the goal-counting flag when the editor is on screen; other update paths
+    // (e.g. the summary-card delete) must leave the stored value untouched. The backend
+    // treats an omitted field as "no change" (see ExerciseUpdateRequest).
+    if (countsEl) {
+        form_obj["counts_toward_goal"] = countsEl.checked;
+    }
 
     var form_data = JSON.stringify(form_obj);
 

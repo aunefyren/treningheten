@@ -223,6 +223,7 @@ func HevySyncWorkoutForUser(user models.User, workout models.HevyWorkout, templa
 	// workouts land on the wrong day).
 	localStart := workout.StartTime.In(hevyLocation())
 
+	isNewExercise := exercise == nil
 	if exercise == nil {
 		// Find or create the exercise day for the workout's local date.
 		exerciseDay, err := database.GetExerciseDayByDateAndUserID(user.ID, localStart)
@@ -259,6 +260,12 @@ func HevySyncWorkoutForUser(user models.User, workout models.HevyWorkout, templa
 
 	exercise.Enabled = true
 	exercise.IsOn = true
+	// Default a fresh import to counting (Save writes the struct's zero value rather than the
+	// DB default, so set it explicitly); the per-type opt-out below may flip it to false once
+	// the workout's activity types are known. Re-syncs keep whatever the user set.
+	if isNewExercise {
+		exercise.CountsTowardGoal = true
+	}
 	startTime := workout.StartTime
 	exercise.Time = &startTime
 
@@ -293,12 +300,16 @@ func HevySyncWorkoutForUser(user models.User, workout models.HevyWorkout, templa
 		}
 	}
 
+	actionIDs := []uuid.UUID{}
 	for _, hevyExercise := range workout.Exercises {
 		template := templates[hevyExercise.ExerciseTemplateID]
 
 		action, err := getOrCreateHevyAction(template)
 		if err != nil {
 			return errors.New("failed to resolve Hevy action: " + err.Error())
+		}
+		if action != nil {
+			actionIDs = append(actionIDs, action.ID)
 		}
 
 		operation := models.Operation{}
@@ -360,6 +371,21 @@ func HevySyncWorkoutForUser(user models.User, workout models.HevyWorkout, templa
 
 			if _, err := database.CreateOperationSetInDB(operationSet); err != nil {
 				return errors.New("failed to create operation set: " + err.Error())
+			}
+		}
+	}
+
+	// Snapshot goal-counting from the user's per-activity-type settings, but only for a fresh
+	// import so a manual builder toggle survives later re-syncs. Now that every action in the
+	// workout is known, a Hevy session counts unless every one of its types is flagged off.
+	if isNewExercise {
+		offActions, err := loadOffCountActions(user.ID)
+		if err != nil {
+			logger.Log.Warn("Failed to load activity goal settings for Hevy import. Error: " + err.Error())
+		} else if counts := countsTowardGoalForActions(actionIDs, offActions); !counts {
+			finalExercise.CountsTowardGoal = counts
+			if _, err := database.UpdateExerciseInDB(finalExercise); err != nil {
+				logger.Log.Warn("Failed to persist Hevy session goal-counting flag. Error: " + err.Error())
 			}
 		}
 	}
