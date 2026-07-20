@@ -2116,8 +2116,13 @@ label {
   border-radius: var(--radius-md);
   box-shadow: var(--shadow-sm);
   padding: var(--space-5);
-  max-width: 32rem;            /* cap on desktop; full-width on mobile via the 100% base */
+  max-width: 32rem;            /* wider than the 20rem module cards on desktop — it's the thesis */
   margin: var(--space-4) auto; /* centre the capped panel */
+}
+/* On mobile the module cards collapse to a single 20rem column (base.css switches the grid at
+   768px); match that so the hero lines up with them instead of overhanging edge-to-edge. */
+@media (max-width: 48em) {
+  .card .hero { max-width: 20rem; }
 }
 
 /* --pct (0–100, set from JS) animates so the arc sweeps up like the old progress bar; falls back
