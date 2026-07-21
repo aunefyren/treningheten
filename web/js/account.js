@@ -150,6 +150,20 @@ function load_page(result) {
                                 <input type="date" name="birth_date" id="birth_date" />
                             </div>
 
+                            <div class="field-row">
+                                <div class="field">
+                                    <label for="max_heartrate" class="field-label">Max heart rate</label>
+                                    <input type="number" name="max_heartrate" id="max_heartrate" min="100" max="240" placeholder="Automatic" oninput="updateMaxHRHint()" />
+                                    <span class="field-hint">Optional. Anchors your activity heart-rate zones. Leave it on automatic and Treningheten uses the highest heart rate seen in your activities, or estimates from your age.</span>
+                                    <span class="field-hint" id="max_heartrate_status"></span>
+                                </div>
+                                <div class="field">
+                                    <label for="resting_heartrate" class="field-label">Resting heart rate</label>
+                                    <input type="number" name="resting_heartrate" id="resting_heartrate" min="25" max="120" placeholder="e.g. 50" />
+                                    <span class="field-hint">Optional. When set, zones switch to heart-rate reserve (Karvonen) instead of a plain percentage of your max.</span>
+                                </div>
+                            </div>
+
                             <div class="field">
                                 <label for="new_profile_image" class="field-label">Replace profile image</label>
                                 <input type="file" name="new_profile_image" id="new_profile_image" accept="image/png, image/jpeg" />
@@ -363,6 +377,12 @@ function send_update(user_id) {
         var birth_date_string = null
     }
 
+    // Optional heart-rate settings — send null when left blank so they clear cleanly.
+    var max_hr_raw = document.getElementById('max_heartrate').value;
+    var resting_hr_raw = document.getElementById('resting_heartrate').value;
+    var max_heartrate = max_hr_raw === "" ? null : parseInt(max_hr_raw, 10);
+    var resting_heartrate = resting_hr_raw === "" ? null : parseInt(resting_hr_raw, 10);
+
     if(new_profile_image) {
 
         if(new_profile_image.size > 10000000) {
@@ -385,6 +405,8 @@ function send_update(user_id) {
                 "profile_image": result,
                 "password_old": password_old,
                 "birth_date": birth_date_string,
+                "max_heartrate": max_heartrate,
+                "resting_heartrate": resting_heartrate,
                 "share_activities": share_activities,
                 "share_statistics": share_statistics
             };
@@ -405,6 +427,8 @@ function send_update(user_id) {
             "profile_image": "",
             "password_old": password_old,
             "birth_date": birth_date_string,
+            "max_heartrate": max_heartrate,
+            "resting_heartrate": resting_heartrate,
             "share_activities": share_activities,
             "share_statistics": share_statistics
         };
@@ -517,6 +541,59 @@ function GetUserData(userID, stravaOauth, stravaEnabled, hevyEnabled) {
 
 }
 
+// What "automatic" would resolve to, captured from the loaded user so the anchor status
+// can name the alternative (observed max from activities, else the age-based estimate).
+var hrObservedMax = null;
+var hrAgeEstimate = null;
+
+// ageBasedMaxHR estimates 220 − age from an ISO birth date, or null when unknown. This is
+// only illustrative for the account hint; the actual zones compute age per activity date.
+function ageBasedMaxHR(birthDateISO) {
+    if (!birthDateISO) return null;
+    var b = new Date(birthDateISO);
+    if (isNaN(b.getTime())) return null;
+    var now = new Date();
+    var age = now.getFullYear() - b.getFullYear();
+    if (now.getMonth() < b.getMonth() || (now.getMonth() === b.getMonth() && now.getDate() < b.getDate())) age--;
+    if (age <= 0 || age > 120) return null;
+    return 220 - age;
+}
+
+// autoMaxHRDescription names the value zones fall back to when no explicit max is set.
+function autoMaxHRDescription() {
+    if (hrObservedMax) return "the highest we've seen in your activities, " + hrObservedMax + " bpm";
+    if (hrAgeEstimate) return "an age-based estimate of about " + hrAgeEstimate + " bpm";
+    return "each activity's own peak heart rate";
+}
+
+// updateMaxHRHint reflects the current anchor state: when a max is entered it's the anchor
+// (with a link to switch back to automatic and what that would be); when blank, zones are
+// automatic (with a one-click pin of the observed value).
+function updateMaxHRHint() {
+    var status = document.getElementById("max_heartrate_status");
+    if (!status) return;
+    var value = document.getElementById("max_heartrate").value.trim();
+    var auto = autoMaxHRDescription();
+    if (value !== "") {
+        status.innerHTML = "Zones are anchored to " + escapeHTML(value) + " bpm. " +
+            '<a href="#" class="user-link" onclick="clearMaxHRAnchor(); return false;">Use automatic instead</a> (' + auto + ").";
+    } else {
+        status.innerHTML = "Automatic — zones use " + auto + "." +
+            (hrObservedMax ? ' <a href="#" class="user-link" onclick="useObservedMaxHeartrate(' + hrObservedMax + '); return false;">Pin ' + hrObservedMax + " bpm</a>." : "");
+    }
+}
+
+// useObservedMaxHeartrate pins the field to the observed value; clearMaxHRAnchor removes the
+// anchor so zones go back to automatic. Both need a Save to persist.
+function useObservedMaxHeartrate(value) {
+    document.getElementById("max_heartrate").value = value;
+    updateMaxHRHint();
+}
+function clearMaxHRAnchor() {
+    document.getElementById("max_heartrate").value = "";
+    updateMaxHRHint();
+}
+
 function PlaceUserData(user_object, stravaOauth, stravaEnabled, hevyEnabled) {
 
     document.getElementById("user_name").innerHTML = user_object.first_name + " " + user_object.last_name
@@ -527,6 +604,19 @@ function PlaceUserData(user_object, stravaOauth, stravaEnabled, hevyEnabled) {
         var birth_date = GetShortDate(birth_date_object)
         document.getElementById("birth_date").value = birth_date
     }
+
+    if(user_object.max_heartrate != null) {
+        document.getElementById("max_heartrate").value = user_object.max_heartrate
+    }
+    if(user_object.resting_heartrate != null) {
+        document.getElementById("resting_heartrate").value = user_object.resting_heartrate
+    }
+
+    // Remember what "automatic" resolves to (the observed max, else an age-based estimate)
+    // so the anchor status can spell out the alternative to whatever is set.
+    hrObservedMax = (user_object.observed_max_heartrate != null && user_object.observed_max_heartrate > 0) ? user_object.observed_max_heartrate : null;
+    hrAgeEstimate = ageBasedMaxHR(user_object.birth_date);
+    updateMaxHRHint();
 
     // parse date object
     try {

@@ -62,7 +62,23 @@ Operation rollup columns could back it later **without changing the JSON**.
 `api_url + "auth/activities"`. It groups adjacent same-session activities under day headers in
 browse mode and shows a flat ranked list in find mode. Each card links to `/exercises/:dayID`
 (the builder) and shows a muted "Doesn't count" badge when `counts_toward_goal` is false. Styling
-follows the dark instrument-panel system shared with stats/gear.
+follows the shared light module/inset system (see [styleguide.md](styleguide.md)).
+
+## Activity detail (`/exercises/:id`)
+
+The day/session builder (`web/js/exercise.js`) also renders a rich **read view** per activity.
+For **cardio** (GPS/sensor) activities it surfaces the processed stream summary: per-distance
+**splits** (each with a relative-pace bar and hover-to-highlight on the route map), a
+**heart-rate chart** and an **elevation profile chart**, metric tiles (distance, pace, elevation
+gain/descent, cadence, power, temperature), a **route map + overview**, and a **heart-rate zone**
+bar — plus a **negative-split** badge when the second half was faster.
+
+All of it consumes one server-computed `models.StreamSummary` attached to each `OperationObject`
+(`stream_summary` — the same shape the MCP `get_activity_streams` tool returns), rather than
+re-deriving stats in JS. The summary math (segments, route, elevation, HR zones), the HR-zone
+anchoring precedence, and the stability-over-time guarantees live in [mcp.md](mcp.md). HR-zone
+anchoring is driven by optional **max / resting heart rate** settings on `/account` plus an
+auto-maintained **observed max HR**.
 
 ## Related
 

@@ -475,6 +475,30 @@ func UpdateUser(context *gin.Context) {
 	// Transfer birth date
 	userOriginal.BirthDate = userUpdateRequest.BirthDate
 
+	// Validate heart-rate settings (optional; plausible physiological ranges). These feed
+	// the activity heart-rate zones — an explicit max overrides the age-based estimate, and
+	// a resting HR switches the zones to heart-rate reserve (Karvonen).
+	if userUpdateRequest.MaxHeartrate != nil && (*userUpdateRequest.MaxHeartrate < 100 || *userUpdateRequest.MaxHeartrate > 240) {
+		context.JSON(http.StatusBadRequest, gin.H{"error": "Your maximum heart rate must be between 100 and 240 bpm."})
+		context.Abort()
+		return
+	}
+	if userUpdateRequest.RestingHeartrate != nil && (*userUpdateRequest.RestingHeartrate < 25 || *userUpdateRequest.RestingHeartrate > 120) {
+		context.JSON(http.StatusBadRequest, gin.H{"error": "Your resting heart rate must be between 25 and 120 bpm."})
+		context.Abort()
+		return
+	}
+	if userUpdateRequest.MaxHeartrate != nil && userUpdateRequest.RestingHeartrate != nil &&
+		*userUpdateRequest.RestingHeartrate >= *userUpdateRequest.MaxHeartrate {
+		context.JSON(http.StatusBadRequest, gin.H{"error": "Your resting heart rate must be below your maximum heart rate."})
+		context.Abort()
+		return
+	}
+
+	// Transfer heart-rate settings
+	userOriginal.MaxHeartrate = userUpdateRequest.MaxHeartrate
+	userOriginal.RestingHeartrate = userUpdateRequest.RestingHeartrate
+
 	// Update user in database
 	user, err := database.UpdateUser(userOriginal)
 	if err != nil {

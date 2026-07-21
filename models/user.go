@@ -22,7 +22,14 @@ type User struct {
 	ResetExpiration            *time.Time `json:"reset_expiration"`
 	SundayAlert                bool       `json:"sunday_alert" gorm:"not null; default: false"`
 	BirthDate                  *time.Time `json:"birth_date" gorm:"default: null"`
-	StravaCode                 *string    `json:"strava_code" gorm:"default: null"`
+	MaxHeartrate               *int       `json:"max_heartrate" gorm:"default: null"`
+	RestingHeartrate           *int       `json:"resting_heartrate" gorm:"default: null"`
+	// ObservedMaxHeartrate is the highest heart rate seen across the user's imported
+	// activities — maintained on Strava sync and used to anchor HR zones when no explicit
+	// max is set. System-derived (not user-editable); NULL means "not yet computed" (a
+	// legacy row the backfill still owes), which is why new users start at 0.
+	ObservedMaxHeartrate *int    `json:"observed_max_heartrate" gorm:"default: null"`
+	StravaCode           *string `json:"strava_code" gorm:"default: null"`
 	// Deprecated: superseded by UserActivityGoalSetting (Walking → doesn't count). No longer
 	// read on import; the Migrate() backfill converts any lingering true value to a goal
 	// setting and clears it. Default is now false so new users don't re-trigger that migration.
@@ -52,14 +59,16 @@ type UserCreationRequest struct {
 }
 
 type UserUpdateRequest struct {
-	Email           string     `json:"email"`
-	Password        string     `json:"password"`
-	PasswordRepeat  string     `json:"password_repeat"`
-	ProfileImage    string     `json:"profile_image"`
-	OldPassword     string     `json:"password_old"`
-	BirthDate       *time.Time `json:"birth_date"`
-	ShareActivities *bool      `json:"share_activities"`
-	ShareStatistics *bool      `json:"share_statistics"`
+	Email            string     `json:"email"`
+	Password         string     `json:"password"`
+	PasswordRepeat   string     `json:"password_repeat"`
+	ProfileImage     string     `json:"profile_image"`
+	OldPassword      string     `json:"password_old"`
+	BirthDate        *time.Time `json:"birth_date"`
+	MaxHeartrate     *int       `json:"max_heartrate"`
+	RestingHeartrate *int       `json:"resting_heartrate"`
+	ShareActivities  *bool      `json:"share_activities"`
+	ShareStatistics  *bool      `json:"share_statistics"`
 }
 
 type UserPartialUpdateRequest struct {

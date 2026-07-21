@@ -668,42 +668,42 @@ function renderCardioSubCard(operation, exercise) {
         avgHTML = parseFloat(distance / (speedSecs / 3600)).toFixed(2) + " " + operation.distance_unit + "/h";
     }
 
+    // The server attaches the processed stream summary (segments, route, HR zones and
+    // header stats) whenever the activity has Strava streams. Prefer it over re-deriving
+    // stats in JS; fall back to the raw stream only for older/uncomputed data.
+    const summary = operation.stream_summary || null;
     const streams = streamSet ? streamSet.strava_streams : null;
     const setForStreams = streamSet || sets[0] || {};
     const hasHeartrate = streams && streams.heartrate && streams.heartrate.data && streams.heartrate.data.length > 0;
     const latlngData = streams && (streams.latlng || streams.lat_lng);
     const hasRoute = latlngData && latlngData.data && latlngData.data.length > 0;
 
-    var elevationHTML = "";
-    if (streams && streams.altitude && streams.altitude.data && streams.altitude.data.length > 1) {
-        const altData = streams.altitude.data;
-        let gain = 0;
-        for (let i = 1; i < altData.length; i++) {
-            const delta = altData[i] - altData[i - 1];
-            if (delta > 0) gain += delta;
-        }
-        if (gain > 0) {
-            elevationHTML = `<div class="wv-stat"><span class="wv-stat-value">${Math.round(gain)}<span class="wv-stat-unit">m</span></span><span class="wv-stat-label">Elevation</span></div>`;
-        }
-    }
-
-    var hrStatsHTML = "";
-    if (hasHeartrate) {
-        const hrVals = streams.heartrate.data.filter(v => v > 0);
-        if (hrVals.length > 0) {
-            const hrAvg = Math.round(hrVals.reduce((a, b) => a + b, 0) / hrVals.length);
-            hrStatsHTML = `<div class="wv-stat"><span class="wv-stat-value">${hrAvg}<span class="wv-stat-unit">bpm</span></span><span class="wv-stat-label">Avg HR</span></div>`;
-        }
-    }
+    // Extra header tiles — sourced from the summary so the card reads deeper than before.
+    const elevation = summary && summary.elevation;
+    var tilesHTML = "";
+    tilesHTML += cardioStatTile(elevationGainMetres(summary, streams), "m", "Elevation");
+    if (elevation && elevation.loss_m > 0) tilesHTML += cardioStatTile(Math.round(elevation.loss_m), "m", "Descent");
+    tilesHTML += cardioStatTile(avgHeartrate(summary, streams), "bpm", "Avg HR");
+    if (summary && summary.cadence_rpm) tilesHTML += cardioStatTile(Math.round(summary.cadence_rpm.avg), "rpm", "Avg cadence");
+    if (summary && summary.power) tilesHTML += cardioStatTile(Math.round(summary.power.avg_w), "W", "Avg power");
+    if (summary && summary.temperature_c) tilesHTML += cardioStatTile(Math.round(summary.temperature_c.avg), "°C", "Temp");
 
     const setKey = setForStreams.id || operation.id;
     const hrCanvasID = `hr-chart-${setKey}`;
+    const elevCanvasID = `elev-chart-${setKey}`;
     const mapDivID = `route-map-${setKey}`;
+    const splitsID = `splits-${setKey}`;
     const hrHTML = hasHeartrate ? `<div class="wv-hr-wrapper"><canvas id="${hrCanvasID}" class="wv-hr-chart"></canvas></div>` : "";
-    const mapHTML = hasRoute ? `<div id="${mapDivID}" class="wv-map"></div>` : "";
+    const elevProfile = (summary && summary.elevation_profile) || null;
+    const hasElevChart = elevProfile && elevProfile.length > 1;
+    const elevHTML = hasElevChart ? `${climbCaptionHTML(elevation)}<div class="wv-hr-wrapper"><canvas id="${elevCanvasID}" class="wv-elev-chart"></canvas></div>` : "";
+    const mapHTML = hasRoute ? `<div id="${mapDivID}" class="wv-map"></div>${routeCaptionHTML(summary)}` : "";
+    const splitsHTML = renderSplitsHTML(summary, operation, splitsID);
+    const zonesHTML = renderHRZonesHTML(summary);
 
-    if (hasHeartrate || hasRoute) {
-        scheduleCardioStreamRender(setForStreams, streams, hrCanvasID, mapDivID, hasHeartrate, hasRoute, latlngData);
+    const segments = (summary && summary.segments) || [];
+    if (hasHeartrate || hasRoute || hasElevChart) {
+        scheduleCardioStreamRender(setForStreams, streams, hrCanvasID, mapDivID, hasHeartrate, hasRoute, latlngData, segments, splitsID, hasElevChart ? elevCanvasID : null, elevProfile);
     }
 
     // Surface the gear used (moving activities only) so it reads without editing.
@@ -726,13 +726,196 @@ function renderCardioSubCard(operation, exercise) {
                 <div class="wv-stat"><span class="wv-stat-value">${durationHTML}</span><span class="wv-stat-label">Duration</span></div>
                 <div class="wv-stat"><span class="wv-stat-value">${distanceHTML}</span><span class="wv-stat-label">Distance</span></div>
                 <div class="wv-stat"><span class="wv-stat-value">${avgHTML}</span><span class="wv-stat-label">Avg speed</span></div>
-                ${elevationHTML}
-                ${hrStatsHTML}
+                ${tilesHTML}
             </div>
+            ${splitsHTML}
+            ${zonesHTML}
             ${mapHTML}
             ${hrHTML}
+            ${elevHTML}
         </div>
     `;
+}
+
+// climbCaptionHTML surfaces the activity's single biggest sustained ascent.
+function climbCaptionHTML(elevation) {
+    if (!elevation || !elevation.biggest_climb) return "";
+    const c = elevation.biggest_climb;
+    if (!(c.gain_m > 0)) return "";
+    var line = `Biggest climb ${Math.round(c.gain_m)} m`;
+    if (c.distance_km > 0) line += ` over ${wvNum(c.distance_km)} km`;
+    if (c.grade_pct > 0) line += ` (${wvNum(c.grade_pct)}%)`;
+    return `<div class="wv-route-caption">${line}</div>`;
+}
+
+// cardioStatTile renders one metric tile, or nothing when the value is absent.
+function cardioStatTile(value, unit, label) {
+    if (value == null || value === "" || (typeof value === "number" && !isFinite(value))) return "";
+    return `<div class="wv-stat"><span class="wv-stat-value">${value}<span class="wv-stat-unit">${unit}</span></span><span class="wv-stat-label">${label}</span></div>`;
+}
+
+// elevationGainMetres / avgHeartrate prefer the server summary and fall back to deriving
+// from the raw stream (kept so activities predating the summary still show the metric).
+function elevationGainMetres(summary, streams) {
+    if (summary && summary.elevation && summary.elevation.gain_m > 0) return Math.round(summary.elevation.gain_m);
+    if (streams && streams.altitude && streams.altitude.data && streams.altitude.data.length > 1) {
+        const alt = streams.altitude.data;
+        let gain = 0;
+        for (let i = 1; i < alt.length; i++) { const d = alt[i] - alt[i - 1]; if (d > 0) gain += d; }
+        return gain > 0 ? Math.round(gain) : null;
+    }
+    return null;
+}
+
+function avgHeartrate(summary, streams) {
+    if (summary && summary.heartrate_bpm) return Math.round(summary.heartrate_bpm.avg);
+    if (streams && streams.heartrate && streams.heartrate.data) {
+        const vals = streams.heartrate.data.filter(v => v > 0);
+        if (vals.length > 0) return Math.round(vals.reduce((a, b) => a + b, 0) / vals.length);
+    }
+    return null;
+}
+
+// routeCaptionHTML is a quiet one-line summary under the map: GPS distance + point count.
+function routeCaptionHTML(summary) {
+    if (!summary || !summary.route) return "";
+    const r = summary.route;
+    const bits = [];
+    if (r.distance_km > 0) bits.push(wvNum(r.distance_km) + " km GPS");
+    if (r.point_count) bits.push(r.point_count + " points");
+    if (bits.length === 0) return "";
+    return `<div class="wv-route-caption">${bits.join(" · ")}</div>`;
+}
+
+// isCyclingActivity decides whether splits read as speed (bikes) or pace (runs/walks).
+function isCyclingActivity(operation) {
+    const name = ((operation.action && operation.action.name) || operation.note || "").toLowerCase();
+    return /cycl|bike|biking|ride|riding|spin/.test(name);
+}
+
+// renderSplitsHTML draws the per-distance splits as a scoreboard: each split's bar length
+// is its speed relative to the fastest split, so the shape of the effort (a fast finish, a
+// mid-run fade) reads at a glance. The fastest split is marked. from/to point indices are
+// carried on each row so hovering highlights that split on the route map.
+function renderSplitsHTML(summary, operation, splitsID) {
+    const segments = (summary && summary.segments) || [];
+    if (segments.length < 2) return ""; // one split is just the whole activity — skip
+
+    const cycling = isCyclingActivity(operation);
+    // Relative bar width is keyed off speed (distance per second) so faster = longer.
+    var maxRate = 0, fastestIdx = -1;
+    segments.forEach((s, i) => {
+        const rate = s.elapsed_seconds > 0 ? s.distance / s.elapsed_seconds : 0;
+        if (rate > maxRate) { maxRate = rate; fastestIdx = i; }
+    });
+
+    const unit = operation.distance_unit || "km";
+    const rows = segments.map((s, i) => {
+        const rate = s.elapsed_seconds > 0 ? s.distance / s.elapsed_seconds : 0;
+        const width = maxRate > 0 ? Math.max(12, Math.round(rate / maxRate * 100)) : 12;
+        const primary = cycling ? splitSpeed(s, unit) : splitPace(s, unit);
+        const hr = s.avg_heartrate_bpm != null ? `<span class="wv-split-side">${s.avg_heartrate_bpm}<span class="wv-split-side-unit">bpm</span></span>` : "";
+        const climb = s.elevation_gain_m > 1 ? `<span class="wv-split-side">+${Math.round(s.elevation_gain_m)}<span class="wv-split-side-unit">m</span></span>` : "";
+        const partial = s.distance < 0.95 ? ` <span class="wv-split-partial">${wvNum(s.distance)}${unit}</span>` : "";
+        const fast = i === fastestIdx ? " wv-split-fast" : "";
+        return `
+            <div class="wv-split${fast}" data-from="${s.from_point}" data-to="${s.to_point}">
+                <span class="wv-split-idx">${s.index}${partial}</span>
+                <span class="wv-split-track"><span class="wv-split-bar" style="width:${width}%"></span><span class="wv-split-primary">${primary}</span></span>
+                ${hr}${climb}
+            </div>`;
+    }).join("");
+
+    const negSplit = isNegativeSplit(segments) ? `<span class="wv-splits-flag">Negative split</span>` : "";
+
+    return `
+        <div class="wv-splits" id="${splitsID}">
+            <div class="wv-splits-head">
+                <span class="wv-splits-title">Splits</span>
+                <span class="wv-splits-meta">${negSplit}<span class="wv-splits-unit">per ${isMileUnitJS(unit) ? "mile" : (unit || "km")}</span></span>
+            </div>
+            <div class="wv-split-list">${rows}</div>
+        </div>`;
+}
+
+// isNegativeSplit is true when the second half of the activity (by distance) was run at a
+// faster pace than the first — the mark of a well-judged effort.
+function isNegativeSplit(segments) {
+    if (segments.length < 2) return false;
+    var total = segments.reduce((sum, s) => sum + s.distance, 0);
+    if (!(total > 0)) return false;
+    var half = total / 2, acc = 0;
+    var firstDist = 0, firstTime = 0, secondDist = 0, secondTime = 0;
+    segments.forEach(s => {
+        if (acc + s.distance <= half || firstDist === 0) {
+            firstDist += s.distance; firstTime += s.elapsed_seconds;
+        } else {
+            secondDist += s.distance; secondTime += s.elapsed_seconds;
+        }
+        acc += s.distance;
+    });
+    if (!(firstDist > 0) || !(secondDist > 0)) return false;
+    var firstPace = firstTime / firstDist, secondPace = secondTime / secondDist;
+    return secondPace < firstPace * 0.99; // >1% faster second half
+}
+
+function isMileUnitJS(unit) {
+    return /^(mi|mile|miles)$/i.test(unit || "");
+}
+
+// splitPace formats a split as minutes:seconds per unit (running/walking).
+function splitPace(segment, unit) {
+    if (!(segment.distance > 0) || !(segment.elapsed_seconds > 0)) return "—";
+    const secsPerUnit = segment.elapsed_seconds / segment.distance;
+    const m = Math.floor(secsPerUnit / 60);
+    const sec = Math.round(secsPerUnit % 60);
+    const ss = sec < 10 ? "0" + sec : "" + sec;
+    return `${m}:${ss}<span class="wv-split-primary-unit">/${isMileUnitJS(unit) ? "mi" : (unit || "km")}</span>`;
+}
+
+// splitSpeed formats a split as distance-unit per hour (cycling).
+function splitSpeed(segment, unit) {
+    if (!(segment.distance > 0) || !(segment.elapsed_seconds > 0)) return "—";
+    const speed = segment.distance / (segment.elapsed_seconds / 3600);
+    return `${wvNum(parseFloat(speed.toFixed(1)))}<span class="wv-split-primary-unit">${unit || "km"}/h</span>`;
+}
+
+// renderHRZonesHTML draws the time-in-zone distribution: a single stacked bar (one segment
+// per zone, sized by share) plus a legend. Colour rises from calm to hot to read as
+// intensity, not decoration — the zone name and time carry the meaning in the legend.
+function renderHRZonesHTML(summary) {
+    const zones = (summary && summary.hr_zones) || [];
+    if (zones.length === 0) return "";
+    const anyTime = zones.some(z => z.seconds > 0);
+    if (!anyTime) return "";
+
+    const bar = zones.map(z =>
+        `<span class="wv-zone-seg wv-zone-${z.zone}" style="width:${z.percent}%" title="Z${z.zone} ${escapeHTML(z.name)}"></span>`
+    ).join("");
+
+    const legend = zones.filter(z => z.seconds > 0).map(z =>
+        `<span class="wv-zone-key"><i class="wv-zone-dot wv-zone-${z.zone}"></i>Z${z.zone} ${escapeHTML(z.name)} · ${secondsToDurationString(z.seconds)} · ${wvNum(z.percent)}%</span>`
+    ).join("");
+
+    var basis = "";
+    if (summary.hr_max_bpm) {
+        var how;
+        switch (summary.hr_max_basis) {
+            case "max": how = "max"; break;
+            case "reserve": how = `reserve, rest ${summary.hr_rest_bpm || "?"}`; break;
+            case "observed_max": how = "max from your activities"; break;
+            case "age": how = "age-based max"; break;
+            default: how = "peak in this activity";
+        }
+        basis = `<span class="wv-zones-basis">${how} ${summary.hr_max_bpm} bpm</span>`;
+    }
+
+    return `
+        <div class="wv-zones">
+            <div class="wv-zones-head"><span class="wv-zones-title">Heart-rate zones</span>${basis}</div>
+            <div class="wv-zone-bar">${bar}</div>
+            <div class="wv-zone-legend">${legend}</div>
+        </div>`;
 }
 
 function renderStrengthSubCard(operation, exercise) {
@@ -798,14 +981,18 @@ function renderTimeSubCard(operation, exercise) {
 
 // Deferred chart/map render: summary HTML is injected via innerHTML, so poll
 // until the canvas/map nodes exist, then draw. (Ported from the old simple card.)
-function scheduleCardioStreamRender(set, streams, hrCanvasID, mapDivID, hasHeartrate, hasRoute, latlngData) {
+function scheduleCardioStreamRender(set, streams, hrCanvasID, mapDivID, hasHeartrate, hasRoute, latlngData, segments, splitsID, elevCanvasID, elevProfile) {
     var attempts = 0;
     var interval = setInterval(function() {
         attempts++;
         var hrReady = !hasHeartrate || document.getElementById(hrCanvasID);
         var mapReady = !hasRoute || document.getElementById(mapDivID);
-        if (hrReady && mapReady) {
+        var elevReady = !elevCanvasID || document.getElementById(elevCanvasID);
+        if (hrReady && mapReady && elevReady) {
             clearInterval(interval);
+            if (elevCanvasID && elevProfile) {
+                renderElevationChart(elevCanvasID, elevProfile);
+            }
             if (hasHeartrate) {
                 // Streams are distance-sampled, not time-sampled, so keep only the
                 // moving samples (velocity > 0.5 m/s) and space them evenly across
@@ -829,12 +1016,46 @@ function scheduleCardioStreamRender(set, streams, hrCanvasID, mapDivID, hasHeart
                 renderHeartrateChart(hrCanvasID, chartTimeData, chartHrData, movingTimeSecs);
             }
             if (hasRoute) {
-                renderRouteMap(mapDivID, latlngData.data);
+                const map = renderRouteMap(mapDivID, latlngData.data);
+                if (map && segments && segments.length && splitsID) {
+                    wireSplitHighlight(map, latlngData.data, splitsID);
+                }
             }
         } else if (attempts > 50) {
             clearInterval(interval);
         }
     }, 50);
+}
+
+// wireSplitHighlight lets hovering (or tapping) a split row trace that split on the map.
+// Split from/to indices align with the raw latlng samples the map was drawn from.
+function wireSplitHighlight(map, latlngData, splitsID) {
+    if (typeof L === 'undefined') return;
+    const container = document.getElementById(splitsID);
+    if (!container) return;
+
+    const rootStyle = getComputedStyle(document.documentElement);
+    const hiColor = rootStyle.getPropertyValue("--mediumblue").trim() || "#3a6ea5";
+    var highlight = null;
+
+    function clear() {
+        if (highlight) { map.removeLayer(highlight); highlight = null; }
+    }
+    function show(row) {
+        clear();
+        const from = parseInt(row.getAttribute("data-from"), 10);
+        const to = parseInt(row.getAttribute("data-to"), 10);
+        if (isNaN(from) || isNaN(to) || to <= from) return;
+        const slice = latlngData.slice(from, to + 1).map(p => [p[0], p[1]]);
+        if (slice.length < 2) return;
+        highlight = L.polyline(slice, { color: hiColor, weight: 7, opacity: 0.95 }).addTo(map);
+    }
+
+    container.querySelectorAll(".wv-split").forEach(row => {
+        row.addEventListener("mouseenter", () => show(row));
+        row.addEventListener("mouseleave", clear);
+        row.addEventListener("click", () => { row.classList.toggle("wv-split-active"); if (row.classList.contains("wv-split-active")) show(row); else clear(); });
+    });
 }
 
 function renderHeartrateChart(canvasID, timeData, hrData, maxSecs) {
@@ -915,18 +1136,80 @@ function renderHeartrateChart(canvasID, timeData, hrData, maxSecs) {
     });
 }
 
+// renderElevationChart draws the altitude-over-distance profile as a filled area chart,
+// paired below the HR chart. Data is the server's down-sampled [{distance_km, altitude_m}]
+// so no distance is re-derived here. Axis/line colours read from the theme tokens (like
+// the HR chart) so it stays on the light surface.
+function renderElevationChart(canvasID, profile) {
+    var canvas = document.getElementById(canvasID);
+    if (!canvas || !profile || profile.length < 2) return;
+
+    var points = profile.map(function(p) { return { x: p.distance_km, y: p.altitude_m }; });
+
+    var rootStyle = getComputedStyle(document.documentElement);
+    var tickColor = rootStyle.getPropertyValue("--lightblue").trim() || "#7fa8cf";
+    var gridColor = rootStyle.getPropertyValue("--grey").trim() || "#cecece";
+    var lineColor = rootStyle.getPropertyValue("--mediumblue").trim() || "#3a6ea5";
+
+    new Chart(canvas, {
+        type: "line",
+        data: {
+            datasets: [{
+                label: "Elevation (m)",
+                data: points,
+                fill: true,
+                borderColor: lineColor,
+                backgroundColor: "rgba(58, 110, 165, 0.18)",
+                tension: 0.3,
+                pointRadius: 0,
+                borderWidth: 2
+            }]
+        },
+        options: {
+            legend: { display: false },
+            scales: {
+                xAxes: [{
+                    type: "linear",
+                    gridLines: { color: gridColor },
+                    ticks: {
+                        fontColor: tickColor,
+                        autoSkip: true,
+                        maxTicksLimit: 6,
+                        min: 0,
+                        callback: function(value) { return value + " km"; }
+                    }
+                }],
+                yAxes: [{
+                    gridLines: { color: gridColor },
+                    ticks: {
+                        fontColor: tickColor,
+                        beginAtZero: false,
+                        precision: 0,
+                        callback: function(value) { return value + " m"; }
+                    }
+                }]
+            },
+            tooltips: {
+                callbacks: {
+                    title: function(items) { return wvNum(items[0].xLabel) + " km"; },
+                    label: function(item) { return Math.round(item.yLabel) + " m"; }
+                }
+            }
+        }
+    });
+}
+
 function renderRouteMap(divID, latlngData) {
     var mapDiv = document.getElementById(divID);
-    if (!mapDiv) { console.warn('[map] div not found:', divID); return; }
-    if (!latlngData || latlngData.length === 0) { console.warn('[map] no latlng data'); return; }
+    if (!mapDiv) { console.warn('[map] div not found:', divID); return null; }
+    if (!latlngData || latlngData.length === 0) { console.warn('[map] no latlng data'); return null; }
 
     // Leaflet must be available globally
     if (typeof L === 'undefined') {
         console.warn('[map] Leaflet not loaded');
         mapDiv.style.display = 'none';
-        return;
+        return null;
     }
-    console.log('[map] rendering', latlngData.length, 'points, first point:', latlngData[0]);
 
     var map = L.map(divID, { zoomControl: true, scrollWheelZoom: false });
 
@@ -956,6 +1239,7 @@ function renderRouteMap(divID, latlngData) {
     }).addTo(map);
 
     map.fitBounds(polyline.getBounds(), { padding: [16, 16] });
+    return map;
 }
 
 function switchToFullEditor(exerciseID) {

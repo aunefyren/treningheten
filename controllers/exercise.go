@@ -950,6 +950,10 @@ func APIGetExerciseDay(context *gin.Context) {
 		return
 	}
 
+	// Enrich moving activities with their processed stream summary (segments, route, HR
+	// zones) so the detail page can render depth without re-deriving stats in JS.
+	attachStreamSummaries(&exerciseDayObject)
+
 	// Return a response with all news posts
 	context.JSON(http.StatusCreated, gin.H{"message": "Exercise day retrieved.", "exercise_day": exerciseDayObject})
 }

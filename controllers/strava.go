@@ -785,6 +785,13 @@ func StravaSyncOperationForActivity(activity models.StravaGetActivitiesRequestRe
 
 	if streams != nil {
 		operationSet.StravaStreams = &models.StravaStreamsJSON{StravaActivityStreams: *streams}
+		// Keep the user's all-time observed max heart rate current so HR zones stay well
+		// anchored even without an explicit max. Only bumps when this activity is higher.
+		if peak := models.ObservedMaxHeartrate(streams); peak > 0 {
+			if err := database.BumpObservedMaxHeartrate(user.ID, peak); err != nil {
+				logger.Log.Warn("Failed to update observed max heart rate for user " + user.ID.String() + ". Error: " + err.Error())
+			}
+		}
 	}
 
 	if activity.Distance != 0.0 {

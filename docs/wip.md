@@ -9,15 +9,37 @@ Ideas for tags:
 - Splits
 Must respect Strava sync
 
+### Onboarding flow
+- A small improvement would be an invite link, which includes the invite and autofill the form
+- A bigger improvement would be an invite link which acts as a onboarding flow
+  - Initial page is user registration with invite code autofill from the URL
+  - Next page is season registration IF the invite was sent with a season context (both possible)
+  - Next page is an optional page to choose which activities count as exercise (many do not count walks)
+  - Next page is an optional page to connect Strava or Hevy
+  - Next page is an optional page to enable notifications
+  - Anything else?
+- This should be a smooth, user friendly flow, no navbar
+- If you break out of the onboarding, you should be redirected back where you were, no need to re-enter anything
+- Would this be able to reuse any forms, pages or code, or require a totally new page?
+
 ### Sick leave is per season/goal
 - makes sense that different seasons have different sick leave
 - makes little sense that you can join multiple seasons at once, but only use sick leave on one goal
 
+### Implement Garmin connect
+
+### Implement Apple Health connect
+
+### Standardize data models
+- We save some data in the form of Strava data streams
+- If we implement other services, like Garmin, how should the data be saved?
+- Do we need a universal data format all other services can be converted into?
+
 ### Flexible workouts
-Work out more one week, have the extra effort carry over.
-Must be season specific setting
-Option to allow how many workouts carry over, how long they can exist before they decay
-Must be user friendly and understandable in the UI
+- Work out more one week, have the extra effort carry over.
+- Must be season specific setting
+- Option to allow how many workouts carry over, how long they can exist before they decay
+- Must be user friendly and understandable in the UI
 
 ### Front page activities, add partner
 - Allow a person to tag their partner/group on their exercise session within builder
@@ -50,13 +72,13 @@ Overlay your listening history onto time-based activities. The **Plex**, **Spoti
 - Cross-provider de-dupe if a user has overlapping sources (e.g. casting Spotify through Plex)?
   (Per-provider rows side-step it for now; only matters once 2+ providers are connected.)
 
-### Leave season button is not working
+### Leave season button is not implemented
 - Which season? all?
-- Not broken, never built function, only button is present
+- Not broken, never built function, only button stub is present on /account
 
-### Delete account button is not working
+### Delete account button is not implemented
 - What gets left behind? Do seasons you joined still show you? Show 'Deleted user'?
-- Not broken, never built function, only button is present
+- Not broken, never built function, only button stub is present on /account
 
 ### Generate debt button on /admin is misleading and could be improved
 - This admin function used to be for recalculating debt for a given week, after some changes happened in the DB in the back end
@@ -68,7 +90,7 @@ Overlay your listening history onto time-based activities. The **Plex**, **Spoti
 - Module/function could be remade to a "fix last week button"
   - Add/remove exercises
   - reset achievements/deb for week
-  - Recaluclate week
+  - Recalculate week
   - Anything else?
 
 ### Best effort system
@@ -78,14 +100,16 @@ Overlay your listening history onto time-based activities. The **Plex**, **Spoti
 - Notification integration for PR?
 - PRs for reps and weight on strength exercises?
 - Time based best efforts? During this season? During this year?
+- The per-distance **segments** and the processed stream summary now ship (see
+  [mcp.md](mcp.md)), so the data exists to compute a **best split** (fastest 1 km/mile)
+  across activities — a natural first increment.
+- Grade-adjusted pace (GAP) and VAM (vertical ascent speed) — deferred as noisier/advanced
+  elevation follow-ups.
 
 ### AI Ollama feedback on exercises?
 Per-exercise feedback in its own dedicated space (not the front-page greeting).
 - How to avoid spamming the LMM
 - Little model, can the feedback be decent?
-
-### Frontpage hero is wider than other modules on mobile
-- Wider looks good on desktop, but should revert to standard width on mobile
 
 ### Locked achievements CSS bug
 - Achievements with the pad lock icon on /achievements have a rounded border around the icon, like a margin between the icon and the rounded color around the achievement

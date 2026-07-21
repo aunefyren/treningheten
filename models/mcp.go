@@ -137,30 +137,15 @@ type MCPWorkoutSoundtrack struct {
 	Tracks        []MCPSoundtrackTrack `json:"tracks,omitempty" jsonschema:"tracks in play order (earliest started_at first)"`
 }
 
-// MCPStreamStat is a simple avg/min/max summary of a single sensor channel.
-type MCPStreamStat struct {
-	Avg float64 `json:"avg"`
-	Min float64 `json:"min"`
-	Max float64 `json:"max"`
-}
-
-type MCPSpeedStat struct {
-	AvgKmh       float64 `json:"avg_kmh"`
-	MaxKmh       float64 `json:"max_kmh"`
-	AvgPaceMinKm float64 `json:"avg_pace_min_km" jsonschema:"average pace in minutes per kilometre"`
-}
-
-type MCPElevationStat struct {
-	GainM float64 `json:"gain_m" jsonschema:"total elevation gained (sum of positive altitude changes), in metres"`
-	MinM  float64 `json:"min_m"`
-	MaxM  float64 `json:"max_m"`
-}
-
-type MCPPowerStat struct {
-	AvgW   float64 `json:"avg_w"`
-	MaxW   float64 `json:"max_w"`
-	WorkKj float64 `json:"work_kj" jsonschema:"total mechanical work, in kilojoules"`
-}
+// The per-channel stat shapes now live on the shared StreamSummary (stream_summary.go)
+// so the MCP tool and the /exercises detail page compute them once. These aliases keep
+// the historical MCP type names working for any external reference.
+type (
+	MCPStreamStat    = StreamStat
+	MCPSpeedStat     = StreamSpeedStat
+	MCPElevationStat = StreamElevationStat
+	MCPPowerStat     = StreamPowerStat
+)
 
 // MCPStreamSeries is a downsampled, time-aligned slice of the raw sensor streams.
 // All arrays share the same indexing as t_seconds. Only streams the workout
@@ -184,20 +169,14 @@ type MCPStreamSeries struct {
 
 // MCPWorkoutStreams is the processed view of one workout's Strava sensor data.
 // Streams exist ONLY for GPS/sensor activities imported from Strava (runs, rides,
-// etc.); strength and manually-logged workouts have none (HasStreams=false).
+// etc.); strength and manually-logged workouts have none (HasStreams=false). The
+// whole-workout summary (header stats, segments, route, HR zones) is the shared
+// StreamSummary, embedded so its fields flatten into the tool's JSON; the downsampled
+// Series is specific to this tool.
 type MCPWorkoutStreams struct {
-	HasStreams      bool     `json:"has_streams"`
-	Message         string   `json:"message,omitempty"`
-	Available       []string `json:"available,omitempty" jsonschema:"sensor channels present in this workout"`
-	DurationSeconds int64    `json:"duration_seconds,omitempty"`
-	HasGPS          bool     `json:"has_gps"`
-
-	Heartrate   *MCPStreamStat    `json:"heartrate_bpm,omitempty" jsonschema:"heart rate, beats per minute"`
-	Cadence     *MCPStreamStat    `json:"cadence_rpm,omitempty" jsonschema:"cadence, revolutions/steps per minute"`
-	Speed       *MCPSpeedStat     `json:"speed,omitempty"`
-	Elevation   *MCPElevationStat `json:"elevation,omitempty"`
-	Power       *MCPPowerStat     `json:"power,omitempty"`
-	Temperature *MCPStreamStat    `json:"temperature_c,omitempty" jsonschema:"temperature, degrees Celsius"`
+	HasStreams    bool   `json:"has_streams"`
+	Message       string `json:"message,omitempty"`
+	StreamSummary        // embedded: available, has_gps, duration_seconds, header stats, segments, route, hr_zones
 
 	Series *MCPStreamSeries `json:"series,omitempty"`
 }

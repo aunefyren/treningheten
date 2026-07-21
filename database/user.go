@@ -13,6 +13,14 @@ import (
 
 // receive a user struct and save it in the database
 func RegisterUserInDB(user models.User) (models.User, error) {
+	// New users start with a concrete (zero) observed max heart rate rather than NULL, so a
+	// NULL only ever marks a legacy row the observed-max backfill still owes (see
+	// backfillObservedMaxHeartrate). The value is bumped as their activities sync in.
+	if user.ObservedMaxHeartrate == nil {
+		zero := 0
+		user.ObservedMaxHeartrate = &zero
+	}
+
 	dbRecord := Instance.Create(&user)
 
 	if dbRecord.Error != nil {
@@ -22,6 +30,18 @@ func RegisterUserInDB(user models.User) (models.User, error) {
 	}
 
 	return user, nil
+}
+
+// BumpObservedMaxHeartrate raises the user's stored all-time observed max heart rate to
+// candidate, but only when candidate is higher (or the value is still NULL). A single
+// atomic conditional update, so concurrent syncs can't lower it.
+func BumpObservedMaxHeartrate(userID uuid.UUID, candidate int) error {
+	if candidate <= 0 {
+		return nil
+	}
+	return Instance.Model(&models.User{}).
+		Where("`id` = ? AND (`observed_max_heartrate` IS NULL OR `observed_max_heartrate` < ?)", userID, candidate).
+		Update("observed_max_heartrate", candidate).Error
 }
 
 // generate a random verification code an return it

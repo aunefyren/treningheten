@@ -2,6 +2,7 @@ package controllers
 
 import (
 	"math"
+	"time"
 
 	"github.com/aunefyren/treningheten/database"
 	"github.com/aunefyren/treningheten/models"
@@ -15,10 +16,11 @@ const (
 )
 
 // assembleWorkoutStreams returns the processed Strava sensor data for one activity
-// (operation) owned by the user. The summary header always describes the whole
-// workout; the series is the raw sensor data restricted to [fromSeconds, toSeconds]
-// and downsampled to stay within maxPoints (auto-fit when no resolution is given).
-// resolution (seconds between samples; 1 = full fidelity) lets the caller zoom a
+// (operation) owned by the user. The summary header (via SummarizeStreams) always
+// describes the whole workout — including per-distance splits, a route overview and
+// heart-rate zones; the series is the raw sensor data restricted to [fromSeconds,
+// toSeconds] and downsampled to stay within maxPoints (auto-fit when no resolution is
+// given). resolution (seconds between samples; 1 = full fidelity) lets the caller zoom a
 // narrow window back to full resolution.
 func assembleWorkoutStreams(userID uuid.UUID, activityID uuid.UUID, fromSeconds int, toSeconds int, resolution int, maxPoints int) (models.MCPWorkoutStreams, error) {
 	sets, err := database.GetOperationSetsByOperationIDAndUserID(activityID, userID)
@@ -40,43 +42,35 @@ func assembleWorkoutStreams(userID uuid.UUID, activityID uuid.UUID, fromSeconds 
 		}, nil
 	}
 
-	// time stream gives seconds-from-start per index; synthesize 1 Hz if absent.
-	n := streamLength(streams)
-	times := make([]int, n)
-	if streams.Time != nil && len(streams.Time.Data) == n {
-		copy(times, streams.Time.Data)
-	} else {
-		for i := range times {
-			times[i] = i
+	// The distance unit selects km vs mile splits. The athlete's age (for HR zones) is taken
+	// from the activity's own date, not today, so viewing an old activity stays historically
+	// accurate as the user ages.
+	distanceUnit := "km"
+	activityDate := time.Now()
+	if operation, err := database.GetOperationByIDAndUserID(activityID, userID); err == nil {
+		if operation.DistanceUnit != "" {
+			distanceUnit = operation.DistanceUnit
+		}
+		if exercise, err := database.GetExerciseByIDAndUserID(operation.ExerciseID, userID); err == nil && exercise != nil {
+			if day, err := database.GetExerciseDayByIDAndUserID(exercise.ExerciseDayID, userID); err == nil && day != nil {
+				activityDate = day.Date
+			}
 		}
 	}
+	hrMax, hrRest, hrBasis := 0, 0, ""
+	if user, err := database.GetUserInformation(userID); err == nil {
+		hrMax, hrRest, hrBasis = resolveUserHR(user, activityDate)
+	}
 
+	summary := SummarizeStreams(streams, distanceUnit, hrMax, hrRest, hrBasis)
 	out := models.MCPWorkoutStreams{HasStreams: true}
-	if n > 0 {
-		out.DurationSeconds = int64(times[n-1])
+	if summary != nil {
+		out.StreamSummary = *summary
 	}
-	out.Available = streamNames(streams)
-	out.HasGPS = streams.LatLng != nil && len(streams.LatLng.Data) > 0
 
-	// --- whole-workout summary header ---
-	if streams.Heartrate != nil {
-		out.Heartrate = intStat(streams.Heartrate.Data, true)
-	}
-	if streams.Cadence != nil {
-		out.Cadence = intStat(streams.Cadence.Data, true)
-	}
-	if streams.Temp != nil {
-		out.Temperature = intStat(streams.Temp.Data, false)
-	}
-	if streams.Altitude != nil {
-		out.Elevation = elevationStat(streams.Altitude.Data)
-	}
-	if streams.VelocitySmooth != nil {
-		out.Speed = speedStat(streams.VelocitySmooth.Data)
-	}
-	if streams.Watts != nil {
-		out.Power = powerStat(streams.Watts.Data, times)
-	}
+	// time stream gives seconds-from-start per index; synthesize 1 Hz if absent.
+	n := streamLength(streams)
+	times := streamTimes(streams, n)
 
 	// --- windowed, downsampled series ---
 	from := fromSeconds
@@ -181,179 +175,6 @@ func averageSpacing(times []int, idx []int) int {
 	return spacing
 }
 
-func streamLength(s *models.StravaActivityStreams) int {
-	n := 0
-	consider := func(l int) {
-		if l > n {
-			n = l
-		}
-	}
-	if s.Time != nil {
-		consider(len(s.Time.Data))
-	}
-	if s.Heartrate != nil {
-		consider(len(s.Heartrate.Data))
-	}
-	if s.Altitude != nil {
-		consider(len(s.Altitude.Data))
-	}
-	if s.VelocitySmooth != nil {
-		consider(len(s.VelocitySmooth.Data))
-	}
-	if s.Cadence != nil {
-		consider(len(s.Cadence.Data))
-	}
-	if s.Watts != nil {
-		consider(len(s.Watts.Data))
-	}
-	if s.Temp != nil {
-		consider(len(s.Temp.Data))
-	}
-	if s.LatLng != nil {
-		consider(len(s.LatLng.Data))
-	}
-	return n
-}
-
-func streamNames(s *models.StravaActivityStreams) []string {
-	names := []string{}
-	if s.Heartrate != nil && len(s.Heartrate.Data) > 0 {
-		names = append(names, "heartrate")
-	}
-	if s.Altitude != nil && len(s.Altitude.Data) > 0 {
-		names = append(names, "altitude")
-	}
-	if s.VelocitySmooth != nil && len(s.VelocitySmooth.Data) > 0 {
-		names = append(names, "velocity_smooth")
-	}
-	if s.Cadence != nil && len(s.Cadence.Data) > 0 {
-		names = append(names, "cadence")
-	}
-	if s.Watts != nil && len(s.Watts.Data) > 0 {
-		names = append(names, "watts")
-	}
-	if s.Temp != nil && len(s.Temp.Data) > 0 {
-		names = append(names, "temp")
-	}
-	if s.LatLng != nil && len(s.LatLng.Data) > 0 {
-		names = append(names, "latlng")
-	}
-	return names
-}
-
-// intStat summarizes an int channel. When filterZero is set, zero/negative samples
-// are ignored (heart rate and cadence record 0 while paused/stopped).
-func intStat(data []int, filterZero bool) *models.MCPStreamStat {
-	sum, count := 0, 0
-	min, max := math.MaxInt, math.MinInt
-	for _, v := range data {
-		if filterZero && v <= 0 {
-			continue
-		}
-		sum += v
-		count++
-		if v < min {
-			min = v
-		}
-		if v > max {
-			max = v
-		}
-	}
-	if count == 0 {
-		return nil
-	}
-	return &models.MCPStreamStat{
-		Avg: round1(float64(sum) / float64(count)),
-		Min: float64(min),
-		Max: float64(max),
-	}
-}
-
-func elevationStat(data []float64) *models.MCPElevationStat {
-	if len(data) == 0 {
-		return nil
-	}
-	min, max := math.Inf(1), math.Inf(-1)
-	gain := 0.0
-	prev := data[0]
-	for _, v := range data {
-		if v < min {
-			min = v
-		}
-		if v > max {
-			max = v
-		}
-		if v > prev {
-			gain += v - prev
-		}
-		prev = v
-	}
-	return &models.MCPElevationStat{
-		GainM: round1(gain),
-		MinM:  round1(min),
-		MaxM:  round1(max),
-	}
-}
-
-func speedStat(data []float64) *models.MCPSpeedStat {
-	sum, count := 0.0, 0
-	max := 0.0
-	for _, v := range data {
-		if v <= 0 {
-			continue
-		}
-		sum += v
-		count++
-		if v > max {
-			max = v
-		}
-	}
-	if count == 0 {
-		return nil
-	}
-	avgMs := sum / float64(count)
-	avgKmh := avgMs * 3.6
-	pace := 0.0
-	if avgKmh > 0 {
-		pace = 60.0 / avgKmh
-	}
-	return &models.MCPSpeedStat{
-		AvgKmh:       round1(avgKmh),
-		MaxKmh:       round1(max * 3.6),
-		AvgPaceMinKm: round2(pace),
-	}
-}
-
-// powerStat summarizes watts and integrates work (kJ) using the time deltas so it is
-// correct even when the series is not 1 Hz.
-func powerStat(data []int, times []int) *models.MCPPowerStat {
-	sum, count, max := 0, 0, 0
-	work := 0.0
-	for i, v := range data {
-		sum += v
-		count++
-		if v > max {
-			max = v
-		}
-		dt := 1
-		if i > 0 && i < len(times) {
-			dt = times[i] - times[i-1]
-			if dt < 0 {
-				dt = 0
-			}
-		}
-		work += float64(v) * float64(dt)
-	}
-	if count == 0 {
-		return nil
-	}
-	return &models.MCPPowerStat{
-		AvgW:   round1(float64(sum) / float64(count)),
-		MaxW:   float64(max),
-		WorkKj: round1(work / 1000.0),
-	}
-}
-
 func intAt(data []int, i int) int {
 	if i < 0 || i >= len(data) {
 		return 0
@@ -367,6 +188,3 @@ func floatAt(data []float64, i int) float64 {
 	}
 	return data[i]
 }
-
-func round1(v float64) float64 { return math.Round(v*10) / 10 }
-func round2(v float64) float64 { return math.Round(v*100) / 100 }

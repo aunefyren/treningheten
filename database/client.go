@@ -2,6 +2,7 @@ package database
 
 import (
 	"database/sql"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io/fs"
@@ -199,8 +200,77 @@ func Migrate() {
 	}
 
 	migrateStravaIgnoreWalksToGoalSettings()
+	backfillObservedMaxHeartrate()
 
 	logger.Log.Info("Database migration completed.")
+}
+
+// backfillObservedMaxHeartrate is a one-time backfill: it seeds each existing user's
+// all-time observed max heart rate from their already-stored activity streams, so HR zones
+// are well anchored from the first boot rather than only after future syncs. Self-limiting:
+// new users are created with a concrete 0 (see RegisterUserInDB), so a NULL means "legacy,
+// not yet computed" — once every NULL is filled the scan is skipped on later boots. Going
+// forward, BumpObservedMaxHeartrate keeps the value current on each sync.
+func backfillObservedMaxHeartrate() {
+	var nullCount int64
+	if err := Instance.Model(&models.User{}).Where("`observed_max_heartrate` IS NULL").Count(&nullCount).Error; err != nil {
+		logger.Log.Warn("Failed to count users needing observed-max backfill. Error: " + err.Error())
+		return
+	}
+	if nullCount == 0 {
+		return
+	}
+
+	// Walk every stored stream once, joining up to the owning user, tracking each user's
+	// peak plausible HR. Streams are JSON in a longtext column, so the max is computed in Go.
+	rows, err := Instance.Table("operation_sets").
+		Select("`exercise_days`.user_id AS user_id, `operation_sets`.strava_streams AS streams").
+		Joins("JOIN operations on `operations`.id = `operation_sets`.operation_id").
+		Joins("JOIN exercises on `exercises`.id = `operations`.exercise_id").
+		Joins("JOIN exercise_days on `exercise_days`.id = `exercises`.exercise_day_id").
+		Where("`operation_sets`.strava_streams IS NOT NULL AND `exercise_days`.user_id IS NOT NULL").
+		Rows()
+	if err != nil {
+		logger.Log.Warn("Failed to scan streams for observed-max backfill. Error: " + err.Error())
+		return
+	}
+	defer rows.Close()
+
+	maxByUser := map[uuid.UUID]int{}
+	for rows.Next() {
+		var uidStr string
+		var blob string
+		if err := rows.Scan(&uidStr, &blob); err != nil {
+			continue
+		}
+		uid, err := uuid.Parse(uidStr)
+		if err != nil {
+			continue
+		}
+		var s models.StravaStreamsJSON
+		if err := json.Unmarshal([]byte(blob), &s); err != nil {
+			continue
+		}
+		if peak := models.ObservedMaxHeartrate(&s.StravaActivityStreams); peak > maxByUser[uid] {
+			maxByUser[uid] = peak
+		}
+	}
+
+	// Mark every legacy row processed (0), then raise the ones we found a peak for.
+	if err := Instance.Model(&models.User{}).Where("`observed_max_heartrate` IS NULL").Update("observed_max_heartrate", 0).Error; err != nil {
+		logger.Log.Warn("Failed to mark users processed in observed-max backfill. Error: " + err.Error())
+		return
+	}
+	updated := 0
+	for uid, peak := range maxByUser {
+		if peak <= 0 {
+			continue
+		}
+		if err := BumpObservedMaxHeartrate(uid, peak); err == nil {
+			updated++
+		}
+	}
+	logger.Log.Info("Backfilled observed max heart rate for " + strconv.Itoa(updated) + " users.")
 }
 
 // migrateStravaIgnoreWalksToGoalSettings is a one-time backfill: the per-user Strava "ignore

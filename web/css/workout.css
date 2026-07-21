@@ -527,6 +527,175 @@
    bound the container width so the chart's own aspect ratio keeps it sensible. */
 .wv-hr-wrapper { margin: 1rem auto 0; width: 100%; max-width: 38rem; }
 
+/* Quiet one-line route summary under the map (GPS distance · point count). */
+.wv-route-caption {
+  margin-top: 0.4rem;
+  font-size: 0.72rem;
+  letter-spacing: 0.04em;
+  color: var(--text-dim);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ── Splits scoreboard ───────────────────────────────────────────────────────
+   Per-distance splits as a scoreboard. Each split's bar is its speed relative to
+   the fastest split, so the effort's shape (fast finish, mid-run fade) reads at a
+   glance; the bar is the app's progress convention — white track, blue accent fill
+   (the bright accent is reserved for progress bars). Numerals in the display font. */
+.wv-splits { margin-top: 1.1rem; }
+.wv-splits-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  margin-bottom: 0.5rem;
+}
+.wv-splits-title {
+  font-size: 0.7rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+}
+.wv-splits-meta { display: inline-flex; align-items: center; gap: 0.5rem; }
+.wv-splits-unit {
+  font-size: 0.72rem;
+  color: var(--text-dim);
+  font-variant-numeric: tabular-nums;
+}
+/* Negative-split badge — a positive callout, so it takes the green success signal. */
+.wv-splits-flag {
+  font-size: 0.62rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  font-weight: 600;
+  color: var(--success);
+  border: 1px solid var(--success);
+  border-radius: var(--radius-sm);
+  padding: 0.1rem 0.4rem;
+}
+.wv-split-list { display: flex; flex-direction: column; gap: 0.35rem; }
+
+.wv-split {
+  display: grid;
+  grid-template-columns: 2.5rem 1fr auto auto;
+  align-items: center;
+  gap: 0.5rem;
+  cursor: default;
+}
+.wv-split-idx {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 1rem;
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+}
+.wv-split-partial {
+  font-family: var(--font-body);
+  font-weight: 400;
+  font-size: 0.6rem;
+  color: var(--text-dim);
+}
+.wv-split-track {
+  position: relative;
+  display: flex;
+  align-items: center;
+  height: 1.5rem;
+  border-radius: var(--radius-sm);
+  background: var(--panel-solid);
+  border: 1px solid var(--line);
+  overflow: hidden;
+}
+.wv-split-bar {
+  position: absolute;
+  inset: 0 auto 0 0;
+  background: var(--accent);
+  opacity: 0.28;
+  border-radius: var(--radius-sm);
+}
+.wv-split-primary {
+  position: relative;
+  margin-left: 0.55rem;
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 0.95rem;
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+}
+.wv-split-primary-unit { font-size: 0.68em; opacity: 0.6; margin-left: 0.15em; font-weight: 500; }
+.wv-split-side {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 0.9rem;
+  color: var(--text-dim);
+  font-variant-numeric: tabular-nums;
+  min-width: 2.6rem;
+  text-align: right;
+}
+.wv-split-side-unit { font-size: 0.62em; opacity: 0.7; margin-left: 0.1em; }
+
+/* Fastest split: a touch stronger fill + navy index so the peak reads instantly. */
+.wv-split-fast .wv-split-bar { opacity: 0.5; }
+.wv-split-fast .wv-split-idx { color: var(--accent); }
+/* Selected (tapped) split — for touch, where hover can't hold the map highlight. */
+.wv-split-active .wv-split-track { outline: 2px solid var(--accent); }
+
+/* ── Heart-rate zones ────────────────────────────────────────────────────────
+   Time-in-zone as one stacked bar + legend. Colour rises calm→hot to read as
+   intensity (Z1 cool blues → Z3-5 the documented heat ramp --flame-*), not
+   decoration: the legend's zone name + time carries the meaning. */
+.wv-zones { margin-top: 1.1rem; }
+.wv-zones-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+.wv-zones-title {
+  font-size: 0.7rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+}
+.wv-zones-basis {
+  font-size: 0.72rem;
+  color: var(--text-dim);
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+.wv-zone-bar {
+  display: flex;
+  height: 0.65rem;
+  border-radius: var(--radius-pill);
+  overflow: hidden;
+  background: var(--panel-solid);
+  border: 1px solid var(--line);
+}
+.wv-zone-seg { height: 100%; }
+.wv-zone-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem 1rem;
+  margin-top: 0.55rem;
+}
+.wv-zone-key {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.72rem;
+  color: var(--text-dim);
+  font-variant-numeric: tabular-nums;
+}
+.wv-zone-dot {
+  width: 0.6rem;
+  height: 0.6rem;
+  border-radius: 0.15rem;
+  flex-shrink: 0;
+}
+.wv-zone-1 { background: var(--lightblue); }
+.wv-zone-2 { background: var(--blue); }
+.wv-zone-3 { background: var(--flame-1); }
+.wv-zone-4 { background: var(--flame-2); }
+.wv-zone-5 { background: var(--flame-3); }
+
 /* ── Back-to-summary button (editor mode) ─────────────────────────────────────
    The button itself is the shared .btn; this class only centres it as a
    fit-content block (block-level flex so the auto margins actually centre it). */
@@ -553,6 +722,10 @@
   .wv-session-head { flex-direction: row; align-items: flex-start; }
   .wv-stats { gap: 1rem 1.5rem; }
   .wv-stat-value { font-size: 1.4rem; }
+  /* Tighten the splits grid so the bar keeps room next to the side metrics. */
+  .wv-split { grid-template-columns: 1.9rem 1fr auto auto; gap: 0.35rem; }
+  .wv-split-side { min-width: 2.1rem; font-size: 0.82rem; }
+  .wv-zones-basis { display: none; }
 }
 
 /* ============================================================================

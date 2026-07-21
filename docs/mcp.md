@@ -38,7 +38,7 @@ for example, give feedback on their latest run. This is Phase 3 of the auth work
 | `get_latest_weight` | — | Most recent weight entry |
 | `list_activities` | `action?`, `query?`, `from?`, `to?`, `has_distance?`, `sort?`, `order?`, `limit?`, `offset?` | **Search** the user's activities → a slim, ranked list. Each result carries id, date, action, type, `source`, `note`, aggregated metrics (distance, duration, reps, `top_weight`, `set_count`), `has_streams` and `counts_toward_goal`, plus session grouping (`session_id`, `session_activity_count`). Response includes `total` and `has_more`. See below |
 | `get_activity` | `activity_id` | The **rich** flat detail of one activity by id (per-set distance/time/moving-time/reps/weight, `tags`, `description`, `has_soundtrack`, `counts_toward_goal`) — drill in after `list_activities` |
-| `get_activity_streams` | `activity_id`, `from_seconds?`, `to_seconds?`, `resolution?`, `max_points?` | Processed Strava sensor data for one activity (summary header + downsampled time-series). See below |
+| `get_activity_streams` | `activity_id`, `from_seconds?`, `to_seconds?`, `resolution?`, `max_points?` | Processed Strava sensor data for one activity: a summary header, per-distance **segments**, a GPS **route** overview, **HR zones**, and a downsampled time-series. See below |
 | `get_activity_soundtrack` | `activity_id` | Listening history (music/podcast/audiobook) matched to the session, fetched on demand. See below |
 | `get_statistics` | — | Per-window totals (activity count, km distance, seconds time) over three **rolling** windows: trailing ~1 month, trailing 12 months, all-time. Counts span **all** exercise types; distance/time only count activities that record them. Plus **personal** day/week activity streaks (current + best) |
 | `list_seasons` | `active_only?` | The seasons the user has joined, newest first, with the user's weekly goal / competing / sickleave-left; `active_only` limits to ongoing seasons |
@@ -131,13 +131,51 @@ Raw streams are too large and too low-level to hand an LLM directly (a long ride
 thousands of points across ~8 channels, easily tens of thousands of tokens), so the
 tool processes them into:
 
-1. **A whole-workout summary header** — `heartrate_bpm`/`cadence_rpm`/`temperature_c`
-   (avg/min/max), `speed` (avg & max km/h + avg pace min/km), `elevation` (gain /
-   min / max m), `power` (avg/max W + integrated work kJ), plus `available` and
-   `has_gps`. The summary always describes the entire workout.
+1. **A whole-workout summary** (the shared `StreamSummary`, see below) — the header
+   stats `heartrate_bpm`/`cadence_rpm`/`temperature_c` (avg/min/max), `speed` (avg &
+   max km/h + avg pace min/km), `elevation` (gain / **loss** / min / max m, plus
+   `biggest_climb`: the largest sustained ascent with its gain, distance and average
+   grade), `power` (avg/max W + integrated work kJ), plus `available` and `has_gps`;
+   **`segments`** (one per km or mile — distance, elapsed time, pace/speed, avg HR,
+   elevation gain, avg cadence/power, and the raw-sample index range); a **`route`**
+   overview (point count, GPS distance, start/end, bounding box, a down-sampled overview
+   polyline); an **`elevation_profile`** (down-sampled altitude-over-distance points); and
+   **`hr_zones`** (time and % in five zones). `hr_max_basis` records how the zones were
+   anchored — `max` (the athlete's configured maximum), `age` (220 − age), `reserve`
+   (heart-rate reserve / Karvonen, using their resting + max HR, with `hr_rest_bpm`), or
+   `observed` (the activity's own peak, when nothing is configured). The summary always
+   describes the entire workout.
 2. **A `series`** — raw samples restricted to `[from_seconds, to_seconds]` and
    downsampled to fit `max_points`. Arrays are time-aligned to `t_seconds`; only
-   recorded channels are populated.
+   recorded channels are populated. This raw view is **retained** alongside the
+   processed summary — the summary is additive, not a replacement.
+
+**Shared summary (`StreamSummary`).** The processed summary (everything except the
+`series`) is computed by one pure function, `controllers.SummarizeStreams`
+(`controllers/streams.go`), and reused verbatim by the `/exercises` detail page — the
+`APIGetExerciseDay` handler attaches it to each moving activity's `OperationObject`
+(`stream_summary`), so the web card renders the same segments/route/elevation/HR-zones
+without re-deriving stats in JS. Splits use the activity's `distance_unit` (km vs mile).
+HR-zone anchoring is resolved from the user's settings by `resolveUserHR`, in precedence
+order: an explicit **max heart rate**, then the **all-time max observed** across the
+user's activities (real data over a formula; maintained on Strava sync via
+`database.BumpObservedMaxHeartrate` and seeded once by `backfillObservedMaxHeartrate`),
+then the **age-based** estimate (220 − age), then this activity's own peak. A **resting
+heart rate** additionally switches the zones to heart-rate reserve (Karvonen).
+
+**Stability over time.** The summary is recomputed on each read, so it matters which parts
+can change. Everything derived from the recorded stream — header stats, **segments**,
+**elevation** (incl. profile and biggest climb) and **route** — is a pure function of the
+immutable stored stream, so it is **identical whenever the activity is viewed**. Only the
+**HR zones** depend on the athlete's settings, and even there the **age-based anchor is
+frozen to the activity's own date** (not "now"): an old activity's age-based zones stay
+historically accurate and don't drift as the athlete ages. The max/observed/resting inputs
+reflect the athlete's *current* values by design — e.g. a new all-time max re-anchors past
+activities too, which is what makes an old easy run correctly read as low-effort rather
+than maxed-out. Max and
+resting HR are optional user settings on `/account` (the observed max is system-derived,
+offered there as a one-click prefill suggestion). The MCP tool embeds the summary in
+`MCPWorkoutStreams`.
 
 **Default (no knobs):** the whole workout, auto-downsampled to ~2000 points, so a
 single call is always context-safe. **Zoom:** to read a moment at full fidelity,
@@ -232,9 +270,11 @@ Point an MCP client at `https://<your-host>/mcp`. Either:
 
 - `controllers/mcp.go` — server construction, tool registration, gin handler + auth.
 - `controllers/mcp_data.go` — assembly of the operation-centric model into flat DTOs.
-- `controllers/mcp_streams.go` — processing of stored Strava streams (summary + downsampled series).
+- `controllers/streams.go` — `SummarizeStreams`, the shared pure summarizer (header stats, segments, route, HR zones) consumed by both the MCP tool and the `/exercises` detail page; `attachStreamSummaries` enriches an exercise day for the web card.
+- `controllers/mcp_streams.go` — the MCP streams tool: builds the summary via `SummarizeStreams` and adds the downsampled `series`.
 - `controllers/mcp_engagement.go` — assembly of seasons, achievements and achievement delegations (all user-scoped).
-- `models/mcp.go` — MCP DTOs (`MCPProfile`, `MCPWeight`, `MCPActivity`, `MCPActivitySummary`, `MCPStatistics`, `MCPWorkoutStreams`, `MCPSeason`, `MCPAchievement`, `MCPAchievementDelegation`).
+- `models/mcp.go` — MCP DTOs (`MCPProfile`, `MCPWeight`, `MCPActivity`, `MCPActivitySummary`, `MCPStatistics`, `MCPWorkoutStreams`, `MCPSeason`, `MCPAchievement`, `MCPAchievementDelegation`). `MCPWorkoutStreams` embeds the shared `models.StreamSummary`.
+- `models/stream_summary.go` — the shared `StreamSummary` (header stats, `StreamSegment`, `StreamRoute`, `StreamHRZone`) used by both the MCP tool and `OperationObject`.
 - `middlewares/auth.go` — `Authenticate` (shared token/PAT validation) + `BearerChallenge`.
 - `main.go` — `router.Any("/mcp", controllers.MCPHandler())`.
 

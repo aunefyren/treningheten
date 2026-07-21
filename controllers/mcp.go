@@ -234,7 +234,8 @@ func buildMCPServer(userID uuid.UUID) *mcp.Server {
 		Name: "get_activity_streams",
 		Description: "Get the high-resolution Strava sensor data for one activity. IMPORTANT: streams exist ONLY for GPS/sensor activities imported from Strava (runs, rides, etc.) — strength and manually-logged workouts return has_streams=false. " +
 			"The data is recorded second-by-second from the athlete's device, so it must be processed to be meaningful: this tool returns (1) a whole-workout summary header (heart rate, speed/pace, elevation gain, power, cadence, temperature) and (2) a 'series' of time-aligned samples (t_seconds plus the available channels: heartrate_bpm, altitude_m, speed_kmh, cadence_rpm, watts, temperature_c, latlng). " +
-			"By default the whole workout is returned, auto-downsampled to max_points (~2000). To inspect a moment at full fidelity, call again with from_seconds/to_seconds narrowing the window and resolution=1. Check series.sampled_every_seconds and series.total_points_in_window to know how much detail you have.",
+			"By default the whole workout is returned, auto-downsampled to max_points (~2000). To inspect a moment at full fidelity, call again with from_seconds/to_seconds narrowing the window and resolution=1. Check series.sampled_every_seconds and series.total_points_in_window to know how much detail you have. " +
+				"Stability over time: the summary, segments, elevation and route are derived purely from the immutable recorded stream, so they are identical whenever the activity is viewed. Only the HR zones reflect the athlete's current settings, and their age-based anchor uses the activity's own date (not today), so historical activities stay accurate as the athlete ages.",
 	}, func(ctx context.Context, req *mcp.CallToolRequest, args mcpWorkoutStreamsArgs) (*mcp.CallToolResult, models.MCPWorkoutStreams, error) {
 		activityID, err := uuid.Parse(args.ActivityID)
 		if err != nil {
