@@ -380,6 +380,14 @@ function feedMetricChips(item) {
     if (item.top_weight > 0) {
         chips.push("top " + item.top_weight + " " + (item.weight_unit || "kg"));
     }
+    // Stream scalars (present only for Strava-backed activities), so a card reads its effort
+    // and climb without opening it. Kept unit-safe — pace/speed lives on the detail view.
+    if (item.avg_heartrate > 0) {
+        chips.push(item.avg_heartrate + " bpm");
+    }
+    if (item.elevation_gain_m > 1) {
+        chips.push("+" + Math.round(item.elevation_gain_m) + " m");
+    }
     if (chips.length === 0 && item.set_count > 0) {
         chips.push(item.set_count + (item.set_count === 1 ? " set" : " sets"));
     }

@@ -696,6 +696,112 @@
 .wv-zone-4 { background: var(--flame-2); }
 .wv-zone-5 { background: var(--flame-3); }
 
+/* ── Effort analysis (decoupling · pace consistency · stops · gradient) ────────
+   Second-order metrics the server derives from the stream. Insight tiles reuse the
+   inset-tile look (surface-hi + hairline, display-font numerals); the decoupling tile
+   carries a signal-coloured verdict chip (green/amber/red) because it reads effort
+   quality. "Effort by gradient" reuses the calm→hot zone ramp so climbs read as work. */
+.wv-analysis { margin-top: 1.1rem; }
+.wv-analysis-head { margin-bottom: 0.5rem; }
+.wv-analysis-title {
+  font-size: 0.7rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+}
+
+.wv-insights {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+.wv-insight {
+  flex: 1 1 8rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  background: var(--surface-hi);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  padding: 0.55rem 0.7rem;
+}
+.wv-insight-value {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 1.5rem;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+.wv-insight-label {
+  font-size: 0.62rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+}
+.wv-verdict {
+  align-self: flex-start;
+  margin-top: 0.15rem;
+  font-size: 0.6rem;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  font-weight: 600;
+  border: 1px solid currentColor;
+  border-radius: var(--radius-sm);
+  padding: 0.08rem 0.4rem;
+}
+.wv-verdict-good { color: var(--success); }
+.wv-verdict-warn { color: var(--warning); }
+.wv-verdict-bad { color: var(--error); }
+
+.wv-grades { margin-top: 1rem; }
+.wv-grades-head { margin-bottom: 0.5rem; }
+.wv-grades-title {
+  font-size: 0.7rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+}
+.wv-grade-list { display: flex; flex-direction: column; gap: 0.4rem; }
+.wv-grade {
+  display: grid;
+  grid-template-columns: 6.5rem 1fr auto auto;
+  align-items: center;
+  gap: 0.5rem;
+}
+.wv-grade-label {
+  font-size: 0.72rem;
+  color: var(--text-dim);
+  text-transform: capitalize;
+}
+.wv-grade-track {
+  height: 0.5rem;
+  border-radius: var(--radius-pill);
+  background: var(--panel-solid);
+  border: 1px solid var(--line);
+  overflow: hidden;
+}
+.wv-grade-bar { display: block; height: 100%; }
+.wv-grade-time {
+  font-size: 0.72rem;
+  color: var(--text-dim);
+  font-variant-numeric: tabular-nums;
+  min-width: 2.6rem;
+  text-align: right;
+}
+.wv-grade-hr {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 0.95rem;
+  font-variant-numeric: tabular-nums;
+  min-width: 2.9rem;
+  text-align: right;
+}
+.wv-grade-d2 { background: var(--lightblue); }
+.wv-grade-d1 { background: var(--lightblue); }
+.wv-grade-flat { background: var(--blue); }
+.wv-grade-c1 { background: var(--flame-1); }
+.wv-grade-c2 { background: var(--flame-2); }
+
 /* ── Back-to-summary button (editor mode) ─────────────────────────────────────
    The button itself is the shared .btn; this class only centres it as a
    fit-content block (block-level flex so the auto margins actually centre it). */
@@ -726,6 +832,10 @@
   .wv-split { grid-template-columns: 1.9rem 1fr auto auto; gap: 0.35rem; }
   .wv-split-side { min-width: 2.1rem; font-size: 0.82rem; }
   .wv-zones-basis { display: none; }
+  /* Drop the per-band time so the gradient bar + HR keep room on narrow screens. */
+  .wv-insight-value { font-size: 1.3rem; }
+  .wv-grade { grid-template-columns: 4.7rem 1fr auto; gap: 0.4rem; }
+  .wv-grade-time { display: none; }
 }
 
 /* ============================================================================

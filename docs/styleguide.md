@@ -539,6 +539,16 @@ not theme — left inline on purpose. Dynamic (`${…}`) values stay inline too.
 
 ## Decisions log
 
+- **Effort-analysis block added to the workout read view.** The server-computed stream summary
+  gained an `analysis` block (aerobic decoupling, pace consistency, stops, HR-by-gradient), so the
+  cardio read view got a new **`.wv-analysis`** "Effort analysis" section built entirely on existing
+  conventions — **insight tiles** (`.wv-insight`: `--surface-hi` + hairline inset, display-font
+  numerals, like `.wv-set`) with a signal-coloured **verdict chip** (`.wv-verdict-good/warn/bad` →
+  `--success`/`--warning`/`--error`, mirroring `.wv-splits-flag`) on the decoupling tile since it
+  reads effort *quality*; and an **Effort-by-gradient** widget (`.wv-grade*`) reusing the HR-zone
+  bar treatment (`--panel-solid` track + hairline) and the calm→hot ramp (`--lightblue`/`--blue`/
+  `--flame-1/2`) so climbs read as work. No new tokens; the `/exercises` list cards also gained
+  muted **avg-HR** and **elevation-gain** metric chips from the new operation rollups.
 - **Site footer redesigned + made app-wide.** The footer existed on only two pages (`frontpage`,
   `offline`) as a `.footer-wrapper` — a generic flex-utility name carrying `-webkit/-moz-fill-available`
   cruft, hardcoded `0.75rem`, and `color: var(--grey)` (a *border* token, weak on the page canvas).

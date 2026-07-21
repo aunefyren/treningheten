@@ -700,6 +700,7 @@ function renderCardioSubCard(operation, exercise) {
     const mapHTML = hasRoute ? `<div id="${mapDivID}" class="wv-map"></div>${routeCaptionHTML(summary)}` : "";
     const splitsHTML = renderSplitsHTML(summary, operation, splitsID);
     const zonesHTML = renderHRZonesHTML(summary);
+    const analysisHTML = renderAnalysisHTML(summary);
 
     const segments = (summary && summary.segments) || [];
     if (hasHeartrate || hasRoute || hasElevChart) {
@@ -730,11 +731,110 @@ function renderCardioSubCard(operation, exercise) {
             </div>
             ${splitsHTML}
             ${zonesHTML}
+            ${analysisHTML}
             ${mapHTML}
             ${hrHTML}
             ${elevHTML}
         </div>
     `;
+}
+
+// renderAnalysisHTML surfaces the server's second-order "coach" metrics — aerobic
+// decoupling, pace consistency, stops, and heart rate by terrain gradient — as one calm
+// "Effort analysis" block. Every piece is optional (each needs specific channels), so the
+// section renders only what the stream actually supported and is skipped when empty.
+function renderAnalysisHTML(summary) {
+    const a = summary && summary.analysis;
+    if (!a) return "";
+
+    var tiles = "";
+    if (a.decoupling_pct != null) {
+        const verdict = decouplingVerdict(a.decoupling_pct);
+        tiles += `
+            <div class="wv-insight">
+                <span class="wv-insight-value">${wvNum(a.decoupling_pct)}<span class="wv-stat-unit">%</span></span>
+                <span class="wv-insight-label">Aerobic decoupling</span>
+                <span class="wv-verdict wv-verdict-${verdict.tone}">${verdict.text}</span>
+            </div>`;
+    }
+    if (a.pace_std_dev_seconds != null) {
+        tiles += `
+            <div class="wv-insight">
+                <span class="wv-insight-value">±${Math.round(a.pace_std_dev_seconds)}<span class="wv-stat-unit">s</span></span>
+                <span class="wv-insight-label">Pace consistency</span>
+            </div>`;
+    }
+    if (a.breaks && a.breaks.count > 0) {
+        const label = a.breaks.count === 1 ? "Stop" : "Stops";
+        tiles += `
+            <div class="wv-insight">
+                <span class="wv-insight-value">${a.breaks.count}</span>
+                <span class="wv-insight-label">${label} · ${secondsToDurationString(a.breaks.total_duration_seconds)}</span>
+            </div>`;
+    }
+    const insightsHTML = tiles ? `<div class="wv-insights">${tiles}</div>` : "";
+    const gradesHTML = renderGradientHTML(a.hr_by_gradient);
+
+    if (!insightsHTML && !gradesHTML) return "";
+    return `
+        <div class="wv-analysis">
+            <div class="wv-analysis-head"><span class="wv-analysis-title">Effort analysis</span></div>
+            ${insightsHTML}
+            ${gradesHTML}
+        </div>`;
+}
+
+// decouplingVerdict maps aerobic decoupling to a plain read: low drift is a well-controlled
+// aerobic effort (green), rising drift signals fatigue/cardiac drift (amber → red), and a
+// negative value means the second half was actually more efficient.
+function decouplingVerdict(pct) {
+    if (pct < 0) return { tone: "good", text: "Even effort" };
+    if (pct < 5) return { tone: "good", text: "Aerobic" };
+    if (pct < 8) return { tone: "warn", text: "Some drift" };
+    return { tone: "bad", text: "High drift" };
+}
+
+// renderGradientHTML shows how the terrain drove effort: one row per gradient band the
+// activity spent time in, with a bar sized by that band's share of moving time and the
+// average heart rate there. Tint runs cool (downhill) → blue (flat) → hot (climbs), so a
+// hilly effort reads as rising work. Skipped unless there are at least two bands to contrast.
+function renderGradientHTML(buckets) {
+    if (!Array.isArray(buckets) || buckets.length < 2) return "";
+    const total = buckets.reduce((sum, b) => sum + (b.seconds || 0), 0);
+    if (!(total > 0)) return "";
+
+    const rows = buckets.map(b => {
+        const pct = Math.max(6, Math.round((b.seconds / total) * 100));
+        const hr = b.avg_heartrate_bpm != null
+            ? `<span class="wv-grade-hr">${b.avg_heartrate_bpm}<span class="wv-split-side-unit">bpm</span></span>`
+            : `<span class="wv-grade-hr">—</span>`;
+        return `
+            <div class="wv-grade">
+                <span class="wv-grade-label">${escapeHTML(b.label)}</span>
+                <span class="wv-grade-track"><span class="wv-grade-bar wv-grade-${gradeToneClass(b.label)}" style="width:${pct}%"></span></span>
+                <span class="wv-grade-time">${secondsToDurationString(b.seconds)}</span>
+                ${hr}
+            </div>`;
+    }).join("");
+
+    return `
+        <div class="wv-grades">
+            <div class="wv-grades-head"><span class="wv-grades-title">Effort by gradient</span></div>
+            <div class="wv-grade-list">${rows}</div>
+        </div>`;
+}
+
+// gradeToneClass ties a gradient band to a bar tint on the same cool→hot ramp as the HR
+// zones, so effort rises with the terrain.
+function gradeToneClass(label) {
+    switch (label) {
+        case "steep descent": return "d2";
+        case "descent": return "d1";
+        case "flat": return "flat";
+        case "climb": return "c1";
+        case "steep climb": return "c2";
+        default: return "flat";
+    }
 }
 
 // climbCaptionHTML surfaces the activity's single biggest sustained ascent.

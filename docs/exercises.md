@@ -66,8 +66,10 @@ JSON" the shape was designed for; the MCP `list_activities` search consumes the 
 `web/js/exercises.js` is a filter/search bar + infinite-scroll timeline against
 `api_url + "auth/activities"`. It groups adjacent same-session activities under day headers in
 browse mode and shows a flat ranked list in find mode. Each card links to `/exercises/:dayID`
-(the builder) and shows a muted "Doesn't count" badge when `counts_toward_goal` is false. Styling
-follows the shared light module/inset system (see [styleguide.md](styleguide.md)).
+(the builder), shows a muted "Doesn't count" badge when `counts_toward_goal` is false, and lists
+its metrics — distance, duration, reps/top weight, plus the stream scalars **avg HR** and
+**elevation gain** (from the operation rollups) so a card reads its effort without opening it.
+Styling follows the shared light module/inset system (see [styleguide.md](styleguide.md)).
 
 ## Activity detail (`/exercises/:id`)
 
@@ -76,7 +78,10 @@ For **cardio** (GPS/sensor) activities it surfaces the processed stream summary:
 **splits** (each with a relative-pace bar and hover-to-highlight on the route map), a
 **heart-rate chart** and an **elevation profile chart**, metric tiles (distance, pace, elevation
 gain/descent, cadence, power, temperature), a **route map + overview**, and a **heart-rate zone**
-bar — plus a **negative-split** badge when the second half was faster.
+bar — plus a **negative-split** badge when the second half was faster. When the summary carries an
+`analysis` block it adds an **Effort analysis** section (`.wv-analysis`): insight tiles for
+**aerobic decoupling** (with a signal-coloured verdict chip), **pace consistency** and **stops**,
+and an **Effort by gradient** widget (per-terrain-band share bar + avg HR on the calm→hot zone ramp).
 
 All of it consumes one server-computed `models.StreamSummary` attached to each `OperationObject`
 (`stream_summary` — the same shape the MCP `get_activity_streams` tool returns), rather than
