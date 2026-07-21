@@ -66,10 +66,10 @@ follows the dark instrument-panel system shared with stats/gear.
 
 ## Related
 
-- **MCP parity — done.** The MCP `list_exercises` tool is now backed by the same query-time
+- **MCP parity — done.** The MCP `list_activities` tool is now backed by the same query-time
   aggregation (`GetActivityFeedForUser`): it exposes action-name, free-text, date-range,
   `has_distance`, metric sort and pagination, returning slim summaries (with `counts_toward_goal`)
-  and deferring per-set detail to `get_workout`. See [mcp.md](mcp.md).
+  and deferring per-set detail to `get_activity`. See [mcp.md](mcp.md).
 
 ## Related, not yet done
 

@@ -165,10 +165,10 @@ func flattenActivities(dayObjects []models.ExerciseDayObject, actionFilter strin
 
 // operationObjectToActivity flattens one enriched OperationObject into an
 // MCPActivity. HasStreams flags whether any set carries Strava sensor data, so the
-// LLM knows it can call get_workout_streams for the time-series detail. hevyWorkoutID
+// LLM knows it can call get_activity_streams for the time-series detail. hevyWorkoutID
 // is the parent exercise's Hevy id (provenance), used to set Source. hasSoundtrack is
 // the session-level listening-history flag; the tracks are fetched on demand via
-// get_workout_soundtrack (mirrors the streams pattern).
+// get_activity_soundtrack (mirrors the streams pattern).
 func operationObjectToActivity(op models.OperationObject, date time.Time, hevyWorkoutID *string, hasSoundtrack bool, countsTowardGoal bool) models.MCPActivity {
 	note := derefString(op.Note)
 	actionName := "Unknown"

@@ -120,7 +120,7 @@ func TestFeedItemToSummary(t *testing.T) {
 	})
 }
 
-// TestOperationObjectToActivityCarriesCountsTowardGoal covers that the rich get_workout path
+// TestOperationObjectToActivityCarriesCountsTowardGoal covers that the rich get_activity path
 // surfaces the session's goal-counting flag on the activity (the parity ask alongside search).
 func TestOperationObjectToActivityCarriesCountsTowardGoal(t *testing.T) {
 	op := models.OperationObject{Note: strPtrLocal("Bench Press")}
@@ -134,7 +134,7 @@ func TestOperationObjectToActivityCarriesCountsTowardGoal(t *testing.T) {
 	}
 }
 
-// TestActivityFeedFilterFromSearchArgs covers the list_exercises argument validation: defaults,
+// TestActivityFeedFilterFromSearchArgs covers the list_activities argument validation: defaults,
 // the sort/order whitelists, date parsing (both grains), the limit cap and offset floor.
 func TestActivityFeedFilterFromSearchArgs(t *testing.T) {
 	t.Run("defaults", func(t *testing.T) {

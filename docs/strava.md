@@ -263,8 +263,8 @@ per-activity in the summary card — it is deliberately **not** rolled into the
 
 The per-second streams fetched at import are stored on `OperationSet.StravaStreams`
 (`StravaStreamsJSON`, a GORM JSON type). They are processed for the frontend charts and
-for the MCP `get_workout_streams` tool — their structure and processing are documented
-in [mcp.md](mcp.md#workout-streams-get_workout_streams).
+for the MCP `get_activity_streams` tool — their structure and processing are documented
+in [mcp.md](mcp.md#activity-streams-get_activity_streams).
 
 ## User-facing management
 

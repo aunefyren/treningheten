@@ -70,7 +70,7 @@ type MCPActivitySet struct {
 }
 
 type MCPActivity struct {
-	ID               string           `json:"id" jsonschema:"stable id for this activity; pass to get_workout or get_workout_streams"`
+	ID               string           `json:"id" jsonschema:"stable id for this activity; pass to get_activity or get_activity_streams"`
 	Date             time.Time        `json:"date"`
 	Action           string           `json:"action" jsonschema:"the exercise type, e.g. Run, Bicycling, Weight Training, or a specific movement like Bench Press"`
 	Type             string           `json:"type" jsonschema:"moving, timing or lifting"`
@@ -80,19 +80,19 @@ type MCPActivity struct {
 	Tags             []string         `json:"tags,omitempty" jsonschema:"workout category tags from a fixed vocabulary: race, long-run, workout, commute, for-a-cause, recovery, with-pet, with-kid"`
 	Equipment        string           `json:"equipment,omitempty"`
 	DurationSeconds  *int64           `json:"duration_seconds,omitempty"`
-	HasStreams       bool             `json:"has_streams" jsonschema:"true if this activity has Strava sensor streams; call get_workout_streams for the time-series detail"`
-	HasSoundtrack    bool             `json:"has_soundtrack" jsonschema:"true if listening history (music/podcast/audiobook) was matched to this session; call get_workout_soundtrack for the tracks. The soundtrack is a session-level fact, so every activity in the same session shares it"`
+	HasStreams       bool             `json:"has_streams" jsonschema:"true if this activity has Strava sensor streams; call get_activity_streams for the time-series detail"`
+	HasSoundtrack    bool             `json:"has_soundtrack" jsonschema:"true if listening history (music/podcast/audiobook) was matched to this session; call get_activity_soundtrack for the tracks. The soundtrack is a session-level fact, so every activity in the same session shares it"`
 	CountsTowardGoal bool             `json:"counts_toward_goal" jsonschema:"whether the parent session tallies toward the user's weekly goal; false means it is logged but deliberately excluded (a session-level flag, so every activity in the same session shares it)"`
 	Sets             []MCPActivitySet `json:"sets,omitempty"`
 }
 
 // MCPActivitySummary is the slim, aggregated view of one activity (operation) used by the
-// list_exercises search. It mirrors the /exercises timeline's query-time aggregation: per-set
+// list_activities search. It mirrors the /exercises timeline's query-time aggregation: per-set
 // distance/time/reps are SUMmed and the heaviest set weight is TopWeight, so it never loads the
 // operation/set/stream tree. For per-set detail, tags, description and soundtrack, drill into
-// one activity with get_workout by its id.
+// one activity with get_activity by its id.
 type MCPActivitySummary struct {
-	ID                   string     `json:"id" jsonschema:"stable id for this activity (the operation id); pass to get_workout, get_workout_streams or get_workout_soundtrack"`
+	ID                   string     `json:"id" jsonschema:"stable id for this activity (the operation id); pass to get_activity, get_activity_streams or get_activity_soundtrack"`
 	Date                 time.Time  `json:"date" jsonschema:"the calendar day of the session"`
 	Time                 *time.Time `json:"time,omitempty" jsonschema:"the session's start time, when known"`
 	Action               string     `json:"action" jsonschema:"the exercise type, e.g. Run, Bicycling, Weight Training, or a specific movement like Bench Press"`
@@ -105,7 +105,7 @@ type MCPActivitySummary struct {
 	TopWeight            float64    `json:"top_weight" jsonschema:"heaviest weight recorded on any of the activity's sets, in weight_unit"`
 	WeightUnit           string     `json:"weight_unit,omitempty"`
 	SetCount             int        `json:"set_count" jsonschema:"number of sets in this activity"`
-	HasStreams           bool       `json:"has_streams" jsonschema:"true if this activity has Strava sensor streams; call get_workout_streams for the time-series detail"`
+	HasStreams           bool       `json:"has_streams" jsonschema:"true if this activity has Strava sensor streams; call get_activity_streams for the time-series detail"`
 	Source               string     `json:"source" jsonschema:"where this activity came from: strava, hevy or manual"`
 	CountsTowardGoal     bool       `json:"counts_toward_goal" jsonschema:"whether the parent session tallies toward the user's weekly goal; false means it is logged but deliberately excluded"`
 	SessionID            string     `json:"session_id" jsonschema:"id of the parent session; activities sharing a session_id were logged together"`
@@ -114,7 +114,7 @@ type MCPActivitySummary struct {
 
 // MCPSoundtrackTrack is one item the user listened to during a session, flattened
 // for the LLM. Durations are seconds; times are absolute so the LLM can place a
-// track within the workout (and, with get_workout_streams, correlate it to effort).
+// track within the workout (and, with get_activity_streams, correlate it to effort).
 type MCPSoundtrackTrack struct {
 	Type               string     `json:"type" jsonschema:"song, podcast or audiobook"`
 	Title              string     `json:"title"`

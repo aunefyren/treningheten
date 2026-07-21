@@ -41,7 +41,7 @@ type mcpListExercisesArgs struct {
 }
 
 type mcpWorkoutArgs struct {
-	ActivityID string `json:"activity_id" jsonschema:"the id of an activity from list_exercises"`
+	ActivityID string `json:"activity_id" jsonschema:"the id of an activity from list_activities"`
 }
 
 type mcpListSeasonsArgs struct {
@@ -80,7 +80,7 @@ type mcpDelegationsOutput struct {
 }
 
 type mcpWorkoutStreamsArgs struct {
-	ActivityID  string `json:"activity_id" jsonschema:"the id of an activity from list_exercises (must have has_streams=true)"`
+	ActivityID  string `json:"activity_id" jsonschema:"the id of an activity from list_activities (must have has_streams=true)"`
 	FromSeconds int    `json:"from_seconds,omitempty" jsonschema:"start of the time window, in seconds from workout start (default 0)"`
 	ToSeconds   int    `json:"to_seconds,omitempty" jsonschema:"end of the time window, in seconds from workout start (default end of workout)"`
 	Resolution  int    `json:"resolution,omitempty" jsonschema:"desired spacing between returned samples in seconds; 1 = full fidelity. Omit to auto-fit the whole window to max_points"`
@@ -88,7 +88,7 @@ type mcpWorkoutStreamsArgs struct {
 }
 
 type mcpWorkoutSoundtrackArgs struct {
-	ActivityID string `json:"activity_id" jsonschema:"the id of an activity from list_exercises (must have has_soundtrack=true)"`
+	ActivityID string `json:"activity_id" jsonschema:"the id of an activity from list_activities (must have has_soundtrack=true)"`
 }
 
 type mcpWeightsOutput struct {
@@ -187,11 +187,11 @@ func buildMCPServer(userID uuid.UUID) *mcp.Server {
 	})
 
 	mcp.AddTool(server, &mcp.Tool{
-		Name: "list_exercises",
-		Description: "Search the user's logged exercise activities and return a slim, ranked list — the way to find relevant workouts without pulling everything. " +
+		Name: "list_activities",
+		Description: "Search the user's logged exercise activities and return a slim, ranked list — the way to find relevant activities without pulling everything. " +
 			"Each result is one activity with its id, date, exercise type, source (strava/hevy/manual), note, aggregated metrics (distance, duration, reps, top weight, set count), has_streams and counts_toward_goal. " +
 			"Filter by action (exercise type), free-text query (notes + type name), from/to date range and has_distance; sort by date (default), distance, duration, weight or reps in asc/desc order; paginate with limit (default 20, max 100) and offset. The response reports total and has_more. " +
-			"For per-set detail, tags, description and soundtrack, drill into one result with get_workout by its id.",
+			"For per-set detail, tags, description and soundtrack, drill into one result with get_activity by its id.",
 	}, func(ctx context.Context, req *mcp.CallToolRequest, args mcpListExercisesArgs) (*mcp.CallToolResult, mcpActivitiesOutput, error) {
 		filter, err := activityFeedFilterFromSearchArgs(args)
 		if err != nil {
@@ -216,8 +216,8 @@ func buildMCPServer(userID uuid.UUID) *mcp.Server {
 	})
 
 	mcp.AddTool(server, &mcp.Tool{
-		Name:        "get_workout",
-		Description: "Get the flat detail of a single activity by its id (action, type, source, tags, note/description, duration and per-set distance/time/reps/weight). Use after list_exercises to drill into one workout.",
+		Name:        "get_activity",
+		Description: "Get the flat detail of a single activity by its id (action, type, source, tags, note/description, duration and per-set distance/time/reps/weight). Use after list_activities to drill into one activity.",
 	}, func(ctx context.Context, req *mcp.CallToolRequest, args mcpWorkoutArgs) (*mcp.CallToolResult, mcpActivityOutput, error) {
 		activityID, err := uuid.Parse(args.ActivityID)
 		if err != nil {
@@ -231,7 +231,7 @@ func buildMCPServer(userID uuid.UUID) *mcp.Server {
 	})
 
 	mcp.AddTool(server, &mcp.Tool{
-		Name: "get_workout_streams",
+		Name: "get_activity_streams",
 		Description: "Get the high-resolution Strava sensor data for one activity. IMPORTANT: streams exist ONLY for GPS/sensor activities imported from Strava (runs, rides, etc.) — strength and manually-logged workouts return has_streams=false. " +
 			"The data is recorded second-by-second from the athlete's device, so it must be processed to be meaningful: this tool returns (1) a whole-workout summary header (heart rate, speed/pace, elevation gain, power, cadence, temperature) and (2) a 'series' of time-aligned samples (t_seconds plus the available channels: heartrate_bpm, altitude_m, speed_kmh, cadence_rpm, watts, temperature_c, latlng). " +
 			"By default the whole workout is returned, auto-downsampled to max_points (~2000). To inspect a moment at full fidelity, call again with from_seconds/to_seconds narrowing the window and resolution=1. Check series.sampled_every_seconds and series.total_points_in_window to know how much detail you have.",
@@ -248,10 +248,10 @@ func buildMCPServer(userID uuid.UUID) *mcp.Server {
 	})
 
 	mcp.AddTool(server, &mcp.Tool{
-		Name: "get_workout_soundtrack",
+		Name: "get_activity_soundtrack",
 		Description: "Get the listening history (music, podcasts, audiobooks) matched to one session by an activity id. " +
 			"Fetched on demand like streams, because it can be long. The soundtrack is a SESSION-level fact: any activity id from the same session returns the same tracks, and activities with has_soundtrack=false (or on servers without media integration) return has_soundtrack=false with an explanatory message. " +
-			"Each track has its type, title, artist/album, provider (plex/spotify/audiobookshelf) and absolute start/end times — so it can be lined up against get_workout_streams to relate what was playing to the athlete's effort.",
+			"Each track has its type, title, artist/album, provider (plex/spotify/audiobookshelf) and absolute start/end times — so it can be lined up against get_activity_streams to relate what was playing to the athlete's effort.",
 	}, func(ctx context.Context, req *mcp.CallToolRequest, args mcpWorkoutSoundtrackArgs) (*mcp.CallToolResult, models.MCPWorkoutSoundtrack, error) {
 		activityID, err := uuid.Parse(args.ActivityID)
 		if err != nil {
@@ -364,7 +364,7 @@ func limitOrDefault(limit int) int {
 	return limit
 }
 
-// activityFeedFilterFromSearchArgs validates the list_exercises search arguments into an
+// activityFeedFilterFromSearchArgs validates the list_activities search arguments into an
 // ActivityFeedFilter, reusing the same date parsing and sort/order whitelists as the web
 // /exercises feed (parseActivityFeedTime, activityFeedSorts). A bad date, sort or order is a
 // client error. Limit defaults to 20 and is capped at 100; a negative offset falls back to 0.
