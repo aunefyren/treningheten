@@ -201,8 +201,94 @@ func Migrate() {
 
 	migrateStravaIgnoreWalksToGoalSettings()
 	backfillObservedMaxHeartrate()
+	backfillOperationStreamRollups()
 
 	logger.Log.Info("Database migration completed.")
+}
+
+// backfillOperationStreamRollups is a one-time backfill: it seeds the per-operation stream
+// rollup columns (avg/max heart rate, avg cadence, temperature, elevation gain) from each
+// existing operation's already-stored Strava stream, so the activity list can show those
+// scalars from the first boot rather than only after future syncs. Self-limiting: it processes
+// only stream-bearing operations whose rollups are all still NULL, and every real Strava stream
+// carries an altitude channel (so elevation_gain_m becomes non-NULL and the row drops out of the
+// scan); a stream with no usable channel at all is marked with elevation_gain_m = 0 so it can't
+// keep the scan alive. Going forward, the Strava sync writes the rollups on every import.
+func backfillOperationStreamRollups() {
+	allNull := "`operations`.avg_heartrate IS NULL AND `operations`.max_heartrate IS NULL AND " +
+		"`operations`.avg_cadence IS NULL AND `operations`.temp_c IS NULL AND `operations`.elevation_gain_m IS NULL"
+
+	var pending int64
+	if err := Instance.Table("operations").
+		Joins("JOIN operation_sets ON `operation_sets`.operation_id = `operations`.id").
+		Where("`operation_sets`.strava_streams IS NOT NULL").
+		Where(allNull).
+		Count(&pending).Error; err != nil {
+		logger.Log.Warn("Failed to count operations needing stream-rollup backfill. Error: " + err.Error())
+		return
+	}
+	if pending == 0 {
+		return
+	}
+
+	// One row per stream-bearing set; the first stream seen for an operation wins, mirroring the
+	// runtime's "first set with streams" selection.
+	rows, err := Instance.Table("operation_sets").
+		Select("`operations`.id AS operation_id, `operation_sets`.strava_streams AS streams").
+		Joins("JOIN operations ON `operations`.id = `operation_sets`.operation_id").
+		Where("`operation_sets`.strava_streams IS NOT NULL").
+		Where(allNull).
+		Rows()
+	if err != nil {
+		logger.Log.Warn("Failed to scan streams for stream-rollup backfill. Error: " + err.Error())
+		return
+	}
+	defer rows.Close()
+
+	rollups := map[uuid.UUID]models.OperationStreamRollup{}
+	for rows.Next() {
+		var opIDStr string
+		var blob string
+		if err := rows.Scan(&opIDStr, &blob); err != nil {
+			continue
+		}
+		opID, err := uuid.Parse(opIDStr)
+		if err != nil {
+			continue
+		}
+		if _, done := rollups[opID]; done {
+			continue
+		}
+		var s models.StravaStreamsJSON
+		if err := json.Unmarshal([]byte(blob), &s); err != nil {
+			continue
+		}
+		rollups[opID] = models.ComputeStreamRollup(&s.StravaActivityStreams)
+	}
+	rows.Close()
+
+	updated := 0
+	for opID, rollup := range rollups {
+		fields := map[string]interface{}{
+			"avg_heartrate":    rollup.AvgHeartrate,
+			"max_heartrate":    rollup.MaxHeartrate,
+			"avg_cadence":      rollup.AvgCadence,
+			"temp_c":           rollup.TempC,
+			"elevation_gain_m": rollup.ElevationGainM,
+		}
+		// Guarantee a non-NULL marker so a channel-less stream can't keep re-triggering the scan.
+		if rollup.AvgHeartrate == nil && rollup.MaxHeartrate == nil && rollup.AvgCadence == nil &&
+			rollup.TempC == nil && rollup.ElevationGainM == nil {
+			zero := 0.0
+			fields["elevation_gain_m"] = &zero
+		}
+		if err := Instance.Model(&models.Operation{}).Where("`id` = ?", opID).Updates(fields).Error; err != nil {
+			logger.Log.Warn("Failed to write stream rollup for operation " + opID.String() + ". Error: " + err.Error())
+			continue
+		}
+		updated++
+	}
+	logger.Log.Info("Backfilled stream rollups for " + strconv.Itoa(updated) + " operations.")
 }
 
 // backfillObservedMaxHeartrate is a one-time backfill: it seeds each existing user's

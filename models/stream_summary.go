@@ -20,6 +20,96 @@ func ObservedMaxHeartrate(s *StravaActivityStreams) int {
 	return max
 }
 
+// OperationStreamRollup holds the scalar summaries precomputed from an activity's Strava
+// stream and stored as columns on the Operation, so the activity list
+// (GetActivityFeedForUser) can surface heart rate, cadence, temperature and elevation gain
+// without loading and parsing the stream blob for every row. Each field is nil when the
+// stream lacks that channel. The heavier per-km/zone detail stays behind get_activity_streams
+// and the get_activity include parameter.
+type OperationStreamRollup struct {
+	AvgHeartrate   *int
+	MaxHeartrate   *int
+	AvgCadence     *int
+	TempC          *int
+	ElevationGainM *float64
+}
+
+// ComputeStreamRollup derives the stored list scalars from a stream. Heart rate and cadence
+// average only positive samples (both read 0 while paused); the max heart rate reuses the
+// plausible cap so a dropout can't inflate it; temperature averages all samples (it can be
+// negative); elevation gain sums the positive altitude changes. Shared by the Strava sync and
+// the one-time backfill so the two stay identical.
+func ComputeStreamRollup(s *StravaActivityStreams) OperationStreamRollup {
+	rollup := OperationStreamRollup{}
+	if s == nil {
+		return rollup
+	}
+
+	if s.Heartrate != nil {
+		// Cap at the plausible max so a sensor dropout can't drag the average up, matching how
+		// the max (ObservedMaxHeartrate) already filters spikes.
+		if avg, ok := avgPositive(s.Heartrate.Data, maxPlausibleHeartrate); ok {
+			rollup.AvgHeartrate = &avg
+		}
+		if peak := ObservedMaxHeartrate(s); peak > 0 {
+			rollup.MaxHeartrate = &peak
+		}
+	}
+	if s.Cadence != nil {
+		if avg, ok := avgPositive(s.Cadence.Data, 0); ok {
+			rollup.AvgCadence = &avg
+		}
+	}
+	if s.Temp != nil && len(s.Temp.Data) > 0 {
+		sum := 0
+		for _, v := range s.Temp.Data {
+			sum += v
+		}
+		avg := int(roundHalf(float64(sum) / float64(len(s.Temp.Data))))
+		rollup.TempC = &avg
+	}
+	if s.Altitude != nil && len(s.Altitude.Data) > 1 {
+		gain := 0.0
+		prev := s.Altitude.Data[0]
+		for _, v := range s.Altitude.Data[1:] {
+			if d := v - prev; d > 0 {
+				gain += d
+			}
+			prev = v
+		}
+		gain = roundHalf(gain*10) / 10
+		rollup.ElevationGainM = &gain
+	}
+	return rollup
+}
+
+// avgPositive returns the rounded mean of the strictly-positive samples, and false when there
+// are none (the channel was all zero/paused or empty). Samples above max are treated as sensor
+// dropouts and skipped; max <= 0 disables the cap.
+func avgPositive(data []int, max int) (int, bool) {
+	sum, count := 0, 0
+	for _, v := range data {
+		if v <= 0 || (max > 0 && v > max) {
+			continue
+		}
+		sum += v
+		count++
+	}
+	if count == 0 {
+		return 0, false
+	}
+	return int(roundHalf(float64(sum) / float64(count))), true
+}
+
+// roundHalf rounds to the nearest integer, half away from zero. Kept local to models so the
+// rollup has no dependency on the controllers' rounding helpers.
+func roundHalf(v float64) float64 {
+	if v < 0 {
+		return float64(int(v - 0.5))
+	}
+	return float64(int(v + 0.5))
+}
+
 // StreamSummary is the processed, presentation-ready view of one activity's Strava
 // sensor streams. It is the single shared shape consumed by both the MCP
 // get_activity_streams tool (embedded in MCPWorkoutStreams) and the /exercises detail
@@ -41,9 +131,65 @@ type StreamSummary struct {
 	Route            *StreamRoute           `json:"route,omitempty" jsonschema:"a summary of the GPS path (present only when the activity has GPS)"`
 	ElevationProfile []StreamElevationPoint `json:"elevation_profile,omitempty" jsonschema:"a down-sampled altitude-over-distance profile of the activity"`
 	HRZones          []StreamHRZone         `json:"hr_zones,omitempty" jsonschema:"time spent in each of five heart-rate zones"`
+	Analysis         *StreamAnalysis        `json:"analysis,omitempty" jsonschema:"precomputed derived metrics (aerobic decoupling, first/second-half splits, pace consistency, breaks, HR-by-gradient) — the kind of second-order analysis a coach reads off the raw stream"`
 	HRMaxBasis       string                 `json:"hr_max_basis,omitempty" jsonschema:"how the HR zones were anchored: 'max' (the athlete's configured maximum), 'age' (220 minus their age AT THE TIME OF THIS ACTIVITY — the age is taken from the activity's own date, so an old activity's zones do not drift as the athlete ages), 'reserve' (heart-rate reserve / Karvonen, using their resting and max HR), or 'observed' (the peak heart rate in this activity, used when nothing is configured). Only the HR zones depend on the athlete's current settings; every other field here (segments, elevation, route) is derived purely from the immutable recorded stream and is identical whenever the activity is viewed"`
 	HRMaxBpm         int                    `json:"hr_max_bpm,omitempty" jsonschema:"the maximum heart rate the zone boundaries were derived from"`
 	HRRestBpm        int                    `json:"hr_rest_bpm,omitempty" jsonschema:"the resting heart rate used for reserve (Karvonen) zones, when applicable"`
+}
+
+// StreamAnalysis holds second-order metrics derived from the raw stream — the numbers a
+// coach hand-computes to judge a session. Every field is optional: each needs specific
+// channels (decoupling and the halves/gradient views need heart rate plus a distance or
+// speed signal), so a field is nil when its inputs are absent. All are computed purely from
+// the immutable recorded stream, so they are stable whenever the activity is viewed.
+type StreamAnalysis struct {
+	DecouplingPct     *float64                 `json:"decoupling_pct,omitempty" jsonschema:"aerobic decoupling: the percent drop in pace-to-heart-rate efficiency from the first half to the second half of the activity. Near 0 (under ~5%) means a well-controlled aerobic effort held pace without HR drift; higher values indicate cardiac drift or fatigue. A negative value means efficiency improved in the second half (e.g. a warm-up or negative split)"`
+	SplitHalves       *StreamSplitHalves       `json:"split_halves,omitempty" jsonschema:"first-half vs second-half comparison (time, distance, avg HR, avg pace) — positive/negative split detection in two rows"`
+	PaceStdDevSeconds *float64                 `json:"pace_std_dev_seconds,omitempty" jsonschema:"standard deviation of the per-split pace, in seconds per unit distance; pacing consistency in a single number, where lower is steadier. Uses only the full-length splits"`
+	Breaks            *StreamBreaks            `json:"breaks,omitempty" jsonschema:"stops and walk breaks detected as sustained stretches of near-zero speed"`
+	HRByGradient      []StreamHRGradientBucket `json:"hr_by_gradient,omitempty" jsonschema:"time and average heart rate bucketed by terrain gradient — shows how much the terrain, rather than effort, drove heart rate"`
+}
+
+// StreamSplitHalves compares the first and second halves of the activity, split at the
+// midpoint of elapsed moving time.
+type StreamSplitHalves struct {
+	First  StreamHalf `json:"first"`
+	Second StreamHalf `json:"second"`
+}
+
+// StreamHalf is the aggregate for one half of a split-halves comparison.
+type StreamHalf struct {
+	ElapsedSeconds  int64   `json:"elapsed_seconds"`
+	DistanceKm      float64 `json:"distance_km,omitempty"`
+	AvgHeartrateBpm *int    `json:"avg_heartrate_bpm,omitempty"`
+	AvgPaceMinKm    float64 `json:"avg_pace_min_km,omitempty"`
+}
+
+// StreamBreak is one detected pause: when it started and ended (seconds from workout start)
+// and how long it lasted.
+type StreamBreak struct {
+	FromSeconds     int `json:"from_seconds"`
+	ToSeconds       int `json:"to_seconds"`
+	DurationSeconds int `json:"duration_seconds"`
+}
+
+// StreamBreaks summarizes the pauses in an activity: how many, their combined duration, and
+// the individual breaks in order.
+type StreamBreaks struct {
+	Count                int           `json:"count"`
+	TotalDurationSeconds int           `json:"total_duration_seconds"`
+	Breaks               []StreamBreak `json:"breaks,omitempty"`
+}
+
+// StreamHRGradientBucket is time-in-gradient: how long was spent on terrain in this grade
+// band and the average heart rate (and pace) there.
+type StreamHRGradientBucket struct {
+	Label           string   `json:"label" jsonschema:"human-readable gradient band, e.g. 'steep descent', 'flat', 'steep climb'"`
+	MinGradePct     *float64 `json:"min_grade_pct,omitempty" jsonschema:"lower bound of the band in percent grade; null for the open-ended first (descent) band"`
+	MaxGradePct     *float64 `json:"max_grade_pct,omitempty" jsonschema:"upper bound of the band in percent grade; null for the open-ended last (climb) band"`
+	Seconds         int64    `json:"seconds"`
+	AvgHeartrateBpm *int     `json:"avg_heartrate_bpm,omitempty"`
+	AvgPaceMinKm    float64  `json:"avg_pace_min_km,omitempty"`
 }
 
 // StreamStat is a simple avg/min/max summary of a single sensor channel.

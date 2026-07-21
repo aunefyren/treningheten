@@ -745,6 +745,18 @@ func StravaSyncOperationForActivity(activity models.StravaGetActivitiesRequestRe
 		}
 	}
 
+	// Precompute the list-row scalars from the stream so the activity feed can show HR,
+	// cadence, temperature and elevation gain without loading the blob per row. Only when
+	// streams are present this run; a list-only sync leaves any existing rollup untouched.
+	if streams != nil {
+		rollup := models.ComputeStreamRollup(streams)
+		operation.AvgHeartrate = rollup.AvgHeartrate
+		operation.MaxHeartrate = rollup.MaxHeartrate
+		operation.AvgCadence = rollup.AvgCadence
+		operation.TempC = rollup.TempC
+		operation.ElevationGainM = rollup.ElevationGainM
+	}
+
 	newOperation, err := database.UpdateOperationInDB(operation)
 	if err != nil {
 		return finalOperation, err

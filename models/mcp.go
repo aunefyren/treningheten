@@ -84,6 +84,11 @@ type MCPActivity struct {
 	HasSoundtrack    bool             `json:"has_soundtrack" jsonschema:"true if listening history (music/podcast/audiobook) was matched to this session; call get_activity_soundtrack for the tracks. The soundtrack is a session-level fact, so every activity in the same session shares it"`
 	CountsTowardGoal bool             `json:"counts_toward_goal" jsonschema:"whether the parent session tallies toward the user's weekly goal; false means it is logged but deliberately excluded (a session-level flag, so every activity in the same session shares it)"`
 	Sets             []MCPActivitySet `json:"sets,omitempty"`
+	// StreamSummary carries the processed sensor blocks (segments, hr_zones, elevation,
+	// route, elevation_profile, analysis) a caller opted into via get_activity's include
+	// parameter. It is present only for stream-backed activities when include is non-empty,
+	// and holds just the requested blocks (the raw time-series stays in get_activity_streams).
+	StreamSummary *StreamSummary `json:"stream_summary,omitempty"`
 }
 
 // MCPActivitySummary is the slim, aggregated view of one activity (operation) used by the
@@ -100,7 +105,14 @@ type MCPActivitySummary struct {
 	Note                 string     `json:"note,omitempty" jsonschema:"the user's short manual note on this activity"`
 	Distance             float64    `json:"distance" jsonschema:"total distance summed across the activity's sets, in distance_unit"`
 	DistanceUnit         string     `json:"distance_unit,omitempty"`
-	DurationSeconds      int64      `json:"duration_seconds" jsonschema:"total time summed across the activity's sets, in seconds"`
+	DurationSeconds      int64      `json:"duration_seconds" jsonschema:"total elapsed time summed across the activity's sets, in seconds"`
+	MovingSeconds        int64      `json:"moving_seconds,omitempty" jsonschema:"active/moving time (excludes pauses), in seconds; usually only present for Strava-imported activities"`
+	AvgPaceMinKm         float64    `json:"avg_pace_min_km,omitempty" jsonschema:"average pace in minutes per kilometre, from moving time when available; only for activities that record distance"`
+	AvgHeartrateBpm      *int       `json:"avg_heartrate_bpm,omitempty" jsonschema:"average heart rate over the activity, from its Strava stream; absent without one"`
+	MaxHeartrateBpm      *int       `json:"max_heartrate_bpm,omitempty" jsonschema:"peak heart rate over the activity, from its Strava stream"`
+	AvgCadenceRpm        *int       `json:"avg_cadence_rpm,omitempty" jsonschema:"average cadence (steps/revolutions per minute), from its Strava stream"`
+	TemperatureC         *int       `json:"temperature_c,omitempty" jsonschema:"average recorded temperature in Celsius, from its Strava stream"`
+	ElevationGainM       *float64   `json:"elevation_gain_m,omitempty" jsonschema:"total elevation gained in metres, from its Strava stream"`
 	Repetitions          float64    `json:"repetitions" jsonschema:"total repetitions summed across the activity's sets"`
 	TopWeight            float64    `json:"top_weight" jsonschema:"heaviest weight recorded on any of the activity's sets, in weight_unit"`
 	WeightUnit           string     `json:"weight_unit,omitempty"`

@@ -23,6 +23,15 @@ type Operation struct {
 	Description  *string    `json:"description" gorm:"type:longtext;default: null;"`
 	Tags         TagList    `json:"tags" gorm:"type:longtext;default: null;"`
 	Duration     *int64     `json:"duration"`
+	// Rollup columns precomputed from the activity's Strava stream at sync time, so the
+	// activity list can show these scalars without loading the stream blob per row. NULL for
+	// activities without streams (strength, manual) or a channel the device didn't record.
+	// See models.ComputeStreamRollup; backfilled once for existing rows in database.Migrate.
+	AvgHeartrate   *int     `json:"avg_heartrate" gorm:"default: null"`
+	MaxHeartrate   *int     `json:"max_heartrate" gorm:"default: null"`
+	AvgCadence     *int     `json:"avg_cadence" gorm:"default: null"`
+	TempC          *int     `json:"temp_c" gorm:"default: null"`
+	ElevationGainM *float64 `json:"elevation_gain_m" gorm:"default: null"`
 }
 
 type OperationCreationRequest struct {

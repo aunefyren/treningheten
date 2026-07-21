@@ -30,10 +30,18 @@ type ActivityFeedItem struct {
 	WeightUnit           string     `json:"weight_unit"`
 	Distance             float64    `json:"distance"`
 	DurationSeconds      int64      `json:"duration_seconds"`
+	MovingSeconds        int64      `json:"moving_seconds"` // summed moving time (excludes pauses); usually Strava-only
 	Repetitions          float64    `json:"repetitions"`
 	TopWeight            float64    `json:"top_weight"`
 	SetCount             int        `json:"set_count"`
 	HasStrava            bool       `json:"has_strava"`
+	// Rollup scalars precomputed on the Operation from its Strava stream (nil without one), so
+	// the list can show them without touching the stream blob. See models.ComputeStreamRollup.
+	AvgHeartrate   *int     `json:"avg_heartrate"`
+	MaxHeartrate   *int     `json:"max_heartrate"`
+	AvgCadence     *int     `json:"avg_cadence"`
+	TempC          *int     `json:"temp_c"`
+	ElevationGainM *float64 `json:"elevation_gain_m"`
 	HevyWorkoutID        *string    `json:"hevy_workout_id"`    // session-level Hevy provenance; drives source resolution (strava/hevy/manual)
 	CountsTowardGoal     bool       `json:"counts_toward_goal"` // session-level: false → shown but not tallied
 	SessionActivityCount int        `json:"session_activity_count"`

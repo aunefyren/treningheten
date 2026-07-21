@@ -52,9 +52,14 @@ companion grouped query fills `session_activity_count` (the true number of activ
 returned session, independent of the current filter) so a browse card can honestly say
 "2 activities".
 
-Each item is a slim `models.ActivityFeedItem` — **no `strava_streams`** (too heavy for a list;
-HR/GPS detail is deferred to the builder/detail view). The response is shaped so precomputed
-Operation rollup columns could back it later **without changing the JSON**.
+Each item is a slim `models.ActivityFeedItem` — **no `strava_streams`** (too heavy for a list).
+The item does carry a handful of **precomputed stream scalars** (`avg_heartrate`, `max_heartrate`,
+`avg_cadence`, `temp_c`, `elevation_gain_m`) read directly from rollup columns on the `Operation`
+(`models.ComputeStreamRollup`, written on Strava sync and backfilled once by
+`backfillOperationStreamRollups`) plus summed `moving_seconds` — so the list can show those
+numbers without ever loading or parsing a stream blob. The full per-second HR/GPS detail is still
+deferred to the builder/detail view. This is the "precomputed rollup columns without changing the
+JSON" the shape was designed for; the MCP `list_activities` search consumes the same fields.
 
 ## Frontend
 

@@ -74,8 +74,329 @@ func SummarizeStreams(streams *models.StravaActivityStreams, distanceUnit string
 	if out.HRMaxBasis == "reserve" {
 		out.HRRestBpm = hrRest
 	}
+	out.Analysis = computeAnalysis(streams, times, cumMeters, out.Segments)
 
 	return out
+}
+
+// Analysis tuning constants.
+const (
+	// breakSpeedMS is the speed at or below which a sample counts as stopped/very slow, and
+	// minBreakSeconds is how long that must be sustained to count as a break (so a single
+	// slow GPS sample doesn't register). gradientWindowMeters smooths per-sample gradient
+	// over a short distance so sensor noise doesn't scatter samples across bands.
+	breakSpeedMS         = 0.5
+	minBreakSeconds      = 8
+	gradientWindowMeters = 30.0
+)
+
+// gradientBandBounds are the upper percent-grade edges of the descent→climb bands; the label
+// list has one more entry than the bounds for the open-ended top (steep climb) band.
+var gradientBandBounds = []float64{-5, -2, 2, 5}
+var gradientBandLabels = []string{"steep descent", "descent", "flat", "climb", "steep climb"}
+
+// computeAnalysis derives the second-order "coach" metrics from the raw stream. Each block is
+// independent and returns nil/empty when its required channels are missing, so the whole
+// StreamAnalysis is nil only when nothing at all could be computed.
+func computeAnalysis(streams *models.StravaActivityStreams, times []int, cumMeters []float64, segments []models.StreamSegment) *models.StreamAnalysis {
+	analysis := &models.StreamAnalysis{}
+	populated := false
+
+	if d := computeDecoupling(streams, times, cumMeters); d != nil {
+		analysis.DecouplingPct = d
+		populated = true
+	}
+	if s := computeSplitHalves(streams, times, cumMeters); s != nil {
+		analysis.SplitHalves = s
+		populated = true
+	}
+	if p := computePaceStdDev(segments); p != nil {
+		analysis.PaceStdDevSeconds = p
+		populated = true
+	}
+	if b := computeBreaks(streams, times, cumMeters); b != nil {
+		analysis.Breaks = b
+		populated = true
+	}
+	if g := computeHRByGradient(streams, times, cumMeters); g != nil {
+		analysis.HRByGradient = g
+		populated = true
+	}
+
+	if !populated {
+		return nil
+	}
+	return analysis
+}
+
+// midpointIndex returns the first sample index at or past the midpoint of elapsed time, used
+// to split an activity into first and second halves by time.
+func midpointIndex(times []int) int {
+	n := len(times)
+	if n < 2 {
+		return 0
+	}
+	mid := (times[0] + times[n-1]) / 2
+	for i, t := range times {
+		if t >= mid {
+			return i
+		}
+	}
+	return n - 1
+}
+
+// computeDecoupling measures aerobic decoupling: the percent drop in speed-per-heartbeat
+// efficiency from the first half to the second half. Needs heart rate and a distance signal.
+// Returns nil when either half lacks a valid speed or heart rate.
+func computeDecoupling(streams *models.StravaActivityStreams, times []int, cumMeters []float64) *float64 {
+	if streams.Heartrate == nil || cumMeters == nil {
+		return nil
+	}
+	n := len(times)
+	if n < 4 || len(cumMeters) < n {
+		return nil
+	}
+	mid := midpointIndex(times)
+	if mid <= 0 || mid >= n-1 {
+		return nil
+	}
+	ratio := func(from, to int) (float64, bool) {
+		dt := times[to] - times[from]
+		dist := cumMeters[to] - cumMeters[from]
+		if dt <= 0 || dist <= 0 {
+			return 0, false
+		}
+		hr := avgIntOver(streams.Heartrate, from, to, true)
+		if hr == nil || *hr <= 0 {
+			return 0, false
+		}
+		speed := dist / float64(dt)
+		return speed / float64(*hr), true
+	}
+	first, ok1 := ratio(0, mid)
+	second, ok2 := ratio(mid, n-1)
+	if !ok1 || !ok2 || first <= 0 {
+		return nil
+	}
+	dec := round1((first - second) / first * 100)
+	return &dec
+}
+
+// computeSplitHalves reports each half's elapsed time, distance, average heart rate and pace,
+// split at the midpoint of elapsed time. Returns nil without heart rate or a distance signal.
+func computeSplitHalves(streams *models.StravaActivityStreams, times []int, cumMeters []float64) *models.StreamSplitHalves {
+	n := len(times)
+	if n < 4 {
+		return nil
+	}
+	mid := midpointIndex(times)
+	if mid <= 0 || mid >= n-1 {
+		return nil
+	}
+	half := func(from, to int) models.StreamHalf {
+		h := models.StreamHalf{ElapsedSeconds: int64(times[to] - times[from])}
+		if streams.Heartrate != nil {
+			h.AvgHeartrateBpm = avgIntOver(streams.Heartrate, from, to, true)
+		}
+		if cumMeters != nil && to < len(cumMeters) {
+			dist := cumMeters[to] - cumMeters[from]
+			if dist > 0 {
+				h.DistanceKm = round2(dist / metersPerKm)
+				if secs := float64(times[to] - times[from]); secs > 0 {
+					h.AvgPaceMinKm = round2(secs * metersPerKm / (60.0 * dist))
+				}
+			}
+		}
+		return h
+	}
+	first := half(0, mid)
+	second := half(mid, n-1)
+	if first.AvgHeartrateBpm == nil && first.DistanceKm == 0 {
+		return nil
+	}
+	return &models.StreamSplitHalves{First: first, Second: second}
+}
+
+// computePaceStdDev returns the standard deviation of the full-length splits' pace, in seconds
+// per unit distance. The trailing partial split is excluded. Returns nil with fewer than two
+// full splits.
+func computePaceStdDev(segments []models.StreamSegment) *float64 {
+	paces := []float64{}
+	for _, s := range segments {
+		// Full-length splits only (the last split may be a partial unit).
+		if s.AvgPaceMinKm > 0 && s.Distance >= 0.95 {
+			paces = append(paces, s.AvgPaceMinKm*60)
+		}
+	}
+	if len(paces) < 2 {
+		return nil
+	}
+	mean := 0.0
+	for _, p := range paces {
+		mean += p
+	}
+	mean /= float64(len(paces))
+	varSum := 0.0
+	for _, p := range paces {
+		d := p - mean
+		varSum += d * d
+	}
+	std := round1(math.Sqrt(varSum / float64(len(paces))))
+	return &std
+}
+
+// computeBreaks finds sustained stretches of near-zero speed (stops and walk breaks). Speed
+// comes from velocity_smooth when present, else from the distance deltas. Returns nil without
+// any speed signal or when no stretch is long enough to count.
+func computeBreaks(streams *models.StravaActivityStreams, times []int, cumMeters []float64) *models.StreamBreaks {
+	n := len(times)
+	if n < 2 {
+		return nil
+	}
+	if streams.VelocitySmooth == nil && cumMeters == nil {
+		return nil
+	}
+	speedAt := func(i int) float64 {
+		if streams.VelocitySmooth != nil && i < len(streams.VelocitySmooth.Data) {
+			return streams.VelocitySmooth.Data[i]
+		}
+		if cumMeters != nil && i > 0 && i < len(cumMeters) {
+			if dt := times[i] - times[i-1]; dt > 0 {
+				return (cumMeters[i] - cumMeters[i-1]) / float64(dt)
+			}
+		}
+		return 0
+	}
+
+	breaks := []models.StreamBreak{}
+	inBreak := false
+	startIdx := 0
+	flush := func(endIdx int) {
+		if !inBreak {
+			return
+		}
+		if dur := times[endIdx] - times[startIdx]; dur >= minBreakSeconds {
+			breaks = append(breaks, models.StreamBreak{
+				FromSeconds:     times[startIdx],
+				ToSeconds:       times[endIdx],
+				DurationSeconds: dur,
+			})
+		}
+		inBreak = false
+	}
+	for i := 0; i < n; i++ {
+		if speedAt(i) <= breakSpeedMS {
+			if !inBreak {
+				inBreak, startIdx = true, i
+			}
+		} else {
+			flush(i)
+		}
+	}
+	flush(n - 1)
+
+	if len(breaks) == 0 {
+		return nil
+	}
+	total := 0
+	for _, b := range breaks {
+		total += b.DurationSeconds
+	}
+	return &models.StreamBreaks{Count: len(breaks), TotalDurationSeconds: total, Breaks: breaks}
+}
+
+// computeHRByGradient buckets time and average heart rate by terrain gradient. Gradient is
+// smoothed over gradientWindowMeters so sensor noise doesn't scatter samples across bands.
+// Needs heart rate, altitude and a distance signal; returns nil otherwise.
+func computeHRByGradient(streams *models.StravaActivityStreams, times []int, cumMeters []float64) []models.StreamHRGradientBucket {
+	if streams.Heartrate == nil || streams.Altitude == nil || cumMeters == nil {
+		return nil
+	}
+	alt := streams.Altitude.Data
+	hr := streams.Heartrate.Data
+	n := len(times)
+	if len(alt) < n {
+		n = len(alt)
+	}
+	if len(cumMeters) < n {
+		n = len(cumMeters)
+	}
+	if n < 2 {
+		return nil
+	}
+
+	type acc struct {
+		seconds int64
+		hrSum   float64
+		hrDt    int64
+		meters  float64
+	}
+	accs := make([]acc, len(gradientBandLabels))
+	j := 0
+	for i := 1; i < n; i++ {
+		// Slide j back to ~gradientWindowMeters behind i for a smoothed gradient.
+		for j < i-1 && cumMeters[i]-cumMeters[j] > gradientWindowMeters {
+			j++
+		}
+		dist := cumMeters[i] - cumMeters[j]
+		if dist <= 0 {
+			continue
+		}
+		dt := int64(times[i] - times[i-1])
+		if dt <= 0 {
+			continue
+		}
+		grad := (alt[i] - alt[j]) / dist * 100
+		bi := gradientBandIndex(grad)
+		accs[bi].seconds += dt
+		accs[bi].meters += cumMeters[i] - cumMeters[i-1]
+		if i < len(hr) && hr[i] > 0 {
+			accs[bi].hrSum += float64(hr[i]) * float64(dt)
+			accs[bi].hrDt += dt
+		}
+	}
+
+	buckets := []models.StreamHRGradientBucket{}
+	for bi, a := range accs {
+		if a.seconds == 0 {
+			continue
+		}
+		b := models.StreamHRGradientBucket{
+			Label:   gradientBandLabels[bi],
+			Seconds: a.seconds,
+		}
+		if bi > 0 {
+			lo := gradientBandBounds[bi-1]
+			b.MinGradePct = &lo
+		}
+		if bi < len(gradientBandBounds) {
+			hi := gradientBandBounds[bi]
+			b.MaxGradePct = &hi
+		}
+		if a.hrDt > 0 {
+			avg := int(math.Round(a.hrSum / float64(a.hrDt)))
+			b.AvgHeartrateBpm = &avg
+		}
+		if a.meters > 0 {
+			b.AvgPaceMinKm = round2(float64(a.seconds) * metersPerKm / (60.0 * a.meters))
+		}
+		buckets = append(buckets, b)
+	}
+	if len(buckets) == 0 {
+		return nil
+	}
+	return buckets
+}
+
+// gradientBandIndex maps a percent grade to a band index using the upper-edge bounds (mirrors
+// hrZoneIndex): the first band whose upper edge the grade is below, else the open-ended top.
+func gradientBandIndex(grad float64) int {
+	for i, b := range gradientBandBounds {
+		if grad < b {
+			return i
+		}
+	}
+	return len(gradientBandBounds)
 }
 
 // resolveUserHR turns a user's configured heart-rate settings into the inputs the zone

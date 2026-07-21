@@ -100,6 +100,7 @@ func feedItemToSummary(item models.ActivityFeedItem) models.MCPActivitySummary {
 		Note:                 derefString(item.Note),
 		Distance:             item.Distance,
 		DurationSeconds:      item.DurationSeconds,
+		MovingSeconds:        item.MovingSeconds,
 		Repetitions:          item.Repetitions,
 		TopWeight:            item.TopWeight,
 		SetCount:             item.SetCount,
@@ -108,12 +109,28 @@ func feedItemToSummary(item models.ActivityFeedItem) models.MCPActivitySummary {
 		CountsTowardGoal:     item.CountsTowardGoal,
 		SessionID:            item.ExerciseID.String(),
 		SessionActivityCount: item.SessionActivityCount,
+		AvgHeartrateBpm:      item.AvgHeartrate,
+		MaxHeartrateBpm:      item.MaxHeartrate,
+		AvgCadenceRpm:        item.AvgCadence,
+		TemperatureC:         item.TempC,
+		ElevationGainM:       item.ElevationGainM,
 	}
 	if item.Distance > 0 {
 		summary.DistanceUnit = item.DistanceUnit
 	}
 	if item.TopWeight > 0 {
 		summary.WeightUnit = item.WeightUnit
+	}
+	// Derive average pace from moving time when present (more accurate), else elapsed time.
+	// Only meaningful for distance activities, so it stays 0 for strength/timed work.
+	if distKm := distanceToKm(item.Distance, item.DistanceUnit); distKm > 0 {
+		secs := item.MovingSeconds
+		if secs <= 0 {
+			secs = item.DurationSeconds
+		}
+		if secs > 0 {
+			summary.AvgPaceMinKm = round2(float64(secs) / 60.0 / distKm)
+		}
 	}
 	return summary
 }
@@ -216,8 +233,12 @@ func operationObjectToActivity(op models.OperationObject, date time.Time, hevyWo
 }
 
 // assembleSingleActivity returns the flat view of one activity (operation) owned by
-// the user, resolving its exercise date with the same fallback as the list path.
-func assembleSingleActivity(userID uuid.UUID, activityID uuid.UUID) (models.MCPActivity, error) {
+// the user, resolving its exercise date with the same fallback as the list path. When
+// include is non-empty and the activity carries Strava streams, the requested processed
+// blocks (segments, zones, elevation, route, profile, analysis) are attached under
+// StreamSummary — the summary-first path that avoids pulling the raw series via
+// get_activity_streams.
+func assembleSingleActivity(userID uuid.UUID, activityID uuid.UUID, include []string) (models.MCPActivity, error) {
 	operation, err := database.GetOperationByIDAndUserID(activityID, userID)
 	if err != nil {
 		return models.MCPActivity{}, err
@@ -232,7 +253,17 @@ func assembleSingleActivity(userID uuid.UUID, activityID uuid.UUID) (models.MCPA
 	// Unlike the list path, this operation-level path doesn't carry the session's
 	// media, so resolve the flag directly (a no-op query when Media is disabled).
 	hasSoundtrack := exerciseHasSoundtrack(operation.ExerciseID)
-	return operationObjectToActivity(opObject, date, hevyWorkoutID, hasSoundtrack, countsTowardGoal), nil
+	activity := operationObjectToActivity(opObject, date, hevyWorkoutID, hasSoundtrack, countsTowardGoal)
+
+	if len(include) > 0 && activity.HasStreams {
+		summary, err := assembleActivityStreamSummary(userID, activityID)
+		if err != nil {
+			return models.MCPActivity{}, err
+		}
+		activity.StreamSummary = filterStreamSummary(summary, include)
+	}
+
+	return activity, nil
 }
 
 // resolveExerciseDate mirrors ConvertExerciseToExerciseObject's time fallback:

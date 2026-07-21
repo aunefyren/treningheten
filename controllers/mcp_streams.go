@@ -2,6 +2,7 @@ package controllers
 
 import (
 	"math"
+	"strings"
 	"time"
 
 	"github.com/aunefyren/treningheten/database"
@@ -23,43 +24,15 @@ const (
 // given). resolution (seconds between samples; 1 = full fidelity) lets the caller zoom a
 // narrow window back to full resolution.
 func assembleWorkoutStreams(userID uuid.UUID, activityID uuid.UUID, fromSeconds int, toSeconds int, resolution int, maxPoints int) (models.MCPWorkoutStreams, error) {
-	sets, err := database.GetOperationSetsByOperationIDAndUserID(activityID, userID)
+	streams, distanceUnit, hrMax, hrRest, hrBasis, err := loadActivityStreamContext(userID, activityID)
 	if err != nil {
 		return models.MCPWorkoutStreams{}, err
-	}
-
-	var streams *models.StravaActivityStreams
-	for i := range sets {
-		if sets[i].StravaStreams != nil {
-			streams = &sets[i].StravaStreams.StravaActivityStreams
-			break
-		}
 	}
 	if streams == nil {
 		return models.MCPWorkoutStreams{
 			HasStreams: false,
 			Message:    "This activity has no Strava sensor streams. Streams exist only for GPS/sensor activities imported from Strava (e.g. runs and rides); strength and manually-logged workouts have none.",
 		}, nil
-	}
-
-	// The distance unit selects km vs mile splits. The athlete's age (for HR zones) is taken
-	// from the activity's own date, not today, so viewing an old activity stays historically
-	// accurate as the user ages.
-	distanceUnit := "km"
-	activityDate := time.Now()
-	if operation, err := database.GetOperationByIDAndUserID(activityID, userID); err == nil {
-		if operation.DistanceUnit != "" {
-			distanceUnit = operation.DistanceUnit
-		}
-		if exercise, err := database.GetExerciseByIDAndUserID(operation.ExerciseID, userID); err == nil && exercise != nil {
-			if day, err := database.GetExerciseDayByIDAndUserID(exercise.ExerciseDayID, userID); err == nil && day != nil {
-				activityDate = day.Date
-			}
-		}
-	}
-	hrMax, hrRest, hrBasis := 0, 0, ""
-	if user, err := database.GetUserInformation(userID); err == nil {
-		hrMax, hrRest, hrBasis = resolveUserHR(user, activityDate)
 	}
 
 	summary := SummarizeStreams(streams, distanceUnit, hrMax, hrRest, hrBasis)
@@ -161,6 +134,117 @@ func selectStreamIndices(times []int, from int, to int, resolution int, maxPoint
 	}
 
 	return idx, total
+}
+
+// loadActivityStreamContext gathers everything SummarizeStreams needs for one activity: the
+// raw streams (nil when the activity has none), the distance unit (km vs mile splits) and the
+// resolved HR-zone anchors. The athlete's age (for age-based zones) is taken from the
+// activity's own date, not today, so an old activity stays historically accurate. Shared by
+// get_activity_streams (which also builds the raw series) and get_activity (summary only).
+func loadActivityStreamContext(userID uuid.UUID, activityID uuid.UUID) (streams *models.StravaActivityStreams, distanceUnit string, hrMax int, hrRest int, hrBasis string, err error) {
+	sets, err := database.GetOperationSetsByOperationIDAndUserID(activityID, userID)
+	if err != nil {
+		return nil, "", 0, 0, "", err
+	}
+	for i := range sets {
+		if sets[i].StravaStreams != nil {
+			streams = &sets[i].StravaStreams.StravaActivityStreams
+			break
+		}
+	}
+	if streams == nil {
+		return nil, "", 0, 0, "", nil
+	}
+
+	distanceUnit = "km"
+	activityDate := time.Now()
+	if operation, err := database.GetOperationByIDAndUserID(activityID, userID); err == nil {
+		if operation.DistanceUnit != "" {
+			distanceUnit = operation.DistanceUnit
+		}
+		if exercise, err := database.GetExerciseByIDAndUserID(operation.ExerciseID, userID); err == nil && exercise != nil {
+			if day, err := database.GetExerciseDayByIDAndUserID(exercise.ExerciseDayID, userID); err == nil && day != nil {
+				activityDate = day.Date
+			}
+		}
+	}
+	if user, err := database.GetUserInformation(userID); err == nil {
+		hrMax, hrRest, hrBasis = resolveUserHR(user, activityDate)
+	}
+	return streams, distanceUnit, hrMax, hrRest, hrBasis, nil
+}
+
+// assembleActivityStreamSummary returns the processed StreamSummary for one activity, or nil
+// when it has no Strava streams. It is the summary half of get_activity_streams without the
+// raw series — get_activity attaches the requested blocks so a caller can read splits, zones
+// and derived metrics without pulling thousands of samples.
+func assembleActivityStreamSummary(userID uuid.UUID, activityID uuid.UUID) (*models.StreamSummary, error) {
+	streams, distanceUnit, hrMax, hrRest, hrBasis, err := loadActivityStreamContext(userID, activityID)
+	if err != nil {
+		return nil, err
+	}
+	if streams == nil {
+		return nil, nil
+	}
+	return SummarizeStreams(streams, distanceUnit, hrMax, hrRest, hrBasis), nil
+}
+
+// Recognized get_activity include tokens, mapping the caller-facing name to a summary block.
+const (
+	includeSegments  = "segments"
+	includeZones     = "zones"
+	includeElevation = "elevation"
+	includeRoute     = "route"
+	includeProfile   = "profile"
+	includeAnalysis  = "analysis"
+)
+
+// filterStreamSummary returns a copy of full carrying only the blocks named in include (plus
+// the always-cheap header: available channels, has_gps, duration and the per-channel stats),
+// so a caller opts into the heavy derived blocks. An unrecognized token is ignored. Returns
+// nil when full is nil or include selects nothing.
+func filterStreamSummary(full *models.StreamSummary, include []string) *models.StreamSummary {
+	if full == nil {
+		return nil
+	}
+	// Header stats are cheap and small, so they always ride along once any block is requested.
+	out := &models.StreamSummary{
+		Available:       full.Available,
+		HasGPS:          full.HasGPS,
+		DurationSeconds: full.DurationSeconds,
+		Heartrate:       full.Heartrate,
+		Cadence:         full.Cadence,
+		Speed:           full.Speed,
+		Power:           full.Power,
+		Temperature:     full.Temperature,
+	}
+	selected := false
+	for _, token := range include {
+		switch strings.ToLower(strings.TrimSpace(token)) {
+		case includeSegments:
+			out.Segments = full.Segments
+		case includeZones:
+			out.HRZones = full.HRZones
+			out.HRMaxBasis = full.HRMaxBasis
+			out.HRMaxBpm = full.HRMaxBpm
+			out.HRRestBpm = full.HRRestBpm
+		case includeElevation:
+			out.Elevation = full.Elevation
+		case includeRoute:
+			out.Route = full.Route
+		case includeProfile:
+			out.ElevationProfile = full.ElevationProfile
+		case includeAnalysis:
+			out.Analysis = full.Analysis
+		default:
+			continue
+		}
+		selected = true
+	}
+	if !selected {
+		return nil
+	}
+	return out
 }
 
 func averageSpacing(times []int, idx []int) int {

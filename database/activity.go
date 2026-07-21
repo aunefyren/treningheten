@@ -98,10 +98,18 @@ func GetActivityFeedForUser(userID uuid.UUID, filter models.ActivityFeedFilter) 
 			"`o`.`weight_unit` AS weight_unit, " +
 			"COALESCE(SUM(`os`.`distance`), 0) AS distance, " +
 			"COALESCE(SUM(`os`.`time`), 0) AS duration_seconds, " +
+			"COALESCE(SUM(`os`.`moving_time`), 0) AS moving_seconds, " +
 			"COALESCE(SUM(`os`.`repetitions`), 0) AS repetitions, " +
 			"COALESCE(MAX(`os`.`weight`), 0) AS top_weight, " +
 			"COUNT(`os`.`id`) AS set_count, " +
 			"(COALESCE(SUM(CASE WHEN `os`.`strava_id` IS NOT NULL AND `os`.`strava_id` <> '' THEN 1 ELSE 0 END), 0) > 0) AS has_strava, " +
+			// Operation-level rollups are single-valued per group; MAX() reads the value while
+			// staying valid under ONLY_FULL_GROUP_BY, and preserves NULL when unset.
+			"MAX(`o`.`avg_heartrate`) AS avg_heartrate, " +
+			"MAX(`o`.`max_heartrate`) AS max_heartrate, " +
+			"MAX(`o`.`avg_cadence`) AS avg_cadence, " +
+			"MAX(`o`.`temp_c`) AS temp_c, " +
+			"MAX(`o`.`elevation_gain_m`) AS elevation_gain_m, " +
 			"`e`.`hevy_workout_id` AS hevy_workout_id, " +
 			"`e`.`counts_toward_goal` AS counts_toward_goal").
 		Order(orderBy).

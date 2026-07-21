@@ -356,3 +356,72 @@ func TestActivityFeedHasDistanceAndPagination(t *testing.T) {
 		t.Errorf("total should still be 4 regardless of limit, got %d", total)
 	}
 }
+
+// TestActivityFeedStreamRollups verifies the feed surfaces the operation's precomputed stream
+// rollups (avg/max HR, cadence, temperature, elevation gain) and the summed moving time, which
+// the MCP list uses to show sensor scalars without loading the stream blob.
+func TestActivityFeedStreamRollups(t *testing.T) {
+	newTestDB(t)
+	user := makeTestUser(t, "rollup@test.dev", nil)
+	run := makeAction(t, "Run", "cardio")
+	day := makeDay(t, user.ID, time.Date(2025, 5, 4, 0, 0, 0, 0, time.UTC))
+	s := makeSession(t, day.ID, time.Date(2025, 5, 4, 9, 0, 0, 0, time.UTC))
+	op := makeOperation(t, s.ID, &run.ID)
+
+	avgHR, maxHR, cad, temp, elev := 155, 181, 86, 18, 210.0
+	if err := Instance.Model(&models.Operation{}).Where("id = ?", op.ID).Updates(map[string]interface{}{
+		"avg_heartrate": &avgHR, "max_heartrate": &maxHR, "avg_cadence": &cad, "temp_c": &temp, "elevation_gain_m": &elev,
+	}).Error; err != nil {
+		t.Fatalf("failed to set rollups: %v", err)
+	}
+
+	// A distance set carrying both elapsed (Time) and moving time.
+	set := models.OperationSet{OperationID: op.ID, Enabled: true, Distance: f64Ptr(10), Time: durPtr(3600), MovingTime: durPtr(3000)}
+	set.ID = uuid.New()
+	insertRow(t, &set)
+
+	items, total, err := GetActivityFeedForUser(user.ID, models.ActivityFeedFilter{Sort: "date", Order: "desc", Limit: 30})
+	if err != nil {
+		t.Fatalf("feed error: %v", err)
+	}
+	if total != 1 || len(items) != 1 {
+		t.Fatalf("expected 1 item, got total %d / len %d", total, len(items))
+	}
+	got := items[0]
+	if got.AvgHeartrate == nil || *got.AvgHeartrate != 155 {
+		t.Errorf("avg HR: want 155, got %v", got.AvgHeartrate)
+	}
+	if got.MaxHeartrate == nil || *got.MaxHeartrate != 181 {
+		t.Errorf("max HR: want 181, got %v", got.MaxHeartrate)
+	}
+	if got.AvgCadence == nil || *got.AvgCadence != 86 {
+		t.Errorf("cadence: want 86, got %v", got.AvgCadence)
+	}
+	if got.TempC == nil || *got.TempC != 18 {
+		t.Errorf("temp: want 18, got %v", got.TempC)
+	}
+	if got.ElevationGainM == nil || *got.ElevationGainM != 210 {
+		t.Errorf("elevation: want 210, got %v", got.ElevationGainM)
+	}
+	if got.MovingSeconds != 3000 {
+		t.Errorf("moving seconds: want 3000, got %d", got.MovingSeconds)
+	}
+
+	// A rollup-free lift on the same feed comes back with nil scalars (no stream).
+	lift := makeAction(t, "Lifting", "strength")
+	lday := makeDay(t, user.ID, time.Date(2025, 5, 3, 0, 0, 0, 0, time.UTC))
+	ls := makeSession(t, lday.ID, time.Date(2025, 5, 3, 9, 0, 0, 0, time.UTC))
+	lop := makeOperation(t, ls.ID, &lift.ID)
+	makeSet(t, lop.ID, nil, f64Ptr(60), f64Ptr(10), nil)
+
+	items, _, err = GetActivityFeedForUser(user.ID, models.ActivityFeedFilter{Sort: "date", Order: "asc", Limit: 30})
+	if err != nil {
+		t.Fatalf("feed error: %v", err)
+	}
+	if len(items) != 2 || items[0].ActionName != "Lifting" {
+		t.Fatalf("expected lift first (oldest), got %+v", items)
+	}
+	if items[0].AvgHeartrate != nil || items[0].ElevationGainM != nil || items[0].MovingSeconds != 0 {
+		t.Errorf("lift should have no stream scalars, got %+v", items[0])
+	}
+}

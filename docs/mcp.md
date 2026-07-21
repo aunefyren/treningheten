@@ -36,9 +36,9 @@ for example, give feedback on their latest run. This is Phase 3 of the auth work
 | `whoami` | — | Profile: name, email, admin, member-since |
 | `list_weights` | `limit?` | Body-weight entries, newest first |
 | `get_latest_weight` | — | Most recent weight entry |
-| `list_activities` | `action?`, `query?`, `from?`, `to?`, `has_distance?`, `sort?`, `order?`, `limit?`, `offset?` | **Search** the user's activities → a slim, ranked list. Each result carries id, date, action, type, `source`, `note`, aggregated metrics (distance, duration, reps, `top_weight`, `set_count`), `has_streams` and `counts_toward_goal`, plus session grouping (`session_id`, `session_activity_count`). Response includes `total` and `has_more`. See below |
-| `get_activity` | `activity_id` | The **rich** flat detail of one activity by id (per-set distance/time/moving-time/reps/weight, `tags`, `description`, `has_soundtrack`, `counts_toward_goal`) — drill in after `list_activities` |
-| `get_activity_streams` | `activity_id`, `from_seconds?`, `to_seconds?`, `resolution?`, `max_points?` | Processed Strava sensor data for one activity: a summary header, per-distance **segments**, a GPS **route** overview, **HR zones**, and a downsampled time-series. See below |
+| `list_activities` | `action?`, `query?`, `from?`, `to?`, `has_distance?`, `sort?`, `order?`, `limit?`, `offset?` | **Search** the user's activities → a slim, ranked list. Each result carries id, date, action, type, `source`, `note`, aggregated metrics (distance, duration, `moving_seconds`, `avg_pace_min_km`, reps, `top_weight`, `set_count`), the precomputed stream scalars (`avg_heartrate_bpm`, `max_heartrate_bpm`, `avg_cadence_rpm`, `temperature_c`, `elevation_gain_m`), `has_streams` and `counts_toward_goal`, plus session grouping (`session_id`, `session_activity_count`). Response includes `total` and `has_more`. See below |
+| `get_activity` | `activity_id`, `include?` | The **rich** flat detail of one activity by id (per-set distance/time/moving-time/reps/weight, `tags`, `description`, `has_soundtrack`, `counts_toward_goal`) — drill in after `list_activities`. Pass `include` (any of `segments`, `zones`, `elevation`, `route`, `profile`, `analysis`) to attach the processed stream blocks under `stream_summary` without pulling the raw series. See below |
+| `get_activity_streams` | `activity_id`, `from_seconds?`, `to_seconds?`, `resolution?`, `max_points?` | Processed Strava sensor data for one activity: a summary header, per-distance **segments**, a GPS **route** overview, **HR zones**, an **analysis** block (decoupling, split-halves, pace consistency, breaks, HR-by-gradient), and a downsampled time-series. See below |
 | `get_activity_soundtrack` | `activity_id` | Listening history (music/podcast/audiobook) matched to the session, fetched on demand. See below |
 | `get_statistics` | — | Per-window totals (activity count, km distance, seconds time) over three **rolling** windows: trailing ~1 month, trailing 12 months, all-time. Counts span **all** exercise types; distance/time only count activities that record them. Plus **personal** day/week activity streaks (current + best) |
 | `list_seasons` | `active_only?` | The seasons the user has joined, newest first, with the user's weekly goal / competing / sickleave-left; `active_only` limits to ongoing seasons |
@@ -104,6 +104,26 @@ Results are **slim, aggregated summaries** (per-set distance/time/reps SUMmed, h
 detail, `tags`, `description` and soundtrack are fetched by drilling into one result with
 `get_activity`. A bad `sort`, `order` or date is a client error.
 
+Each row also carries **stream scalars** — `avg_heartrate_bpm`, `max_heartrate_bpm`,
+`avg_cadence_rpm`, `temperature_c` and `elevation_gain_m` — plus `moving_seconds` (summed active
+time) and a derived `avg_pace_min_km`. These let the model triage a list (spot the hot runs, the
+hard efforts, the climbs) without a second call per row. The scalars come from **precomputed
+rollup columns on the `Operation`** (`models.ComputeStreamRollup`, written on Strava sync and
+backfilled once by `backfillOperationStreamRollups`), so the list still never loads or parses a
+stream blob — it only reads columns. They are absent for activities without a stream (strength,
+manual). `avg_pace_min_km` is computed from `moving_seconds` when present (else elapsed duration)
+and only for distance activities.
+
+### Summary-first drill-in (`get_activity` include)
+
+`get_activity` stays flat and cheap by default. For a stream-backed activity, pass **`include`**
+(any of `segments`, `zones`, `elevation`, `route`, `profile`, `analysis`) to attach the matching
+processed blocks under `stream_summary` — the same shapes `get_activity_streams` returns, but
+**without the raw time-series**. This is the way to read per-km splits, HR zones and the derived
+`analysis` metrics without pulling thousands of samples; the header stats always ride along. The
+raw series stays behind `get_activity_streams` for full-resolution inspection. Unknown tokens are
+ignored; an empty/omitted `include` attaches nothing.
+
 **Hevy custom exercises** have no global `Action` (they're private to the user), so their name is stored on the operation's note. The flattener mirrors the frontend's title fallback: when an operation has no `Action`, its note is promoted to `action` (and the real per-exercise note lives in `description`), rather than reporting `action: "Unknown"`.
 
 Durations are exposed in **seconds** for LLM friendliness. Note that the underlying
@@ -143,8 +163,14 @@ tool processes them into:
    **`hr_zones`** (time and % in five zones). `hr_max_basis` records how the zones were
    anchored — `max` (the athlete's configured maximum), `age` (220 − age), `reserve`
    (heart-rate reserve / Karvonen, using their resting + max HR, with `hr_rest_bpm`), or
-   `observed` (the activity's own peak, when nothing is configured). The summary always
-   describes the entire workout.
+   `observed` (the activity's own peak, when nothing is configured); and an **`analysis`**
+   block of second-order coach metrics: `decoupling_pct` (aerobic decoupling — the drop in
+   pace-to-HR efficiency from the first half to the second), `split_halves` (first vs second
+   half time/distance/HR/pace), `pace_std_dev_seconds` (pacing consistency across the full
+   splits), `breaks` (stops and walk breaks from sustained near-zero speed), and
+   `hr_by_gradient` (time and avg HR bucketed by terrain grade). Each analysis field needs
+   specific channels and is omitted when its inputs are absent. The summary always describes
+   the entire workout.
 2. **A `series`** — raw samples restricted to `[from_seconds, to_seconds]` and
    downsampled to fit `max_points`. Arrays are time-aligned to `t_seconds`; only
    recorded channels are populated. This raw view is **retained** alongside the
@@ -165,7 +191,8 @@ heart rate** additionally switches the zones to heart-rate reserve (Karvonen).
 
 **Stability over time.** The summary is recomputed on each read, so it matters which parts
 can change. Everything derived from the recorded stream — header stats, **segments**,
-**elevation** (incl. profile and biggest climb) and **route** — is a pure function of the
+**elevation** (incl. profile and biggest climb), **route** and the **analysis** metrics
+(except HR-dependent ones, which follow the zone anchoring below) — is a pure function of the
 immutable stored stream, so it is **identical whenever the activity is viewed**. Only the
 **HR zones** depend on the athlete's settings, and even there the **age-based anchor is
 frozen to the activity's own date** (not "now"): an old activity's age-based zones stay
@@ -270,11 +297,11 @@ Point an MCP client at `https://<your-host>/mcp`. Either:
 
 - `controllers/mcp.go` — server construction, tool registration, gin handler + auth.
 - `controllers/mcp_data.go` — assembly of the operation-centric model into flat DTOs.
-- `controllers/streams.go` — `SummarizeStreams`, the shared pure summarizer (header stats, segments, route, HR zones) consumed by both the MCP tool and the `/exercises` detail page; `attachStreamSummaries` enriches an exercise day for the web card.
-- `controllers/mcp_streams.go` — the MCP streams tool: builds the summary via `SummarizeStreams` and adds the downsampled `series`.
+- `controllers/streams.go` — `SummarizeStreams`, the shared pure summarizer (header stats, segments, route, HR zones, and the `analysis` metrics via `computeAnalysis`) consumed by both the MCP tool and the `/exercises` detail page; `attachStreamSummaries` enriches an exercise day for the web card.
+- `controllers/mcp_streams.go` — the MCP streams tool: `loadActivityStreamContext` gathers the streams + HR anchors (shared with `get_activity`), `assembleActivityStreamSummary` builds the summary, `filterStreamSummary` keeps only the `include`d blocks, and the streams tool adds the downsampled `series`.
 - `controllers/mcp_engagement.go` — assembly of seasons, achievements and achievement delegations (all user-scoped).
-- `models/mcp.go` — MCP DTOs (`MCPProfile`, `MCPWeight`, `MCPActivity`, `MCPActivitySummary`, `MCPStatistics`, `MCPWorkoutStreams`, `MCPSeason`, `MCPAchievement`, `MCPAchievementDelegation`). `MCPWorkoutStreams` embeds the shared `models.StreamSummary`.
-- `models/stream_summary.go` — the shared `StreamSummary` (header stats, `StreamSegment`, `StreamRoute`, `StreamHRZone`) used by both the MCP tool and `OperationObject`.
+- `models/mcp.go` — MCP DTOs (`MCPProfile`, `MCPWeight`, `MCPActivity`, `MCPActivitySummary`, `MCPStatistics`, `MCPWorkoutStreams`, `MCPSeason`, `MCPAchievement`, `MCPAchievementDelegation`). `MCPActivity` optionally carries a filtered `StreamSummary`; `MCPWorkoutStreams` embeds the full shared `models.StreamSummary`.
+- `models/stream_summary.go` — the shared `StreamSummary` (header stats, `StreamSegment`, `StreamRoute`, `StreamHRZone`, `StreamAnalysis`) used by both the MCP tool and `OperationObject`; plus `ComputeStreamRollup` (the `Operation` list scalars) alongside `ObservedMaxHeartrate`.
 - `middlewares/auth.go` — `Authenticate` (shared token/PAT validation) + `BearerChallenge`.
 - `main.go` — `router.Any("/mcp", controllers.MCPHandler())`.
 

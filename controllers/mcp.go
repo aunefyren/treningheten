@@ -41,7 +41,8 @@ type mcpListExercisesArgs struct {
 }
 
 type mcpWorkoutArgs struct {
-	ActivityID string `json:"activity_id" jsonschema:"the id of an activity from list_activities"`
+	ActivityID string   `json:"activity_id" jsonschema:"the id of an activity from list_activities"`
+	Include    []string `json:"include,omitempty" jsonschema:"optional processed sensor blocks to attach for a stream-backed activity, without pulling the raw time-series: 'segments' (per-km/mile splits with pace, HR, cadence and elevation gain), 'zones' (heart-rate zones), 'elevation' (gain/loss/min/max and biggest climb), 'route' (GPS path summary), 'profile' (altitude-over-distance), 'analysis' (aerobic decoupling, first/second-half splits, pace consistency, breaks, HR-by-gradient). Ignored for activities without streams"`
 }
 
 type mcpListSeasonsArgs struct {
@@ -216,14 +217,15 @@ func buildMCPServer(userID uuid.UUID) *mcp.Server {
 	})
 
 	mcp.AddTool(server, &mcp.Tool{
-		Name:        "get_activity",
-		Description: "Get the flat detail of a single activity by its id (action, type, source, tags, note/description, duration and per-set distance/time/reps/weight). Use after list_activities to drill into one activity.",
+		Name: "get_activity",
+		Description: "Get the flat detail of a single activity by its id (action, type, source, tags, note/description, duration and per-set distance/time/reps/weight). Use after list_activities to drill into one activity. " +
+			"For a stream-backed activity (has_streams=true), pass include to attach processed sensor blocks — 'segments' (per-km/mile splits), 'zones' (HR zones), 'elevation', 'route', 'profile' and 'analysis' (decoupling, split halves, pace consistency, breaks, HR-by-gradient) — which is the summary-first way to read splits and derived metrics without pulling the raw time-series via get_activity_streams.",
 	}, func(ctx context.Context, req *mcp.CallToolRequest, args mcpWorkoutArgs) (*mcp.CallToolResult, mcpActivityOutput, error) {
 		activityID, err := uuid.Parse(args.ActivityID)
 		if err != nil {
 			return nil, mcpActivityOutput{}, fmt.Errorf("invalid activity_id: %w", err)
 		}
-		activity, err := assembleSingleActivity(userID, activityID)
+		activity, err := assembleSingleActivity(userID, activityID, args.Include)
 		if err != nil {
 			return nil, mcpActivityOutput{}, err
 		}
