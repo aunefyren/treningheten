@@ -255,16 +255,28 @@ func assembleSingleActivity(userID uuid.UUID, activityID uuid.UUID, include []st
 	hasSoundtrack := exerciseHasSoundtrack(operation.ExerciseID)
 	activity := operationObjectToActivity(opObject, date, hevyWorkoutID, hasSoundtrack, countsTowardGoal)
 
-	if len(include) > 0 && activity.HasStreams {
-		summary, err := assembleActivityStreamSummary(userID, activityID)
-		if err != nil {
-			return models.MCPActivity{}, err
+	if activity.HasStreams {
+		if len(include) > 0 {
+			summary, err := assembleActivityStreamSummary(userID, activityID)
+			if err != nil {
+				return models.MCPActivity{}, err
+			}
+			activity.StreamSummary = filterStreamSummary(summary, include)
+		} else {
+			// Fetched flat on a stream-backed activity: surface the analysis layer in-band so the
+			// caller discovers it here, not only from the tool description.
+			activity.AnalysisHint = mcpAnalysisHint
 		}
-		activity.StreamSummary = filterStreamSummary(summary, include)
 	}
 
 	return activity, nil
 }
+
+// mcpAnalysisHint is returned on a stream-backed activity fetched without include, telling the
+// caller exactly how to pull the analysis blocks without the raw series.
+const mcpAnalysisHint = "This activity has Strava sensor streams. Re-call get_activity with include for the analysis layer (no raw samples pulled): " +
+	`include:["segments","zones","analysis"] gives per-km/mile splits (pace, HR, cadence, elevation per split), the heart-rate zone breakdown, and derived metrics (aerobic decoupling, pace consistency, walk/stop breaks with count and timing, HR-by-gradient). ` +
+	`Also available: "elevation", "route", "profile". Prefer this over get_activity_streams for splits, zones and drift — streams are only for the raw second-by-second series.`
 
 // resolveExerciseDate mirrors ConvertExerciseToExerciseObject's time fallback:
 // the exercise's own Time, else its day's date, else now. It also returns the

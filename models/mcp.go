@@ -80,10 +80,15 @@ type MCPActivity struct {
 	Tags             []string         `json:"tags,omitempty" jsonschema:"workout category tags from a fixed vocabulary: race, long-run, workout, commute, for-a-cause, recovery, with-pet, with-kid"`
 	Equipment        string           `json:"equipment,omitempty"`
 	DurationSeconds  *int64           `json:"duration_seconds,omitempty"`
-	HasStreams       bool             `json:"has_streams" jsonschema:"true if this activity has Strava sensor streams; call get_activity_streams for the time-series detail"`
+	HasStreams       bool             `json:"has_streams" jsonschema:"true if this activity has Strava sensor streams. For the ANALYSIS layer (per-km/mile splits, heart-rate zones, aerobic decoupling, walk/stop breaks, HR-by-gradient) re-call get_activity with the include parameter — that is far cheaper than get_activity_streams, which is only needed for the raw second-by-second series"`
 	HasSoundtrack    bool             `json:"has_soundtrack" jsonschema:"true if listening history (music/podcast/audiobook) was matched to this session; call get_activity_soundtrack for the tracks. The soundtrack is a session-level fact, so every activity in the same session shares it"`
 	CountsTowardGoal bool             `json:"counts_toward_goal" jsonschema:"whether the parent session tallies toward the user's weekly goal; false means it is logged but deliberately excluded (a session-level flag, so every activity in the same session shares it)"`
 	Sets             []MCPActivitySet `json:"sets,omitempty"`
+	// AnalysisHint is an in-band nudge: on a stream-backed activity fetched WITHOUT include,
+	// it names the include blocks the caller can re-request for the analysis layer, so the
+	// depth is discoverable at the moment of need rather than only in the tool description.
+	// Empty once include was supplied (or when there are no streams to analyse).
+	AnalysisHint string `json:"analysis_hint,omitempty" jsonschema:"present only when this stream-backed activity was fetched without include; tells you how to re-call get_activity to obtain the analysis blocks"`
 	// StreamSummary carries the processed sensor blocks (segments, hr_zones, elevation,
 	// route, elevation_profile, analysis) a caller opted into via get_activity's include
 	// parameter. It is present only for stream-backed activities when include is non-empty,
@@ -117,7 +122,7 @@ type MCPActivitySummary struct {
 	TopWeight            float64    `json:"top_weight" jsonschema:"heaviest weight recorded on any of the activity's sets, in weight_unit"`
 	WeightUnit           string     `json:"weight_unit,omitempty"`
 	SetCount             int        `json:"set_count" jsonschema:"number of sets in this activity"`
-	HasStreams           bool       `json:"has_streams" jsonschema:"true if this activity has Strava sensor streams; call get_activity_streams for the time-series detail"`
+	HasStreams           bool       `json:"has_streams" jsonschema:"true if this activity has Strava sensor streams. For splits, heart-rate zones and derived metrics (decoupling, breaks) call get_activity with include; get_activity_streams is only for the raw second-by-second series"`
 	Source               string     `json:"source" jsonschema:"where this activity came from: strava, hevy or manual"`
 	CountsTowardGoal     bool       `json:"counts_toward_goal" jsonschema:"whether the parent session tallies toward the user's weekly goal; false means it is logged but deliberately excluded"`
 	SessionID            string     `json:"session_id" jsonschema:"id of the parent session; activities sharing a session_id were logged together"`

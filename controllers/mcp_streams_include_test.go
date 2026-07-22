@@ -157,7 +157,7 @@ func TestAssembleSingleActivityInclude(t *testing.T) {
 		t.Fatalf("seed set: %v", err)
 	}
 
-	// No include → flat activity, no stream summary.
+	// No include → flat activity, no stream summary, but an in-band hint pointing at include.
 	flat, err := assembleSingleActivity(user.ID, op.ID, nil)
 	if err != nil {
 		t.Fatalf("assemble (no include): %v", err)
@@ -168,11 +168,17 @@ func TestAssembleSingleActivityInclude(t *testing.T) {
 	if flat.StreamSummary != nil {
 		t.Fatalf("no include should attach no summary, got %+v", flat.StreamSummary)
 	}
+	if flat.AnalysisHint == "" {
+		t.Fatal("stream-backed activity fetched flat should carry an analysis_hint")
+	}
 
-	// include=[segments, analysis] → those blocks present, others absent.
+	// include=[segments, analysis] → those blocks present, others absent, hint suppressed.
 	rich, err := assembleSingleActivity(user.ID, op.ID, []string{"segments", "analysis"})
 	if err != nil {
 		t.Fatalf("assemble (include): %v", err)
+	}
+	if rich.AnalysisHint != "" {
+		t.Fatalf("include should suppress the hint, got %q", rich.AnalysisHint)
 	}
 	if rich.StreamSummary == nil {
 		t.Fatal("include should attach a stream summary")

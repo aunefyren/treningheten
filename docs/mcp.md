@@ -124,6 +124,18 @@ processed blocks under `stream_summary` — the same shapes `get_activity_stream
 raw series stays behind `get_activity_streams` for full-resolution inspection. Unknown tokens are
 ignored; an empty/omitted `include` attaches nothing.
 
+**Discoverability — the `analysis_hint`.** Opt-in only helps if the caller opts in, and in practice
+an LLM makes the minimal call first (`get_activity` with no `include`) and never learns the analysis
+layer exists. So when a **stream-backed** activity is fetched **without** `include`, the flat
+response carries an **`analysis_hint`** string naming exactly what to re-request
+(`include:["segments","zones","analysis"]`) and what each block gives — an in-band nudge at the
+moment of need, not buried in the tool description. The hint is omitted once `include` is supplied
+(or when the activity has no streams). The `has_streams` flag on both `get_activity` and
+`list_activities` likewise points at the cheap `include` path first, with `get_activity_streams`
+framed as the raw-series fallback. Deliberately kept opt-in (not defaulted on): a drill-in stays
+predictable and lean unless the caller asks for depth — the hint closes the discoverability gap
+without inflating every call.
+
 **Hevy custom exercises** have no global `Action` (they're private to the user), so their name is stored on the operation's note. The flattener mirrors the frontend's title fallback: when an operation has no `Action`, its note is promoted to `action` (and the real per-exercise note lives in `description`), rather than reporting `action: "Unknown"`.
 
 Durations are exposed in **seconds** for LLM friendliness. Note that the underlying
