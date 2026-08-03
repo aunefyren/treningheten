@@ -577,7 +577,11 @@ function get_season(user_id, loadingMessage, activeSeason){
 
                 document.getElementById("ongoingseason").style.display = "flex"
                 getDebtOverview();
-                
+
+                // The activity feed spans every season you have ever been in, so it is
+                // loaded regardless of whether there is an ongoing season to show.
+                getActivities();
+
                 // If one or more seasons were found
                 if(result.seasons.length > 0) {
                     var season = null;
@@ -629,7 +633,6 @@ function get_season(user_id, loadingMessage, activeSeason){
                         get_calendar(false, user_id, loadingMessage);
                         place_season(season, user_id, seasonAlternatives);
                         get_leaderboard(season, goal, true, false);
-                        getActivities(season);
                     }
                 } else {
                     get_calendar(false, user_id, loadingMessage);
@@ -1755,7 +1758,10 @@ function blinkCalendar() {
     }
 }
 
-function getActivities(season){
+// getActivities loads this week's activities from everyone the user has ever shared a
+// season with (see docs/activity-feed.md). It is deliberately not season-scoped, so the
+// module keeps working between seasons and for users who haven't joined one yet.
+function getActivities(){
     var xhttp = new XMLHttpRequest();
     xhttp.onreadystatechange = function() {
         if (this.readyState == 4) {
@@ -1777,7 +1783,7 @@ function getActivities(season){
         }
     };
     xhttp.withCredentials = true;
-    xhttp.open("get", api_url + "auth/seasons/" + season.id + "/activities");
+    xhttp.open("get", api_url + "auth/activities/shared");
     xhttp.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
     xhttp.setRequestHeader("Authorization", jwt);
     xhttp.send();

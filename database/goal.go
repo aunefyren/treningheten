@@ -57,6 +57,38 @@ func GetGoalFromUserWithinSeason(seasonID uuid.UUID, userID uuid.UUID) (*models.
 	return &goal, nil
 }
 
+// GetSeasonPeerUserIDsForUser returns every user the given user has ever shared a season
+// with, plus the user themselves. Co-membership of a season is the app's implicit social
+// relation — it is how the front-page activity feed decides whose activities you may see,
+// without a friend-request system. One self-join rather than a goal lookup per candidate
+// user. Season membership is a Goal, so a user with no goals has no peers but still gets
+// their own id back.
+func GetSeasonPeerUserIDsForUser(userID uuid.UUID) ([]uuid.UUID, error) {
+	peerIDs := []uuid.UUID{}
+
+	record := Instance.
+		Model(&models.Goal{}).
+		Distinct("`peers`.user_id").
+		Joins("JOIN `goals` AS `peers` ON `peers`.season_id = `goals`.season_id").
+		Where("`goals`.enabled = ?", 1).
+		Where("`goals`.user_id = ?", userID).
+		Where("`peers`.enabled = ?", 1).
+		Find(&peerIDs)
+
+	if record.Error != nil {
+		return []uuid.UUID{}, record.Error
+	}
+
+	// The user is their own peer, so their activities appear in their own feed even
+	// before they have ever joined a season.
+	for _, peerID := range peerIDs {
+		if peerID == userID {
+			return peerIDs, nil
+		}
+	}
+	return append(peerIDs, userID), nil
+}
+
 // Set goal to disabled in DB using goal ID
 func DisableGoalInDBUsingGoalID(goalID uuid.UUID) error {
 

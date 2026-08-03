@@ -25,7 +25,10 @@ import (
 // Hevy uses a single per-user API key (UUID) sent as the 'api-key' header. The key
 // is only available to Hevy PRO subscribers. There is no OAuth/refresh flow, so we
 // simply store the key (encrypted at rest) and validate it against /user/info.
-const hevyAPIBaseURL = "https://api.hevyapp.com/v1"
+//
+// A var, not a const, only so tests can point it at a stub server; nothing in the app
+// reassigns it.
+var hevyAPIBaseURL = "https://api.hevyapp.com/v1"
 
 // hevyStravaOverlapWindow is how close a Strava activity and a Hevy workout must start to
 // be treated as the same session for de-duplication.
@@ -260,9 +263,9 @@ func HevySyncWorkoutForUser(user models.User, workout models.HevyWorkout, templa
 
 	exercise.Enabled = true
 	exercise.IsOn = true
-	// Default a fresh import to counting (Save writes the struct's zero value rather than the
-	// DB default, so set it explicitly); the per-type opt-out below may flip it to false once
-	// the workout's activity types are known. Re-syncs keep whatever the user set.
+	// Default a fresh import to counting; the per-type opt-out below writes the real value
+	// once the workout's activity types are known (through SetExerciseCountsTowardGoal, since
+	// an insert here would drop a false). Re-syncs keep whatever the user set.
 	if isNewExercise {
 		exercise.CountsTowardGoal = true
 	}
@@ -382,10 +385,12 @@ func HevySyncWorkoutForUser(user models.User, workout models.HevyWorkout, templa
 		offActions, err := loadOffCountActions(user.ID)
 		if err != nil {
 			logger.Log.Warn("Failed to load activity goal settings for Hevy import. Error: " + err.Error())
-		} else if counts := countsTowardGoalForActions(actionIDs, offActions); !counts {
-			finalExercise.CountsTowardGoal = counts
-			if _, err := database.UpdateExerciseInDB(finalExercise); err != nil {
+		} else {
+			counts := countsTowardGoalForActions(actionIDs, offActions)
+			if err := database.SetExerciseCountsTowardGoal(finalExercise.ID, counts); err != nil {
 				logger.Log.Warn("Failed to persist Hevy session goal-counting flag. Error: " + err.Error())
+			} else {
+				finalExercise.CountsTowardGoal = counts
 			}
 		}
 	}

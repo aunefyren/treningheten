@@ -271,6 +271,7 @@ func initRouter(configFile models.ConfigStruct) *gin.Engine {
 			auth.POST("/exercises/strava-combine", controllers.APIStravaCombine)
 
 			auth.GET("/activities", controllers.APIGetActivityFeed)
+			auth.GET("/activities/shared", controllers.APIGetSharedActivities)
 
 			auth.GET("/operations", controllers.APIGetOperationsForUser)
 			auth.POST("/operations", controllers.APICreateOperationForUser)

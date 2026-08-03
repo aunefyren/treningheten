@@ -1,0 +1,13 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(go tool *)",
+      "Bash(awk '$3==\"0.0%\"')",
+      "Bash(go test *)",
+      "Bash(gofmt -w controllers/oauth_authorize_test.go)",
+      "Bash(gofmt -w models/hevy_test.go)",
+      "Bash(go build *)",
+      "Bash(go vet *)"
+    ]
+  }
+}

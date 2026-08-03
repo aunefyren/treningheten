@@ -78,6 +78,23 @@ assume a row is gone just because it's "deleted."
 from counts but restorable in the builder) and `CountsTowardGoal` (excluded from the goal
 while still visible). These are three distinct flags — see [data-model.md](data-model.md).
 
+## GORM drops a `false` on insert when the field has `default: true`
+
+A bool tagged `gorm:"default: true"` (`Exercise.Enabled`, `Exercise.IsOn`,
+`Exercise.CountsTowardGoal`, `UserActivityGoalSetting.CountsTowardGoal`, …) is a **zero
+value** when it's `false`, so GORM leaves it out of the `INSERT` entirely and the column
+default — `true` — silently wins. `Instance.Save()` hits this too: on a row that doesn't
+exist yet it falls back to an insert. An `UPDATE` on an existing row is unaffected.
+
+**Rule:** when a *newly created* row must carry `false`, write it with an explicit column
+update after the insert, never by setting the struct field. The established helpers are
+`database.SetExerciseCountsTowardGoal` (used by both the Strava and Hevy importers to
+persist a per-activity-type opt-out) and `database.UpsertActivityGoalSettingInDB`. This
+trap is why an excluded Strava walk still counted toward the weekly goal in production.
+
+Test seeds hit the same wall — `disableRow` in `database/activity_test.go` exists purely
+to flip a seeded row to `Enabled: false` after insert.
+
 ## Related
 
 - [seasons-and-goals.md](seasons-and-goals.md) — entities that use these conventions

@@ -347,6 +347,38 @@ func GetExerciseDayByDateAndUserID(userID uuid.UUID, date time.Time) (*models.Ex
 	return &exercise, err
 }
 
+// GetExerciseDaysForSharingUsersInListUsingDates is GetExerciseDaysForSharingUsersUsingDates
+// narrowed to a set of users — the caller's season peers (see GetSeasonPeerUserIDsForUser).
+// The sharing opt-out (`users.share_activities`) still applies on top, so being someone's
+// peer is necessary but not sufficient to appear in their feed. An empty user list returns
+// nothing rather than everyone.
+func GetExerciseDaysForSharingUsersInListUsingDates(userIDs []uuid.UUID, startDate time.Time, endDate time.Time) ([]models.ExerciseDay, error) {
+	if len(userIDs) == 0 {
+		return []models.ExerciseDay{}, nil
+	}
+
+	var exerciseDays []models.ExerciseDay
+
+	startDayString := startDate.Format("2006-01-02") + " 00:00:00.000"
+	endDayString := endDate.Format("2006-01-02") + " 23:59:59"
+
+	record := Instance.
+		Where("`exercise_days`.enabled = ?", 1).
+		Where("`exercise_days`.Date >= ?", startDayString).
+		Where("`exercise_days`.Date <= ?", endDayString).
+		Where("`exercise_days`.user_id IN ?", userIDs).
+		Joins("JOIN `users` on `exercise_days`.user_id = `users`.id").
+		Where("`users`.enabled = ?", 1).
+		Where("`users`.share_activities = ?", 1).
+		Find(&exerciseDays)
+
+	if record.Error != nil {
+		return []models.ExerciseDay{}, record.Error
+	}
+
+	return exerciseDays, nil
+}
+
 func GetExerciseDaysForSharingUsersUsingDates(startDate time.Time, endDate time.Time) ([]models.ExerciseDay, error) {
 	var exercises []models.ExerciseDay
 

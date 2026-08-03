@@ -24,10 +24,12 @@ import (
 	"github.com/google/uuid"
 )
 
-const stravaAPIBaseURL = "https://www.strava.com/api/v3"
-
-// Strava's OAuth token endpoint is NOT under /api/v3.
-const stravaOAuthTokenURL = "https://www.strava.com/oauth/token"
+// Strava's endpoints. Vars, not consts, only so tests can point them at a stub server;
+// nothing in the app reassigns them. The OAuth token endpoint is NOT under /api/v3.
+var (
+	stravaAPIBaseURL    = "https://www.strava.com/api/v3"
+	stravaOAuthTokenURL = "https://www.strava.com/oauth/token"
+)
 
 // ErrStravaSessionInvalid signals that Strava rejected the stored credential as
 // permanently invalid (an already-used authorization code or a revoked refresh
@@ -649,8 +651,10 @@ func StravaSyncActivityForUser(activity models.StravaGetActivitiesRequestReply, 
 
 	// Snapshot whether this counts toward the goal from the user's per-activity-type settings —
 	// but only for a fresh import, so a manual builder toggle survives later re-syncs.
+	countsTowardGoal := exercise.CountsTowardGoal
 	if isNewExercise {
-		exercise.CountsTowardGoal = stravaActivityCountsTowardGoal(user.ID, activity.SportType)
+		countsTowardGoal = stravaActivityCountsTowardGoal(user.ID, activity.SportType)
+		exercise.CountsTowardGoal = countsTowardGoal
 	}
 
 	logger.Log.Tracef("Strava activity start time %s for Strava ID %d", activity.StartDate, activity.ID)
@@ -663,6 +667,17 @@ func StravaSyncActivityForUser(activity models.StravaGetActivitiesRequestReply, 
 	}
 
 	logger.Log.Trace("Updated exercise.")
+
+	// The Save above INSERTs a fresh session, and GORM drops a false zero value for a field
+	// tagged `default:true` — so the opt-out has to be written as an explicit column update
+	// or an excluded activity type (e.g. a walk) would come back counting.
+	if isNewExercise {
+		if err := database.SetExerciseCountsTowardGoal(finalExercise.ID, countsTowardGoal); err != nil {
+			logger.Log.Warn("Failed to persist Strava session goal-counting flag. Error: " + err.Error())
+		} else {
+			finalExercise.CountsTowardGoal = countsTowardGoal
+		}
+	}
 
 	operation, err := StravaSyncOperationForActivity(activity, user, finalExercise, stravaStreams, detailRetrieved, token)
 	if err != nil {

@@ -190,7 +190,7 @@ function load_page(result) {
 
                             <div class="field-check">
                                 <input type="checkbox" id="share_activities" name="share_activities" value="share_activities">
-                                <label for="share_activities">Share my activities on the activity feed.</label>
+                                <label for="share_activities">Share my activities on the activity feed. Visible to everyone you have shared a season with, including past seasons.</label>
                             </div>
 
                             <div class="field-check">

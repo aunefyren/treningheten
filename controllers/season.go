@@ -3,7 +3,6 @@ package controllers
 import (
 	"errors"
 	"net/http"
-	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -1245,64 +1244,13 @@ func APIGetCurrentSeasonActivities(context *gin.Context) {
 		}
 	}
 
-	exerciseDayObjects, err := ConvertExerciseDaysToExerciseDayObjects(filteredExerciseDays)
+	allActivities, err := buildActivitiesFromExerciseDays(filteredExerciseDays)
 	if err != nil {
-		logger.Log.Info("Failed to convert exercise day to exercise day objects. Error: " + err.Error())
-		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to convert exercise day to exercise day objects."})
+		logger.Log.Info("Failed to build activities. Error: " + err.Error())
+		context.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		context.Abort()
 		return
 	}
-
-	generalAction, err := database.GetActionByStravaName("Workout")
-	if err != nil {
-		logger.Log.Info("Failed to get general action object. Error: " + err.Error())
-		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get general action object."})
-		context.Abort()
-		return
-	} else if generalAction == nil {
-		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to find general action object."})
-		context.Abort()
-		return
-	}
-
-	allActivities := []models.Activity{}
-	for _, exerciseDayObject := range exerciseDayObjects {
-		for _, exercise := range exerciseDayObject.Exercises {
-			if exercise.IsOn && exercise.Enabled {
-				newActivity := models.Activity{}
-				newActivity.ExerciseID = exercise.ID
-				newActivity.User = exerciseDayObject.User
-				newActivity.Time = exercise.Time
-				newActivity.Actions = []models.Action{}
-
-				if exerciseDayObject.User.StravaPublic != nil && *exerciseDayObject.User.StravaPublic {
-					newActivity.StravaIDs = exercise.StravaID
-				} else {
-					newActivity.StravaIDs = []string{}
-				}
-
-				newActivity.HevyWorkoutID = exercise.HevyWorkoutID
-
-				if len(exercise.Operations) > 0 {
-					for _, operation := range exercise.Operations {
-						if operation.Action != nil {
-							newActivity.Actions = append(newActivity.Actions, *operation.Action)
-						} else {
-							newActivity.Actions = append(newActivity.Actions, *generalAction)
-						}
-					}
-				} else {
-					newActivity.Actions = append(newActivity.Actions, *generalAction)
-				}
-
-				allActivities = append(allActivities, newActivity)
-			}
-		}
-	}
-
-	sort.Slice(allActivities, func(i, j int) bool {
-		return allActivities[j].Time.Before(allActivities[i].Time)
-	})
 
 	// Return activities
 	context.JSON(http.StatusOK, gin.H{"activities": allActivities})

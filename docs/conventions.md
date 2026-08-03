@@ -127,7 +127,9 @@ There is no build step or framework — `web/js/*.js` is served through Go templ
 ## Tests
 
 A suite is grown incrementally; run it with `go test ./...`. Coverage is concentrated
-in pure-logic helpers and the `database/` layer.
+in the `database/` layer, the `models/` value types, `auth/` (scopes + token
+handling), the outbound integration clients, and pure-logic helpers in
+`controllers/`. The `APIXxx` HTTP handlers themselves are still largely untested.
 
 - Test files are `*_test.go` next to the code, `package controllers` / `package
   database` etc. (white-box).
@@ -141,10 +143,36 @@ in pure-logic helpers and the `database/` layer.
   logger, cleanup on `t.Cleanup`. Reuse its helpers (`makeTestUser`, `boolPtr`,
   `strPtr`) instead of reinventing setup.
 - **`controllers/` tests** that touch any logging need `logger.Log` set, or they
-  nil-panic. The package's `TestMain` (in `controllers/image_test.go`) stubs it with a
-  discarding logger once for the whole package.
+  nil-panic. The package's `TestMain` (in `controllers/setup_test.go`) stubs it with a
+  discarding logger once for the whole package. That file also has
+  `newControllerTestDB(t)` — the same in-memory harness pointed at
+  `database.Instance`, for controller logic that reads or writes — plus
+  `createTestUser` / `seedExerciseDayWithExercises`.
+- **`auth/` tests** must install a **valid base64** signing key (see `withSigningKey`
+  in `auth/auth_test.go`). `files.GetPrivateKey` regenerates *and persists* a key when
+  it fails to decode, so a junk key makes a test write to the real config file.
+- **`middlewares/` tests** use `gin.CreateTestContext` + `httptest.NewRecorder` (and
+  `gin.SetMode(gin.TestMode)` in `TestMain`) to assert status codes, `WWW-Authenticate`
+  challenges and abort behaviour without standing up the app.
+- **Integration clients** (Strava, Hevy, Spotify) keep their endpoints in package-level
+  **`var`s, not consts, purely so tests can point them at an `httptest` server** —
+  nothing in the app reassigns them. Each provider has a stub helper that swaps the
+  URLs (and any app credentials), captures the requests, and restores everything on
+  `t.Cleanup`: `stubStrava`, `stubHevyAPI`, `stubSpotify`. Plex and Audiobookshelf
+  need no such swap — their server URL is already a function argument. Test both what
+  the client *sends* (auth header shape, paths, query params) and how it maps
+  responses, especially the status codes that carry meaning: Strava's 400/401 →
+  `ErrStravaSessionInvalid` (clears the connection) vs a transient 429/5xx, Hevy's
+  401/403 → "key rejected", and Spotify's 403 → `ErrSpotifyForbidden`.
+- **Password tests are slow**: bcrypt runs at cost 14, so each hash *and each
+  comparison* costs about a second. Keep the case list short and put anything
+  extravagant behind `testing.Short()`.
 - Add tests when finishing or refactoring a feature; for risky refactors, write a
-  **characterization test** that pins current behaviour first.
+  **characterization test** that pins current behaviour first. When fixing a bug,
+  first confirm the new test **fails** against the unfixed code — a persistence bug
+  like the dropped `false` in
+  [data-conventions.md](data-conventions.md#gorm-drops-a-false-on-insert-when-the-field-has-default-true)
+  passes a naive test that never reloads the row.
 
 ## Migrations
 

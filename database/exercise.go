@@ -121,6 +121,17 @@ func UpdateExerciseInDB(exercise models.Exercise) (models.Exercise, error) {
 	return exercise, nil
 }
 
+// SetExerciseCountsTowardGoal writes the goal-counting flag with an explicit column update.
+// It exists because the field carries a `default:true` tag, so GORM omits a false zero value
+// from an INSERT and the DB default silently wins — importers that decide the flag while
+// creating the session must persist it through here (same reason as
+// UpsertActivityGoalSettingInDB).
+func SetExerciseCountsTowardGoal(exerciseID uuid.UUID, countsTowardGoal bool) error {
+	return Instance.Model(&models.Exercise{}).
+		Where("`exercises`.id = ?", exerciseID).
+		Update("counts_toward_goal", countsTowardGoal).Error
+}
+
 func CreateExerciseInDB(exercise models.Exercise) (models.Exercise, error) {
 	record := Instance.Create(&exercise)
 	if record.Error != nil {

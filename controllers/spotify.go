@@ -22,13 +22,16 @@ import (
 	"github.com/google/uuid"
 )
 
-const (
+// Spotify's endpoints. Vars, not consts, only so tests can point them at a stub
+// server; nothing in the app reassigns them.
+var (
 	spotifyTokenURL          = "https://accounts.spotify.com/api/token"
 	spotifyRecentlyPlayedURL = "https://api.spotify.com/v1/me/player/recently-played"
-	// spotifyTokenSkew refreshes a little before the real expiry so an in-flight
-	// request never races the deadline.
-	spotifyTokenSkew = 60 * time.Second
 )
+
+// spotifyTokenSkew refreshes a little before the real expiry so an in-flight
+// request never races the deadline.
+const spotifyTokenSkew = 60 * time.Second
 
 // ErrSpotifyForbidden is returned when Spotify answers a data request with 403.
 // Login succeeds but the API is denied — almost always because the account isn't on

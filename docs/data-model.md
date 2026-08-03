@@ -141,6 +141,9 @@ Strava and media features read.
   type don't count toward my goal by default"; absence of a row = counts. Sync-agnostic (keyed
   on `Action`, applied by both Strava and Hevy import), snapshotted onto `Exercise.CountsTowardGoal`
   at import time — later edits don't retro-apply. Replaces the old `User.StravaIgnoreWalks` flag.
+  Both importers persist the snapshot through `database.SetExerciseCountsTowardGoal`, because a
+  `false` set on the struct is dropped by the insert — see
+  [data-conventions.md](data-conventions.md#gorm-drops-a-false-on-insert-when-the-field-has-default-true).
 - **Tags** (`models/tag.go`) — not a table: a controlled vocabulary (`ValidTags`) stored
   as a JSON `TagList` on `Operation`. `StravaManagedTags` are owned by Strava on sync;
   the rest are user-controlled and preserved across syncs.

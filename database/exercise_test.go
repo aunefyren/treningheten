@@ -253,3 +253,51 @@ func TestGetStravaExercisesByUserID(t *testing.T) {
 		t.Errorf("got %d strava exercises, want 1", len(exercises))
 	}
 }
+
+// TestSetExerciseCountsTowardGoal covers the write path importers use to store a goal-counting
+// opt-out. The direct route (setting the field and saving the struct) cannot work on a fresh
+// session: the field carries a `default:true` tag, so GORM drops the false from the INSERT and
+// the DB default wins — which is why the explicit column update exists.
+func TestSetExerciseCountsTowardGoal(t *testing.T) {
+	newTestDB(t)
+
+	user := makeTestUser(t, "countsgoal@example.com", nil)
+	day := makeDay(t, user.ID, time.Now())
+
+	// Baseline: saving the struct with false persists as true, the trap being worked around.
+	ex := models.Exercise{ExerciseDayID: day.ID, Enabled: true, IsOn: true, CountsTowardGoal: false}
+	ex.ID = uuid.New()
+	if _, err := UpdateExerciseInDB(ex); err != nil {
+		t.Fatalf("UpdateExerciseInDB returned error: %v", err)
+	}
+	stored, err := GetExerciseByIDAndUserID(ex.ID, user.ID)
+	if err != nil {
+		t.Fatalf("GetExerciseByIDAndUserID returned error: %v", err)
+	}
+	if !stored.CountsTowardGoal {
+		t.Fatalf("insert kept counts_toward_goal=false; the default tag no longer applies, so the explicit update may be redundant")
+	}
+
+	if err := SetExerciseCountsTowardGoal(ex.ID, false); err != nil {
+		t.Fatalf("SetExerciseCountsTowardGoal returned error: %v", err)
+	}
+	stored, err = GetExerciseByIDAndUserID(ex.ID, user.ID)
+	if err != nil {
+		t.Fatalf("GetExerciseByIDAndUserID returned error: %v", err)
+	}
+	if stored.CountsTowardGoal {
+		t.Errorf("counts_toward_goal = true after opting out, want false")
+	}
+
+	// And it flips back.
+	if err := SetExerciseCountsTowardGoal(ex.ID, true); err != nil {
+		t.Fatalf("SetExerciseCountsTowardGoal returned error: %v", err)
+	}
+	stored, err = GetExerciseByIDAndUserID(ex.ID, user.ID)
+	if err != nil {
+		t.Fatalf("GetExerciseByIDAndUserID returned error: %v", err)
+	}
+	if !stored.CountsTowardGoal {
+		t.Errorf("counts_toward_goal = false after opting back in, want true")
+	}
+}
