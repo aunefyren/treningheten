@@ -160,10 +160,15 @@ func APIGetActivityFeed(context *gin.Context) {
 const sharedActivityFeedLimit = 50
 
 // buildActivitiesFromExerciseDays flattens exercise days into the front-page activity shape,
-// newest first. Only enabled, switched-on sessions become activities. Strava links are
-// included per the session owner's StravaPublic setting, not the viewer's; a session whose
-// operations resolve no Action falls back to the general "Workout" action so an activity is
-// never actionless.
+// newest first. Only enabled, switched-on, non-private sessions become activities. Strava
+// links are included per the session owner's StravaPublic setting, not the viewer's; a
+// session whose operations resolve no Action falls back to the general "Workout" action so
+// an activity is never actionless.
+//
+// Private sessions are dropped unconditionally, including for the owner's own view of their
+// own feed: this builder backs three endpoints and every one of them is a social surface, so
+// one rule beats a viewer-aware branch. Your private sessions stay in the /exercises timeline
+// and the builder.
 func buildActivitiesFromExerciseDays(exerciseDays []models.ExerciseDay) ([]models.Activity, error) {
 	exerciseDayObjects, err := ConvertExerciseDaysToExerciseDayObjects(exerciseDays)
 	if err != nil {
@@ -180,7 +185,7 @@ func buildActivitiesFromExerciseDays(exerciseDays []models.ExerciseDay) ([]model
 	activities := []models.Activity{}
 	for _, exerciseDayObject := range exerciseDayObjects {
 		for _, exercise := range exerciseDayObject.Exercises {
-			if !exercise.IsOn || !exercise.Enabled {
+			if !exercise.IsOn || !exercise.Enabled || exercise.Private {
 				continue
 			}
 

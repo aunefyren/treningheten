@@ -37,6 +37,13 @@ with, including past seasons."*
 Strava links are governed separately by the owner's **`User.StravaPublic`** (default
 on); when it is off, the activity still appears but carries no Strava ids.
 
+Consent also works **per session**: a session flagged `Exercise.Private` is dropped from
+the feed entirely, for every viewer including its owner. That is the account-wide
+`ShareActivities` switch's fine-grained counterpart — one session hidden rather than all
+of them — and it is what a private Strava activity imports as (see
+[strava.md](strava.md#activity-privacy)). A private session still counts toward the goal,
+the season streak and the leaderboard; it hides *what* you did, not *that* you trained.
+
 This was a deliberate, discussed **widening** of an existing setting rather than a new
 consent surface: a user who opted in when the feed meant "my current season" now has a
 larger audience. The alternative considered — turning `ShareActivities` into a
@@ -58,9 +65,12 @@ friend graph.
 
 The flattening step is shared with the season-scoped
 `GET /api/auth/seasons/:season_id/activities` (`APIGetCurrentSeasonActivities`), which
-still exists for a season-specific view. It applies the `IsOn`/`Enabled` filter, the
-`StravaPublic` gate, and the general-"Workout"-action fallback so an activity is never
-actionless.
+still exists for a season-specific view, and with the profile feed
+`GET /api/auth/users/:user_id/activities` (`APIGetUserActivities`). It applies the
+`IsOn`/`Enabled`/`Private` filter, the `StravaPublic` gate, and the
+general-"Workout"-action fallback so an activity is never actionless. Every social
+surface goes through this one builder on purpose — a visibility rule added in one place
+must not be missing from another.
 
 The previous implementation resolved membership with a `GetGoalFromUserWithinSeason`
 call **per candidate user** (memoised in a slice); the peer join replaced that N+1 with

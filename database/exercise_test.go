@@ -301,3 +301,96 @@ func TestSetExerciseCountsTowardGoal(t *testing.T) {
 		t.Errorf("counts_toward_goal = false after opting back in, want true")
 	}
 }
+
+// TestExercisePrivatePersists guards the write path for the privacy flag. Unlike
+// CountsTowardGoal — whose `default:true` tag makes GORM drop a false from the INSERT, hence
+// SetExerciseCountsTowardGoal — Private defaults to false, so the interesting value (true) is
+// non-zero and rides along on both the insert and a later update. If that ever stops holding,
+// the Strava sync would silently expose sessions and this test is the tripwire.
+func TestExercisePrivatePersists(t *testing.T) {
+	newTestDB(t)
+
+	user := makeTestUser(t, "private@example.com", nil)
+	day := makeDay(t, user.ID, time.Now())
+
+	ex := models.Exercise{ExerciseDayID: day.ID, Enabled: true, IsOn: true, Private: true}
+	ex.ID = uuid.New()
+	if _, err := UpdateExerciseInDB(ex); err != nil {
+		t.Fatalf("UpdateExerciseInDB returned error: %v", err)
+	}
+
+	stored, err := GetExerciseByIDAndUserID(ex.ID, user.ID)
+	if err != nil {
+		t.Fatalf("GetExerciseByIDAndUserID returned error: %v", err)
+	}
+	if !stored.Private {
+		t.Fatalf("private = false after inserting a private session, want true")
+	}
+
+	// And it clears again — the Strava sync mirrors both directions.
+	stored.Private = false
+	if _, err := UpdateExerciseInDB(*stored); err != nil {
+		t.Fatalf("UpdateExerciseInDB returned error: %v", err)
+	}
+	stored, err = GetExerciseByIDAndUserID(ex.ID, user.ID)
+	if err != nil {
+		t.Fatalf("GetExerciseByIDAndUserID returned error: %v", err)
+	}
+	if stored.Private {
+		t.Errorf("private = true after clearing it, want false")
+	}
+}
+
+// TestCountStravaActivitiesInExercise covers the combined-session probe behind the Strava
+// privacy ratchet: a session holding several Strava activities must not be un-hidden by a
+// sync that only speaks for one of them.
+func TestCountStravaActivitiesInExercise(t *testing.T) {
+	newTestDB(t)
+
+	user := makeTestUser(t, "stravacount@example.com", nil)
+	day := makeDay(t, user.ID, time.Now())
+
+	manual := makeSession(t, day.ID, time.Now())
+	manualOp := makeOperation(t, manual.ID, nil)
+	makeSet(t, manualOp.ID, nil, nil, nil, nil)
+
+	single := makeSession(t, day.ID, time.Now())
+	singleOp := makeOperation(t, single.ID, nil)
+	makeStravaSet(t, singleOp.ID, "111")
+
+	combined := makeSession(t, day.ID, time.Now())
+	firstOp := makeOperation(t, combined.ID, nil)
+	makeStravaSet(t, firstOp.ID, "222")
+	secondOp := makeOperation(t, combined.ID, nil)
+	makeStravaSet(t, secondOp.ID, "333")
+
+	tests := []struct {
+		name       string
+		exerciseID uuid.UUID
+		want       int64
+	}{
+		{"manual session has no Strava activities", manual.ID, 0},
+		{"imported session has one", single.ID, 1},
+		{"combined session has several", combined.ID, 2},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := CountStravaActivitiesInExercise(tt.exerciseID)
+			if err != nil {
+				t.Fatalf("CountStravaActivitiesInExercise returned error: %v", err)
+			}
+			if got != tt.want {
+				t.Errorf("CountStravaActivitiesInExercise() = %d, want %d", got, tt.want)
+			}
+		})
+	}
+}
+
+// makeStravaSet seeds a set carrying a Strava activity id, the marker of an imported activity.
+func makeStravaSet(t *testing.T, operationID uuid.UUID, stravaID string) {
+	t.Helper()
+	set := models.OperationSet{OperationID: operationID, Enabled: true, StravaID: &stravaID}
+	set.ID = uuid.New()
+	insertRow(t, &set)
+}

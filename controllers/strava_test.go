@@ -84,3 +84,31 @@ func TestMergeStravaTags(t *testing.T) {
 		})
 	}
 }
+
+// TestStravaActivityIsPrivate covers the mapping from Strava's two overlapping privacy
+// fields onto the session's Private flag — notably that `followers_only` is not private,
+// since Treningheten's audience is the same trusted circle as a user's followers.
+func TestStravaActivityIsPrivate(t *testing.T) {
+	tests := []struct {
+		name       string
+		private    bool
+		visibility string
+		want       bool
+	}{
+		{"public activity", false, "everyone", false},
+		{"legacy private bool", true, "everyone", true},
+		{"only_me visibility", false, "only_me", true},
+		{"only_me with padding and case", false, " Only_Me ", true},
+		{"followers_only stays visible", false, "followers_only", false},
+		{"missing visibility falls back to the bool", false, "", false},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			activity := models.StravaGetActivitiesRequestReply{Private: tt.private, Visibility: tt.visibility}
+			if got := stravaActivityIsPrivate(activity); got != tt.want {
+				t.Errorf("stravaActivityIsPrivate(private=%v, visibility=%q) = %v, want %v", tt.private, tt.visibility, got, tt.want)
+			}
+		})
+	}
+}

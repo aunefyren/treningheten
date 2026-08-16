@@ -11,9 +11,9 @@ require (
 	github.com/modelcontextprotocol/go-sdk v1.7.0
 	github.com/mroth/weightedrand/v2 v2.1.0
 	github.com/nfnt/resize v0.0.0-20180221191011-83c6a9932646
-	github.com/sirupsen/logrus v1.9.4
+	github.com/sirupsen/logrus v1.10.0
 	github.com/thanhpk/randstr v1.0.6
-	golang.org/x/crypto v0.54.0
+	golang.org/x/crypto v0.55.0
 	gorm.io/driver/mysql v1.6.0
 	gorm.io/driver/postgres v1.6.2
 	gorm.io/driver/sqlite v1.6.0
@@ -45,9 +45,9 @@ require (
 	golang.org/x/oauth2 v0.36.0 // indirect
 	golang.org/x/sync v0.22.0 // indirect
 	golang.org/x/time v0.15.0 // indirect
-	modernc.org/libc v1.74.4 // indirect
+	modernc.org/libc v1.75.3 // indirect
 	modernc.org/mathutil v1.7.1 // indirect
-	modernc.org/memory v1.11.0 // indirect
+	modernc.org/memory v1.12.0 // indirect
 )
 
 require (
@@ -71,12 +71,12 @@ require (
 	github.com/modern-go/reflect2 v1.0.2 // indirect
 	github.com/pelletier/go-toml/v2 v2.4.3 // indirect
 	github.com/twitchyliquid64/golang-asm v0.15.1 // indirect
-	github.com/ugorji/go/codec v1.3.1 // indirect
-	golang.org/x/arch v0.29.0 // indirect
-	golang.org/x/net v0.57.0 // indirect
+	github.com/ugorji/go/codec v1.3.2 // indirect
+	golang.org/x/arch v0.30.0 // indirect
+	golang.org/x/net v0.58.0 // indirect
 	golang.org/x/sys v0.47.0 // indirect
-	golang.org/x/text v0.40.0
-	google.golang.org/protobuf v1.36.11 // indirect
+	golang.org/x/text v0.41.0
+	google.golang.org/protobuf v1.36.12 // indirect
 	gopkg.in/alexcesaro/quotedprintable.v3 v3.0.0-20150716171945-2caba252f4dc // indirect
 	gopkg.in/mail.v2 v2.3.1 // indirect
 )

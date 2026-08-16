@@ -104,13 +104,16 @@ Strava and media features read.
 
 - **ExerciseDay** (`models/exercise.go`) — a **calendar day** of training for a user
   (the `/exercises/:id` builder). Optional `GoalID` ties the day to a season goal.
-  `ExerciseDayObject.ExerciseInterval` is the count of enabled/on exercises;
+  `ExerciseDayObject.ExerciseInterval` is the day's **goal-counting tally** — it is
+  compared against the goal's own `ExerciseInterval` (the weekly target) by the front-page
+  progress ring, so it uses `exerciseCountsTowardGoal` (enabled + on + counts), not a raw
+  session count. Non-counting sessions still appear in `Exercises`.
   `ExerciseDaySummary` is the slim list view.
 - **Exercise** (`models/exercise.go`) — **one session** within a day (several per day
   allowed). `Duration` is `*time.Duration` holding **seconds**.
   `MediaRetrievedAt`/`MediaSettled` guard the soundtrack pull (see [media.md](media.md)).
   The soundtrack and Strava streams attach here, at the session grain. A session carries
-  **three independent booleans** — don't conflate them:
+  **four independent booleans** — don't conflate them:
   - `Enabled` — hard soft-delete (GORM level); a disabled row is gone from every read.
   - `IsOn` — a **reversible builder soft-delete**. Turning a session off in the
     `/exercises/:id` builder keeps the row (it still shows as a struck-out session with
@@ -122,6 +125,14 @@ Strava and media features read.
     goal-counting DB queries (`GetValidExercises…` in `database/exerciseday.go`) filter
     `enabled=1 AND is_on=1 AND counts_toward_goal=1`; the in-memory equivalent is
     `exerciseCountsTowardGoal` in `controllers/exercise.go`.
+  - `Private` — whether the session is **hidden from everyone else**. It is dropped from
+    every activity feed (front page, season, profile) by the single filter in
+    `buildActivitiesFromExerciseDays`, while staying fully visible to its owner in the
+    builder, the `/exercises` timeline and MCP. Orthogonal to `CountsTowardGoal`: a private
+    session still tallies toward the goal, the season streak and the leaderboard — it hides
+    *what* you did, not *that* you trained. Strava mirrors its own privacy setting onto it
+    on every sync (see [strava.md](strava.md)); manual and Hevy sessions use the builder
+    toggle.
 - **Operation** (`models/operation.go`) — **one activity type** inside a session (a run,
   a lift). Points at an `Action` and optionally a `Gear`. Carries per-operation
   `WeightUnit`/`DistanceUnit` (free-form — never blindly sum across them), `Tags`

@@ -1068,7 +1068,11 @@
 .workout-view .we-equipment-select { padding: 0.55rem 0.65rem; width: 100%; }
 .workout-view .we-type-select { padding: 0.55rem 0.4rem; width: auto; flex: 0 0 auto; text-align: center; }
 .workout-view .we-set-input { padding: 0.5rem 0.3rem; text-align: center; }
-.workout-view .we-note { resize: vertical; min-height: 3rem; line-height: 1.45; }
+/* The `margin: 0` above (needed to undo main.css's form margins) also wipes the
+   notes' own top margins, leaving the textareas flush against the fields row
+   above them — so restate the spacing in the same scope, where it wins. */
+.workout-view .we-note { resize: vertical; min-height: 3rem; line-height: 1.45; margin-top: 0.9rem; }
+.workout-view .we-op-note { margin-top: 0.6rem; }
 
 .workout-view .we-input:focus,
 .workout-view .we-set-input:focus,

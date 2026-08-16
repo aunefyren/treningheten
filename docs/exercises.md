@@ -46,8 +46,9 @@ The aggregation is **query-time** (`database.GetActivityFeedForUser`): it walks 
 chain `operations → exercises → exercise_days → users` (same joins as `GetOperationsByUserID`),
 LEFT JOINs `operation_sets`, and per operation returns `SUM(distance)`, `SUM(time)` (seconds —
 repo convention), `SUM(repetitions)`, `MAX(weight)` as top weight, `COUNT(sets)`, and a
-`has_strava` flag. It also carries the session's `counts_toward_goal` (a session-level flag, so
-every activity of the session shares it) so the feed can flag a logged-but-excluded session. A
+`has_strava` flag. It also carries the session's `counts_toward_goal` and `private` (both
+session-level flags, so every activity of the session shares them) so the feed can flag a
+logged-but-excluded session and one that is hidden from everyone else. A
 companion grouped query fills `session_activity_count` (the true number of activities in each
 returned session, independent of the current filter) so a browse card can honestly say
 "2 activities".
@@ -66,7 +67,8 @@ JSON" the shape was designed for; the MCP `list_activities` search consumes the 
 `web/js/exercises.js` is a filter/search bar + infinite-scroll timeline against
 `api_url + "auth/activities"`. It groups adjacent same-session activities under day headers in
 browse mode and shows a flat ranked list in find mode. Each card links to `/exercises/:dayID`
-(the builder), shows a muted "Doesn't count" badge when `counts_toward_goal` is false, and lists
+(the builder), shows a muted "Doesn't count" badge when `counts_toward_goal` is false and a
+"Hidden" badge when `private` is true, and lists
 its metrics — distance, duration, reps/top weight, plus the stream scalars **avg HR** and
 **elevation gain** (from the operation rollups) so a card reads its effort without opening it.
 Styling follows the shared light module/inset system (see [styleguide.md](styleguide.md)).

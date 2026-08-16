@@ -103,6 +103,40 @@ func TestBuildActivitiesFromExerciseDays(t *testing.T) {
 	}
 }
 
+// TestBuildActivitiesFromExerciseDaysExcludesPrivate covers the privacy rule: a session
+// marked private is left out of the feed entirely — including the owner's own view, since
+// this builder backs every social surface and applies one rule for all viewers.
+func TestBuildActivitiesFromExerciseDaysExcludesPrivate(t *testing.T) {
+	newControllerTestDB(t)
+	database.SeedActions()
+
+	user := createTestUser(t, "privatefeed@example.com", "Private")
+	run, err := database.GetActionByStravaName("Run")
+	if err != nil || run == nil {
+		t.Fatalf("failed to resolve the Run action: %v", err)
+	}
+
+	base := time.Date(2026, 8, 5, 8, 0, 0, 0, time.UTC)
+	visible := seedSharedActivity(t, user.ID, base, &run.ID, "", true)
+	hidden := seedSharedActivity(t, user.ID, base.Add(time.Hour), &run.ID, "", true)
+	if err := database.Instance.Model(&models.Exercise{}).Where("id = ?", hidden.ID).Update("private", true).Error; err != nil {
+		t.Fatalf("failed to mark session private: %v", err)
+	}
+
+	days := []models.ExerciseDay{}
+	if err := database.Instance.Where("user_id = ?", user.ID).Find(&days).Error; err != nil {
+		t.Fatalf("failed to load exercise days: %v", err)
+	}
+
+	activities := mustBuild(t, days)
+	if len(activities) != 1 {
+		t.Fatalf("got %d activities, want 1 (the private session excluded)", len(activities))
+	}
+	if activities[0].ExerciseID != visible.ID {
+		t.Errorf("feed carries session %v, want the non-private %v", activities[0].ExerciseID, visible.ID)
+	}
+}
+
 // mustBuild is a small wrapper so an empty-input assertion stays readable.
 func mustBuild(t *testing.T, days []models.ExerciseDay) []models.Activity {
 	t.Helper()

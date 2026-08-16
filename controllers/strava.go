@@ -532,6 +532,21 @@ func stravaActivityCountsTowardGoal(userID uuid.UUID, sportType string) bool {
 	return countsTowardGoalForActions([]uuid.UUID{action.ID}, offActions)
 }
 
+// stravaVisibilityOnlyMe is the Strava `visibility` value for "Only you".
+const stravaVisibilityOnlyMe = "only_me"
+
+// stravaActivityIsPrivate maps Strava's own privacy setting onto the session's Private
+// flag. Strava exposes two overlapping fields on the summary payload: the legacy `private`
+// bool and the newer three-way `visibility` (`everyone` / `followers_only` / `only_me`);
+// either saying "only me" is enough.
+//
+// `followers_only` is deliberately *not* private here. Treningheten's audience is the
+// people you have shared a season with — the same trusted circle Strava followers are —
+// so hiding those would surprise a user who uses followers-only as their normal default.
+func stravaActivityIsPrivate(activity models.StravaGetActivitiesRequestReply) bool {
+	return activity.Private || strings.EqualFold(strings.TrimSpace(activity.Visibility), stravaVisibilityOnlyMe)
+}
+
 // StravaSyncActivityForUser imports one Strava activity. hasDetail tells whether
 // activity already came from the detailed endpoint (so its Description is
 // authoritative); when false, the activity is a list-sync summary and the detailed
@@ -648,6 +663,27 @@ func StravaSyncActivityForUser(activity models.StravaGetActivitiesRequestReply, 
 	exercise.Enabled = true
 	exercise.IsOn = true
 	exercise.Time = &activity.StartDate
+
+	// Strava owns the privacy of the activities it exports, so this is mirrored on every
+	// sync rather than snapshotted like CountsTowardGoal below — making an activity private
+	// on Strava has to propagate here. The builder toggle is disabled for Strava-sourced
+	// sessions to match (see docs/strava.md).
+	wasPrivate := exercise.Private
+	exercise.Private = stravaActivityIsPrivate(activity)
+
+	// One exception to the mirroring: a *combined* session holds several Strava activities,
+	// and this sync only speaks for one of them. Un-hiding there would expose the private
+	// activity it was merged with, so privacy only ratchets up on a combined session — it is
+	// cleared by splitting it or by making every part public and re-combining.
+	if wasPrivate && !exercise.Private && !isNewExercise {
+		stravaActivityCount, err := database.CountStravaActivitiesInExercise(exercise.ID)
+		if err != nil {
+			logger.Log.Warn("Failed to count Strava activities in session, keeping it private. Error: " + err.Error())
+			exercise.Private = true
+		} else if stravaActivityCount > 1 {
+			exercise.Private = true
+		}
+	}
 
 	// Snapshot whether this counts toward the goal from the user's per-activity-type settings —
 	// but only for a fresh import, so a manual builder toggle survives later re-syncs.

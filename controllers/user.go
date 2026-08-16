@@ -3,7 +3,6 @@ package controllers
 import (
 	"html"
 	"net/http"
-	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -1064,46 +1063,16 @@ func APIGetUserActivities(context *gin.Context) {
 		}
 	}
 
-	exerciseDayObjects, err := ConvertExerciseDaysToExerciseDayObjects(filteredExerciseDays)
+	// The profile feed shares its shape and its visibility rules (switched-off, disabled and
+	// private sessions excluded; Strava links per the owner's StravaPublic setting) with the
+	// front-page and season feeds, so it flattens through the same builder.
+	allActivities, err := buildActivitiesFromExerciseDays(filteredExerciseDays)
 	if err != nil {
-		logger.Log.Info("Failed to convert exercise day to exercise day objects. Error: " + err.Error())
-		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to convert exercise day to exercise day objects."})
+		logger.Log.Info("Failed to build activities. Error: " + err.Error())
+		context.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		context.Abort()
 		return
 	}
-
-	allActivities := []models.Activity{}
-	for _, exerciseDayObject := range exerciseDayObjects {
-		for _, exercise := range exerciseDayObject.Exercises {
-			if exercise.IsOn && exercise.Enabled {
-				newActivity := models.Activity{}
-				newActivity.ExerciseID = exercise.ID
-				newActivity.User = exerciseDayObject.User
-				newActivity.Time = exercise.Time
-				newActivity.Actions = []models.Action{}
-
-				if exerciseDayObject.User.StravaPublic != nil && *exerciseDayObject.User.StravaPublic {
-					newActivity.StravaIDs = exercise.StravaID
-				} else {
-					newActivity.StravaIDs = []string{}
-				}
-
-				newActivity.HevyWorkoutID = exercise.HevyWorkoutID
-
-				for _, operation := range exercise.Operations {
-					if operation.Action != nil {
-						newActivity.Actions = append(newActivity.Actions, *operation.Action)
-					}
-				}
-
-				allActivities = append(allActivities, newActivity)
-			}
-		}
-	}
-
-	sort.Slice(allActivities, func(i, j int) bool {
-		return allActivities[j].Time.Before(allActivities[i].Time)
-	})
 
 	// Return activities
 	context.JSON(http.StatusOK, gin.H{"activities": allActivities})

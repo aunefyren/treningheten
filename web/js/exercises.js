@@ -329,6 +329,9 @@ function feedActivityRow(item, opts) {
         : "";
     var noCount = item.counts_toward_goal ? ""
         : `<span class="feed-nocount" title="Logged but doesn't count toward your weekly goal">Doesn't count</span>`;
+    var hidden = item.private
+        ? `<span class="feed-nocount" title="Only you can see this session. It still counts toward your weekly goal">Hidden</span>`
+        : "";
     var when = opts.showDate ? feedWhenLabel(item) : "";
     var rank = opts.rank ? `<div class="feed-rank">${opts.rank}</div>` : "";
 
@@ -337,7 +340,7 @@ function feedActivityRow(item, opts) {
             ${rank}
             <div class="feed-row-icon">${icon}</div>
             <div class="feed-row-body">
-                <div class="feed-row-title">${escapeHTML(item.action_name || "Activity")}${note}${noCount}</div>
+                <div class="feed-row-title">${escapeHTML(item.action_name || "Activity")}${note}${noCount}${hidden}</div>
                 <div class="feed-row-metrics">${chips || "&nbsp;"}</div>
             </div>
             ${when ? `<div class="feed-row-when">${when}</div>` : ""}

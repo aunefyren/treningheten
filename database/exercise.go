@@ -132,6 +132,23 @@ func SetExerciseCountsTowardGoal(exerciseID uuid.UUID, countsTowardGoal bool) er
 		Update("counts_toward_goal", countsTowardGoal).Error
 }
 
+// CountStravaActivitiesInExercise returns how many distinct Strava activities the session
+// holds. The Strava sync uses it to spot a *combined* session (see APIStravaCombine): with
+// several activities merged into one session, no single activity's privacy setting may
+// speak for the whole thing.
+func CountStravaActivitiesInExercise(exerciseID uuid.UUID) (int64, error) {
+	var count int64
+	err := Instance.Model(&models.OperationSet{}).
+		Where("`operation_sets`.enabled = ?", 1).
+		Where("`operation_sets`.strava_id IS NOT NULL").
+		Joins("JOIN `operations` on `operation_sets`.operation_id = `operations`.id").
+		Where("`operations`.enabled = ?", 1).
+		Where("`operations`.exercise_id = ?", exerciseID).
+		Distinct("`operation_sets`.strava_id").
+		Count(&count).Error
+	return count, err
+}
+
 func CreateExerciseInDB(exercise models.Exercise) (models.Exercise, error) {
 	record := Instance.Create(&exercise)
 	if record.Error != nil {

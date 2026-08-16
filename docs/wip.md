@@ -72,6 +72,28 @@ Overlay your listening history onto time-based activities. The **Plex**, **Spoti
 - Cross-provider de-dupe if a user has overlapping sources (e.g. casting Spotify through Plex)?
   (Per-provider rows side-step it for now; only matters once 2+ providers are connected.)
 
+### Private sessions — follow-ups
+The per-session privacy flag shipped: `Exercise.Private`, mirrored from Strava on every sync,
+toggled in the builder for manual/Hevy sessions, filtered out of every feed by
+`buildActivitiesFromExerciseDays`. Design + behaviour live in
+[`docs/data-model.md`](data-model.md) and [`docs/strava.md`](strava.md#activity-privacy).
+Open:
+- **Hevy has no privacy source.** Hevy workouts import as visible; only the builder toggle
+  hides them. Check whether the Hevy API exposes a per-workout visibility field.
+- **MCP doesn't expose `private`.** Deliberate for now — MCP is self-scoped, so nothing leaks
+  either way, and threading it through `operationObjectToActivity` / `resolveExerciseDate`
+  costs more than it currently returns. Revisit if an LLM client ever needs to reason about it.
+- **Bulk privacy.** No way to hide a whole week, or to say "hide everything by default and
+  opt in per session". Probably not wanted; note it if it comes up.
+
+### Strava sync overrides a builder-deleted session
+Noticed while building session privacy, not fixed: `StravaSyncActivityForUser` sets
+`Enabled`/`IsOn = true` on **every** sync, so turning an imported session off in the builder
+is silently undone by the next hourly run. `CountsTowardGoal` protects itself (snapshot on
+first import only) and `Private` is deliberately Strava-owned, but `IsOn` is a user decision
+being overwritten by a background job. Options: only set `IsOn` on a new import, or treat a
+manual off as a delete Strava may not resurrect.
+
 ### Leave season button is not implemented
 - Which season? all?
 - Not broken, never built function, only button stub is present on /account

@@ -764,12 +764,7 @@ func ConvertExerciseDayToExerciseDayObject(exerciseDay models.ExerciseDay) (exer
 	})
 	exerciseDayObject.Exercises = exerciseObjects
 
-	exerciseDayObject.ExerciseInterval = 0
-	for _, exerciseObject := range exerciseObjects {
-		if exerciseObject.IsOn {
-			exerciseDayObject.ExerciseInterval += 1
-		}
-	}
+	exerciseDayObject.ExerciseInterval = countGoalCountingExercises(exerciseObjects)
 
 	exerciseDayObject.CreatedAt = exerciseDay.CreatedAt
 	exerciseDayObject.Date = exerciseDay.Date
@@ -807,11 +802,26 @@ func exerciseCountsTowardGoal(exercise models.ExerciseObject) bool {
 	return exercise.Enabled && exercise.IsOn && exercise.CountsTowardGoal
 }
 
-// applyCountsTowardGoalUpdate resolves the goal-counting flag to persist on an update:
-// the requested value when the caller sent one, otherwise the current stored value left
-// untouched. The request field is a pointer so an omitted flag (nil) is a no-op — update
-// paths that don't render the builder toggle must not zero it.
-func applyCountsTowardGoalUpdate(current bool, requested *bool) bool {
+// countGoalCountingExercises is a day's ExerciseInterval: how many of its sessions tally
+// toward the weekly goal. The value is compared against the goal's own ExerciseInterval
+// (the weekly target) by the front page's progress ring, so it uses the same rule as the
+// season/streak paths — a session that is on but flagged not to count (e.g. an imported
+// walk) still shows in the day's Exercises, it just doesn't tally here.
+func countGoalCountingExercises(exercises []models.ExerciseObject) int {
+	count := 0
+	for _, exercise := range exercises {
+		if exerciseCountsTowardGoal(exercise) {
+			count += 1
+		}
+	}
+	return count
+}
+
+// applyOptionalBoolUpdate resolves an optional session flag (CountsTowardGoal, Private)
+// to persist on an update: the requested value when the caller sent one, otherwise the
+// current stored value left untouched. The request fields are pointers so an omitted flag
+// (nil) is a no-op — update paths that don't render the builder toggle must not zero it.
+func applyOptionalBoolUpdate(current bool, requested *bool) bool {
 	if requested != nil {
 		return *requested
 	}
@@ -872,6 +882,7 @@ func ConvertExerciseToExerciseObject(exercise models.Exercise) (exerciseObject m
 	exerciseObject.Note = exercise.Note
 	exerciseObject.IsOn = exercise.IsOn
 	exerciseObject.CountsTowardGoal = exercise.CountsTowardGoal
+	exerciseObject.Private = exercise.Private
 	exerciseObject.UpdatedAt = exercise.UpdatedAt
 	exerciseObject.Duration = exercise.Duration
 	exerciseObject.HevyWorkoutID = exercise.HevyWorkoutID
@@ -1146,7 +1157,11 @@ func APIUpdateExercise(context *gin.Context) {
 
 	// Only touch the goal-counting flag when the caller sent it; a nil field leaves the
 	// stored value alone so note/time/is_on edits don't silently zero it.
-	exercise.CountsTowardGoal = applyCountsTowardGoalUpdate(exercise.CountsTowardGoal, exerciseUpdateRequest.CountsTowardGoal)
+	exercise.CountsTowardGoal = applyOptionalBoolUpdate(exercise.CountsTowardGoal, exerciseUpdateRequest.CountsTowardGoal)
+
+	// Privacy follows the same nil-means-no-change rule, but carries no week freeze: hiding
+	// or un-hiding a session changes nothing about a settled week's completion.
+	exercise.Private = applyOptionalBoolUpdate(exercise.Private, exerciseUpdateRequest.Private)
 
 	if len(exercise.Note) > 255 {
 		context.JSON(http.StatusBadRequest, gin.H{"error": "Invalid note length."})
@@ -1393,9 +1408,20 @@ func APIStravaCombine(context *gin.Context) {
 		stravaIDsString += stravaID
 	}
 
+	// Privacy is the strictest of the parts: combining a private activity with a public one
+	// must not expose the private one. Un-hiding the result is done by splitting it again.
+	combinedPrivate := false
+	for _, exercise := range exercises {
+		if exercise.Private {
+			combinedPrivate = true
+			break
+		}
+	}
+
 	var masterExercise = models.Exercise{}
 	for index, exercise := range exercises {
 		if index == 0 {
+			exercise.Private = combinedPrivate
 			masterExercise = exercise
 
 			logger.Log.Info(masterExercise.ID)
@@ -1512,6 +1538,10 @@ func APIStravaDivide(context *gin.Context) {
 		return
 	}
 
+	// The sessions split off a private one start private too, rather than defaulting to
+	// visible and waiting for the next Strava sync to hide them again.
+	parentPrivate := exercise.Private
+
 	for index, stravaID := range exerciseObject.StravaID {
 		var currentExercise *models.Exercise
 		if index != 0 {
@@ -1520,6 +1550,7 @@ func APIStravaDivide(context *gin.Context) {
 			currentExercise.CreatedAt = now
 			currentExercise.UpdatedAt = now
 			currentExercise.ExerciseDayID = exerciseDay.ID
+			currentExercise.Private = parentPrivate
 		} else {
 			currentExercise = exercise
 		}

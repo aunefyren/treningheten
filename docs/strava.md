@@ -176,7 +176,8 @@ safe.
   deterministic and matches the date-string day lookups regardless of where the server
   runs.
 - The exercise is set `Enabled`/`IsOn = true`, `Note = activity.Name`,
-  `Time = activity.StartDate`, `Duration = ElapsedTime`.
+  `Time = activity.StartDate`, `Duration = ElapsedTime`, and `Private`
+  (see [activity privacy](#activity-privacy)).
 
 **Activity → Operation → OperationSet**
 - **Gear:** the activity's `gear_id` is mapped onto a local gear row
@@ -242,6 +243,35 @@ vocabulary, de-duplicates, and — because `OperationUpdateRequest.Tags` is a po
 leaves stored tags **untouched** when the field is omitted (so ordinary action/unit
 edits don't wipe tags).
 
+### Activity privacy
+
+A Strava activity you keep to yourself must not become public here by being imported, so
+the session's `Private` flag mirrors Strava's own setting (`stravaActivityIsPrivate`).
+Strava carries two overlapping fields on the **summary** payload — the legacy `private`
+bool and the three-way `visibility` (`everyone` / `followers_only` / `only_me`) — so no
+extra detail fetch is needed; either one saying "only me" marks the session private.
+
+**`followers_only` is deliberately not private.** Treningheten's audience is the people
+you have shared a season with, which is roughly the circle Strava followers are, and a
+user who uses followers-only as their normal default would otherwise vanish from the
+feed entirely.
+
+Unlike `CountsTowardGoal`, privacy is **mirrored on every sync, not snapshotted**: Strava
+owns the setting for the activities it exports, so making one private there has to
+propagate here. The builder toggle is therefore **read-only on Strava-sourced sessions**
+("Set on Strava") rather than being silently reverted an hour later by the next sync.
+
+Two exceptions keep the mirroring from leaking:
+- **Combined sessions ratchet.** A [combined](#user-facing-management) session holds
+  several Strava activities and a sync only speaks for one of them, so it can turn such a
+  session private but never public (`CountStravaActivitiesInExercise`). Clear it by
+  splitting the session, or by making every part public on Strava and re-combining.
+- **Splitting inherits.** Sessions split off a private one start private, instead of
+  being briefly visible until the next sync hides them again.
+
+What `Private` does elsewhere — hidden from every feed, still counted toward the goal and
+the leaderboard — is documented in [data-model.md](data-model.md).
+
 ### Description
 
 `activity.description` is **only** returned by the detailed endpoint
@@ -288,7 +318,8 @@ Beyond connect/sync, a few endpoints let users curate imported activities:
 
 - `controllers/strava.go` — auth/token exchange, retrieval helpers, rate limiter, sync
   orchestration, conversion, tag derivation/merge (`stravaDerivedTags`,
-  `mergeStravaTags`), the description detail-fetch guard.
+  `mergeStravaTags`), the description detail-fetch guard, the privacy mapping
+  (`stravaActivityIsPrivate`).
 - `models/strava.go` — Strava API response shapes (incl. `WorkoutType`,
   `Description`), `StravaActivityStreams`, `StravaStreamsJSON`.
 - `models/tag.go` — the 8-tag vocabulary, the Strava-managed subset, and the

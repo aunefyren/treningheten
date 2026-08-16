@@ -42,9 +42,38 @@ func TestComputePersonalStreaksCountsTowardGoalGate(t *testing.T) {
 	}
 }
 
-// TestApplyCountsTowardGoalUpdate covers the nil-means-no-change rule the update handler
-// relies on so note/time/is_on edits don't silently zero the goal-counting flag.
-func TestApplyCountsTowardGoalUpdate(t *testing.T) {
+// TestCountGoalCountingExercises covers the day tally behind the front page's progress
+// ring: only enabled, on and goal-counting sessions add to it.
+func TestCountGoalCountingExercises(t *testing.T) {
+	ex := func(enabled, isOn, counts bool) models.ExerciseObject {
+		return models.ExerciseObject{Enabled: enabled, IsOn: isOn, CountsTowardGoal: counts}
+	}
+
+	tests := []struct {
+		name      string
+		exercises []models.ExerciseObject
+		want      int
+	}{
+		{"no sessions", nil, 0},
+		{"counting session tallies", []models.ExerciseObject{ex(true, true, true)}, 1},
+		{"non-counting session does not tally", []models.ExerciseObject{ex(true, true, false)}, 0},
+		{"builder-deleted session does not tally", []models.ExerciseObject{ex(true, false, true)}, 0},
+		{"disabled session does not tally", []models.ExerciseObject{ex(false, true, true)}, 0},
+		{"mixed day counts only the counting ones", []models.ExerciseObject{ex(true, true, true), ex(true, true, false), ex(true, true, true)}, 2},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			if got := countGoalCountingExercises(tc.exercises); got != tc.want {
+				t.Errorf("countGoalCountingExercises() = %d, want %d", got, tc.want)
+			}
+		})
+	}
+}
+
+// TestApplyOptionalBoolUpdate covers the nil-means-no-change rule the update handler
+// relies on so note/time/is_on edits don't silently zero the goal-counting or privacy flag.
+func TestApplyOptionalBoolUpdate(t *testing.T) {
 	tr := true
 	fa := false
 	tests := []struct {
@@ -60,8 +89,8 @@ func TestApplyCountsTowardGoalUpdate(t *testing.T) {
 	}
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			if got := applyCountsTowardGoalUpdate(tc.current, tc.requested); got != tc.want {
-				t.Errorf("applyCountsTowardGoalUpdate(%v, %v) = %v, want %v", tc.current, tc.requested, got, tc.want)
+			if got := applyOptionalBoolUpdate(tc.current, tc.requested); got != tc.want {
+				t.Errorf("applyOptionalBoolUpdate(%v, %v) = %v, want %v", tc.current, tc.requested, got, tc.want)
 			}
 		})
 	}

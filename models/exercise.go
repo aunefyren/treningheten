@@ -43,11 +43,17 @@ type Exercise struct {
 	// soft-delete): a session can be fully "on" and visible in the activity feed yet
 	// not count (e.g. an imported walk). Snapshotted at creation; later edits only flip
 	// it via the builder. See docs/data-model.md.
-	CountsTowardGoal bool        `json:"counts_toward_goal" gorm:"not null; default: true"`
-	ExerciseDayID    uuid.UUID   `json:"" gorm:"type:varchar(100);"`
-	ExerciseDay      ExerciseDay `json:"exercise_day" gorm:"not null"`
-	Time             *time.Time  `json:"time"`
-	HevyWorkoutID    *string     `json:"hevy_workout_id" gorm:"default: null"`
+	CountsTowardGoal bool `json:"counts_toward_goal" gorm:"not null; default: true"`
+	// Private hides this session from everyone else — it is left out of every activity
+	// feed and profile view, while staying fully visible to its owner and still counting
+	// toward the goal, season streak and leaderboard. Provider-neutral: Strava mirrors its
+	// own privacy setting onto it on every sync, other sources set it manually.
+	// See docs/data-model.md.
+	Private       bool        `json:"private" gorm:"not null; default: false"`
+	ExerciseDayID uuid.UUID   `json:"" gorm:"type:varchar(100);"`
+	ExerciseDay   ExerciseDay `json:"exercise_day" gorm:"not null"`
+	Time          *time.Time  `json:"time"`
+	HevyWorkoutID *string     `json:"hevy_workout_id" gorm:"default: null"`
 	// MediaRetrievedAt is the per-session media-pull guard. A non-null value
 	// distinguishes "pulled, found nothing" from "never pulled", which drives the
 	// re-pull button state. Lives on the session because the soundtrack is matched
@@ -68,6 +74,8 @@ type ExerciseUpdateRequest struct {
 	// CountsTowardGoal is a pointer so an omitted field leaves the stored value
 	// untouched — existing update callers that don't send it must not zero it.
 	CountsTowardGoal *bool `json:"counts_toward_goal"`
+	// Private follows the same nil-means-no-change rule as CountsTowardGoal.
+	Private *bool `json:"private"`
 }
 
 type ExerciseCreationRequest struct {
@@ -84,6 +92,7 @@ type ExerciseObject struct {
 	Enabled          bool              `json:"enabled"`
 	IsOn             bool              `json:"is_on"`
 	CountsTowardGoal bool              `json:"counts_toward_goal"`
+	Private          bool              `json:"private"`
 	ExerciseDay      uuid.UUID         `json:"exercise_day"`
 	Operations       []OperationObject `json:"operations"`
 	StravaID         []string          `json:"strava_id"`

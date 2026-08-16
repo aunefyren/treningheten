@@ -44,6 +44,7 @@ type ActivityFeedItem struct {
 	ElevationGainM *float64 `json:"elevation_gain_m"`
 	HevyWorkoutID        *string    `json:"hevy_workout_id"`    // session-level Hevy provenance; drives source resolution (strava/hevy/manual)
 	CountsTowardGoal     bool       `json:"counts_toward_goal"` // session-level: false → shown but not tallied
+	Private              bool       `json:"private"`            // session-level: true → hidden from everyone else's feeds
 	SessionActivityCount int        `json:"session_activity_count"`
 }
 

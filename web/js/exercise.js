@@ -311,6 +311,9 @@ function renderWorkoutSummary(exercise, count) {
     const subCards = operations.map(op => renderActivitySubCard(op, exercise)).join("");
     const noCountBadge = exercise.counts_toward_goal ? ""
         : `<span class="wv-nocount-badge" title="This session is logged but doesn't count toward your weekly goal">Doesn't count</span>`;
+    const privateBadge = exercise.private
+        ? `<span class="wv-nocount-badge" title="Only you can see this session. It still counts toward your weekly goal">Hidden</span>`
+        : "";
 
     return `
         <div class="workout-view">
@@ -318,7 +321,7 @@ function renderWorkoutSummary(exercise, count) {
                 <div class="wv-session-head">
                     <div class="wv-session-meta">
                         <span class="wv-session-date">${dateLine}</span>
-                        <span class="wv-session-summary">${escapeHTML(summaryLine)}${noCountBadge}</span>
+                        <span class="wv-session-summary">${escapeHTML(summaryLine)}${noCountBadge}${privateBadge}</span>
                     </div>
                     <div class="wv-session-total">
                         <span class="wv-total-value">${totalDuration}</span>
@@ -1391,6 +1394,14 @@ function renderWorkoutEditor(exercise, count) {
         ? `onchange="${onChange}"`
         : `disabled title="Can't change after the week has ended"`;
 
+    // Privacy has no week freeze — hiding a session changes nothing about a settled week.
+    // It is Strava that owns it on imported sessions: every sync mirrors the activity's own
+    // privacy setting, so the toggle is read-only there rather than silently reverting.
+    const fromStrava = exercise.strava_id && exercise.strava_id.length > 0;
+    const privateAttrs = fromStrava
+        ? `disabled title="Set on Strava"`
+        : `onchange="${onChange}"`;
+
     // Strava source links + combine/divide (parity with the summary card).
     var stravaLinks = "", combineHTML = "", divideHTML = "";
     if (exercise.strava_id && exercise.strava_id.length > 0) {
@@ -1429,6 +1440,10 @@ function renderWorkoutEditor(exercise, count) {
                     <label class="we-field we-field-check">
                         <span class="we-field-label">Counts toward goal</span>
                         <input class="clickable" type="checkbox" id="exercise-counts-input-${exercise.id}" ${exercise.counts_toward_goal ? 'checked' : ''} ${countsAttrs}>
+                    </label>
+                    <label class="we-field we-field-check">
+                        <span class="we-field-label">Hidden from others</span>
+                        <input class="clickable" type="checkbox" id="exercise-private-input-${exercise.id}" ${exercise.private ? 'checked' : ''} ${privateAttrs}>
                     </label>
                 </div>
                 <textarea class="we-note" id="exercise-note-${exercise.id}" rows="2" placeholder="Session note" onchange="${onChange}">${escapeHTML(exercise.note || '')}</textarea>
@@ -1931,6 +1946,7 @@ function updateExercise(exerciseID, on, count, originalTimeString, fromEditor = 
     const timeEl = document.getElementById('exercise-time-input-' + exerciseID);
     const timeOfDayEl = document.getElementById('exercise-timeofday-input-' + exerciseID);
     const countsEl = document.getElementById('exercise-counts-input-' + exerciseID);
+    const privateEl = document.getElementById('exercise-private-input-' + exerciseID);
 
     var note = noteEl ? noteEl.value : (cached.note || "")
     var time = timeEl ? timeEl.value : (cached.duration ? secondsToDurationString(cached.duration) : "")
@@ -1963,6 +1979,12 @@ function updateExercise(exerciseID, on, count, originalTimeString, fromEditor = 
     // treats an omitted field as "no change" (see ExerciseUpdateRequest).
     if (countsEl) {
         form_obj["counts_toward_goal"] = countsEl.checked;
+    }
+
+    // Same rule for privacy, minus the Strava case: there the toggle is read-only because
+    // the next sync mirrors Strava's own setting, so sending it would be a lie.
+    if (privateEl && !privateEl.disabled) {
+        form_obj["private"] = privateEl.checked;
     }
 
     var form_data = JSON.stringify(form_obj);
