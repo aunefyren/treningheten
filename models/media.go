@@ -55,17 +55,37 @@ type MediaConnection struct {
 // session shares one soundtrack rather than duplicating it per operation.
 type MediaPlayback struct {
 	GormModel
-	ExerciseID     uuid.UUID  `json:"" gorm:"type:varchar(100); not null; index"`
-	Exercise       Exercise   `json:"exercise" gorm:"foreignKey:ExerciseID; references:ID"`
-	Provider       string     `json:"provider" gorm:"type:varchar(50); not null"`
-	MediaType      string     `json:"media_type" gorm:"type:varchar(50); not null; default: song"`
-	Title          string     `json:"title" gorm:"type:varchar(255); not null"`
-	Artist         *string    `json:"artist" gorm:"type:varchar(255); default: null"`
-	Album          *string    `json:"album" gorm:"type:varchar(255); default: null"`
-	ProviderItemID *string    `json:"provider_item_id" gorm:"type:varchar(191); default: null"`
-	ArtworkURL     *string    `json:"artwork_url" gorm:"type:varchar(512); default: null"`
-	StartedAt      time.Time  `json:"started_at" gorm:"not null"`
-	EndedAt        *time.Time `json:"ended_at" gorm:"default: null"`
+	ExerciseID uuid.UUID `json:"" gorm:"type:varchar(100); not null; index"`
+	Exercise   Exercise  `json:"exercise" gorm:"foreignKey:ExerciseID; references:ID"`
+	Provider   string    `json:"provider" gorm:"type:varchar(50); not null"`
+	MediaType  string    `json:"media_type" gorm:"type:varchar(50); not null; default: song"`
+	Title      string    `json:"title" gorm:"type:varchar(255); not null"`
+	Artist     *string   `json:"artist" gorm:"type:varchar(255); default: null"`
+	Album      *string   `json:"album" gorm:"type:varchar(255); default: null"`
+	ArtworkURL *string   `json:"artwork_url" gorm:"type:varchar(512); default: null"`
+
+	// Provider identity. Every provider id it hands us is captured, even where nothing
+	// reads it yet — they cost one nullable column each and are impossible to
+	// backfill later (the history endpoints only reach back hours to days).
+	//
+	// ProviderItemID is the *most specific playable thing*: a podcast episode, not its
+	// show. It is the key the overlap-merge groups on, so getting the granularity right
+	// matters — see coalesceOverlappingEvents. ProviderParentID is the container the
+	// item belongs to (show / album / library item), ProviderGUID the provider's stable
+	// cross-install identifier (Plex agent GUID, Spotify URI), and ProviderSessionID the
+	// provider's own record of *this play* where it keeps one (an Audiobookshelf listening
+	// session). None are unique keys: the same item legitimately plays twice in a workout.
+	ProviderItemID    *string `json:"provider_item_id" gorm:"type:varchar(191); default: null"`
+	ProviderParentID  *string `json:"provider_parent_id" gorm:"type:varchar(191); default: null"`
+	ProviderGUID      *string `json:"provider_guid" gorm:"type:varchar(255); default: null"`
+	ProviderSessionID *string `json:"provider_session_id" gorm:"type:varchar(191); default: null"`
+
+	StartedAt time.Time  `json:"started_at" gorm:"not null"`
+	EndedAt   *time.Time `json:"ended_at" gorm:"default: null"`
+	// StartedBefore marks a listen that was already playing when the session began.
+	// StartedAt is clamped up to the session start for layout, so without this the
+	// timeline would claim several such items all started at 00:00.
+	StartedBefore bool `json:"started_before" gorm:"not null; default: false"`
 	// TrackLength is the full item length in seconds (repo convention: duration-ish
 	// fields hold a plain seconds count as int64), display-only.
 	TrackLength *int64 `json:"track_length" gorm:"default: null"`
@@ -94,15 +114,19 @@ type MediaConnectionObject struct {
 
 // MediaPlaybackObject is the flattened read shape attached to OperationObject.
 type MediaPlaybackObject struct {
-	ID             uuid.UUID  `json:"id"`
-	Provider       string     `json:"provider"`
-	MediaType      string     `json:"media_type"`
-	Title          string     `json:"title"`
-	Artist         *string    `json:"artist"`
-	Album          *string    `json:"album"`
-	ProviderItemID *string    `json:"provider_item_id"`
-	ArtworkURL     *string    `json:"artwork_url"`
-	StartedAt      time.Time  `json:"started_at"`
-	EndedAt        *time.Time `json:"ended_at"`
-	TrackLength    *int64     `json:"track_length"`
+	ID                uuid.UUID  `json:"id"`
+	Provider          string     `json:"provider"`
+	MediaType         string     `json:"media_type"`
+	Title             string     `json:"title"`
+	Artist            *string    `json:"artist"`
+	Album             *string    `json:"album"`
+	ProviderItemID    *string    `json:"provider_item_id"`
+	ProviderParentID  *string    `json:"provider_parent_id"`
+	ProviderGUID      *string    `json:"provider_guid"`
+	ProviderSessionID *string    `json:"provider_session_id"`
+	ArtworkURL        *string    `json:"artwork_url"`
+	StartedAt         time.Time  `json:"started_at"`
+	EndedAt           *time.Time `json:"ended_at"`
+	StartedBefore     bool       `json:"started_before"`
+	TrackLength       *int64     `json:"track_length"`
 }

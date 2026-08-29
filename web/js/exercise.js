@@ -463,6 +463,10 @@ function mediaTimelineHTML(exercise) {
             const shown = endSec < 0 ? 0 : endSec;
             if (shown <= 86400) stamp = secondsToDurationString(shown);
         }
+        // An item already playing when the session began has its start clamped to the
+        // session start, so several can share 00:00. Mark it rather than let the
+        // timeline claim they all started together.
+        const carried = !!it.started_before;
         if (stamp === "" && !isNaN(startMs)) {
             const d = new Date(startMs);
             stamp = padNumber(d.getHours(), 2) + ":" + padNumber(d.getMinutes(), 2);
@@ -481,7 +485,7 @@ function mediaTimelineHTML(exercise) {
         }
         if (endSec != null) prevEndSec = endSec;
 
-        return { it, stamp, stat, spoken };
+        return { it, stamp, stat, spoken, carried };
     });
 
     // The peak-effort track (highest average heart rate) gets a quiet highlight.
@@ -500,7 +504,7 @@ function mediaTimelineHTML(exercise) {
         const stat = t.spoken ? mediaSpanStatHTML(it) : trackStatHTML(t.stat, isPeak);
         return `<li class="wv-track${isPeak ? ' is-peak' : ''}">
             ${mediaNodeHTML(it.media_type)}
-            <span class="wv-track-time">${escapeHTML(t.stamp)}</span>
+            <span class="wv-track-time${t.carried ? ' wv-track-time--carried' : ''}"${t.carried ? ' title="Already playing when the session started"' : ''}>${escapeHTML(t.stamp)}</span>
             <span class="wv-track-main">
                 <span class="wv-track-title">${escapeHTML(it.title)}</span>
                 ${artist}
@@ -742,6 +746,94 @@ function renderCardioSubCard(operation, exercise) {
     `;
 }
 
+// ── Explainers ──────────────────────────────────────────────────────────────
+// The read view is dense with terms that assume training knowledge ("aerobic
+// decoupling", "negative split", heart-rate reserve). Rather than crowd the layout with
+// permanent captions, each term carries a quiet ⓘ that opens the shared modal — one
+// registry here, one delegated handler, reusable anywhere a term needs unpacking.
+const WV_INFO_TOPICS = {
+    "decoupling": {
+        title: "Aerobic decoupling",
+        body: `How much your heart rate drifted upward through the activity — comparing the
+               second half against the first at the same pace.
+               <br><br>
+               A low number means your body held the effort comfortably. Under 5% is a
+               well-controlled aerobic effort. Above 8% usually means fatigue, heat, or
+               starting faster than you could sustain. A negative number means the second
+               half was the more efficient one.`
+    },
+    "pace-consistency": {
+        title: "Pace consistency",
+        body: `How much your pace varied from one split to the next, as a standard deviation
+               in seconds.
+               <br><br>
+               A smaller number means a more evenly paced effort. Hills, traffic and stops
+               all push it up, so it reads best against your other activities on similar
+               ground rather than against a fixed target.`
+    },
+    "stops": {
+        title: "Stops",
+        body: `Stretches where you were stationary long enough that they were left out of
+               your moving time — traffic lights, gates, or a rest.
+               <br><br>
+               The count is how many times you stopped; the time beside it is how long you
+               spent stopped in total.`
+    },
+    "hr-zones": {
+        title: "Heart-rate zones",
+        body: `Five intensity bands, showing how long you spent in each. The bpm range
+               beside each band is the heart rate it covers.
+               <br><br>
+               The bands are anchored on whatever is named next to the title: the maximum
+               heart rate you configured, an age-based estimate, the highest rate seen
+               across your activities, or the peak in this one activity.
+               <br><br>
+               When you have set a resting heart rate, the bands use heart-rate reserve
+               (the Karvonen method) — measuring effort as a share of the range between
+               rest and maximum, rather than of the maximum alone. It is the more accurate
+               of the two.`
+    },
+    "gradient": {
+        title: "Effort by gradient",
+        body: `Your average heart rate grouped by how steep the ground was, with each bar
+               showing how much of the activity you spent on that kind of terrain.
+               <br><br>
+               It separates the work the route asked of you from the work your pace asked
+               of you — a slow climb at a high heart rate is still hard.`
+    },
+    "splits": {
+        title: "Splits",
+        body: `Each completed unit of distance and the pace or speed you held across it.
+               Bar length is relative to your fastest split, so the shape of the effort —
+               a strong finish, a mid-run fade — reads at a glance.
+               <br><br>
+               A "negative split" means you covered the second half of the activity faster
+               than the first, usually the mark of a well-judged effort.`
+    }
+};
+
+// infoMarkHTML renders the ⓘ for a term. Sits inline after a label or section title.
+function infoMarkHTML(key) {
+    const topic = WV_INFO_TOPICS[key];
+    if (!topic) return "";
+    return `<button type="button" class="wv-info" data-wv-info="${key}" aria-label="What is ${escapeHTML(topic.title.toLowerCase())}?">i</button>`;
+}
+
+// wireInfoMarks binds one delegated handler for every ⓘ on the page. Registered once —
+// the read view re-renders on edit, so per-element listeners would leak.
+var wvInfoWired = false;
+function wireInfoMarks() {
+    if (wvInfoWired) return;
+    wvInfoWired = true;
+    document.addEventListener("click", function(e) {
+        const mark = e.target.closest && e.target.closest("[data-wv-info]");
+        if (!mark) return;
+        const topic = WV_INFO_TOPICS[mark.getAttribute("data-wv-info")];
+        if (!topic) return;
+        TRModal.open({ title: topic.title, body: `<p class="wv-info-body">${topic.body}</p>` });
+    });
+}
+
 // renderAnalysisHTML surfaces the server's second-order "coach" metrics — aerobic
 // decoupling, pace consistency, stops, and heart rate by terrain gradient — as one calm
 // "Effort analysis" block. Every piece is optional (each needs specific channels), so the
@@ -756,7 +848,7 @@ function renderAnalysisHTML(summary) {
         tiles += `
             <div class="wv-insight">
                 <span class="wv-insight-value">${wvNum(a.decoupling_pct)}<span class="wv-stat-unit">%</span></span>
-                <span class="wv-insight-label">Aerobic decoupling</span>
+                <span class="wv-insight-label">Aerobic decoupling${infoMarkHTML("decoupling")}</span>
                 <span class="wv-verdict wv-verdict-${verdict.tone}">${verdict.text}</span>
             </div>`;
     }
@@ -764,7 +856,7 @@ function renderAnalysisHTML(summary) {
         tiles += `
             <div class="wv-insight">
                 <span class="wv-insight-value">±${Math.round(a.pace_std_dev_seconds)}<span class="wv-stat-unit">s</span></span>
-                <span class="wv-insight-label">Pace consistency</span>
+                <span class="wv-insight-label">Pace consistency${infoMarkHTML("pace-consistency")}</span>
             </div>`;
     }
     if (a.breaks && a.breaks.count > 0) {
@@ -772,7 +864,7 @@ function renderAnalysisHTML(summary) {
         tiles += `
             <div class="wv-insight">
                 <span class="wv-insight-value">${a.breaks.count}</span>
-                <span class="wv-insight-label">${label} · ${secondsToDurationString(a.breaks.total_duration_seconds)}</span>
+                <span class="wv-insight-label">${label} · ${secondsToDurationString(a.breaks.total_duration_seconds)}${infoMarkHTML("stops")}</span>
             </div>`;
     }
     const insightsHTML = tiles ? `<div class="wv-insights">${tiles}</div>` : "";
@@ -822,7 +914,7 @@ function renderGradientHTML(buckets) {
 
     return `
         <div class="wv-grades">
-            <div class="wv-grades-head"><span class="wv-grades-title">Effort by gradient</span></div>
+            <div class="wv-grades-head"><span class="wv-grades-title">Effort by gradient${infoMarkHTML("gradient")}</span></div>
             <div class="wv-grade-list">${rows}</div>
         </div>`;
 }
@@ -919,12 +1011,15 @@ function renderSplitsHTML(summary, operation, splitsID) {
         const primary = cycling ? splitSpeed(s, unit) : splitPace(s, unit);
         const hr = s.avg_heartrate_bpm != null ? `<span class="wv-split-side">${s.avg_heartrate_bpm}<span class="wv-split-side-unit">bpm</span></span>` : "";
         const climb = s.elevation_gain_m > 1 ? `<span class="wv-split-side">+${Math.round(s.elevation_gain_m)}<span class="wv-split-side-unit">m</span></span>` : "";
-        const partial = s.distance < 0.95 ? ` <span class="wv-split-partial">${wvNum(s.distance)}${unit}</span>` : "";
+        // A short final split is annotated inside the bar track, not in the index cell —
+        // the fixed-width index column would wrap it onto a second line and knock the
+        // whole row out of alignment with the others.
+        const partial = s.distance < 0.95 ? `<span class="wv-split-partial">${wvNum(s.distance)} ${unit}</span>` : "";
         const fast = i === fastestIdx ? " wv-split-fast" : "";
         return `
             <div class="wv-split${fast}" data-from="${s.from_point}" data-to="${s.to_point}">
-                <span class="wv-split-idx">${s.index}${partial}</span>
-                <span class="wv-split-track"><span class="wv-split-bar" style="width:${width}%"></span><span class="wv-split-primary">${primary}</span></span>
+                <span class="wv-split-idx">${s.index}</span>
+                <span class="wv-split-track"><span class="wv-split-bar" style="width:${width}%"></span><span class="wv-split-primary">${primary}</span>${partial}</span>
                 ${hr}${climb}
             </div>`;
     }).join("");
@@ -934,7 +1029,7 @@ function renderSplitsHTML(summary, operation, splitsID) {
     return `
         <div class="wv-splits" id="${splitsID}">
             <div class="wv-splits-head">
-                <span class="wv-splits-title">Splits</span>
+                <span class="wv-splits-title">Splits${infoMarkHTML("splits")}</span>
                 <span class="wv-splits-meta">${negSplit}<span class="wv-splits-unit">per ${isMileUnitJS(unit) ? "mile" : (unit || "km")}</span></span>
             </div>
             <div class="wv-split-list">${rows}</div>
@@ -996,29 +1091,40 @@ function renderHRZonesHTML(summary) {
         `<span class="wv-zone-seg wv-zone-${z.zone}" style="width:${z.percent}%" title="Z${z.zone} ${escapeHTML(z.name)}"></span>`
     ).join("");
 
+    // Each zone carries its own bpm bounds (server-side, already Karvonen-adjusted when
+    // the zones are anchored on heart-rate reserve) — show them, or the zone names alone
+    // give no sense of what heart rate they actually stand for.
     const legend = zones.filter(z => z.seconds > 0).map(z =>
-        `<span class="wv-zone-key"><i class="wv-zone-dot wv-zone-${z.zone}"></i>Z${z.zone} ${escapeHTML(z.name)} · ${secondsToDurationString(z.seconds)} · ${wvNum(z.percent)}%</span>`
+        `<span class="wv-zone-key"><i class="wv-zone-dot wv-zone-${z.zone}"></i>Z${z.zone} ${escapeHTML(z.name)}<span class="wv-zone-range">${hrZoneRange(z)}</span> · ${secondsToDurationString(z.seconds)} · ${wvNum(z.percent)}%</span>`
     ).join("");
 
     var basis = "";
     if (summary.hr_max_bpm) {
         var how;
         switch (summary.hr_max_basis) {
-            case "max": how = "max"; break;
-            case "reserve": how = `reserve, rest ${summary.hr_rest_bpm || "?"}`; break;
-            case "observed_max": how = "max from your activities"; break;
-            case "age": how = "age-based max"; break;
-            default: how = "peak in this activity";
+            case "max": how = "% of max HR"; break;
+            case "reserve": how = `HR reserve · rest ${summary.hr_rest_bpm || "?"} bpm · max`; break;
+            case "observed_max": how = "% of your observed max"; break;
+            case "age": how = "% of age-based max"; break;
+            default: how = "% of this activity's peak";
         }
         basis = `<span class="wv-zones-basis">${how} ${summary.hr_max_bpm} bpm</span>`;
     }
 
     return `
         <div class="wv-zones">
-            <div class="wv-zones-head"><span class="wv-zones-title">Heart-rate zones</span>${basis}</div>
+            <div class="wv-zones-head"><span class="wv-zones-title">Heart-rate zones${infoMarkHTML("hr-zones")}</span>${basis}</div>
             <div class="wv-zone-bar">${bar}</div>
             <div class="wv-zone-legend">${legend}</div>
         </div>`;
+}
+
+// hrZoneRange renders a zone's heart-rate bounds. The top zone is open-ended (max_bpm 0),
+// and the bottom zone starts at 0 unless the zones are anchored on heart-rate reserve.
+function hrZoneRange(z) {
+    if (!z.max_bpm) return ` ${z.min_bpm}+ bpm`;
+    if (!z.min_bpm) return ` under ${z.max_bpm} bpm`;
+    return ` ${z.min_bpm}–${z.max_bpm} bpm`;
 }
 
 function renderStrengthSubCard(operation, exercise) {
@@ -1161,6 +1267,16 @@ function wireSplitHighlight(map, latlngData, splitsID) {
     });
 }
 
+// hexToRGBA fades a token colour for a chart fill. Chart.js needs a concrete colour
+// value, so a token can't be used directly for a translucent area beneath a line.
+function hexToRGBA(hex, alpha) {
+    var h = (hex || "").replace("#", "");
+    if (h.length === 3) h = h[0] + h[0] + h[1] + h[1] + h[2] + h[2];
+    if (h.length !== 6) return hex;
+    var n = parseInt(h, 16);
+    return `rgba(${(n >> 16) & 255}, ${(n >> 8) & 255}, ${n & 255}, ${alpha})`;
+}
+
 function renderHeartrateChart(canvasID, timeData, hrData, maxSecs) {
     var canvas = document.getElementById(canvasID);
     if (!canvas) return;
@@ -1182,6 +1298,7 @@ function renderHeartrateChart(canvasID, timeData, hrData, maxSecs) {
     var rootStyle = getComputedStyle(document.documentElement);
     var tickColor = rootStyle.getPropertyValue("--lightblue").trim() || "#7fa8cf";
     var gridColor = rootStyle.getPropertyValue("--grey").trim() || "#cecece";
+    var hrColor = rootStyle.getPropertyValue("--error").trim() || "#e5555b";
 
     new Chart(canvas, {
         type: "line",
@@ -1190,9 +1307,9 @@ function renderHeartrateChart(canvasID, timeData, hrData, maxSecs) {
                 label: "Heart Rate (bpm)",
                 data: points,
                 fill: true,
-                borderColor: "rgba(220, 80, 80, 1)",
-                pointBackgroundColor: "rgba(220, 80, 80, 1)",
-                backgroundColor: "rgba(220, 80, 80, 0.2)",
+                borderColor: hrColor,
+                pointBackgroundColor: hrColor,
+                backgroundColor: hexToRGBA(hrColor, 0.2),
                 tension: 0.3,
                 pointRadius: 0,
                 borderWidth: 2
@@ -1249,6 +1366,10 @@ function renderElevationChart(canvasID, profile) {
 
     var points = profile.map(function(p) { return { x: p.distance_km, y: p.altitude_m }; });
 
+    // Without an explicit max, Chart.js rounds the axis up to the next nice tick, leaving
+    // the profile stopping short of the right edge (a 3.7 km ride drawn on a 4 km axis).
+    var maxKm = points.reduce(function(m, pt) { return pt.x > m ? pt.x : m; }, 0);
+
     var rootStyle = getComputedStyle(document.documentElement);
     var tickColor = rootStyle.getPropertyValue("--lightblue").trim() || "#7fa8cf";
     var gridColor = rootStyle.getPropertyValue("--grey").trim() || "#cecece";
@@ -1279,6 +1400,7 @@ function renderElevationChart(canvasID, profile) {
                         autoSkip: true,
                         maxTicksLimit: 6,
                         min: 0,
+                        max: maxKm || undefined,
                         callback: function(value) { return value + " km"; }
                     }
                 }],
@@ -2622,3 +2744,7 @@ function stravaSyncOperationSet(operationSetID) {
     xhttp.send(form_data);
     return false;
 }
+
+// Bind the ⓘ explainer handler for the page. Delegated on `document`, so it survives every
+// re-render of the read view and needs no re-binding.
+wireInfoMarks();

@@ -69,6 +69,7 @@ func assembleWorkoutSoundtrack(userID uuid.UUID, activityID uuid.UUID) (models.M
 			Provider:           item.Provider,
 			StartedAt:          item.StartedAt,
 			EndedAt:            item.EndedAt,
+			StartedBefore:      item.StartedBefore,
 			TrackLengthSeconds: item.TrackLength,
 		})
 	}

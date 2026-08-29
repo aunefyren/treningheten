@@ -364,6 +364,18 @@
   color: var(--text);
   white-space: nowrap;
 }
+/* Already playing when the session began: the stamp is the session start, not the
+   moment the play began, so it carries a leading mark rather than reading as a fact. */
+.wv-track-time--carried {
+  color: var(--text-dim);
+  cursor: help;
+}
+.wv-track-time--carried::before {
+  content: "\2191";
+  margin-right: 0.15em;
+  font-size: 0.85em;
+  opacity: 0.7;
+}
 
 .wv-track-main {
   min-width: 0;
@@ -587,10 +599,16 @@
   color: var(--text);
   font-variant-numeric: tabular-nums;
 }
+/* Short final split: a quiet annotation at the far end of its own bar track. Positioned
+   (like .wv-split-primary) so it paints above the absolutely-positioned bar fill. */
 .wv-split-partial {
+  position: relative;
+  margin-left: auto;
+  margin-right: 0.55rem;
+  white-space: nowrap;
   font-family: var(--font-body);
   font-weight: 400;
-  font-size: 0.6rem;
+  font-size: 0.65rem;
   color: var(--text-dim);
 }
 .wv-split-track {
@@ -684,6 +702,13 @@
   color: var(--text-dim);
   font-variant-numeric: tabular-nums;
 }
+/* The zone's bpm bounds — the numbers the band actually stands for. Kept a shade
+   quieter than the zone name so the name still leads. */
+.wv-zone-range {
+  color: var(--text);
+  opacity: 0.75;
+  margin-left: 0.1rem;
+}
 .wv-zone-dot {
   width: 0.6rem;
   height: 0.6rem;
@@ -708,6 +733,47 @@
   letter-spacing: 0.16em;
   text-transform: uppercase;
   color: var(--text-dim);
+}
+
+/* ⓘ explainer mark — a self-contained inline affordance (there is no global button
+   rule), sitting after a term whose meaning is not obvious. Deliberately quiet: it
+   should be findable when wanted and invisible when not. Opens the shared TRModal. */
+.wv-info {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 0.95rem;
+  height: 0.95rem;
+  margin-left: 0.3rem;
+  padding: 0;
+  flex-shrink: 0;
+  vertical-align: middle;
+  border: 1px solid currentColor;
+  border-radius: var(--radius-circle);
+  background: none;
+  color: inherit;
+  opacity: 0.55;
+  cursor: pointer;
+  font-family: var(--font-body);
+  font-size: 0.62rem;
+  line-height: 1;
+  font-weight: 700;
+  text-transform: none;
+  letter-spacing: 0;
+}
+.wv-info:hover { opacity: 1; color: var(--module-accent); }
+.wv-info:focus-visible {
+  outline: none;
+  opacity: 1;
+  box-shadow: 0 0 0 3px var(--focus-ring);
+}
+/* Explainer prose in the modal — plain reading text, not the dense readout type. */
+.wv-info-body {
+  margin: 0;
+  font-family: var(--font-body);
+  font-size: 0.9rem;
+  line-height: 1.55;
+  color: var(--text);
 }
 
 .wv-insights {

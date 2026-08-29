@@ -236,10 +236,31 @@ session activity's `OperationSet.StravaStreams`).
 | `Provider` | provenance |
 | `MediaType` | `song` / `podcast` / `audiobook` |
 | `Title`, `Artist`*, `Album`* | generic across the three media types (artist/show/author, album/series) |
-| `ProviderItemID`* | Plex ratingKey — de-dupe/artwork/deep-link |
+| `ProviderItemID`* | the **most specific playable thing** — a podcast *episode*, not its show. The key [overlap-merging](#duplicate-plays--overlap-merging) groups on |
+| `ProviderParentID`* | the container: show / artist / album / library item |
+| `ProviderGUID`* | the provider's stable cross-install id (Plex agent GUID, Spotify URI) |
+| `ProviderSessionID`* | the provider's own record of *this play*, where it keeps one (an ABS listening session) |
 | `ArtworkURL`* | |
 | `StartedAt`, `EndedAt`* | absolute; `EndedAt` clamped to activity end |
+| `StartedBefore` | the item was already playing when the session began, so `StartedAt` is the clamped session start rather than the real start |
 | `TrackLength`* | full length in **seconds** (repo convention), display-only |
+
+**Every provider id is captured, even where nothing reads it yet.** They are one nullable
+column each and are effectively impossible to backfill — the provider history endpoints
+only reach back hours (Spotify) to days, so an id not stored at pull time is gone. What each
+provider supplies:
+
+| Provider | `ProviderItemID` | `ProviderParentID` | `ProviderGUID` | `ProviderSessionID` |
+| --- | --- | --- | --- | --- |
+| Plex | `ratingKey` | `grandparentRatingKey` (artist/show) else `parentRatingKey` (album) | `guid` (agent id, survives a library rebuild) | — |
+| Spotify | `track.id` | `track.album.id` | `track.uri` | — |
+| Audiobookshelf | `episodeId` else `libraryItemId` | `libraryItemId` (the show) | — | session `id` |
+
+> **None of these is a unique key, and none should become one.** The same item legitimately
+> plays twice in one session, and rows are disposable anyway (delete-and-replace per
+> (session, provider)). A DB unique constraint would turn a messy pull into a *failed* pull
+> while leaving the matcher producing the wrong rows. Identity is used for **merging**, in
+> the matcher — not for rejecting writes, in the schema.
 
 ### `Exercise.MediaRetrievedAt` (`*time.Time`) — pull guard
 
@@ -272,6 +293,42 @@ spirit as Strava sync. Other providers' rows on the same session are untouched.
 **Non-destructive empty guard:** an **empty** pull won't delete existing rows for that
 provider (so a stale/out-of-window Spotify pull can't erase the first pull's tracks) — see
 [Delayed settle re-pull & media reconcile cron](#delayed-settle-re-pull--media-reconcile-cron).
+
+## Duplicate plays & overlap merging
+
+Providers routinely report **one continuous listen as several records**. Audiobookshelf opens
+a fresh listening session on a device switch, an app restart, or a resume after an unclean
+close, and does not always close the old one — so a single podcast episode can arrive as three
+overlapping sessions. Rendered raw those become three timeline rows for one thing, and any of
+them that began before the workout all stack on `00:00` (the display start is clamped to the
+session start). Both halves of that were reported as a soundtrack bug.
+
+`coalesceOverlappingEvents` (`controllers/media_match.go`) runs inside `playbackForWindow`,
+**before** the window test, so an item split across records is matched and displayed as the
+single span it actually was:
+
+- **Identity** is `providerItemID` → `providerGUID` → normalised `title|artist`. The name
+  fallback keeps the merge working for a provider that names nothing, at the cost of grouping
+  two same-titled items — acceptable, since they still only merge when their spans overlap.
+- **Overlap is required, not merely a shared identity.** Replaying an item later in a workout
+  is a real second listen and stays its own row. Touching spans join; a real gap does not, so
+  a pause and resume still reads as two listens.
+- **Merging** keeps the earliest start and latest end, and fills any metadata the first record
+  was missing. `trackLengthSec` combines according to `trackLengthIsListened`: time actually
+  *listened* (ABS `timeListening`) **adds up**, whereas an item's own length (a Plex/Spotify
+  track) takes the **longest** — two overlapping records of one track don't make it twice as
+  long.
+
+This is also why `ProviderItemID` must be the **episode**, not the library item: an ABS
+library item is the *show*, so keying on it would collapse unrelated episodes of one series
+into each other.
+
+Because the merge is in the shared matcher, it covers Plex and Spotify too — Plex can log
+overlapping scrobbles for one track across clients.
+
+**Not retroactive on its own.** Rows regenerate from the provider on each pull, so already-
+viewed sessions need a re-pull (the 🎧 button, or the admin bulk media re-sync) to pick the
+merge up.
 
 ## Window resolution
 
@@ -425,7 +482,14 @@ The overlay (`mediaTimelineHTML` in `web/js/exercise.js`, styles in
 of the session** (below all the activity sub-cards): each track sits on a hairline spine
 with an amber node, stamped with how far **into the session** it played
 (`started_at − exercise.time`, formatted with the same `secondsToDurationString` the
-splits use; falls back to wall-clock time when the session start is unknown). It reuses
+splits use; falls back to wall-clock time when the session start is unknown).
+
+**"Already playing" stamps.** An item that began before the session has its start clamped
+to the session start, so its stamp would otherwise read a flat `00:00` — and several such
+items would appear to have started together. A row whose `started_before` is set gets a
+dimmed stamp with a leading ↑ and a "Already playing when the session started" tooltip
+(`.wv-track-time--carried`), so the clamp reads as the approximation it is rather than as
+a claim about when the play began. It reuses
 the workout card's scoreboard numerals (Saira Semi Condensed) so a track time reads as
 just another split, and introduces one reserved accent — `--wv-audio` (warm amber),
 distinct from the green performance accent and Strava orange — to mark the audio layer.

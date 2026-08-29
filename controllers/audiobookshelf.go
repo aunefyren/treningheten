@@ -212,13 +212,22 @@ func buildAudiobookshelfPlaybackForWindow(sessions []models.AudiobookshelfListen
 		}
 
 		events = append(events, mediaPlayEvent{
-			mediaType:      absClassifyMediaType(session.MediaType),
-			title:          session.DisplayTitle,
-			artist:         session.DisplayAuthor,
-			providerItemID: session.LibraryItemID,
-			startedAt:      startedAt,
-			coverageEnd:    coverageEnd,
-			trackLengthSec: lengthSeconds,
+			mediaType: absClassifyMediaType(session.MediaType),
+			title:     session.DisplayTitle,
+			artist:    session.DisplayAuthor,
+			// For a podcast the library item is the *show*, so the episode id is the
+			// identity; books have no episode and are identified by the item itself.
+			// Without this every episode of a series shares one id and the overlap
+			// merge would collapse unrelated episodes into each other.
+			providerItemID:    firstNonEmpty(session.EpisodeID, session.LibraryItemID),
+			providerParentID:  session.LibraryItemID,
+			providerSessionID: session.ID,
+			startedAt:         startedAt,
+			coverageEnd:       coverageEnd,
+			trackLengthSec:    lengthSeconds,
+			// ABS reports time actually listened, not the item's length — so merged
+			// sessions on one episode add up rather than taking the longest.
+			trackLengthIsListened: true,
 		})
 	}
 

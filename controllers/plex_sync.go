@@ -162,6 +162,9 @@ func buildPlexPlaybackForWindow(items []models.PlexHistoryMetadata, sections map
 			artist:         item.GrandparentTitle,
 			album:          item.ParentTitle,
 			providerItemID: item.RatingKey,
+			// The show (podcast) or artist (music) where Plex names one, else the album.
+			providerParentID: firstNonEmpty(item.GrandparentRatingKey, item.ParentRatingKey),
+			providerGUID:     item.Guid,
 			// The raw PMS-relative thumb path; the read layer rewrites it to the
 			// authenticated artwork proxy (the thumb needs the server token to fetch).
 			artworkURL:     item.Thumb,

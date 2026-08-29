@@ -30,8 +30,14 @@ type AudiobookshelfListeningSessionsResponse struct {
 // seconds. MediaType is "book" or "podcast" — ABS is the first provider that natively
 // distinguishes the two.
 type AudiobookshelfListenSession struct {
-	ID            string  `json:"id"`
+	// ID identifies this listening session — ABS opens a new one on a device switch,
+	// app restart, or a resume after an unclean close, so several can cover one listen.
+	ID string `json:"id"`
+	// LibraryItemID is the *show* for a podcast, not the episode; EpisodeID is the
+	// per-episode identity and is empty for books. Keying on LibraryItemID alone would
+	// treat every episode of a series as the same item.
 	LibraryItemID string  `json:"libraryItemId"`
+	EpisodeID     string  `json:"episodeId"`
 	DisplayTitle  string  `json:"displayTitle"`
 	DisplayAuthor string  `json:"displayAuthor"`
 	MediaType     string  `json:"mediaType"`

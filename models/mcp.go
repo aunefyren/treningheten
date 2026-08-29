@@ -140,6 +140,7 @@ type MCPSoundtrackTrack struct {
 	Provider           string     `json:"provider" jsonschema:"where the play was recorded: plex, spotify or audiobookshelf"`
 	StartedAt          time.Time  `json:"started_at"`
 	EndedAt            *time.Time `json:"ended_at,omitempty"`
+	StartedBefore      bool       `json:"started_before,omitempty" jsonschema:"true when the item was already playing when the session began, so started_at is the session start rather than the moment the play began"`
 	TrackLengthSeconds *int64     `json:"track_length_seconds,omitempty" jsonschema:"full length of the item in seconds (not necessarily how long it was played)"`
 }
 

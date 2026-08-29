@@ -111,17 +111,23 @@ type PlexHistoryResponse struct {
 // LibrarySectionID ties the item to the library it lives in — the only signal for
 // audiobook/podcast, which Plex otherwise stores as plain music "track"s.
 type PlexHistoryMetadata struct {
-	RatingKey        string         `json:"ratingKey"`
-	Key              string         `json:"key"`
-	Title            string         `json:"title"`
-	GrandparentTitle string         `json:"grandparentTitle"`
-	ParentTitle      string         `json:"parentTitle"`
-	Type             string         `json:"type"`
-	Thumb            string         `json:"thumb"`
-	LibrarySectionID PlexFlexString `json:"librarySectionID"`
-	ViewedAt         int64          `json:"viewedAt"`
-	AccountID        int64          `json:"accountID"`
-	Duration         int64          `json:"duration"`
+	RatingKey string `json:"ratingKey"`
+	// Guid is the metadata agent's stable identifier for the item (e.g.
+	// "plex://track/5d07…"). Unlike RatingKey it survives a library rebuild and is the
+	// same on any server, so it is the durable identity to keep.
+	Guid                 string         `json:"guid"`
+	ParentRatingKey      string         `json:"parentRatingKey"`
+	GrandparentRatingKey string         `json:"grandparentRatingKey"`
+	Key                  string         `json:"key"`
+	Title                string         `json:"title"`
+	GrandparentTitle     string         `json:"grandparentTitle"`
+	ParentTitle          string         `json:"parentTitle"`
+	Type                 string         `json:"type"`
+	Thumb                string         `json:"thumb"`
+	LibrarySectionID     PlexFlexString `json:"librarySectionID"`
+	ViewedAt             int64          `json:"viewedAt"`
+	AccountID            int64          `json:"accountID"`
+	Duration             int64          `json:"duration"`
 }
 
 // PlexLibrarySectionsResponse is the {server}/library/sections reply (Accept: json).

@@ -241,8 +241,12 @@ exposed on demand rather than inlined into every activity:
 - `get_activity_soundtrack(activity_id)` resolves the activity's session and returns
   `has_soundtrack`, `retrieved_at` (last pull), and `tracks[]` in play order (earliest
   `started_at` first). Each track is `{type` (song/podcast/audiobook)`, title, artist,
-  album, provider` (plex/spotify/audiobookshelf)`, started_at, ended_at,
-  track_length_seconds}`.
+  album, provider` (plex/spotify/audiobookshelf)`, started_at, ended_at, started_before,
+  track_length_seconds}`. `started_before` marks an item that was already playing when the
+  session began — its `started_at` is the session start, not the moment the play began, so
+  the model shouldn't read it as the track's true start when correlating against streams.
+  (The provider identity columns are deliberately **not** exposed: they exist for matching
+  and de-duplication, and carry nothing an LLM can reason about.)
 
 It **fails soft**, mirroring `get_activity_streams`: when media is disabled on the
 server, no provider is connected, or nothing was matched, it returns

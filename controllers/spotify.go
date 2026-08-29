@@ -295,13 +295,15 @@ func buildSpotifyPlaybackForWindow(items []models.SpotifyPlayHistory, start, end
 		}
 
 		events = append(events, mediaPlayEvent{
-			title:          item.Track.Name,
-			artist:         strings.Join(names, ", "),
-			album:          item.Track.Album.Name,
-			providerItemID: item.Track.ID,
-			artworkURL:     spotifySmallestImage(item.Track.Album.Images),
-			startedAt:      playedAt.UTC(),
-			trackLengthSec: lengthSeconds,
+			title:            item.Track.Name,
+			artist:           strings.Join(names, ", "),
+			album:            item.Track.Album.Name,
+			providerItemID:   item.Track.ID,
+			providerParentID: item.Track.Album.ID,
+			providerGUID:     item.Track.URI,
+			artworkURL:       spotifySmallestImage(item.Track.Album.Images),
+			startedAt:        playedAt.UTC(),
+			trackLengthSec:   lengthSeconds,
 		})
 	}
 

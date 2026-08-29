@@ -27,7 +27,10 @@ type SpotifyPlayHistory struct {
 }
 
 type SpotifyTrack struct {
-	ID         string          `json:"id"`
+	ID string `json:"id"`
+	// URI is the stable "spotify:track:…" identifier — the same track everywhere,
+	// where ID is only meaningful against the Spotify API.
+	URI        string          `json:"uri"`
 	Name       string          `json:"name"`
 	DurationMs int64           `json:"duration_ms"`
 	Artists    []SpotifyArtist `json:"artists"`
@@ -39,6 +42,7 @@ type SpotifyArtist struct {
 }
 
 type SpotifyAlbum struct {
+	ID     string         `json:"id"`
 	Name   string         `json:"name"`
 	Images []SpotifyImage `json:"images"`
 }

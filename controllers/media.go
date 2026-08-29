@@ -297,17 +297,21 @@ func ConvertMediaPlaybackToObjects(playback []models.MediaPlayback) []models.Med
 
 	for _, item := range playback {
 		objects = append(objects, models.MediaPlaybackObject{
-			ID:             item.ID,
-			Provider:       item.Provider,
-			MediaType:      item.MediaType,
-			Title:          item.Title,
-			Artist:         item.Artist,
-			Album:          item.Album,
-			ProviderItemID: item.ProviderItemID,
-			ArtworkURL:     resolveMediaArtworkURL(item.Provider, item.ArtworkURL),
-			StartedAt:      item.StartedAt,
-			EndedAt:        item.EndedAt,
-			TrackLength:    item.TrackLength,
+			ID:                item.ID,
+			Provider:          item.Provider,
+			MediaType:         item.MediaType,
+			Title:             item.Title,
+			Artist:            item.Artist,
+			Album:             item.Album,
+			ProviderItemID:    item.ProviderItemID,
+			ProviderParentID:  item.ProviderParentID,
+			ProviderGUID:      item.ProviderGUID,
+			ProviderSessionID: item.ProviderSessionID,
+			ArtworkURL:        resolveMediaArtworkURL(item.Provider, item.ArtworkURL),
+			StartedAt:         item.StartedAt,
+			EndedAt:           item.EndedAt,
+			StartedBefore:     item.StartedBefore,
+			TrackLength:       item.TrackLength,
 		})
 	}
 
