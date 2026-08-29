@@ -104,6 +104,15 @@ count is tied to the season streak (`debt.go` uses `CurrentStreak + 1`). These
 mechanics are adjacent to this document; the key cross-cutting concept is the season
 streak, documented next.
 
+**Who can see a debt.** A wheel spin is a season-social event, not a private one: the week
+table on the front page and `/seasons` links every participant's debt, so
+`GET /api/auth/debts/:debt_id` is scoped to **season membership** — the caller must hold a
+`Goal` in the debt's season (`database.VerifyUserGoalInSeason`), otherwise 403. Acting on a
+debt is narrower still: only the loser may spin it (`APIChooseWinnerForDebt` checks
+`debt.LoserID`). The candidate list returned alongside a debt is built from the **censored**
+user getter — it is a response body, so it must never carry credentials (see
+[conventions.md](conventions.md#never-serialize-a-credential)).
+
 ## Related
 
 - [streaks.md](streaks.md) — personal vs season streaks, in detail

@@ -59,9 +59,16 @@ considered enabled when all three are present (plus the flags).
 > this 403 to `ErrSpotifyForbidden` with a clear message, and a re-pull surfaces it
 > as a warning without discarding a successful Plex sync.
 
+`media.allow_private_targets` controls whether a user-entered provider server URL may
+point at a loopback or private-network address — see
+[Outbound request safety](#outbound-request-safety) below. It defaults to `true`
+(missing-field installs included), because a self-hosted Plex/Audiobookshelf on the LAN is
+the normal deployment.
+
 ```jsonc
 "media": {
   "enabled": true,
+  "allow_private_targets": true,
   "token_key": "<generated>",
   "plex": { "enabled": true, "client_identifier": "<generated>" },
   "spotify": {
@@ -78,6 +85,57 @@ Audiobookshelf needs **no app-level credentials** in config — just the on/off 
 connection is a per-user **server URL + API token** entered on the account page (the token
 comes from the user's ABS account settings), so `audiobookshelf.enabled` is the whole
 provider gate.
+
+## Outbound request safety
+
+Plex and Audiobookshelf are the only integrations whose destination is chosen by the
+**user** (a server URL they type in) rather than fixed in code. That makes them the app's
+SSRF surface, and the artwork proxy makes it a *readable* one — it streams the response
+body back to the caller. Three rules apply, all in `controllers/media_dial.go` unless
+noted.
+
+**Destinations are checked at dial time, not on the string.** `mediaHTTPClient` builds
+clients whose `net.Dialer.Control` hook inspects the IP actually being connected to. A
+pre-flight check on the URL would miss DNS rebinding (a name that resolves public when
+validated and private when fetched) and would have to be repeated for every redirect hop;
+the dial hook covers both for free. `validateMediaServerURL` still runs at connect time,
+but only as a courtesy so the user gets a clear message instead of a generic failure —
+enforcement is the hook.
+
+One limitation to know: the clients still honour `HTTP_PROXY`/`HTTPS_PROXY`
+(`http.ProxyFromEnvironment`), matching what these requests did before. When an egress proxy
+is configured the dial goes to the *proxy's* address, so the destination check happens at the
+proxy rather than here. That is an operator's deliberate configuration, not something a user
+can trigger, but a deployment relying on this policy should not route media traffic through a
+proxy.
+
+**Link-local is always refused**, whatever the config says: `169.254.169.254` is the cloud
+metadata endpoint and no media server lives there. Same for unspecified and multicast
+addresses.
+
+**Loopback and private ranges follow `media.allow_private_targets`**, which defaults to
+**true**. This is a deliberate trade: a Plex server on the LAN — or on `127.0.0.1` next to
+Treningheten — is the normal self-hosted case, and defaulting to `false` would break it on
+upgrade. An instance with users who shouldn't be able to reach its network should set the
+flag to `false`. Carrier-grade NAT (`100.64.0.0/10`) counts as private, since that is where
+a Tailscale-reachable server sits. Residual risk with the flag on: an authenticated user can
+still probe the host's own network. That is recorded as an open item in
+[wip.md](wip.md).
+
+**TLS is verified except where it cannot be.** `plexServerClient`
+(`controllers/plex.go`) skips verification only for a bare IP, a loopback/mDNS name, or a
+`plex.direct` host — addresses no public CA issues for. Every other hostname, which means
+anything reached across the internet, is verified normally. It used to be skipped
+unconditionally, which carried the user's decrypted `X-Plex-Token` over connections anyone
+on the path could impersonate.
+
+**A Plex PIN belongs to the user who created it.** plex.tv scopes a PIN to the
+`X-Plex-Client-Identifier` that created it, but that identifier is install-wide here —
+shared by every user — and PIN ids are sequential. So `APICreatePlexPin` records the
+creator and `APICheckPlexPin` refuses anyone else, reporting a foreign PIN exactly like an
+unknown one. The record lives in memory with a 15-minute TTL (`plexPinOwners`): a PIN is
+valid for minutes, so persisting it would be schema churn, and the worst case on a restart
+mid-flow is that the user clicks Connect again.
 
 ## Providers
 

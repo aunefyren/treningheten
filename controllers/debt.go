@@ -475,6 +475,22 @@ func APIGetDebt(context *gin.Context) {
 		return
 	}
 
+	// A wheel spin is visible to the season it belongs to — the week table on the front page
+	// and /seasons link every participant's debt, not just your own — so season membership is
+	// the boundary. Without this, any authenticated user could walk debt IDs across seasons
+	// they never joined.
+	inSeason, _, err := database.VerifyUserGoalInSeason(userID, debt.SeasonID)
+	if err != nil {
+		logger.Log.Info("Failed to verify season membership. Error: " + err.Error())
+		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to verify season membership."})
+		context.Abort()
+		return
+	} else if !inSeason {
+		context.JSON(http.StatusForbidden, gin.H{"error": "No access."})
+		context.Abort()
+		return
+	}
+
 	debtObject, err := ConvertDebtToDebtObject(debt)
 	if err != nil {
 		logger.Log.Info("Failed to convert debt to debt object. Error: " + err.Error())
@@ -521,7 +537,8 @@ func APIGetDebt(context *gin.Context) {
 	for _, user := range lastWeek.UserWeekResults {
 
 		if user.Competing && user.WeekCompletion >= 1.0 && !user.SickLeave {
-			userObject, err := database.GetAllUserInformation(user.UserID)
+			// Censored: this array is serialized into the response body.
+			userObject, err := database.GetUserInformation(user.UserID)
 			if err != nil {
 				logger.Log.Info("Failed to get user object. Error: " + err.Error())
 				context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get user object."})
@@ -665,7 +682,9 @@ func APIChooseWinnerForDebt(context *gin.Context) {
 	for _, user := range lastWeek.UserWeekResults {
 
 		if user.Competing && user.WeekCompletion >= 1 && !user.SickLeave {
-			userObject, err := database.GetAllUserInformation(user.UserID)
+			// Censored: only the ID and name are needed here; the mailer below re-reads
+			// the uncensored row when it actually needs an address.
+			userObject, err := database.GetUserInformation(user.UserID)
 			if err != nil {
 				logger.Log.Info("Failed to get user object. Error: " + err.Error())
 				context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get user object."})
@@ -727,7 +746,8 @@ func APIChooseWinnerForDebt(context *gin.Context) {
 			logger.Log.Info("Create wheelview for user '" + user.User.ID.String() + "'. Error: " + err.Error())
 		}
 
-		// Notify winner by e-mail
+		// Notify winner by e-mail. Uncensored on purpose: this object is only handed to
+		// the mailer, never serialized into a response.
 		winnerObject, err := database.GetAllUserInformation(user.User.ID)
 		if err != nil {
 			logger.Log.Info("Failed to get object for user '" + user.User.ID.String() + "'. Ignoring. Error: " + err.Error())

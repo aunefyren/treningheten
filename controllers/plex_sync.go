@@ -192,7 +192,7 @@ func plexFetchLibrarySections(serverURL, token string) map[string]models.PlexLib
 	req.Header.Set("X-Plex-Token", token)
 	req.Header.Set("X-Plex-Client-Identifier", files.ConfigFile.Media.Plex.ClientIdentifier)
 
-	resp, err := plexServerClient(15 * time.Second).Do(req)
+	resp, err := plexServerClient(15*time.Second, req.URL).Do(req)
 	if err != nil {
 		logger.Log.Warn("Plex library sections request threw error. Error: " + err.Error())
 		return sections
@@ -243,10 +243,10 @@ func plexFetchHistory(serverURL, token, accountID string, start, end time.Time) 
 	req.Header.Set("X-Plex-Token", token)
 	req.Header.Set("X-Plex-Client-Identifier", files.ConfigFile.Media.Plex.ClientIdentifier)
 
-	// plexServerClient skips TLS verification for plex.direct self-signed certs (the
-	// trust model the official clients use). The stored ServerURL was probed for
-	// reachability at connect time.
-	resp, err := plexServerClient(15 * time.Second).Do(req)
+	// plexServerClient applies the media destination policy and only skips TLS
+	// verification for hosts that cannot present a verifiable certificate (bare IPs,
+	// loopback, plex.direct). The stored ServerURL was probed at connect time.
+	resp, err := plexServerClient(15*time.Second, req.URL).Do(req)
 	if err != nil {
 		logger.Log.Error("Plex history request threw error. Error: " + err.Error())
 		return nil, errors.New("Plex history request threw error.")

@@ -675,7 +675,9 @@ function renderStravaSection(user_object) {
         <button onclick="window.location.href='${stravaOauth}';" class="btn u-w-10" type="submit" href="">Connect Strava</button>
     `;
 
-    if(user_object.strava_code && user_object.strava_code != "") {
+    // The Strava credential itself is no longer serialized — the API reports connection
+    // state as a derived boolean instead (mirrors hevy_connected).
+    if(user_object.strava_connected) {
         var publicHTML = user_object.strava_public ? "checked" : "";
 
         // Only relevant when Hevy is available on this server.

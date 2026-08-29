@@ -996,15 +996,26 @@ func APIUpdateExerciseDay(context *gin.Context) {
 		return
 	}
 
-	exerciseDay, err = database.GetExerciseDayByID(exerciseDayIDUUID)
+	// Get user ID
+	userID, err := middlewares.GetAuthUsername(context.GetHeader("Authorization"))
+	if err != nil {
+		logger.Log.Info("Failed to verify user ID. Error: " + err.Error())
+		context.JSON(http.StatusBadRequest, gin.H{"error": "Failed to verify user ID."})
+		context.Abort()
+		return
+	}
+
+	// Scoped to the caller: this is a write, and an unscoped lookup let anyone overwrite
+	// anyone's day note. A miss (wrong owner or no such day) is a 404 either way, so the
+	// endpoint doesn't confirm that someone else's day exists.
+	exerciseDay, err = database.GetExerciseDayByIDAndUserID(exerciseDayIDUUID, userID)
 	if err != nil {
 		logger.Log.Info("Failed to get exercise day. Error: " + err.Error())
 		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get exercise day."})
 		context.Abort()
 		return
 	} else if exerciseDay == nil {
-		logger.Log.Info("Failed to find exercise day. Error: " + err.Error())
-		context.JSON(http.StatusBadRequest, gin.H{"error": "Failed to find exercise day."})
+		context.JSON(http.StatusNotFound, gin.H{"error": "Failed to find exercise day."})
 		context.Abort()
 		return
 	}

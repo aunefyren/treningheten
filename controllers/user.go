@@ -194,8 +194,9 @@ func GetUser(context *gin.Context) {
 			return
 		}
 
-		// Surface Hevy connection state without ever serializing the key itself
+		// Surface connection state without ever serializing the credentials themselves
 		userObject.HevyConnected = userObject.HevyAPIKey != nil && *userObject.HevyAPIKey != ""
+		userObject.StravaConnected = userObject.StravaCode != nil && *userObject.StravaCode != ""
 	} else {
 		userObject, err = database.GetUserInformation(user_id_int)
 		if err != nil {
@@ -740,7 +741,8 @@ func SendSundayReminders() {
 			return
 		}
 
-		usersWithAlerts, err := database.GetAllUsersWithSundayAlertsEnabled()
+		// Uncensored: the reminder is an e-mail, so this job needs the address.
+		usersWithAlerts, err := database.GetAllUsersWithSundayAlertsEnabledUncensored()
 		if err != nil {
 			logger.Log.Info("Failed to get users with alerts enabled. Returning. Error: " + err.Error())
 			return

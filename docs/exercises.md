@@ -92,6 +92,17 @@ anchoring precedence, and the stability-over-time guarantees live in [mcp.md](mc
 anchoring is driven by optional **max / resting heart rate** settings on `/account` plus an
 auto-maintained **observed max HR**.
 
+## Ownership
+
+Every read and write in this area is scoped to the calling user at the query, not by a
+post-hoc comparison: `GetExerciseDayByIDAndUserID`, `GetAllExerciseByIDAndUserID`,
+`GetOperationByIDAndUserID`, `GetOperationSetByIDAndUserID`. A miss is indistinguishable
+from "no such row", so the endpoints return **404** rather than confirming that another
+user's day exists. Use the scoped getter even when the handler looks read-only — the day
+note is written by `POST /api/auth/exercise-days/:exercise_day_id`, and that endpoint once
+used the unscoped `GetExerciseDayByID`, which let any authenticated user overwrite anyone's
+note. Regression tests: `controllers/exercise_day_authz_test.go`.
+
 ## Related
 
 - **MCP parity — done.** The MCP `list_activities` tool is now backed by the same query-time

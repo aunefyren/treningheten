@@ -181,7 +181,7 @@ function placeExerciseDay(exerciseDay) {
 
     document.getElementById('exercise-day-date').innerHTML = "<b>Date: " + dateString + "</b>";
     //document.getElementById('exercise-day-exercise-goal').innerHTML = "Exercise goal for week: " + exerciseDay.goal.exercise_interval;
-    document.getElementById('exercise-day-note').innerHTML = exerciseDay.note;
+    document.getElementById('exercise-day-note').innerHTML = escapeHTML(exerciseDay.note || '');
 
     placeExercises(exerciseDay.exercises);
 }
@@ -277,7 +277,7 @@ function generateExerciseHTML(exercise, count, forceFullEditor = false) {
                 </p>
 
                 <input type="hidden" id="exercise-time-input-${exercise.id}" name="exercise-time-input" pattern="[0-9:]{0,}" placeholder="hh:mm:ss" value="${secondsToDurationString(exercise.duration)}">
-                <textarea class="day-note-area u-mt-1" id="exercise-note-${exercise.id}" name="exercise-exercise-note" rows="3" cols="33" placeholder="Notes" style="display: none;">${exercise.note}</textarea>
+                <textarea class="day-note-area u-mt-1" id="exercise-note-${exercise.id}" name="exercise-exercise-note" rows="3" cols="33" placeholder="Notes" style="display: none;">${escapeHTML(exercise.note || '')}</textarea>
 
                 ${sessionRestoreButton(exercise, count)}
 
@@ -1738,7 +1738,7 @@ function updateExerciseDay(exerciseDayID) {
             if(result.error) {
                 error(result.error);
             } else {
-                document.getElementById('exercise-day-note').innerHTML = result.exercise_day.note;
+                document.getElementById('exercise-day-note').innerHTML = escapeHTML(result.exercise_day.note || '');
             }
 
         }

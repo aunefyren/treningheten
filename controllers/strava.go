@@ -1030,7 +1030,9 @@ func APISyncStravaActivitiesForUsers(context *gin.Context) {
 			}
 		}
 	} else {
-		users, err := database.GetUsersInformation()
+		// Uncensored: the sync selects on StravaCode and hands the user object to
+		// StravaGetAuthorizationForUser, which needs the credential.
+		users, err := database.GetAllUsersUncensored()
 		if err != nil {
 			logger.Log.Info("Failed to get user objects. Error: " + err.Error())
 			context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get user objects."})

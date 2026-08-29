@@ -5,132 +5,64 @@ This doc should contains plans, ideas, problems, bugs and so on. Finished stuff 
 
 Full read-through of auth, middleware, every `controllers/` handler, the data-access layer,
 the media/integration clients, config handling, the frontend render paths and the dependency
-tree. Findings are ranked by severity. **Nothing here is fixed yet** — this section is the
-work list. Remove each item as it ships and, where the fix changes documented behaviour,
-move the explanation into the relevant `docs/*.md`.
+tree. Findings are ranked by severity and numbered stably — the numbering is kept even as
+items ship, so earlier notes and commit messages keep resolving. Remove each item as it
+lands and, where the fix changes documented behaviour, move the explanation into the
+relevant `docs/*.md`.
+
+**Shipped 2026-08-29 (third pass):** S4, S5 and S6, the media-integration findings. Plex
+PINs are now bound to the user who created them (`plexPinOwners`, in-memory with a 15-minute
+TTL), so one user can no longer poll another's in-flight PIN and capture their Plex token.
+Outbound requests to user-supplied provider URLs go through a destination policy enforced in
+the dialer's `Control` hook (`controllers/media_dial.go`), which sees the resolved IP and so
+covers DNS rebinding and redirects; link-local (cloud metadata) is always refused, and
+loopback/private ranges follow the new `media.allow_private_targets` flag. Plex TLS
+verification is now skipped only for hosts that cannot present a verifiable certificate
+(bare IPs, loopback, `plex.direct`) instead of unconditionally. Design and the trade-offs are
+in [`media.md`](media.md#outbound-request-safety); tests in `controllers/media_dial_test.go`
+and `controllers/plex_security_test.go`.
+
+**Residual risk, deliberately accepted:** `media.allow_private_targets` defaults to **true**,
+because a self-hosted Plex on the LAN or on `127.0.0.1` is the normal deployment and
+defaulting to `false` would break existing installs on upgrade. With it on, an authenticated
+user can still probe the host's own network (the ABS connect error messages remain a coarse
+port oracle, kept because they are genuinely useful when a URL is wrong). An instance with
+untrusted users should set the flag to `false`. Worth revisiting if the app ever ships a
+guided setup that could ask.
+
+**Shipped 2026-08-29 (second pass):** S3, the stored-XSS-to-account-takeover chain.
+`APIUpdateExerciseDay` loaded the day with the unscoped `GetExerciseDayByID`, so any
+authenticated user could overwrite anyone's note; and `web/js/exercise.js` piped that note
+into `innerHTML` unescaped in two places, plus raw into a `<textarea>` in a third. Since both
+auth cookies are `document.cookie`-readable by design, a payload in someone else's note stole
+their access **and** refresh token. Fixed by scoping the write to the caller (404 on a miss,
+so it doesn't confirm another user's day exists) and routing all three sinks through the
+`escapeHTML()` helper the file already had. The escaping rule is now in
+[`conventions.md`](conventions.md#frontend-vanilla-js-conventions) and the ownership rule in
+[`exercises.md`](exercises.md#ownership); `controllers/exercise_day_authz_test.go` pins the
+authorization half. **Not addressed here:** the cookie storage model itself and the absent
+CSP — both still open below, and both would have contained the blast radius.
+
+**Shipped 2026-08-29:** S1 and S2, the two credential-leak findings. `CensorUserObject` was
+being applied to a loop copy in `GetUsersInformation` and
+`GetAllUsersWithSundayAlertsEnabled`, so `GET /api/auth/users` served every user's bcrypt
+hash, e-mail, live reset code and Strava token to any authenticated caller — a read-only PAT
+included. `GET /api/auth/debts/:debt_id` leaked the same set a second way, through its
+candidate list, and had no authorization on the debt id at all. Fixed by index-assigning the
+censor, splitting the getters into censored/uncensored families for the two server-side jobs
+that legitimately need credentials, marking every credential and recovery field `json:"-"`
+(with a derived `strava_connected` boolean replacing `strava_code` on the account page), and
+scoping `APIGetDebt` to season membership. Conventions now live in
+[`conventions.md`](conventions.md#never-serialize-a-credential) and
+[`seasons-and-goals.md`](seasons-and-goals.md#consequences-debts-leaderboard-prizes);
+regressions are pinned by `database/user_censor_test.go` and
+`models/user_serialization_test.go`.
 
 Scope note: the threat model assumed is a self-hosted instance with several invited users who
 do **not** fully trust each other, plus the public internet reaching `/api/open`,
 `/api/oauth` and `/mcp`.
 
 ### Determined fixes (confirmed defects, no design question left)
-
-#### S1 — CRITICAL: `GET /api/auth/users` leaks every user's password hash, e-mail, reset code and Strava token
-`database/user.go:299-303` censors inside a `for _, user := range users` loop and assigns to
-the **copy**, so `CensorUserObject` is a no-op:
-
-```go
-for _, user := range users {
-    user = CensorUserObject(user)   // writes to the copy; users[] is untouched
-}
-```
-
-`GetUsersByIDs` (`database/user.go:325-327`) does it correctly with `users[index] = …`, which
-is what the other two loops should look like. `GetAllUsersWithSundayAlertsEnabled`
-(`database/user.go:382-386`) has the identical bug.
-
-`models.User` serialises `password`, `reset_code`, `reset_expiration`, `verification_code`
-and `strava_code` (`models/user.go:15-40`), and `GetUsers` (`controllers/user.go:216-229`)
-hands the slice straight to `context.JSON`. So **any authenticated principal — including a
-read-only PAT and any third-party OAuth client holding `api:read`** — can read:
-
-- every user's bcrypt hash (offline cracking),
-- every user's real e-mail address,
-- every user's **current `reset_code` and its expiry** → request a reset for the admin, read
-  the code out of this endpoint, `POST /api/open/users/password` → admin takeover,
-- every user's Strava OAuth credential (`strava_code`, `c:`/`r:` prefixed).
-
-Verified empirically against the in-memory harness: `GetUsersInformation()` returns
-`password` and `reset_code` populated.
-
-**Fix:** index-assign in both loops. Then note that two callers *depend* on the current
-broken behaviour and will break silently when it is fixed:
-- `controllers/strava.go:1033` reads `user.StravaCode` off the result,
-- `controllers/user.go:743` (`SendSundayReminders`) reads `user.Email` off
-  `GetAllUsersWithSundayAlertsEnabled`.
-
-Both are server-side jobs that legitimately need uncensored rows, so the fix is two
-functions, not one: keep an explicitly-named uncensored variant (e.g.
-`GetAllUsersUncensored()`) for the jobs and make the censored one actually censor. Consider
-also dropping the `json:"password"` / `json:"reset_code"` / `json:"verification_code"` tags to
-`json:"-"` so a future miss can't leak them again — defence in depth behind the censor.
-
-#### S2 — CRITICAL: `GET /api/auth/debts/:debt_id` leaks uncensored user objects (second path to S1)
-`controllers/debt.go:519-537` (and the same shape at `:662-679`, `:731`) builds the
-`winners` array from `database.GetAllUserInformation(user.UserID)` — the deliberately
-**uncensored** getter — and returns it in the response. Every competing user's hash, e-mail,
-reset code and Strava token again. `APIGetDebt` also performs no ownership/season-membership
-check on `:debt_id` (contrast `APIChooseWinnerForDebt`, which does check
-`debt.LoserID != userID` at `controllers/debt.go:602`), so any authenticated user can walk
-debt IDs.
-
-**Fix:** use `GetUserInformation` (censored) for anything that reaches a response body, and
-add a membership check to `APIGetDebt`. Fixing S1's json tags would also neutralise this one.
-
-#### S3 — HIGH: stored XSS → account takeover, via an unauthorised write to another user's day note
-Two defects that chain:
-
-1. **Missing ownership check.** `APIUpdateExerciseDay`
-   (`controllers/exercise.go:972`, lookup at `:999`) loads the row with
-   `database.GetExerciseDayByID(exerciseDayIDUUID)` — **not** the `…ByIDAndUserID` variant the
-   rest of the file uses (`APIGetExerciseDay` at `:944` gets this right). Any authenticated
-   user can `POST /api/auth/exercise-days/{any-id}` and overwrite anyone's note.
-2. **Unescaped sink.** `web/js/exercise.js:184` and `:1741` do
-   `document.getElementById('exercise-day-note').innerHTML = exerciseDay.note;` with no
-   `escapeHTML()` — even though the file defines one at `:24` and uses it correctly for
-   descriptions, tags and media titles.
-
-Chained: attacker writes `<img src=x onerror=…>` into the victim's day note, victim opens
-`/exercises/:id`, script runs. Both auth cookies are `document.cookie`-readable by design
-(`web/js/functions.js:125-130` — the SPA reads them to build the `Authorization` header), so
-the payload exfiltrates the access token **and the 30-day refresh token**. Full takeover.
-
-**Fix:** both halves. Switch to `GetExerciseDayByIDAndUserID`, and wrap both note sinks in
-`escapeHTML()`. While in that file, `web/js/exercise.js:280` interpolates `${exercise.note}`
-raw inside a `<textarea>` — a `</textarea>` payload breaks out; that content is partly
-Strava-sourced, so escape it too.
-
-#### S4 — MEDIUM: Plex PIN is not bound to the user who created it
-`APICreatePlexPin` (`controllers/plex.go:278`) persists nothing, and `APICheckPlexPin`
-(`controllers/plex.go:329`) accepts **any** numeric `:pin_id`, polls plex.tv for it, and on
-approval stores the returned `authToken` as the *caller's* connection. plex.tv scopes a PIN to
-the `X-Plex-Client-Identifier` that created it — which here is one install-wide value
-(`plexRequest`, `controllers/plex.go:56`), shared by every user of the instance. PIN ids are
-sequential, so user A can poll for user B's in-flight PIN and capture B's Plex account token.
-
-**Fix:** persist (pin id → user id) at creation and reject a check whose pin wasn't created by
-the caller. A short TTL on the record is worth having too.
-
-#### S5 — MEDIUM: authenticated SSRF via user-supplied provider server URLs
-`APISetPlexServerURL` (`controllers/plex.go:387`, validation at `:407-413`) and
-`APIAudiobookshelfConnect` (`controllers/audiobookshelf.go:78`, validation at `:98-105`)
-accept any `http`/`https` URL with no host restriction. The server then issues requests to it
-— on connect, on every hourly `MediaReconcileForAllUsers` pass, and through the artwork proxy.
-Consequences:
-
-- **Internal network probing.** ABS connect returns three distinguishable errors
-  ("Could not reach…" / "rejected the token" / "unexpected response",
-  `controllers/audiobookshelf.go:112-128`), which is a clean port/host oracle for anything
-  the container can reach — including a cloud metadata endpoint.
-- **Response reflection.** `APIGetPlexArtwork` (`controllers/plex.go:510`) streams the
-  response body back to the caller. `plexArtworkPathAllowed` (`:499-501`) only requires a
-  `/library/` prefix — the *host* is entirely attacker-chosen, so the prefix restricts nothing
-  useful once the server URL is under the attacker's control.
-
-**Fix:** resolve and reject private/link-local/loopback/metadata destinations before the
-request (and re-check after DNS resolution, not just on the literal string). If the maintainer
-wants LAN Plex servers to keep working — which is the normal case — make it an explicit
-allow-list or an opt-in config flag rather than the default.
-
-#### S6 — MEDIUM: TLS verification disabled for all Plex traffic
-`plexServerClient` (`controllers/plex.go:82-87`) sets `InsecureSkipVerify: true`
-unconditionally. The comment justifies it with plex.direct self-signed certs, but the same
-client carries the user's decrypted `X-Plex-Token` to *any* configured server, including
-remote ones over the public internet. An on-path attacker can present any certificate and
-harvest the token.
-
-**Fix:** scope the skip to the case that needs it — `*.plex.direct` hosts and/or literal
-private IPs — and verify normally everywhere else.
 
 #### S7 — MEDIUM: no rate limiting anywhere, on an endpoint that costs ~1s of CPU per call
 There is no limiter on any route (the only limiter in the tree is the outbound Strava one,
@@ -226,14 +158,15 @@ set an explicit origin allow-list and move it above the groups deliberately.
 #### Refresh token lives 30 days in a JS-readable cookie
 `web/js/functions.js:6-13` stores the access token (7d) and refresh token (30d) via
 `document.cookie` with `path=/; samesite=strict` — no `Secure`, and necessarily no `HttpOnly`
-since the SPA reads them back to build the `Authorization` header. Any XSS (see S3) is a
-30-day account compromise, not a 60-minute one.
+since the SPA reads them back to build the `Authorization` header. Any XSS is therefore a
+30-day account compromise, not a 60-minute one — which is exactly what made the day-note sink
+(S3, now fixed) a takeover rather than a defacement.
 
 Options, roughly in increasing order of work: add `Secure`; move the refresh token to an
 `HttpOnly; Secure; SameSite=Strict` cookie set by the server and have `/api/oauth/token`
 read it from there for the `refresh_token` grant (the access token can stay in JS memory);
-or accept the risk and rely on S3-class fixes plus a CSP. Worth deciding before adding more
-`innerHTML` render paths.
+or accept the risk and rely on per-sink escaping plus a CSP. Worth deciding before adding
+more `innerHTML` render paths.
 
 #### Dynamic client registration is open to the internet
 `POST /api/oauth/register` (`controllers/oauth_clients.go:29`) is unauthenticated and
@@ -250,7 +183,8 @@ dynamically-registered client at all, or reserved for the first-party client and
 #### No security response headers
 No `Content-Security-Policy`, `X-Content-Type-Options`, `X-Frame-Options`/`frame-ancestors`
 or `Strict-Transport-Security` anywhere. A CSP in particular is the structural mitigation for
-the whole `innerHTML` class of bug (S3) — but it's a real piece of work given how much markup
+the whole `innerHTML` class of bug — escaping each sink, as S3's fix did, is per-site and
+relies on the next author remembering. But a CSP is a real piece of work given how much markup
 the JS builds inline, and inline `onclick=` handlers are used throughout
 (`web/js/account.js:857`, `web/js/exercise.js:49`, …), so a strict policy needs those
 refactored first. Worth scoping as its own task rather than bolting on a weak policy.
@@ -271,8 +205,8 @@ Recording these so a future pass doesn't re-derive them:
 - **Credential encryption at rest** — AES-256-GCM with a random nonce per encryption, correct
   length checks (`utilities/crypto.go`).
 - **Ownership scoping** — the `…ByIDAndUserID` pattern is applied consistently across
-  operations, operation sets, exercises, gear, weights, PATs and media sync. S3 is the one
-  place it was missed.
+  operations, operation sets, exercises, gear, weights, PATs and media sync. The two places it
+  was missed (the day-note write, the debt read) are fixed; see the shipped notes above.
 - **Admin enforcement** — `Auth(true)` requires *both* the admin scope on the token and a live
   `admin` flag on the DB row (`middlewares/auth.go:141-160`); read-only scopes are blocked from
   write methods at `:163`.

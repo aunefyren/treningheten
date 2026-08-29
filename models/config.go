@@ -45,8 +45,15 @@ type ConfigStruct struct {
 // own MediaProviderSettings.Enabled (mirroring how Strava/Hevy are gated). TokenKey
 // is the AES-256-GCM key used to encrypt stored provider credentials at rest, and
 // is generated automatically on first run (see files/config.go).
+// AllowPrivateTargets gates whether a user-supplied provider server URL may resolve to a
+// loopback or private-network address. Default (and missing-field) is true, because a
+// self-hosted Plex/Audiobookshelf on the LAN is the normal deployment; set it false on an
+// instance with untrusted users to keep them from reaching internal services. Link-local
+// addresses (169.254.0.0/16 — cloud metadata) are refused regardless.
 type MediaSettings struct {
-	Enabled        bool                   `json:"enabled"`
+	Enabled             bool  `json:"enabled"`
+	AllowPrivateTargets *bool `json:"allow_private_targets"`
+
 	TokenKey       string                 `json:"token_key"`
 	Plex           PlexSettings           `json:"plex"`
 	Spotify        SpotifySettings        `json:"spotify"`

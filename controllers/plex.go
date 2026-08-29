@@ -5,11 +5,13 @@ import (
 	"encoding/json"
 	"errors"
 	"io"
+	"net"
 	"net/http"
 	"net/url"
 	"sort"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/aunefyren/treningheten/database"
@@ -75,15 +77,101 @@ func plexRequest(method, rawURL string, token string) ([]byte, int, error) {
 	return body, resp.StatusCode, nil
 }
 
-// plexServerClient is an HTTP client for talking directly to a user's PMS (history,
-// library sections, artwork, reachability probes). plex.direct hostnames serve a
-// self-signed cert, so TLS verification is skipped — the trust model the official
-// clients use for these addresses; the stored ServerURL was probed at connect time.
-func plexServerClient(timeout time.Duration) *http.Client {
-	return &http.Client{
-		Timeout:   timeout,
-		Transport: &http.Transport{TLSClientConfig: &tls.Config{InsecureSkipVerify: true}},
+// plexTLSVerificationSkipped reports whether TLS verification has to be skipped for a
+// given PMS host.
+//
+// It used to be skipped unconditionally, which meant the user's decrypted X-Plex-Token was
+// carried to *public* hosts over a connection any on-path attacker could impersonate. The
+// skip is now limited to the hosts that cannot present a publicly-verifiable certificate:
+// a bare IP address, a loopback/mDNS name, and plex.direct (kept as-is so existing
+// connections don't start failing). Every other hostname — anything reached across the
+// internet, which is where the risk actually lives — is verified normally.
+func plexTLSVerificationSkipped(host string) bool {
+	host = strings.ToLower(strings.TrimSuffix(host, "."))
+	if host == "" {
+		return false
 	}
+
+	if net.ParseIP(host) != nil {
+		return true
+	}
+	if host == "localhost" || strings.HasSuffix(host, ".localhost") || strings.HasSuffix(host, ".local") {
+		return true
+	}
+	// Plex hands out <ip-with-dashes>.<hash>.plex.direct addresses for direct connections.
+	return host == "plex.direct" || strings.HasSuffix(host, ".plex.direct")
+}
+
+// plexServerClient is an HTTP client for talking directly to a user's PMS (history,
+// library sections, artwork, reachability probes). The destination is user-supplied, so
+// connections go through the media destination policy (see media_dial.go), and TLS
+// verification is only skipped for the hosts that genuinely cannot be verified.
+func plexServerClient(timeout time.Duration, target *url.URL) *http.Client {
+	var tlsConfig *tls.Config
+	if target != nil && plexTLSVerificationSkipped(target.Hostname()) {
+		tlsConfig = &tls.Config{InsecureSkipVerify: true}
+	}
+	return mediaHTTPClient(timeout, tlsConfig)
+}
+
+// A plex.tv PIN is claimable by whoever polls it with this install's client identifier —
+// and that identifier is install-wide, shared by every user here. PIN ids are sequential,
+// so without an owner record one user could poll for another's in-flight PIN and have that
+// person's Plex token stored as their own connection. Creating a PIN therefore records who
+// it belongs to, and the poll refuses anyone else.
+//
+// The record is deliberately in-memory (like the resized-image cache): a PIN is valid for
+// minutes, the rows would be pure churn in the schema, and the worst case on a restart
+// mid-flow is that the user clicks Connect again.
+const plexPinTTL = 15 * time.Minute
+
+type plexPinOwner struct {
+	userID    uuid.UUID
+	createdAt time.Time
+}
+
+var (
+	plexPinOwnersMutex sync.Mutex
+	plexPinOwners      = map[int64]plexPinOwner{}
+)
+
+// prunePlexPinsLocked drops expired records. Callers must hold plexPinOwnersMutex.
+func prunePlexPinsLocked(now time.Time) {
+	for id, owner := range plexPinOwners {
+		if now.Sub(owner.createdAt) > plexPinTTL {
+			delete(plexPinOwners, id)
+		}
+	}
+}
+
+// rememberPlexPin records the user a freshly created PIN belongs to.
+func rememberPlexPin(pinID int64, userID uuid.UUID) {
+	plexPinOwnersMutex.Lock()
+	defer plexPinOwnersMutex.Unlock()
+
+	now := time.Now()
+	prunePlexPinsLocked(now)
+	plexPinOwners[pinID] = plexPinOwner{userID: userID, createdAt: now}
+}
+
+// plexPinBelongsTo reports whether the PIN was created by this user and is still fresh.
+func plexPinBelongsTo(pinID int64, userID uuid.UUID) bool {
+	plexPinOwnersMutex.Lock()
+	defer plexPinOwnersMutex.Unlock()
+
+	now := time.Now()
+	prunePlexPinsLocked(now)
+
+	owner, found := plexPinOwners[pinID]
+	return found && owner.userID == userID
+}
+
+// forgetPlexPin drops a record once the PIN has been redeemed.
+func forgetPlexPin(pinID int64) {
+	plexPinOwnersMutex.Lock()
+	defer plexPinOwnersMutex.Unlock()
+
+	delete(plexPinOwners, pinID)
 }
 
 // buildPlexAuthURL composes the browser URL the user opens to approve a PIN.
@@ -146,9 +234,9 @@ func rankPlexServerConnections(resources []models.PlexResource) []string {
 }
 
 // probePlexServer reports whether a PMS connection URI is reachable, by hitting its
-// unauthenticated /identity endpoint with a short timeout. Plex serves a self-signed
-// cert on plex.direct hostnames, so TLS verification is skipped (the same trust model
-// the official clients use for these addresses).
+// unauthenticated /identity endpoint with a short timeout. A candidate the destination
+// policy refuses simply fails to dial, so it is skipped like any other unreachable
+// address and the next candidate is tried.
 func probePlexServer(uri string, token string) bool {
 	req, err := http.NewRequest("GET", strings.TrimRight(uri, "/")+"/identity", nil)
 	if err != nil {
@@ -158,7 +246,7 @@ func probePlexServer(uri string, token string) bool {
 	req.Header.Set("X-Plex-Token", token)
 	req.Header.Set("X-Plex-Client-Identifier", files.ConfigFile.Media.Plex.ClientIdentifier)
 
-	resp, err := plexServerClient(plexProbeTimeout).Do(req)
+	resp, err := plexServerClient(plexProbeTimeout, req.URL).Do(req)
 	if err != nil {
 		return false
 	}
@@ -192,7 +280,7 @@ func resolvePlexServerAccountID(serverURL, token string, candidates ...string) s
 	req.Header.Set("X-Plex-Token", token)
 	req.Header.Set("X-Plex-Client-Identifier", files.ConfigFile.Media.Plex.ClientIdentifier)
 
-	resp, err := plexServerClient(plexProbeTimeout).Do(req)
+	resp, err := plexServerClient(plexProbeTimeout, req.URL).Do(req)
 	if err != nil {
 		logger.Log.Warn("Failed to fetch Plex server accounts. Error: " + err.Error())
 		return ""
@@ -280,6 +368,14 @@ func APICreatePlexPin(context *gin.Context) {
 		return
 	}
 
+	userID, err := middlewares.GetAuthUsername(context.GetHeader("Authorization"))
+	if err != nil {
+		logger.Log.Info("Failed to get user ID. Error: " + err.Error())
+		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get user ID."})
+		context.Abort()
+		return
+	}
+
 	body, status, err := plexRequest("POST", plexPinsURL+"?strong=true", "")
 	if err != nil {
 		context.JSON(http.StatusBadGateway, gin.H{"error": "Failed to reach Plex."})
@@ -300,6 +396,9 @@ func APICreatePlexPin(context *gin.Context) {
 		context.Abort()
 		return
 	}
+
+	// Bind the PIN to its creator so nobody else can redeem it (see plexPinOwners).
+	rememberPlexPin(pin.ID, userID)
 
 	response := models.PlexPinResponse{
 		PinID:   pin.ID,
@@ -327,8 +426,18 @@ func APICheckPlexPin(context *gin.Context) {
 	}
 
 	pinID := context.Param("pin_id")
-	if _, convErr := strconv.ParseInt(pinID, 10, 64); convErr != nil {
+	parsedPinID, convErr := strconv.ParseInt(pinID, 10, 64)
+	if convErr != nil {
 		context.JSON(http.StatusBadRequest, gin.H{"error": "Invalid PIN id."})
+		context.Abort()
+		return
+	}
+
+	// Only the user who created this PIN may redeem it. A PIN belonging to someone else is
+	// reported exactly like one that never existed, so the endpoint can't be used to probe
+	// which PIN ids are live.
+	if !plexPinBelongsTo(parsedPinID, userID) {
+		context.JSON(http.StatusNotFound, gin.H{"error": "Unknown PIN."})
 		context.Abort()
 		return
 	}
@@ -375,6 +484,8 @@ func APICheckPlexPin(context *gin.Context) {
 		return
 	}
 
+	forgetPlexPin(parsedPinID)
+
 	object := ConvertMediaConnectionToObject(connection)
 	context.JSON(http.StatusOK, gin.H{"message": "Plex connected.", "result": models.PlexPinCheckResponse{Authorized: true, Connection: &object}})
 }
@@ -404,10 +515,9 @@ func APISetPlexServerURL(context *gin.Context) {
 		return
 	}
 
-	serverURL := strings.TrimRight(strings.TrimSpace(request.ServerURL), "/")
-	parsed, parseErr := url.Parse(serverURL)
-	if parseErr != nil || (parsed.Scheme != "http" && parsed.Scheme != "https") || parsed.Host == "" {
-		context.JSON(http.StatusBadRequest, gin.H{"error": "Enter a full server URL, e.g. https://plex.example.com"})
+	serverURL, urlErr := validateMediaServerURL(request.ServerURL)
+	if urlErr != nil {
+		context.JSON(http.StatusBadRequest, gin.H{"error": urlErr.Error()})
 		context.Abort()
 		return
 	}
@@ -551,7 +661,7 @@ func APIGetPlexArtwork(context *gin.Context) {
 	req.Header.Set("X-Plex-Token", token)
 	req.Header.Set("X-Plex-Client-Identifier", files.ConfigFile.Media.Plex.ClientIdentifier)
 
-	resp, err := plexServerClient(15 * time.Second).Do(req)
+	resp, err := plexServerClient(15*time.Second, req.URL).Do(req)
 	if err != nil {
 		logger.Log.Warn("Plex artwork fetch threw error. Error: " + err.Error())
 		context.JSON(http.StatusBadGateway, gin.H{"error": "Failed to fetch artwork."})

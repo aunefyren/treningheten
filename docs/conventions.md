@@ -90,6 +90,34 @@ context.JSON(http.StatusOK, gin.H{"seasons": seasonObjects, "message": "Seasons 
 - The frontend relies on this: every response is checked for `result.error` first,
   then reads the named key.
 
+### Never serialize a credential
+
+`models.User` carries a bcrypt hash, a live password-reset code, a verification code and
+the Strava/Hevy credentials. All of them are `json:"-"`, so no handler can leak them by
+forgetting to censor. When a page needs to know that a connection *exists*, add a derived
+`gorm:"-"` boolean and set it in the handler — `HevyConnected` / `StravaConnected` in
+`GetUser` are the pattern:
+
+```go
+userObject.StravaConnected = userObject.StravaCode != nil && *userObject.StravaCode != ""
+```
+
+The data-access layer reinforces this with two families of getter, and the names are the
+contract:
+
+- **Censored (default):** `GetUserInformation`, `GetUsersInformation`, `GetUsersByIDs`,
+  `GetAllUsersWithSundayAlertsEnabled` — run every row through `CensorUserObject`. Use
+  these for anything that reaches a response body.
+- **Uncensored (explicit `All`/`Uncensored` in the name):** `GetAllUserInformation`,
+  `GetAllUsersUncensored`, `GetAllUsersWithSundayAlertsEnabledUncensored` — for server-side
+  jobs that genuinely need the values (the Strava sync needs `StravaCode`; the Sunday
+  reminder needs the e-mail address). Never let their result reach `context.JSON`.
+
+When censoring a slice, **index-assign** — `users[index] = CensorUserObject(users[index])`.
+Ranging by value censors a copy and silently leaves the slice untouched; that exact bug
+served every user's hash and reset code from `GET /api/auth/users`. Regression tests live in
+`database/user_censor_test.go` and `models/user_serialization_test.go`.
+
 ## Frontend (vanilla JS) conventions
 
 There is no build step or framework — `web/js/*.js` is served through Go templates
@@ -103,6 +131,15 @@ There is no build step or framework — `web/js/*.js` is served through Go templ
   `info(msg)`, `success(msg)`, `clearResponse()` — don't roll your own alert markup.
 - **Auth/token plumbing** (`get_login`, `refresh_access_token`, `store_tokens`,
   cookies) lives in `functions.js`; reuse it rather than re-implementing token refresh.
+- **Escape every value you interpolate into HTML.** Markup is built as template strings
+  and assigned with `innerHTML`, so any value that originated outside the page — a note, a
+  gear or action name, a track title, a Strava description — must go through the local
+  `escapeHTML()` helper. That includes values inside a `<textarea>`: a `</textarea>` in the
+  content closes the element and everything after it is parsed as markup. Attribute values
+  need it too (the helper escapes `"`, so keep attributes double-quoted). This is not
+  theoretical — an unescaped day note plus a missing ownership check on its write endpoint
+  was a stored-XSS path to another user's session tokens, which are readable from
+  `document.cookie` by design.
 - **Avoid `innerHTML +=` inside loops** — accumulate a string and assign once (repeated
   `+=` reparses the DOM each iteration).
 - **Images load via `<img src>`, not XHR.** Profile/achievement images are served as raw

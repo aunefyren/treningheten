@@ -288,18 +288,29 @@ func GetUserInformation(UserID uuid.UUID) (models.User, error) {
 
 // Get all enabled users information (censored)
 func GetUsersInformation() ([]models.User, error) {
+	users, err := GetAllUsersUncensored()
+	if err != nil {
+		return []models.User{}, err
+	}
+
+	// Index-assign: ranging by value would censor a copy and leave the slice untouched.
+	for index := range users {
+		users[index] = CensorUserObject(users[index])
+	}
+
+	return users, nil
+}
+
+// GetAllUsersUncensored returns every enabled user with credential fields intact. Only for
+// server-side jobs that genuinely need them (e.g. the Strava sync needs StravaCode) — never
+// for anything that reaches a response body. Use GetUsersInformation for that.
+func GetAllUsersUncensored() ([]models.User, error) {
 	var users []models.User
 	userrecord := Instance.Where("`users`.enabled = ?", 1).Find(&users)
 	if userrecord.Error != nil {
 		return []models.User{}, userrecord.Error
 	} else if userrecord.RowsAffected == 0 {
 		return []models.User{}, nil
-	}
-
-	for _, user := range users {
-
-		user = CensorUserObject(user)
-
 	}
 
 	return users, nil
@@ -371,18 +382,29 @@ func GetAllUserInformation(UserID uuid.UUID) (models.User, error) {
 
 // Get all users with sunday alerts configured (censored)
 func GetAllUsersWithSundayAlertsEnabled() ([]models.User, error) {
+	users, err := GetAllUsersWithSundayAlertsEnabledUncensored()
+	if err != nil {
+		return []models.User{}, err
+	}
+
+	// Index-assign: ranging by value would censor a copy and leave the slice untouched.
+	for index := range users {
+		users[index] = CensorUserObject(users[index])
+	}
+
+	return users, nil
+}
+
+// GetAllUsersWithSundayAlertsEnabledUncensored returns the same users with their e-mail
+// address intact, for the reminder job that has to mail them. Never use it for a response
+// body — see GetAllUsersUncensored.
+func GetAllUsersWithSundayAlertsEnabledUncensored() ([]models.User, error) {
 	var users []models.User
 	userrecord := Instance.Where("`users`.enabled = ?", 1).Where("`users`.sunday_alert = ?", 1).Find(&users)
 	if userrecord.Error != nil {
 		return []models.User{}, userrecord.Error
 	} else if userrecord.RowsAffected == 0 {
 		return []models.User{}, nil
-	}
-
-	for _, user := range users {
-
-		user = CensorUserObject(user)
-
 	}
 
 	return users, nil

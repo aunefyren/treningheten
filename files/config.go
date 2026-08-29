@@ -165,6 +165,14 @@ func LoadConfig() (err error) {
 		anythingChanged = true
 	}
 
+	if ConfigFile.Media.AllowPrivateTargets == nil {
+		// Default on: a self-hosted Plex/Audiobookshelf on the LAN (or on localhost) is
+		// the normal case, so existing installs must keep working. See models/config.go.
+		allowPrivate := true
+		ConfigFile.Media.AllowPrivateTargets = &allowPrivate
+		anythingChanged = true
+	}
+
 	if ConfigFile.TreninghetenLogLevel == "" {
 		level := logrus.InfoLevel
 		ConfigFile.TreninghetenLogLevel = level.String()

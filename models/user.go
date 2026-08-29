@@ -7,19 +7,25 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
+// User is both the GORM row and the shape returned by the user endpoints. The credential
+// and recovery fields are `json:"-"` on purpose: a bcrypt hash, a live password-reset code
+// or an OAuth credential must never reach a response body, and relying on CensorUserObject
+// alone proved too easy to get wrong (see docs/conventions.md, "Never serialize a
+// credential"). Connection state is surfaced through the derived HevyConnected /
+// StravaConnected booleans instead.
 type User struct {
 	GormModel
 	FirstName                  string     `json:"first_name" gorm:"not null"`
 	LastName                   string     `json:"last_name" gorm:"not null"`
 	Email                      string     `json:"email" gorm:"unique; not null"`
-	Password                   string     `json:"password" gorm:"not null"`
+	Password                   string     `json:"-" gorm:"not null"`
 	Admin                      *bool      `json:"admin" gorm:"not null; default: false"`
 	Enabled                    bool       `json:"enabled" gorm:"not null; default: false"`
 	Verified                   bool       `json:"verified" gorm:"not null; default: false"`
-	VerificationCode           *string    `json:"verification_code"`
-	VerificationCodeExpiration *time.Time `json:"verification_code_expiration"`
-	ResetCode                  *string    `json:"reset_code"`
-	ResetExpiration            *time.Time `json:"reset_expiration"`
+	VerificationCode           *string    `json:"-"`
+	VerificationCodeExpiration *time.Time `json:"-"`
+	ResetCode                  *string    `json:"-"`
+	ResetExpiration            *time.Time `json:"-"`
 	SundayAlert                bool       `json:"sunday_alert" gorm:"not null; default: false"`
 	BirthDate                  *time.Time `json:"birth_date" gorm:"default: null"`
 	MaxHeartrate               *int       `json:"max_heartrate" gorm:"default: null"`
@@ -29,7 +35,7 @@ type User struct {
 	// max is set. System-derived (not user-editable); NULL means "not yet computed" (a
 	// legacy row the backfill still owes), which is why new users start at 0.
 	ObservedMaxHeartrate *int    `json:"observed_max_heartrate" gorm:"default: null"`
-	StravaCode           *string `json:"strava_code" gorm:"default: null"`
+	StravaCode           *string `json:"-" gorm:"default: null"`
 	// Deprecated: superseded by UserActivityGoalSetting (Walking → doesn't count). No longer
 	// read on import; the Migrate() backfill converts any lingering true value to a goal
 	// setting and clears it. Default is now false so new users don't re-trigger that migration.
@@ -42,6 +48,7 @@ type User struct {
 	HevyProfileURL           *string    `json:"hevy_profile_url" gorm:"default: null"`
 	HevyPublic               *bool      `json:"hevy_public" gorm:"default: true"`
 	HevyConnected            bool       `json:"hevy_connected" gorm:"-"`
+	StravaConnected          bool       `json:"strava_connected" gorm:"-"`
 	WheelColor               *string    `json:"wheel_color" gorm:"default: null"`
 	WheelBorderColor         *string    `json:"wheel_border_color" gorm:"default: null"`
 	WheelEmoji               *string    `json:"wheel_emoji" gorm:"default: null"`

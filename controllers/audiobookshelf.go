@@ -5,7 +5,6 @@ import (
 	"errors"
 	"io"
 	"net/http"
-	"net/url"
 	"strconv"
 	"strings"
 	"time"
@@ -47,6 +46,8 @@ func requireABSEnabled(context *gin.Context) bool {
 // absRequest performs a bearer-authenticated GET against an Audiobookshelf server and
 // returns the body + status. ABS is self-hosted behind the user's own TLS (normal
 // certs, unlike Plex's plex.direct self-signed hosts), so default verification is used.
+// The server URL is user-supplied, so the connection goes through the media destination
+// policy (see media_dial.go) — a blocked address fails to dial.
 func absRequest(serverURL, path, token string) ([]byte, int, error) {
 	rawURL := strings.TrimRight(serverURL, "/") + path
 	req, err := http.NewRequest("GET", rawURL, nil)
@@ -56,8 +57,7 @@ func absRequest(serverURL, path, token string) ([]byte, int, error) {
 	req.Header.Set("Accept", "application/json")
 	req.Header.Set("Authorization", "Bearer "+token)
 
-	client := &http.Client{Timeout: 20 * time.Second}
-	resp, err := client.Do(req)
+	resp, err := mediaHTTPClient(20*time.Second, nil).Do(req)
 	if err != nil {
 		logger.Log.Error("Audiobookshelf request threw error. Error: " + err.Error())
 		return nil, 0, errors.New("Audiobookshelf request threw error.")
@@ -95,11 +95,10 @@ func APIAudiobookshelfConnect(context *gin.Context) {
 		return
 	}
 
-	serverURL := strings.TrimRight(strings.TrimSpace(request.ServerURL), "/")
 	token := strings.TrimSpace(request.Token)
-	parsed, parseErr := url.Parse(serverURL)
-	if parseErr != nil || (parsed.Scheme != "http" && parsed.Scheme != "https") || parsed.Host == "" {
-		context.JSON(http.StatusBadRequest, gin.H{"error": "Enter a full server URL, e.g. https://abs.example.com"})
+	serverURL, urlErr := validateMediaServerURL(request.ServerURL)
+	if urlErr != nil {
+		context.JSON(http.StatusBadRequest, gin.H{"error": urlErr.Error()})
 		context.Abort()
 		return
 	}
