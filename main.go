@@ -35,9 +35,10 @@ import (
 func main() {
 	utilities.PrintASCII()
 
-	// Create files directory
+	// Create files directory. 0700 because config.json inside it holds every secret
+	// the app has — see files.SaveConfig, which enforces the same mode on write.
 	newPath := filepath.Join(".", "config")
-	err := os.MkdirAll(newPath, os.ModePerm)
+	err := os.MkdirAll(newPath, 0700)
 	if err != nil {
 		fmt.Println("failed to create 'files' directory. error: " + err.Error())
 		os.Exit(1)
@@ -213,8 +214,33 @@ func main() {
 	log.Fatal(router.Run(":" + strconv.Itoa(files.ConfigFile.TreninghetenPort)))
 }
 
+// trustedProxyCIDRs are the networks a reverse proxy in front of Treningheten may
+// live in. Anything outside them has its forwarding headers ignored, so ClientIP()
+// falls back to the connection's own address.
+var trustedProxyCIDRs = []string{
+	"127.0.0.0/8",
+	"10.0.0.0/8",
+	"172.16.0.0/12",
+	"192.168.0.0/16",
+	"169.254.0.0/16",
+	"::1/128",
+	"fc00::/7",
+	"fe80::/10",
+}
+
 func initRouter(configFile models.ConfigStruct) *gin.Engine {
 	router := gin.Default()
+
+	// Gin trusts every proxy by default, which means ClientIP() believes whatever
+	// X-Forwarded-For a caller sends — and the rate limiters key on ClientIP(), so a
+	// spoofed header would defeat them entirely. Treningheten is normally reached
+	// either directly or through a reverse proxy on the same host/Docker network, so
+	// trust is limited to loopback and the private ranges. A proxy on a public
+	// address is not covered; such a deployment must terminate and rewrite the header
+	// itself.
+	if err := router.SetTrustedProxies(trustedProxyCIDRs); err != nil {
+		logger.Log.Error("failed to set trusted proxies. error: " + err.Error())
+	}
 
 	router.LoadHTMLGlob("web/*/*.html")
 
@@ -224,14 +250,16 @@ func initRouter(configFile models.ConfigStruct) *gin.Engine {
 		// OAuth 2.0 authorization server endpoints
 		oauth := api.Group("/oauth")
 		{
-			oauth.POST("/token", controllers.OAuthToken)
+			oauth.POST("/token", middlewares.RateLimitTokenEndpoint(), controllers.OAuthToken)
 			oauth.GET("/authorize", controllers.OAuthAuthorizeInfo)
 			oauth.POST("/authorize/decision", middlewares.Auth(false), controllers.OAuthAuthorizeDecision)
-			oauth.POST("/register", controllers.OAuthRegister)
+			oauth.POST("/register", middlewares.RateLimitClientRegistration(), controllers.OAuthRegister)
 			oauth.POST("/revoke", controllers.OAuthRevoke)
 		}
 
-		open := api.Group("/open")
+		// Every route below is unauthenticated, so the whole group is rate limited
+		// per client IP.
+		open := api.Group("/open").Use(middlewares.RateLimitOpenEndpoints())
 		{
 			open.POST("/users", controllers.RegisterUser)
 			open.POST("/users/reset", controllers.APIResetPassword)

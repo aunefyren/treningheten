@@ -165,3 +165,17 @@ func TouchRefreshToken(id uuid.UUID) error {
 		Where("id = ?", id).
 		Update("last_used_at", now).Error
 }
+
+// RevokeAllRefreshTokensForUser revokes every refresh token belonging to a user in
+// one statement. Called when a password changes: without it, a session an attacker
+// established before the change keeps minting access tokens for the full 30-day
+// refresh lifetime, which makes "I was compromised, so I changed my password"
+// ineffective. It is idempotent and does not touch Personal Access Tokens — those are
+// separately managed credentials the user revokes from /account.
+func RevokeAllRefreshTokensForUser(userID uuid.UUID) error {
+	now := time.Now()
+	record := Instance.Model(&models.OAuthRefreshToken{}).
+		Where("user_id = ? AND revoked_at IS NULL", userID).
+		Update("revoked_at", now)
+	return record.Error
+}

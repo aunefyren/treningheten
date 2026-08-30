@@ -96,8 +96,16 @@ func RegisterUser(context *gin.Context) {
 		logger.Log.Info("No other users found. New user is set to admin.")
 	}
 
-	// Hash the selected password
-	if err := user.HashPassword(user.Password); err != nil {
+	// Hash the selected password, inside the shared bcrypt cost budget — this is an
+	// unauthenticated endpoint, and the hash is a deliberate second of a core.
+	hashRelease, hashSlotFree := middlewares.AcquirePasswordCostSlot()
+	if !hashSlotFree {
+		middlewares.AbortPasswordCostBusy(context)
+		return
+	}
+	err = user.HashPassword(user.Password)
+	hashRelease()
+	if err != nil {
 		context.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		context.Abort()
 		return
@@ -369,7 +377,13 @@ func UpdateUser(context *gin.Context) {
 		return
 	}
 
+	checkRelease, checkSlotFree := middlewares.AcquirePasswordCostSlot()
+	if !checkSlotFree {
+		middlewares.AbortPasswordCostBusy(context)
+		return
+	}
 	credentialError := userObject.CheckPassword(userUpdateRequest.OldPassword)
+	checkRelease()
 	if credentialError != nil {
 		logger.Log.Info("Invalid credentials. Error: " + credentialError.Error())
 		context.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid credentials."})
@@ -436,9 +450,17 @@ func UpdateUser(context *gin.Context) {
 	}
 
 	// Hash the selected password
-	if userUpdateRequest.Password != "" {
-		if err := userOriginal.HashPassword(userUpdateRequest.Password); err != nil {
-			context.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+	passwordChanged := userUpdateRequest.Password != ""
+	if passwordChanged {
+		hashRelease, hashSlotFree := middlewares.AcquirePasswordCostSlot()
+		if !hashSlotFree {
+			middlewares.AbortPasswordCostBusy(context)
+			return
+		}
+		hashError := userOriginal.HashPassword(userUpdateRequest.Password)
+		hashRelease()
+		if hashError != nil {
+			context.JSON(http.StatusInternalServerError, gin.H{"error": hashError.Error()})
 			context.Abort()
 			return
 		}
@@ -506,6 +528,22 @@ func UpdateUser(context *gin.Context) {
 		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update user in the database."})
 		context.Abort()
 		return
+	}
+
+	// A password change ends every existing session: otherwise a refresh token an
+	// attacker obtained before the change keeps minting access tokens for 30 days,
+	// and changing the password after a compromise achieves nothing. This runs before
+	// the new token set is issued below, so the caller's own session survives (the
+	// frontend stores the pair this handler returns) while every other one dies.
+	// Personal Access Tokens are deliberately left alone — they are separate
+	// credentials, listed and revocable on the account page.
+	if passwordChanged {
+		if err := database.RevokeAllRefreshTokensForUser(user.ID); err != nil {
+			logger.Log.Error("failed to revoke refresh tokens after password change. error: " + err.Error())
+			context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to end existing sessions."})
+			context.Abort()
+			return
+		}
 	}
 
 	// Issue a new OAuth token set (email/admin changes may affect claims)
@@ -691,8 +729,15 @@ func APIChangePassword(context *gin.Context) {
 		return
 	}
 
-	// Hash the selected password
-	if err = user.HashPassword(userUpdatePasswordRequest.Password); err != nil {
+	// Hash the selected password, inside the shared bcrypt cost budget.
+	hashRelease, hashSlotFree := middlewares.AcquirePasswordCostSlot()
+	if !hashSlotFree {
+		middlewares.AbortPasswordCostBusy(context)
+		return
+	}
+	err = user.HashPassword(userUpdatePasswordRequest.Password)
+	hashRelease()
+	if err != nil {
 		logger.Log.Info("Failed to hash password. Error: " + err.Error())
 		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to process password."})
 		context.Abort()
@@ -704,6 +749,17 @@ func APIChangePassword(context *gin.Context) {
 	if err != nil {
 		logger.Log.Info("Failed to update password. Error: " + err.Error())
 		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update password."})
+		context.Abort()
+		return
+	}
+
+	// End every existing session — a password reset is the "I lost control of this
+	// account" path, so any refresh token issued before it must stop working.
+	// Personal Access Tokens survive; they are revoked from the account page.
+	err = database.RevokeAllRefreshTokensForUser(user.ID)
+	if err != nil {
+		logger.Log.Error("failed to revoke refresh tokens after password reset. error: " + err.Error())
+		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to end existing sessions."})
 		context.Abort()
 		return
 	}

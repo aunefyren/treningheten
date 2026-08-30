@@ -10,6 +10,29 @@ items ship, so earlier notes and commit messages keep resolving. Remove each ite
 lands and, where the fix changes documented behaviour, move the explanation into the
 relevant `docs/*.md`.
 
+**Shipped 2026-08-30 (fourth pass):** S7, S8 and S9. The unauthenticated surface is now
+rate limited per client IP (`middlewares/ratelimit.go`) — the OAuth token endpoint, the
+`/api/open` group and dynamic client registration — with a per-account lockout on repeated
+password-grant failures so an attacker rotating IPs still can't grind one account. Because
+bcrypt at cost 14 is a deliberate ~1s of a core, every hash and compare also passes through
+a semaphore sized at half the machine's cores, shedding with 503 rather than queueing; the
+limiters would have been defeatable by a spoofed `X-Forwarded-For`, so `main.go` now sets
+trusted proxies to loopback + the private ranges. Both password-change paths revoke every
+refresh token for the user (PATs deliberately survive); in `UpdateUser` the revoke runs
+before the handler's existing token re-issue, so the caller keeps their own session. And
+`config/config.json` is written `0600` in a `0700` directory, with an explicit `chmod` on
+every save so installs that predate the change don't keep their world-readable secrets.
+Design and trade-offs in [`security.md`](security.md); tests in
+`middlewares/ratelimit_test.go`, `database/oauth_revoke_test.go` and
+`files/config_permissions_test.go`.
+
+**Residual risk, deliberately accepted (S7):** the limiter state is in-memory and
+per-process, so a restart forgives every counter, and a reverse proxy on a *public*
+address is not in `trustedProxyCIDRs` — such a deployment attributes every request to the
+proxy's IP and shares one budget until its range is added. Limits are code constants, not
+config, on the reasoning that an operator wanting different numbers has a reverse proxy to
+do it in.
+
 **Shipped 2026-08-29 (third pass):** S4, S5 and S6, the media-integration findings. Plex
 PINs are now bound to the user who created them (`plexPinOwners`, in-memory with a 15-minute
 TTL), so one user can no longer poll another's in-flight PIN and capture their Plex token.
@@ -64,44 +87,6 @@ do **not** fully trust each other, plus the public internet reaching `/api/open`
 
 ### Determined fixes (confirmed defects, no design question left)
 
-#### S7 — MEDIUM: no rate limiting anywhere, on an endpoint that costs ~1s of CPU per call
-There is no limiter on any route (the only limiter in the tree is the outbound Strava one,
-`controllers/strava.go:42`). Combined with `bcrypt` cost 14 (`models/user.go:104`), the
-unauthenticated `POST /api/oauth/token` password grant (`controllers/oauth.go:81`) is both:
-
-- an unthrottled credential-stuffing target, and
-- a cheap CPU-exhaustion DoS — each request burns roughly a second of a core, and a handful of
-  concurrent requesters can saturate the box.
-
-Also unthrottled and worth covering with the same middleware: `/api/open/users/reset`,
-`/api/open/users/password`, `/api/open/users` (registration/invite-code guessing) and
-`/api/oauth/register`.
-
-**Fix:** a per-IP + per-account limiter in front of the token endpoint and the `/api/open`
-group, plus temporary lockout/backoff on repeated failures for one account. Cost 14 is a fine
-choice to keep once the endpoint is throttled.
-
-#### S8 — MEDIUM: password change never invalidates existing sessions
-Neither `UpdateUser` (`controllers/user.go:341`) nor the reset flow `APIChangePassword`
-(`controllers/user.go:640`) revokes the user's refresh tokens or PATs. After a "my account was
-compromised, I changed my password" event the attacker's 30-day refresh token keeps minting
-access tokens.
-
-**Fix:** revoke all `OAuthRefreshToken` rows for the user on any password change (the chain
-revocation used by reuse detection, `auth/auth.go:207`, already does most of the work). Decide
-separately whether PATs should survive — probably yes, but the user should be told, and the
-`/account` page should make revoking them obvious.
-
-#### S9 — LOW/MEDIUM: config file with every secret is written world-readable
-`files/config.go:251` writes `config/config.json` with mode `0644`, and `:240` creates the
-directory with `os.ModePerm` (0777). That file holds the JWT signing key, the DB password, the
-SMTP password, `Media.TokenKey` (which decrypts every stored provider credential) and the VAPID
-private key. Anyone with a shell on the host — or any other container sharing the volume — can
-read it. In the Docker image the process runs as `appuser` (`Dockerfile:26`), so this is mostly
-about co-tenants and bind-mounted host volumes, but there's no reason for the loose mode.
-
-**Fix:** `0600` on the file, `0700` on the directory.
-
 #### S10 — LOW: DB and SMTP passwords passed as command-line arguments
 `entrypoint.sh` builds `CMD` from env vars, including `--dbpassword` and `--smtppassword`,
 then `exec $CMD`. Two problems: the secrets land in `/proc/<pid>/cmdline`, readable by any
@@ -113,12 +98,12 @@ injects a flag.
 as env vars) rather than round-tripping through argv, and quote/array-ify the invocation.
 
 #### S11 — LOW: `GET /api/auth/users/:user_id/activities` is broken and, if fixed naively, leaks
-`APIGetUserActivities` (`controllers/user.go:987`) has two independent problems:
+`APIGetUserActivities` (`controllers/user.go:1045`) has two independent problems:
 
-- It gates on `user.ShareActivities` (`:1009`), but `user` came from `GetUserInformation`,
-  whose censor sets `ShareActivities = nil` (`database/user.go:447`). The gate therefore
+- It gates on `user.ShareActivities` (`:1063`), but `user` came from `GetUserInformation`,
+  whose censor sets `ShareActivities = nil` (`database/user.go:469`). The gate therefore
   **always** returns 403 — the endpoint is dead.
-- The filter behind it (`:1058`) keeps exercise days where `userID != *exerciseDay.UserID`,
+- The filter behind it (`:1116`) keeps exercise days where `userID != *exerciseDay.UserID`,
   i.e. it returns every *other* sharing user's activities and excludes the requested user's.
   That's inverted; making the censor stop nil-ing the field without fixing this would turn a
   broken endpoint into a data-leaking one.
@@ -186,7 +171,7 @@ or `Strict-Transport-Security` anywhere. A CSP in particular is the structural m
 the whole `innerHTML` class of bug — escaping each sink, as S3's fix did, is per-site and
 relies on the next author remembering. But a CSP is a real piece of work given how much markup
 the JS builds inline, and inline `onclick=` handlers are used throughout
-(`web/js/account.js:857`, `web/js/exercise.js:49`, …), so a strict policy needs those
+(`web/js/account.js:859`, `web/js/exercise.js:49`, …), so a strict policy needs those
 refactored first. Worth scoping as its own task rather than bolting on a weak policy.
 
 ### Checked and found sound
@@ -195,26 +180,26 @@ Recording these so a future pass doesn't re-derive them:
 - **SQL injection** — no string-built queries anywhere in `database/`; everything is GORM with
   bound parameters. The one `fmt.Sprintf` into SQL (`database/client.go:132`, `CREATE
   DATABASE`) takes its value from config, not from a request.
-- **Path traversal on images** — `safeImageFilePath` (`controllers/image.go:77-85`) plus
+- **Path traversal on images** — `safeImageFilePath` (`controllers/image.go:78-86`) plus
   building the filename from the *parsed* UUID rather than the raw parameter.
 - **OAuth authorization-code flow** — exact-match redirect URI, mandatory PKCE S256,
   constant-time verifier comparison, single-use codes consumed atomically, code bound to the
   issuing client, scope narrowed to the client's grant (`controllers/oauth_authorize.go`).
 - **Refresh-token lifecycle** — rotation with reuse detection revoking the whole chain, admin
-  status re-derived from the DB on each refresh (`auth/auth.go:186-262`).
+  status re-derived from the DB on each refresh (`auth/auth.go:207-262`).
 - **Credential encryption at rest** — AES-256-GCM with a random nonce per encryption, correct
   length checks (`utilities/crypto.go`).
 - **Ownership scoping** — the `…ByIDAndUserID` pattern is applied consistently across
   operations, operation sets, exercises, gear, weights, PATs and media sync. The two places it
   was missed (the day-note write, the debt read) are fixed; see the shipped notes above.
 - **Admin enforcement** — `Auth(true)` requires *both* the admin scope on the token and a live
-  `admin` flag on the DB row (`middlewares/auth.go:141-160`); read-only scopes are blocked from
-  write methods at `:163`.
+  `admin` flag on the DB row (`middlewares/auth.go:136-152`); read-only scopes are blocked from
+  write methods at `:155`.
 - **MCP** — authenticated, scope-checked, and every tool closes over the authenticated
-  `userID` rather than taking one as an argument (`controllers/mcp.go:116-144`).
+  `userID` rather than taking one as an argument (`controllers/mcp.go:116-143`).
 - **Password reset codes** — 16 random uppercase chars (~82 bits), 24h expiry, rotated on use,
   and the request endpoint returns an identical response whether or not the account exists
-  (`controllers/user.go:546-606`, `database/user.go:405`).
+  (`controllers/user.go:547-607`, `database/user.go:427`).
 - **CSRF** — the API authenticates from the `Authorization` header, not the cookie, so ordinary
   form/XHR CSRF doesn't apply. The one cookie-accepting group is `AuthImageReadOnly`, which is
   GET-only and `SameSite=Strict`.

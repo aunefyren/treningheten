@@ -7,6 +7,7 @@ import (
 	"github.com/aunefyren/treningheten/auth"
 	"github.com/aunefyren/treningheten/database"
 	"github.com/aunefyren/treningheten/logger"
+	"github.com/aunefyren/treningheten/middlewares"
 	"github.com/aunefyren/treningheten/models"
 
 	"github.com/gin-gonic/gin"
@@ -100,15 +101,39 @@ func oauthTokenPasswordGrant(context *gin.Context) {
 		return
 	}
 
+	// Repeated failures for one account are locked out regardless of where they come
+	// from, so an attacker rotating IPs still cannot grind a single password.
+	if locked, retryAfter := middlewares.LoginAttemptLocked(username); locked {
+		middlewares.AbortLoginLocked(context, retryAfter)
+		return
+	}
+
+	// bcrypt is intentionally expensive, so the compare runs inside the shared cost
+	// budget. The slot is taken before the user lookup miss is handled too, keeping
+	// the timing of a wrong e-mail and a wrong password comparable.
+	release, ok := middlewares.AcquirePasswordCostSlot()
+	if !ok {
+		middlewares.AbortPasswordCostBusy(context)
+		return
+	}
+
 	user, err := database.GetAllUserInformationByEmail(username)
 	if err != nil {
+		release()
+		middlewares.RegisterLoginFailure(username)
 		oauthError(context, http.StatusBadRequest, "invalid_grant", "invalid credentials")
 		return
 	}
-	if user.CheckPassword(password) != nil {
+
+	passwordError := user.CheckPassword(password)
+	release()
+	if passwordError != nil {
+		middlewares.RegisterLoginFailure(username)
 		oauthError(context, http.StatusBadRequest, "invalid_grant", "invalid credentials")
 		return
 	}
+
+	middlewares.ClearLoginFailures(username)
 
 	admin := user.Admin != nil && *user.Admin
 	tokenSet, err := auth.IssueTokenSet(user.ID, admin, auth.ScopeForUser(admin), client.ClientID)

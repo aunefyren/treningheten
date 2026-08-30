@@ -243,9 +243,17 @@ func CreateConfigFile() error {
 	return nil
 }
 
+// Config file permissions. config.json holds the JWT signing key, the database and
+// SMTP passwords, Media.TokenKey (which decrypts every stored provider credential) and
+// the VAPID private key, so it is readable only by the account running the process.
+const (
+	configDirMode  os.FileMode = 0700
+	configFileMode os.FileMode = 0600
+)
+
 // Saves the active config struct as config.json
 func SaveConfig() error {
-	err := os.MkdirAll("./config", os.ModePerm)
+	err := os.MkdirAll("./config", configDirMode)
 	if err != nil {
 		fmt.Println("failed to create directory for config. error: " + err.Error())
 		return errors.New("failed to create directory for config")
@@ -256,9 +264,21 @@ func SaveConfig() error {
 		return err
 	}
 
-	err = os.WriteFile(configFilePath, file, 0644)
+	err = os.WriteFile(configFilePath, file, configFileMode)
 	if err != nil {
 		return err
+	}
+
+	// WriteFile only applies its mode when it creates the file, and MkdirAll only when
+	// it creates the directory — so an install that predates this tightening keeps its
+	// world-readable 0644 secrets forever without an explicit chmod. Failures are
+	// logged rather than fatal: a bind mount or a Windows host may not honour the
+	// change, and that should not stop the app from starting.
+	if err := os.Chmod("./config", configDirMode); err != nil {
+		fmt.Println("failed to restrict permissions on the config directory. error: " + err.Error())
+	}
+	if err := os.Chmod(configFilePath, configFileMode); err != nil {
+		fmt.Println("failed to restrict permissions on the config file. error: " + err.Error())
 	}
 
 	return nil
