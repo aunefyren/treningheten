@@ -115,8 +115,10 @@ func parseActivityFeedFilter(context *gin.Context) (models.ActivityFeedFilter, e
 }
 
 // APIGetActivityFeed powers the /exercises timeline: a filtered, sorted, paginated list of
-// activities (operations) with per-activity metrics aggregated from their sets. See
-// database.GetActivityFeedForUser and docs/exercises.md.
+// workout sessions, each carrying its own activities and the metrics rolled up across them.
+// The unit is the session, so a workout logged with the front page's "+" button — which
+// creates no activities at all — still appears. See database.GetSessionFeedForUser and
+// docs/exercises.md.
 func APIGetActivityFeed(context *gin.Context) {
 	userID, err := middlewares.GetAuthUsername(context.GetHeader("Authorization"))
 	if err != nil {
@@ -133,7 +135,7 @@ func APIGetActivityFeed(context *gin.Context) {
 		return
 	}
 
-	items, total, err := database.GetActivityFeedForUser(userID, filter)
+	sessions, total, err := database.GetSessionFeedForUser(userID, filter)
 	if err != nil {
 		logger.Log.Info("Failed to get activity feed. Error: " + err.Error())
 		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get activities."})
@@ -141,16 +143,16 @@ func APIGetActivityFeed(context *gin.Context) {
 		return
 	}
 
-	if items == nil {
-		items = []models.ActivityFeedItem{}
+	if sessions == nil {
+		sessions = []models.SessionFeedItem{}
 	}
-	hasMore := int64(filter.Offset+len(items)) < total
+	hasMore := int64(filter.Offset+len(sessions)) < total
 
 	context.JSON(http.StatusOK, gin.H{
-		"message":    "Activities retrieved.",
-		"activities": items,
-		"total":      total,
-		"has_more":   hasMore,
+		"message":  "Activities retrieved.",
+		"sessions": sessions,
+		"total":    total,
+		"has_more": hasMore,
 	})
 }
 

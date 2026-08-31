@@ -566,6 +566,9 @@ func CorrelateExerciseWithExerciseDay(exerciseDayID uuid.UUID, exerciseDayExerci
 	if err != nil {
 		logger.Log.Error("Failed to get exercise-day. Error: " + err.Error())
 		return errors.New("Failed to get exercise-day.")
+	} else if exerciseDay == nil {
+		logger.Log.Error("Failed to find exercise-day.")
+		return errors.New("Failed to find exercise-day.")
 	}
 
 	exercises, err := database.GetExerciseByExerciseDayID(exerciseDayID)
@@ -865,8 +868,10 @@ func ConvertExerciseToExerciseObject(exercise models.Exercise) (exerciseObject m
 		exerciseDay, err := database.GetExerciseDayByID(exercise.ExerciseDayID)
 		if err != nil {
 			logger.Log.Warn("Failed to get exercise day. Setting exercise time to now. Error: " + err.Error())
-			now := time.Now()
-			exerciseObject.Time = now
+			exerciseObject.Time = time.Now()
+		} else if exerciseDay == nil {
+			logger.Log.Warn("Exercise day not found. Setting exercise time to now.")
+			exerciseObject.Time = time.Now()
 		} else {
 			exerciseObject.Time = exerciseDay.Date
 		}

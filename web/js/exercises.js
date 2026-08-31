@@ -1,7 +1,11 @@
-// /exercises — a searchable, sortable activity timeline. Backed by GET /auth/activities
-// (see controllers/activity.go), which returns per-activity items with metrics aggregated
-// from their sets. Two modes off one feed: BROWSE (sort by date → grouped by day + session)
-// and FIND (a metric sort or a type filter → flat, optionally ranked). See docs/wip.md.
+// /exercises — a searchable, sortable workout timeline. Backed by GET /auth/activities
+// (see controllers/activity.go), which returns SESSIONS: each one carries the metrics rolled
+// up across the whole workout plus the activities inside it. The session is the unit here
+// because a workout logged with the front page's "+" button has no activities at all, and it
+// still belongs in the timeline. Two modes off one feed: BROWSE (sort by date → grouped by
+// day) and FIND (a metric sort or a type filter → flat, optionally ranked). A session with
+// exactly one activity collapses into a single card — the common case shouldn't read as a
+// box wrapped around one row. See docs/exercises.md.
 
 var feedState = {
     actionID: "",
@@ -16,7 +20,7 @@ var feedState = {
     total: 0,
     hasMore: false,
     loading: false,
-    items: [],
+    sessions: [],
     actions: []
 };
 
@@ -59,7 +63,7 @@ function load_page(result) {
 
             <div class="module">
                 <div class="text-body u-text-center">
-                    Your activity timeline. Scroll recent sessions, or filter and sort to find a
+                    Your workout timeline. Scroll recent sessions, or filter and sort to find a
                     specific one — your longest run, a certain padel match, your oldest ride.
                 </div>
                 <div class="btn-group">
@@ -185,7 +189,7 @@ function loadFeed(reset) {
     }
     if (reset) {
         feedState.offset = 0;
-        feedState.items = [];
+        feedState.sessions = [];
     }
     feedState.loading = true;
     document.getElementById("feed-loading").style.display = "flex";
@@ -221,10 +225,10 @@ function loadFeed(reset) {
             }
             clearResponse();
 
-            feedState.items = feedState.items.concat(result.activities || []);
+            feedState.sessions = feedState.sessions.concat(result.sessions || []);
             feedState.total = result.total || 0;
             feedState.hasMore = !!result.has_more;
-            feedState.offset += (result.activities || []).length;
+            feedState.offset += (result.sessions || []).length;
 
             renderFeed();
         }
@@ -237,9 +241,15 @@ function loadFeed(reset) {
 }
 
 // findMode: a metric sort or an activity-type filter means the user is hunting a specific
-// activity, so we show a flat (optionally ranked) list rather than day/session groups.
+// workout, so we show a flat (optionally ranked) list rather than day groups.
 function feedIsFindMode() {
     return feedState.sort !== "date" || !!feedState.actionID;
+}
+
+// feedHasFilters reports whether anything is narrowing the feed, so an empty result can tell
+// the difference between "nothing matched" and "nothing logged yet".
+function feedHasFilters() {
+    return !!(feedState.actionID || feedState.q || feedState.start || feedState.end || feedState.hasDistance);
 }
 
 function renderFeed() {
@@ -248,102 +258,140 @@ function renderFeed() {
     var moreEl = document.getElementById("feed-more");
 
     if (feedState.total === 0) {
-        resultsEl.innerHTML = `<div class="feed-empty">No activities match. Try clearing the filters.</div>`;
+        resultsEl.innerHTML = feedHasFilters()
+            ? `<div class="feed-empty">No workouts match. Try clearing the filters.</div>`
+            : `<div class="feed-empty">Nothing logged yet. Tick a day on the front page and it shows up here.</div>`;
         countEl.textContent = "";
         moreEl.style.display = "none";
         return;
     }
 
-    countEl.textContent = "Showing " + feedState.items.length + " of " + feedState.total;
+    countEl.textContent = "Showing " + feedState.sessions.length + " of " + feedState.total
+        + (feedState.total === 1 ? " workout" : " workouts");
 
     if (feedState.sort !== "date") {
-        resultsEl.innerHTML = feedState.items.map(function(item, i) {
-            return feedActivityRow(item, { showDate: true, rank: i + 1 });
+        resultsEl.innerHTML = feedState.sessions.map(function(session, i) {
+            return feedSessionCard(session, { showDate: true, rank: i + 1 });
         }).join("");
     } else if (feedIsFindMode()) {
         // Type-filtered but chronological: flat list, no rank.
-        resultsEl.innerHTML = feedState.items.map(function(item) {
-            return feedActivityRow(item, { showDate: true });
+        resultsEl.innerHTML = feedState.sessions.map(function(session) {
+            return feedSessionCard(session, { showDate: true });
         }).join("");
     } else {
-        resultsEl.innerHTML = renderBrowseGroups(feedState.items);
+        resultsEl.innerHTML = renderBrowseGroups(feedState.sessions);
     }
 
     moreEl.style.display = feedState.hasMore ? "block" : "none";
 }
 
-// renderBrowseGroups groups the (date-descending, session-adjacent) items into day headers
-// and session sub-blocks.
-function renderBrowseGroups(items) {
+// renderBrowseGroups groups the (date-descending) sessions under day headers.
+function renderBrowseGroups(sessions) {
     var html = "";
     var currentDay = null;
-    var currentSession = null;
-    var openSession = false;
     var openDay = false;
 
-    function closeSession() {
-        if (openSession) { html += `</div>`; openSession = false; }
-    }
-    function closeDay() {
-        closeSession();
-        if (openDay) { html += `</div>`; openDay = false; }
-    }
-
-    items.forEach(function(item) {
-        var dayKey = feedDayKey(item.date);
+    sessions.forEach(function(session) {
+        var dayKey = feedDayKey(session.date);
         if (dayKey !== currentDay) {
-            closeDay();
+            if (openDay) { html += `</div>`; }
             currentDay = dayKey;
-            currentSession = null;
-            html += `<div class="feed-day"><div class="feed-day-header">${feedDayLabel(item.date)}</div>`;
+            html += `<div class="feed-day"><div class="feed-day-header">${feedDayLabel(session.date)}</div>`;
             openDay = true;
         }
-        if (item.exercise_id !== currentSession) {
-            closeSession();
-            currentSession = item.exercise_id;
-            var count = item.session_activity_count || 1;
-            var countLabel = count + (count === 1 ? " activity" : " activities");
-            html += `
-                <div class="feed-session">
-                    <div class="feed-session-header">
-                        <span class="feed-session-time">${feedTimeOnly(item.time)}</span>
-                        <span class="feed-session-count">${countLabel}</span>
-                    </div>`;
-            openSession = true;
-        }
-        html += feedActivityRow(item, { showDate: false });
+        html += feedSessionCard(session, { showDate: false });
     });
 
-    closeDay();
+    if (openDay) { html += `</div>`; }
     return html;
 }
 
-// feedActivityRow renders one activity. opts.showDate shows the full date on the right
-// (find mode); opts.rank prepends a rank badge (metric sorts).
-function feedActivityRow(item, opts) {
+// feedSessionCard renders one workout. A session with a single activity collapses — the card
+// takes that activity's icon and name and draws no breakdown, so the common case (one
+// imported run) reads as one line. Two or more activities get the breakdown underneath.
+// opts.showDate shows the full date on the right (find mode); opts.rank prepends a rank badge.
+function feedSessionCard(session, opts) {
     opts = opts || {};
-    var icon = feedActionIcon(item);
+    var activities = session.activities || [];
+    var collapsed = activities.length === 1;
+
+    // Mixed or empty work has no one type, so it keeps the generic glyph rather than
+    // picking a winner from its parts.
+    var icon = collapsed ? feedActionIcon(activities[0]) : feedActionGlyph("");
+    var chips = feedSessionChips(session, collapsed ? activities[0] : null).join(" · ");
+
+    var note = (session.note && session.note.trim())
+        ? `<span class="feed-note" title="${escapeHTML(session.note)}">📝</span>`
+        : "";
+    var count = activities.length > 1
+        ? `<span class="feed-session-count">${activities.length} activities</span>`
+        : "";
+    var noCount = session.counts_toward_goal ? ""
+        : `<span class="feed-nocount" title="Logged but doesn't count toward your weekly goal">Doesn't count</span>`;
+    var hidden = session.private
+        ? `<span class="feed-nocount" title="Only you can see this session. It still counts toward your weekly goal">Hidden</span>`
+        : "";
+
+    var when = opts.showDate ? feedWhenLabel(session) : feedTimeOnly(session.time);
+    var rank = opts.rank ? `<div class="feed-rank">${opts.rank}</div>` : "";
+
+    var breakdown = collapsed || activities.length === 0 ? "" : `
+            <div class="feed-activities">
+                ${activities.map(feedActivityRow).join("")}
+            </div>`;
+
+    return `
+        <div class="feed-session clickable" onclick="exerciseRedirect('${session.exercise_day_id}')">
+            <div class="feed-session-head">
+                ${rank}
+                <div class="feed-row-icon">${icon}</div>
+                <div class="feed-row-body">
+                    <div class="feed-row-title"><span class="feed-title-name">${escapeHTML(feedSessionTitle(session))}</span>${note}${count}${noCount}${hidden}</div>
+                    <div class="feed-row-metrics">${chips || "&nbsp;"}</div>
+                </div>
+                ${when ? `<div class="feed-row-when">${when}</div>` : ""}
+            </div>${breakdown}
+        </div>
+    `;
+}
+
+// feedSessionTitle names the workout by what is in it: the single activity when collapsed,
+// otherwise the distinct activity types (two, then "+N more"). A session logged without any
+// activity is simply a workout, which is exactly what the user said it was.
+function feedSessionTitle(session) {
+    var activities = session.activities || [];
+    if (activities.length === 0) {
+        return "Workout";
+    }
+
+    var names = [];
+    activities.forEach(function(activity) {
+        var name = activity.action_name || "Activity";
+        if (names.indexOf(name) === -1) {
+            names.push(name);
+        }
+    });
+
+    if (names.length <= 2) {
+        return names.join(" + ");
+    }
+    return names.slice(0, 2).join(" + ") + " + " + (names.length - 2) + " more";
+}
+
+// feedActivityRow renders one activity inside a session's breakdown. It is deliberately
+// unboxed — the session card is the frame, and a second border system inside it would fight
+// the panel (see docs/styleguide.md).
+function feedActivityRow(item) {
     var chips = feedMetricChips(item).join(" · ");
     var note = (item.note && item.note.trim())
         ? `<span class="feed-note" title="${escapeHTML(item.note)}">📝</span>`
         : "";
-    var noCount = item.counts_toward_goal ? ""
-        : `<span class="feed-nocount" title="Logged but doesn't count toward your weekly goal">Doesn't count</span>`;
-    var hidden = item.private
-        ? `<span class="feed-nocount" title="Only you can see this session. It still counts toward your weekly goal">Hidden</span>`
-        : "";
-    var when = opts.showDate ? feedWhenLabel(item) : "";
-    var rank = opts.rank ? `<div class="feed-rank">${opts.rank}</div>` : "";
 
     return `
-        <div class="feed-row clickable" onclick="exerciseRedirect('${item.exercise_day_id}')">
-            ${rank}
-            <div class="feed-row-icon">${icon}</div>
-            <div class="feed-row-body">
-                <div class="feed-row-title">${escapeHTML(item.action_name || "Activity")}${note}${noCount}${hidden}</div>
-                <div class="feed-row-metrics">${chips || "&nbsp;"}</div>
-            </div>
-            ${when ? `<div class="feed-row-when">${when}</div>` : ""}
+        <div class="feed-activity">
+            <div class="feed-activity-icon">${feedActionIcon(item)}</div>
+            <div class="feed-activity-name">${escapeHTML(item.action_name || "Activity")}${note}</div>
+            <div class="feed-activity-metrics">${chips}</div>
         </div>
     `;
 }
@@ -366,6 +414,37 @@ function feedActionGlyph(type) {
         case "cycling":  return "🚴";
         default:         return "🏅";
     }
+}
+
+// feedSessionChips builds the card's metric list from the session totals. When the card is
+// collapsed onto its single activity, that activity's stream scalars (heart rate, climb) come
+// along — they are per-activity readings with no meaningful session-wide sum.
+function feedSessionChips(session, activity) {
+    var chips = [];
+    if (session.distance > 0) {
+        chips.push(session.distance.toFixed(2) + " " + (session.distance_unit || "km"));
+    }
+    if (session.duration_seconds > 0) {
+        chips.push(secondsToDurationString(session.duration_seconds));
+    }
+    if (session.repetitions > 0) {
+        chips.push(Math.round(session.repetitions) + " reps");
+    }
+    if (session.top_weight > 0) {
+        chips.push("top " + session.top_weight + " " + (session.weight_unit || "kg"));
+    }
+    if (activity) {
+        if (activity.avg_heartrate > 0) {
+            chips.push(activity.avg_heartrate + " bpm");
+        }
+        if (activity.elevation_gain_m > 1) {
+            chips.push("+" + Math.round(activity.elevation_gain_m) + " m");
+        }
+    }
+    if (chips.length === 0 && session.set_count > 0) {
+        chips.push(session.set_count + (session.set_count === 1 ? " set" : " sets"));
+    }
+    return chips;
 }
 
 // feedMetricChips builds the floated metric list from whichever aggregates are present.

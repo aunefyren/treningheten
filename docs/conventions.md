@@ -74,6 +74,41 @@ Rules:
   and let the caller decide the HTTP response. Don't write to the `context` from deep
   helpers.
 
+### A "not found" getter must return nil, and the caller must check it
+
+Data-access getters that return a **pointer** (`GetExerciseByIDAndUserID`,
+`GetExerciseDayByID`, `GetExerciseDayByIDAndUserID`) report "no such row" as `(nil, nil)` —
+**not** an error, and **not** the zero-value struct. GORM's `Find` allocates the struct whether
+or not a row matched, so `return exercise, nil` on a miss hands back a non-nil pointer with a
+zero `ID`, and every `if x == nil` check downstream becomes dead code that never fires. Write
+the miss branch explicitly:
+
+```go
+if record.Error != nil {
+    return nil, record.Error
+} else if record.RowsAffected != 1 {
+    return nil, nil          // not `return exercise, nil`
+}
+```
+
+And on the calling side, **both** branches are required — an `err != nil` check alone passes a
+miss straight through:
+
+```go
+exercise, err := database.GetExerciseByIDAndUserID(exerciseID, userID)
+if err != nil {
+    // 500
+} else if exercise == nil {
+    // 404 — wrong id, or not this user's
+}
+```
+
+This matters beyond tidiness: these getters are **user-scoped**, so the nil check *is* the
+ownership check. `APICreateOperationForUser` tested only the error and discarded the result,
+which let any authenticated user attach an activity to another user's session. Pinned by
+`database.TestExerciseGettersReturnNilOnMiss` and
+`controllers/operation_authz_test.go`.
+
 ## API response shape
 
 Success responses are a `gin.H` with the **resource under a named key** plus a

@@ -24,8 +24,8 @@ architecture overview.
   processing loop.
 - [streaks.md](streaks.md) — the **two** streak systems (personal activity streaks vs
   within-season goal streaks) and how each is computed.
-- [exercises.md](exercises.md) — the `/exercises` activity timeline: the searchable/sortable
-  feed (`GET /auth/activities`), its browse vs find modes, and the query-time aggregation.
+- [exercises.md](exercises.md) — the `/exercises` workout timeline: the searchable/sortable
+  session feed (`GET /auth/activities`), its browse vs find modes, and the query-time aggregation.
 - [activity-feed.md](activity-feed.md) — the front-page **Activities** module: who you see
   (everyone you have ever shared a season with — co-membership instead of friend requests),
   the `ShareActivities` consent, and the peer query.

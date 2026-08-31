@@ -60,24 +60,70 @@ func assembleUserActivities(userID uuid.UUID, actionFilter string, limit int) ([
 	return flattenActivities(dayObjects, actionFilter, limit), nil
 }
 
-// assembleActivitySearch runs the query-time /exercises feed (database.GetActivityFeedForUser)
-// and maps each pre-aggregated row to a slim MCPActivitySummary. Unlike assembleUserActivities
-// it does NOT load or convert the whole exercise-day tree — the filtering, sorting and
-// pagination happen in the database, so a client can find relevant activities without pulling
-// everything. It returns the summaries plus the total match count and whether more pages remain.
-func assembleActivitySearch(userID uuid.UUID, filter models.ActivityFeedFilter) ([]models.MCPActivitySummary, int64, bool, error) {
-	items, total, err := database.GetActivityFeedForUser(userID, filter)
+// assembleWorkoutSearch runs the query-time /exercises feed (database.GetSessionFeedForUser)
+// and maps each pre-aggregated session to a slim MCPWorkoutSummary carrying its activities.
+// Unlike assembleUserActivities it does NOT load or convert the whole exercise-day tree — the
+// filtering, sorting and pagination happen in the database, so a client can find relevant
+// workouts without pulling everything. It returns the summaries plus the total match count and
+// whether more pages remain.
+//
+// It searches sessions rather than activities so a workout logged without any activity — the
+// front page's "+" button — is reachable, and so total/limit/offset count workouts.
+func assembleWorkoutSearch(userID uuid.UUID, filter models.ActivityFeedFilter) ([]models.MCPWorkoutSummary, int64, bool, error) {
+	sessions, total, err := database.GetSessionFeedForUser(userID, filter)
 	if err != nil {
 		return nil, 0, false, err
 	}
 
-	summaries := make([]models.MCPActivitySummary, 0, len(items))
-	for _, item := range items {
-		summaries = append(summaries, feedItemToSummary(item))
+	summaries := make([]models.MCPWorkoutSummary, 0, len(sessions))
+	for _, session := range sessions {
+		summaries = append(summaries, sessionFeedItemToWorkout(session))
 	}
 
-	hasMore := int64(filter.Offset+len(items)) < total
+	hasMore := int64(filter.Offset+len(sessions)) < total
 	return summaries, total, hasMore, nil
+}
+
+// sessionFeedItemToWorkout flattens one SessionFeedItem into the MCP search shape. Source
+// mirrors the activity path's precedence (strava first, then hevy, else manual). Distance and
+// weight units are only meaningful when a value is present, so they are dropped for zero
+// metrics to keep the payload lean.
+func sessionFeedItemToWorkout(session models.SessionFeedItem) models.MCPWorkoutSummary {
+	source := "manual"
+	if session.HasStrava {
+		source = "strava"
+	} else if session.HevyWorkoutID != nil && *session.HevyWorkoutID != "" {
+		source = "hevy"
+	}
+
+	workout := models.MCPWorkoutSummary{
+		ID:               session.ExerciseID.String(),
+		Date:             session.Date,
+		Time:             session.Time,
+		Note:             session.Note,
+		Distance:         session.Distance,
+		DurationSeconds:  session.DurationSeconds,
+		MovingSeconds:    session.MovingSeconds,
+		Repetitions:      session.Repetitions,
+		TopWeight:        session.TopWeight,
+		SetCount:         session.SetCount,
+		HasStreams:       session.HasStrava,
+		Source:           source,
+		CountsTowardGoal: session.CountsTowardGoal,
+		ActivityCount:    session.ActivityCount,
+		Activities:       make([]models.MCPActivitySummary, 0, len(session.Activities)),
+	}
+	if session.Distance > 0 {
+		workout.DistanceUnit = session.DistanceUnit
+	}
+	if session.TopWeight > 0 {
+		workout.WeightUnit = session.WeightUnit
+	}
+
+	for _, item := range session.Activities {
+		workout.Activities = append(workout.Activities, feedItemToSummary(item))
+	}
+	return workout
 }
 
 // feedItemToSummary flattens one ActivityFeedItem into the MCP search shape. Source mirrors the

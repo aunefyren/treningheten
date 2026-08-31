@@ -204,14 +204,18 @@ func GetAllEnabledExerciseDays() ([]models.ExerciseDay, error) {
 	return exercises, nil
 }
 
+// GetExerciseDayByID returns the enabled exercise day with this id, or **nil** when there is
+// none. Like GetExerciseByIDAndUserID, the miss must return nil rather than the zero-value
+// struct GORM's Find allocates, or callers' nil checks silently never fire. Note this getter is
+// NOT user-scoped — use GetExerciseDayByIDAndUserID wherever the day's owner matters.
 func GetExerciseDayByID(exerciseDayID uuid.UUID) (*models.ExerciseDay, error) {
 	var exerciseDay *models.ExerciseDay
 
 	exerciserecord := Instance.Where("`exercise_days`.enabled = ?", 1).Where("`exercise_days`.id = ?", exerciseDayID).Find(&exerciseDay)
 	if exerciserecord.Error != nil {
-		return exerciseDay, exerciserecord.Error
+		return nil, exerciserecord.Error
 	} else if exerciserecord.RowsAffected == 0 {
-		return exerciseDay, nil
+		return nil, nil
 	}
 
 	return exerciseDay, nil

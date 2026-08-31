@@ -107,72 +107,77 @@ func seedActivityFeed(t *testing.T) (userID uuid.UUID, runID uuid.UUID, s2ID uui
 	return user.ID, run.ID, s2.ID
 }
 
-func TestActivityFeedSortAndFilter(t *testing.T) {
+func TestSessionFeedSortAndFilter(t *testing.T) {
 	newTestDB(t)
 	userID, runActionID, s2ID := seedActivityFeed(t)
 
-	// "My longest run": filter to Run, sort by distance desc.
-	items, total, err := GetActivityFeedForUser(userID, models.ActivityFeedFilter{
+	// "My longest run": filter to Run, sort by distance desc. The filter selects workouts, so
+	// the run+padel session comes back whole.
+	sessions, total, err := GetSessionFeedForUser(userID, models.ActivityFeedFilter{
 		ActionID: &runActionID, Sort: "distance", Order: "desc", Limit: 30,
 	})
 	if err != nil {
 		t.Fatalf("feed error: %v", err)
 	}
 	if total != 2 {
-		t.Fatalf("expected 2 runs, got total %d", total)
+		t.Fatalf("expected 2 workouts containing a run, got total %d", total)
 	}
-	if len(items) != 2 {
-		t.Fatalf("expected 2 items, got %d", len(items))
+	if len(sessions) != 2 {
+		t.Fatalf("expected 2 sessions, got %d", len(sessions))
 	}
-	if items[0].Distance != 21.1 || items[1].Distance != 18.0 {
-		t.Errorf("distance order wrong: %v then %v", items[0].Distance, items[1].Distance)
+	if sessions[0].Distance != 21.1 || sessions[1].Distance != 18.0 {
+		t.Errorf("distance order wrong: %v then %v", sessions[0].Distance, sessions[1].Distance)
 	}
-	if items[0].DurationSeconds != 7110 {
-		t.Errorf("duration aggregate wrong: %d", items[0].DurationSeconds)
+	if sessions[0].DurationSeconds != 7110 {
+		t.Errorf("duration aggregate wrong: %d", sessions[0].DurationSeconds)
 	}
-	if items[0].ActionName != "Run" {
-		t.Errorf("action name: %q", items[0].ActionName)
+	if len(sessions[0].Activities) != 1 || sessions[0].Activities[0].ActionName != "Run" {
+		t.Errorf("nested activity: %+v", sessions[0].Activities)
 	}
 
-	// The 18 km run shares a session with a padel match → session activity count 2.
-	if items[1].ExerciseID != s2ID {
-		t.Errorf("second run should be in session s2")
+	// The 18 km run shares a session with a padel match → the workout lists both.
+	if sessions[1].ExerciseID != s2ID {
+		t.Errorf("second workout should be session s2")
 	}
-	if items[1].SessionActivityCount != 2 {
-		t.Errorf("session activity count should be 2, got %d", items[1].SessionActivityCount)
+	if sessions[1].ActivityCount != 2 {
+		t.Errorf("a workout matched on its run still lists all its activities, got %d", sessions[1].ActivityCount)
+	}
+	// Its duration covers the padel too, even though only the run matched the filter.
+	if sessions[1].DurationSeconds != 11400 {
+		t.Errorf("matched workout should report whole-session duration: got %d, want 11400", sessions[1].DurationSeconds)
 	}
 }
 
-func TestActivityFeedDefaultDateOrderAndAggregates(t *testing.T) {
+func TestSessionFeedDefaultDateOrderAndAggregates(t *testing.T) {
 	newTestDB(t)
 	userID, _, _ := seedActivityFeed(t)
 
-	// Full feed, default date-desc: 4 activities (2 runs, 1 padel, 1 lift), newest first.
-	items, total, err := GetActivityFeedForUser(userID, models.ActivityFeedFilter{
+	// Full feed, default date-desc: 3 workouts (a run, a run+padel, a lift), newest first.
+	sessions, total, err := GetSessionFeedForUser(userID, models.ActivityFeedFilter{
 		Sort: "date", Order: "desc", Limit: 30,
 	})
 	if err != nil {
 		t.Fatalf("feed error: %v", err)
 	}
-	if total != 4 || len(items) != 4 {
-		t.Fatalf("expected 4 activities, got total %d / len %d", total, len(items))
+	if total != 3 || len(sessions) != 3 {
+		t.Fatalf("expected 3 workouts, got total %d / len %d", total, len(sessions))
 	}
 	// Newest day is 2025-06-01 (the lift).
-	if items[0].ActionName != "Lifting" {
-		t.Errorf("newest should be the lift, got %q", items[0].ActionName)
+	if len(sessions[0].Activities) != 1 || sessions[0].Activities[0].ActionName != "Lifting" {
+		t.Errorf("newest should be the lift, got %+v", sessions[0].Activities)
 	}
 	// Lift aggregates: top weight 80, reps 28, 3 sets, no distance.
-	if items[0].TopWeight != 80 {
-		t.Errorf("top weight: %v", items[0].TopWeight)
+	if sessions[0].TopWeight != 80 {
+		t.Errorf("top weight: %v", sessions[0].TopWeight)
 	}
-	if items[0].Repetitions != 28 {
-		t.Errorf("reps sum: %v", items[0].Repetitions)
+	if sessions[0].Repetitions != 28 {
+		t.Errorf("reps sum: %v", sessions[0].Repetitions)
 	}
-	if items[0].SetCount != 3 {
-		t.Errorf("set count: %d", items[0].SetCount)
+	if sessions[0].SetCount != 3 {
+		t.Errorf("set count: %d", sessions[0].SetCount)
 	}
-	if items[0].Distance != 0 {
-		t.Errorf("lift should have no distance, got %v", items[0].Distance)
+	if sessions[0].Distance != 0 {
+		t.Errorf("lift should have no distance, got %v", sessions[0].Distance)
 	}
 }
 
@@ -203,7 +208,7 @@ func makeSessionNotCounting(t *testing.T, dayID uuid.UUID, at time.Time) models.
 	return session
 }
 
-func TestActivityFeedReportsCountsTowardGoal(t *testing.T) {
+func TestSessionFeedReportsCountsTowardGoal(t *testing.T) {
 	newTestDB(t)
 	user := makeTestUser(t, "nocount@test.dev", nil)
 	run := makeAction(t, "Run", "cardio")
@@ -215,17 +220,17 @@ func TestActivityFeedReportsCountsTowardGoal(t *testing.T) {
 	notCounting := makeSessionNotCounting(t, day.ID, time.Date(2025, 5, 4, 18, 0, 0, 0, time.UTC))
 	makeOperation(t, notCounting.ID, &run.ID)
 
-	items, total, err := GetActivityFeedForUser(user.ID, models.ActivityFeedFilter{Sort: "date", Order: "desc", Limit: 30})
+	sessions, total, err := GetSessionFeedForUser(user.ID, models.ActivityFeedFilter{Sort: "date", Order: "desc", Limit: 30})
 	if err != nil {
 		t.Fatalf("feed error: %v", err)
 	}
-	// Both sessions are listed — the not-counting one is visible, just flagged.
-	if total != 2 || len(items) != 2 {
-		t.Fatalf("both sessions should appear: got total %d / len %d", total, len(items))
+	// Both workouts are listed — the not-counting one is visible, just flagged.
+	if total != 2 || len(sessions) != 2 {
+		t.Fatalf("both sessions should appear: got total %d / len %d", total, len(sessions))
 	}
 	got := map[uuid.UUID]bool{}
-	for _, item := range items {
-		got[item.ExerciseID] = item.CountsTowardGoal
+	for _, session := range sessions {
+		got[session.ExerciseID] = session.CountsTowardGoal
 	}
 	if !got[counting.ID] {
 		t.Errorf("counting session: CountsTowardGoal = false, want true")
@@ -235,7 +240,7 @@ func TestActivityFeedReportsCountsTowardGoal(t *testing.T) {
 	}
 }
 
-func TestActivityFeedExcludesOffSessions(t *testing.T) {
+func TestSessionFeedExcludesOffSessions(t *testing.T) {
 	newTestDB(t)
 	user := makeTestUser(t, "off@test.dev", nil)
 	run := makeAction(t, "Run", "cardio")
@@ -249,19 +254,26 @@ func TestActivityFeedExcludesOffSessions(t *testing.T) {
 	offOp := makeOperation(t, offSession.ID, &run.ID)
 	makeSet(t, offOp.ID, f64Ptr(99), nil, nil, durPtr(9000))
 
-	items, total, err := GetActivityFeedForUser(user.ID, models.ActivityFeedFilter{Sort: "date", Order: "desc", Limit: 30})
+	// A toggled-off session with no activities at all must be excluded too: the session query
+	// is what filters now, so this is the case the old operation-rooted feed never reached.
+	offBare := makeSession(t, day.ID, time.Date(2025, 5, 4, 20, 0, 0, 0, time.UTC))
+	if err := Instance.Model(&offBare).Update("is_on", 0).Error; err != nil {
+		t.Fatalf("failed to toggle bare session off: %v", err)
+	}
+
+	sessions, total, err := GetSessionFeedForUser(user.ID, models.ActivityFeedFilter{Sort: "date", Order: "desc", Limit: 30})
 	if err != nil {
 		t.Fatalf("feed error: %v", err)
 	}
-	if total != 1 || len(items) != 1 {
-		t.Fatalf("off session must be excluded: got total %d / len %d", total, len(items))
+	if total != 1 || len(sessions) != 1 {
+		t.Fatalf("off sessions must be excluded: got total %d / len %d", total, len(sessions))
 	}
-	if items[0].Distance != 10 {
-		t.Errorf("returned the wrong (off) activity: distance %v", items[0].Distance)
+	if sessions[0].Distance != 10 {
+		t.Errorf("returned the wrong (off) session: distance %v", sessions[0].Distance)
 	}
 }
 
-func TestActivityFeedSearchIsCaseInsensitiveAcrossNotes(t *testing.T) {
+func TestSessionFeedSearchIsCaseInsensitiveAcrossNotes(t *testing.T) {
 	newTestDB(t)
 	user := makeTestUser(t, "search@test.dev", nil)
 	run := makeAction(t, "Run", "cardio")
@@ -274,7 +286,7 @@ func TestActivityFeedSearchIsCaseInsensitiveAcrossNotes(t *testing.T) {
 	insertRow(t, &op1)
 	makeSet(t, op1.ID, f64Ptr(8), nil, nil, nil)
 
-	// Note lives on the DAY, different activity with no operation note.
+	// Note lives on the DAY, different workout with no operation note.
 	day2 := makeDay(t, user.ID, time.Date(2025, 4, 1, 0, 0, 0, 0, time.UTC))
 	day2.Note = "cosmo park loop"
 	if err := Instance.Save(&day2).Error; err != nil {
@@ -284,83 +296,99 @@ func TestActivityFeedSearchIsCaseInsensitiveAcrossNotes(t *testing.T) {
 	op2 := makeOperation(t, s2.ID, &run.ID)
 	makeSet(t, op2.ID, f64Ptr(5), nil, nil, nil)
 
-	// Lowercase query must match both the capitalised operation note and the day note.
-	items, total, err := GetActivityFeedForUser(user.ID, models.ActivityFeedFilter{Query: "cosmo", Sort: "date", Order: "desc", Limit: 30})
+	// Note lives on the SESSION, on a workout with no activities at all — the case that only
+	// a session-rooted search can reach.
+	day3 := makeDay(t, user.ID, time.Date(2025, 3, 3, 0, 0, 0, 0, time.UTC))
+	s3 := models.Exercise{ExerciseDayID: day3.ID, Enabled: true, IsOn: true, Note: "COSMO walk"}
+	s3.ID = uuid.New()
+	insertRow(t, &s3)
+
+	// Lowercase query must match the capitalised operation note, the day note and the
+	// session note alike.
+	sessions, total, err := GetSessionFeedForUser(user.ID, models.ActivityFeedFilter{Query: "cosmo", Sort: "date", Order: "desc", Limit: 30})
 	if err != nil {
 		t.Fatalf("feed error: %v", err)
 	}
-	if total != 2 || len(items) != 2 {
-		t.Fatalf("case-insensitive search across notes should find 2, got total %d / len %d", total, len(items))
+	if total != 3 || len(sessions) != 3 {
+		t.Fatalf("case-insensitive search across notes should find 3, got total %d / len %d", total, len(sessions))
 	}
 }
 
-func TestActivityFeedActionNameFilter(t *testing.T) {
+func TestSessionFeedActionNameFilter(t *testing.T) {
 	newTestDB(t)
 	userID, _, _ := seedActivityFeed(t)
 
 	// The MCP search filters by action NAME (case-insensitive substring), not action id:
-	// "run" must find both runs regardless of casing, and exclude the padel and lift.
-	items, total, err := GetActivityFeedForUser(userID, models.ActivityFeedFilter{
+	// "run" must find both workouts containing a run, and exclude the lift.
+	sessions, total, err := GetSessionFeedForUser(userID, models.ActivityFeedFilter{
 		ActionName: "run", Sort: "date", Order: "desc", Limit: 30,
 	})
 	if err != nil {
 		t.Fatalf("feed error: %v", err)
 	}
-	if total != 2 || len(items) != 2 {
-		t.Fatalf("action name 'run' should find 2 runs, got total %d / len %d", total, len(items))
+	if total != 2 || len(sessions) != 2 {
+		t.Fatalf("action name 'run' should find 2 workouts, got total %d / len %d", total, len(sessions))
 	}
-	for _, item := range items {
-		if item.ActionName != "Run" {
-			t.Errorf("unexpected action %q in name-filtered feed", item.ActionName)
+	for _, session := range sessions {
+		hasRun := false
+		for _, activity := range session.Activities {
+			if activity.ActionName == "Run" {
+				hasRun = true
+			}
+		}
+		if !hasRun {
+			t.Errorf("workout without a run in a name-filtered feed: %+v", session.Activities)
 		}
 	}
 
 	// A substring that hits a different action isolates it.
-	lifts, total, err := GetActivityFeedForUser(userID, models.ActivityFeedFilter{
+	lifts, total, err := GetSessionFeedForUser(userID, models.ActivityFeedFilter{
 		ActionName: "lift", Sort: "date", Order: "desc", Limit: 30,
 	})
 	if err != nil {
 		t.Fatalf("feed error: %v", err)
 	}
-	if total != 1 || len(lifts) != 1 || lifts[0].ActionName != "Lifting" {
+	if total != 1 || len(lifts) != 1 || lifts[0].Activities[0].ActionName != "Lifting" {
 		t.Fatalf("action name 'lift' should isolate the lift, got total %d / len %d", total, len(lifts))
 	}
 }
 
-func TestActivityFeedHasDistanceAndPagination(t *testing.T) {
+func TestSessionFeedHasDistanceAndPagination(t *testing.T) {
 	newTestDB(t)
 	userID, _, _ := seedActivityFeed(t)
 
-	// has_distance excludes the padel (no distance) and the lift → only the 2 runs.
-	items, total, err := GetActivityFeedForUser(userID, models.ActivityFeedFilter{
+	// has_distance is a whole-workout test: the lift session has none, the run+padel session
+	// does (via its run), so 2 of the 3 workouts remain.
+	sessions, total, err := GetSessionFeedForUser(userID, models.ActivityFeedFilter{
 		HasDistance: true, Sort: "date", Order: "desc", Limit: 30,
 	})
 	if err != nil {
 		t.Fatalf("feed error: %v", err)
 	}
-	if total != 2 || len(items) != 2 {
-		t.Fatalf("has_distance should leave 2 runs, got total %d / len %d", total, len(items))
+	if total != 2 || len(sessions) != 2 {
+		t.Fatalf("has_distance should leave 2 workouts, got total %d / len %d", total, len(sessions))
 	}
 
-	// Pagination: limit 1 over the full feed reports has-more via total.
-	page, total, err := GetActivityFeedForUser(userID, models.ActivityFeedFilter{
+	// Pagination: limit 1 over the full feed still reports the true total.
+	page, total, err := GetSessionFeedForUser(userID, models.ActivityFeedFilter{
 		Sort: "date", Order: "desc", Limit: 1, Offset: 0,
 	})
 	if err != nil {
 		t.Fatalf("feed error: %v", err)
 	}
 	if len(page) != 1 {
-		t.Fatalf("expected 1 item page, got %d", len(page))
+		t.Fatalf("expected a 1-workout page, got %d", len(page))
 	}
-	if total != 4 {
-		t.Errorf("total should still be 4 regardless of limit, got %d", total)
+	if total != 3 {
+		t.Errorf("total should still be 3 regardless of limit, got %d", total)
 	}
 }
 
-// TestActivityFeedStreamRollups verifies the feed surfaces the operation's precomputed stream
-// rollups (avg/max HR, cadence, temperature, elevation gain) and the summed moving time, which
-// the MCP list uses to show sensor scalars without loading the stream blob.
-func TestActivityFeedStreamRollups(t *testing.T) {
+// TestSessionFeedStreamRollups verifies the nested activities surface the operation's
+// precomputed stream rollups (avg/max HR, cadence, temperature, elevation gain) and that the
+// session sums moving time — what the list uses to show sensor scalars without loading the
+// stream blob.
+func TestSessionFeedStreamRollups(t *testing.T) {
 	newTestDB(t)
 	user := makeTestUser(t, "rollup@test.dev", nil)
 	run := makeAction(t, "Run", "cardio")
@@ -380,14 +408,17 @@ func TestActivityFeedStreamRollups(t *testing.T) {
 	set.ID = uuid.New()
 	insertRow(t, &set)
 
-	items, total, err := GetActivityFeedForUser(user.ID, models.ActivityFeedFilter{Sort: "date", Order: "desc", Limit: 30})
+	sessions, total, err := GetSessionFeedForUser(user.ID, models.ActivityFeedFilter{Sort: "date", Order: "desc", Limit: 30})
 	if err != nil {
 		t.Fatalf("feed error: %v", err)
 	}
-	if total != 1 || len(items) != 1 {
-		t.Fatalf("expected 1 item, got total %d / len %d", total, len(items))
+	if total != 1 || len(sessions) != 1 {
+		t.Fatalf("expected 1 workout, got total %d / len %d", total, len(sessions))
 	}
-	got := items[0]
+	if sessions[0].MovingSeconds != 3000 {
+		t.Errorf("session moving seconds: want 3000, got %d", sessions[0].MovingSeconds)
+	}
+	got := sessions[0].Activities[0]
 	if got.AvgHeartrate == nil || *got.AvgHeartrate != 155 {
 		t.Errorf("avg HR: want 155, got %v", got.AvgHeartrate)
 	}
@@ -404,7 +435,7 @@ func TestActivityFeedStreamRollups(t *testing.T) {
 		t.Errorf("elevation: want 210, got %v", got.ElevationGainM)
 	}
 	if got.MovingSeconds != 3000 {
-		t.Errorf("moving seconds: want 3000, got %d", got.MovingSeconds)
+		t.Errorf("activity moving seconds: want 3000, got %d", got.MovingSeconds)
 	}
 
 	// A rollup-free lift on the same feed comes back with nil scalars (no stream).
@@ -414,14 +445,15 @@ func TestActivityFeedStreamRollups(t *testing.T) {
 	lop := makeOperation(t, ls.ID, &lift.ID)
 	makeSet(t, lop.ID, nil, f64Ptr(60), f64Ptr(10), nil)
 
-	items, _, err = GetActivityFeedForUser(user.ID, models.ActivityFeedFilter{Sort: "date", Order: "asc", Limit: 30})
+	sessions, _, err = GetSessionFeedForUser(user.ID, models.ActivityFeedFilter{Sort: "date", Order: "asc", Limit: 30})
 	if err != nil {
 		t.Fatalf("feed error: %v", err)
 	}
-	if len(items) != 2 || items[0].ActionName != "Lifting" {
-		t.Fatalf("expected lift first (oldest), got %+v", items)
+	if len(sessions) != 2 || sessions[0].Activities[0].ActionName != "Lifting" {
+		t.Fatalf("expected the lift first (oldest), got %+v", sessions)
 	}
-	if items[0].AvgHeartrate != nil || items[0].ElevationGainM != nil || items[0].MovingSeconds != 0 {
-		t.Errorf("lift should have no stream scalars, got %+v", items[0])
+	liftActivity := sessions[0].Activities[0]
+	if liftActivity.AvgHeartrate != nil || liftActivity.ElevationGainM != nil || liftActivity.MovingSeconds != 0 {
+		t.Errorf("lift should have no stream scalars, got %+v", liftActivity)
 	}
 }

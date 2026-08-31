@@ -96,11 +96,11 @@ type MCPActivity struct {
 	StreamSummary *StreamSummary `json:"stream_summary,omitempty"`
 }
 
-// MCPActivitySummary is the slim, aggregated view of one activity (operation) used by the
-// list_activities search. It mirrors the /exercises timeline's query-time aggregation: per-set
-// distance/time/reps are SUMmed and the heaviest set weight is TopWeight, so it never loads the
-// operation/set/stream tree. For per-set detail, tags, description and soundtrack, drill into
-// one activity with get_activity by its id.
+// MCPActivitySummary is the slim, aggregated view of one activity (operation), nested inside
+// the workout it belongs to in the list_workouts search. It mirrors the /exercises timeline's
+// query-time aggregation: per-set distance/time/reps are SUMmed and the heaviest set weight is
+// TopWeight, so it never loads the operation/set/stream tree. For per-set detail, tags,
+// description and soundtrack, drill into one activity with get_activity by its id.
 type MCPActivitySummary struct {
 	ID                   string     `json:"id" jsonschema:"stable id for this activity (the operation id); pass to get_activity, get_activity_streams or get_activity_soundtrack"`
 	Date                 time.Time  `json:"date" jsonschema:"the calendar day of the session"`
@@ -127,6 +127,36 @@ type MCPActivitySummary struct {
 	CountsTowardGoal     bool       `json:"counts_toward_goal" jsonschema:"whether the parent session tallies toward the user's weekly goal; false means it is logged but deliberately excluded"`
 	SessionID            string     `json:"session_id" jsonschema:"id of the parent session; activities sharing a session_id were logged together"`
 	SessionActivityCount int        `json:"session_activity_count" jsonschema:"total number of activities in the parent session, independent of the current search filter"`
+}
+
+// MCPWorkoutSummary is one workout session in the list_workouts search — the unit the search
+// pages, counts and sorts, with the activities it was made of nested inside it.
+//
+// The search used to return activities (operations) directly, which made a session with no
+// activities unreachable: the app's most common way to log a workout (the front page's "+"
+// button) creates a session with zero operations, so those workouts existed on the user's
+// timeline but not in anything an LLM could see, and "how many workouts did I do" answered in
+// exercise rows. Metrics are summed across the whole session; DurationSeconds prefers the
+// session's own recorded duration over the summed set times, so a workout logged with nothing
+// but a duration still reports one. See docs/mcp.md and docs/exercises.md.
+type MCPWorkoutSummary struct {
+	ID               string               `json:"id" jsonschema:"stable id for this workout (the session id); pass to get_activity_soundtrack. Per-activity detail is addressed by the ids inside activities"`
+	Date             time.Time            `json:"date" jsonschema:"the calendar day of the workout"`
+	Time             *time.Time           `json:"time,omitempty" jsonschema:"the workout's start time, when known"`
+	Note             string               `json:"note,omitempty" jsonschema:"the user's short manual note on the whole workout"`
+	Distance         float64              `json:"distance" jsonschema:"total distance summed across every set of every activity, in distance_unit"`
+	DistanceUnit     string               `json:"distance_unit,omitempty"`
+	DurationSeconds  int64                `json:"duration_seconds" jsonschema:"how long the workout took, in seconds: the session's own recorded duration when it has one, otherwise the summed set times"`
+	MovingSeconds    int64                `json:"moving_seconds,omitempty" jsonschema:"active/moving time (excludes pauses), in seconds; usually only present for Strava-imported workouts"`
+	Repetitions      float64              `json:"repetitions" jsonschema:"total repetitions summed across every set of every activity"`
+	TopWeight        float64              `json:"top_weight" jsonschema:"heaviest weight recorded on any set of any activity, in weight_unit"`
+	WeightUnit       string               `json:"weight_unit,omitempty"`
+	SetCount         int                  `json:"set_count" jsonschema:"number of sets across the whole workout"`
+	HasStreams       bool                 `json:"has_streams" jsonschema:"true if any activity in this workout has Strava sensor streams; the activity ids inside are what get_activity and get_activity_streams take"`
+	Source           string               `json:"source" jsonschema:"where this workout came from: strava, hevy or manual"`
+	CountsTowardGoal bool                 `json:"counts_toward_goal" jsonschema:"whether this workout tallies toward the user's weekly goal; false means it is logged but deliberately excluded"`
+	ActivityCount    int                  `json:"activity_count" jsonschema:"how many activities the workout is made of; 0 means the user logged the workout without recording what they did"`
+	Activities       []MCPActivitySummary `json:"activities" jsonschema:"the activities this workout was made of, in the order they were logged; empty when the user just logged that they worked out"`
 }
 
 // MCPSoundtrackTrack is one item the user listened to during a session, flattened

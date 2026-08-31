@@ -297,10 +297,15 @@ or the bluish `--trans-lightblue` borders.
 | `.card` / `.card-header` / `.card-body` | the shared page-shell wrapper (all pages) — **light** eggshell surface, navy text (`base.css`) | **light (base)** |
 
 **Inset blocks** (inside a module panel): every small box nested in a panel — the number box,
-progress-bar track, debt notices, joinable/countdown-season rows, the push prompt — shares **one**
-convention: `--inset-bg` (palest sky) fill, `--inset-border` hairline, `--radius-sm`. Don't give a
-nested box its own fill or border. The only exceptions are *signals* — the progress **fill** uses
-`--module-accent`, and the debt notice keeps a red left bar (`--error`).
+progress-bar track, debt notices, joinable/countdown-season rows, the push prompt, the `/exercises`
+session card — shares **one** convention: `--inset-bg` (palest sky) fill, `--inset-border` hairline,
+`--radius-sm`. Don't give a nested box its own fill or border. The only exceptions are *signals* —
+the progress **fill** uses `--module-accent`, and the debt notice keeps a red left bar (`--error`).
+
+**Nesting inside an inset block** (`.feed-session` → `.feed-activities`): the inset tile is already
+the frame, so its children get **no fill and no border of their own** — separate them with a single
+`--inset-border` hairline and whitespace. A second boxed layer inside a panel is the "second border
+system" the design language rules out; three nested borders read as clutter at any density.
 
 ### Avatars
 
@@ -539,6 +544,19 @@ not theme — left inline on purpose. Dynamic (`${…}`) values stay inline too.
 
 ## Decisions log
 
+- **`/exercises` re-cut around the session card.** The timeline's unit changed from the activity
+  to the **workout session** (a session with no activities — what the front page's "+" creates —
+  was invisible before; see [`exercises.md`](exercises.md)), so the card had to move with it. The
+  inset tile treatment moved off `.feed-row` onto **`.feed-session`**, which is now the clickable
+  unit and carries the hover (white + `--blue`); the session-level status pills ("Doesn't count",
+  "Hidden") moved onto it too, since they read off the `Exercise` and the old markup repeated them
+  on every row of a session. The activities inside became **`.feed-activity`** — flat rows, no fill,
+  no border, split from the header by one `--inset-border` hairline (new "Nesting inside an inset
+  block" rule above). A session holding exactly one activity **collapses** onto the card, so the
+  common case still reads as one line and the breakdown only appears when there is genuinely
+  something to break down. Long titles truncate via `.feed-title-name` so the pills beside them are
+  never pushed out; on `≤480px` the breakdown's metrics wrap under the activity name. Retired the
+  now-dead `.feed-row`, `.feed-session-header` and `.feed-session-time` rules. No new tokens.
 - **Effort-analysis block added to the workout read view.** The server-computed stream summary
   gained an `analysis` block (aerobic decoupling, pace consistency, stops, HR-by-gradient), so the
   cardio read view got a new **`.wv-analysis`** "Effort analysis" section built entirely on existing

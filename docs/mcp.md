@@ -36,10 +36,10 @@ for example, give feedback on their latest run. This is Phase 3 of the auth work
 | `whoami` | — | Profile: name, email, admin, member-since |
 | `list_weights` | `limit?` | Body-weight entries, newest first |
 | `get_latest_weight` | — | Most recent weight entry |
-| `list_activities` | `action?`, `query?`, `from?`, `to?`, `has_distance?`, `sort?`, `order?`, `limit?`, `offset?` | **Search** the user's activities → a slim, ranked list. Each result carries id, date, action, type, `source`, `note`, aggregated metrics (distance, duration, `moving_seconds`, `avg_pace_min_km`, reps, `top_weight`, `set_count`), the precomputed stream scalars (`avg_heartrate_bpm`, `max_heartrate_bpm`, `avg_cadence_rpm`, `temperature_c`, `elevation_gain_m`), `has_streams` and `counts_toward_goal`, plus session grouping (`session_id`, `session_activity_count`). Response includes `total` and `has_more`. See below |
-| `get_activity` | `activity_id`, `include?` | The **rich** flat detail of one activity by id (per-set distance/time/moving-time/reps/weight, `tags`, `description`, `has_soundtrack`, `counts_toward_goal`) — drill in after `list_activities`. Pass `include` (any of `segments`, `zones`, `elevation`, `route`, `profile`, `analysis`) to attach the processed stream blocks under `stream_summary` without pulling the raw series. See below |
+| `list_workouts` | `action?`, `query?`, `from?`, `to?`, `has_distance?`, `sort?`, `order?`, `limit?`, `offset?` | **Search** the user's workouts → a slim, ranked list of **sessions**. Each result carries id, date, `source`, `note`, metrics summed across the session (distance, duration, `moving_seconds`, reps, `top_weight`, `set_count`), `has_streams`, `counts_toward_goal`, `activity_count`, and the `activities` it was made of (each with its own id and the per-activity metrics + stream scalars). Response includes `total` and `has_more`, both counted in workouts. See below |
+| `get_activity` | `activity_id`, `include?` | The **rich** flat detail of one activity by id (per-set distance/time/moving-time/reps/weight, `tags`, `description`, `has_soundtrack`, `counts_toward_goal`) — drill in with an id from a workout's `activities`. Pass `include` (any of `segments`, `zones`, `elevation`, `route`, `profile`, `analysis`) to attach the processed stream blocks under `stream_summary` without pulling the raw series. See below |
 | `get_activity_streams` | `activity_id`, `from_seconds?`, `to_seconds?`, `resolution?`, `max_points?` | Processed Strava sensor data for one activity: a summary header, per-distance **segments**, a GPS **route** overview, **HR zones**, an **analysis** block (decoupling, split-halves, pace consistency, breaks, HR-by-gradient), and a downsampled time-series. See below |
-| `get_activity_soundtrack` | `activity_id` | Listening history (music/podcast/audiobook) matched to the session, fetched on demand. See below |
+| `get_activity_soundtrack` | `activity_id` | Listening history (music/podcast/audiobook) matched to one workout, fetched on demand. Takes **either** a workout id or any of its activity ids. See below |
 | `get_statistics` | — | Per-window totals (activity count, km distance, seconds time) over three **rolling** windows: trailing ~1 month, trailing 12 months, all-time. Counts span **all** exercise types; distance/time only count activities that record them. Plus **personal** day/week activity streaks (current + best) |
 | `list_seasons` | `active_only?` | The seasons the user has joined, newest first, with the user's weekly goal / competing / sickleave-left; `active_only` limits to ongoing seasons |
 | `get_season` | `season_id` | One season + the user's personal goal data (`joined=false` with no goal fields if not joined) |
@@ -53,41 +53,58 @@ for example, give feedback on their latest run. This is Phase 3 of the auth work
 The MCP tool surface deliberately uses a **different vocabulary** from the Go code and the web
 frontend, and the divergence is intentional — don't "fix" it by aligning the names:
 
-| Layer | Noun for a logged thing | Examples |
+| Layer | Nouns for a logged thing | Examples |
 |---|---|---|
-| **MCP tools + args + DTOs** | **activity** | `list_activities`, `get_activity`, `get_activity_streams`, `get_activity_soundtrack`, `activity_id`, `MCPActivity`, `MCPActivitySummary` |
-| **Go domain model / DB** | **exercise / operation** (+ `Workout` in a few MCP internals) | `ExerciseDay → Exercise → Operation → OperationSet`; `MCPWorkoutStreams`, `assembleWorkoutStreams`, `mcpWorkoutArgs` |
+| **MCP tools + args + DTOs** | **workout** (a session) containing **activities** | `list_workouts`, `MCPWorkoutSummary`; `get_activity`, `get_activity_streams`, `get_activity_soundtrack`, `activity_id`, `MCPActivity`, `MCPActivitySummary` |
+| **Go domain model / DB** | **exercise / operation** | `ExerciseDay → Exercise → Operation → OperationSet` |
 | **Web frontend + routes** | **exercise** | `/exercises`, `/exercises/:id`, `web/js/exercises.js` |
 
 Rationale:
 
-- **MCP tools speak to an LLM, not to our schema.** "activity" is the neutral, self-consistent
-  word an external client reasons about ("find my longest activity", "get this activity's
-  streams"). It hides an internal subtlety: a returned item is really one **`Operation`** (one
-  activity type within a session), not a whole session — so neither "exercise" (our session-ish
-  `Exercise`) nor "workout" would be accurate to a caller. `activity_id` is genuinely an operation
-  id. Keeping the whole tool/arg/DTO surface on one noun is worth more to a client than matching
-  our table names.
+- **MCP tools speak to an LLM, not to our schema.** The two MCP nouns map exactly onto the two
+  grains that actually exist: a **workout** is one `Exercise` (a training session) and an
+  **activity** is one `Operation` within it (one exercise type — a run, a bench press). Both
+  words are accurate to a caller, and the pair is what makes the counts unambiguous: "how many
+  workouts" and "my longest run" are different questions at different grains.
+- **This used to be one noun, `activity`, and that was a bug.** While the search returned
+  operations, "workout" would have been inaccurate — which is why the surface was consolidated on
+  `activity`. But it also meant a session with **no** operations was unreachable, and the app's
+  most common way to log training (the front page's "+") creates exactly that. Once the search
+  moved to the session grain the noun became accurate, so `list_activities` → **`list_workouts`**.
+  The drill-down tools stayed on `activity`: they genuinely address an operation.
 - **The frontend follows the route and the domain** (`/exercises`, `Exercise`), which predate the
   MCP server; renaming pages would be a much larger, user-visible change for no gain.
-- **A few MCP-internal Go identifiers still say `Workout`** (`MCPWorkoutStreams`,
-  `assembleWorkoutStreams`, the `mcpWorkout*Args` structs). These are implementation names, not
-  the contract; they were left as-is when the public tools were consolidated onto `activity` (the
-  tools `get_workout*` → `get_activity*` and `list_exercises` → `list_activities` were renamed
-  without churning the internals). Treat the **tool name** as the source of truth.
+- **The MCP-internal Go identifiers say `Workout`** (`MCPWorkoutStreams`, `assembleWorkoutStreams`,
+  the `mcpWorkout*Args` structs) even where the tool says `activity`. These are implementation
+  names, not the contract. Treat the **tool name** as the source of truth.
 
-Practical upshot: when you touch this area, name new **tools/args/DTOs** with `activity`; leave
-existing **domain/model** code on `Exercise`/`Operation`; and don't expect the three layers to
-match.
+Practical upshot: when you touch this area, name a new **tool/arg/DTO** for whichever grain it
+actually addresses — `workout` for a session, `activity` for an operation; leave existing
+**domain/model** code on `Exercise`/`Operation`; and don't expect the three layers to match.
 
-Each activity carries a stable `id` (the operation id) used to address `get_activity` / `get_activity_streams` / `get_activity_soundtrack`, and a `has_streams` flag so the model knows whether stream detail is available before asking for it. It also reports a `source` (`strava` / `hevy` / `manual`) so the model knows the activity's provenance — Strava (set id present), Hevy (parent exercise has a Hevy workout id), or hand-logged — and `counts_toward_goal`, the session-level flag telling whether the session tallies toward the user's weekly goal or is logged-but-excluded. The richer per-set breakdown, `tags`, `description` and `has_soundtrack` live on `get_activity` (the detail shape). Because each activity is one operation, its `description`/`tags` belong unambiguously to that activity's `action`, even when an exercise day spans multiple action types.
+Each workout carries a stable `id` (the session id), which `get_activity_soundtrack` accepts; each activity inside it carries its own stable `id` (the operation id) used to address `get_activity` / `get_activity_streams` / `get_activity_soundtrack`, and a `has_streams` flag so the model knows whether stream detail is available before asking for it. It also reports a `source` (`strava` / `hevy` / `manual`) so the model knows the activity's provenance — Strava (set id present), Hevy (parent exercise has a Hevy workout id), or hand-logged — and `counts_toward_goal`, the session-level flag telling whether the session tallies toward the user's weekly goal or is logged-but-excluded. The richer per-set breakdown, `tags`, `description` and `has_soundtrack` live on `get_activity` (the detail shape). Because each activity is one operation, its `description`/`tags` belong unambiguously to that activity's `action`, even when an exercise day spans multiple action types.
 
-### Finding activities (`list_activities`)
+### Finding workouts (`list_workouts`)
 
-`list_activities` is a **search over the same query-time aggregation that backs the `/exercises`
-timeline** (`database.GetActivityFeedForUser`; see [exercises.md](exercises.md)) — the filtering,
-sorting and pagination run in the database, so the model finds relevant activities without the
-server walking and converting the whole exercise-day tree. It mirrors the web feed's toolkit:
+`list_workouts` is a **search over the same query-time aggregation that backs the `/exercises`
+timeline** (`database.GetSessionFeedForUser`; see [exercises.md](exercises.md)) — the filtering,
+sorting and pagination run in the database, so the model finds relevant training without the
+server walking and converting the whole exercise-day tree. It shares the filter type
+(`models.ActivityFeedFilter`), the aggregation and the session grain with the web feed, so the
+two searches cannot disagree about what a match is.
+
+**Why the session grain matters here.** The search returns one result per `Exercise`, with its
+`Operation`s nested in `activities`. A workout logged with **no** activities is normal — the
+front page's "+" button creates exactly that, and it is the most common way users log — so
+`activity_count: 0` is data, not an error; the tool description says so explicitly, because an
+LLM shown an empty array will otherwise assume something failed. Rooting the search in the
+session also makes `total`, `limit` and `offset` count workouts, so "how many times did I train
+in March" is answerable directly from `total` instead of by counting exercise rows.
+
+**Filters select workouts.** A workout matches when any of its activities matches (the filters
+are `EXISTS` subqueries, see [exercises.md](exercises.md)), and the result still reports the
+whole session's totals and lists **all** of its activities — filtering by `Run` on a run+lift
+session returns the whole session, not the run alone.
 
 - **`action`** — case-insensitive substring on the exercise type name (e.g. `Run`). LLMs have
   names, not action ids, so this maps to `ActivityFeedFilter.ActionName` (a name filter the web
@@ -130,8 +147,8 @@ layer exists. So when a **stream-backed** activity is fetched **without** `inclu
 response carries an **`analysis_hint`** string naming exactly what to re-request
 (`include:["segments","zones","analysis"]`) and what each block gives — an in-band nudge at the
 moment of need, not buried in the tool description. The hint is omitted once `include` is supplied
-(or when the activity has no streams). The `has_streams` flag on both `get_activity` and
-`list_activities` likewise points at the cheap `include` path first, with `get_activity_streams`
+(or when the activity has no streams). The `has_streams` flag on `get_activity` and on
+`list_workouts` (per workout and per nested activity) likewise points at the cheap `include` path first, with `get_activity_streams`
 framed as the raw-series fallback. Deliberately kept opt-in (not defaulted on): a drill-in stays
 predictable and lean unless the caller asks for depth — the hint closes the discoverability gap
 without inflating every call.
@@ -236,9 +253,13 @@ exposed on demand rather than inlined into every activity:
 
 - `get_activity` carries a `has_soundtrack` flag (true when any `MediaPlayback` row is
   matched to the session). Because it is session-level, every activity of the same session
-  shares the same flag and the same tracks. (The slim `list_activities` search omits it — drill
+  shares the same flag and the same tracks. (The slim `list_workouts` search omits it — drill
   into an activity with `get_activity` to see it.)
-- `get_activity_soundtrack(activity_id)` resolves the activity's session and returns
+- `get_activity_soundtrack(activity_id)` accepts **either** a workout id or an activity id
+  (`resolveSoundtrackExerciseID`) — an activity id only ever stands in for the session that owns
+  it, and a workout logged without any activity has no activity id to pass while still being
+  able to have a soundtrack, since the media reconcile cron covers manually logged sessions. It
+  resolves the session and returns
   `has_soundtrack`, `retrieved_at` (last pull), and `tracks[]` in play order (earliest
   `started_at` first). Each track is `{type` (song/podcast/audiobook)`, title, artist,
   album, provider` (plex/spotify/audiobookshelf)`, started_at, ended_at, started_before,
@@ -261,14 +282,16 @@ check short-circuits without a query and the tool reports the feature is disable
 
 > "Give me feedback on my newest run."
 
-The client calls `list_activities(action:"Run", limit:1)`, receives the activity (with
-its `id` and `has_streams`), then — if `has_streams` is true — `get_activity_streams(id)`
-for HR/pace/elevation trends, and composes feedback.
+The client calls `list_workouts(action:"Run", limit:1)`, receives the workout and reads the
+run out of its `activities` (with that activity's `id` and `has_streams`), then — if
+`has_streams` is true — `get_activity_streams(id)` for HR/pace/elevation trends, and composes
+feedback.
 
 > "What was I listening to on my long run, and did the fast bits line up with the music?"
 
-The model searches with `list_activities` (sorting by `distance` to find the long run and
-seeing `has_streams` true), calls `get_activity(id)` which confirms `has_soundtrack`, then
+The model searches with `list_workouts` (sorting by `distance` to find the long run and
+seeing `has_streams` true), calls `get_activity(id)` on the run activity, which confirms
+`has_soundtrack`, then
 `get_activity_soundtrack(id)` for the tracks and `get_activity_streams(id)` for the pace
 series, and correlates the two on their shared absolute timestamps.
 

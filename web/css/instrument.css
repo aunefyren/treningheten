@@ -895,37 +895,10 @@
     margin-bottom: 0.6rem;
 }
 
+/* Session card — the feed's unit (one workout). It is the panel's inset tile: the activities
+   inside it are unboxed, so the card is the only frame and the panel keeps one border system
+   (see docs/styleguide.md → "Inside a module, keep it flat"). */
 .feed-session {
-    margin-bottom: 0.8rem;
-}
-
-.feed-session-header {
-    display: flex;
-    align-items: baseline;
-    gap: 0.6rem;
-    margin: 0.35rem 0 0.35rem 0.2rem;
-}
-
-.feed-session-time {
-    font-family: var(--font-display);
-    font-weight: 600;
-    font-size: 0.9rem;
-    color: var(--darkblue);
-}
-
-.feed-session-count {
-    font-family: var(--font-body);
-    font-size: 0.68rem;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
-    color: var(--lightblue);
-}
-
-/* Activity row (shared by browse + find) */
-.feed-row {
-    display: flex;
-    align-items: center;
-    gap: 0.75rem;
     background: var(--inset-bg);
     border: 1px solid var(--inset-border);
     border-radius: var(--radius-sm);
@@ -934,10 +907,76 @@
     transition: background 0.15s, border-color 0.15s;
 }
 
-.feed-row:hover {
+.feed-session:hover {
     background: var(--white);
     border-color: var(--blue);
 }
+
+.feed-session-head {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.feed-session-count {
+    font-family: var(--font-body);
+    font-size: 0.68rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--lightblue);
+    white-space: nowrap;
+}
+
+/* The breakdown: what the workout was made of. Rows carry no fill or border of their own —
+   only the hairline that separates them from the card's header. */
+.feed-activities {
+    margin-top: 0.55rem;
+    padding-top: 0.45rem;
+    border-top: 1px solid var(--inset-border);
+}
+
+.feed-activity {
+    display: flex;
+    align-items: baseline;
+    gap: 0.55rem;
+    padding: 0.15rem 0 0.15rem 0.15rem;
+    font-family: var(--font-body);
+    font-size: 0.85rem;
+}
+
+/* Sized to sit under the card icon's optical centre without a second tile. */
+.feed-activity-icon {
+    flex: 0 0 auto;
+    width: 1.35rem;
+    text-align: center;
+    font-size: 0.95rem;
+}
+
+.feed-activity-icon .feed-logo {
+    width: 0.95rem;
+    height: 0.95rem;
+}
+
+.feed-activity-name {
+    flex: 0 1 auto;
+    min-width: 0;
+    font-weight: 600;
+    color: var(--darkblue);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.feed-activity-metrics {
+    flex: 1 1 auto;
+    min-width: 0;
+    text-align: right;
+    color: var(--lightblue);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
 
 .feed-rank {
     flex: 0 0 auto;
@@ -980,6 +1019,15 @@
     display: flex;
     align-items: center;
     gap: 0.4rem;
+}
+
+/* The workout's name truncates so the status pills beside it are never pushed out of the
+   card — a session titled from several activity types can get long. */
+.feed-title-name {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
 .feed-note {
@@ -1036,6 +1084,15 @@
 @media (max-width: 480px) {
     .feed-row-metrics {
         white-space: normal;
+    }
+    /* Name and metrics stop competing for one line; the metrics drop underneath. */
+    .feed-activity {
+        flex-wrap: wrap;
+    }
+    .feed-activity-metrics {
+        flex: 1 1 100%;
+        text-align: left;
+        padding-left: 1.9rem;
     }
     .feed-panel select.feed-input,
     .feed-panel #feed-q {

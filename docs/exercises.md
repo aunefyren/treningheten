@@ -1,7 +1,7 @@
-# The `/exercises` activity timeline
+# The `/exercises` workout timeline
 
-`/exercises` is a searchable, sortable **activity timeline**: it floats each activity's key
-metrics inline so you can browse recent sessions or hunt a specific one ("my longest run",
+`/exercises` is a searchable, sortable **workout timeline**: it floats each session's key
+metrics inline so you can browse recent workouts or hunt a specific one ("my longest run",
 "that padel match") without clicking into a day. It replaced the old year → week → day
 accordion.
 
@@ -16,19 +16,37 @@ ExerciseDay (calendar day, the /exercises/:id builder)
             └─ OperationSet (reps / weight / distance / time / HR streams)
 ```
 
-Search targets ("longest run", "oldest run") live at the **Operation** grain, while browsing
-wants **session** grouping. So the feed is **activity-grained** (one item per Operation) and
-carries session/day grouping metadata, letting the client render either view from one payload.
+The feed's unit is the **session** (one item per `Exercise`), with its activities nested
+inside it.
+
+It was originally **activity**-grained (one item per `Operation`), which had a blunt
+consequence: a session with no operations never appeared at all. That is not an edge case —
+the front page's "+" button (`addExercise` → `POST /auth/exercises` → `APICreateExercise`) and
+the week calendar both create an `Exercise` with **zero** `Operation` rows, so the most common
+way to log a workout was invisible in the timeline while still counting toward the goal and
+showing up on the front page and in the shared feed. Rooting the feed in the session fixes
+that, and makes the counts honest: `total`, `limit`/`offset` and the "showing 12 of 340" line
+are all measured in workouts.
+
+The activity grain still exists as the nested `activities` array — every activity keeps its own
+id and metrics, and remains what `get_activity` and the builder address. The MCP search runs the
+same session query (see [mcp.md](mcp.md)); the standalone operation-rooted feed query was deleted
+with the last caller.
 
 ## Two modes, one endpoint
 
 The client picks the mode; the endpoint is the same:
 
-- **Browse** — no metric sort or type filter active. Cards are grouped by day and session
-  (adjacent same-session activities collapse under a day header). This is the default landing
-  view, newest first.
+- **Browse** — no metric sort or type filter active. Session cards are grouped under day
+  headers. This is the default landing view, newest first.
 - **Find** — a metric sort or an activity-type filter is active. The list goes flat and
   ranked, with the sorted metric shown prominently.
+
+Both modes rank and page **sessions**. A metric sort therefore reads as "my longest workout"
+rather than "my longest single activity" — for `weight` the two are identical (a session's max
+set *is* its heaviest activity), and for distance/duration/reps the session total is the more
+useful answer. The card lists its activities, so which part of the workout produced the number
+is still visible without opening it.
 
 ## Backend
 
@@ -40,38 +58,59 @@ timestamp or a bare `YYYY-MM-DD` (read as midnight).
 Filters: `action_id`, `start`/`end` (date range), `q` (case-insensitive substring over the
 operation / session / day notes **and** the action name), `has_distance`. Sort:
 `date | distance | duration | weight | reps` with `order` = `asc | desc`. Pagination:
-`limit` / `offset`. Response: `{ activities: [...], total, has_more, message }`.
+`limit` / `offset`. Response: `{ sessions: [...], total, has_more, message }`.
 
-The aggregation is **query-time** (`database.GetActivityFeedForUser`): it walks the enabled
-chain `operations → exercises → exercise_days → users` (same joins as `GetOperationsByUserID`),
-LEFT JOINs `operation_sets`, and per operation returns `SUM(distance)`, `SUM(time)` (seconds —
-repo convention), `SUM(repetitions)`, `MAX(weight)` as top weight, `COUNT(sets)`, and a
-`has_strava` flag. It also carries the session's `counts_toward_goal` and `private` (both
-session-level flags, so every activity of the session shares them) so the feed can flag a
-logged-but-excluded session and one that is hidden from everyone else. A
-companion grouped query fills `session_activity_count` (the true number of activities in each
-returned session, independent of the current filter) so a browse card can honestly say
-"2 activities".
+The aggregation is **query-time** (`database.GetSessionFeedForUser`), in two queries:
 
-Each item is a slim `models.ActivityFeedItem` — **no `strava_streams`** (too heavy for a list).
-The item does carry a handful of **precomputed stream scalars** (`avg_heartrate`, `max_heartrate`,
+1. **The session page** — root table `exercises`, joined up to `exercise_days` for the user and
+   date, then **LEFT** JOINed down to `operations` and `operation_sets`. The left joins are the
+   whole point: an inner join drops sessions that have no activities. Per session it returns
+   `SUM(distance)`, `SUM(repetitions)`, `MAX(weight)` as top weight, `COUNT(sets)`, a
+   `has_strava` flag, `activity_count`, and a duration that **cascades** the session's own
+   `Exercise.Duration` over `SUM(set.time)` (seconds — repo convention; same cascade as
+   `resolveSessionWindow`), so a session logged with nothing but a duration still reads as one.
+   It also carries the session-level `counts_toward_goal` and `private` flags, so the card can
+   mark a logged-but-excluded session and one hidden from everyone else — these used to be
+   repeated onto every activity row of a session, since they never varied within it.
+2. **The activities** — one fetch of every enabled activity belonging to the returned sessions,
+   attached in logging order. It is deliberately **unfiltered**: the filters decide which
+   *sessions* match, never which activities are shown.
+
+That second point is why the activity-level filters (`action_id`, `q`, `has_distance`) are
+expressed as **`EXISTS` subqueries** (or a `HAVING` on the session total) rather than as
+predicates on the join. A predicate on the join would narrow the aggregate too, so a session
+matched on its run would report only the run's distance and list only the run. Matching is
+"the workout contains something that matches"; the card then describes the whole workout.
+
+Each session is a `models.SessionFeedItem` holding a slim `models.ActivityFeedItem` per
+activity — **no `strava_streams`** (too heavy for a list). The activity does carry a handful of **precomputed stream scalars** (`avg_heartrate`, `max_heartrate`,
 `avg_cadence`, `temp_c`, `elevation_gain_m`) read directly from rollup columns on the `Operation`
 (`models.ComputeStreamRollup`, written on Strava sync and backfilled once by
 `backfillOperationStreamRollups`) plus summed `moving_seconds` — so the list can show those
 numbers without ever loading or parsing a stream blob. The full per-second HR/GPS detail is still
 deferred to the builder/detail view. This is the "precomputed rollup columns without changing the
-JSON" the shape was designed for; the MCP `list_activities` search consumes the same fields.
+JSON" the shape was designed for; the MCP `list_workouts` search consumes the same fields.
 
 ## Frontend
 
 `web/js/exercises.js` is a filter/search bar + infinite-scroll timeline against
-`api_url + "auth/activities"`. It groups adjacent same-session activities under day headers in
-browse mode and shows a flat ranked list in find mode. Each card links to `/exercises/:dayID`
-(the builder), shows a muted "Doesn't count" badge when `counts_toward_goal` is false and a
-"Hidden" badge when `private` is true, and lists
-its metrics — distance, duration, reps/top weight, plus the stream scalars **avg HR** and
-**elevation gain** (from the operation rollups) so a card reads its effort without opening it.
-Styling follows the shared light module/inset system (see [styleguide.md](styleguide.md)).
+`api_url + "auth/activities"`. It groups session cards under day headers in browse mode and
+shows a flat ranked list in find mode. Each card links to `/exercises/:dayID` (the builder),
+shows a muted "Doesn't count" badge when `counts_toward_goal` is false and a "Hidden" badge
+when `private` is true, and lists the session's metrics — distance, duration, reps/top weight.
+
+**A session with exactly one activity collapses** (`feedSessionCard`): the card takes that
+activity's icon and name and draws no breakdown, so the common case — one imported run — reads
+as a single line rather than as a box wrapped around one row. It also borrows that activity's
+**avg HR** and **elevation gain** scalars, which are per-activity readings with no meaningful
+session-wide sum. Two or more activities get the breakdown underneath and a title naming what
+is in the workout ("Cycling + Bench press", then "+N more" past two); a session with none is
+titled "Workout".
+
+The URL, the nav item and the page's own language stay **"exercises"** — only the API payload
+and the internals talk about sessions. Styling follows the shared light module/inset system
+(see [styleguide.md](styleguide.md)): the **session card** is the panel's inset tile and the
+activities inside it are unboxed, so the panel keeps one border system.
 
 ## Activity detail (`/exercises/:id`)
 
@@ -105,14 +144,18 @@ note. Regression tests: `controllers/exercise_day_authz_test.go`.
 
 ## Related
 
-- **MCP parity — done.** The MCP `list_activities` tool is now backed by the same query-time
-  aggregation (`GetActivityFeedForUser`): it exposes action-name, free-text, date-range,
-  `has_distance`, metric sort and pagination, returning slim summaries (with `counts_toward_goal`)
-  and deferring per-set detail to `get_activity`. See [mcp.md](mcp.md).
+- **MCP parity — done.** The MCP `list_workouts` tool runs the same filter
+  (`models.ActivityFeedFilter`) against the same `GetSessionFeedForUser`, so the two searches
+  agree on what a match is and both count in workouts. It exposes action-name, free-text,
+  date-range, `has_distance`, metric sort and pagination, returning slim session summaries with
+  their activities nested, and deferring per-set detail to `get_activity`. `get_activity` and
+  `get_activity_streams` still address an activity (operation) id; `get_activity_soundtrack`
+  takes either that or the workout id, which is how a session with no activities is reachable.
+  See [mcp.md](mcp.md).
 
 ## Related, not yet done
 
 - **Builder rework (`/exercises/:id`)** — the session builder still exposes gear at the session
-  level only and doesn't cleanly organise a multi-activity-type session. The per-activity
-  aggregate shape built here is exactly what a better session-summary header should consume.
+  level only and doesn't cleanly organise a multi-activity-type session. The session aggregate
+  shape built here is exactly what a better session-summary header should consume.
   Tracked in [wip.md](wip.md).

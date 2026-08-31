@@ -290,10 +290,18 @@ func APICreateOperationForUser(context *gin.Context) {
 		return
 	}
 
-	_, err = database.GetExerciseByIDAndUserID(operationCreationRequest.ExerciseID, userID)
+	// Ownership check: the getter is user-scoped, so a session belonging to someone else (or a
+	// bad id) resolves to nil. Without the nil branch this only caught database errors, and an
+	// activity could be attached to another user's session.
+	exercise, err := database.GetExerciseByIDAndUserID(operationCreationRequest.ExerciseID, userID)
 	if err != nil {
 		logger.Log.Info("Failed to verify exercise. Error: " + err.Error())
 		context.JSON(http.StatusBadRequest, gin.H{"error": "Failed to verify exercise."})
+		context.Abort()
+		return
+	} else if exercise == nil {
+		logger.Log.Info("Exercise not found for user.")
+		context.JSON(http.StatusNotFound, gin.H{"error": "Exercise not found."})
 		context.Abort()
 		return
 	}

@@ -68,7 +68,13 @@ func UpdateExerciseByTurningOffByExerciseID(exerciseID uuid.UUID) error {
 
 }
 
-// Return exercises that are enabled and on
+// GetExerciseByIDAndUserID returns the enabled, switched-on exercise with this id belonging to
+// this user, or **nil** when there is none — a wrong id, another user's, or a disabled/off
+// session. Callers treat a nil result as "not found / not yours", so the miss MUST return nil:
+// GORM's Find allocates the struct whether or not a row matched, and returning that zero-value
+// pointer made every `exercise == nil` check in the callers dead code (one caller had no check
+// at all, which let an activity be attached to another user's session). Mirrors
+// GetExerciseDayByIDAndUserID.
 func GetExerciseByIDAndUserID(exerciseID uuid.UUID, userID uuid.UUID) (*models.Exercise, error) {
 	var exercise *models.Exercise
 
@@ -83,9 +89,9 @@ func GetExerciseByIDAndUserID(exerciseID uuid.UUID, userID uuid.UUID) (*models.E
 		Find(&exercise)
 
 	if record.Error != nil {
-		return exercise, record.Error
+		return nil, record.Error
 	} else if record.RowsAffected != 1 {
-		return exercise, nil
+		return nil, nil
 	}
 
 	return exercise, nil

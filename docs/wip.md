@@ -85,6 +85,26 @@ Scope note: the threat model assumed is a self-hosted instance with several invi
 do **not** fully trust each other, plus the public internet reaching `/api/open`,
 `/api/oauth` and `/mcp`.
 
+**Shipped 2026-08-31 (fifth pass):** S13 — a broken-ownership-check class caused by a getter
+contract. `GetExerciseByIDAndUserID` and `GetExerciseDayByID` returned GORM's freshly allocated
+zero-value struct on a miss instead of `nil`, so the `exercise == nil` guard in all seven callers
+was dead code, and `APICreateOperationForUser` — which checked only the error — let **any
+authenticated user attach an activity to another user's session** (verified: HTTP 201 before the
+fix, 404 after). Both getters now return `(nil, nil)` on a miss, the operation handler gained the
+missing ownership branch, and the two call sites that would newly dereference nil
+(`CorrelateExerciseWithExerciseDay`, `ConvertExerciseToExerciseObject`'s date fallback) gained nil
+branches. The rule is now in
+[`conventions.md`](conventions.md#a-not-found-getter-must-return-nil-and-the-caller-must-check-it);
+regressions pinned by `database.TestExerciseGettersReturnNilOnMiss` and
+`controllers/operation_authz_test.go`. Found while wiring the MCP workout search — an existing
+test had been hedging around the contract (`if byID != nil && byID.ID != uuid.Nil`) rather than
+asserting it, which is what hid it.
+
+**Not swept:** only these two getters return a bare pointer this way (`GetExerciseDayByIDAndUserID`
+already returned nil correctly). Other getters return values or slices, where the miss is an
+explicit zero check, so this class does not reach them — but a new pointer-returning getter must
+follow the convention.
+
 ### Determined fixes (confirmed defects, no design question left)
 
 #### S10 — LOW: DB and SMTP passwords passed as command-line arguments
@@ -359,9 +379,9 @@ The searchable activity timeline shipped ([docs/exercises.md](exercises.md)), an
 builder now edits **gear per operation** (each moving activity card has its own selector, with a
 session-level "Set gear for all" convenience — see [docs/gear.md](gear.md)). Remaining builder
 work:
-- The per-activity **aggregate shape** built for `/auth/activities` is exactly what a better
-  **session summary header** should consume (activity chips + per-activity metrics) — reuse it
-  rather than re-deriving.
+- The **session aggregate shape** now returned by `/auth/activities` (`models.SessionFeedItem`:
+  workout totals plus the nested per-activity metrics) is exactly what a better **session
+  summary header** should consume — reuse it rather than re-deriving.
 - Consider a fuller per-`Operation` card layout (each activity type its own sub-card with its
   own metrics/sets) and clearer affordances for adding a *second activity type* to an existing
   session vs a *second session* to the day. (Gear is already per-operation; this is the

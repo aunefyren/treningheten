@@ -93,8 +93,10 @@ func TestGetExerciseByIDAndUserVariants(t *testing.T) {
 	if err != nil {
 		t.Fatalf("GetExerciseByIDAndUserID returned error: %v", err)
 	}
-	if byID != nil && byID.ID != uuid.Nil {
-		t.Errorf("expected empty record for off exercise from GetExerciseByIDAndUserID, got %v", byID.ID)
+	// Strictly nil, not a zero-value struct: callers guard on `== nil`, and one of them is an
+	// ownership check (see TestExerciseGettersReturnNilOnMiss).
+	if byID != nil {
+		t.Errorf("expected nil for an off exercise from GetExerciseByIDAndUserID, got %v", byID.ID)
 	}
 
 	// ...but GetAllExerciseByIDAndUserID does not filter is_on, so it is found.
@@ -393,4 +395,33 @@ func makeStravaSet(t *testing.T, operationID uuid.UUID, stravaID string) {
 	set := models.OperationSet{OperationID: operationID, Enabled: true, StravaID: &stravaID}
 	set.ID = uuid.New()
 	insertRow(t, &set)
+}
+
+// TestExerciseGettersReturnNilOnMiss pins the contract the callers depend on: a miss is nil,
+// never the zero-value struct GORM's Find allocates. It is not a style point — the callers all
+// branch on `== nil`, and APICreateOperationForUser's ownership check is one of them, so a
+// non-nil miss let an activity be attached to another user's session.
+func TestExerciseGettersReturnNilOnMiss(t *testing.T) {
+	newTestDB(t)
+	user := makeTestUser(t, "nilonmiss@test.dev", nil)
+	stranger := makeTestUser(t, "nilonmiss-stranger@test.dev", nil)
+	day := makeDay(t, user.ID, time.Now())
+	session := makeSession(t, day.ID, time.Now())
+
+	if exercise, err := GetExerciseByIDAndUserID(uuid.New(), user.ID); err != nil || exercise != nil {
+		t.Errorf("unknown exercise id: got (%v, %v), want (nil, nil)", exercise, err)
+	}
+	if exercise, err := GetExerciseByIDAndUserID(session.ID, stranger.ID); err != nil || exercise != nil {
+		t.Errorf("another user's exercise: got (%v, %v), want (nil, nil)", exercise, err)
+	}
+	if exercise, err := GetExerciseByIDAndUserID(session.ID, user.ID); err != nil || exercise == nil || exercise.ID != session.ID {
+		t.Errorf("the owner's own exercise should resolve: got (%v, %v)", exercise, err)
+	}
+
+	if day, err := GetExerciseDayByID(uuid.New()); err != nil || day != nil {
+		t.Errorf("unknown exercise day id: got (%v, %v), want (nil, nil)", day, err)
+	}
+	if got, err := GetExerciseDayByID(day.ID); err != nil || got == nil || got.ID != day.ID {
+		t.Errorf("an existing exercise day should resolve: got (%v, %v)", got, err)
+	}
 }

@@ -85,5 +85,5 @@ either way; an empty response leaves its "No public activities yet this week..."
 
 ## Related
 
-- [exercises.md](exercises.md) — the personal, searchable activity timeline.
+- [exercises.md](exercises.md) — the personal, searchable workout timeline.
 - [seasons-and-goals.md](seasons-and-goals.md) — what a `Goal` is and how membership works.
