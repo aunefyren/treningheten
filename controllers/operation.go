@@ -369,7 +369,9 @@ func APICreateOperationForUser(context *gin.Context) {
 	}
 
 	// Give achievement to user for adding operation to exercise, ignore outcome
-	go GiveUserAnAchievement(userID, uuid.MustParse("3d745d3a-b4b8-4194-bc72-653cfe4c351b"), time.Now(), 5)
+	goSafely("achievement grant", func() {
+		GiveUserAnAchievement(userID, uuid.MustParse("3d745d3a-b4b8-4194-bc72-653cfe4c351b"), time.Now(), 5)
+	})
 
 	context.JSON(http.StatusCreated, gin.H{"message": "Operation created.", "operation": operationObject})
 }

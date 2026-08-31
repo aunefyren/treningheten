@@ -104,7 +104,7 @@ func APIRegisterSickleave(context *gin.Context) {
 	}
 
 	// Give achievement to user for using sick leave, ignore outcome
-	go GiveUserAnAchievement(userID, uuid.MustParse("420b020c-2cad-4898-bb94-d86dc0031203"), now, 5)
+	goSafely("achievement grant", func() { GiveUserAnAchievement(userID, uuid.MustParse("420b020c-2cad-4898-bb94-d86dc0031203"), now, 5) })
 
 	context.JSON(http.StatusOK, gin.H{"message": "Sick leave used."})
 

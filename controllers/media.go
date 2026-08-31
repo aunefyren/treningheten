@@ -254,7 +254,7 @@ func APISyncMediaForUsers(context *gin.Context) {
 		}
 	}
 
-	go MediaSyncForUsers(usersToSync, syncRequest.ExerciseIDs)
+	goSafely("media sync for users", func() { MediaSyncForUsers(usersToSync, syncRequest.ExerciseIDs) })
 
 	context.JSON(http.StatusAccepted, gin.H{"message": "Media sync started!"})
 }

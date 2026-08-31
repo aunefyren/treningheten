@@ -353,7 +353,9 @@ func StravaSyncWeekForUser(user models.User, pointInTime time.Time) (err error) 
 	logger.Log.Debug("Got '" + strconv.Itoa((len(activities))) + "' activities for user.")
 
 	// Give user achievement for connecting Strava, ignore outcome
-	go GiveUserAnAchievement(user.ID, uuid.MustParse("fb4f6c1f-dfad-4df7-8007-4cfd6f351b17"), time.Now(), 5)
+	goSafely("achievement grant", func() {
+		GiveUserAnAchievement(user.ID, uuid.MustParse("fb4f6c1f-dfad-4df7-8007-4cfd6f351b17"), time.Now(), 5)
+	})
 
 	for _, activity := range activities {
 		err = StravaSyncActivityForUser(activity, user, token, false)
@@ -362,7 +364,7 @@ func StravaSyncWeekForUser(user models.User, pointInTime time.Time) (err error) 
 		}
 	}
 
-	go OllamaAsyncRefreshCacheForUser(user.ID)
+	goSafely("ollama cache refresh", func() { OllamaAsyncRefreshCacheForUser(user.ID) })
 
 	return
 }
@@ -1047,7 +1049,7 @@ func APISyncStravaActivitiesForUsers(context *gin.Context) {
 		}
 	}
 
-	go SyncStravaActivitiesForUsers(usersToSync, syncRequest.StravaIDs)
+	goSafely("strava sync for users", func() { SyncStravaActivitiesForUsers(usersToSync, syncRequest.StravaIDs) })
 
 	context.JSON(http.StatusAccepted, gin.H{"message": "Strava sync started!"})
 }

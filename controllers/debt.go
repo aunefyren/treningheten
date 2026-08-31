@@ -574,7 +574,9 @@ func APIGetDebt(context *gin.Context) {
 			// If a view was viewed and the viewer was the winner, give the winning achievement.
 			if debtObject.Winner.ID == userID {
 				// Give achievement to winner for winning, ignore outcome
-				go GiveUserAnAchievement(userID, uuid.MustParse("bb964360-6413-47c2-8400-ee87b40365a7"), time.Now(), 10)
+				goSafely("achievement grant", func() {
+					GiveUserAnAchievement(userID, uuid.MustParse("bb964360-6413-47c2-8400-ee87b40365a7"), time.Now(), 10)
+				})
 			}
 		}
 	}
@@ -728,7 +730,9 @@ func APIChooseWinnerForDebt(context *gin.Context) {
 	database.UpdateDebtWinner(debtIDInt, winnerID)
 
 	// Give achievement to loser for losing, ignore outcome
-	go GiveUserAnAchievement(userID, uuid.MustParse("d415fffc-ea99-4b27-8929-aeb02ae44da3"), sundayDate, 10)
+	goSafely("achievement grant", func() {
+		GiveUserAnAchievement(userID, uuid.MustParse("d415fffc-ea99-4b27-8929-aeb02ae44da3"), sundayDate, 10)
+	})
 
 	// Get user object
 	winnerUser, err := database.GetUserInformation(winnerID)

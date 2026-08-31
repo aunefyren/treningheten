@@ -248,7 +248,7 @@ func APIRegisterWeek(context *gin.Context) {
 
 	context.JSON(http.StatusCreated, gin.H{"message": "Week saved.", "week": weekReturn})
 
-	go OllamaAsyncRefreshCacheForUser(userID)
+	goSafely("ollama cache refresh", func() { OllamaAsyncRefreshCacheForUser(userID) })
 
 }
 

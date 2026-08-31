@@ -215,7 +215,9 @@ func GetUser(context *gin.Context) {
 		}
 
 		// Give achievement for visiting another user's profile, ignore outcome
-		go GiveUserAnAchievement(requesterUserID, uuid.MustParse("cbd81cd0-4caf-438b-989b-b5ca7e76605d"), time.Now(), 5)
+		goSafely("achievement grant", func() {
+			GiveUserAnAchievement(requesterUserID, uuid.MustParse("cbd81cd0-4caf-438b-989b-b5ca7e76605d"), time.Now(), 5)
+		})
 	}
 
 	// Reply
@@ -481,7 +483,9 @@ func UpdateUser(context *gin.Context) {
 		}
 
 		// Give achievement to user for changing profile photo, ignore outcome
-		go GiveUserAnAchievement(userOriginal.ID, uuid.MustParse("05a3579f-aa8d-4814-b28f-5824a2d904ec"), time.Now(), 5)
+		goSafely("achievement grant", func() {
+			GiveUserAnAchievement(userOriginal.ID, uuid.MustParse("05a3579f-aa8d-4814-b28f-5824a2d904ec"), time.Now(), 5)
+		})
 	}
 
 	// Validate birth date
@@ -934,7 +938,7 @@ func APISyncStravaForUser(context *gin.Context) {
 		return
 	}
 
-	go StravaSyncWeekForUser(user, pointInTime)
+	goSafely("strava week sync", func() { StravaSyncWeekForUser(user, pointInTime) })
 
 	context.JSON(http.StatusOK, gin.H{"message": "Strava sync started!"})
 }

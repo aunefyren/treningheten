@@ -422,7 +422,9 @@ func HevyBackfillForUser(user models.User) error {
 	}
 
 	// Give user the "Influencer" achievement for connecting Hevy, ignore outcome
-	go GiveUserAnAchievement(user.ID, uuid.MustParse("fb4f6c1f-dfad-4df7-8007-4cfd6f351b17"), time.Now(), 5)
+	goSafely("achievement grant", func() {
+		GiveUserAnAchievement(user.ID, uuid.MustParse("fb4f6c1f-dfad-4df7-8007-4cfd6f351b17"), time.Now(), 5)
+	})
 
 	page := 1
 	for {
@@ -506,7 +508,9 @@ func HevyEventsSyncForUser(user models.User) error {
 	}
 
 	// Give user the "Influencer" achievement for connecting Hevy, ignore outcome
-	go GiveUserAnAchievement(user.ID, uuid.MustParse("fb4f6c1f-dfad-4df7-8007-4cfd6f351b17"), time.Now(), 5)
+	goSafely("achievement grant", func() {
+		GiveUserAnAchievement(user.ID, uuid.MustParse("fb4f6c1f-dfad-4df7-8007-4cfd6f351b17"), time.Now(), 5)
+	})
 
 	page := 1
 	for {
@@ -665,11 +669,11 @@ func APISetHevyAPIKey(context *gin.Context) {
 
 	// Backfill the user's workout history in the background so the connect response stays
 	// fast; the full history can span many pages (pageSize max 10).
-	go func(u models.User) {
-		if err := HevyBackfillForUser(u); err != nil {
-			logger.Log.Warn("Hevy backfill failed for user " + u.ID.String() + ". Error: " + err.Error())
+	goSafely("hevy backfill", func() {
+		if err := HevyBackfillForUser(user); err != nil {
+			logger.Log.Warn("Hevy backfill failed for user " + user.ID.String() + ". Error: " + err.Error())
 		}
-	}(user)
+	})
 
 	context.JSON(http.StatusOK, gin.H{"message": "Hevy connected! Your workouts are importing in the background."})
 }
@@ -736,17 +740,17 @@ func APISyncHevyForUser(context *gin.Context) {
 		return
 	}
 
-	go func(u models.User) {
+	goSafely("hevy manual sync", func() {
 		var syncErr error
-		if u.HevyLastSync == nil {
-			syncErr = HevyBackfillForUser(u)
+		if user.HevyLastSync == nil {
+			syncErr = HevyBackfillForUser(user)
 		} else {
-			syncErr = HevyEventsSyncForUser(u)
+			syncErr = HevyEventsSyncForUser(user)
 		}
 		if syncErr != nil {
-			logger.Log.Warn("Manual Hevy sync failed for user " + u.ID.String() + ". Error: " + syncErr.Error())
+			logger.Log.Warn("Manual Hevy sync failed for user " + user.ID.String() + ". Error: " + syncErr.Error())
 		}
-	}(user)
+	})
 
 	context.JSON(http.StatusOK, gin.H{"message": "Hevy sync started!"})
 }

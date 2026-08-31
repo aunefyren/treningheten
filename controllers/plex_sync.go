@@ -408,7 +408,7 @@ func TriggerMediaSyncForExercise(user models.User, exerciseID uuid.UUID) {
 		return
 	}
 
-	go func() {
+	goSafely("media sync for session", func() {
 		connections, err := database.GetMediaConnectionsForUser(user.ID)
 		if err != nil || len(connections) == 0 {
 			return
@@ -438,7 +438,7 @@ func TriggerMediaSyncForExercise(user models.User, exerciseID uuid.UUID) {
 				logger.Log.Warn("Failed to mark session media settled. Error: " + err.Error())
 			}
 		}
-	}()
+	})
 }
 
 // MediaReconcileForAllUsers is the hourly media job. It is a dedicated media task — not

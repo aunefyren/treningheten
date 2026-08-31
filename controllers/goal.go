@@ -98,7 +98,9 @@ func APIRegisterGoalToSeason(context *gin.Context) {
 	}
 
 	// Give achievement to user, ignore outcome
-	go GiveUserAnAchievement(userID, uuid.MustParse("7f2d49ad-d056-415e-aa80-0ada6db7cc00"), time.Now(), 5)
+	goSafely("achievement grant", func() {
+		GiveUserAnAchievement(userID, uuid.MustParse("7f2d49ad-d056-415e-aa80-0ada6db7cc00"), time.Now(), 5)
+	})
 
 	context.JSON(http.StatusCreated, gin.H{"message": "Goal created."})
 

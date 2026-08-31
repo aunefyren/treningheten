@@ -74,6 +74,27 @@ Rules:
   and let the caller decide the HTTP response. Don't write to the `context` from deep
   helpers.
 
+### Background work goes through `goSafely`, never a bare `go`
+
+Handlers fire best-effort work into the background — achievement grants, Strava/Hevy syncs,
+Ollama cache refreshes, media pulls — and deliberately ignore the outcome. A panic on such a
+goroutine cannot be recovered by the handler that spawned it, so **one nil dereference in a
+throwaway achievement grant takes down the whole server**, dropping every in-flight request. Use
+`goSafely("what this is", func() { … })` (`controllers/background.go`), which recovers and logs
+the panic with its stack:
+
+```go
+goSafely("achievement grant", func() {
+    GiveUserAnAchievement(userID, uuid.MustParse("…"), time.Now(), 5)
+})
+```
+
+This is not licence to swallow errors: `fn` still logs its own, and anything whose failure the
+user must hear about does not belong on a background goroutine at all. CI found this the hard
+way — a controller test finished, its `t.Cleanup` reset `database.Instance` to nil, and a
+still-running achievement goroutine dereferenced it and killed the test binary. The same crash
+was reachable in production from any panic in any of those tasks.
+
 ### A "not found" getter must return nil, and the caller must check it
 
 Data-access getters that return a **pointer** (`GetExerciseByIDAndUserID`,
