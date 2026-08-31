@@ -544,6 +544,19 @@ not theme — left inline on purpose. Dynamic (`${…}`) values stay inline too.
 
 ## Decisions log
 
+- **`/users/:id` profile row — two stray dividers removed.** The profile column drew a thick
+  bluish rule on its right *and* a grey hairline across its bottom. The bottom one was
+  accidental: the block reuses the `.account-section` class, so it picked up
+  `.card .account-section { border-bottom: 1px solid var(--grey) }` — the **settings-accordion**
+  divider from `components.css`, which the profile block is not. Its own
+  `.account-section--profile { border-bottom: none }` never fired, because a single class (0,1,0)
+  loses to `.card .account-section` (0,2,0) no matter which file loads last. Both profile-row
+  modifiers are now scoped under `.card` so they tie on specificity and win on order, and the
+  remaining vertical divider became the standard **1px `--grey` hairline** (it was `0.15rem`
+  `--trans-lightblue`, a retired treatment). A reminder that `border: none` at a lower
+  specificity is not an opt-out — check what a shared class already inherits before assuming a
+  reset lands. Other legacy `--trans-lightblue` borders in `components.css` are untouched; they
+  go with their own components' sweeps.
 - **`/exercises` re-cut around the session card.** The timeline's unit changed from the activity
   to the **workout session** (a session with no activities — what the front page's "+" creates —
   was invisible before; see [`exercises.md`](exercises.md)), so the card had to move with it. The

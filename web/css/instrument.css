@@ -13,18 +13,25 @@
   box-sizing: inherit;
 }
 
-.account-section--profile {
+/* The two profile-row columns are scoped under `.card` so they outrank
+   `.card .account-section` (components.css), the settings-accordion divider. They share the
+   `.account-section` class but are not accordion rows, and at a bare `.account-section--profile`
+   the `border-bottom: none` below lost on specificity — which drew the accordion's hairline
+   across the bottom of the profile column. Their one divider is the vertical rule between the
+   columns: a single `--grey` hairline, per the style guide (the old 0.15rem
+   `--trans-lightblue` border is a retired treatment). */
+.card .account-section--profile {
   flex: 0 0 auto;
   width: auto;
   min-width: 20rem;
   border-bottom: none;
-  border-right: 0.15rem solid var(--trans-lightblue);
+  border-right: 1px solid var(--grey);
   padding: 1.5rem 2rem;
   margin: auto 0;
   box-sizing: inherit;
 }
 
-.account-section--stats {
+.card .account-section--stats {
   flex: 1 1 0;
   min-width: 18rem;
   align-items: flex-start;
@@ -33,15 +40,16 @@
   padding: 1.5rem 2rem;
 }
 
+/* Stacked: the divider becomes the horizontal rule between the two columns. */
 @media (max-width: 640px) {
   .user-profile-row { flex-direction: column; }
-  .account-section--profile {
+  .card .account-section--profile {
     width: 100%;
     border-right: none;
-    border-bottom: 0.15rem solid var(--trans-lightblue);
+    border-bottom: 1px solid var(--grey);
     padding: 1.5rem 1rem;
   }
-  .account-section--stats { width: 100%; padding: 1.25rem 1rem; }
+  .card .account-section--stats { width: 100%; padding: 1.25rem 1rem; }
 }
 
 /* ── Activity heatmap (statistics page) ── */
