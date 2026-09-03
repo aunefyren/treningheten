@@ -505,11 +505,14 @@ func computeBiggestClimb(streams *models.StravaActivityStreams, cumMeters []floa
 // JS. HR zones anchor from the day owner's settings; the age-based estimate uses the
 // activity's own date (not today), so an old activity's zones stay historically accurate
 // and don't drift as the user ages.
-func attachStreamSummaries(day *models.ExerciseDayObject) {
+// The day owner is passed in rather than read off day.User: that field is the public view
+// (models.PublicUser), which deliberately carries no heart-rate settings, and this file is
+// pure logic with no data-access layer of its own.
+func attachStreamSummaries(day *models.ExerciseDayObject, owner models.User) {
 	if day == nil {
 		return
 	}
-	hrMax, hrRest, hrBasis := resolveUserHR(day.User, day.Date)
+	hrMax, hrRest, hrBasis := resolveUserHR(owner, day.Date)
 	for ei := range day.Exercises {
 		ops := day.Exercises[ei].Operations
 		for oi := range ops {

@@ -4,6 +4,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -56,6 +57,51 @@ type User struct {
 	ShareStatistics          *bool      `json:"share_statistics" gorm:"default: true"`
 }
 
+// PublicUser is what one user is allowed to see of another. It exists as a distinct type
+// so the safe set is an allowlist the compiler enforces: a field added to User is invisible
+// to every cross-user response until somebody adds it here on purpose.
+//
+// That matters because the previous design — censor named fields, return a User — is a
+// blocklist, and it had already failed silently. BirthDate, MaxHeartrate, RestingHeartrate
+// and ObservedMaxHeartrate were added to User long after CensorUserObject was written, so
+// GET /api/auth/users served every user's date of birth and resting heart rate to any
+// authenticated caller, a read-only PAT included. Nothing rendered them; they inherited
+// serialization for free. `json:"-"` is not the answer for these — unlike a credential they
+// are legitimately visible to their owner on /account — so the fix is the type, not the tag.
+//
+// The JSON tags match User's exactly, so this is invisible to clients.
+//
+// Naming: deliberately not "UserObject". In this codebase the *Object suffix means an
+// enriched read model (ConvertExerciseToExerciseObject resolves relations and does real
+// work). This is the opposite — a reduction — and should not borrow that word.
+//
+// See docs/wip.md (S15) and docs/conventions.md.
+type PublicUser struct {
+	ID        uuid.UUID `json:"id"`
+	CreatedAt time.Time `json:"created_at"`
+
+	FirstName string `json:"first_name"`
+	LastName  string `json:"last_name"`
+	Admin     *bool  `json:"admin"`
+
+	// Profile links, each shown only when its owner opted in. StravaID is cleared
+	// alongside StravaPublic by CensorUserObject, so a private Strava id is not merely
+	// unrendered but absent.
+	StravaID       *string `json:"strava_id"`
+	StravaPublic   *bool   `json:"strava_public"`
+	HevyProfileURL *string `json:"hevy_profile_url"`
+	HevyPublic     *bool   `json:"hevy_public"`
+
+	// ShareStatistics is a visibility flag rather than personal data: the profile page
+	// reads it to decide whether to request the statistics block at all.
+	ShareStatistics *bool `json:"share_statistics"`
+
+	// Wheel appearance is rendered for other users on the prize wheel.
+	WheelColor       *string `json:"wheel_color"`
+	WheelBorderColor *string `json:"wheel_border_color"`
+	WheelEmoji       *string `json:"wheel_emoji"`
+}
+
 type UserCreationRequest struct {
 	FirstName      string `json:"first_name"`
 	LastName       string `json:"last_name"`
@@ -103,8 +149,8 @@ type UserHevyAPIKeyUpdateRequest struct {
 }
 
 type UserWithTickets struct {
-	User    User `json:"user"`
-	Tickets int  `json:"tickets"`
+	User    PublicUser `json:"user"`
+	Tickets int        `json:"tickets"`
 }
 
 func (user *User) HashPassword(password string) error {
@@ -133,11 +179,19 @@ type UserStatisticsReply struct {
 	StreakDays         int `json:"streak_days"`
 	StreakDaysTop      int `json:"streak_days_top"`
 	SeasonsJoined      int `json:"seasons_joined"`
+	// MinimumSampleSize is the floor below which a derived figure is withheld — the
+	// averages, and the headline activity the breakdown is built around. It is sent so the
+	// client can say *why* something is missing without hardcoding the number and drifting
+	// from it. See controllers.userStatisticsMinSampleSize.
+	MinimumSampleSize int `json:"minimum_sample_size"`
+	// Each window is nil when it holds fewer than MinimumSampleSize sessions of the headline
+	// activity — see controllers.publishWindow. Action is nil (and every window with it)
+	// when there is no activity to headline at all.
 	ActivityStatistics struct {
-		Action    *Action                   `json:"action"`
-		PastMonth UserStatisticsCompilation `json:"past_month"`
-		PastYear  UserStatisticsCompilation `json:"past_year"`
-		AllTime   UserStatisticsCompilation `json:"all_time"`
+		Action    *Action                    `json:"action"`
+		PastMonth *UserStatisticsCompilation `json:"past_month"`
+		PastYear  *UserStatisticsCompilation `json:"past_year"`
+		AllTime   *UserStatisticsCompilation `json:"all_time"`
 	} `json:"activity_statistics"`
 }
 
@@ -147,13 +201,16 @@ type UserStatisticsCompilation struct {
 	Tops     UserStatisticsTopCompilation     `json:"tops"`
 }
 
+// UserStatisticsTopCompilation is the best single session in a window. It is deliberately
+// value-only: the exercise-day ids this used to carry named a specific session, with its
+// date, on a profile any authenticated user can read — which is precisely what the Private
+// flag withholds from the feeds. Nothing consumed them either (the web client never rendered
+// a link, and MCP get_statistics has its own DTO), and the id only ever resolved for the
+// owner, so they are gone rather than gated. See docs/wip.md, S14.
 type UserStatisticsTopCompilation struct {
-	Distance              float64    `json:"distance"`
-	DistanceExerciseDayID *uuid.UUID `json:"distance_exercise_day_id"`
-	Time                  int64      `json:"time"`
-	TimeExerciseDayID     *uuid.UUID `json:"time_exercise_day_id"`
-	Weight                float64    `json:"weight"`
-	WeightExerciseDayID   *uuid.UUID `json:"weight_exercise_day_id"`
+	Distance float64 `json:"distance"`
+	Time     int64   `json:"time"`
+	Weight   float64 `json:"weight"`
 }
 
 type UserStatisticsSumCompilation struct {
@@ -163,8 +220,13 @@ type UserStatisticsSumCompilation struct {
 	Operations int64   `json:"operations"`
 }
 
+// UserStatisticsAverageCompilation holds a window's per-session averages. The fields are
+// pointers because an average over a handful of sessions approaches the sessions themselves
+// — "1 operation, avg distance 21 km" simply republishes that one workout — so a window
+// below userStatisticsMinSampleSize reports null rather than a number that is really an
+// individual. Null means "not enough data", never zero.
 type UserStatisticsAverageCompilation struct {
-	Distance float64 `json:"distance"`
-	Time     int64   `json:"time"`
-	Weight   float64 `json:"weight"`
+	Distance *float64 `json:"distance"`
+	Time     *int64   `json:"time"`
+	Weight   *float64 `json:"weight"`
 }

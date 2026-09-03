@@ -13,7 +13,9 @@ import (
 
 // assembleUserProfile returns a flattened profile for the authenticated user.
 func assembleUserProfile(userID uuid.UUID) (models.MCPProfile, error) {
-	user, err := database.GetUserInformation(userID)
+	// The caller's own profile, so it reads the full row — Email is part of whoami and is
+	// deliberately not on models.PublicUser.
+	user, err := database.GetAllUserInformation(userID)
 	if err != nil {
 		return models.MCPProfile{}, err
 	}

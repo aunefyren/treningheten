@@ -117,20 +117,6 @@ injects a flag.
 **Fix:** have the binary read these from the environment directly (it already receives them
 as env vars) rather than round-tripping through argv, and quote/array-ify the invocation.
 
-#### S11 — LOW: `GET /api/auth/users/:user_id/activities` is broken and, if fixed naively, leaks
-`APIGetUserActivities` (`controllers/user.go:1045`) has two independent problems:
-
-- It gates on `user.ShareActivities` (`:1063`), but `user` came from `GetUserInformation`,
-  whose censor sets `ShareActivities = nil` (`database/user.go:469`). The gate therefore
-  **always** returns 403 — the endpoint is dead.
-- The filter behind it (`:1116`) keeps exercise days where `userID != *exerciseDay.UserID`,
-  i.e. it returns every *other* sharing user's activities and excludes the requested user's.
-  That's inverted; making the censor stop nil-ing the field without fixing this would turn a
-  broken endpoint into a data-leaking one.
-
-**Fix:** both together — decide whether `ShareActivities` should be visible on a censored
-object (it's a visibility flag, not PII; probably yes) and invert the filter to `==`.
-
 #### S12 — LOW: Go toolchain is behind on security patches
 `govulncheck` reports **16 stdlib vulnerabilities reachable from this code** at the local
 toolchain (go1.26.2). The Dockerfile pins `golang:1.25.0-alpine`, which is older still.
@@ -224,6 +210,115 @@ Recording these so a future pass doesn't re-derive them:
   form/XHR CSRF doesn't apply. The one cookie-accepting group is `AuthImageReadOnly`, which is
   GET-only and `SameSite=Strict`.
 
+## Privacy audit — 2026-09-03
+
+A privacy-focused pass over the cross-user read paths, the share gates, the `Private`
+session flag and the outbound data flows. It reuses the `S<n>` numbering of the security
+audit above, since the two overlap and commit messages resolve against one sequence.
+
+**Checked and found sound (recording so a later pass doesn't re-derive):** the three social
+feeds (`APIGetSharedActivities`, `APIGetCurrentSeasonActivities`, `APIGetUserActivities`) all
+flow through `buildActivitiesFromExerciseDays`, which drops private sessions, and the
+underlying queries enforce `users.share_activities = 1` **in SQL** rather than in Go
+(`database/exerciseday.go:376`, `:398`). Season activities additionally require the caller to
+hold a goal in the season. `APIGetExerciseDay`, `APIGetOperation`, `APIGetActionStatistics`
+and the operation-set routes are all `…ByIDAndUserID`-scoped. `ShareStatistics` is **not**
+nil-ed by `CensorUserObject`, so unlike `ShareActivities` (S11) that gate really works. The
+Ollama front-page message is generated per user and served only to its subject
+(`APIGetOllamaFrontPageMessageForUser` takes the user id from the token, and the cache is
+keyed per user), so the private-session data in its payload never reaches anyone else. MCP is
+self-scoped throughout.
+
+**Considered and deliberately accepted:**
+- **`/api/admin/exercise-days` returns every user's full day tree** — private sessions, notes,
+  raw `latlng` streams and, when media is on, the listening timeline. An admin has direct DB
+  access anyway, so withholding it at the API is theatre. What does survive is a
+  non-privacy concern: the response is unbounded, unpaginated and inlines every stream blob,
+  so it grows with the install. Worth a date bound eventually, on memory/latency grounds.
+- **Achievements have no share gate** (`APIGetAchievements?user=<id>` ignores both toggles).
+  Achievements read as public trophies; treating them that way is a coherent position.
+- **Imported GPS has no privacy-zone concept.** Strava applies privacy zones to its own map
+  rendering, not to the streams API, so a stored `latlng` track starts at the user's front
+  door. Self-scoped everywhere today, but it is a constraint on any future "share this
+  activity's route" feature — do not add one without addressing it.
+
+**Shipped 2026-09-03:** S14, S15, S16 and S11.
+
+**S15 — the user censor is now an allowlist type.** `CensorUserObject` returned a redacted
+`models.User`, which is a blocklist: any field added to `models.User` later was serialized to
+every caller until somebody remembered to censor it. That had already happened — `BirthDate`,
+`MaxHeartrate`, `RestingHeartrate` and `ObservedMaxHeartrate` were being served to any
+authenticated caller (a read-only PAT included) by `GET /api/auth/users` and
+`GET /api/auth/users/:id`, with nothing rendering them. It is now
+`CensorUserObject(models.User) models.PublicUser`, an explicit allowlist of the thirteen
+fields the frontend actually reads off another user, so a new field on `models.User` reaches
+nobody until it is added to `PublicUser` on purpose. The read DTOs (`GoalObject`,
+`ExerciseDayObject`, `Activity`, `DebtObject`, `WheelviewObject`, `UserWithTickets`,
+`InviteObject`) carry `PublicUser`; the raw GORM rows keep `models.User` and had their `User`
+association marked `json:"-"`, which closes the `models.Week` → `[]Goal` → `User` hole that
+was safe only because nothing calls `Preload("User")`. Server-side consumers that genuinely
+need the row (the birthday achievement, MCP `whoami`, HR-zone anchoring, the media sync and
+reconcile, the reset e-mail) moved to `GetAllUserInformation`. `AchievementDelegation.User`
+was a raw row embedded in a cross-user response and is now `json:"-"` — no client read it,
+they use `user_id`. Rules in [`conventions.md`](conventions.md#never-serialize-a-credential);
+`assertOnlyPublicFields` in `database/user_censor_test.go` pins the exact key set, and fails
+if anyone widens it without meaning to.
+
+**S14 — private sessions no longer surface as itemised profile statistics.** The counts,
+sums and streaks deliberately still include them (a private session already counts toward the
+weekly goal and the leaderboard, so excluding it would make the profile disagree), but they
+are excluded from the **Tops**, which name one session and its date.
+
+A **window** holding fewer than `userStatisticsMinSampleSize` (3) sessions of the headline
+activity is withheld whole (`publishWindow` returns nil), not merely stripped of its averages.
+The first cut only floored the averages, which was not enough: a month with a single session
+still published its distance, its longest session and its total time, and those are that one
+workout said three ways — visibly so, since "distance" and "best" then show the same number.
+The three windows are now `*UserStatisticsCompilation`; nil means "not enough data", never
+zero. When even the **all-time** window is below the floor there is nothing to build a
+breakdown from, so the whole block goes — reachable even with a headline pick, since three
+activities of three different types clear the pick's floor while the most common of them has
+only one session. The three
+`*ExerciseDayID` fields on the Tops were removed outright — nothing read them, and the link
+only ever resolved for the owner.
+
+The **headline activity** the breakdown is built around now respects the same floor. It is
+still picked from the past month — "what they have been doing lately" is the more interesting
+thing to read — but at one or two activities that pick describes a single workout rather than
+a person, so a thin recent window falls back to the **all-time** pick (`chooseHeadlineAction`).
+Below the floor on both counts there is nothing honest to headline: the block is omitted and
+the client renders an explicit empty state (`.user-stats-empty`, see
+[`styleguide.md`](styleguide.md)) instead of leaving a gap, with the threshold interpolated
+from the new `minimum_sample_size` field so the copy cannot drift from the constant. The same
+note appears inside a single withheld window's tab — the tab is kept rather than dropped,
+because a missing tab hides the fact silently, and the panel opens on the first window that
+has data. Falling back rather than blanking is what makes the floor affordable here — the section carries the
+month/year/all-time windows together, so suppressing the pick outright would have taken years
+of statistics off the page to hide a quiet month.
+
+That also fixed a long-standing quirk: a nil pick used to match operations with **no** action,
+so a profile with nothing to headline reported a nameless section built from actionless
+operations. It now reports nothing and says why.
+
+Behaviour is documented in [`data-model.md`](data-model.md); tests in
+`controllers/user_statistics_privacy_test.go`.
+
+**S16 — the Plex artwork proxy no longer accepts dot-segments.** `plexArtworkPathAllowed` was
+a bare `/library/` prefix test, and Go's HTTP client does not clean `..` out of a request
+path, so a caller could reach any endpoint on their own PMS with their own token. It now
+matches `^/library/[A-Za-z0-9/._-]+$` and rejects any `..` outright rather than normalising —
+a real thumb path never needs cleaning, so anything `path.Clean` would rewrite is hostile.
+Cases in `controllers/plex_test.go`.
+
+**S11 — `GET /api/auth/users/:user_id/activities` fixed, both halves together.** The gate read
+a censored user whose `ShareActivities` was nil-ed, so the endpoint returned 403 to everyone;
+behind it, the filter kept days whose owner was *not* the requested user, i.e. it would have
+returned everybody else's activities. Fixing either half alone would have turned a dead
+endpoint into a leaking one, so the S15 type change (which forced the gate to read the real
+row) was completed by replacing the hand-rolled filter with the SQL-scoped
+`GetExerciseDaysForSharingUsersInListUsingDates` for the single requested user — which
+enforces `share_activities` in the query, leaving the explicit gate as defence in depth.
+
 ## Plans & Ideas
 
 ### More workout tags
@@ -312,9 +407,10 @@ session, and rows are disposable delete-and-replace. Details in [`media.md`](med
 ### Private sessions — follow-ups
 The per-session privacy flag shipped: `Exercise.Private`, mirrored from Strava on every sync,
 toggled in the builder for manual/Hevy sessions, filtered out of every feed by
-`buildActivitiesFromExerciseDays`. Design + behaviour live in
-[`docs/data-model.md`](data-model.md) and [`docs/strava.md`](strava.md#activity-privacy).
-Open:
+`buildActivitiesFromExerciseDays`, and (as of the 2026-09-03 privacy audit, S14) kept out of
+the profile statistics' Tops while still counting toward the totals and streaks. Design +
+behaviour live in [`docs/data-model.md`](data-model.md) and
+[`docs/strava.md`](strava.md#activity-privacy). Open:
 - **Hevy has no privacy source.** Hevy workouts import as visible; only the builder toggle
   hides them. Check whether the Hevy API exposes a per-workout visibility field.
 - **MCP doesn't expose `private`.** Deliberate for now — MCP is self-scoped, so nothing leaks
@@ -369,10 +465,6 @@ manual off as a delete Strava may not resurrect.
 Per-exercise feedback in its own dedicated space (not the front-page greeting).
 - How to avoid spamming the LMM
 - Little model, can the feedback be decent?
-
-### Locked achievements CSS bug
-- Achievements with the pad lock icon on /achievements have a rounded border around the icon, like a margin between the icon and the rounded color around the achievement
-- SVG get's cut off on the corners because of this
 
 ### /exercises builder rework (`/exercises/:id`) — fast-follow
 The searchable activity timeline shipped ([docs/exercises.md](exercises.md)), and the session

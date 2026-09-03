@@ -6,8 +6,12 @@ import (
 
 type Wheelview struct {
 	GormModel
-	UserID  uuid.UUID `json:"" gorm:"type:varchar(100);"`
-	User    User      `json:"user" gorm:"not null"`
+	UserID uuid.UUID `json:"" gorm:"type:varchar(100);"`
+	// Never serialized: this is the GORM association, and rows like this one reach response
+	// bodies embedded in other structures (models.Week carries []Goal, for one). It marshals
+	// as an empty object today only because nothing preloads it — accidental safety. The
+	// read path hands out models.PublicUser instead. See docs/wip.md, S15.
+	User    User      `json:"-" gorm:"not null"`
 	DebtID  uuid.UUID `json:"" gorm:"type:varchar(100);"`
 	Debt    Debt      `json:"debt" gorm:"not null"`
 	Viewed  bool      `json:"viewed" gorm:"not null; default: false"`
@@ -16,7 +20,7 @@ type Wheelview struct {
 
 type WheelviewObject struct {
 	GormModel
-	User    User       `json:"user" `
+	User    PublicUser `json:"user" `
 	Debt    DebtObject `json:"debt" `
 	Viewed  bool       `json:"viewed" `
 	Enabled bool       `json:"enabled" `

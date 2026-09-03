@@ -233,8 +233,11 @@ func TestConvertSeasonToSeasonObjectBatched(t *testing.T) {
 	if aliceGoal.User.FirstName != "Alice" {
 		t.Errorf("alice first name = %q, want Alice", aliceGoal.User.FirstName)
 	}
-	if aliceGoal.User.Password != "REDACTED" {
-		t.Errorf("expected censored user (password REDACTED), got %q", aliceGoal.User.Password)
+	// GoalObject.User is models.PublicUser, so a credential cannot be represented on it at
+	// all — the type is the assertion. What is worth checking here is that the bulk load
+	// went through the censoring getter, which the Strava id (private by default) shows.
+	if aliceGoal.User.StravaID != nil {
+		t.Errorf("expected a censored user, got a Strava id: %v", *aliceGoal.User.StravaID)
 	}
 
 	bobGoal, ok := byUser[bob.ID]

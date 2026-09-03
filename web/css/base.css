@@ -151,7 +151,12 @@
   }
 
   .container{
-    padding-top: 5rem !important;
+    /* Breathing room under the bar, not clearance for it: #nav is `position: sticky`, so it
+       sits in normal flow and never overlaps this. It was `5rem !important` — clearance
+       sized for a taller, out-of-flow nav that no longer exists — which left roughly 4rem of
+       empty page between the bar and the first content on every page. The `!important` went
+       with it; nothing in the stylesheets competes for this property. */
+    padding-top: var(--space-4);
     width: -webkit-fill-available;
     margin-right:auto;
     margin-left:auto;

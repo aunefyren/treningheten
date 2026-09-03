@@ -371,10 +371,9 @@ func ConvertDebtToDebtObject(debt models.Debt) (models.DebtObject, error) {
 		user, err := database.GetUserInformation(*debt.WinnerID)
 		if err != nil {
 			logger.Log.Info("Failed to get user information for user '" + debt.Winner.ID.String() + "'. Creating blank user. Error: " + err.Error())
-			user = models.User{
+			user = models.PublicUser{
 				FirstName: "Deleted",
 				LastName:  "Deleted",
-				Email:     "Deleted",
 			}
 		}
 
@@ -386,10 +385,9 @@ func ConvertDebtToDebtObject(debt models.Debt) (models.DebtObject, error) {
 	user, err := database.GetUserInformation(debt.LoserID)
 	if err != nil {
 		logger.Log.Info("Failed to get user information for user '" + debt.Loser.ID.String() + "'. Creating blank user. Error: " + err.Error())
-		user = models.User{
+		user = models.PublicUser{
 			FirstName: "Deleted",
 			LastName:  "Deleted",
-			Email:     "Deleted",
 		}
 	}
 

@@ -460,7 +460,8 @@ func MediaReconcileForAllUsers() {
 
 	since := time.Now().Add(-mediaReconcileLookback)
 	for _, userID := range userIDs {
-		user, err := database.GetUserInformation(userID)
+		// Background job acting on the user's own connections: needs the real row.
+		user, err := database.GetAllUserInformation(userID)
 		if err != nil {
 			logger.Log.Warn("Media reconcile could not load user. Error: " + err.Error())
 			continue

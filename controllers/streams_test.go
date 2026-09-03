@@ -403,7 +403,7 @@ func TestAttachStreamSummaries(t *testing.T) {
 	streams := steadyRun(100, 3.0, 150)
 	day := &models.ExerciseDayObject{
 		Date: time.Date(2020, 6, 1, 0, 0, 0, 0, time.UTC), // age drives the "age" basis
-		User: models.User{BirthDate: timePtr(time.Date(1990, 1, 1, 0, 0, 0, 0, time.UTC))},
+
 		Exercises: []models.ExerciseObject{{
 			Operations: []models.OperationObject{
 				{
@@ -416,7 +416,10 @@ func TestAttachStreamSummaries(t *testing.T) {
 			},
 		}},
 	}
-	attachStreamSummaries(day)
+	// The owner is passed separately: day.User is the public view and carries no heart-rate
+	// settings, so the age-based HR basis has to come from the real row.
+	owner := models.User{BirthDate: timePtr(time.Date(1990, 1, 1, 0, 0, 0, 0, time.UTC))}
+	attachStreamSummaries(day, owner)
 
 	withStreams := day.Exercises[0].Operations[0]
 	if withStreams.StreamSummary == nil {

@@ -8,6 +8,7 @@ import (
 	"net"
 	"net/http"
 	"net/url"
+	"regexp"
 	"sort"
 	"strconv"
 	"strings"
@@ -603,11 +604,27 @@ func upsertMediaConnection(userID uuid.UUID, provider, accessToken string, serve
 	return database.CreateMediaConnectionInDB(connection)
 }
 
-// plexArtworkPathAllowed guards the artwork proxy against SSRF: only Plex library
-// image paths may be fetched with the user's server token, never an arbitrary URL a
-// caller crafts. Plex cover thumbs are served under /library/ on the PMS.
+// plexArtworkThumbPath matches the shape of a real Plex cover-thumb path. The stored
+// values come from Plex's own Thumb field (see plex_sync.go) and look like
+// "/library/metadata/1/thumb/9" or "/library/parts/5/file.jpg". The character class has no
+// "%", so a percent-encoded traversal cannot survive it either.
+var plexArtworkThumbPath = regexp.MustCompile(`^/library/[A-Za-z0-9/._-]+$`)
+
+// plexArtworkPathAllowed guards the artwork proxy against SSRF: only Plex library image
+// paths may be fetched with the user's server token, never an arbitrary URL a caller
+// crafts. A "/library/" prefix test is not enough on its own — Go's HTTP client does not
+// remove dot-segments from a request path, so "/library/../status/sessions" would reach
+// the PMS. A dot is legitimate in a thumb path (file extensions), so traversal is rejected
+// by refusing ".." outright rather than by banning the character.
+//
+// It rejects rather than normalises: no legitimate thumb path needs cleaning, so anything
+// path.Clean would rewrite is hostile and should 400 instead of being quietly turned into
+// something valid.
 func plexArtworkPathAllowed(path string) bool {
-	return strings.HasPrefix(path, "/library/")
+	if strings.Contains(path, "..") {
+		return false
+	}
+	return plexArtworkThumbPath.MatchString(path)
 }
 
 // APIGetPlexArtwork proxies a Plex cover-art thumbnail. Plex thumbs live on the user's

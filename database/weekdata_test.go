@@ -170,10 +170,10 @@ func TestGetUsersByIDs(t *testing.T) {
 	if len(users) != 2 {
 		t.Errorf("got %d users, want 2 (disabled excluded)", len(users))
 	}
+	// GetUsersByIDs returns the public view, so credentials are absent from the type
+	// rather than blanked. assertOnlyPublicFields pins the exact set that may go out.
 	for _, user := range users {
-		if user.Password != "REDACTED" {
-			t.Errorf("user %s not censored: password = %q", user.ID, user.Password)
-		}
+		assertOnlyPublicFields(t, user, "GetUsersByIDs")
 	}
 
 	none, err := GetUsersByIDs(nil)

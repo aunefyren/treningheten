@@ -133,6 +133,24 @@ Strava and media features read.
     *what* you did, not *that* you trained. Strava mirrors its own privacy setting onto it
     on every sync (see [strava.md](strava.md)); manual and Hevy sessions use the builder
     toggle.
+
+    On the **profile statistics** (`GET /api/auth/users/:user_id/statistics`) the same
+    reasoning splits one level finer. A private session keeps counting toward the session
+    counts, the metric sums and the day/week streaks — those are already implied by the
+    leaderboard, so excluding them would only make the profile disagree with it. It is left
+    out of the **Tops** (best distance / time / weight), because a top is a single nameable
+    session with a date rather than an aggregate: publishing it would say exactly what the
+    feeds refuse to. A **window** (past month / past year / all time) holding fewer than
+    `userStatisticsMinSampleSize` (3) sessions of the headline activity is withheld whole,
+    not merely stripped of its averages: with one session its distance total, its longest
+    session and its total time are that same workout said three ways — visibly so, since
+    "distance" and "best" then show the same number. Below the floor the window is `null`,
+    never a row of zeroes.
+    The same floor governs the **headline activity** the breakdown is built around: it is
+    picked from the past month, falls back to the all-time pick when the recent window is
+    thinner than the floor, and is omitted entirely when neither window clears it. The
+    all-time window gates the whole block — if it is below the floor there is no breakdown at
+    all, and the profile page says so rather than showing a gap.
 - **Operation** (`models/operation.go`) — **one activity type** inside a session (a run,
   a lift). Points at an `Action` and optionally a `Gear`. Carries per-operation
   `WeightUnit`/`DistanceUnit` (free-form — never blindly sum across them), `Tags`

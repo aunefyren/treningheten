@@ -162,17 +162,54 @@ The data-access layer reinforces this with two families of getter, and the names
 contract:
 
 - **Censored (default):** `GetUserInformation`, `GetUsersInformation`, `GetUsersByIDs`,
-  `GetAllUsersWithSundayAlertsEnabled` — run every row through `CensorUserObject`. Use
-  these for anything that reaches a response body.
+  `GetAllUsersWithSundayAlertsEnabled` — run every row through `CensorUserObject` and so
+  return `models.PublicUser`. Use these for anything that reaches a response body.
 - **Uncensored (explicit `All`/`Uncensored` in the name):** `GetAllUserInformation`,
   `GetAllUsersUncensored`, `GetAllUsersWithSundayAlertsEnabledUncensored` — for server-side
   jobs that genuinely need the values (the Strava sync needs `StravaCode`; the Sunday
   reminder needs the e-mail address). Never let their result reach `context.JSON`.
 
-When censoring a slice, **index-assign** — `users[index] = CensorUserObject(users[index])`.
-Ranging by value censors a copy and silently leaves the slice untouched; that exact bug
-served every user's hash and reset code from `GET /api/auth/users`. Regression tests live in
-`database/user_censor_test.go` and `models/user_serialization_test.go`.
+(The index-assign rule that used to live here is obsolete: `CensorUserObject` returns a new
+value of a different type, so a censored copy cannot be silently discarded any more.)
+
+### What one user may see of another is an allowlist type
+
+`json:"-"` handles fields that are secret from *everyone*. It cannot express "visible to its
+owner, private from their peers" — a birth date and a resting heart rate are edited by their
+owner on `/account` and are nobody else's business. For those, the boundary is the **type**:
+
+- **`models.User`** is the full row. It is what you get back from the uncensored getters and
+  what a user sees of themselves.
+- **`models.PublicUser`** is what one user may see of another. `CensorUserObject` returns it,
+  and so do all the censored getters.
+
+`PublicUser` is an allowlist, and that is the entire point. Its predecessor redacted named
+fields and returned a `User`, which is a blocklist — so `BirthDate`, `MaxHeartrate`,
+`RestingHeartrate` and `ObservedMaxHeartrate`, all added long after the censor was written,
+were served to every authenticated caller (a read-only PAT included) simply by existing.
+**To expose something new about a user to their peers, add it to `models.PublicUser`
+deliberately.** Adding a field to `models.User` exposes it to nobody.
+
+Do not call the reduced type `UserObject`: in this codebase the `*Object` suffix means an
+*enriched* read model (`ConvertExerciseToExerciseObject` resolves relations and does real
+work). This is a reduction and should not borrow that word.
+
+### Raw GORM rows are not response shapes
+
+A GORM row's `User` association is `json:"-"` on every model that has one (`Goal`,
+`ExerciseDay`, `Debt`, `Gear`, `MediaConnection`, `Notification`, `Wheelview`,
+`AchievementDelegation`, `Invite`). The read DTO beside it — `GoalObject`,
+`ExerciseDayObject`, `DebtObject`, `Activity`, … — carries `models.PublicUser` instead.
+
+This is not theoretical tidiness. `models.Week` embeds `Goals []Goal` and `APIGetWeek`
+returns it straight to the client; that shipped without leaking **only** because nothing
+calls `Preload("User")`, so the association marshalled as an empty object. One preload added
+to fix an unrelated N+1 would have put every field of `models.User` in the week response.
+
+So: when a raw row must be reachable from a response, mark its associations `json:"-"` and
+put the public data on the DTO. Regression tests live in `database/user_censor_test.go`
+(`assertOnlyPublicFields` pins the exact key set that may go out) and
+`models/user_serialization_test.go`.
 
 ## Frontend (vanilla JS) conventions
 

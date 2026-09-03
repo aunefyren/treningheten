@@ -143,7 +143,9 @@ func APISyncMediaForExercise(context *gin.Context) {
 		return
 	}
 
-	user, err := database.GetUserInformation(userID)
+	// The media sync runs as the user against their own provider connections, so it needs
+	// the real row rather than the public view.
+	user, err := database.GetAllUserInformation(userID)
 	if err != nil {
 		logger.Log.Info("Failed to get user. Error: " + err.Error())
 		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get user."})

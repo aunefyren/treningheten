@@ -11,17 +11,19 @@ import (
 // Strava equipment id (e.g. "g12345" / "b12345") for gear imported from Strava.
 type Gear struct {
 	GormModel
-	Enabled      bool      `json:"enabled" gorm:"not null; default: true"`
-	UserID       uuid.UUID `json:"" gorm:"type:varchar(100); not null; index"`
-	User         User      `json:"user" gorm:"foreignKey:UserID; references:ID"`
-	Name         string    `json:"name" gorm:"type:varchar(191); not null"`
-	Type         string    `json:"type" gorm:"not null; default: shoe"`
-	Brand        *string   `json:"brand" gorm:"default: null"`
-	Model        *string   `json:"model" gorm:"default: null"`
-	Nickname     *string   `json:"nickname" gorm:"default: null"`
-	Retired      bool      `json:"retired" gorm:"not null; default: false"`
-	IsPrimary    bool      `json:"is_primary" gorm:"column:is_primary; not null; default: false"`
-	StravaGearID *string   `json:"strava_gear_id" gorm:"type:varchar(191); default: null; index"`
+	Enabled bool      `json:"enabled" gorm:"not null; default: true"`
+	UserID  uuid.UUID `json:"" gorm:"type:varchar(100); not null; index"`
+	// Never serialized: the GORM association, not part of any response shape. The read path
+	// hands out models.PublicUser. See docs/wip.md, S15.
+	User         User    `json:"-" gorm:"foreignKey:UserID; references:ID"`
+	Name         string  `json:"name" gorm:"type:varchar(191); not null"`
+	Type         string  `json:"type" gorm:"not null; default: shoe"`
+	Brand        *string `json:"brand" gorm:"default: null"`
+	Model        *string `json:"model" gorm:"default: null"`
+	Nickname     *string `json:"nickname" gorm:"default: null"`
+	Retired      bool    `json:"retired" gorm:"not null; default: false"`
+	IsPrimary    bool    `json:"is_primary" gorm:"column:is_primary; not null; default: false"`
+	StravaGearID *string `json:"strava_gear_id" gorm:"type:varchar(191); default: null; index"`
 }
 
 // TableName pins the table to "gear" (the word is uncountable) instead of

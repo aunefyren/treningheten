@@ -176,9 +176,9 @@ func buildGoalObjects(goals []models.Goal) []models.GoalObject {
 	users, err := database.GetUsersByIDs(userIDs)
 	if err != nil {
 		logger.Log.Info("Failed to bulk-load goal users. Error: " + err.Error())
-		users = []models.User{}
+		users = []models.PublicUser{}
 	}
-	usersByID := make(map[uuid.UUID]models.User, len(users))
+	usersByID := make(map[uuid.UUID]models.PublicUser, len(users))
 	for _, user := range users {
 		usersByID[user.ID] = user
 	}

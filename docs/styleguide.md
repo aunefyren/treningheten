@@ -292,6 +292,7 @@ or the bluish `--trans-lightblue` borders.
 |---|---|---|
 | `.stat-card` | metric tile (statistics); `data-family="movement\|effort\|strength\|audio\|time\|neutral"` sets a per-family accent stripe (`--stat-accent`, tokenised). Sub-elements `.stat-card-label` / `.stat-card-value` / `.stat-card-unit`. | **light** |
 | `.user-stat-card`, `.user-streak-card` | profile stat / streak tiles — light **metric tiles**: `--inset-bg` fill + `--inset-border` hairline, value in `--font-display` navy, muted `--lightblue` label. | light |
+| `.user-stats-empty` | insufficient-data note standing where a row of profile tiles would be (used both for a whole missing breakdown and inside a single withheld period tab) — inset block (`--inset-bg` + `--inset-border` hairline, `--radius-sm`), a `…-title` line and a muted `--lightblue` `…-hint`. Use it when a data section has a *reason* to be absent; a section with nothing to say should say so, not leave a hole. | light |
 | `.ai-message-card` | the AI greeting widget | light |
 | `.panel-card` | centred white content-card wrapper (extracted Phase 4) | transitional |
 | `.card` / `.card-header` / `.card-body` | the shared page-shell wrapper (all pages) — **light** eggshell surface, navy text (`base.css`) | **light (base)** |
@@ -773,6 +774,40 @@ not theme — left inline on purpose. Dynamic (`${…}`) values stay inline too.
   margin, label spacing, plex hint, PAT spacings → utilities/scoped CSS); stripped the duplicate
   `id="form-input-icon"`. Only visibility (`display:none`) + the dynamic `.wheel-swatch` colour stay
   inline. New settings-accordion pattern documented.
+- **Closed the dead gap under the top nav.** `.container` carried `padding-top: 5rem !important`
+  — clearance for a nav that was taller and out of flow. `#nav` is `position: sticky`, so it sits
+  in normal flow and never overlaps the content, which left roughly 4rem of empty page between the
+  bar and the first thing on it (alerts included — they render into `#response`, the container's
+  first child, so they appeared *below* the gap rather than explaining it). Now `var(--space-4)`,
+  and the `!important` is gone: nothing in the stylesheets competes for the property, so it was
+  presumably beating a Bootstrap-era rule that has since been removed. Applies to every page —
+  they all use the same shell.
+- **Locked achievement icons moved onto the shared avatar circle pattern.** `.achievement-image`
+  did not clip its content and was `content-box`, so the ring added to the tile's footprint
+  (6.4rem for a nominal 6rem) instead of sitting inside it, and the `<img>` carried its own
+  `border-radius: 50%`. That second radius clips at the image's *border* box while a padded glyph
+  is drawn inside its *padding* box — the mechanism behind the "SVG gets cut off on the corners"
+  report, latent rather than active at the default root size (the corners cleared by 0.31rem), and
+  guaranteed to bite as soon as the padding was tightened. The wrapper now clips (`overflow:
+  hidden` + `box-sizing: border-box`, matching the avatar rule it sits beside), the image carries
+  no radius of its own, and the locked glyph uses `object-fit: contain` — `cover` is for photos, a
+  glyph must never be cropped to fill. Its padding went 1.1em → 0.6em, taking the visible lock from
+  47% to ~55% of the circle's diameter, which is what the report was really describing as "a margin
+  between the icon and the rounded colour". The circle itself is now a true 6rem (0.4rem smaller on
+  both `/achievements` and `/users`). The inline `padding`/`borderRadius`/`backgroundColor` that
+  `achievements.js` set on both paths is gone — all of it was static styling already declared in
+  CSS, and the two had drifted (`10em` vs `--radius-circle`).
+- **Profile statistics gained an empty state (`.user-stats-empty`).** The activity breakdown on
+  `/users/:id` is omitted when the API has too few logged activities to name a headline activity
+  honestly (see [wip.md](wip.md), S14). It used to just vanish, leaving a gap under the sessions
+  counts that read as a broken panel. It now renders a light **inset block** in the section's place
+  — same eggshell-fill + hairline convention as every other block nested in a module panel, no new
+  colour or border system — with the threshold interpolated from the response
+  (`minimum_sample_size`) so the copy cannot drift from the constant that enforces it. Written
+  directly in the light system in `instrument.css`, so unlike the legacy tiles around it, it needs
+  no `.card`-scoped override. The same note fills a **period tab** whose window the API withheld:
+  the tab stays in the bar rather than being dropped (a missing tab hides the fact silently) and
+  the panel opens on the first period that has data.
 - **`/register` swept light.** Mirrors `/login`: form in a centred `.auth-panel`, flat inside
   (removed `<hr>`s + empty `#form-input-icon` labels), submit → `.btn.btn--primary.btn--block`,
   consent checkbox+label moved into a left-aligned `.auth-consent` row. Dropped the dead empty

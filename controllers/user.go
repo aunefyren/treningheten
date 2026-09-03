@@ -174,7 +174,6 @@ func GetUser(context *gin.Context) {
 
 	// Create user request
 	var user = context.Param("user_id")
-	userObject := models.User{}
 
 	// Parse requested user id
 	user_id_int, err := uuid.Parse(user)
@@ -193,8 +192,13 @@ func GetUser(context *gin.Context) {
 		return
 	}
 
+	// Reading your own account returns the full row (the /account page edits fields nobody
+	// else may see); reading anyone else's returns models.PublicUser, whose field set is the
+	// allowlist of what one user may learn about another. The two branches deliberately
+	// respond separately rather than sharing a variable — that is what keeps the private
+	// fields out of the cross-user path by type rather than by memory. See docs/wip.md, S15.
 	if requesterUserID == user_id_int {
-		userObject, err = database.GetAllUserInformation(requesterUserID)
+		userObject, err := database.GetAllUserInformation(requesterUserID)
 		if err != nil {
 			logger.Log.Info("Failed to get user details. Error: " + err.Error())
 			context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get user details."})
@@ -205,23 +209,26 @@ func GetUser(context *gin.Context) {
 		// Surface connection state without ever serializing the credentials themselves
 		userObject.HevyConnected = userObject.HevyAPIKey != nil && *userObject.HevyAPIKey != ""
 		userObject.StravaConnected = userObject.StravaCode != nil && *userObject.StravaCode != ""
-	} else {
-		userObject, err = database.GetUserInformation(user_id_int)
-		if err != nil {
-			logger.Log.Info("Failed to get user. Error: " + err.Error())
-			context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get user."})
-			context.Abort()
-			return
-		}
 
-		// Give achievement for visiting another user's profile, ignore outcome
-		goSafely("achievement grant", func() {
-			GiveUserAnAchievement(requesterUserID, uuid.MustParse("cbd81cd0-4caf-438b-989b-b5ca7e76605d"), time.Now(), 5)
-		})
+		context.JSON(http.StatusOK, gin.H{"user": userObject, "message": "User retrieved."})
+		return
 	}
 
+	publicUser, err := database.GetUserInformation(user_id_int)
+	if err != nil {
+		logger.Log.Info("Failed to get user. Error: " + err.Error())
+		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get user."})
+		context.Abort()
+		return
+	}
+
+	// Give achievement for visiting another user's profile, ignore outcome
+	goSafely("achievement grant", func() {
+		GiveUserAnAchievement(requesterUserID, uuid.MustParse("cbd81cd0-4caf-438b-989b-b5ca7e76605d"), time.Now(), 5)
+	})
+
 	// Reply
-	context.JSON(http.StatusOK, gin.H{"user": userObject, "message": "User retrieved."})
+	context.JSON(http.StatusOK, gin.H{"user": publicUser, "message": "User retrieved."})
 }
 
 func GetUsers(context *gin.Context) {
@@ -628,7 +635,8 @@ func APIResetPassword(context *gin.Context) {
 		return
 	}
 
-	user, err = database.GetAllUserInformation(user.ID)
+	// The reset mail needs the address, which the public view does not carry.
+	fullUser, err := database.GetAllUserInformation(user.ID)
 	if err != nil {
 		logger.Log.Info("Failed to retrieve data for user during password reset. Error: " + err.Error())
 		context.JSON(http.StatusInternalServerError, gin.H{"message": "Error."})
@@ -636,7 +644,7 @@ func APIResetPassword(context *gin.Context) {
 		return
 	}
 
-	err = utilities.SendSMTPResetEmail(user)
+	err = utilities.SendSMTPResetEmail(fullUser)
 	if err != nil {
 		logger.Log.Info("Failed to send email to user during password reset. Error: " + err.Error())
 		context.JSON(http.StatusInternalServerError, gin.H{"message": "Error."})
@@ -1056,7 +1064,9 @@ func APIGetUserActivities(context *gin.Context) {
 		return
 	}
 
-	user, err := database.GetUserInformation(userID)
+	// ShareActivities is a visibility flag the owner sets, not something their peers may
+	// read, so it is absent from models.PublicUser and the gate reads the real row.
+	user, err := database.GetAllUserInformation(userID)
 	if err != nil {
 		logger.Log.Info("Failed to get user. Error: " + err.Error())
 		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get user."})
@@ -1064,7 +1074,7 @@ func APIGetUserActivities(context *gin.Context) {
 		return
 	}
 
-	if user.ShareActivities == nil || *user.ShareActivities == false {
+	if user.ShareActivities == nil || !*user.ShareActivities {
 		context.JSON(http.StatusForbidden, gin.H{"error": "User does not share activities."})
 		context.Abort()
 		return
@@ -1090,7 +1100,16 @@ func APIGetUserActivities(context *gin.Context) {
 		return
 	}
 
-	allExerciseDays, err := database.GetExerciseDaysForSharingUsersUsingDates(mondayStart, sundayEnd)
+	// One user's days, scoped in SQL — the query enforces share_activities itself, so the
+	// gate above is defence in depth rather than the only check.
+	//
+	// This used to load *every* sharing user's days and then keep the ones whose owner was
+	// NOT the requested user, which is inverted: the endpoint returned everyone else's
+	// activities and excluded the profile's own. It went unnoticed because the gate above
+	// read a censored user whose ShareActivities was nil-ed, so the handler returned 403 to
+	// everyone and the filter never ran. Fixing either half alone would have turned a dead
+	// endpoint into a leaking one, so both moved together. See docs/wip.md, S11.
+	exerciseDays, err := database.GetExerciseDaysForSharingUsersInListUsingDates([]uuid.UUID{userID}, mondayStart, sundayEnd)
 	if err != nil {
 		logger.Log.Info("Failed to get exercise days from time frame. Error: " + err.Error())
 		context.JSON(http.StatusBadRequest, gin.H{"error": "Failed to get exercise days from time frame."})
@@ -1098,37 +1117,10 @@ func APIGetUserActivities(context *gin.Context) {
 		return
 	}
 
-	filteredExerciseDays := []models.ExerciseDay{}
-	validatedUsers := []uuid.UUID{}
-	for _, exerciseDay := range allExerciseDays {
-		if exerciseDay.UserID == nil {
-			continue
-		}
-
-		foundInCache := false
-		for _, validatedUserID := range validatedUsers {
-			if validatedUserID == *exerciseDay.UserID {
-				foundInCache = true
-				break
-			}
-		}
-
-		if foundInCache {
-			filteredExerciseDays = append(filteredExerciseDays, exerciseDay)
-			continue
-		} else {
-			if exerciseDay.UserID != nil && userID != *exerciseDay.UserID {
-				filteredExerciseDays = append(filteredExerciseDays, exerciseDay)
-				validatedUsers = append(validatedUsers, *exerciseDay.UserID)
-				continue
-			}
-		}
-	}
-
 	// The profile feed shares its shape and its visibility rules (switched-off, disabled and
 	// private sessions excluded; Strava links per the owner's StravaPublic setting) with the
 	// front-page and season feeds, so it flattens through the same builder.
-	allActivities, err := buildActivitiesFromExerciseDays(filteredExerciseDays)
+	allActivities, err := buildActivitiesFromExerciseDays(exerciseDays)
 	if err != nil {
 		logger.Log.Info("Failed to build activities. Error: " + err.Error())
 		context.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
@@ -1164,7 +1156,7 @@ func APIGetUserStatistics(context *gin.Context) {
 		return
 	}
 
-	userStatisticsReply := models.UserStatisticsReply{}
+	userStatisticsReply := models.UserStatisticsReply{MinimumSampleSize: userStatisticsMinSampleSize}
 
 	exerciseDays, err := database.GetAllExerciseDaysWithExerciseByUserID(userID)
 	if err != nil {
@@ -1190,7 +1182,12 @@ func APIGetUserStatistics(context *gin.Context) {
 	userStatisticsReply.StreakDays = streaks.DayCurrent
 	userStatisticsReply.StreakDaysTop = streaks.DayBest
 
-	allActions := []uuid.UUID{}
+	// Candidate actions for the headline pick, gathered over two windows. The recent list
+	// is what the section is normally about ("what you have been doing"); the all-time list
+	// is the fallback when the recent window is too thin to say anything about a person
+	// rather than about one workout. See chooseHeadlineAction.
+	recentActions := []uuid.UUID{}
+	allTimeActions := []uuid.UUID{}
 
 	for _, exerciseDay := range exerciseDayObjects {
 		exerciseDayDate := exerciseDay.Date
@@ -1210,14 +1207,13 @@ func APIGetUserStatistics(context *gin.Context) {
 				userStatisticsReply.ExercisesPastMonth += 1
 			}
 
-			if time.Since(exerciseDayDate) <= time.Duration(time.Hour*24*31) {
-				for _, operation := range exercise.Operations {
-					if !operation.Enabled {
-						continue
-					}
-					if operation.Action != nil {
-						allActions = append(allActions, *&operation.Action.ID)
-					}
+			for _, operation := range exercise.Operations {
+				if !operation.Enabled || operation.Action == nil {
+					continue
+				}
+				allTimeActions = append(allTimeActions, operation.Action.ID)
+				if time.Since(exerciseDayDate) <= time.Duration(time.Hour*24*31) {
+					recentActions = append(recentActions, operation.Action.ID)
 				}
 			}
 		}
@@ -1233,7 +1229,16 @@ func APIGetUserStatistics(context *gin.Context) {
 
 	userStatisticsReply.SeasonsJoined = len(goals)
 
-	chosenAction := mostCommonAction(allActions)
+	chosenAction := chooseHeadlineAction(recentActions, allTimeActions)
+
+	// The three windows are accumulated as locals and only published at the end, because
+	// whether a window may be published at all depends on the totals it ends up with.
+	var (
+		headlineAction *models.Action
+		pastMonth      models.UserStatisticsCompilation
+		pastYear       models.UserStatisticsCompilation
+		allTime        models.UserStatisticsCompilation
+	)
 
 	for _, exerciseDay := range exerciseDayObjects {
 		exerciseDayDate := exerciseDay.Date
@@ -1243,10 +1248,6 @@ func APIGetUserStatistics(context *gin.Context) {
 			}
 
 			logger.Log.Tracef("exercise processing")
-
-			if len(exercise.Operations) == 0 {
-				exercise.Operations = append(exercise.Operations, models.OperationObject{Enabled: true})
-			}
 
 			for _, operation := range exercise.Operations {
 				if !operation.Enabled {
@@ -1278,90 +1279,153 @@ func APIGetUserStatistics(context *gin.Context) {
 					}
 				}
 
-				if (operation.Action == nil && chosenAction == nil) || (operation.Action != nil && chosenAction != nil && operation.Action.ID == *chosenAction) {
-					userStatisticsReply.ActivityStatistics.Action = operation.Action
+				// Only the headline activity's operations feed this block. An operation with
+				// no action used to match a nil pick, so a profile with nothing to headline
+				// reported a nameless section built from actionless operations; now a nil
+				// pick means the section is absent and the client says why.
+				if chosenAction != nil && operation.Action != nil && operation.Action.ID == *chosenAction {
+					headlineAction = operation.Action
 
 					if time.Since(exerciseDayDate) <= time.Duration(time.Hour*24*31) {
-						userStatisticsReply.ActivityStatistics.PastMonth.Sums.Operations += 1
+						pastMonth.Sums.Operations += 1
 
-						userStatisticsReply.ActivityStatistics.PastMonth.Sums.Distance += actionDistance
-						userStatisticsReply.ActivityStatistics.PastMonth.Sums.Time += actionTime
-						userStatisticsReply.ActivityStatistics.PastMonth.Sums.Weight += actionWeight
+						pastMonth.Sums.Distance += actionDistance
+						pastMonth.Sums.Time += actionTime
+						pastMonth.Sums.Weight += actionWeight
 
-						if actionDistance > userStatisticsReply.ActivityStatistics.PastMonth.Tops.Distance {
-							userStatisticsReply.ActivityStatistics.PastMonth.Tops.Distance = actionDistance
-							userStatisticsReply.ActivityStatistics.PastMonth.Tops.DistanceExerciseDayID = &exercise.ExerciseDay
-						}
-						if actionTime > userStatisticsReply.ActivityStatistics.PastMonth.Tops.Time {
-							userStatisticsReply.ActivityStatistics.PastMonth.Tops.Time = actionTime
-							userStatisticsReply.ActivityStatistics.PastMonth.Tops.TimeExerciseDayID = &exercise.ExerciseDay
-						}
-						if actionWeight > userStatisticsReply.ActivityStatistics.PastMonth.Tops.Weight {
-							userStatisticsReply.ActivityStatistics.PastMonth.Tops.Weight = actionWeight
-							userStatisticsReply.ActivityStatistics.PastMonth.Tops.WeightExerciseDayID = &exercise.ExerciseDay
+						if !exercise.Private {
+							// A top is one nameable session with a date, so private sessions are
+							// withheld here — unlike the sums and streaks above, which keep them so
+							// the profile agrees with the season leaderboard. See docs/wip.md, S14.
+							if actionDistance > pastMonth.Tops.Distance {
+								pastMonth.Tops.Distance = actionDistance
+							}
+							if actionTime > pastMonth.Tops.Time {
+								pastMonth.Tops.Time = actionTime
+							}
+							if actionWeight > pastMonth.Tops.Weight {
+								pastMonth.Tops.Weight = actionWeight
+							}
 						}
 					}
 					if time.Since(exerciseDayDate) <= time.Duration(time.Hour*24*365) {
-						userStatisticsReply.ActivityStatistics.PastYear.Sums.Operations += 1
+						pastYear.Sums.Operations += 1
 
-						userStatisticsReply.ActivityStatistics.PastYear.Sums.Distance += actionDistance
-						userStatisticsReply.ActivityStatistics.PastYear.Sums.Time += actionTime
-						userStatisticsReply.ActivityStatistics.PastYear.Sums.Weight += actionWeight
+						pastYear.Sums.Distance += actionDistance
+						pastYear.Sums.Time += actionTime
+						pastYear.Sums.Weight += actionWeight
 
-						if actionDistance > userStatisticsReply.ActivityStatistics.PastYear.Tops.Distance {
-							userStatisticsReply.ActivityStatistics.PastYear.Tops.Distance = actionDistance
-							userStatisticsReply.ActivityStatistics.PastYear.Tops.DistanceExerciseDayID = &exercise.ExerciseDay
-						}
-						if actionTime > userStatisticsReply.ActivityStatistics.PastYear.Tops.Time {
-							userStatisticsReply.ActivityStatistics.PastYear.Tops.Time = actionTime
-							userStatisticsReply.ActivityStatistics.PastYear.Tops.TimeExerciseDayID = &exercise.ExerciseDay
-						}
-						if actionWeight > userStatisticsReply.ActivityStatistics.PastYear.Tops.Weight {
-							userStatisticsReply.ActivityStatistics.PastYear.Tops.Weight = actionWeight
-							userStatisticsReply.ActivityStatistics.PastYear.Tops.WeightExerciseDayID = &exercise.ExerciseDay
+						if !exercise.Private {
+							// A top is one nameable session with a date, so private sessions are
+							// withheld here — unlike the sums and streaks above, which keep them so
+							// the profile agrees with the season leaderboard. See docs/wip.md, S14.
+							if actionDistance > pastYear.Tops.Distance {
+								pastYear.Tops.Distance = actionDistance
+							}
+							if actionTime > pastYear.Tops.Time {
+								pastYear.Tops.Time = actionTime
+							}
+							if actionWeight > pastYear.Tops.Weight {
+								pastYear.Tops.Weight = actionWeight
+							}
 						}
 					}
 
-					userStatisticsReply.ActivityStatistics.AllTime.Sums.Operations += 1
+					allTime.Sums.Operations += 1
 
-					userStatisticsReply.ActivityStatistics.AllTime.Sums.Distance += actionDistance
-					userStatisticsReply.ActivityStatistics.AllTime.Sums.Time += actionTime
-					userStatisticsReply.ActivityStatistics.AllTime.Sums.Weight += actionWeight
+					allTime.Sums.Distance += actionDistance
+					allTime.Sums.Time += actionTime
+					allTime.Sums.Weight += actionWeight
 
-					if actionDistance > userStatisticsReply.ActivityStatistics.AllTime.Tops.Distance {
-						userStatisticsReply.ActivityStatistics.AllTime.Tops.Distance = actionDistance
-						userStatisticsReply.ActivityStatistics.AllTime.Tops.DistanceExerciseDayID = &exercise.ExerciseDay
-					}
-					if actionTime > userStatisticsReply.ActivityStatistics.AllTime.Tops.Time {
-						userStatisticsReply.ActivityStatistics.AllTime.Tops.Time = actionTime
-						userStatisticsReply.ActivityStatistics.AllTime.Tops.TimeExerciseDayID = &exercise.ExerciseDay
-					}
-					if actionWeight > userStatisticsReply.ActivityStatistics.AllTime.Tops.Weight {
-						userStatisticsReply.ActivityStatistics.AllTime.Tops.Weight = actionWeight
-						userStatisticsReply.ActivityStatistics.AllTime.Tops.WeightExerciseDayID = &exercise.ExerciseDay
+					if !exercise.Private {
+						// A top is one nameable session with a date, so private sessions are
+						// withheld here — unlike the sums and streaks above, which keep them so
+						// the profile agrees with the season leaderboard. See docs/wip.md, S14.
+						if actionDistance > allTime.Tops.Distance {
+							allTime.Tops.Distance = actionDistance
+						}
+						if actionTime > allTime.Tops.Time {
+							allTime.Tops.Time = actionTime
+						}
+						if actionWeight > allTime.Tops.Weight {
+							allTime.Tops.Weight = actionWeight
+						}
 					}
 				}
 			}
 		}
 	}
 
-	if userStatisticsReply.ActivityStatistics.PastMonth.Sums.Operations > 0 {
-		userStatisticsReply.ActivityStatistics.PastMonth.Averages.Distance = float64(userStatisticsReply.ActivityStatistics.PastMonth.Sums.Distance / float64(userStatisticsReply.ActivityStatistics.PastMonth.Sums.Operations))
-		userStatisticsReply.ActivityStatistics.PastMonth.Averages.Time = int64(float64(userStatisticsReply.ActivityStatistics.PastMonth.Sums.Time) / float64(userStatisticsReply.ActivityStatistics.PastMonth.Sums.Operations))
-		userStatisticsReply.ActivityStatistics.PastMonth.Averages.Weight = float64(userStatisticsReply.ActivityStatistics.PastMonth.Sums.Weight / float64(userStatisticsReply.ActivityStatistics.PastMonth.Sums.Operations))
-	}
-	if userStatisticsReply.ActivityStatistics.PastYear.Sums.Operations > 0 {
-		userStatisticsReply.ActivityStatistics.PastYear.Averages.Distance = float64(userStatisticsReply.ActivityStatistics.PastYear.Sums.Distance / float64(userStatisticsReply.ActivityStatistics.PastYear.Sums.Operations))
-		userStatisticsReply.ActivityStatistics.PastYear.Averages.Time = int64(float64(userStatisticsReply.ActivityStatistics.PastYear.Sums.Time) / float64(userStatisticsReply.ActivityStatistics.PastYear.Sums.Operations))
-		userStatisticsReply.ActivityStatistics.PastYear.Averages.Weight = float64(userStatisticsReply.ActivityStatistics.PastYear.Sums.Weight / float64(userStatisticsReply.ActivityStatistics.PastYear.Sums.Operations))
-	}
-	if userStatisticsReply.ActivityStatistics.AllTime.Sums.Operations > 0 {
-		userStatisticsReply.ActivityStatistics.AllTime.Averages.Distance = float64(userStatisticsReply.ActivityStatistics.AllTime.Sums.Distance / float64(userStatisticsReply.ActivityStatistics.AllTime.Sums.Operations))
-		userStatisticsReply.ActivityStatistics.AllTime.Averages.Time = int64(float64(userStatisticsReply.ActivityStatistics.AllTime.Sums.Time) / float64(userStatisticsReply.ActivityStatistics.AllTime.Sums.Operations))
-		userStatisticsReply.ActivityStatistics.AllTime.Averages.Weight = float64(userStatisticsReply.ActivityStatistics.AllTime.Sums.Weight / float64(userStatisticsReply.ActivityStatistics.AllTime.Sums.Operations))
+	// A window holding fewer operations than the floor cannot be published: its distance
+	// total, its longest session and its total time are all the same one or two workouts
+	// said three ways (with one session, "distance" and "best" are literally equal). The
+	// all-time window is the gate for the whole block — if even that is below the floor
+	// there is nothing to build a breakdown from, so the section is dropped and the client
+	// shows the empty state.
+	if allTime.Sums.Operations >= userStatisticsMinSampleSize {
+		userStatisticsReply.ActivityStatistics.Action = headlineAction
+		userStatisticsReply.ActivityStatistics.PastMonth = publishWindow(pastMonth)
+		userStatisticsReply.ActivityStatistics.PastYear = publishWindow(pastYear)
+		userStatisticsReply.ActivityStatistics.AllTime = publishWindow(allTime)
 	}
 
 	context.JSON(http.StatusOK, gin.H{"data": userStatisticsReply})
+}
+
+// userStatisticsMinSampleSize is the smallest number of sessions a window may average over
+// and still be published. Below it the "average" is really the sessions themselves — one
+// operation makes avg distance an exact republication of that workout — which matters on a
+// profile any authenticated user can read. The sums and counts stay regardless: they are
+// already implied by the season leaderboard, so hiding them would only make the profile
+// disagree with it. See docs/wip.md, S14.
+const userStatisticsMinSampleSize = 3
+
+// publishWindow decides whether a window may be reported at all, and fills in its averages
+// if so. Below userStatisticsMinSampleSize it returns nil: every figure in the window — the
+// distance total, the longest session, the total time — is then just the window's one or two
+// sessions restated, which is the individual disclosure the floor exists to prevent, and it
+// is plainly visible as one (with a single session the "distance" and "best" tiles show the
+// same number). Nil means "not enough data", never zero; the count of sessions is not
+// reported separately because it is only meaningful next to the figures it qualifies.
+func publishWindow(window models.UserStatisticsCompilation) *models.UserStatisticsCompilation {
+	if window.Sums.Operations < userStatisticsMinSampleSize {
+		return nil
+	}
+
+	operations := float64(window.Sums.Operations)
+	distance := window.Sums.Distance / operations
+	seconds := int64(float64(window.Sums.Time) / operations)
+	weight := window.Sums.Weight / operations
+
+	window.Averages.Distance = &distance
+	window.Averages.Time = &seconds
+	window.Averages.Weight = &weight
+
+	return &window
+}
+
+// chooseHeadlineAction picks the activity the profile's breakdown is built around.
+//
+// It prefers the past month, because "what they have been doing lately" is the more
+// interesting thing to read on a profile. But at one or two activities that pick stops
+// describing a person and starts describing a single workout — the same small-sample
+// disclosure the averages floor guards against, and it is worse here because the pick also
+// names the section. So a thin recent window falls back to the all-time pick, which answers
+// the duller but safe question "what is this person's sport".
+//
+// Below the floor on both counts there is nothing honest to headline, so it returns nil and
+// the whole activity block is omitted; the client renders an explicit empty state rather
+// than a gap. Falling back rather than blanking matters because the section carries the
+// month/year/all-time windows together — suppressing the pick outright would take a decade
+// of all-time statistics off the page to hide a quiet month.
+func chooseHeadlineAction(recentActions []uuid.UUID, allTimeActions []uuid.UUID) *uuid.UUID {
+	if len(recentActions) >= userStatisticsMinSampleSize {
+		return mostCommonAction(recentActions)
+	}
+	if len(allTimeActions) >= userStatisticsMinSampleSize {
+		return mostCommonAction(allTimeActions)
+	}
+	return nil
 }
 
 func mostCommonAction(uuidArray []uuid.UUID) *uuid.UUID {

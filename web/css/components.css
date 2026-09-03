@@ -814,12 +814,18 @@ input[type=checkbox]
   font-size: 0.75rem;
 }
 
+/* The achievement icon uses the shared avatar circle pattern documented above: the WRAPPER is
+   the circle — it carries the ring, clips its content, and is `border-box` so the ring sits
+   inside the fixed 6rem instead of adding to it. The image inside carries no radius of its
+   own; see .achievement-img-logo. */
 .achievement-image {
-  border-radius: 10rem;
+  border-radius: var(--radius-circle);
   margin: 0;
   width: 6rem;
   height: 6rem;
   background-color: var(--white);
+  overflow: hidden;
+  box-sizing: border-box;
 }
 
 .achievement-season {
@@ -2383,17 +2389,28 @@ label {
 .card .achievement-title,
 .card .achievement-date { color: var(--darkblue); }
 .card .achievement-image { border: solid 0.2em var(--cat-color, var(--grey)); }
-/* Achievement icon: a glyph inside the circular bordered box, rounded to match the circular container
-   (and the unlocked state, which JS relights to a full circular image). Was an inline style on
-   /achievements. */
-.achievement-img-logo { padding: 1.1em; border-radius: var(--radius-circle); }
-/* Locked achievements (.transparent) have no real image, just the 🔒 glyph. Clear the white disc behind
-   it — on the container AND the <img> (which carries a white bg from the shared .achievement-img rule) —
-   so the ring's interior shows the panel instead of a white ring. (achievements.js also sets these
-   transparent inline on the locked path; this is the CSS-side / pre-script safety net.) */
+/* The wrapper does the clipping, so the image itself has no radius. It used to carry
+   `border-radius: 50%` inherited from .achievement-img, which clips at the image's *border*
+   box while a padded glyph is drawn inside its *padding* box — so the circle cut the glyph's
+   corners as soon as the padding was small enough for them to reach it. Harmless for the
+   unlocked state (a photo with no padding, clipped by the wrapper either way), latent for the
+   locked glyph. */
+.achievement-img-logo { border-radius: 0; }
+
+/* Locked achievements (.transparent) have no photo, just the padlock glyph. `contain` so a
+   glyph is never cropped to fill (`cover` is for the photos), on a transparent backing so the
+   ring's interior shows the tile rather than a white disc — on the container AND the <img>,
+   which carries a white background from the shared .achievement-img rule.
+
+   The padding sets how large the lock reads inside the ring. lock.svg's ink spans 18 of its
+   24 viewBox units, so the visible glyph is 75% of the content box: at the previous 1.1em it
+   came to 47% of the circle's diameter and floated with a wide gap; 0.6em puts it at ~55%,
+   which is the usual proportion for a glyph inscribed in a ring. Its corners stay well inside
+   the clip (2.33rem against a 2.8rem inner radius). */
 .transparent .achievement-image,
 .transparent .achievement-img,
 .transparent .achievement-img-logo { background-color: transparent; }
+.transparent .achievement-img-logo { padding: 0.6em; object-fit: contain; }
 
 /* /achievements progress bar → inset track + blue fill (matches the front-page bars). */
 .card .progress-bar-wrapper { background-color: var(--inset-bg); border: 1px solid var(--grey); }

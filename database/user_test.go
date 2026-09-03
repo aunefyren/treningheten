@@ -41,15 +41,12 @@ func TestGetUserInformationCensors(t *testing.T) {
 	if err != nil {
 		t.Fatalf("GetUserInformation() error: %v", err)
 	}
-	if got.Password != "REDACTED" {
-		t.Errorf("Password = %q, want REDACTED", got.Password)
+	if got.ID != created.ID {
+		t.Errorf("ID = %v, want %v", got.ID, created.ID)
 	}
-	if got.Email != "REDACTED" {
-		t.Errorf("Email = %q, want REDACTED", got.Email)
-	}
-	if got.VerificationCode != nil {
-		t.Errorf("VerificationCode = %v, want nil", got.VerificationCode)
-	}
+	// The getter returns models.PublicUser, so the credential and recovery fields are not
+	// blanked — they are absent from the type. assertOnlyPublicFields pins the whole set.
+	assertOnlyPublicFields(t, got, "GetUserInformation")
 }
 
 func TestGetUserInformationRequiresEnabled(t *testing.T) {

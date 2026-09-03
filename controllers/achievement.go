@@ -529,12 +529,6 @@ func ConvertAchievementDelegationToAchievementUserObject(achievementDelegation m
 		return models.AchievementUserObject{}, errors.New("Failed to get achievement. Returning...")
 	}
 
-	user, err := database.GetUserInformation(achievementDelegation.UserID)
-	if err != nil {
-		logger.Log.Info("Failed to get user. Error: " + err.Error())
-		return models.AchievementUserObject{}, errors.New("Failed to get user. Returning...")
-	}
-
 	achievementDelegations, err := database.GetAchievementDelegationByAchievementIDAndUserID(achievementDelegation.UserID, achievementDelegation.AchievementID)
 	if err != nil {
 		logger.Log.Info("Failed to get achievement delegations. Error: " + err.Error())
@@ -554,8 +548,6 @@ func ConvertAchievementDelegationToAchievementUserObject(achievementDelegation m
 	achievementObject.ID = achievement.ID
 
 	for i := 0; i < len(achievementDelegations); i++ {
-		achievementDelegations[i].User = user
-
 		if achievementObject.LastGivenAt == nil || achievementDelegations[i].GivenAt.After(*achievementObject.LastGivenAt) {
 			achievementObject.LastGivenAt = &achievementDelegations[i].GivenAt
 		}
@@ -720,7 +712,9 @@ func GenerateAchievementsForWeek(weekResults models.WeekResults, targetUser *uui
 	loserUserIDs := []uuid.UUID{}
 
 	for _, user := range weekResults.UserWeekResults {
-		userObject, err := database.GetUserInformation(user.UserID)
+		// Server-side achievement pass: it reads the birth date to award the birthday
+		// achievement, which the public view deliberately does not carry.
+		userObject, err := database.GetAllUserInformation(user.UserID)
 		if err != nil {
 			logger.Log.Error("Failed to get user object. Error: " + err.Error())
 			return errors.New("Failed to get user object.")

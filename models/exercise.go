@@ -14,7 +14,11 @@ type ExerciseDay struct {
 	GoalID  *uuid.UUID `json:"" gorm:"type:varchar(100);default: null; null;"`
 	Goal    *Goal      `json:"goal" gorm:""`
 	UserID  *uuid.UUID `json:"" gorm:"type:varchar(100);"`
-	User    *User      `json:"user" gorm:"not null"`
+	// Never serialized: this is the GORM association, and rows like this one reach response
+	// bodies embedded in other structures (models.Week carries []Goal, for one). It marshals
+	// as an empty object today only because nothing preloads it — accidental safety. The
+	// read path hands out models.PublicUser instead. See docs/wip.md, S15.
+	User *User `json:"-" gorm:"not null"`
 }
 
 type ExerciseDayObject struct {
@@ -23,7 +27,7 @@ type ExerciseDayObject struct {
 	Note             string           `json:"note"`
 	Enabled          bool             `json:"enabled"`
 	Goal             *GoalObject      `json:"goal"`
-	User             User             `json:"user"`
+	User             PublicUser       `json:"user"`
 	ExerciseInterval int              `json:"exercise_interval"`
 	Exercises        []ExerciseObject `json:"exercises"`
 }
@@ -143,10 +147,10 @@ type WeekResult struct {
 }
 
 type Activity struct {
-	ExerciseID    uuid.UUID `json:"id"`
-	User          User      `json:"user"`
-	Time          time.Time `json:"time"`
-	StravaIDs     []string  `json:"strava_ids"`
-	HevyWorkoutID *string   `json:"hevy_workout_id"`
-	Actions       []Action  `json:"actions"`
+	ExerciseID    uuid.UUID  `json:"id"`
+	User          PublicUser `json:"user"`
+	Time          time.Time  `json:"time"`
+	StravaIDs     []string   `json:"strava_ids"`
+	HevyWorkoutID *string    `json:"hevy_workout_id"`
+	Actions       []Action   `json:"actions"`
 }

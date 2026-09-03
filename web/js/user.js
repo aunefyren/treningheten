@@ -454,6 +454,29 @@ function PlaceUserStats(data) {
         </div>`;
 
     // ── top activity section (tabbed: month / year / all time) ───────────────
+
+    // The API withholds a figure it cannot report without describing individual sessions
+    // (see its userStatisticsMinSampleSize). Both places that happens — a whole missing
+    // breakdown, and one window of an otherwise-reported breakdown — say the same thing.
+    // The threshold is interpolated from the response so this copy cannot drift from the
+    // constant that enforces it.
+    var minimumSample = parseInt(data.minimum_sample_size, 10);
+    var sampleHint = isNaN(minimumSample)
+        ? "It needs a few more logged activities."
+        : `It needs at least ${minimumSample} logged activities.`;
+
+    function emptyNoteHTML(title, hint) {
+        return `
+            <div class="user-stats-empty">
+                <span class="user-stats-empty-title">${title}</span>
+                <span class="user-stats-empty-hint">${hint}</span>
+            </div>`;
+    }
+
+    function windowEmptyHTML() {
+        return emptyNoteHTML("Not enough activity in this period", sampleHint);
+    }
+
     var actHTML = "";
     var act = data.activity_statistics;
     if (act && act.action) {
@@ -462,17 +485,25 @@ function PlaceUserStats(data) {
             ? `<img src="/assets/actions/${act.action.name}.svg" class="stat-title-logo" onerror="this.style.display='none'">`
             : "";
 
+        // An average is null when the window holds too few sessions to average without
+        // republishing them individually (see the API's userStatisticsMinSampleSize), so
+        // the card is left out entirely rather than rendered as a misleading "0 km".
+        function optionalStatCard(label, value, format) {
+            if (value === null || value === undefined) return "";
+            return statCard(label, format(value));
+        }
+
         function actPeriodHTML(period, label) {
             if (!period) return "";
             var rows = "";
             if (period.sums.distance > 0) {
                 rows += statCard("Distance",     fmtDistance(period.sums.distance));
-                rows += statCard("Avg distance", fmtDistance(period.averages.distance));
+                rows += optionalStatCard("Avg distance", period.averages.distance, fmtDistance);
                 rows += statCard("Best",         fmtDistance(period.tops.distance));
             }
             if (period.sums.time > 0) {
                 rows += statCard("Total time",   fmtDuration(period.sums.time));
-                rows += statCard("Avg time",     fmtDuration(period.averages.time));
+                rows += optionalStatCard("Avg time", period.averages.time, fmtDuration);
             }
             rows += statCard("Sessions", period.sums.operations);
             return rows;
@@ -484,14 +515,22 @@ function PlaceUserStats(data) {
             { key: "all",   label: "All",   period: act.all_time   },
         ];
 
-        var tabBtns = tabs.map(function(t) {
-            var active = t.key === "month" ? " user-stat-tab-active" : "";
+        // A window is null when it holds too few sessions to report without republishing
+        // them one by one. Its tab stays — dropping it would hide the fact silently — but
+        // the panel explains itself instead of showing figures. The all-time window is
+        // always present when there is a headline activity, so at least one tab has data.
+        var firstWithData = tabs.findIndex(function(t) { return t.period; });
+        var activeIndex = firstWithData === -1 ? 0 : firstWithData;
+
+        var tabBtns = tabs.map(function(t, i) {
+            var active = i === activeIndex ? " user-stat-tab-active" : "";
             return `<button class="user-stat-tab${active}" onclick="switchStatTab('${t.key}')">${t.label}</button>`;
         }).join("");
 
-        var tabPanels = tabs.map(function(t) {
-            var display = t.key === "month" ? "" : " style=\"display:none\"";
-            return `<div class="user-stats-row user-stat-panel" id="stat-panel-${t.key}"${display}>${actPeriodHTML(t.period, t.label)}</div>`;
+        var tabPanels = tabs.map(function(t, i) {
+            var display = i === activeIndex ? "" : " style=\"display:none\"";
+            var body = t.period ? actPeriodHTML(t.period, t.label) : windowEmptyHTML();
+            return `<div class="user-stats-row user-stat-panel" id="stat-panel-${t.key}"${display}>${body}</div>`;
         }).join("");
 
         actHTML = `
@@ -501,6 +540,16 @@ function PlaceUserStats(data) {
                 </div>
                 <div class="user-stat-tabs">${tabBtns}</div>
                 ${tabPanels}
+            </div>`;
+    } else {
+        // No headline activity means the API found too few logged activities to name one
+        // without describing a single workout instead of a person (see the API's
+        // chooseHeadlineAction). Say so, rather than leaving a gap where a section was —
+        // the sessions counts above are still on screen, so a silent hole reads as broken.
+        actHTML = `
+            <div class="user-stats-section">
+                <div class="user-stats-section-title">Activity breakdown</div>
+                ${emptyNoteHTML("Not enough activity yet", sampleHint)}
             </div>`;
     }
 

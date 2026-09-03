@@ -968,7 +968,17 @@ func APIGetExerciseDay(context *gin.Context) {
 
 	// Enrich moving activities with their processed stream summary (segments, route, HR
 	// zones) so the detail page can render depth without re-deriving stats in JS.
-	attachStreamSummaries(&exerciseDayObject)
+	// HR zones anchor from the owner's own settings, which are not part of the public
+	// view embedded on the day object. The day is already scoped to the caller above.
+	owner, err := database.GetAllUserInformation(userID)
+	if err != nil {
+		logger.Log.Info("Failed to get day owner for stream summaries. Error: " + err.Error())
+		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get user."})
+		context.Abort()
+		return
+	}
+
+	attachStreamSummaries(&exerciseDayObject, owner)
 
 	// Return a response with all news posts
 	context.JSON(http.StatusCreated, gin.H{"message": "Exercise day retrieved.", "exercise_day": exerciseDayObject})

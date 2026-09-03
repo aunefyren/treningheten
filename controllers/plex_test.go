@@ -89,6 +89,19 @@ func TestPlexArtworkPathAllowed(t *testing.T) {
 		"//evil.example/x":            false,
 		"":                            false,
 		"/status/sessions":            false,
+
+		// Dot-segments: Go's HTTP client forwards these to the PMS as written, so the
+		// prefix test alone used to let a caller reach any endpoint on their own server
+		// with their own token.
+		"/library/../status/sessions":      false,
+		"/library/../../identity":          false,
+		"/library/metadata/../../accounts": false,
+		"/library/%2e%2e/status/sessions":  false,
+		"/library/..%2Fstatus":             false,
+
+		// Query and fragment would let a caller append their own parameters.
+		"/library/metadata/1?X-Plex-Token=x": false,
+		"/library/metadata/1#frag":           false,
 	}
 	for path, want := range cases {
 		if got := plexArtworkPathAllowed(path); got != want {

@@ -271,34 +271,31 @@ func UpdateBirthDateValueByUserID(userID uuid.UUID, birthDate *time.Time) error 
 }
 
 // Get enabled user information by user ID (censored)
-func GetUserInformation(UserID uuid.UUID) (models.User, error) {
+func GetUserInformation(UserID uuid.UUID) (models.PublicUser, error) {
 	var user models.User
 	userrecord := Instance.Where("`users`.enabled = ?", 1).Where("`users`.id = ?", UserID).Find(&user)
 	if userrecord.Error != nil {
-		return models.User{}, userrecord.Error
+		return models.PublicUser{}, userrecord.Error
 	} else if userrecord.RowsAffected != 1 {
-		return models.User{}, errors.New("Failed to find correct user in DB.")
+		return models.PublicUser{}, errors.New("Failed to find correct user in DB.")
 	}
 
-	// Redact user information
-	user = CensorUserObject(user)
-
-	return user, nil
+	return CensorUserObject(user), nil
 }
 
 // Get all enabled users information (censored)
-func GetUsersInformation() ([]models.User, error) {
+func GetUsersInformation() ([]models.PublicUser, error) {
 	users, err := GetAllUsersUncensored()
 	if err != nil {
-		return []models.User{}, err
+		return []models.PublicUser{}, err
 	}
 
-	// Index-assign: ranging by value would censor a copy and leave the slice untouched.
-	for index := range users {
-		users[index] = CensorUserObject(users[index])
+	publicUsers := make([]models.PublicUser, 0, len(users))
+	for _, user := range users {
+		publicUsers = append(publicUsers, CensorUserObject(user))
 	}
 
-	return users, nil
+	return publicUsers, nil
 }
 
 // GetAllUsersUncensored returns every enabled user with credential fields intact. Only for
@@ -321,37 +318,36 @@ func GetAllUsersUncensored() ([]models.User, error) {
 // so callers converting many goals don't issue one GetUserInformation per goal. Users that
 // are missing/disabled are simply absent from the result. Returns an empty slice when no
 // IDs are supplied.
-func GetUsersByIDs(userIDs []uuid.UUID) ([]models.User, error) {
+func GetUsersByIDs(userIDs []uuid.UUID) ([]models.PublicUser, error) {
 	var users []models.User
 
 	if len(userIDs) == 0 {
-		return []models.User{}, nil
+		return []models.PublicUser{}, nil
 	}
 
 	userrecord := Instance.Where("`users`.enabled = ?", 1).Where("`users`.id IN ?", userIDs).Find(&users)
 	if userrecord.Error != nil {
-		return []models.User{}, userrecord.Error
+		return []models.PublicUser{}, userrecord.Error
 	}
 
-	for index := range users {
-		users[index] = CensorUserObject(users[index])
+	publicUsers := make([]models.PublicUser, 0, len(users))
+	for _, user := range users {
+		publicUsers = append(publicUsers, CensorUserObject(user))
 	}
 
-	return users, nil
+	return publicUsers, nil
 }
 
-func GetUserInformationByEmail(email string) (models.User, error) {
+func GetUserInformationByEmail(email string) (models.PublicUser, error) {
 	var user models.User
 	userrecord := Instance.Where("`users`.enabled = ?", 1).Where("`users`.email = ?", email).Find(&user)
 	if userrecord.Error != nil {
-		return models.User{}, userrecord.Error
+		return models.PublicUser{}, userrecord.Error
 	} else if userrecord.RowsAffected != 1 {
-		return models.User{}, errors.New("Failed to find correct user in DB.")
+		return models.PublicUser{}, errors.New("Failed to find correct user in DB.")
 	}
 
-	user = CensorUserObject(user)
-
-	return user, nil
+	return CensorUserObject(user), nil
 }
 
 // Get all user information using email (uncensored)
@@ -381,18 +377,18 @@ func GetAllUserInformation(UserID uuid.UUID) (models.User, error) {
 }
 
 // Get all users with sunday alerts configured (censored)
-func GetAllUsersWithSundayAlertsEnabled() ([]models.User, error) {
+func GetAllUsersWithSundayAlertsEnabled() ([]models.PublicUser, error) {
 	users, err := GetAllUsersWithSundayAlertsEnabledUncensored()
 	if err != nil {
-		return []models.User{}, err
+		return []models.PublicUser{}, err
 	}
 
-	// Index-assign: ranging by value would censor a copy and leave the slice untouched.
-	for index := range users {
-		users[index] = CensorUserObject(users[index])
+	publicUsers := make([]models.PublicUser, 0, len(users))
+	for _, user := range users {
+		publicUsers = append(publicUsers, CensorUserObject(user))
 	}
 
-	return users, nil
+	return publicUsers, nil
 }
 
 // GetAllUsersWithSundayAlertsEnabledUncensored returns the same users with their e-mail
@@ -454,26 +450,39 @@ func GenerateRandomResetCodeForUser(userID uuid.UUID, valid bool) (string, error
 
 }
 
-func CensorUserObject(user models.User) models.User {
-
-	// Redact user information
-	user.Password = "REDACTED"
-	user.Email = "REDACTED"
-	user.VerificationCode = nil
-	user.ResetCode = nil
-	user.ResetExpiration = nil
-	user.VerificationCodeExpiration = nil
-	user.SundayAlert = false
-	user.StravaCode = nil
-	user.StravaIgnoreWalks = nil
-	user.ShareActivities = nil
-
-	if user.StravaPublic == nil || !*user.StravaPublic {
-		user.StravaPublic = nil
-		user.StravaID = nil
+// CensorUserObject reduces a full user row to the subset one user may see of another.
+//
+// It returns models.PublicUser rather than a redacted models.User on purpose: an allowlist
+// the compiler enforces cannot be defeated by someone adding a field to models.User and not
+// thinking about this function, which is exactly how the health fields (birth date, resting
+// and max heart rate) ended up being served to every authenticated caller. To expose
+// something new about a user to their peers, add it to models.PublicUser deliberately.
+//
+// Callers that need the real row — a background job that must mail the user, or the owner
+// reading their own account — want GetAllUserInformation and friends instead.
+func CensorUserObject(user models.User) models.PublicUser {
+	publicUser := models.PublicUser{
+		ID:               user.ID,
+		CreatedAt:        user.CreatedAt,
+		FirstName:        user.FirstName,
+		LastName:         user.LastName,
+		Admin:            user.Admin,
+		HevyProfileURL:   user.HevyProfileURL,
+		HevyPublic:       user.HevyPublic,
+		ShareStatistics:  user.ShareStatistics,
+		WheelColor:       user.WheelColor,
+		WheelBorderColor: user.WheelBorderColor,
+		WheelEmoji:       user.WheelEmoji,
 	}
 
-	return user
+	// A Strava id is only a profile link while its owner keeps the link public; otherwise
+	// it is an identifier for an account they did not choose to advertise.
+	if user.StravaPublic != nil && *user.StravaPublic {
+		publicUser.StravaPublic = user.StravaPublic
+		publicUser.StravaID = user.StravaID
+	}
+
+	return publicUser
 }
 
 // Get user email by UserID

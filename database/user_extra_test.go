@@ -130,14 +130,16 @@ func TestGetUsersInformationAndByEmail(t *testing.T) {
 		t.Errorf("got %d enabled users, want 2", len(all))
 	}
 
-	// Censored by-email lookup still finds the user, but redacts the email field.
+	// Censored by-email lookup still finds the user, but returns the public view — which
+	// has no Email field at all, so the address cannot come back from it.
 	censored, err := GetUserInformationByEmail("listed1@example.com")
 	if err != nil {
 		t.Fatalf("GetUserInformationByEmail returned error: %v", err)
 	}
-	if censored.ID != u1.ID || censored.Email != "REDACTED" {
-		t.Errorf("censored lookup: id=%v email=%q", censored.ID, censored.Email)
+	if censored.ID != u1.ID {
+		t.Errorf("censored lookup: id=%v, want %v", censored.ID, u1.ID)
 	}
+	assertOnlyPublicFields(t, censored, "GetUserInformationByEmail")
 
 	// Uncensored by-email lookup keeps the email.
 	full, err := GetAllUserInformationByEmail("listed1@example.com")

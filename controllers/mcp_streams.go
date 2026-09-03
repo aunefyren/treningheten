@@ -168,7 +168,8 @@ func loadActivityStreamContext(userID uuid.UUID, activityID uuid.UUID) (streams 
 			}
 		}
 	}
-	if user, err := database.GetUserInformation(userID); err == nil {
+	// Needs the user's own heart-rate settings, which are not part of the public view.
+	if user, err := database.GetAllUserInformation(userID); err == nil {
 		hrMax, hrRest, hrBasis = resolveUserHR(user, activityDate)
 	}
 	return streams, distanceUnit, hrMax, hrRest, hrBasis, nil
