@@ -26,6 +26,9 @@ type fakeStrava struct {
 
 func (f *fakeStrava) handler(t *testing.T) http.HandlerFunc {
 	return func(writer http.ResponseWriter, request *http.Request) {
+		if injectUpstreamFault(writer) {
+			return
+		}
 		writer.Header().Set("Content-Type", "application/json")
 		path := request.URL.Path
 
@@ -50,13 +53,7 @@ func (f *fakeStrava) handler(t *testing.T) http.HandlerFunc {
 			}
 			_ = json.NewEncoder(writer).Encode(f.activities)
 		case strings.HasSuffix(path, "/streams"):
-			_ = json.NewEncoder(writer).Encode(models.StravaActivityStreams{
-				Time:           &models.StravaStream[int]{Data: []int{0, 60, 120, 180}},
-				Heartrate:      &models.StravaStream[int]{Data: []int{120, 140, 150, 145}},
-				LatLng:         &models.StravaStream[[]float64]{Data: [][]float64{{59.9, 10.7}, {59.91, 10.71}, {59.92, 10.72}, {59.93, 10.73}}},
-				Altitude:       &models.StravaStream[float64]{Data: []float64{10, 12, 15, 11}},
-				VelocitySmooth: &models.StravaStream[float64]{Data: []float64{2.5, 3, 3.2, 3.1}},
-			})
+			_ = json.NewEncoder(writer).Encode(richStravaStreams())
 		case strings.HasPrefix(path, "/api/v3/activities/"):
 			for _, activity := range f.activities {
 				if strings.HasSuffix(path, "/"+jsonNumber(activity.ID)) {
@@ -107,6 +104,12 @@ func withStrava(t *testing.T) *fakeStrava {
 
 	fake := &fakeStrava{}
 	stubStrava(t, fake.handler(t))
+	// The client-side rate limiter is process-wide (90 calls / 15 min, sized for the real
+	// Strava). Every fake is a fresh "Strava", so start each test with an empty window —
+	// otherwise a long run of tests blocks in stravaWait for up to 15 minutes.
+	stravaRateMu.Lock()
+	stravaRateTimes = nil
+	stravaRateMu.Unlock()
 	previous := files.ConfigFile
 	files.ConfigFile.StravaEnabled = true
 	key, _ := files.GenerateSecureKey(32)
@@ -249,4 +252,47 @@ func TestStravaEndpointsWhenDisabledOrDisconnected(t *testing.T) {
 			t.Errorf("StravaCode %v: expected an error", code)
 		}
 	}
+}
+
+// richStravaStreams is a 30-minute, one-sample-per-second run with every channel: a hill
+// in the middle, a walk break and a full stop, heart rate drifting up, and cadence,
+// power and temperature — enough for splits, zones, breaks and gradient analysis.
+func richStravaStreams() models.StravaActivityStreams {
+	const seconds = 1800
+	streams := models.StravaActivityStreams{
+		Time:           &models.StravaStream[int]{},
+		Heartrate:      &models.StravaStream[int]{},
+		LatLng:         &models.StravaStream[[]float64]{},
+		Altitude:       &models.StravaStream[float64]{},
+		VelocitySmooth: &models.StravaStream[float64]{},
+		Cadence:        &models.StravaStream[int]{},
+		Watts:          &models.StravaStream[int]{},
+		Temp:           &models.StravaStream[int]{},
+	}
+	latitude, altitude := 59.9, 10.0
+	for second := 0; second < seconds; second++ {
+		speed := 3.2
+		switch {
+		case second >= 600 && second < 660:
+			speed = 1.2 // walk break
+		case second >= 1200 && second < 1230:
+			speed = 0 // stopped at a light
+		}
+		switch {
+		case second >= 800 && second < 1000:
+			altitude += 0.1
+		case second >= 1000 && second < 1100:
+			altitude -= 0.2
+		}
+		latitude += speed / 111000
+		streams.Time.Data = append(streams.Time.Data, second)
+		streams.Heartrate.Data = append(streams.Heartrate.Data, 120+second/40)
+		streams.LatLng.Data = append(streams.LatLng.Data, []float64{latitude, 10.7})
+		streams.Altitude.Data = append(streams.Altitude.Data, altitude)
+		streams.VelocitySmooth.Data = append(streams.VelocitySmooth.Data, speed)
+		streams.Cadence.Data = append(streams.Cadence.Data, 80+second%5)
+		streams.Watts.Data = append(streams.Watts.Data, 200+second%30)
+		streams.Temp.Data = append(streams.Temp.Data, 12+second/600)
+	}
+	return streams
 }

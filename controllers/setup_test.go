@@ -13,6 +13,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/sirupsen/logrus"
+	"golang.org/x/crypto/bcrypt"
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
 	_ "modernc.org/sqlite"
@@ -27,6 +28,9 @@ func TestMain(m *testing.M) {
 		l.SetOutput(io.Discard)
 		logger.Log = l
 	}
+	// Real bcrypt cost is ~1s per hash or compare; the flows and the fault sweep hash
+	// hundreds of times. The cost value itself is not what these tests check.
+	models.PasswordHashCost = bcrypt.MinCost
 	os.Exit(m.Run())
 }
 

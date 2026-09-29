@@ -153,8 +153,12 @@ type UserWithTickets struct {
 	Tickets int        `json:"tickets"`
 }
 
+// PasswordHashCost is the bcrypt cost for account passwords (~1s of a core at 14, see
+// docs/security.md). A var solely so tests can lower it — never reassign it at runtime.
+var PasswordHashCost = 14
+
 func (user *User) HashPassword(password string) error {
-	bytes, err := bcrypt.GenerateFromPassword([]byte(password), 14)
+	bytes, err := bcrypt.GenerateFromPassword([]byte(password), PasswordHashCost)
 	if err != nil {
 		return err
 	}

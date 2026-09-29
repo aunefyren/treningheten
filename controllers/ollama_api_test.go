@@ -34,6 +34,9 @@ func withOllama(t *testing.T) *fakeOllama {
 
 	fake := &fakeOllama{status: http.StatusOK, body: `{"choices":[{"message":{"role":"assistant","content":"  Nice Tuesday work!  "}}]}`}
 	server := httptest.NewServer(http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
+		if injectUpstreamFault(writer) {
+			return
+		}
 		if request.URL.Path != "/v1/chat/completions" {
 			t.Errorf("unexpected Ollama path %s", request.URL.Path)
 		}

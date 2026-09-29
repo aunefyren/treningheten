@@ -64,6 +64,9 @@ func fakeAudiobookshelf(t *testing.T, windowStart time.Time) *httptest.Server {
 	t.Helper()
 
 	server := httptest.NewServer(http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
+		if injectUpstreamFault(writer) {
+			return
+		}
 		if request.Header.Get("Authorization") != "Bearer abs-token" {
 			writer.WriteHeader(http.StatusUnauthorized)
 			return

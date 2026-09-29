@@ -20,8 +20,11 @@ import (
 
 var (
 	treninghetenVersionParameter = "{{RELEASE_TAG}}"
-	configFilePath, _            = filepath.Abs("./config/config.json")
-	ConfigFile                   = models.ConfigStruct{}
+	// Relative to the working directory at the time of use (the app runs from its own
+	// directory — WORKDIR /app in Docker), like SaveConfig's ./config directory and the
+	// log file, so everything config-related follows the same root.
+	configFilePath = filepath.Join("config", "config.json")
+	ConfigFile     = models.ConfigStruct{}
 )
 
 func LoadConfig() (err error) {

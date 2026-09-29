@@ -40,11 +40,23 @@ func robustnessQuery() string {
 // random path ids. It fails the test on any panic.
 func callEveryHandler(t *testing.T, h *apiHarness, token string) (calls int) {
 	t.Helper()
+	return callEveryHandlerWith(t, h, token, "", "{}", nil)
+}
 
+// callEveryHandlerWith is callEveryHandler with a fixed path-parameter value (empty means
+// a fresh UUID), a raw body, and an optional check on each response.
+func callEveryHandlerWith(t *testing.T, h *apiHarness, token string, paramValue string, body string,
+	check func(t *testing.T, method, path string, recorder *httptest.ResponseRecorder)) (calls int) {
+	t.Helper()
+
+	// Without a valid token or with a malformed id, every handler returns before any
+	// network call (and the integrations are gated off in the harness anyway), so only
+	// the fully valid sweep needs to skip the external routes.
+	skipExternal := token != "" && paramValue == "" && body == "{}"
 	for _, route := range h.router.Routes() {
 		skip := false
 		for _, marker := range externalRoutes {
-			if strings.Contains(route.Path, marker) {
+			if skipExternal && strings.Contains(route.Path, marker) {
 				skip = true
 			}
 		}
@@ -56,7 +68,10 @@ func callEveryHandler(t *testing.T, h *apiHarness, token string) (calls int) {
 		var params gin.Params
 		for _, segment := range strings.Split(route.Path, "/") {
 			if strings.HasPrefix(segment, ":") {
-				id := uuid.NewString()
+				id := paramValue
+				if id == "" {
+					id = uuid.NewString()
+				}
 				params = append(params, gin.Param{Key: segment[1:], Value: id})
 				path = strings.Replace(path, segment, id, 1)
 			}
@@ -64,9 +79,11 @@ func callEveryHandler(t *testing.T, h *apiHarness, token string) (calls int) {
 
 		recorder := httptest.NewRecorder()
 		context, _ := gin.CreateTestContext(recorder)
-		context.Request = httptest.NewRequest(route.Method, path+"?"+robustnessQuery(), strings.NewReader("{}"))
+		context.Request = httptest.NewRequest(route.Method, path+"?"+robustnessQuery(), strings.NewReader(body))
 		context.Request.Header.Set("Content-Type", "application/json")
-		context.Request.Header.Set("Authorization", "Bearer "+token)
+		if token != "" {
+			context.Request.Header.Set("Authorization", "Bearer "+token)
+		}
 		context.Params = params
 
 		func() {
@@ -77,6 +94,9 @@ func callEveryHandler(t *testing.T, h *apiHarness, token string) (calls int) {
 			}()
 			route.HandlerFunc(context)
 		}()
+		if check != nil {
+			check(t, route.Method, route.Path, recorder)
+		}
 		calls++
 	}
 	return calls
@@ -130,4 +150,50 @@ func TestHandlersSurviveADeadDatabase(t *testing.T) {
 		}
 	}
 	_ = fmt.Sprint()
+}
+
+// Called without a valid token — as if mounted without the auth middleware — handlers
+// must not panic. (Several admin handlers never read the caller and rely on the router's
+// middleware alone; main_test.go's TestEveryProtectedRouteRejectsAnonymousCallers checks
+// that every such route actually sits behind it.)
+func TestHandlersSurviveCallsWithoutAValidToken(t *testing.T) {
+	h := newAPIHarness(t)
+	// Integrations on, so their handlers get past the "enabled" gate to the token check.
+	// Without a token each stops there, before any network call.
+	withMedia(t)
+	withHevy(t)
+	withStrava(t)
+	callEveryHandlerWith(t, h, "", "", "{}", nil)
+	callEveryHandlerWith(t, h, "forged.token.value", "", "{}", nil)
+}
+
+// Malformed path ids and request bodies are client errors, never panics.
+func TestHandlersRejectMalformedInput(t *testing.T) {
+	h := newAPIHarness(t)
+	_, token := h.user("malformed@robust.test", true)
+
+	callEveryHandlerWith(t, h, token, "not-a-uuid", "{}", nil)
+	callEveryHandlerWith(t, h, token, "", "{this is not json", nil)
+	callEveryHandlerWith(t, h, token, "", `{"date":"yesterday","exercise_interval":"many","weight":"heavy"}`, nil)
+}
+
+// Query parameters that don't parse are client errors.
+func TestHandlersRejectMalformedQueryParameters(t *testing.T) {
+	h := newAPIHarness(t)
+	_, token := h.user("query@robust.test", false)
+
+	for _, path := range []string{
+		"/api/auth/exercise-days?year=twenty",
+		"/api/auth/exercise-days?goal=nope",
+		"/api/auth/exercise-days/week?weekDay=eight",
+		"/api/auth/achievements?user=nope",
+		"/api/auth/actions/" + uuid.NewString() + "/statistics?start=2026-01-01T00:00:00Z&end=later",
+	} {
+		if code := h.do("GET", path, token, nil).Code; code != http.StatusBadRequest {
+			t.Errorf("GET %s: status = %d, want 400", path, code)
+		}
+	}
+	if code := h.do("POST", "/api/auth/users/"+uuid.NewString()+"/strava-sync?pointInTime=soon", token, nil).Code; code != http.StatusBadRequest {
+		t.Errorf("strava-sync with a bad pointInTime: status = %d, want 400", code)
+	}
 }

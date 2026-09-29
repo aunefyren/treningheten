@@ -232,3 +232,32 @@ func TestTokenHelpers(t *testing.T) {
 		t.Error("Authenticate accepted a token for a user that doesn't exist")
 	}
 }
+
+// With the database unreachable the middleware must refuse (500), never wave the request
+// through on a token that merely parses.
+func TestAuthMiddlewareFailsClosedWithoutADatabase(t *testing.T) {
+	withAuthDB(t)
+	router := authRouter()
+	admin := makeAuthUser(t, "deadadmin@mw.test", authUser{admin: true, enabled: true, verified: true})
+	memberJWT := jwtFor(t, admin, auth.ScopeForUser(false))
+	adminJWT := jwtFor(t, admin, auth.ScopeForUser(true))
+	pat := patFor(t, admin, models.ScopeAPIRead, time.Now().Add(time.Hour), false)
+
+	sqlDB, _ := database.Instance.DB()
+	_ = sqlDB.Close()
+
+	for name, request := range map[string]struct{ path, token string }{
+		"user route":  {"/user", memberJWT},
+		"admin route": {"/admin", adminJWT},
+		"pat":         {"/user", pat},
+		"image":       {"/image", memberJWT},
+	} {
+		if code := send(router, "GET", request.path, request.token, "").Code; code < 400 {
+			t.Errorf("%s with the database down: status = %d, want a refusal", name, code)
+		}
+	}
+	files.ConfigFile.SMTPEnabled = true
+	if _, err := Authenticate("Bearer " + memberJWT); err == nil {
+		t.Error("Authenticate succeeded with the database down")
+	}
+}

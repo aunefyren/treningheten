@@ -804,7 +804,6 @@ func GenerateAchievementsForWeek(weekResults models.WeekResults, targetUser *uui
 		weekday := false
 		weekend := false
 		exerciseSum := 0
-		now := time.Now()
 
 		for _, day := range week.Days {
 			logger.Log.Trace("doing day from week: " + day.Date.String())
@@ -818,7 +817,9 @@ func GenerateAchievementsForWeek(weekResults models.WeekResults, targetUser *uui
 			dayWeekday := day.Date.Weekday()
 
 			// get different dates for calculations
-			christmasDate := time.Date(now.Year(), 12, 24, 0, 0, 0, 0, time.Local)
+			// The Advent Sundays of the day's own year and zone: using the year the job runs
+			// in meant regenerating an earlier year's weeks never matched them.
+			christmasDate := time.Date(day.Date.Year(), 12, 24, 0, 0, 0, 0, day.Date.Location())
 			logger.Log.Trace("Christmas date: " + christmasDate.String())
 
 			dayLastSundayAdvent, err := utilities.FindEarlierSunday(christmasDate)

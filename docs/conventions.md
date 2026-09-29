@@ -261,8 +261,8 @@ in the `database/` layer, the `models/` value types, `auth/` (scopes + token
 handling), the outbound integration clients, and pure-logic helpers in
 `controllers/`, plus request-level flow tests for the main `APIXxx` handlers (seasons
 and goals, workout logging, accounts, admin, weekly debts and the wheel, push
-notifications, the integrations against fake backends, OAuth, MCP). Total statement
-coverage is about 75%.
+notifications, the integrations against fake backends, OAuth, MCP) and the fault
+sweeps below. Total statement coverage is about 90%.
 
 - Test files are `*_test.go` next to the code, `package controllers` / `package
   database` etc. (white-box).
@@ -306,6 +306,28 @@ coverage is about 75%.
   with random ids, then again with the database closed, and must not panic. It found the
   missing `return` in `APIRegisterSickleave`; keep new routes in the harness so they're
   swept too.
+- **Fault-injection sweep** (`controllers/fault_test.go`, scenarios in
+  `fault_scenarios*_test.go`): `installFaultInjector` registers GORM callbacks that fail
+  exactly the Nth database operation. Each scenario runs once cleanly to count its
+  operations, then once per operation with that one failing, on a fresh harness. A
+  panic fails the test; a 2xx answer despite the failure is *reported* (logged at the
+  end), not failed, because many reads deliberately degrade — see docs/wip.md for the
+  ones that probably shouldn't. Scenarios are either HTTP requests or direct `call`s
+  for background entry points (syncs, cron jobs). The sweep is skipped under `-short`.
+- **Upstream fault sweep** (`controllers/upstream_fault_test.go`): every fake provider
+  handler calls `injectUpstreamFault` first, which fails exactly the Nth upstream request
+  as a 500, a non-JSON 200, or a dropped connection. `TestUpstreamFaultSweep` replays each
+  integration scenario once per request and mode; it must never panic. New fakes must
+  call the hook. Fakes that talk to rate-limited providers must reset the client-side
+  limiter (see `withStrava`), or a long run blocks in `stravaWait`.
+- **Closed-database sweep** (`database/closed_db_test.go`): every exported function in
+  `database/` is called with zero-value arguments against a closed database and must
+  return an error, never panic. The call list is generated —
+  `go generate ./database` runs `gen_closed_db_calls.go` (a `//go:build ignore` file).
+  Regenerate after adding a function.
+- **bcrypt cost** is `models.PasswordHashCost` (14), a var solely so the `controllers`
+  tests can drop it to `bcrypt.MinCost` in `TestMain`; the password flows hash hundreds
+  of times.
 - **`auth/` tests** must install a **valid base64** signing key (see `withSigningKey`
   in `auth/auth_test.go`). `files.GetPrivateKey` regenerates *and persists* a key when
   it fails to decode, so a junk key makes a test write to the real config file.
@@ -322,9 +344,10 @@ coverage is about 75%.
   responses, especially the status codes that carry meaning: Strava's 400/401 →
   `ErrStravaSessionInvalid` (clears the connection) vs a transient 429/5xx, Hevy's
   401/403 → "key rejected", and Spotify's 403 → `ErrSpotifyForbidden`.
-- **Password tests are slow**: bcrypt runs at cost 14, so each hash *and each
-  comparison* costs about a second. Keep the case list short and put anything
-  extravagant behind `testing.Short()`.
+- **Password tests are slow** outside `controllers/`: bcrypt runs at cost 14, so each
+  hash *and each comparison* costs about a second. `controllers/` lowers
+  `models.PasswordHashCost` in `TestMain`; elsewhere keep the case list short and put
+  anything extravagant behind `testing.Short()`.
 - Add tests when finishing or refactoring a feature; for risky refactors, write a
   **characterization test** that pins current behaviour first. When fixing a bug,
   first confirm the new test **fails** against the unfixed code — a persistence bug

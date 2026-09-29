@@ -138,3 +138,47 @@ func TestSeasonStartMailGoesToEveryGoalHolder(t *testing.T) {
 }
 
 func stringPointer(value string) *string { return &value }
+
+func TestEveryMailReportsAnUnreachableServer(t *testing.T) {
+	newUtilitiesTestDB(t)
+	withFakeSMTP(t)
+	files.ConfigFile.SMTPHost = "127.0.0.1"
+	files.ConfigFile.SMTPPort = 1
+
+	code := "C"
+	user := models.User{FirstName: "Ann", Email: "ann@test.local", VerificationCode: &code, ResetCode: &code}
+	for name, send := range map[string]func() error{
+		"verification":     func() error { return SendSMTPVerificationEmail(user) },
+		"reset":            func() error { return SendSMTPResetEmail(user) },
+		"sunday reminder":  func() error { return SendSMTPSundayReminderEmail(user, models.Season{}, time.Now()) },
+		"week lost":        func() error { return SendSMTPForWeekLost(user, 1) },
+		"wheel spin":       func() error { return SendSMTPForWheelSpin(user, 1) },
+		"wheel spin check": func() error { return SendSMTPForWheelSpinCheck(user, 1) },
+		"wheel spin win":   func() error { return SendSMTPForWheelSpinWin(user, 1) },
+	} {
+		if err := send(); err == nil {
+			t.Errorf("%s: no error with the SMTP server unreachable", name)
+		}
+	}
+
+	// Season-start mail logs per-recipient failures and carries on.
+	member := models.User{FirstName: "M", Email: "m@test.local", Enabled: true}
+	member.ID = uuid.New()
+	database.Instance.Create(&member)
+	if err := SendSMTPSeasonStartEmail(models.SeasonObject{Goals: []models.GoalObject{{User: models.PublicUser{ID: member.ID}}}}); err != nil {
+		t.Errorf("season start: %v", err)
+	}
+	files.ConfigFile.TreninghetenEnvironment = "test"
+	files.ConfigFile.TreninghetenTestEmail = "sink@test.local"
+	for _, send := range []func() error{
+		func() error { return SendSMTPResetEmail(user) },
+		func() error { return SendSMTPSundayReminderEmail(user, models.Season{}, time.Now()) },
+		func() error { return SendSMTPForWeekLost(user, 1) },
+		func() error { return SendSMTPForWheelSpin(user, 1) },
+		func() error { return SendSMTPForWheelSpinCheck(user, 1) },
+		func() error { return SendSMTPForWheelSpinWin(user, 1) },
+	} {
+		_ = send()
+	}
+	_ = SendSMTPSeasonStartEmail(models.SeasonObject{Goals: []models.GoalObject{{User: models.PublicUser{ID: member.ID}}}})
+}

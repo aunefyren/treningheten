@@ -181,3 +181,30 @@ func TestGenerateSecureKeyIsRandom(t *testing.T) {
 		t.Errorf("key is not 32 bytes of base64: %v", err)
 	}
 }
+
+// Saving into a directory that can't be written must report the failure rather than
+// silently lose the generated secrets.
+func TestSaveAndCreateConfigReportUnwritableDirectory(t *testing.T) {
+	if os.Geteuid() == 0 {
+		t.Skip("root ignores directory permissions")
+	}
+	dir := withTempConfig(t)
+	root := filepath.Dir(filepath.Dir(dir))
+	if err := os.MkdirAll(filepath.Join(root, "config"), 0o700); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Chmod(filepath.Join(root, "config"), 0o500); err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = os.Chmod(filepath.Join(root, "config"), 0o700) })
+
+	if err := SaveConfig(); err == nil {
+		t.Error("SaveConfig succeeded into a read-only directory")
+	}
+	if err := CreateConfigFile(); err == nil {
+		t.Error("CreateConfigFile succeeded into a read-only directory")
+	}
+	if err := LoadConfig(); err == nil {
+		t.Error("LoadConfig succeeded though it could not create the file")
+	}
+}

@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"context"
+	"errors"
 	"flag"
 	"fmt"
 	"io/fs"
@@ -35,21 +36,45 @@ import (
 func main() {
 	utilities.PrintASCII()
 
+	if err := startup(); err != nil {
+		fmt.Println("startup failed. error: " + err.Error())
+		if logger.Log != nil {
+			logger.Log.Error("startup failed. error: " + err.Error())
+		}
+		os.Exit(1)
+	}
+
+	// Create task scheduler for the recurring jobs
+	scheduleJobs(chrono.NewDefaultTaskScheduler())
+
+	// Initialize Router
+	router := initRouter(files.ConfigFile)
+
+	logger.Log.Info("Router initialized.")
+
+	go controllers.OllamaPreCacheForAllUsers()
+
+	log.Fatal(router.Run(":" + strconv.Itoa(files.ConfigFile.TreninghetenPort)))
+}
+
+// startup prepares everything the server needs before it can listen: the config
+// directory and file, the logger, command-line flags, the time zone, the database
+// (connect, migrate, seed) and, when asked for, a first invite code. Any failure is
+// returned; main treats it as fatal.
+func startup() error {
 	// Create files directory. 0700 because config.json inside it holds every secret
 	// the app has — see files.SaveConfig, which enforces the same mode on write.
 	newPath := filepath.Join(".", "config")
 	err := os.MkdirAll(newPath, 0700)
 	if err != nil {
-		fmt.Println("failed to create 'files' directory. error: " + err.Error())
-		os.Exit(1)
+		return errors.New("failed to create 'files' directory: " + err.Error())
 	}
 	fmt.Println("directory 'files' valid")
 
 	// Load config file
 	err = files.LoadConfig()
 	if err != nil {
-		fmt.Println("failed to load configuration file. error: " + err.Error())
-		os.Exit(1)
+		return errors.New("failed to load configuration file: " + err.Error())
 	}
 	fmt.Println("configuration file loaded")
 
@@ -65,16 +90,14 @@ func main() {
 	generateInvite := false
 	files.ConfigFile, generateInvite, err = parseFlags(files.ConfigFile)
 	if err != nil {
-		logger.Log.Fatal("failed to parse input flags. error: " + err.Error())
-		os.Exit(1)
+		return errors.New("failed to parse input flags: " + err.Error())
 	}
 	logger.Log.Info("flags parsed")
 
 	// save new version of config
 	err = files.SaveConfig()
 	if err != nil {
-		logger.Log.Error("failed to save new config. error: " + err.Error())
-		os.Exit(1)
+		return errors.New("failed to save new config: " + err.Error())
 	}
 
 	// Set time zone from config if it is not empty
@@ -87,8 +110,7 @@ func main() {
 			files.ConfigFile.Timezone = ""
 			err = files.SaveConfig()
 			if err != nil {
-				logger.Log.Fatal("failed to set new time zone in the config. error: " + err.Error())
-				os.Exit(1)
+				return errors.New("failed to set new time zone in the config: " + err.Error())
 			}
 
 		} else {
@@ -111,8 +133,7 @@ func main() {
 		files.ConfigFile.DBSSL,
 		files.ConfigFile.DBLocation)
 	if err != nil {
-		logger.Log.Fatal("failed to connect to database. error: " + err.Error())
-		os.Exit(1)
+		return errors.New("failed to connect to database: " + err.Error())
 	}
 	database.Migrate()
 
@@ -120,8 +141,7 @@ func main() {
 
 	err = controllers.ValidateAchievements()
 	if err != nil {
-		logger.Log.Info("failed to validate achievements. error: " + err.Error())
-		os.Exit(1)
+		return errors.New("failed to validate achievements: " + err.Error())
 	}
 
 	database.SeedActions()
@@ -133,85 +153,48 @@ func main() {
 	if generateInvite {
 		invite, err := database.GenerateRandomInvite()
 		if err != nil {
-			logger.Log.Fatal("failed to generate random invitation code. error: " + err.Error())
-			os.Exit(1)
+			return errors.New("failed to generate random invitation code: " + err.Error())
 		}
 		logger.Log.Info("generated new invite code. code: " + invite)
 	}
 
-	// Create task scheduler for sunday reminders
-	taskScheduler := chrono.NewDefaultTaskScheduler()
+	return nil
+}
 
-	_, err = taskScheduler.ScheduleWithCron(func(ctx context.Context) {
-		logger.Log.Info("sunday reminder task executing")
-		controllers.SendSundayReminders()
-	}, "0 0 18 * * 7")
-
-	if err != nil {
-		logger.Log.Info("sunday reminder task was not scheduled successfully")
+// scheduleJobs registers the recurring background jobs; the integration jobs only when
+// their integration is enabled. It returns how many were scheduled.
+func scheduleJobs(taskScheduler chrono.TaskScheduler) int {
+	jobs := []struct {
+		name    string
+		enabled bool
+		cron    string
+		run     func()
+	}{
+		{"sunday reminder", true, "0 0 18 * * 7", controllers.SendSundayReminders},
+		{"generating results for last week", true, "0 0 8 * * 1", controllers.ProcessLastWeek},
+		{"Ollama pre-cache", files.ConfigFile.Ollama.Enabled, "0 0 6 * * *", controllers.OllamaPreCacheForAllUsers},
+		{"strava sync", files.ConfigFile.StravaEnabled, "0 0 * * * *", controllers.StravaSyncWeekForAllUsers},
+		{"hevy sync", files.ConfigFile.HevyEnabled, "0 30 * * * *", controllers.HevyEventsSyncForAllUsers},
+		{"media reconcile", files.ConfigFile.Media.Enabled, "0 45 * * * *", controllers.MediaReconcileForAllUsers},
 	}
 
-	_, err = taskScheduler.ScheduleWithCron(func(ctx context.Context) {
-		logger.Log.Info("generating results for last week")
-		controllers.ProcessLastWeek()
-	}, "0 0 8 * * 1")
-
-	if err != nil {
-		logger.Log.Info("generating results for last week task was not scheduled successfully")
-	}
-
-	if files.ConfigFile.Ollama.Enabled {
-		_, err = taskScheduler.ScheduleWithCron(func(ctx context.Context) {
-			logger.Log.Info("Ollama pre-cache task executing")
-			controllers.OllamaPreCacheForAllUsers()
-		}, "0 0 6 * * *")
-
-		if err != nil {
-			logger.Log.Info("Ollama pre-cache task was not scheduled successfully. error: " + err.Error())
+	scheduled := 0
+	for _, job := range jobs {
+		if !job.enabled {
+			continue
 		}
-	}
-
-	if files.ConfigFile.StravaEnabled {
-		_, err = taskScheduler.ScheduleWithCron(func(ctx context.Context) {
-			logger.Log.Info("strava sync task executing")
-			controllers.StravaSyncWeekForAllUsers()
-		}, "0 0 * * * *")
-
+		job := job
+		_, err := taskScheduler.ScheduleWithCron(func(ctx context.Context) {
+			logger.Log.Info(job.name + " task executing")
+			job.run()
+		}, job.cron)
 		if err != nil {
-			logger.Log.Info("strava sync task was not scheduled successfully. error: " + err.Error())
+			logger.Log.Info(job.name + " task was not scheduled successfully. error: " + err.Error())
+			continue
 		}
+		scheduled++
 	}
-
-	if files.ConfigFile.HevyEnabled {
-		_, err = taskScheduler.ScheduleWithCron(func(ctx context.Context) {
-			logger.Log.Info("hevy sync task executing")
-			controllers.HevyEventsSyncForAllUsers()
-		}, "0 30 * * * *")
-
-		if err != nil {
-			logger.Log.Info("hevy sync task was not scheduled successfully. error: " + err.Error())
-		}
-	}
-
-	if files.ConfigFile.Media.Enabled {
-		_, err = taskScheduler.ScheduleWithCron(func(ctx context.Context) {
-			logger.Log.Info("media reconcile task executing")
-			controllers.MediaReconcileForAllUsers()
-		}, "0 45 * * * *")
-
-		if err != nil {
-			logger.Log.Info("media reconcile task was not scheduled successfully. error: " + err.Error())
-		}
-	}
-
-	// Initialize Router
-	router := initRouter(files.ConfigFile)
-
-	logger.Log.Info("Router initialized.")
-
-	go controllers.OllamaPreCacheForAllUsers()
-
-	log.Fatal(router.Run(":" + strconv.Itoa(files.ConfigFile.TreninghetenPort)))
+	return scheduled
 }
 
 // trustedProxyCIDRs are the networks a reverse proxy in front of Treningheten may

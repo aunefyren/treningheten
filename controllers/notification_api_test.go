@@ -38,6 +38,9 @@ func pushEndpoint(t *testing.T, status int) (*httptest.Server, *atomic.Int32) {
 
 	var deliveries atomic.Int32
 	server := httptest.NewServer(http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
+		if injectUpstreamFault(writer) {
+			return
+		}
 		if request.Header.Get("Authorization") == "" || request.Header.Get("Content-Encoding") != "aes128gcm" {
 			t.Errorf("push delivery without VAPID auth or encryption: %v", request.Header)
 		}

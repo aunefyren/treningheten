@@ -234,3 +234,7 @@ func TestTimeToMySQLTimestamp(t *testing.T) {
 		t.Errorf("TimeToMySQLTimestamp() = %q, want %q", got, want)
 	}
 }
+
+func TestPrintASCIIDoesNotPanic(t *testing.T) {
+	PrintASCII()
+}

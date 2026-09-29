@@ -206,3 +206,32 @@ func TestParseFlagsDefaults(t *testing.T) {
 		t.Errorf("port = %d, want the 8080 fallback for 0", config.TreninghetenPort)
 	}
 }
+
+// Several handlers (the admin ones, the user list, news) never read the caller and rely
+// entirely on the group middleware, so every /api/auth and /api/admin route registered in
+// initRouter must refuse an anonymous request before any handler runs.
+func TestEveryProtectedRouteRejectsAnonymousCallers(t *testing.T) {
+	router := initRouter(testConfig())
+
+	checked := 0
+	for _, route := range router.Routes() {
+		if !strings.HasPrefix(route.Path, "/api/auth") && !strings.HasPrefix(route.Path, "/api/admin") {
+			continue
+		}
+		path := route.Path
+		for _, segment := range strings.Split(route.Path, "/") {
+			if strings.HasPrefix(segment, ":") {
+				path = strings.Replace(path, segment, "00000000-0000-0000-0000-000000000001", 1)
+			}
+		}
+		recorder := httptest.NewRecorder()
+		router.ServeHTTP(recorder, httptest.NewRequest(route.Method, path, strings.NewReader("{}")))
+		if recorder.Code != http.StatusUnauthorized {
+			t.Errorf("%s %s without a token: status = %d, want 401", route.Method, route.Path, recorder.Code)
+		}
+		checked++
+	}
+	if checked < 100 {
+		t.Errorf("only %d protected routes checked; did the route table change?", checked)
+	}
+}

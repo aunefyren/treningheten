@@ -502,6 +502,31 @@ activities. Open refinements left for later:
 
 ### MFA enrollment on /account
 
+### Test sweeps — findings to decide on (open)
+90.2% coverage was reached on 2026-09-29 (the testing approach is in `docs/conventions.md`
+→ Tests). Fixed along the way: a sick-leave nil panic, the debt wheel re-spin, the
+MySQL auto-create, the Advent achievements using the job's year instead of the day's, and
+a missing session answering 500 instead of 404. Open:
+- **Handlers that answer 2xx when a database operation fails part-way** (reported, not
+  failed, by `TestFaultInjectionSweep`). Most are reads that degrade to partial or empty
+  data — feeds, statistics, season weeks, achievements — which may be intended. The ones
+  that look like real bugs are writes:
+  - **Choosing the wheel winner** (`APIChooseWinnerForDebt`) ignores the error from
+    `database.UpdateDebtWinner`, so the wheel can announce a winner that was never saved.
+  - **Generating debt** (`APIGenerateDebtForWeek`) reports success when processing failed.
+  - **Registering a goal** reports success when creating its sick-leave allowance failed.
+  - **Updating a session or an exercise day** reports success when a follow-up write failed.
+  Decide per handler: error out, or keep degrading and say so in a comment.
+- **Changing your e-mail address doesn't require verifying the new one.** The account
+  stays verified and no code is sent; the re-verify branch in `UpdateUser` only runs for
+  already-unverified accounts, which the auth middleware keeps out. Intended?
+- **Creating an activity ignores `action`** in the request (`APICreateOperationForUser`
+  always stores none); the builder sets it with a follow-up update. Drop the field, or use it.
+- **Status-code nits:** an invalid profile image and deleting a used invite answer 500;
+  both are client errors.
+- **Existing SQLite installs** may hold duplicate exercise days from before the midnight
+  fix, and **existing goals** created as non-competing are stored as competing (see above).
+
 ### Docker test harness — follow-ups (open)
 The harness itself is done (`docker-test/README.md`). Ideas not yet decided:
 - **Seed ABS listening history** so the soundtrack overlay can be tested with zero

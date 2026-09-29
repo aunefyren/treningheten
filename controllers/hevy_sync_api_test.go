@@ -47,6 +47,9 @@ func fakeHevyAPI(t *testing.T, workouts []models.HevyWorkout, events []models.He
 	t.Helper()
 
 	stubHevyAPI(t, func(writer http.ResponseWriter, request *http.Request) {
+		if injectUpstreamFault(writer) {
+			return
+		}
 		if request.Header.Get("api-key") == "rejected-key" {
 			writer.WriteHeader(http.StatusUnauthorized)
 			return

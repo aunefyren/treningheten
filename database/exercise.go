@@ -113,11 +113,15 @@ func GetAllExerciseByIDAndUserID(exerciseID uuid.UUID, userID uuid.UUID) (models
 	if record.Error != nil {
 		return models.Exercise{}, record.Error
 	} else if record.RowsAffected != 1 {
-		return models.Exercise{}, errors.New("No exercise found.")
+		return models.Exercise{}, ErrExerciseNotFound
 	}
 
 	return exercise, nil
 }
+
+// ErrExerciseNotFound is returned when a session doesn't exist or isn't the caller's, so
+// handlers can answer 404 rather than treating a miss as a server error.
+var ErrExerciseNotFound = errors.New("No exercise found.")
 
 func UpdateExerciseInDB(exercise models.Exercise) (models.Exercise, error) {
 	record := Instance.Save(&exercise)
