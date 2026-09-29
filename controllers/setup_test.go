@@ -16,6 +16,7 @@ import (
 	"golang.org/x/crypto/bcrypt"
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
+	gormlogger "gorm.io/gorm/logger"
 	_ "modernc.org/sqlite"
 )
 
@@ -49,7 +50,9 @@ func newControllerTestDB(t *testing.T) {
 	// One connection keeps the :memory: database alive and isolated for the test.
 	sqlDB.SetMaxOpenConns(1)
 
-	gormDB, err := gorm.Open(sqlite.Dialector{Conn: sqlDB}, &gorm.Config{})
+	// Silent: the fault sweeps fail thousands of queries on purpose, and GORM would print
+	// every one of them, burying real failures in the CI log.
+	gormDB, err := gorm.Open(sqlite.Dialector{Conn: sqlDB}, &gorm.Config{Logger: gormlogger.Default.LogMode(gormlogger.Silent)})
 	if err != nil {
 		t.Fatalf("failed to open gorm: %v", err)
 	}

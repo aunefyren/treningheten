@@ -40,9 +40,11 @@ func TestWeeklyProcessingAwardsCalendarAndStreakAchievements(t *testing.T) {
 	eager, _ := h.user("eager@rules.test", false)
 	idle, _ := h.user("idle@rules.test", false)
 
-	oslo, _ := time.LoadLocation("Europe/Oslo")
-	start := time.Date(2025, 11, 24, 0, 0, 0, 0, oslo) // a Monday
-	end := time.Date(2025, 12, 28, 23, 59, 59, 0, oslo)
+	// Seasons are created in the server's zone, as in production (main sets time.Local
+	// from the configured timezone); mixing zones is what broke CI running in UTC.
+	zone := time.Local
+	start := time.Date(2025, 11, 24, 0, 0, 0, 0, zone) // a Monday
+	end := time.Date(2025, 12, 28, 23, 59, 59, 0, zone)
 	season := seedSeason(t, "Advent season", start, end, false)
 	seedGoal(t, eager.ID, season, 3)
 	seedGoal(t, idle.ID, season, 3)
@@ -84,11 +86,13 @@ func TestSeventeenthOfMayAchievement(t *testing.T) {
 	patriot, _ := h.user("patriot@rules.test", false)
 	other, _ := h.user("other@rules.test", false)
 
-	oslo, _ := time.LoadLocation("Europe/Oslo")
-	season := seedSeason(t, "May season", time.Date(2025, 5, 12, 0, 0, 0, 0, oslo), time.Date(2025, 5, 18, 23, 59, 59, 0, oslo), false)
+	// Seasons are created in the server's zone, as in production (main sets time.Local
+	// from the configured timezone); mixing zones is what broke CI running in UTC.
+	zone := time.Local
+	season := seedSeason(t, "May season", time.Date(2025, 5, 12, 0, 0, 0, 0, zone), time.Date(2025, 5, 18, 23, 59, 59, 0, zone), false)
 	seedGoal(t, patriot.ID, season, 1)
 	seedGoal(t, other.ID, season, 1)
-	seedExerciseDayWithExercises(t, patriot.ID, time.Date(2025, 5, 17, 0, 0, 0, 0, oslo), 1)
+	seedExerciseDayWithExercises(t, patriot.ID, time.Date(2025, 5, 17, 0, 0, 0, 0, zone), 1)
 
 	processSeasonWeeks(t, season)
 

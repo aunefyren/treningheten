@@ -524,6 +524,15 @@ a missing session answering 500 instead of 404. Open:
   always stores none); the builder sets it with a follow-up update. Drop the field, or use it.
 - **Status-code nits:** an invalid profile image and deleting a used invite answer 500;
   both are client errors.
+- **A season in a different time zone from the server breaks its last week.**
+  `APIRegisterSeason` builds start/end in the zone the request sends, while the week
+  helpers (`utilities.SetClockToTime`, `FindEarlierMonday`/`FindNextSunday`) work in
+  `time.Local` (the configured `timezone`). When the two differ, the season's final Sunday
+  23:59:59 falls outside the computed week and weekly processing for that week fails
+  ("Failed to retrieve ONE week" → no debts or achievements). Found when CI (UTC) ran tests
+  that built seasons in Europe/Oslo; the tests now use the server zone like production does.
+  Normally harmless (admin and server share a zone) — decide whether seasons should be
+  pinned to the server zone, or the week math made zone-aware.
 - **Existing SQLite installs** may hold duplicate exercise days from before the midnight
   fix, and **existing goals** created as non-competing are stored as competing (see above).
 
