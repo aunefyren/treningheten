@@ -103,6 +103,18 @@ func TestWeeklyResultsDebtAndWheel(t *testing.T) {
 	}
 	h.ok("GET", "/api/auth/debts", winnerToken, nil)
 	h.ok("GET", "/api/auth/debts", bobToken, nil)
+
+	// Every season member can open the spun wheel (which marks their wheel view as seen);
+	// someone outside the season can't.
+	viewed := h.ok("GET", debtPath, winnerToken, nil)
+	if field(t, viewed, "debt", "winner") == nil || len(field(t, viewed, "winners").([]any)) != 2 {
+		t.Errorf("debt view = %v, want the winner and both eligible winners", viewed)
+	}
+	h.ok("GET", debtPath, aliceToken, nil)
+	h.ok("GET", debtPath, daveToken, nil)
+	_, outsiderToken := h.user("outsider@debt.test", false)
+	h.expect(http.StatusForbidden, "GET", debtPath, outsiderToken, nil)
+	h.expect(http.StatusBadRequest, "GET", "/api/auth/debts/"+uuid.NewString(), bobToken, nil)
 	h.ok("POST", debtPath+"/received", winnerToken, nil)
 	h.expect(http.StatusBadRequest, "POST", "/api/auth/debts/nope/received", winnerToken, nil)
 

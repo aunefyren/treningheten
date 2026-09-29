@@ -540,6 +540,18 @@ func ClearStravaConnectionForUser(userID uuid.UUID) error {
 	return record.Error
 }
 
+// SetHevyLastSyncForUser advances only the Hevy sync baseline, and only while the user is
+// still connected. The sync runs in the background on a copy of the user loaded before it
+// started, so saving that whole copy would write back a Hevy key the user removed in the
+// meantime (and undo any other profile change made during the import).
+func SetHevyLastSyncForUser(userID uuid.UUID, at time.Time) error {
+	record := Instance.Model(&models.User{}).
+		Where("id = ?", userID).
+		Where("hevy_api_key IS NOT NULL").
+		Update("hevy_last_sync", at)
+	return record.Error
+}
+
 func GetStravaUsers() (users []models.User, err error) {
 	err = nil
 	users = []models.User{}

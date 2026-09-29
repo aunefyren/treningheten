@@ -97,6 +97,23 @@ save. Without that, an install that predates this change would keep its world-re
 `0644` secrets forever. The chmod failures are logged, not fatal: a bind mount or a
 Windows host may not honour the change, and that shouldn't stop the app from starting.
 
+## Confidential OAuth clients must present their secret
+
+`OAuthClient.Public` is tagged `default:true`. GORM leaves a `false` zero value out of the
+`INSERT`, so until 2026-09-29 every dynamically registered *confidential* client
+(`token_endpoint_auth_method` other than `none`) was stored with `public = true` — and
+`resolveClient` skips the secret check for public clients. Any caller knowing such a
+client's id could use it with any secret or none. (PKCE was still required for the code
+grant, and a valid code or refresh token was still needed, so the secret was a lost layer
+rather than the only one.)
+
+Two fixes: `database.CreateOAuthClient` writes `public` explicitly after the insert (see
+[data-conventions.md](data-conventions.md)), and `resolveClient` now demands the secret
+whenever a secret hash is stored, whatever `Public` says — which also covers rows written
+before the fix, without a data migration. Tests: `database.TestCreateOAuthClientStoresConfidentialClientsAsConfidential`
+and `controllers.TestOAuthConfidentialClientRegistration` (including a deliberately
+mis-stored legacy row).
+
 ## Still open
 
 Tracked in [wip.md](wip.md) under the security audit: the wildcard CORS configuration

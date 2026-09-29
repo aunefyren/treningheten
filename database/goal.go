@@ -6,13 +6,23 @@ import (
 	"github.com/aunefyren/treningheten/models"
 
 	"github.com/google/uuid"
+	"gorm.io/gorm"
 )
 
 // Create new goal within a season
 func CreateGoalInDB(goal models.Goal) (uuid.UUID, error) {
-	record := Instance.Create(&goal)
-	if record.Error != nil {
-		return uuid.UUID{}, record.Error
+	// Competing is tagged default:true, so GORM drops a false value from the INSERT and
+	// (Create reading the default back) every non-competing member was stored as
+	// competing — liable for debts and the wheel. Capture it and write it explicitly.
+	competing := goal.Competing
+	err := Instance.Transaction(func(tx *gorm.DB) error {
+		if err := tx.Create(&goal).Error; err != nil {
+			return err
+		}
+		return tx.Model(&models.Goal{}).Where("id = ?", goal.ID).Update("competing", competing).Error
+	})
+	if err != nil {
+		return uuid.UUID{}, err
 	}
 	return goal.ID, nil
 }

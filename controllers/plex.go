@@ -26,11 +26,16 @@ import (
 	"github.com/google/uuid"
 )
 
-const (
+// The plex.tv endpoints are vars solely so tests can point them at an httptest server
+// (like the Strava/Hevy/Spotify endpoints) — never reassign them at runtime.
+var (
 	plexPinsURL      = "https://plex.tv/api/v2/pins"
 	plexUserURL      = "https://plex.tv/api/v2/user"
 	plexResourcesURL = "https://plex.tv/api/v2/resources"
-	plexAuthAppURL   = "https://app.plex.tv/auth"
+)
+
+const (
+	plexAuthAppURL = "https://app.plex.tv/auth"
 	// plexProbeTimeout bounds each server-connection reachability check so an
 	// unreachable address fails fast and the next candidate is tried.
 	plexProbeTimeout = 5 * time.Second

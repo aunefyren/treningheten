@@ -22,7 +22,7 @@ func GetUsedSickleaveForGoalWithinWeek(time time.Time, goalID uuid.UUID) (sickLe
 
 	// Find monday
 	if int(timeWeekday) == 1 {
-		startDayString = time.Format("2006-01-02") + " 00:00:00.000"
+		startDayString = time.Format("2006-01-02") + " 00:00:00"
 	} else {
 		finished = false
 		timeTwo = time
@@ -31,7 +31,7 @@ func GetUsedSickleaveForGoalWithinWeek(time time.Time, goalID uuid.UUID) (sickLe
 			timeTwoWeekday := timeTwo.Weekday()
 			if int(timeTwoWeekday) == 1 {
 				finished = true
-				startDayString = timeTwo.Format("2006-01-02") + " 00:00:00.000"
+				startDayString = timeTwo.Format("2006-01-02") + " 00:00:00"
 			}
 		}
 	}
@@ -91,7 +91,7 @@ func GetSickleavesForGoalIDsBetweenDates(goalIDs []uuid.UUID, startDate time.Tim
 		return []models.Sickleave{}, nil
 	}
 
-	startDayString := startDate.Format("2006-01-02") + " 00:00:00.000"
+	startDayString := startDate.Format("2006-01-02") + " 00:00:00"
 	endDayString := endDate.Format("2006-01-02") + " 23:59:59"
 
 	record := Instance.

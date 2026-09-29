@@ -132,6 +132,14 @@ func UpdateExerciseInDB(exercise models.Exercise) (models.Exercise, error) {
 // from an INSERT and the DB default silently wins — importers that decide the flag while
 // creating the session must persist it through here (same reason as
 // UpsertActivityGoalSettingInDB).
+// SetExerciseIsOn writes is_on explicitly. Like counts_toward_goal it is tagged
+// default:true, so a false value never survives a plain Create.
+func SetExerciseIsOn(exerciseID uuid.UUID, isOn bool) error {
+	return Instance.Model(&models.Exercise{}).
+		Where("`exercises`.id = ?", exerciseID).
+		Update("is_on", isOn).Error
+}
+
 func SetExerciseCountsTowardGoal(exerciseID uuid.UUID, countsTowardGoal bool) error {
 	return Instance.Model(&models.Exercise{}).
 		Where("`exercises`.id = ?", exerciseID).

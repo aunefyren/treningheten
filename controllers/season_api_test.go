@@ -202,3 +202,32 @@ func TestOngoingSeasonReads(t *testing.T) {
 	goalID := idOf(t, field(t, goals, "goals").([]any)[0])
 	h.expect(http.StatusBadRequest, "DELETE", "/api/auth/goals/"+goalID, token, nil)
 }
+
+// Goal.Competing and Exercise.IsOn are tagged default:true, so GORM dropped a false value
+// from the INSERT: a member who joined as non-competing was stored as competing (and could
+// be handed debts), and a session created "off" was stored as on.
+func TestFalseFlagsSurviveCreation(t *testing.T) {
+	h := newAPIHarness(t)
+	_, token := h.user("casual@flags.test", false)
+	season := seedOngoingSeason(t, "Flags season", 1, 4)
+
+	h.expect(http.StatusCreated, "POST", "/api/auth/goals", token, models.GoalCreationRequest{ExerciseInterval: 2, Competing: false, SeasonID: season.ID})
+	goals := h.expect(http.StatusCreated, "GET", "/api/auth/goals", token, nil)
+	if competing := field(t, field(t, goals, "goals").([]any)[0], "competing"); competing != false {
+		t.Errorf("competing = %v, want false as requested", competing)
+	}
+
+	day := h.ok("GET", "/api/auth/exercise-days/week?today=true", token, nil)
+	created := h.expect(http.StatusCreated, "POST", "/api/auth/exercises", token, models.ExerciseCreationRequest{
+		ExerciseDayID: uuid.MustParse(idOf(t, day, "exercise")), IsOn: false,
+	})
+	if isOn := field(t, created, "exercise", "is_on"); isOn != false {
+		t.Errorf("is_on = %v, want false as requested", isOn)
+	}
+	exerciseID := idOf(t, created, "exercise")
+	var stored models.Exercise
+	database.Instance.Where("id = ?", exerciseID).First(&stored)
+	if stored.IsOn {
+		t.Error("the stored session is on")
+	}
+}

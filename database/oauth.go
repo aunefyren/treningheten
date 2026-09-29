@@ -17,8 +17,19 @@ func CreateOAuthClient(client *models.OAuthClient) error {
 	if client.ID == uuid.Nil {
 		client.ID = uuid.New()
 	}
-	record := Instance.Create(client)
-	return record.Error
+	// Public is tagged default:true, so GORM leaves a false Public out of the INSERT and
+	// the column default wins — every confidential client was stored as public, and a
+	// public client's secret is never checked. Write the flag explicitly afterwards (the
+	// same fix as SetExerciseCountsTowardGoal).
+	// Capture it first: Create also reads the column default back into the struct.
+	public := client.Public
+	return Instance.Transaction(func(tx *gorm.DB) error {
+		if err := tx.Create(client).Error; err != nil {
+			return err
+		}
+		client.Public = public
+		return tx.Model(&models.OAuthClient{}).Where("id = ?", client.ID).Update("public", public).Error
+	})
 }
 
 // GetOAuthClientByClientID returns a client by its public client_id.

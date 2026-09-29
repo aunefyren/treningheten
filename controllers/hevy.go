@@ -451,8 +451,7 @@ func HevyBackfillForUser(user models.User) error {
 	}
 
 	// Record the baseline so the hourly /events sync takes over from here.
-	user.HevyLastSync = &syncStart
-	if _, err := database.UpdateUser(user); err != nil {
+	if err := database.SetHevyLastSyncForUser(user.ID, syncStart); err != nil {
 		return errors.New("failed to record Hevy sync baseline: " + err.Error())
 	}
 
@@ -553,8 +552,7 @@ func HevyEventsSyncForUser(user models.User) error {
 	}
 
 	// Advance the baseline only after the whole run succeeds.
-	user.HevyLastSync = &syncStart
-	if _, err := database.UpdateUser(user); err != nil {
+	if err := database.SetHevyLastSyncForUser(user.ID, syncStart); err != nil {
 		return errors.New("failed to advance Hevy sync baseline: " + err.Error())
 	}
 

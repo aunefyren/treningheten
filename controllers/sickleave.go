@@ -43,6 +43,7 @@ func APIRegisterSickleave(context *gin.Context) {
 		logger.Log.Info("Failed to verify current season status. Error: No active or future seasons found.")
 		context.JSON(http.StatusBadRequest, gin.H{"error": "Failed to verify current season status."})
 		context.Abort()
+		return
 	}
 
 	// Current time

@@ -23,7 +23,10 @@ func GetExerciseDayByGoalAndDate(goalID uuid.UUID, date time.Time) (*models.Exer
 
 	var exercise models.ExerciseDay
 
-	startDayString := date.Format("2006-01-02") + " 00:00:00.000"
+	// No ".000" on the lower bound: SQLite stores times as text ("… 00:00:00 +0000 UTC"),
+	// which sorts below "… 00:00:00.000" and would drop midnight-stamped days. MySQL reads
+	// both bounds as the same DATETIME. See TestExerciseDayLookupsFindMidnightDays.
+	startDayString := date.Format("2006-01-02") + " 00:00:00"
 	endDayString := date.Format("2006-01-02") + " 23:59:59"
 
 	goalrecord := Instance.Where("`exercise_days`.enabled = ?", 1).Where("`exercise_days`.goal_id = ?", goalID).Where("`exercise_days`.Date >= ?", startDayString).Where("`exercise_days`.Date <= ?", endDayString).Find(&exercise)
@@ -41,7 +44,7 @@ func GetExerciseDayByUserIDAndDate(userID uuid.UUID, date time.Time) (*models.Ex
 
 	var exercise models.ExerciseDay
 
-	startDayString := date.Format("2006-01-02") + " 00:00:00.000"
+	startDayString := date.Format("2006-01-02") + " 00:00:00"
 	endDayString := date.Format("2006-01-02") + " 23:59:59"
 
 	records := Instance.Where("`exercise_days`.enabled = ?", 1).Where("`exercise_days`.user_id = ?", userID).Where("`exercise_days`.Date >= ?", startDayString).Where("`exercise_days`.Date <= ?", endDayString).Find(&exercise)
@@ -107,7 +110,7 @@ func GetExerciseDaysBetweenDatesUsingDates(goalID uuid.UUID, startDate time.Time
 
 	var exercises []models.ExerciseDay
 
-	startDayString := startDate.Format("2006-01-02") + " 00:00:00.000"
+	startDayString := startDate.Format("2006-01-02") + " 00:00:00"
 	endDayString := endDate.Format("2006-01-02") + " 23:59:59"
 
 	exerciserecord := Instance.Where("`exercise_days`.enabled = ?", 1).Where("`exercise_days`.goal_id = ?", goalID).Where("`exercise_days`.Date >= ?", startDayString).Where("`exercise_days`.Date <= ?", endDayString).Find(&exercises)
@@ -125,7 +128,7 @@ func GetExerciseDaysBetweenDatesUsingDatesAndUserID(userID uuid.UUID, startDate 
 
 	var exercises []models.ExerciseDay
 
-	startDayString := startDate.Format("2006-01-02") + " 00:00:00.000"
+	startDayString := startDate.Format("2006-01-02") + " 00:00:00"
 	endDayString := endDate.Format("2006-01-02") + " 23:59:59"
 
 	exerciserecord := Instance.
@@ -252,7 +255,7 @@ func UpdateExerciseDayInDB(exerciseDay models.ExerciseDay) (models.ExerciseDay, 
 func GetValidExercisesBetweenDatesUsingDatesByUserID(userID uuid.UUID, startDate time.Time, endDate time.Time) ([]models.Exercise, error) {
 	var exercises []models.Exercise
 
-	startDayString := startDate.Format("2006-01-02") + " 00:00:00.000"
+	startDayString := startDate.Format("2006-01-02") + " 00:00:00"
 	endDayString := endDate.Format("2006-01-02") + " 23:59:59"
 
 	exerciserecord := Instance.
@@ -285,7 +288,7 @@ func GetValidExercisesForUserIDsBetweenDates(userIDs []uuid.UUID, startDate time
 		return []models.Exercise{}, nil
 	}
 
-	startDayString := startDate.Format("2006-01-02") + " 00:00:00.000"
+	startDayString := startDate.Format("2006-01-02") + " 00:00:00"
 	endDayString := endDate.Format("2006-01-02") + " 23:59:59"
 
 	exerciserecord := Instance.
@@ -311,7 +314,7 @@ func GetExerciseDayByDateAndGoal(goalID uuid.UUID, date time.Time) (*models.Exer
 	var exercise models.ExerciseDay
 	var err error
 
-	startDayString := date.Format("2006-01-02") + " 00:00:00.000"
+	startDayString := date.Format("2006-01-02") + " 00:00:00"
 	endDayString := date.Format("2006-01-02") + " 23:59:59"
 
 	goalrecord := Instance.Where("`exercise_days`.enabled = ?", 1).
@@ -333,7 +336,7 @@ func GetExerciseDayByDateAndUserID(userID uuid.UUID, date time.Time) (*models.Ex
 	var exercise models.ExerciseDay
 	var err error
 
-	startDayString := date.Format("2006-01-02") + " 00:00:00.000"
+	startDayString := date.Format("2006-01-02") + " 00:00:00"
 	endDayString := date.Format("2006-01-02") + " 23:59:59"
 
 	goalrecord := Instance.Where("`exercise_days`.enabled = ?", 1).
@@ -363,7 +366,7 @@ func GetExerciseDaysForSharingUsersInListUsingDates(userIDs []uuid.UUID, startDa
 
 	var exerciseDays []models.ExerciseDay
 
-	startDayString := startDate.Format("2006-01-02") + " 00:00:00.000"
+	startDayString := startDate.Format("2006-01-02") + " 00:00:00"
 	endDayString := endDate.Format("2006-01-02") + " 23:59:59"
 
 	record := Instance.
@@ -386,7 +389,7 @@ func GetExerciseDaysForSharingUsersInListUsingDates(userIDs []uuid.UUID, startDa
 func GetExerciseDaysForSharingUsersUsingDates(startDate time.Time, endDate time.Time) ([]models.ExerciseDay, error) {
 	var exercises []models.ExerciseDay
 
-	startDayString := startDate.Format("2006-01-02") + " 00:00:00.000"
+	startDayString := startDate.Format("2006-01-02") + " 00:00:00"
 	endDayString := endDate.Format("2006-01-02") + " 23:59:59"
 
 	exerciserecord := Instance.

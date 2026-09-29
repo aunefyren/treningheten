@@ -20,7 +20,7 @@ func makeDayFor(t *testing.T, userID uuid.UUID, goalID *uuid.UUID, date time.Tim
 
 // dayBounds returns the start/end string bounds a whole-day query uses for a given date.
 func dayBounds(date time.Time) (string, string) {
-	return date.Format("2006-01-02") + " 00:00:00.000", date.Format("2006-01-02") + " 23:59:59"
+	return date.Format("2006-01-02") + " 00:00:00", date.Format("2006-01-02") + " 23:59:59"
 }
 
 func TestCreateAndGetExerciseDayByID(t *testing.T) {
@@ -300,5 +300,45 @@ func TestGetExerciseDaysForSharingUsersUsingDates(t *testing.T) {
 	}
 	if len(days) != 1 {
 		t.Errorf("got %d shared days, want 1 (private user excluded)", len(days))
+	}
+}
+
+// Days are stamped at midnight (manual days at local midnight, Strava/Hevy days at UTC
+// midnight), and the whole-day lookups bound the column with date strings. SQLite stores
+// the time as text ("2024-05-13 00:00:00 +0000 UTC"), which sorts *below* a lower bound
+// of "2024-05-13 00:00:00.000" (' ' < '.'), so a day on the range's first date — Monday,
+// for a week — used to be invisible: single-date lookups missed it and callers created a
+// duplicate day for the same date.
+func TestExerciseDayLookupsFindMidnightDays(t *testing.T) {
+	newTestDB(t)
+
+	user := makeTestUser(t, "midnight@example.com", nil)
+	oslo, err := time.LoadLocation("Europe/Oslo")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	for name, midnight := range map[string]time.Time{
+		"UTC midnight":   time.Date(2024, 5, 13, 0, 0, 0, 0, time.UTC),
+		"local midnight": time.Date(2024, 6, 17, 0, 0, 0, 0, oslo),
+	} {
+		t.Run(name, func(t *testing.T) {
+			day := makeDayFor(t, user.ID, nil, midnight)
+
+			byUser, err := GetExerciseDayByUserIDAndDate(user.ID, midnight)
+			if err != nil || byUser == nil || byUser.ID != day.ID {
+				t.Errorf("GetExerciseDayByUserIDAndDate: day=%v err=%v, want the midnight day", byUser, err)
+			}
+			byDate, err := GetExerciseDayByDateAndUserID(user.ID, midnight)
+			if err != nil || byDate == nil || byDate.ID != day.ID {
+				t.Errorf("GetExerciseDayByDateAndUserID: day=%v err=%v, want the midnight day", byDate, err)
+			}
+
+			// A week range starting on that Monday must include it.
+			days, err := GetExerciseDaysBetweenDatesUsingDatesAndUserID(user.ID, midnight, midnight.AddDate(0, 0, 6))
+			if err != nil || len(days) != 1 {
+				t.Errorf("week range: %d days, err=%v; want the Monday day included", len(days), err)
+			}
+		})
 	}
 }

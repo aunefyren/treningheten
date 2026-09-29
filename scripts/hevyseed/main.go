@@ -52,35 +52,40 @@ func main() {
 	}
 
 	client := &http.Client{Timeout: 30 * time.Second}
+	if err := fetchTemplates(client, baseURL, key, os.Stdout, os.Stderr); err != nil {
+		fmt.Fprintln(os.Stderr, "error:", err)
+		os.Exit(1)
+	}
+}
+
+// fetchTemplates pages through the exercise templates at apiBaseURL, keeps the non-custom
+// ones, and writes them to out as indented JSON sorted by title. Progress goes to log.
+func fetchTemplates(client *http.Client, apiBaseURL string, key string, out io.Writer, log io.Writer) error {
 	var all []template
 
 	for page := 1; ; page++ {
-		url := fmt.Sprintf("%s/exercise_templates?page=%d&pageSize=100", baseURL, page)
+		url := fmt.Sprintf("%s/exercise_templates?page=%d&pageSize=100", apiBaseURL, page)
 		req, err := http.NewRequest(http.MethodGet, url, nil)
 		if err != nil {
-			fmt.Fprintln(os.Stderr, "error building request:", err)
-			os.Exit(1)
+			return fmt.Errorf("building request: %w", err)
 		}
 		req.Header.Set("api-key", key)
 		req.Header.Set("Accept", "application/json")
 
 		resp, err := client.Do(req)
 		if err != nil {
-			fmt.Fprintln(os.Stderr, "error calling Hevy:", err)
-			os.Exit(1)
+			return fmt.Errorf("calling Hevy: %w", err)
 		}
 		body, _ := io.ReadAll(resp.Body)
 		resp.Body.Close()
 
 		if resp.StatusCode != http.StatusOK {
-			fmt.Fprintf(os.Stderr, "error: Hevy returned %d: %s\n", resp.StatusCode, strings.TrimSpace(string(body)))
-			os.Exit(1)
+			return fmt.Errorf("Hevy returned %d: %s", resp.StatusCode, strings.TrimSpace(string(body)))
 		}
 
 		var r templatesResponse
 		if err := json.Unmarshal(body, &r); err != nil {
-			fmt.Fprintln(os.Stderr, "error parsing response:", err)
-			os.Exit(1)
+			return fmt.Errorf("parsing response: %w", err)
 		}
 
 		for _, t := range r.ExerciseTemplates {
@@ -88,7 +93,7 @@ func main() {
 				all = append(all, t)
 			}
 		}
-		fmt.Fprintf(os.Stderr, "fetched page %d/%d (%d non-custom so far)\n", r.Page, r.PageCount, len(all))
+		fmt.Fprintf(log, "fetched page %d/%d (%d non-custom so far)\n", r.Page, r.PageCount, len(all))
 
 		if page >= r.PageCount || r.PageCount == 0 {
 			break
@@ -97,11 +102,11 @@ func main() {
 
 	sort.Slice(all, func(i, j int) bool { return strings.ToLower(all[i].Title) < strings.ToLower(all[j].Title) })
 
-	enc := json.NewEncoder(os.Stdout)
+	enc := json.NewEncoder(out)
 	enc.SetIndent("", "  ")
 	if err := enc.Encode(all); err != nil {
-		fmt.Fprintln(os.Stderr, "error writing JSON:", err)
-		os.Exit(1)
+		return fmt.Errorf("writing JSON: %w", err)
 	}
-	fmt.Fprintf(os.Stderr, "done: %d non-custom templates\n", len(all))
+	fmt.Fprintf(log, "done: %d non-custom templates\n", len(all))
+	return nil
 }

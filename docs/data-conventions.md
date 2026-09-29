@@ -92,8 +92,45 @@ update after the insert, never by setting the struct field. The established help
 persist a per-activity-type opt-out) and `database.UpsertActivityGoalSettingInDB`. This
 trap is why an excluded Strava walk still counted toward the weekly goal in production.
 
+**Capture the value before `Create`.** GORM also reads the column default *back into the
+struct* after the insert, so `field` is already `true` by the time a follow-up update
+reads it — take a copy first (`competing := goal.Competing`, then `Create`, then
+`Update("competing", competing)`).
+
+The same trap was behind three more bugs, all fixed with this pattern (2026-09-29): a
+member who joined a season as **non-competing was stored as competing**
+(`database.CreateGoalInDB`, and so could be handed debts), a session created "off" was
+stored as on (`APICreateExercise` → `database.SetExerciseIsOn`), and every **confidential
+OAuth client was stored as public** (`database.CreateOAuthClient`), so its secret was never
+checked — see [security.md](security.md). When adding a `default: true` bool, grep for its
+`Create` paths.
+
 Test seeds hit the same wall — `disableRow` in `database/activity_test.go` exists purely
 to flip a seeded row to `Enabled: false` after insert.
+
+## Date-range bounds are strings — never add `.000` to the lower bound
+
+The whole-day lookups (`database/exerciseday.go`, `debt.go`, `sickleave.go`) bound the
+`date` column with strings: `>= "YYYY-MM-DD 00:00:00"` and `<= "YYYY-MM-DD 23:59:59"`.
+SQLite stores times as text (`"2026-09-29 00:00:00 +0000 UTC"`) and compares as text, so a
+lower bound of `"… 00:00:00.000"` sorts *above* a value stored at exactly midnight (`' '`
+< `'.'`). Days are always stamped at midnight, so on SQLite the range's first day —
+Monday, for a week — was invisible: week results missed Monday's workouts and single-date
+lookups created a duplicate day for the same date. MySQL reads both forms as the same
+DATETIME, which is why it only showed up on SQLite. Regression test:
+`database.TestExerciseDayLookupsFindMidnightDays`.
+
+(The upper bound has the mirror-image edge — a value stamped exactly `23:59:59` sorts
+above `"… 23:59:59"` on SQLite — but nothing stamps that time today.)
+
+## Batch inserts with mixed optional fields fail on SQLite
+
+`tx.Create(&slice)` issues one multi-row `INSERT`. When the rows differ in which
+`default:`-tagged fields are set, GORM fills the gaps with the SQL `DEFAULT` keyword, which
+SQLite rejects (`near "DEFAULT": syntax error`). `ReplaceMediaPlaybackForExerciseProvider`
+hit this — a soundtrack mixing a book (no episode id) and a podcast episode was never
+stored on SQLite — and now inserts row by row inside its transaction. Prefer that for any
+batch whose rows aren't uniformly shaped.
 
 ## Related
 

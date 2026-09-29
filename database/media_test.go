@@ -258,3 +258,31 @@ func TestGetExercisesForMediaReconcile(t *testing.T) {
 		t.Errorf("expected no sessions outside the lookback, got %d", len(none))
 	}
 }
+
+// A pull whose rows differ in which optional fields are set (a book with no episode id
+// next to a podcast episode, one with artwork and one without) made GORM's batch INSERT
+// emit the DEFAULT keyword for the unset columns, which SQLite rejects — so on SQLite
+// installs a mixed soundtrack was silently never stored.
+func TestReplaceMediaPlaybackStoresRowsWithDifferentOptionalFields(t *testing.T) {
+	newTestDB(t)
+
+	exerciseID := uuid.New()
+	artist, item, parent := "Author", "episode-9", "show-1"
+	start := time.Date(2024, 5, 10, 8, 0, 0, 0, time.UTC)
+	mixed := []models.MediaPlayback{
+		{Title: "A Long Book", MediaType: "audiobook", Artist: &artist, StartedAt: start},
+		{Title: "Episode 9", MediaType: "podcast", ProviderItemID: &item, ProviderParentID: &parent, StartedAt: start.Add(20 * time.Minute), StartedBefore: true},
+	}
+
+	if err := ReplaceMediaPlaybackForExerciseProvider(exerciseID, models.MediaProviderAudiobookshelf, mixed); err != nil {
+		t.Fatalf("ReplaceMediaPlaybackForExerciseProvider: %v", err)
+	}
+	var stored []models.MediaPlayback
+	Instance.Where("exercise_id = ?", exerciseID).Order("started_at").Find(&stored)
+	if len(stored) != 2 {
+		t.Fatalf("stored rows = %d, want 2", len(stored))
+	}
+	if stored[1].ProviderItemID == nil || *stored[1].ProviderItemID != item || !stored[1].StartedBefore {
+		t.Errorf("episode row = %+v, want its ids and started_before kept", stored[1])
+	}
+}

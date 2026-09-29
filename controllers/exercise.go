@@ -1290,12 +1290,25 @@ func APICreateExercise(context *gin.Context) {
 	exercise.ExerciseDayID = exerciseCreationRequest.ExerciseDayID
 	exercise.ID = uuid.New()
 
+	isOn := exercise.IsOn
 	exercise, err = database.CreateExerciseInDB(exercise)
 	if err != nil {
 		logger.Log.Info("Failed to create exercise. Error: " + err.Error())
 		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create exercise."})
 		context.Abort()
 		return
+	}
+
+	// IsOn is tagged default:true, so GORM drops a false value from the INSERT and the
+	// session would be stored as on. Write the requested value explicitly.
+	if !isOn {
+		if err := database.SetExerciseIsOn(exercise.ID, false); err != nil {
+			logger.Log.Info("Failed to store exercise state. Error: " + err.Error())
+			context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create exercise."})
+			context.Abort()
+			return
+		}
+		exercise.IsOn = false
 	}
 
 	exerciseObject, err := ConvertExerciseToExerciseObject(exercise)

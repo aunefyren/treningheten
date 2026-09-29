@@ -4,7 +4,6 @@ import (
 	"database/sql"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"io/fs"
 	"os"
 	"strconv"
@@ -121,17 +120,20 @@ func Connect(dbType string, timezone string, dbUsername string, dbPassword strin
 	return nil
 }
 
+// CreateTable creates the MySQL database when it doesn't exist yet. It connects without
+// a database name (a MySQL DSN, not the key=value form Postgres uses — the old version
+// built the Postgres form, passed the username as the password and panicked, so this
+// path never worked).
 func CreateTable(dbUsername string, dbPassword string, dbIP string, dbPort int, dbName string) error {
-	url := fmt.Sprintf("host=%s port=%s user=%s password=%s sslmode=disable TimeZone=%s", dbIP, strconv.Itoa(dbPort), dbUsername, dbUsername, "local")
-	db, err := sql.Open("mysql", url)
+	dsn := dbUsername + ":" + dbPassword + "@tcp(" + dbIP + ":" + strconv.Itoa(dbPort) + ")/?charset=utf8mb4"
+	db, err := sql.Open("mysql", dsn)
 	if err != nil {
-		panic(err)
+		return errors.New("failed to open MySQL connection: " + err.Error())
 	}
 	defer db.Close()
 
-	_, err = db.Exec(fmt.Sprintf("CREATE DATABASE %s;", dbName))
-	if err != nil {
-		panic(err)
+	if _, err := db.Exec("CREATE DATABASE `" + strings.ReplaceAll(dbName, "`", "``") + "`"); err != nil {
+		return errors.New("failed to create database: " + err.Error())
 	}
 
 	return nil

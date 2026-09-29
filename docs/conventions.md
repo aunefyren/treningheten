@@ -261,7 +261,8 @@ in the `database/` layer, the `models/` value types, `auth/` (scopes + token
 handling), the outbound integration clients, and pure-logic helpers in
 `controllers/`, plus request-level flow tests for the main `APIXxx` handlers (seasons
 and goals, workout logging, accounts, admin, weekly debts and the wheel, push
-notifications). Total statement coverage is about 50%.
+notifications, the integrations against fake backends, OAuth, MCP). Total statement
+coverage is about 75%.
 
 - Test files are `*_test.go` next to the code, `package controllers` / `package
   database` etc. (white-box).
@@ -295,6 +296,16 @@ notifications). Total statement coverage is about 50%.
   real `go-mail` dialer runs, and a test can read the verification or reset code out of
   the mail it just triggered. **Web push** is tested against an `httptest` push endpoint
   with real VAPID keys and a real P-256 subscription (`notification_api_test.go`).
+- **Integrations** are tested end to end against fake `httptest` backends that speak just
+  enough of the real API: `withStrava`/`fakeStrava`, `fakeHevyAPI`, `fakeAudiobookshelf`,
+  `stubSpotify`, a fake plex.tv + Plex Media Server pair, `withOllama`, and MCP through
+  the official go-sdk client (`mcpSession`/`callTool`). Background work an endpoint
+  starts with `goSafely` races with assertions — test the connect endpoint against an
+  empty account and drive the sync function synchronously.
+- **Robustness sweep** (`controllers/robustness_test.go`): every routed handler is called
+  with random ids, then again with the database closed, and must not panic. It found the
+  missing `return` in `APIRegisterSickleave`; keep new routes in the harness so they're
+  swept too.
 - **`auth/` tests** must install a **valid base64** signing key (see `withSigningKey`
   in `auth/auth_test.go`). `files.GetPrivateKey` regenerates *and persists* a key when
   it fails to decode, so a junk key makes a test write to the real config file.

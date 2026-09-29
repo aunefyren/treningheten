@@ -512,6 +512,23 @@ The harness itself is done (`docker-test/README.md`). Ideas not yet decided:
 
 ## Problems
 
+### Found while raising test coverage (2026-09-29) — open
+Fixed at the time (see `docs/data-conventions.md` and `docs/security.md`): SQLite date
+bounds dropping midnight days, SQLite batch-insert `DEFAULT`, confidential OAuth clients
+stored as public, non-competing goals stored as competing, sessions created "off" stored as
+on, the Hevy backfill resurrecting a removed key, the debt wheel re-spin, the sick-leave
+nil panic, and the MySQL auto-create (`CreateTable`) that never worked. Still open:
+- **Existing goals stored as competing.** Every goal created as non-competing before the
+  fix is `competing = true` in the database, and nothing records what the member chose.
+  Decide whether to ask affected members, or leave it.
+- **Existing SQLite installs may hold duplicate exercise days** (two rows for one date)
+  created while the midnight lookups missed. Decide whether to merge them.
+- **`storeStravaRefreshToken` saves a stale user row** (`controllers/strava.go`) mid-sync,
+  the same pattern as the Hevy resurrection bug; the window is small (right after the
+  token exchange). Should become a single-column update like `SetHevyLastSyncForUser`.
+- **Dead code:** `assembleUserActivities` (`mcp_data.go`), `compareTimes` (`season.go`),
+  `GetExerciseDaysForWeekUsingGoal` (`exercise.go`) have no callers. Remove?
+
 ### Weight entries accept any value, including negative
 `APICreateWeightForUser` stores `weight: -1` without complaint (found by the handler flow
 tests, 2026-09-29). Probably wants a sane range check (> 0, and some upper bound); the test

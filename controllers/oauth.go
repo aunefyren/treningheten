@@ -43,8 +43,10 @@ func resolveClient(context *gin.Context) (models.OAuthClient, error) {
 		return models.OAuthClient{}, errInvalidClient
 	}
 
-	// Confidential clients must present a valid secret.
-	if !client.Public {
+	// Confidential clients must present a valid secret. A stored secret hash always
+	// means confidential, even if Public says otherwise: clients registered before
+	// CreateOAuthClient wrote Public=false explicitly were stored with public=true.
+	if !client.Public || client.ClientSecretHash != nil {
 		if client.ClientSecretHash == nil {
 			return models.OAuthClient{}, errInvalidClient
 		}

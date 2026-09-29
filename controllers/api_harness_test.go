@@ -42,6 +42,9 @@ func newAPIHarness(t *testing.T) *apiHarness {
 	// paths (e.g. the "general" action fallback) depend on them.
 	database.SeedActions()
 	database.SeedOAuthClients()
+	if err := ValidateAchievements(); err != nil {
+		t.Fatalf("failed to seed achievements: %v", err)
+	}
 
 	router := gin.New()
 	api := router.Group("/api")
@@ -149,6 +152,7 @@ func newAPIHarness(t *testing.T) *apiHarness {
 	images := api.Group("/auth").Use(middlewares.AuthImageReadOnly())
 	images.GET("/users/:user_id/image", APIGetUserProfileImage)
 	images.GET("/achievements/:achievement_id/image", APIGetAchievementsImage)
+	images.GET("/media/plex/artwork", APIGetPlexArtwork)
 
 	admin := api.Group("/admin").Use(middlewares.Auth(true))
 	admin.POST("/invites", RegisterInvite)
@@ -235,6 +239,20 @@ func (h *apiHarness) doForm(path string, form url.Values) *httptest.ResponseReco
 	return recorder
 }
 
+// newFormRequest builds a form-encoded POST for tests that need to add headers first.
+func newFormRequest(path string, form url.Values) *http.Request {
+	request := httptest.NewRequest("POST", path, strings.NewReader(form.Encode()))
+	request.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	return request
+}
+
+// serve runs a prepared request through the harness router.
+func serve(h *apiHarness, request *http.Request) *httptest.ResponseRecorder {
+	recorder := httptest.NewRecorder()
+	h.router.ServeHTTP(recorder, request)
+	return recorder
+}
+
 // decodeBody decodes a JSON object body, or returns an empty map for anything else.
 func decodeBody(t *testing.T, body []byte) map[string]any {
 	t.Helper()
@@ -298,4 +316,13 @@ func idOf(t *testing.T, value any, keys ...string) string {
 		t.Fatalf("no id at %v", keys)
 	}
 	return id
+}
+
+func mustUUID(t *testing.T, value string) uuid.UUID {
+	t.Helper()
+	parsed, err := uuid.Parse(value)
+	if err != nil {
+		t.Fatalf("not a UUID: %q", value)
+	}
+	return parsed
 }

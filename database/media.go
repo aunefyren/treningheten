@@ -138,8 +138,15 @@ func ReplaceMediaPlaybackForExerciseProvider(exerciseID uuid.UUID, provider stri
 			playback[i].Provider = provider
 		}
 
-		create := tx.Create(&playback)
-		return create.Error
+		// Row by row, not one batch INSERT: when rows differ in which optional
+		// (default-tagged) fields are set, GORM fills the gaps with the DEFAULT keyword,
+		// which SQLite rejects. A soundtrack is at most a few dozen rows.
+		for i := range playback {
+			if err := tx.Create(&playback[i]).Error; err != nil {
+				return err
+			}
+		}
+		return nil
 	})
 }
 
