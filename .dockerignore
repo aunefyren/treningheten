@@ -1,3 +1,13 @@
-config/*
-poenskelisten
-poenskelisten.exe
+.git
+.github
+.claude
+/config
+/images
+/memory
+docker-test/data
+/treningheten
+/treningheten.exe
+/Screenshot*.png
+*.out
+.env
+*.env

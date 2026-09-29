@@ -1,0 +1,32 @@
+{
+  "treningheten_name": "Treningheten (test)",
+  "treningheten_environment": "production",
+  "treningheten_log_level": "debug",
+  "treningheten_port": 8080,
+  "db_type": "sqlite",
+  "db_location": "config/data.db",
+  "db_ip": "mariadb",
+  "db_port": 3306,
+  "db_name": "treningheten",
+  "db_username": "treningheten",
+  "db_password": "treningheten",
+  "smtp_enabled": true,
+  "smtp_host": "mailpit",
+  "smtp_port": 1025,
+  "smtp_from": "treningheten@test.local",
+  "mcp_enabled": true,
+  "strava_enabled": false,
+  "hevy_enabled": false,
+  "ollama": {
+    "enabled": false,
+    "url": "http://ollama:11434",
+    "model": "llama3.2:1b"
+  },
+  "media": {
+    "enabled": true,
+    "allow_private_targets": true,
+    "plex": { "enabled": false },
+    "spotify": { "enabled": false },
+    "audiobookshelf": { "enabled": true }
+  }
+}

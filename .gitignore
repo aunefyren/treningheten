@@ -4,3 +4,5 @@ treningheten.exe
 /images/profiles/*
 CLAUDE.md
 /memory/
+# Docker test harness runtime data (docker-test/README.md)
+/docker-test/data/

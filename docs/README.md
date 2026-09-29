@@ -16,6 +16,9 @@ architecture overview.
   per-entity reference. Read this before touching the data layer.
 - [data-conventions.md](data-conventions.md) — data-model gotchas: the `Convert*Object`
   read layer, durations stored as seconds, per-operation units, soft deletes.
+- [`docker-test/README.md`](../docker-test/README.md) — the live Docker test harness:
+  the app built from the checkout plus Mailpit, Audiobookshelf and optional
+  MariaDB/Ollama, with a seed script that registers, verifies and connects a user.
 
 ## Domain
 

@@ -502,7 +502,20 @@ activities. Open refinements left for later:
 
 ### MFA enrollment on /account
 
+### Docker test harness — follow-ups (open)
+The harness itself is done (`docker-test/README.md`). Ideas not yet decided:
+- **Seed ABS listening history** so the soundtrack overlay can be tested with zero
+  clicking: generate a silent track with the `ffmpeg` bundled in the ABS image, create a
+  library + scan via the ABS API, post sessions with chosen timestamps through ABS's
+  local-session sync endpoint, and create a matching manual workout in Treningheten.
+- **A Postgres profile** — blocked on the item under Problems below.
+
 ## Problems
+
+### `db_type: postgres` is silently rewritten to `mysql`
+`files/config.go` (the `DBType` default check) only accepts `mysql`/`sqlite`; anything
+else — including `postgres` — is replaced with `mysql` and saved. `CLAUDE.md` says
+three backends are interchangeable. Decide: fix the check, or drop Postgres from the docs.
 
 ### Site loads
 But sometimes not? Server asleep?

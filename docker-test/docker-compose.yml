@@ -1,0 +1,94 @@
+# Live test harness: Treningheten built from this checkout, plus the self-hostable
+# services it integrates with, on one Docker network. See README.md in this directory.
+services:
+  treningheten:
+    build:
+      context: ..
+      dockerfile: Dockerfile
+    image: treningheten:test
+    container_name: tt-treningheten
+    environment:
+      externalurl: http://localhost:8080
+      timezone: Europe/Oslo
+      # Prints a fresh invite code on every start; seed.sh uses it for the first user.
+      generateinvite: "true"
+      # SMTP stays on (the entrypoint's default) and points at Mailpit, so the
+      # verification / reset / reminder mails are real and readable at :8025.
+      smtphost: mailpit
+      smtpport: "1025"
+      smtpfrom: treningheten@test.local
+    volumes:
+      - ./data/treningheten/config:/app/config
+      - ./data/treningheten/images:/app/images
+    ports:
+      - "8080:8080"
+    depends_on:
+      - mailpit
+    restart: unless-stopped
+
+  mailpit:
+    image: axllent/mailpit:latest
+    container_name: tt-mailpit
+    ports:
+      - "8025:8025" # web UI + API; SMTP (1025) is only needed inside the network
+    restart: unless-stopped
+
+  audiobookshelf:
+    image: ghcr.io/advplyr/audiobookshelf:latest
+    container_name: tt-abs
+    environment:
+      TZ: Europe/Oslo
+    volumes:
+      - ./data/abs/config:/config
+      - ./data/abs/metadata:/metadata
+      - ./data/abs/audiobooks:/audiobooks
+    ports:
+      - "13378:80"
+    restart: unless-stopped
+
+  # Optional: `docker compose --profile mysql up -d --build`, after `./setup.sh mysql`.
+  # Production runs MySQL, and some schema problems (collations, FK errno 150) only
+  # show up there — the SQLite test suite can't catch them.
+  mariadb:
+    image: mariadb:11
+    container_name: tt-mariadb
+    profiles: ["mysql"]
+    environment:
+      MARIADB_ROOT_PASSWORD: treningheten
+      MARIADB_USER: treningheten
+      MARIADB_PASSWORD: treningheten
+      MARIADB_DATABASE: treningheten
+    volumes:
+      - ./data/mariadb:/var/lib/mysql
+    restart: unless-stopped
+
+  # Optional: `docker compose --profile ollama up -d`. ollama-pull fetches a small
+  # model once; flip `ollama.enabled` in data/treningheten/config/config.json after.
+  ollama:
+    image: ollama/ollama:latest
+    container_name: tt-ollama
+    profiles: ["ollama"]
+    volumes:
+      - ./data/ollama:/root/.ollama
+    restart: unless-stopped
+
+  ollama-pull:
+    image: ollama/ollama:latest
+    profiles: ["ollama"]
+    environment:
+      OLLAMA_HOST: http://ollama:11434
+    entrypoint: ["sh", "-c", "sleep 3 && ollama pull llama3.2:1b"]
+    depends_on:
+      - ollama
+    restart: "no"
+
+  # One-shot: `docker compose run --rm seed` (or ./seed.sh). Initialises ABS,
+  # registers + verifies the first (admin) Treningheten user and connects ABS.
+  seed:
+    image: alpine:3.20
+    profiles: ["seed"]
+    volumes:
+      - ./seed.sh:/seed.sh:ro
+      - ./data/treningheten/config:/tt-config:ro
+    entrypoint: ["sh", "-c", "apk add --no-cache -q curl jq >/dev/null && sh /seed.sh --in-container"]
+    restart: "no"
