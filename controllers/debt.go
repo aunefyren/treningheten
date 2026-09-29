@@ -370,7 +370,7 @@ func ConvertDebtToDebtObject(debt models.Debt) (models.DebtObject, error) {
 	if debt.WinnerID != nil {
 		user, err := database.GetUserInformation(*debt.WinnerID)
 		if err != nil {
-			logger.Log.Info("Failed to get user information for user '" + debt.Winner.ID.String() + "'. Creating blank user. Error: " + err.Error())
+			logger.Log.Info("Failed to get user information for user '" + debt.WinnerID.String() + "'. Creating blank user. Error: " + err.Error())
 			user = models.PublicUser{
 				FirstName: "Deleted",
 				LastName:  "Deleted",
@@ -398,8 +398,8 @@ func ConvertDebtToDebtObject(debt models.Debt) (models.DebtObject, error) {
 		logger.Log.Info("Failed to get season '" + debt.Season.ID.String() + "' in database. Returning. Error: " + err.Error())
 		return models.DebtObject{}, err
 	} else if season == nil {
-		logger.Log.Info("Failed to find season '" + debt.Season.ID.String() + "' in database. Returning. Error: " + err.Error())
-		return models.DebtObject{}, err
+		logger.Log.Info("Failed to find season '" + debt.SeasonID.String() + "' in database. Returning.")
+		return models.DebtObject{}, errors.New("failed to find season for debt")
 	}
 
 	seasonObject, err := ConvertSeasonToSeasonObject(*season)
@@ -622,7 +622,9 @@ func APIChooseWinnerForDebt(context *gin.Context) {
 		return
 	}
 
-	if debt.Winner != nil {
+	// Check the stored WinnerID, not the Winner association: GetDebtByDebtID doesn't
+	// preload it, so it is always nil and the loser could re-spin until they liked the result.
+	if debt.WinnerID != nil {
 		context.JSON(http.StatusBadRequest, gin.H{"error": "Winner has already been chosen."})
 		context.Abort()
 		return

@@ -934,7 +934,7 @@ func APIGetSeasonWeeks(context *gin.Context) {
 		context.Abort()
 		return
 	} else if season == nil {
-		logger.Log.Info("Failed to find season. Error: " + err.Error())
+		logger.Log.Info("Failed to find season.")
 		context.JSON(http.StatusBadRequest, gin.H{"error": "Failed to find season."})
 		context.Abort()
 		return

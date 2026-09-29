@@ -1382,7 +1382,7 @@ func APIStravaCombine(context *gin.Context) {
 			context.Abort()
 			return
 		} else if exercise == nil {
-			logger.Log.Info("Failed to verify exercise. Error: " + err.Error())
+			logger.Log.Info("Failed to verify exercise.")
 			context.JSON(http.StatusBadRequest, gin.H{"error": "Failed to verify exercise."})
 			context.Abort()
 			return

@@ -259,7 +259,9 @@ There is no build step or framework — `web/js/*.js` is served through Go templ
 A suite is grown incrementally; run it with `go test ./...`. Coverage is concentrated
 in the `database/` layer, the `models/` value types, `auth/` (scopes + token
 handling), the outbound integration clients, and pure-logic helpers in
-`controllers/`. The `APIXxx` HTTP handlers themselves are still largely untested.
+`controllers/`, plus request-level flow tests for the main `APIXxx` handlers (seasons
+and goals, workout logging, accounts, admin, weekly debts and the wheel, push
+notifications). Total statement coverage is about 50%.
 
 - Test files are `*_test.go` next to the code, `package controllers` / `package
   database` etc. (white-box).
@@ -278,6 +280,21 @@ handling), the outbound integration clients, and pure-logic helpers in
   `newControllerTestDB(t)` — the same in-memory harness pointed at
   `database.Instance`, for controller logic that reads or writes — plus
   `createTestUser` / `seedExerciseDayWithExercises`.
+- **HTTP handler tests** go through `newAPIHarness(t)` (`controllers/api_harness_test.go`):
+  a real gin router with the real `Auth` middleware, the in-memory DB, the curated
+  actions and OAuth client seeded, and a signing key installed. `h.user(email, admin)`
+  creates a verified user and mints its access token; `h.expect(status, method, path,
+  token, body)` / `h.ok(…)` send a request and decode the JSON; `field`/`idOf` dig into
+  the response. The route table **mirrors `initRouter`** (which lives in `package main`
+  and can't be called from here), minus the rate limiters (their state is
+  process-global) — add a route there when a test needs it. Write these as **flows**
+  (create → read → update → someone else tries → delete) and assert the actual status
+  codes: several handlers answer a GET with 201, so don't assume.
+- **Mail** is tested against `internal/smtptest`, an in-process SMTP server that records
+  messages (`withFakeSMTP` in `utilities`, `withControllerSMTP` in `controllers`) — the
+  real `go-mail` dialer runs, and a test can read the verification or reset code out of
+  the mail it just triggered. **Web push** is tested against an `httptest` push endpoint
+  with real VAPID keys and a real P-256 subscription (`notification_api_test.go`).
 - **`auth/` tests** must install a **valid base64** signing key (see `withSigningKey`
   in `auth/auth_test.go`). `files.GetPrivateKey` regenerates *and persists* a key when
   it fails to decode, so a junk key makes a test write to the real config file.

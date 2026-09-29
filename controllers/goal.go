@@ -187,7 +187,7 @@ func APIDeleteGoalToSeason(context *gin.Context) {
 		context.Abort()
 		return
 	} else if goal == nil {
-		logger.Log.Info("Failed to find goal by ID. Error: " + err.Error())
+		logger.Log.Info("Failed to find goal by ID.")
 		context.JSON(http.StatusBadRequest, gin.H{"error": "Failed to find goal by ID."})
 		context.Abort()
 		return

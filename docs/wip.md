@@ -512,6 +512,11 @@ The harness itself is done (`docker-test/README.md`). Ideas not yet decided:
 
 ## Problems
 
+### Weight entries accept any value, including negative
+`APICreateWeightForUser` stores `weight: -1` without complaint (found by the handler flow
+tests, 2026-09-29). Probably wants a sane range check (> 0, and some upper bound); the test
+in `controllers/account_api_test.go` deliberately doesn't assert it until this is decided.
+
 ### `db_type: postgres` is silently rewritten to `mysql`
 `files/config.go` (the `DBType` default check) only accepts `mysql`/`sqlite`; anything
 else — including `postgres` — is replaced with `mysql` and saved. `CLAUDE.md` says

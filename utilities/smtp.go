@@ -101,7 +101,7 @@ func SendSMTPSeasonStartEmail(season models.SeasonObject) error {
 			logger.Log.Info("Failed to get e-mail for user. Error: " + err.Error())
 			continue
 		} else if !emailFound {
-			logger.Log.Info("User e-mail not found. Error: " + err.Error())
+			logger.Log.Info("User e-mail not found.")
 			continue
 		}
 
