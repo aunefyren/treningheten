@@ -176,6 +176,7 @@ func scheduleJobs(taskScheduler chrono.TaskScheduler) int {
 		{"strava sync", files.ConfigFile.StravaEnabled, "0 0 * * * *", controllers.StravaSyncWeekForAllUsers},
 		{"hevy sync", files.ConfigFile.HevyEnabled, "0 30 * * * *", controllers.HevyEventsSyncForAllUsers},
 		{"media reconcile", files.ConfigFile.Media.Enabled, "0 45 * * * *", controllers.MediaReconcileForAllUsers},
+		{"integration health check", files.ConfigFile.Media.Enabled, "0 15 7 * * *", controllers.IntegrationHealthCheckForAllUsers},
 	}
 
 	scheduled := 0

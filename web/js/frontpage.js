@@ -485,8 +485,8 @@ function enablePushFromPrompt() {
 
     Notification.requestPermission().then(function(permission) {
         if (permission === 'granted') {
-            // sunday_alert, achievement_alert, news_alert all on by default.
-            register_push(jwt, '{{ .vapidPublicKey }}', true, true, true);
+            // sunday_alert, achievement_alert, news_alert, account_alert all on by default.
+            register_push(jwt, '{{ .vapidPublicKey }}', true, true, true, true);
         } else {
             error('Notifications were not enabled.');
         }

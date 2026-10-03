@@ -98,6 +98,11 @@ function load_page(result) {
                                 <input class="clickable" type="checkbox" id="notification-news-toggle" name="notification-news-toggle" value="">
                                 <label for="notification-news-toggle" class="clickable u-m-0">News</label><br>
                             </div>
+
+                            <div class="notification-option" id="">
+                                <input class="clickable" type="checkbox" id="notification-account-toggle" name="notification-account-toggle" value="" checked>
+                                <label for="notification-account-toggle" class="clickable u-m-0">Account updates</label><br>
+                            </div>
                         
                         </div>
 
@@ -1034,6 +1039,8 @@ function renderPlexSection(connection) {
             : "No server auto-detected. Enter the URL you reach Plex on, e.g. https://plex.example.com";
 
         plexHTML = `
+            ${integrationAlertHTML("Plex", connection)}
+
             <p class="u-w-full u-text-center">
                 Plex is connected. Your listening history is matched onto activities by time.
             </p>
@@ -1056,6 +1063,34 @@ function renderPlexSection(connection) {
 
     document.getElementById("plex-wrapper").innerHTML = plexHTML;
     document.getElementById('plex-section').style.display = 'flex';
+}
+
+// integrationAlertHTML renders a notice for a connected service that has stopped
+// working (status from the connection's health, see docs/integration-health.md), or
+// nothing when it is fine.
+function integrationAlertHTML(providerName, connection) {
+    if(!connection || !connection.status || connection.status == "ok") {
+        return "";
+    }
+
+    var since = "";
+    if(connection.failing_since) {
+        since = " since " + GetDateString(new Date(connection.failing_since), false);
+    }
+
+    if(connection.status == "auth_failed") {
+        return `
+            <p class="u-w-full u-text-center integration-alert">
+                ${providerName} stopped accepting the connection${since}. Reconnect below; history missed in the meantime is fetched automatically.
+            </p>
+        `;
+    }
+
+    return `
+        <p class="u-w-full u-text-center integration-alert integration-alert--unavailable">
+            Your ${providerName} server hasn't responded${since}. History will catch up once it's reachable again — check the server URL if it moved.
+        </p>
+    `;
 }
 
 // connectPlex starts the plex.tv PIN flow: it asks the API for a PIN, opens the
@@ -1449,6 +1484,7 @@ function PlaceSubscriptionData(subscription) {
     document.getElementById("notification-reminder-toggle").checked = subscription.sunday_alert;
     document.getElementById("notification-achievement-toggle").checked = subscription.achievement_alert;
     document.getElementById("notification-news-toggle").checked = subscription.news_alert;
+    document.getElementById("notification-account-toggle").checked = subscription.account_alert;
 
 }
 

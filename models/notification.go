@@ -20,6 +20,10 @@ type Subscription struct {
 	SundayAlert      bool       `json:"sunday_alert" gorm:"not null; default: false"`
 	AchievementAlert bool       `json:"achievement_alert" gorm:"not null; default: false"`
 	NewsAlert        bool       `json:"news_alert" gorm:"not null; default: false"`
+	// AccountAlert covers notices about the user's own account, such as a broken
+	// integration connection. On by default (existing rows included): these are things
+	// the user has to act on. Mind the insert-drops-false trap when creating a row.
+	AccountAlert bool `json:"account_alert" gorm:"not null; default: true"`
 }
 
 type SubscriptionOriginal struct {
@@ -39,6 +43,9 @@ type SubscriptionCreationRequest struct {
 		SundayAlert      bool `json:"sunday_alert"`
 		AchievementAlert bool `json:"achievement_alert"`
 		NewsAlert        bool `json:"news_alert"`
+		// A pointer so an older client that doesn't send it gets the default (on)
+		// rather than silently opting out.
+		AccountAlert *bool `json:"account_alert"`
 	}
 }
 
@@ -69,4 +76,6 @@ type SubscriptionUpdateRequest struct {
 	SundayAlert      bool   `json:"sunday_alert"`
 	AchievementAlert bool   `json:"achievement_alert"`
 	NewsAlert        bool   `json:"news_alert"`
+	// Nil leaves the stored value alone (an older client that doesn't know the field).
+	AccountAlert *bool `json:"account_alert"`
 }

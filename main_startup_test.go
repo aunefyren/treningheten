@@ -108,7 +108,8 @@ func TestScheduleJobsRespectsIntegrationFlags(t *testing.T) {
 	files.ConfigFile.StravaEnabled = true
 	files.ConfigFile.HevyEnabled = true
 	files.ConfigFile.Media.Enabled = true
-	if got := scheduleJobs(scheduler); got != 6 {
-		t.Errorf("jobs with every integration on = %d, want 6", got)
+	// Media brings two: the reconcile and the integration health check.
+	if got := scheduleJobs(scheduler); got != 7 {
+		t.Errorf("jobs with every integration on = %d, want 7", got)
 	}
 }

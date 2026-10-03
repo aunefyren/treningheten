@@ -249,19 +249,18 @@ func plexFetchHistory(serverURL, token, accountID string, start, end time.Time) 
 	resp, err := plexServerClient(15*time.Second, req.URL).Do(req)
 	if err != nil {
 		logger.Log.Error("Plex history request threw error. Error: " + err.Error())
-		return nil, errors.New("Plex history request threw error.")
+		return nil, integrationUnavailableError("Plex history request threw error.")
 	}
 	defer resp.Body.Close()
 
-	if resp.StatusCode != http.StatusOK {
-		logger.Log.Error("Plex history returned non-200. Status: " + strconv.Itoa(resp.StatusCode))
-		return nil, errors.New("Plex history returned non-200 status.")
+	if err := plexServerStatusError("Plex history", resp.StatusCode); err != nil {
+		return nil, err
 	}
 
 	history := models.PlexHistoryResponse{}
 	if err := json.NewDecoder(resp.Body).Decode(&history); err != nil {
 		logger.Log.Error("Failed to parse Plex history. Error: " + err.Error())
-		return nil, errors.New("Failed to parse Plex history.")
+		return nil, integrationUnavailableError("Failed to parse Plex history.")
 	}
 
 	return history.MediaContainer.Metadata, nil
@@ -312,8 +311,10 @@ func PlexSyncExerciseForUser(user models.User, exercise models.Exercise) error {
 
 	items, err := plexFetchHistory(*connection.ServerURL, token, accountID, start, end)
 	if err != nil {
+		recordIntegrationFailure(user.ID, models.IntegrationProviderPlex, err)
 		return err
 	}
+	recordIntegrationSuccess(user.ID, models.IntegrationProviderPlex)
 
 	logger.Log.Info(fmt.Sprintf("Plex history: fetched %d items for window %s..%s (account %q)", len(items), start.UTC().Format(time.RFC3339), end.UTC().Format(time.RFC3339), accountID))
 	if len(items) > 0 {
@@ -506,4 +507,114 @@ func reconcileMediaForExercise(user models.User, exercise models.Exercise) {
 		}
 	}
 	// else: pulled but window not yet closed — wait for a later run.
+}
+
+// plexServerStatusError maps a PMS reply status onto an integration error: 401/403 is a
+// rejected token (revoked, signed out of all devices, password changed), anything else
+// that isn't a 200 means the server isn't answering properly. nil for a 200.
+func plexServerStatusError(what string, statusCode int) error {
+	switch {
+	case statusCode == http.StatusOK:
+		return nil
+	case statusCode == http.StatusUnauthorized || statusCode == http.StatusForbidden:
+		logger.Log.Error(what + " rejected the Plex token. Status: " + strconv.Itoa(statusCode))
+		return integrationAuthError(what + " rejected the Plex token.")
+	default:
+		logger.Log.Error(what + " returned non-200. Status: " + strconv.Itoa(statusCode))
+		return integrationUnavailableError(what + " returned non-200 status.")
+	}
+}
+
+// plexCheckServer makes one cheap authenticated request against the PMS — the library
+// list, which needs a valid token — to tell whether the connection still works.
+func plexCheckServer(serverURL, token string) error {
+	req, err := http.NewRequest("GET", strings.TrimRight(serverURL, "/")+"/library/sections", nil)
+	if err != nil {
+		return errors.New("Plex health check request generation threw error.")
+	}
+	req.Header.Set("Accept", "application/json")
+	req.Header.Set("X-Plex-Token", token)
+	req.Header.Set("X-Plex-Client-Identifier", files.ConfigFile.Media.Plex.ClientIdentifier)
+
+	resp, err := plexServerClient(15*time.Second, req.URL).Do(req)
+	if err != nil {
+		logger.Log.Warn("Plex health check request threw error. Error: " + err.Error())
+		return integrationUnavailableError("Plex health check request threw error.")
+	}
+	defer resp.Body.Close()
+
+	return plexServerStatusError("Plex health check", resp.StatusCode)
+}
+
+// checkPlexConnectionForUser checks one user's Plex connection and records the outcome.
+// A connection that can't be used yet (no server or account resolved) is not checked:
+// that is a setup problem the account page already shows, not a breakage.
+func checkPlexConnectionForUser(userID uuid.UUID) error {
+	connection, err := database.GetMediaConnectionForUserProvider(userID, models.MediaProviderPlex)
+	if err != nil {
+		return err
+	} else if connection == nil || connection.AccessToken == nil || connection.ServerURL == nil || *connection.ServerURL == "" {
+		return nil
+	}
+
+	token, err := utilities.DecryptString(*connection.AccessToken, files.ConfigFile.Media.TokenKey)
+	if err != nil {
+		return errors.New("Failed to decrypt Plex token. Error: " + err.Error())
+	}
+
+	if err := plexCheckServer(*connection.ServerURL, token); err != nil {
+		recordIntegrationFailure(userID, models.IntegrationProviderPlex, err)
+		return err
+	}
+
+	recordIntegrationSuccess(userID, models.IntegrationProviderPlex)
+	return nil
+}
+
+// PlexHealthCheckForAllUsers checks every Plex connection; see
+// IntegrationHealthCheckForAllUsers.
+func PlexHealthCheckForAllUsers() {
+	connections, err := database.GetMediaConnectionsForProvider(models.MediaProviderPlex)
+	if err != nil {
+		logger.Log.Error("Plex health check failed to list connections. Error: " + err.Error())
+		return
+	}
+
+	for _, connection := range connections {
+		if err := checkPlexConnectionForUser(connection.UserID); err != nil {
+			logger.Log.Info("Plex health check failed for user " + connection.UserID.String() + ". Error: " + err.Error())
+		}
+	}
+}
+
+// plexBackfillSince re-pulls the Plex soundtrack for every session created since a
+// connection started failing. The session-level pull guards (MediaRetrievedAt,
+// MediaSettled) can't be trusted for that gap: another provider's success stamps the
+// session as pulled even when Plex failed. A day of slack covers a session created just
+// before the first failure whose pull came after it.
+//
+// If Plex fails again part-way, the backfill stops and the gap's start is kept, so the
+// next recovery picks up where this one left off.
+func plexBackfillSince(user models.User, since time.Time) {
+	exercises, err := database.GetExercisesForMediaBackfill(user.ID, since.Add(-24*time.Hour))
+	if err != nil {
+		logger.Log.Warn("Plex backfill could not load sessions. Error: " + err.Error())
+		return
+	}
+
+	synced := 0
+	for _, exercise := range exercises {
+		if err := PlexSyncExerciseForUser(user, exercise); err != nil {
+			if integrationErrorStatus(err) != "" {
+				recordIntegrationFailureSince(user.ID, models.IntegrationProviderPlex, err, since)
+				logger.Log.Warn("Plex backfill stopped after " + strconv.Itoa(synced) + " sessions. Error: " + err.Error())
+				return
+			}
+			logger.Log.Warn("Plex backfill skipped session " + exercise.ID.String() + ". Error: " + err.Error())
+			continue
+		}
+		synced++
+	}
+
+	logger.Log.Info("Plex backfill re-pulled " + strconv.Itoa(synced) + " sessions for user " + user.ID.String() + ".")
 }

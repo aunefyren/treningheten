@@ -183,6 +183,7 @@ func Migrate() {
 	Instance.AutoMigrate(&models.MediaConnection{})
 	Instance.AutoMigrate(&models.MediaPlayback{})
 	Instance.AutoMigrate(&models.UserActivityGoalSetting{})
+	Instance.AutoMigrate(&models.IntegrationStatus{})
 
 	// One-time cleanup: MediaPlayback moved from per-operation to per-session. The
 	// AutoMigrate above adds the NOT NULL exercise_id column, which backfills existing

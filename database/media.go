@@ -218,3 +218,39 @@ func GetExercisesForMediaReconcile(userID uuid.UUID, since time.Time) ([]models.
 
 	return exercises, nil
 }
+
+// GetMediaConnectionsForProvider returns every enabled connection for one provider,
+// across all users — the set the daily health check walks.
+func GetMediaConnectionsForProvider(provider string) ([]models.MediaConnection, error) {
+	connections := []models.MediaConnection{}
+	record := Instance.Where("media_connections.enabled = ?", true).
+		Where("media_connections.provider = ?", provider).
+		Find(&connections)
+
+	if record.Error != nil {
+		return nil, record.Error
+	}
+
+	return connections, nil
+}
+
+// GetExercisesForMediaBackfill returns a user's live sessions created since a point in
+// time — the sessions whose soundtrack may have been missed while a provider was failing.
+func GetExercisesForMediaBackfill(userID uuid.UUID, since time.Time) ([]models.Exercise, error) {
+	var exercises []models.Exercise
+
+	record := Instance.
+		Where("exercises.enabled = ?", true).
+		Where("exercises.created_at >= ?", since).
+		Joins("JOIN exercise_days on exercises.exercise_day_id = exercise_days.id").
+		Where("exercise_days.enabled = ?", true).
+		Where("exercise_days.user_id = ?", userID).
+		Order("exercises.time ASC").
+		Find(&exercises)
+
+	if record.Error != nil {
+		return nil, record.Error
+	}
+
+	return exercises, nil
+}

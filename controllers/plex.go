@@ -492,6 +492,9 @@ func APICheckPlexPin(context *gin.Context) {
 
 	forgetPlexPin(parsedPinID)
 
+	// A reconnect replaces a revoked token: clear the broken status and re-pull the gap.
+	resumeIntegrationAfterReconnect(userID, models.IntegrationProviderPlex)
+
 	object := ConvertMediaConnectionToObject(connection)
 	context.JSON(http.StatusOK, gin.H{"message": "Plex connected.", "result": models.PlexPinCheckResponse{Authorized: true, Connection: &object}})
 }
@@ -566,6 +569,11 @@ func APISetPlexServerURL(context *gin.Context) {
 		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to save server URL."})
 		context.Abort()
 		return
+	}
+
+	// A working URL fixes an unreachable server: clear the status and re-pull the gap.
+	if reachable {
+		resumeIntegrationAfterReconnect(userID, models.IntegrationProviderPlex)
 	}
 
 	object := ConvertMediaConnectionToObject(updated)

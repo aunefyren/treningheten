@@ -133,6 +133,7 @@ func TestPushSubscriptionsAndDelivery(t *testing.T) {
 		"wheel spin":       func() error { return PushNotificationsForWheelSpin(user.ID, debt) },
 		"wheel spin check": func() error { return PushNotificationsForWheelSpinCheck(user.ID, debt) },
 		"wheel spin win":   func() error { return PushNotificationsForWheelSpinWin(user.ID, debt) },
+		"account alert":    func() error { return PushNotificationsForAccountAlert(user.ID, "Reconnect Plex.") },
 	} {
 		before := liveDeliveries.Load()
 		if err := push(); err != nil {
@@ -151,6 +152,7 @@ func TestPushSubscriptionsAndDelivery(t *testing.T) {
 	before := liveDeliveries.Load()
 	_ = PushNotificationsForNews()
 	_ = PushNotificationsForAchievements(user.ID)
+	_ = PushNotificationsForAccountAlert(user.ID, "Reconnect Plex.")
 	if liveDeliveries.Load() != before {
 		t.Error("pushes were sent in the test environment")
 	}

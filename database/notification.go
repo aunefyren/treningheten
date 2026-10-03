@@ -65,6 +65,22 @@ func GetAllSubscriptionsForAchievementsForUserID(userID uuid.UUID) ([]models.Sub
 
 }
 
+// GetAllSubscriptionsForAccountAlertsForUserID returns the user's enabled subscriptions
+// that accept account notices (e.g. a broken integration connection).
+func GetAllSubscriptionsForAccountAlertsForUserID(userID uuid.UUID) ([]models.Subscription, error) {
+	subscriptions := []models.Subscription{}
+
+	record := Instance.Where("subscriptions.enabled = ?", true).
+		Where("subscriptions.account_alert = ?", true).
+		Where("subscriptions.user_id = ?", userID).
+		Find(&subscriptions)
+	if record.Error != nil {
+		return []models.Subscription{}, record.Error
+	}
+
+	return subscriptions, nil
+}
+
 // Get subscriptions for news
 func GetAllSubscriptionsForNews() ([]models.Subscription, bool, error) {
 
@@ -98,7 +114,8 @@ func GetAllSubscriptionsForSundayAlerts() ([]models.Subscription, bool, error) {
 }
 
 // Update an exercise in the database
-func UpdateSubscriptionForUserByUserIDAndEndpoint(userID uuid.UUID, endpoint string, reminder bool, achievement bool, news bool) (err error) {
+// accountAlert is optional: nil leaves the stored value alone.
+func UpdateSubscriptionForUserByUserIDAndEndpoint(userID uuid.UUID, endpoint string, reminder bool, achievement bool, news bool, accountAlert *bool) (err error) {
 
 	err = nil
 
@@ -115,6 +132,13 @@ func UpdateSubscriptionForUserByUserIDAndEndpoint(userID uuid.UUID, endpoint str
 	err = UpdateSubscriptionNewsByEndpointAndUserID(userID, endpoint, news)
 	if err != nil {
 		return err
+	}
+
+	if accountAlert != nil {
+		err = UpdateSubscriptionAccountAlertByEndpointAndUserID(userID, endpoint, *accountAlert)
+		if err != nil {
+			return err
+		}
 	}
 
 	return err
@@ -167,6 +191,24 @@ func UpdateSubscriptionNewsByEndpointAndUserID(userID uuid.UUID, endpoint string
 
 	return err
 
+}
+
+// UpdateSubscriptionAccountAlertByEndpointAndUserID sets the account-notice opt-in. It
+// is also how a new subscription stores false: the column defaults to true, so GORM
+// drops a false from the insert (see docs/data-conventions.md).
+func UpdateSubscriptionAccountAlertByEndpointAndUserID(userID uuid.UUID, endpoint string, accountAlert bool) error {
+	record := Instance.Model(&models.Subscription{}).
+		Where("subscriptions.enabled = ?", true).
+		Where("subscriptions.user_id = ?", userID).
+		Where("subscriptions.endpoint = ?", endpoint).
+		Update("account_alert", accountAlert)
+	if record.Error != nil {
+		return record.Error
+	} else if record.RowsAffected != 1 {
+		return errors.New("Failed to update account alert value in update.")
+	}
+
+	return nil
 }
 
 func UpdateSubscription(subscription models.Subscription) (models.Subscription, error) {

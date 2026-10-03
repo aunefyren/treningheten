@@ -60,6 +60,9 @@ architecture overview.
   setup/validation, and the planned workout sync + exercise mapping (WIP).
 - [ollama.md](ollama.md) — AI-generated front-page greeting: the pre-computed payload
   (incl. the optional `latest_workout` block), caching, and scheduling.
+- [integration-health.md](integration-health.md) — noticing a broken integration
+  connection (revoked token vs outage), notifying the user once, and re-pulling the
+  gap on recovery. Plex first; the pattern for adding the other providers.
 - [media.md](media.md) — media/audio integration: overlaying listening history onto
   activities, the per-provider connection model, the playback timeline, and the
   tenant + per-provider feature flags (Plex first; WIP).

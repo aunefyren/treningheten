@@ -121,6 +121,7 @@ func APISubscribeToNotification(context *gin.Context) {
 	subscription.SundayAlert = subscriptionRequest.Settings.SundayAlert
 	subscription.AchievementAlert = subscriptionRequest.Settings.AchievementAlert
 	subscription.NewsAlert = subscriptionRequest.Settings.NewsAlert
+	subscription.AccountAlert = subscriptionRequest.Settings.AccountAlert == nil || *subscriptionRequest.Settings.AccountAlert
 	subscription.UserID = userID
 
 	// A browser keeps the same endpoint when re-subscribing, so upsert on
@@ -141,6 +142,7 @@ func APISubscribeToNotification(context *gin.Context) {
 		existing.SundayAlert = subscription.SundayAlert
 		existing.AchievementAlert = subscription.AchievementAlert
 		existing.NewsAlert = subscription.NewsAlert
+		existing.AccountAlert = subscription.AccountAlert
 		existing.Enabled = true
 
 		if _, err = database.UpdateSubscription(existing); err != nil {
@@ -156,12 +158,25 @@ func APISubscribeToNotification(context *gin.Context) {
 
 	subscription.ID = uuid.New()
 
+	// AccountAlert defaults to true, so GORM drops a false from the insert; capture it
+	// first and write it explicitly afterwards.
+	accountAlert := subscription.AccountAlert
+
 	_, err = database.CreateSubscriptionInDB(subscription)
 	if err != nil {
 		logger.Log.Info("Failed to create subscription in database. Error: " + err.Error())
 		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create subscription in database."})
 		context.Abort()
 		return
+	}
+
+	if !accountAlert {
+		if err := database.UpdateSubscriptionAccountAlertByEndpointAndUserID(userID, subscription.Endpoint, false); err != nil {
+			logger.Log.Info("Failed to store account alert setting. Error: " + err.Error())
+			context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create subscription in database."})
+			context.Abort()
+			return
+		}
 	}
 
 	context.JSON(http.StatusCreated, gin.H{"message": "Subscription created."})
@@ -258,7 +273,7 @@ func APIUpdateSubscriptionForEndpoint(context *gin.Context) {
 		return
 	}
 
-	err = database.UpdateSubscriptionForUserByUserIDAndEndpoint(userID, subscriptionUpdateRequest.Endpoint, subscriptionUpdateRequest.SundayAlert, subscriptionUpdateRequest.AchievementAlert, subscriptionUpdateRequest.NewsAlert)
+	err = database.UpdateSubscriptionForUserByUserIDAndEndpoint(userID, subscriptionUpdateRequest.Endpoint, subscriptionUpdateRequest.SundayAlert, subscriptionUpdateRequest.AchievementAlert, subscriptionUpdateRequest.NewsAlert, subscriptionUpdateRequest.AccountAlert)
 	if err != nil {
 		logger.Log.Info("Failed to update subscription in database. Error: " + err.Error())
 		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update subscription in database."})
@@ -488,4 +503,29 @@ func PushNotificationsForWheelSpinWin(userId uuid.UUID, debt models.Debt) (err e
 
 	return nil
 
+}
+
+// PushNotificationsForAccountAlert sends an account notice (e.g. a broken integration
+// connection) to the user's devices that accept them. It opens /account on click.
+func PushNotificationsForAccountAlert(userID uuid.UUID, body string) error {
+	// Return if in test environment
+	if strings.ToLower(files.ConfigFile.TreninghetenEnvironment) == "test" {
+		return nil
+	}
+
+	subscriptions, err := database.GetAllSubscriptionsForAccountAlertsForUserID(userID)
+	if err != nil {
+		logger.Log.Info("Failed to get subscriptions from database. Error: " + err.Error())
+		return errors.New("Failed to get subscriptions from database.")
+	} else if len(subscriptions) == 0 {
+		logger.Log.Debug("No subscriptions found for account alerts.")
+		return nil
+	}
+
+	if _, err := PushNotificationToSubscriptions("account", body, "Treningheten", subscriptions, nil); err != nil {
+		logger.Log.Info("Failed to push notification(s). Error: " + err.Error())
+		return errors.New("Failed to push notification(s).")
+	}
+
+	return nil
 }

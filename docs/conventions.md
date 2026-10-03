@@ -343,7 +343,9 @@ sweeps below. Total statement coverage is about 90%.
   the client *sends* (auth header shape, paths, query params) and how it maps
   responses, especially the status codes that carry meaning: Strava's 400/401 →
   `ErrStravaSessionInvalid` (clears the connection) vs a transient 429/5xx, Hevy's
-  401/403 → "key rejected", and Spotify's 403 → `ErrSpotifyForbidden`.
+  401/403 → "key rejected", Spotify's 403 → `ErrSpotifyForbidden`, and a Plex 401/403 →
+  `ErrIntegrationAuth` vs any other failure → `ErrIntegrationUnavailable` (see
+  [integration-health.md](integration-health.md)).
 - **Password tests are slow** outside `controllers/`: bcrypt runs at cost 14, so each
   hash *and each comparison* costs about a second. `controllers/` lowers
   `models.PasswordHashCost` in `TestMain`; elsewhere keep the case list short and put

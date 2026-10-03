@@ -118,7 +118,7 @@ func TestUpdateSubscriptionForUserByUserIDAndEndpoint(t *testing.T) {
 	user := makeTestUser(t, "subupdate@example.com", nil)
 	makeSubscription(t, user.ID, "ep", false, false, false)
 
-	if err := UpdateSubscriptionForUserByUserIDAndEndpoint(user.ID, "ep", true, true, true); err != nil {
+	if err := UpdateSubscriptionForUserByUserIDAndEndpoint(user.ID, "ep", true, true, true, nil); err != nil {
 		t.Fatalf("UpdateSubscriptionForUserByUserIDAndEndpoint returned error: %v", err)
 	}
 
@@ -128,6 +128,34 @@ func TestUpdateSubscriptionForUserByUserIDAndEndpoint(t *testing.T) {
 	}
 	if !found.SundayAlert || !found.AchievementAlert || !found.NewsAlert {
 		t.Errorf("expected all alerts enabled, got sunday=%v ach=%v news=%v", found.SundayAlert, found.AchievementAlert, found.NewsAlert)
+	}
+	// Account alerts default to on, and a nil leaves them alone.
+	if !found.AccountAlert {
+		t.Errorf("account alert = false, want the default (true)")
+	}
+
+	if err := UpdateSubscriptionForUserByUserIDAndEndpoint(user.ID, "ep", true, true, true, boolPtr(false)); err != nil {
+		t.Fatalf("UpdateSubscriptionForUserByUserIDAndEndpoint(account off) returned error: %v", err)
+	}
+	found, _, _ = GetAllSubscriptionForUserByUserIDAndEndpoint(user.ID, "ep")
+	if found.AccountAlert {
+		t.Errorf("account alert = true after opting out")
+	}
+	if subs, err := GetAllSubscriptionsForAccountAlertsForUserID(user.ID); err != nil || len(subs) != 0 {
+		t.Errorf("account alert subscriptions after opting out = %d (err %v), want 0", len(subs), err)
+	}
+
+	if err := UpdateSubscriptionAccountAlertByEndpointAndUserID(user.ID, "ep", true); err != nil {
+		t.Fatalf("UpdateSubscriptionAccountAlertByEndpointAndUserID returned error: %v", err)
+	}
+	if subs, err := GetAllSubscriptionsForAccountAlertsForUserID(user.ID); err != nil || len(subs) != 1 {
+		t.Errorf("account alert subscriptions after opting in = %d (err %v), want 1", len(subs), err)
+	}
+	if err := UpdateSubscriptionAccountAlertByEndpointAndUserID(user.ID, "no-such-ep", true); err == nil {
+		t.Errorf("expected error updating the account alert of an unknown subscription")
+	}
+	if err := UpdateSubscriptionForUserByUserIDAndEndpoint(user.ID, "no-such-ep", true, true, true, boolPtr(true)); err == nil {
+		t.Errorf("expected error updating unknown subscription")
 	}
 
 	// Updating a non-existent subscription must error.

@@ -112,6 +112,10 @@ type MediaConnectionObject struct {
 	ServerURL    *string    `json:"server_url"`
 	Connected    bool       `json:"connected"`
 	LastSyncedAt *time.Time `json:"last_synced_at"`
+	// Status is the connection's health: "ok", "auth_failed" or "unavailable" (see
+	// models.IntegrationStatus). FailingSince is set when it isn't ok.
+	Status       string     `json:"status"`
+	FailingSince *time.Time `json:"failing_since"`
 }
 
 // MediaPlaybackObject is the flattened read shape attached to OperationObject.

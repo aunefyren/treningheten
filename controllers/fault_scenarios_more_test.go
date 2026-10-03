@@ -258,6 +258,8 @@ func moreFaultScenarios() []faultScenario {
 			endpoint, _ := pushEndpoint(t, http.StatusCreated)
 			request := models.SubscriptionCreationRequest{Subscription: browserSubscription(t, endpoint.URL)}
 			request.Settings.NewsAlert = true
+			// Opting out takes a second write (the column defaults to true); sweep it too.
+			request.Settings.AccountAlert = boolPtr(false)
 			return faultRequest{"POST", "/api/auth/notifications/subscribe", w.memberToken, request, nil}
 		}),
 		scenario("push all devices", http.StatusCreated, func(t *testing.T, h *apiHarness, w faultWorld) faultRequest {
@@ -271,7 +273,7 @@ func moreFaultScenarios() []faultScenario {
 			withVAPIDKeys(t)
 			endpoint, _ := pushEndpoint(t, http.StatusCreated)
 			h.expect(http.StatusCreated, "POST", "/api/auth/notifications/subscribe", w.memberToken, models.SubscriptionCreationRequest{Subscription: browserSubscription(t, endpoint.URL)})
-			return faultRequest{"POST", "/api/auth/notifications/subscription/update", w.memberToken, models.SubscriptionUpdateRequest{Endpoint: endpoint.URL, NewsAlert: true}, nil}
+			return faultRequest{"POST", "/api/auth/notifications/subscription/update", w.memberToken, models.SubscriptionUpdateRequest{Endpoint: endpoint.URL, NewsAlert: true, AccountAlert: boolPtr(false)}, nil}
 		}),
 
 		// Scheduled jobs and the rest

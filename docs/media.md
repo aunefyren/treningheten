@@ -279,7 +279,8 @@ and makes "build each provider independently" literal. Credential fields are
 | `LastSyncedAt`* | |
 
 `MediaConnectionObject` is the safe read shape (no credentials; a `connected`
-boolean instead).
+boolean instead, plus the connection's health as `status` / `failing_since`. See
+[integration-health.md](integration-health.md)).
 
 ### `MediaPlayback` — one row per played item
 
@@ -634,7 +635,10 @@ never per matching operation.
   re-pulls.
 - **Per-(session, provider) pull guard:** the single `Exercise.MediaRetrievedAt` spans
   all providers. Fine for the common case, but connecting a provider *after* a session
-  was already pulled relies on the 🎧 re-pull button. Generalise when it becomes annoying.
+  was already pulled relies on the 🎧 re-pull button. A provider that *failed* while
+  another succeeded is now covered for Plex: when the connection recovers, the
+  [integration-health](integration-health.md#recovery-backfill) backfill re-pulls the gap
+  regardless of the guard. Generalise when it becomes annoying.
 - **Cross-provider de-dupe detail:** the within-provider overlap merge groups by provider
   id, so it does *not* catch the same play through two providers (two unrelated ids). A
   cross-provider pass would have to match on title/artist + time overlap.

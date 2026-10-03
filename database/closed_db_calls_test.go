@@ -47,6 +47,7 @@ var closedDBCalls = []struct {
 	{"CreateSubscriptionInDB", true, func() error { _, err := CreateSubscriptionInDB(models.Subscription{}); return err }},
 	{"CreateWeightInDB", true, func() error { _, err := CreateWeightInDB(models.WeightValue{}); return err }},
 	{"CreateWheelview", true, func() error { err := CreateWheelview(models.Wheelview{}); return err }},
+	{"DeleteIntegrationStatus", true, func() error { err := DeleteIntegrationStatus(uuid.UUID{}, ""); return err }},
 	{"DeleteInviteByID", true, func() error { err := DeleteInviteByID(uuid.UUID{}); return err }},
 	{"DeleteMediaConnectionForUserProvider", true, func() error { err := DeleteMediaConnectionForUserProvider(uuid.UUID{}, ""); return err }},
 	{"DeleteNewsPost", true, func() error { err := DeleteNewsPost(uuid.UUID{}); return err }},
@@ -81,6 +82,7 @@ var closedDBCalls = []struct {
 	{"GetAllExerciseDaysWithExerciseByUserID", true, func() error { _, err := GetAllExerciseDaysWithExerciseByUserID(uuid.UUID{}); return err }},
 	{"GetAllExercisesForMediaSync", true, func() error { _, err := GetAllExercisesForMediaSync(uuid.UUID{}); return err }},
 	{"GetAllSubscriptionForUserByUserIDAndEndpoint", true, func() error { _, _, err := GetAllSubscriptionForUserByUserIDAndEndpoint(uuid.UUID{}, ""); return err }},
+	{"GetAllSubscriptionsForAccountAlertsForUserID", true, func() error { _, err := GetAllSubscriptionsForAccountAlertsForUserID(uuid.UUID{}); return err }},
 	{"GetAllSubscriptionsForAchievementsForUserID", true, func() error { _, _, err := GetAllSubscriptionsForAchievementsForUserID(uuid.UUID{}); return err }},
 	{"GetAllSubscriptionsForNews", true, func() error { _, _, err := GetAllSubscriptionsForNews(); return err }},
 	{"GetAllSubscriptionsForSundayAlerts", true, func() error { _, _, err := GetAllSubscriptionsForSundayAlerts(); return err }},
@@ -130,6 +132,7 @@ var closedDBCalls = []struct {
 	}},
 	{"GetExerciseForUserWithHevyWorkoutID", true, func() error { _, err := GetExerciseForUserWithHevyWorkoutID(uuid.UUID{}, ""); return err }},
 	{"GetExerciseForUserWithStravaID", true, func() error { _, err := GetExerciseForUserWithStravaID(uuid.UUID{}, ""); return err }},
+	{"GetExercisesForMediaBackfill", true, func() error { _, err := GetExercisesForMediaBackfill(uuid.UUID{}, time.Time{}); return err }},
 	{"GetExercisesForMediaReconcile", true, func() error { _, err := GetExercisesForMediaReconcile(uuid.UUID{}, time.Time{}); return err }},
 	{"GetGearByID", true, func() error { _, err := GetGearByID(uuid.UUID{}); return err }},
 	{"GetGearByIDAndUserID", true, func() error { _, err := GetGearByIDAndUserID(uuid.UUID{}, uuid.UUID{}); return err }},
@@ -142,8 +145,10 @@ var closedDBCalls = []struct {
 	{"GetGoalsFromWithinSeason", true, func() error { _, err := GetGoalsFromWithinSeason(uuid.UUID{}); return err }},
 	{"GetHevyExerciseForUserNearTime", true, func() error { _, err := GetHevyExerciseForUserNearTime(uuid.UUID{}, time.Time{}, 0); return err }},
 	{"GetHevyUsers", true, func() error { _, err := GetHevyUsers(); return err }},
+	{"GetIntegrationStatus", true, func() error { _, err := GetIntegrationStatus(uuid.UUID{}, ""); return err }},
 	{"GetInviteByID", true, func() error { _, err := GetInviteByID(uuid.UUID{}); return err }},
 	{"GetMediaConnectionForUserProvider", true, func() error { _, err := GetMediaConnectionForUserProvider(uuid.UUID{}, ""); return err }},
+	{"GetMediaConnectionsForProvider", true, func() error { _, err := GetMediaConnectionsForProvider(""); return err }},
 	{"GetMediaConnectionsForUser", true, func() error { _, err := GetMediaConnectionsForUser(uuid.UUID{}); return err }},
 	{"GetMediaPlaybackForExercise", true, func() error { _, err := GetMediaPlaybackForExercise(uuid.UUID{}); return err }},
 	{"GetNewsPostByNewsID", true, func() error { _, err := GetNewsPostByNewsID(uuid.UUID{}); return err }},
@@ -214,6 +219,7 @@ var closedDBCalls = []struct {
 	{"RevokeRefreshTokenChain", true, func() error { err := RevokeRefreshTokenChain(uuid.UUID{}); return err }},
 	{"RotateRefreshToken", true, func() error { err := RotateRefreshToken(uuid.UUID{}, &models.OAuthRefreshToken{}); return err }},
 	{"SaveAchievementInDB", true, func() error { _, err := SaveAchievementInDB(models.Achievement{}); return err }},
+	{"SaveIntegrationStatus", true, func() error { _, err := SaveIntegrationStatus(models.IntegrationStatus{}); return err }},
 	{"SeedActions", false, func() error { SeedActions(); return nil }},
 	{"SeedHevyActions", false, func() error { SeedHevyActions(); return nil }},
 	{"SeedOAuthClients", false, func() error { SeedOAuthClients(); return nil }},
@@ -223,8 +229,8 @@ var closedDBCalls = []struct {
 	{"SetExerciseMediaRetrievedAt", true, func() error { err := SetExerciseMediaRetrievedAt(uuid.UUID{}, time.Time{}); return err }},
 	{"SetExerciseMediaSettled", true, func() error { err := SetExerciseMediaSettled(uuid.UUID{}, false); return err }},
 	{"SetHevyLastSyncForUser", true, func() error { err := SetHevyLastSyncForUser(uuid.UUID{}, time.Time{}); return err }},
-	{"SetStravaCredentialsForUser", true, func() error { err := SetStravaCredentialsForUser(uuid.UUID{}, "", nil); return err }},
 	{"SetSickleaveToUsedByID", true, func() error { err := SetSickleaveToUsedByID(uuid.UUID{}); return err }},
+	{"SetStravaCredentialsForUser", true, func() error { err := SetStravaCredentialsForUser(uuid.UUID{}, "", nil); return err }},
 	{"SetUsedUserInviteCode", true, func() error { err := SetUsedUserInviteCode("", uuid.UUID{}); return err }},
 	{"SetUserVerification", true, func() error { err := SetUserVerification(uuid.UUID{}, false); return err }},
 	{"SetWheelviewToViewedByID", true, func() error { err := SetWheelviewToViewedByID(uuid.UUID{}); return err }},
@@ -248,12 +254,16 @@ var closedDBCalls = []struct {
 	{"UpdateOperationSetInDB", true, func() error { _, err := UpdateOperationSetInDB(models.OperationSet{}); return err }},
 	{"UpdatePasswordValueByUserID", true, func() error { err := UpdatePasswordValueByUserID(uuid.UUID{}, ""); return err }},
 	{"UpdateSubscription", true, func() error { _, err := UpdateSubscription(models.Subscription{}); return err }},
+	{"UpdateSubscriptionAccountAlertByEndpointAndUserID", true, func() error {
+		err := UpdateSubscriptionAccountAlertByEndpointAndUserID(uuid.UUID{}, "", false)
+		return err
+	}},
 	{"UpdateSubscriptionAchievementByEndpointAndUserID", true, func() error {
 		err := UpdateSubscriptionAchievementByEndpointAndUserID(uuid.UUID{}, "", false)
 		return err
 	}},
 	{"UpdateSubscriptionForUserByUserIDAndEndpoint", true, func() error {
-		err := UpdateSubscriptionForUserByUserIDAndEndpoint(uuid.UUID{}, "", false, false, false)
+		err := UpdateSubscriptionForUserByUserIDAndEndpoint(uuid.UUID{}, "", false, false, false, nil)
 		return err
 	}},
 	{"UpdateSubscriptionNewsByEndpointAndUserID", true, func() error { err := UpdateSubscriptionNewsByEndpointAndUserID(uuid.UUID{}, "", false); return err }},

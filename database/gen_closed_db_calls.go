@@ -36,6 +36,14 @@ func zero(expr ast.Expr) string {
 		}
 		return name + "{}"
 	case *ast.StarExpr:
+		// A pointer to a basic type has no addressable zero literal (&"" doesn't compile);
+		// nil is its zero value anyway.
+		if ident, ok := t.X.(*ast.Ident); ok {
+			switch ident.Name {
+			case "string", "bool", "int", "int64", "int32", "uint", "float64", "float32":
+				return "nil"
+			}
+		}
 		return "&" + zero(t.X)
 	case *ast.ArrayType:
 		return "nil"

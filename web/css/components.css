@@ -2093,6 +2093,11 @@ label {
    Recurring widgets that were repeated as inline style="" strings. Values
    preserved verbatim from the originals. */
 .integration-btn { width: 12em; }   /* account: connect/disconnect service buttons (on .btn) */
+.integration-alert {                 /* account: a connected service that has stopped working */
+  font-weight: 600;
+  color: var(--error);
+}
+.integration-alert--unavailable { color: var(--warning); }
 .panel-card {                        /* centred white content card wrapper */
   max-width: 40em;
   margin: 1em auto;

@@ -1,9 +1,10 @@
-function register_push(jwtToken, appPubkey, sunday_alert, achievement_alert, news_alert) {
+function register_push(jwtToken, appPubkey, sunday_alert, achievement_alert, news_alert, accountAlert) {
 
     settings = {
         "sunday_alert": sunday_alert,
         "achievement_alert": achievement_alert,
-        "news_alert": news_alert
+        "news_alert": news_alert,
+        "account_alert": accountAlert
     }
 
     console.log("VAPID public key: " + appPubkey)
@@ -77,8 +78,9 @@ function create_new_subscription(vapid_public_key) {
     var sunday_alert = document.getElementById("notification-reminder-toggle").checked;
     var achievement_alert = document.getElementById("notification-achievement-toggle").checked;
     var news_alert = document.getElementById("notification-news-toggle").checked;
+    var accountAlert = document.getElementById("notification-account-toggle").checked;
 
-    register_push(jwt, vapid_public_key, sunday_alert, achievement_alert, news_alert);
+    register_push(jwt, vapid_public_key, sunday_alert, achievement_alert, news_alert, accountAlert);
 
 }
 
@@ -87,12 +89,14 @@ function update_subscription(vapid_public_key, subscription) {
     var sunday_alert = document.getElementById("notification-reminder-toggle").checked;
     var achievement_alert = document.getElementById("notification-achievement-toggle").checked;
     var news_alert = document.getElementById("notification-news-toggle").checked;
+    var accountAlert = document.getElementById("notification-account-toggle").checked;
     
     var form_obj = { 
         "endpoint" : subscription.endpoint,
         "sunday_alert": sunday_alert,
         "achievement_alert": achievement_alert,
-        "news_alert": news_alert
+        "news_alert": news_alert,
+        "account_alert": accountAlert
     };
 
     var form_data = JSON.stringify(form_obj);

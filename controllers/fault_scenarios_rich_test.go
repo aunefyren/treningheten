@@ -143,6 +143,24 @@ func richFaultScenarios() []faultScenario {
 			connectPlex(t, h, w)
 			return faultRequest{"POST", "/api/auth/exercises/" + w.sessionID + "/media-sync", w.memberToken, nil, nil}
 		}),
+		callScenario("integration health check", func(t *testing.T, h *apiHarness, w faultWorld) func() error {
+			connectPlex(t, h, w)
+			return func() error { IntegrationHealthCheckForAllUsers(); return nil }
+		}),
+		callScenario("plex broken connection", func(t *testing.T, h *apiHarness, w faultWorld) func() error {
+			pmsURL := connectPlex(t, h, w)
+			withVAPIDKeys(t)
+			endpoint, _ := pushEndpoint(t, http.StatusCreated)
+			h.expect(http.StatusCreated, "POST", "/api/auth/notifications/subscribe", w.memberToken, models.SubscriptionCreationRequest{Subscription: browserSubscription(t, endpoint.URL)})
+			storePlexConnection(t, w.member.ID, "revoked-token", pmsURL)
+			return func() error { IntegrationHealthCheckForAllUsers(); return nil }
+		}),
+		callScenario("plex recovery", func(t *testing.T, h *apiHarness, w faultWorld) func() error {
+			connectPlex(t, h, w)
+			withInlineIntegrationRecovery(t)
+			seedIntegrationStatus(t, w.member.ID, models.IntegrationStatusAuthFailed, time.Now().Add(-time.Hour), true)
+			return func() error { IntegrationHealthCheckForAllUsers(); return nil }
+		}),
 		scenario("plex artwork", http.StatusOK, func(t *testing.T, h *apiHarness, w faultWorld) faultRequest {
 			connectPlex(t, h, w)
 			return faultRequest{"GET", "/api/auth/media/plex/artwork?path=/library/metadata/101/thumb", w.memberToken, nil, nil}
