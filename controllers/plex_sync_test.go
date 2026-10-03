@@ -77,6 +77,9 @@ func TestBuildPlexPlaybackForWindow(t *testing.T) {
 	if first.ArtworkURL == nil || *first.ArtworkURL != "/library/metadata/1/thumb/9" {
 		t.Errorf("artwork should carry the raw PMS thumb path: got %v", first.ArtworkURL)
 	}
+	if want := start.Add(17 * time.Minute); !first.StartedAt.Equal(want) {
+		t.Errorf("StartedAt should be viewedAt minus the track length: got %v, want %v", first.StartedAt, want)
+	}
 	if first.EndedAt == nil {
 		t.Errorf("expected EndedAt to be set when duration is known")
 	} else if want := first.StartedAt.Add(180 * time.Second); !first.EndedAt.Equal(want) {
@@ -162,10 +165,10 @@ func TestBuildPlexPlaybackClampsToActivityEnd(t *testing.T) {
 	start := time.Date(2026, 6, 27, 10, 0, 0, 0, time.UTC)
 	end := start.Add(30 * time.Minute) // 10:30
 
-	// A 10-minute track scrobbled at 10:25 would naturally end at 10:35, past the
-	// activity end — it must clamp to 10:30.
+	// A 10-minute track scrobbled (finished) at 10:33, inside the grace after the end,
+	// played 10:23–10:33 — past the activity end, so EndedAt must clamp to 10:30.
 	items := []models.PlexHistoryMetadata{
-		{RatingKey: "1", Title: "Long", Type: "track", ViewedAt: start.Add(25 * time.Minute).Unix(), Duration: 600000},
+		{RatingKey: "1", Title: "Long", Type: "track", ViewedAt: start.Add(33 * time.Minute).Unix(), Duration: 600000},
 	}
 
 	got := buildPlexPlaybackForWindow(items, nil, start, end)
@@ -177,6 +180,82 @@ func TestBuildPlexPlaybackClampsToActivityEnd(t *testing.T) {
 	}
 	if !got[0].EndedAt.Equal(end) {
 		t.Errorf("EndedAt should clamp to activity end %v, got %v", end, got[0].EndedAt)
+	}
+	if want := start.Add(23 * time.Minute); !got[0].StartedAt.Equal(want) {
+		t.Errorf("StartedAt should be the scrobble minus the track length %v, got %v", want, got[0].StartedAt)
+	}
+}
+
+// TestBuildPlexPlaybackTreatsViewedAtAsFinish pins the scrobble semantics: viewedAt is
+// when the track finished, so the play is placed one track length earlier, and a track
+// that started before the run but finished inside it is "already playing".
+func TestBuildPlexPlaybackTreatsViewedAtAsFinish(t *testing.T) {
+	start := time.Date(2026, 6, 27, 10, 0, 0, 0, time.UTC)
+	end := start.Add(time.Hour)
+	at := func(min int) int64 { return start.Add(time.Duration(min) * time.Minute).Unix() }
+
+	cases := []struct {
+		name          string
+		viewedAt      int64
+		durationMs    int64
+		wantMatched   bool
+		wantStart     time.Time
+		wantEnd       *time.Time
+		wantStartedBe bool
+	}{
+		{"inside the run", at(20), 300000, true, start.Add(15 * time.Minute), timePtr(start.Add(20 * time.Minute)), false},
+		{"started before, finished inside", at(2), 300000, true, start, timePtr(start.Add(2 * time.Minute)), true},
+		{"finished before the grace", at(-6), 300000, false, time.Time{}, nil, false},
+		{"unknown length keeps viewedAt as start", at(30), 0, true, start.Add(30 * time.Minute), nil, false},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			items := []models.PlexHistoryMetadata{{RatingKey: "1", Title: "Song", Type: "track", ViewedAt: tc.viewedAt, Duration: tc.durationMs}}
+			got := buildPlexPlaybackForWindow(items, nil, start, end)
+			if !tc.wantMatched {
+				if len(got) != 0 {
+					t.Fatalf("expected no match, got %+v", got)
+				}
+				return
+			}
+			if len(got) != 1 {
+				t.Fatalf("expected 1 row, got %d", len(got))
+			}
+			row := got[0]
+			if !row.StartedAt.Equal(tc.wantStart) {
+				t.Errorf("StartedAt: got %v, want %v", row.StartedAt, tc.wantStart)
+			}
+			if row.StartedBefore != tc.wantStartedBe {
+				t.Errorf("StartedBefore: got %v, want %v", row.StartedBefore, tc.wantStartedBe)
+			}
+			switch {
+			case tc.wantEnd == nil && row.EndedAt != nil:
+				t.Errorf("EndedAt: got %v, want nil", row.EndedAt)
+			case tc.wantEnd != nil && (row.EndedAt == nil || !row.EndedAt.Equal(*tc.wantEnd)):
+				t.Errorf("EndedAt: got %v, want %v", row.EndedAt, tc.wantEnd)
+			}
+		})
+	}
+}
+
+// TestBuildPlexPlaybackMergesOverlappingScrobbles checks two clients scrobbling the same
+// track a minute apart still collapse into one listen under the finish-time spans.
+func TestBuildPlexPlaybackMergesOverlappingScrobbles(t *testing.T) {
+	start := time.Date(2026, 6, 27, 10, 0, 0, 0, time.UTC)
+	end := start.Add(time.Hour)
+	items := []models.PlexHistoryMetadata{
+		{RatingKey: "1", Title: "Song", Type: "track", ViewedAt: start.Add(20 * time.Minute).Unix(), Duration: 240000},
+		{RatingKey: "1", Title: "Song", Type: "track", ViewedAt: start.Add(21 * time.Minute).Unix(), Duration: 240000},
+	}
+	got := buildPlexPlaybackForWindow(items, nil, start, end)
+	if len(got) != 1 {
+		t.Fatalf("expected the overlapping scrobbles to merge into 1 row, got %d", len(got))
+	}
+	if want := start.Add(16 * time.Minute); !got[0].StartedAt.Equal(want) {
+		t.Errorf("StartedAt: got %v, want %v", got[0].StartedAt, want)
+	}
+	if got[0].EndedAt == nil || !got[0].EndedAt.Equal(start.Add(21*time.Minute)) {
+		t.Errorf("EndedAt: got %v, want %v", got[0].EndedAt, start.Add(21*time.Minute))
 	}
 }
 

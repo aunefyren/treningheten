@@ -253,7 +253,12 @@ verification (ABS sits behind the user's own normal certs, unlike Plex's plex.di
 one). `spotifyFetchRecentlyPlayed` hits `GET /v1/me/player/recently-played?limit=50`;
 `buildSpotifyPlaybackForWindow` maps the items (joining multiple artists, taking the
 smallest album image as artwork) and matches them with the same shared
-`playbackForWindow` Plex uses. No server discovery, no privacy scoping — the history
+`playbackForWindow` Plex uses. `played_at` is logged when the track **stopped**, so it is
+treated as the play's end: `scrobbleSpan` places the start one track length earlier (see
+the Plex matching bullet). Spotify gives no listened duration — the span is always the
+catalogue length, even for a play cut short — and a track paused earlier and only
+finalised later (another app taking audio focus) is logged at that later moment, so it
+can surface in a workout it was never heard in. No server discovery, no privacy scoping — the history
 is the authenticated user's own. Disconnect is the generic `DELETE /media/spotify`.
 
 ## Data model
@@ -436,10 +441,14 @@ never-pulled.
   ["<your-user-id>"]}`. Safe to re-run (the delete-and-replace primitive is idempotent
   and no-ops on an empty pull). Durable providers (Plex, Audiobookshelf) backfill fully;
   Spotify only returns rows for sessions inside its ~24h window.
-- **Matching** (`buildPlexPlaybackForWindow`, pure + unit-tested): a history item
-  matches when its scrobble time (`viewedAt`) falls in `[start, end]` ± a 5-minute
-  grace. `StartedAt` = `viewedAt`; `EndedAt` = `StartedAt + TrackLength`, clamped to
-  the activity end when the track started inside the activity.
+- **Matching** (`buildPlexPlaybackForWindow`, pure + unit-tested): `viewedAt` is a
+  scrobble — logged when the track **finished** — so `scrobbleSpan` turns it into the play
+  span `[viewedAt − TrackLength, viewedAt]` (with no known length, `viewedAt` stands in as
+  the start). The item matches when that span overlaps `[start, end]` ± a 5-minute grace,
+  so a track that started before the workout and finished in it matches as "already
+  playing" (`StartedBefore`, start clamped to the session start). `EndedAt` = `viewedAt`,
+  clamped to the activity end when the track started inside the activity. Spotify shares
+  these semantics.
 - **Audio only:** `isPlexAudioListen` keeps only `track` items (music, audiobooks,
   audio podcasts — all `track` in Plex). Video plays (`episode`/`movie`/`clip`, e.g. a
   TV show) are *watching*, not listening, and are dropped.

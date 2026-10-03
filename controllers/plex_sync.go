@@ -151,6 +151,9 @@ func buildPlexPlaybackForWindow(items []models.PlexHistoryMetadata, sections map
 			lengthSeconds = item.Duration / 1000
 		}
 
+		// viewedAt is logged when the track finished, so the play began a track earlier.
+		startedAt, coverageEnd := scrobbleSpan(time.Unix(item.ViewedAt, 0).UTC(), lengthSeconds)
+
 		mediaType := models.MediaTypeSong
 		if section, ok := sections[string(item.LibrarySectionID)]; ok {
 			mediaType = classifyPlexSection(section.Agent, section.Title)
@@ -168,7 +171,8 @@ func buildPlexPlaybackForWindow(items []models.PlexHistoryMetadata, sections map
 			// The raw PMS-relative thumb path; the read layer rewrites it to the
 			// authenticated artwork proxy (the thumb needs the server token to fetch).
 			artworkURL:     item.Thumb,
-			startedAt:      time.Unix(item.ViewedAt, 0).UTC(),
+			startedAt:      startedAt,
+			coverageEnd:    coverageEnd,
 			trackLengthSec: lengthSeconds,
 		})
 	}

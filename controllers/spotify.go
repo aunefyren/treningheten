@@ -322,6 +322,9 @@ func buildSpotifyPlaybackForWindow(items []models.SpotifyPlayHistory, start, end
 			lengthSeconds = item.Track.DurationMs / 1000
 		}
 
+		// played_at is logged when the track stopped, so the play began a track earlier.
+		startedAt, coverageEnd := scrobbleSpan(playedAt.UTC(), lengthSeconds)
+
 		events = append(events, mediaPlayEvent{
 			title:            item.Track.Name,
 			artist:           strings.Join(names, ", "),
@@ -330,7 +333,8 @@ func buildSpotifyPlaybackForWindow(items []models.SpotifyPlayHistory, start, end
 			providerParentID: item.Track.Album.ID,
 			providerGUID:     item.Track.URI,
 			artworkURL:       spotifySmallestImage(item.Track.Album.Images),
-			startedAt:        playedAt.UTC(),
+			startedAt:        startedAt,
+			coverageEnd:      coverageEnd,
 			trackLengthSec:   lengthSeconds,
 		})
 	}

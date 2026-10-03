@@ -8,9 +8,8 @@ import (
 	"github.com/aunefyren/treningheten/models"
 )
 
-// mediaMatchGrace widens the match window slightly on each side: a track is logged
-// when it finishes (Plex viewedAt / Spotify played_at), which can fall just after
-// the activity ends, and manual start times are approximate.
+// mediaMatchGrace widens the match window slightly on each side: manual start times
+// are approximate, and a provider's timestamp can land a little off the activity's.
 const mediaMatchGrace = 5 * time.Minute
 
 // mediaPlayEvent is a provider-neutral played item. Each provider maps its own
@@ -31,10 +30,9 @@ type mediaPlayEvent struct {
 	artworkURL        string
 	startedAt         time.Time
 	// coverageEnd is the real wall-clock end of the listen, when the provider knows it.
-	// It lets a long item (a podcast/audiobook started well before the activity but
-	// still playing through it) match on interval overlap. Zero = unknown, and the
-	// match falls back to start-only — fine for scrobble providers (Plex/Spotify) whose
-	// timestamp is logged at finish and so already lands inside the window.
+	// It lets an item that started before the activity but played into it (a long
+	// podcast, or a scrobbled track that finished early in the run) match on interval
+	// overlap. Zero = unknown, and the match falls back to start-only.
 	coverageEnd    time.Time
 	trackLengthSec int64 // 0 = unknown
 	// trackLengthIsListened distinguishes what trackLengthSec means, which decides how
@@ -148,11 +146,23 @@ func mergeEvents(into, next mediaPlayEvent, nextEnd time.Time) mediaPlayEvent {
 	return into
 }
 
-// playbackForWindow keeps the events whose start time falls within the activity
-// window (plus grace) and turns them into MediaPlayback rows. StartedAt is the play
-// time; EndedAt is StartedAt + track length, clamped to the activity end when the
-// track actually started inside the activity. Identity fields (id/exercise/
-// provider) are filled later by ReplaceMediaPlaybackForExerciseProvider.
+// scrobbleSpan turns a scrobble — a play logged when it *finished* (Plex viewedAt,
+// Spotify played_at) — into its play span: it started one track length earlier. With
+// the length unknown the finish time is all there is, so it stands in as the start and
+// coverageEnd stays zero (the start-only match).
+func scrobbleSpan(finishedAt time.Time, lengthSec int64) (startedAt, coverageEnd time.Time) {
+	if lengthSec <= 0 {
+		return finishedAt, time.Time{}
+	}
+	return finishedAt.Add(-time.Duration(lengthSec) * time.Second), finishedAt
+}
+
+// playbackForWindow keeps the events whose play span overlaps the activity window
+// (plus grace) and turns them into MediaPlayback rows. StartedAt is the play start,
+// clamped up to the activity start; EndedAt is the known end (else StartedAt + track
+// length), clamped to the activity end when the item started inside the activity.
+// Identity fields (id/exercise/provider) are filled later by
+// ReplaceMediaPlaybackForExerciseProvider.
 func playbackForWindow(events []mediaPlayEvent, start, end time.Time) []models.MediaPlayback {
 	playback := []models.MediaPlayback{}
 

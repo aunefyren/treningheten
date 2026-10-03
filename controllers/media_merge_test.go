@@ -234,3 +234,25 @@ func TestBuildSpotifyPlaybackCapturesProviderIdentity(t *testing.T) {
 		t.Errorf("provider parent id: got %v", row.ProviderParentID)
 	}
 }
+
+func TestScrobbleSpan(t *testing.T) {
+	finished := time.Date(2026, 10, 2, 14, 32, 13, 0, time.UTC)
+	cases := []struct {
+		name      string
+		lengthSec int64
+		wantStart time.Time
+		wantEnd   time.Time
+	}{
+		{"known length starts a track earlier", 339, finished.Add(-339 * time.Second), finished},
+		{"unknown length falls back to the finish", 0, finished, time.Time{}},
+		{"negative length treated as unknown", -5, finished, time.Time{}},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			gotStart, gotEnd := scrobbleSpan(finished, tc.lengthSec)
+			if !gotStart.Equal(tc.wantStart) || !gotEnd.Equal(tc.wantEnd) {
+				t.Errorf("scrobbleSpan = (%v, %v), want (%v, %v)", gotStart, gotEnd, tc.wantStart, tc.wantEnd)
+			}
+		})
+	}
+}
