@@ -39,8 +39,8 @@ type MediaConnection struct {
 	User           User       `json:"-" gorm:"foreignKey:UserID; references:ID"`
 	Provider       string     `json:"provider" gorm:"type:varchar(50); not null; index"`
 	ServerURL      *string    `json:"server_url" gorm:"type:varchar(255); default: null"`
-	AccessToken    *string    `json:"-" gorm:"type:longtext; default: null"`
-	RefreshToken   *string    `json:"-" gorm:"type:longtext; default: null"`
+	AccessToken    *string    `json:"-" gorm:"size:4294967295; default: null"`
+	RefreshToken   *string    `json:"-" gorm:"size:4294967295; default: null"`
 	TokenExpiresAt *time.Time `json:"token_expires_at" gorm:"default: null"`
 	AccountID      *string    `json:"account_id" gorm:"type:varchar(191); default: null"`
 	LastSyncedAt   *time.Time `json:"last_synced_at" gorm:"default: null"`

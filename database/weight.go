@@ -12,8 +12,8 @@ func GetEnabledWeightsForUser(userID uuid.UUID) (weights []models.WeightValue, e
 	weights = []models.WeightValue{}
 	err = nil
 
-	record := Instance.Where("`weight_values`.enabled = ?", 1).
-		Where("`weight_values`.user_id = ?", userID).
+	record := Instance.Where("weight_values.enabled = ?", true).
+		Where("weight_values.user_id = ?", userID).
 		Find(&weights)
 
 	if record.Error != nil {
@@ -27,9 +27,9 @@ func GetEnabledWeightsByWeightIDAndUserID(userID uuid.UUID, weightID uuid.UUID) 
 	weight = models.WeightValue{}
 	err = nil
 
-	record := Instance.Where("`weight_values`.enabled = ?", 1).
-		Where("`weight_values`.user_id = ?", userID).
-		Where("`weight_values`.id = ?", weightID).
+	record := Instance.Where("weight_values.enabled = ?", true).
+		Where("weight_values.user_id = ?", userID).
+		Where("weight_values.id = ?", weightID).
 		Find(&weight)
 
 	if record.Error != nil {

@@ -40,7 +40,7 @@ func BumpObservedMaxHeartrate(userID uuid.UUID, candidate int) error {
 		return nil
 	}
 	return Instance.Model(&models.User{}).
-		Where("`id` = ? AND (`observed_max_heartrate` IS NULL OR `observed_max_heartrate` < ?)", userID, candidate).
+		Where("id = ? AND (observed_max_heartrate IS NULL OR observed_max_heartrate < ?)", userID, candidate).
 		Update("observed_max_heartrate", candidate).Error
 }
 
@@ -53,7 +53,7 @@ func GenerateRandomVerificationCodeForUser(userID uuid.UUID) (string, error) {
 	newTime := time.Now().Add(time.Hour * 24 * 2)
 
 	var user models.User
-	userrecord := Instance.Model(user).Where("`users`.enabled = ?", 1).Where("`users`.ID = ?", userID).Update("verification_code", verificationCode)
+	userrecord := Instance.Model(user).Where("users.enabled = ?", true).Where("users.ID = ?", userID).Update("verification_code", verificationCode)
 	if userrecord.Error != nil {
 		return "", userrecord.Error
 	}
@@ -61,7 +61,7 @@ func GenerateRandomVerificationCodeForUser(userID uuid.UUID) (string, error) {
 		return "", errors.New("Verification code not changed in database.")
 	}
 
-	userrecord = Instance.Model(user).Where("`users`.enabled = ?", 1).Where("`users`.ID = ?", userID).Update("verification_code_expiration", newTime)
+	userrecord = Instance.Model(user).Where("users.enabled = ?", true).Where("users.ID = ?", userID).Update("verification_code_expiration", newTime)
 	if userrecord.Error != nil {
 		return "", userrecord.Error
 	}
@@ -76,7 +76,7 @@ func GenerateRandomVerificationCodeForUser(userID uuid.UUID) (string, error) {
 // Verify e-mail is not in use
 func VerifyUniqueUserEmail(providedEmail string) (bool, error) {
 	var user models.User
-	userrecords := Instance.Where("`users`.enabled = ?", 1).Where("`users`.email= ?", providedEmail).Find(&user)
+	userrecords := Instance.Where("users.enabled = ?", true).Where("users.email= ?", providedEmail).Find(&user)
 	if userrecords.Error != nil {
 		return false, userrecords.Error
 	}
@@ -89,7 +89,7 @@ func VerifyUniqueUserEmail(providedEmail string) (bool, error) {
 // Verify if user has a verification code set
 func VerifyUserHasVerificationCode(userID uuid.UUID) (bool, error) {
 	var user models.User
-	userrecords := Instance.Where("`users`.enabled = ?", 1).Where("`users`.ID = ?", userID).Find(&user)
+	userrecords := Instance.Where("users.enabled = ?", true).Where("users.ID = ?", userID).Find(&user)
 	if userrecords.Error != nil {
 		return false, userrecords.Error
 	}
@@ -110,7 +110,7 @@ func VerifyUserVerificationCodeMatches(userID uuid.UUID, verificationCode string
 	var user models.User
 	var now = time.Now()
 
-	userrecords := Instance.Where("`users`.enabled = ?", 1).Where("`users`.ID = ?", userID).Where("`users`.verification_code = ?", verificationCode).Find(&user)
+	userrecords := Instance.Where("users.enabled = ?", true).Where("users.ID = ?", userID).Where("users.verification_code = ?", verificationCode).Find(&user)
 
 	if userrecords.Error != nil {
 		return false, &now, userrecords.Error
@@ -128,7 +128,7 @@ func VerifyUserVerificationCodeMatches(userID uuid.UUID, verificationCode string
 func VerifyUserIsVerified(userID uuid.UUID) (bool, error) {
 
 	var user models.User
-	userrecords := Instance.Where("`users`.id = ?", userID).Find(&user)
+	userrecords := Instance.Where("users.id = ?", userID).Find(&user)
 	if userrecords.Error != nil {
 		return false, userrecords.Error
 	}
@@ -143,7 +143,7 @@ func VerifyUserIsVerified(userID uuid.UUID) (bool, error) {
 func VerifyUserIsEnabled(userID uuid.UUID) (bool, error) {
 
 	var user models.User
-	userrecords := Instance.Where("`users`.id = ?", userID).Find(&user)
+	userrecords := Instance.Where("users.id = ?", userID).Find(&user)
 	if userrecords.Error != nil {
 		return false, userrecords.Error
 	}
@@ -158,15 +158,8 @@ func VerifyUserIsEnabled(userID uuid.UUID) (bool, error) {
 func SetUserVerification(userID uuid.UUID, verified bool) error {
 
 	var user models.User
-	var verInt int
 
-	if verified {
-		verInt = 1
-	} else {
-		verInt = 0
-	}
-
-	userrecords := Instance.Model(user).Where("`users`.enabled = ?", 1).Where("`users`.ID = ?", userID).Update("verified", verInt)
+	userrecords := Instance.Model(user).Where("users.enabled = ?", true).Where("users.ID = ?", userID).Update("verified", verified)
 	if userrecords.Error != nil {
 		return userrecords.Error
 	}
@@ -210,7 +203,7 @@ func UpdateEmailValueByUserID(userID uuid.UUID, email string) error {
 
 	var user models.User
 
-	userrecords := Instance.Model(user).Where("`users`.enabled = ?", 1).Where("`users`.ID = ?", userID).Update("email", email)
+	userrecords := Instance.Model(user).Where("users.enabled = ?", true).Where("users.ID = ?", userID).Update("email", email)
 	if userrecords.Error != nil {
 		return userrecords.Error
 	}
@@ -226,7 +219,7 @@ func UpdatePasswordValueByUserID(userID uuid.UUID, password string) error {
 
 	var user models.User
 
-	userrecords := Instance.Model(user).Where("`users`.enabled = ?", 1).Where("`users`.ID = ?", userID).Update("password", password)
+	userrecords := Instance.Model(user).Where("users.enabled = ?", true).Where("users.ID = ?", userID).Update("password", password)
 	if userrecords.Error != nil {
 		return userrecords.Error
 	}
@@ -242,7 +235,7 @@ func UpdateSundayAlertValueByUserID(userID uuid.UUID, sundayAlert bool) error {
 
 	var user models.User
 
-	userrecords := Instance.Model(user).Where("`users`.enabled = ?", 1).Where("`users`.ID = ?", userID).Update("sunday_alert", sundayAlert)
+	userrecords := Instance.Model(user).Where("users.enabled = ?", true).Where("users.ID = ?", userID).Update("sunday_alert", sundayAlert)
 	if userrecords.Error != nil {
 		return userrecords.Error
 	}
@@ -258,7 +251,7 @@ func UpdateBirthDateValueByUserID(userID uuid.UUID, birthDate *time.Time) error 
 
 	var user models.User
 
-	userrecords := Instance.Model(user).Where("`users`.enabled = ?", 1).Where("`users`.ID = ?", userID).Update("birth_date", &birthDate)
+	userrecords := Instance.Model(user).Where("users.enabled = ?", true).Where("users.ID = ?", userID).Update("birth_date", &birthDate)
 	if userrecords.Error != nil {
 		return userrecords.Error
 	}
@@ -273,7 +266,7 @@ func UpdateBirthDateValueByUserID(userID uuid.UUID, birthDate *time.Time) error 
 // Get enabled user information by user ID (censored)
 func GetUserInformation(UserID uuid.UUID) (models.PublicUser, error) {
 	var user models.User
-	userrecord := Instance.Where("`users`.enabled = ?", 1).Where("`users`.id = ?", UserID).Find(&user)
+	userrecord := Instance.Where("users.enabled = ?", true).Where("users.id = ?", UserID).Find(&user)
 	if userrecord.Error != nil {
 		return models.PublicUser{}, userrecord.Error
 	} else if userrecord.RowsAffected != 1 {
@@ -303,7 +296,7 @@ func GetUsersInformation() ([]models.PublicUser, error) {
 // for anything that reaches a response body. Use GetUsersInformation for that.
 func GetAllUsersUncensored() ([]models.User, error) {
 	var users []models.User
-	userrecord := Instance.Where("`users`.enabled = ?", 1).Find(&users)
+	userrecord := Instance.Where("users.enabled = ?", true).Find(&users)
 	if userrecord.Error != nil {
 		return []models.User{}, userrecord.Error
 	} else if userrecord.RowsAffected == 0 {
@@ -325,7 +318,7 @@ func GetUsersByIDs(userIDs []uuid.UUID) ([]models.PublicUser, error) {
 		return []models.PublicUser{}, nil
 	}
 
-	userrecord := Instance.Where("`users`.enabled = ?", 1).Where("`users`.id IN ?", userIDs).Find(&users)
+	userrecord := Instance.Where("users.enabled = ?", true).Where("users.id IN ?", userIDs).Find(&users)
 	if userrecord.Error != nil {
 		return []models.PublicUser{}, userrecord.Error
 	}
@@ -340,7 +333,7 @@ func GetUsersByIDs(userIDs []uuid.UUID) ([]models.PublicUser, error) {
 
 func GetUserInformationByEmail(email string) (models.PublicUser, error) {
 	var user models.User
-	userrecord := Instance.Where("`users`.enabled = ?", 1).Where("`users`.email = ?", email).Find(&user)
+	userrecord := Instance.Where("users.enabled = ?", true).Where("users.email = ?", email).Find(&user)
 	if userrecord.Error != nil {
 		return models.PublicUser{}, userrecord.Error
 	} else if userrecord.RowsAffected != 1 {
@@ -353,7 +346,7 @@ func GetUserInformationByEmail(email string) (models.PublicUser, error) {
 // Get all user information using email (uncensored)
 func GetAllUserInformationByEmail(email string) (models.User, error) {
 	var user models.User
-	userrecord := Instance.Where("`users`.enabled = ?", 1).Where("`users`.email = ?", email).Find(&user)
+	userrecord := Instance.Where("users.enabled = ?", true).Where("users.email = ?", email).Find(&user)
 	if userrecord.Error != nil {
 		return models.User{}, userrecord.Error
 	} else if userrecord.RowsAffected != 1 {
@@ -366,7 +359,7 @@ func GetAllUserInformationByEmail(email string) (models.User, error) {
 // Get ALL user information by user ID (uncensored)
 func GetAllUserInformation(UserID uuid.UUID) (models.User, error) {
 	var user models.User
-	userrecord := Instance.Where("`users`.enabled = ?", 1).Where("`users`.id = ?", UserID).Find(&user)
+	userrecord := Instance.Where("users.enabled = ?", true).Where("users.id = ?", UserID).Find(&user)
 	if userrecord.Error != nil {
 		return models.User{}, userrecord.Error
 	} else if userrecord.RowsAffected != 1 {
@@ -396,7 +389,7 @@ func GetAllUsersWithSundayAlertsEnabled() ([]models.PublicUser, error) {
 // body — see GetAllUsersUncensored.
 func GetAllUsersWithSundayAlertsEnabledUncensored() ([]models.User, error) {
 	var users []models.User
-	userrecord := Instance.Where("`users`.enabled = ?", 1).Where("`users`.sunday_alert = ?", 1).Find(&users)
+	userrecord := Instance.Where("users.enabled = ?", true).Where("users.sunday_alert = ?", true).Find(&users)
 	if userrecord.Error != nil {
 		return []models.User{}, userrecord.Error
 	} else if userrecord.RowsAffected == 0 {
@@ -409,7 +402,7 @@ func GetAllUsersWithSundayAlertsEnabledUncensored() ([]models.User, error) {
 // Get ALL user information by user reset code (uncensored)
 func GetAllUserInformationByResetCode(resetCode string) (models.User, error) {
 	var user models.User
-	userrecord := Instance.Where("`users`.enabled = ?", 1).Where("`users`.reset_code = ?", resetCode).Find(&user)
+	userrecord := Instance.Where("users.enabled = ?", true).Where("users.reset_code = ?", resetCode).Find(&user)
 	if userrecord.Error != nil {
 		return models.User{}, userrecord.Error
 	} else if userrecord.RowsAffected != 1 {
@@ -430,7 +423,7 @@ func GenerateRandomResetCodeForUser(userID uuid.UUID, valid bool) (string, error
 	}
 
 	var user models.User
-	userrecord := Instance.Model(user).Where("`users`.enabled = ?", 1).Where("`users`.ID = ?", userID).Update("reset_code", resetCode)
+	userrecord := Instance.Model(user).Where("users.enabled = ?", true).Where("users.ID = ?", userID).Update("reset_code", resetCode)
 	if userrecord.Error != nil {
 		return "", userrecord.Error
 	}
@@ -438,7 +431,7 @@ func GenerateRandomResetCodeForUser(userID uuid.UUID, valid bool) (string, error
 		return "", errors.New("Reset code not changed in database.")
 	}
 
-	userrecord = Instance.Model(user).Where("`users`.enabled = ?", 1).Where("`users`.ID = ?", userID).Update("reset_expiration", expirationDate)
+	userrecord = Instance.Model(user).Where("users.enabled = ?", true).Where("users.ID = ?", userID).Update("reset_expiration", expirationDate)
 	if userrecord.Error != nil {
 		return "", userrecord.Error
 	}
@@ -490,7 +483,7 @@ func GetUserEmailByUserID(userID uuid.UUID) (string, bool, error) {
 
 	var user models.User
 
-	userrecords := Instance.Where("`users`.id= ?", userID).Find(&user)
+	userrecords := Instance.Where("users.id= ?", userID).Find(&user)
 	if userrecords.Error != nil {
 		return "", false, userrecords.Error
 	}
@@ -514,13 +507,13 @@ func GetStravaUsersWithinSeason(seasonID uuid.UUID) (users []models.User, err er
 	err = nil
 	users = []models.User{}
 
-	record := Instance.Where("`users`.enabled = ?", 1).
-		Where("`users`.strava_code IS NOT NULL").
-		Joins("JOIN `goals` on `goals`.user_id = `users`.id").
-		Where("`goals`.enabled = ?", 1).
-		Joins("JOIN `seasons` on `goals`.season_id = `seasons`.id").
-		Where("`seasons`.enabled = ?", 1).
-		Where("`seasons`.id = ?", seasonID).
+	record := Instance.Where("users.enabled = ?", true).
+		Where("users.strava_code IS NOT NULL").
+		Joins("JOIN goals on goals.user_id = users.id").
+		Where("goals.enabled = ?", true).
+		Joins("JOIN seasons on goals.season_id = seasons.id").
+		Where("seasons.enabled = ?", true).
+		Where("seasons.id = ?", seasonID).
 		Find(&users)
 	if record.Error != nil {
 		return users, record.Error
@@ -569,8 +562,8 @@ func GetStravaUsers() (users []models.User, err error) {
 	err = nil
 	users = []models.User{}
 
-	record := Instance.Where("`users`.enabled = ?", 1).
-		Where("`users`.strava_code IS NOT NULL").
+	record := Instance.Where("users.enabled = ?", true).
+		Where("users.strava_code IS NOT NULL").
 		Find(&users)
 	if record.Error != nil {
 		return users, record.Error
@@ -583,8 +576,8 @@ func GetHevyUsers() (users []models.User, err error) {
 	err = nil
 	users = []models.User{}
 
-	record := Instance.Where("`users`.enabled = ?", 1).
-		Where("`users`.hevy_api_key IS NOT NULL").
+	record := Instance.Where("users.enabled = ?", true).
+		Where("users.hevy_api_key IS NOT NULL").
 		Find(&users)
 	if record.Error != nil {
 		return users, record.Error

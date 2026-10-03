@@ -120,17 +120,38 @@ func TestLoadConfigFillsGapsButKeepsExistingValues(t *testing.T) {
 	}
 }
 
-// Characterizes current behaviour: anything that isn't mysql or sqlite — postgres
-// included — is rewritten to mysql. See docs/wip.md → Problems.
-func TestLoadConfigRewritesUnknownDBTypeToMySQL(t *testing.T) {
-	path := withTempConfig(t)
-	writeConfig(t, path, models.ConfigStruct{DBType: "postgres", TreninghetenLogLevel: "debug"})
-
-	if err := LoadConfig(); err != nil {
-		t.Fatalf("LoadConfig: %v", err)
+func TestLoadConfigDBType(t *testing.T) {
+	tests := []struct {
+		dbType  string
+		want    string
+		wantErr bool
+	}{
+		{"", "mysql", false},
+		{"mysql", "mysql", false},
+		{"postgres", "postgres", false},
+		{"Postgres", "Postgres", false},
+		{"sqlite", "sqlite", false},
+		{"oracle", "", true},
 	}
-	if saved := readConfig(t, path); saved.DBType != "mysql" {
-		t.Errorf("db_type = %q, want mysql", saved.DBType)
+	for _, tt := range tests {
+		t.Run("db_type "+tt.dbType, func(t *testing.T) {
+			path := withTempConfig(t)
+			writeConfig(t, path, models.ConfigStruct{DBType: tt.dbType, TreninghetenLogLevel: "debug"})
+
+			err := LoadConfig()
+			if tt.wantErr {
+				if err == nil {
+					t.Fatal("LoadConfig accepted an unsupported db_type")
+				}
+				return
+			}
+			if err != nil {
+				t.Fatalf("LoadConfig: %v", err)
+			}
+			if saved := readConfig(t, path); saved.DBType != tt.want {
+				t.Errorf("db_type = %q, want %q", saved.DBType, tt.want)
+			}
+		})
 	}
 }
 

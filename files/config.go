@@ -27,6 +27,15 @@ var (
 	ConfigFile     = models.ConfigStruct{}
 )
 
+// supportedDBType reports whether dbType names a database backend Connect can open.
+func supportedDBType(dbType string) bool {
+	switch strings.ToLower(dbType) {
+	case "mysql", "postgres", "sqlite":
+		return true
+	}
+	return false
+}
+
 func LoadConfig() (err error) {
 	// Create config.json if it doesn't exist
 	if _, err := os.Stat(configFilePath); errors.Is(err, os.ErrNotExist) {
@@ -89,10 +98,12 @@ func LoadConfig() (err error) {
 		anythingChanged = true
 	}
 
-	if ConfigFile.DBType == "" || (strings.ToLower(ConfigFile.DBType) != "mysql" && strings.ToLower(ConfigFile.DBType) != "sqlite") {
+	if ConfigFile.DBType == "" {
 		// Set new value
 		ConfigFile.DBType = "mysql"
 		anythingChanged = true
+	} else if !supportedDBType(ConfigFile.DBType) {
+		return errors.New("unsupported db_type '" + ConfigFile.DBType + "': use mysql, postgres or sqlite")
 	}
 
 	if (strings.ToLower(ConfigFile.DBType) == "sqlite") && ConfigFile.DBLocation == "" {

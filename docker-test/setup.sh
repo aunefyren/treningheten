@@ -1,8 +1,8 @@
 #!/bin/sh
 # Prepares ./data for the harness (gitignored) and seeds Treningheten's config.json
 # from config.template.json on first run only, so a later run never overwrites
-# settings changed since. `./setup.sh mysql` seeds it for the MariaDB profile
-# instead of SQLite. See README.md.
+# settings changed since. `./setup.sh mysql` or `./setup.sh postgres` seeds it for
+# the MariaDB or Postgres profile instead of SQLite. See README.md.
 set -eu
 cd "$(dirname "$0")"
 
@@ -17,6 +17,14 @@ elif [ "${1:-}" = "mysql" ]; then
     sed 's/"db_type": "sqlite"/"db_type": "mysql"/' config.template.json > "$config"
     echo "Seeded $config for MariaDB"
     echo "Next: docker compose --profile mysql up -d --build && ./seed.sh"
+    exit 0
+elif [ "${1:-}" = "postgres" ]; then
+    mkdir -p data/postgres
+    sed -e 's/"db_type": "sqlite"/"db_type": "postgres"/' \
+        -e 's/"db_ip": "mariadb"/"db_ip": "postgres"/' \
+        -e 's/"db_port": 3306/"db_port": 5432/' config.template.json > "$config"
+    echo "Seeded $config for Postgres"
+    echo "Next: docker compose --profile postgres up -d --build && ./seed.sh"
     exit 0
 else
     cp config.template.json "$config"

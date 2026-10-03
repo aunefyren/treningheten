@@ -30,7 +30,7 @@ func CreateGoalInDB(goal models.Goal) (uuid.UUID, error) {
 // Verify if a user has a goal within a season
 func VerifyUserGoalInSeason(userID uuid.UUID, seasonID uuid.UUID) (bool, uuid.UUID, error) {
 	var goal models.Goal
-	goalrecord := Instance.Where("`goals`.enabled = ?", 1).Where("`goals`.user_id = ?", userID).Where("`goals`.season_id = ?", seasonID).Find(&goal)
+	goalrecord := Instance.Where("goals.enabled = ?", true).Where("goals.user_id = ?", userID).Where("goals.season_id = ?", seasonID).Find(&goal)
 	if goalrecord.Error != nil {
 		return false, uuid.UUID{}, goalrecord.Error
 	} else if goalrecord.RowsAffected == 1 {
@@ -44,7 +44,7 @@ func GetGoalsFromWithinSeason(seasonID uuid.UUID) ([]models.Goal, error) {
 
 	var goal []models.Goal
 
-	goalrecord := Instance.Where("`goals`.enabled = ?", 1).Where("`goals`.season_id = ?", seasonID).Find(&goal)
+	goalrecord := Instance.Where("goals.enabled = ?", true).Where("goals.season_id = ?", seasonID).Find(&goal)
 
 	if goalrecord.Error != nil {
 		return []models.Goal{}, goalrecord.Error
@@ -58,7 +58,7 @@ func GetGoalsFromWithinSeason(seasonID uuid.UUID) ([]models.Goal, error) {
 // Get goal from user within season
 func GetGoalFromUserWithinSeason(seasonID uuid.UUID, userID uuid.UUID) (*models.Goal, error) {
 	var goal models.Goal
-	goalrecord := Instance.Where("`goals`.enabled = ?", 1).Where("`goals`.season_id = ?", seasonID).Where("`goals`.user_id = ?", userID).Find(&goal)
+	goalrecord := Instance.Where("goals.enabled = ?", true).Where("goals.season_id = ?", seasonID).Where("goals.user_id = ?", userID).Find(&goal)
 	if goalrecord.Error != nil {
 		return nil, goalrecord.Error
 	} else if goalrecord.RowsAffected == 0 {
@@ -78,11 +78,11 @@ func GetSeasonPeerUserIDsForUser(userID uuid.UUID) ([]uuid.UUID, error) {
 
 	record := Instance.
 		Model(&models.Goal{}).
-		Distinct("`peers`.user_id").
-		Joins("JOIN `goals` AS `peers` ON `peers`.season_id = `goals`.season_id").
-		Where("`goals`.enabled = ?", 1).
-		Where("`goals`.user_id = ?", userID).
-		Where("`peers`.enabled = ?", 1).
+		Distinct("peers.user_id").
+		Joins("JOIN goals AS peers ON peers.season_id = goals.season_id").
+		Where("goals.enabled = ?", true).
+		Where("goals.user_id = ?", userID).
+		Where("peers.enabled = ?", true).
 		Find(&peerIDs)
 
 	if record.Error != nil {
@@ -103,7 +103,7 @@ func GetSeasonPeerUserIDsForUser(userID uuid.UUID) ([]uuid.UUID, error) {
 func DisableGoalInDBUsingGoalID(goalID uuid.UUID) error {
 
 	var goal models.Goal
-	goalRecord := Instance.Model(goal).Where("`goals`.ID = ?", goalID).Update("enabled", 0)
+	goalRecord := Instance.Model(goal).Where("goals.ID = ?", goalID).Update("enabled", false)
 	if goalRecord.Error != nil {
 		return goalRecord.Error
 	}
@@ -120,11 +120,11 @@ func GetGoalsForUserUsingUserID(userID uuid.UUID) ([]models.Goal, error) {
 	var goals []models.Goal
 
 	goalRecord := Instance.
-		Order("`goals`.created_at desc").
-		Where("`goals`.enabled = ?", 1).
-		Where("`goals`.user_id = ?", userID).
-		Joins("JOIN seasons on `goals`.season_id = `seasons`.ID").
-		Where("`seasons`.enabled = ?", 1).
+		Order("goals.created_at desc").
+		Where("goals.enabled = ?", true).
+		Where("goals.user_id = ?", userID).
+		Joins("JOIN seasons on goals.season_id = seasons.ID").
+		Where("seasons.enabled = ?", true).
 		Find(&goals)
 
 	if goalRecord.Error != nil {
@@ -141,7 +141,7 @@ func GetGoalsForUserUsingUserID(userID uuid.UUID) ([]models.Goal, error) {
 func GetGoalUsingGoalID(goalID uuid.UUID) (*models.Goal, error) {
 	var goal models.Goal
 
-	goalrecord := Instance.Where("`goals`.enabled = ?", 1).Where("`goals`.id = ?", goalID).Find(&goal)
+	goalrecord := Instance.Where("goals.enabled = ?", true).Where("goals.id = ?", goalID).Find(&goal)
 
 	if goalrecord.Error != nil {
 		return nil, goalrecord.Error
@@ -156,12 +156,12 @@ func GetActiveGoalsForUserIDAndDate(userID uuid.UUID, timeString string) (goals 
 	goals = []models.Goal{}
 	err = nil
 
-	record := Instance.Where("`goals`.enabled = ?", 1).
-		Where("`goals`.user_id = ?", userID).
-		Joins("JOIN seasons on `goals`.season_id = `seasons`.ID").
-		Where("`seasons`.enabled = ?", 1).
-		Where("`seasons`.start <= ?", timeString).
-		Where("`seasons`.end >= ?", timeString).
+	record := Instance.Where("goals.enabled = ?", true).
+		Where("goals.user_id = ?", userID).
+		Joins("JOIN seasons on goals.season_id = seasons.ID").
+		Where("seasons.enabled = ?", true).
+		Where("seasons.start <= ?", timeString).
+		Where("seasons.end >= ?", timeString).
 		Find(&goals)
 
 	if record.Error != nil {

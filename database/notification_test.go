@@ -2,6 +2,7 @@ package database
 
 import (
 	"testing"
+	"time"
 
 	"github.com/aunefyren/treningheten/models"
 
@@ -22,6 +23,10 @@ func makeSubscription(t *testing.T, userID uuid.UUID, endpoint string, sunday, a
 		NewsAlert:        news,
 	}
 	sub.ID = uuid.New()
+	// Set here because the helper returns this struct, not the created row, and a later
+	// Save of a zero created_at is rejected by MySQL.
+	sub.CreatedAt = time.Now()
+	sub.UpdatedAt = sub.CreatedAt
 	id, err := CreateSubscriptionInDB(sub)
 	if err != nil {
 		t.Fatalf("CreateSubscriptionInDB returned error: %v", err)

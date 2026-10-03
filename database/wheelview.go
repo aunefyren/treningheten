@@ -22,7 +22,7 @@ func GetUnviewedWheelviewByDebtIDAndUserID(userID uuid.UUID, debtID uuid.UUID) (
 
 	var wheelStruct models.Wheelview
 
-	wheelviewRecord := Instance.Where("`wheelviews`.enabled = ?", 1).Where("`wheelviews`.debt_id = ?", debtID).Where("`wheelviews`.user_id = ?", userID).Where("`wheelviews`.viewed = ?", 0).Find(&wheelStruct)
+	wheelviewRecord := Instance.Where("wheelviews.enabled = ?", true).Where("wheelviews.debt_id = ?", debtID).Where("wheelviews.user_id = ?", userID).Where("wheelviews.viewed = ?", false).Find(&wheelStruct)
 	if wheelviewRecord.Error != nil {
 		return models.Wheelview{}, false, wheelviewRecord.Error
 	} else if wheelviewRecord.RowsAffected != 1 {
@@ -38,11 +38,11 @@ func GetUnviewedWheelviewByUserID(userID uuid.UUID) ([]models.Wheelview, bool, e
 	var wheelStruct []models.Wheelview
 
 	wheelviewRecord := Instance.
-		Where("`wheelviews`.enabled = ?", 1).
-		Where("`wheelviews`.user_id = ?", userID).
-		Where("`wheelviews`.viewed = ?", 0).
-		Joins("JOIN debts on `wheelviews`.debt_id = `debts`.ID").
-		Where("`debts`.enabled = ?", 1).
+		Where("wheelviews.enabled = ?", true).
+		Where("wheelviews.user_id = ?", userID).
+		Where("wheelviews.viewed = ?", false).
+		Joins("JOIN debts on wheelviews.debt_id = debts.ID").
+		Where("debts.enabled = ?", true).
 		Find(&wheelStruct)
 
 	if wheelviewRecord.Error != nil {
@@ -59,7 +59,7 @@ func SetWheelviewToViewedByID(wheelviewID uuid.UUID) error {
 
 	var wheelview models.Wheelview
 
-	wheelviewRecords := Instance.Model(wheelview).Where("`wheelviews`.enabled = ?", 1).Where("`wheelviews`.ID = ?", wheelviewID).Update("viewed", 1)
+	wheelviewRecords := Instance.Model(wheelview).Where("wheelviews.enabled = ?", true).Where("wheelviews.ID = ?", wheelviewID).Update("viewed", true)
 	if wheelviewRecords.Error != nil {
 		return wheelviewRecords.Error
 	}
@@ -75,7 +75,7 @@ func GetWheelviewByDebtIDAndUserID(userID uuid.UUID, debtID uuid.UUID) (models.W
 
 	var wheelStruct models.Wheelview
 
-	wheelviewRecord := Instance.Where("`wheelviews`.enabled = ?", 1).Where("`wheelviews`.debt_id = ?", debtID).Where("`wheelviews`.user_id = ?", userID).Find(&wheelStruct)
+	wheelviewRecord := Instance.Where("wheelviews.enabled = ?", true).Where("wheelviews.debt_id = ?", debtID).Where("wheelviews.user_id = ?", userID).Find(&wheelStruct)
 	if wheelviewRecord.Error != nil {
 		return models.Wheelview{}, false, wheelviewRecord.Error
 	} else if wheelviewRecord.RowsAffected != 1 {

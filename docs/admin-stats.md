@@ -5,7 +5,7 @@ non-personal usage numbers next to the existing **Server info** module.
 
 ## Definition of "active user"
 
-Every user metric is scoped to **enabled users** (`users.enabled = 1`). There is
+Every user metric is scoped to **enabled users** (`users.enabled = true`). There is
 no last-login / last-activity tracking in the schema, so "active" means
 "enabled" — not "recently seen". This keeps the metrics free of new columns or
 migrations. If a more behavioural definition is wanted later, it would require a

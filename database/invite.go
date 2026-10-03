@@ -29,7 +29,7 @@ func GenerateRandomInvite() (string, error) {
 // Verify unused invite code exists
 func VerifyUnusedUserInviteCode(providedCode string) (bool, error) {
 	var invitestruct models.Invite
-	inviterecords := Instance.Where("`invites`.enabled = ?", 1).Where("`invites`.used = ?", 0).Where("`invites`.code = ?", providedCode).Find(&invitestruct)
+	inviterecords := Instance.Where("invites.enabled = ?", true).Where("invites.used = ?", false).Where("invites.code = ?", providedCode).Find(&invitestruct)
 	if inviterecords.Error != nil {
 		return false, inviterecords.Error
 	}
@@ -42,7 +42,7 @@ func VerifyUnusedUserInviteCode(providedCode string) (bool, error) {
 // Set invite code to used
 func SetUsedUserInviteCode(providedCode string, userIDClaimer uuid.UUID) error {
 	var invitestruct models.Invite
-	inviterecords := Instance.Model(invitestruct).Where("`invites`.code = ?", providedCode).Update("used", 1)
+	inviterecords := Instance.Model(invitestruct).Where("invites.code = ?", providedCode).Update("used", true)
 	if inviterecords.Error != nil {
 		return inviterecords.Error
 	}
@@ -50,7 +50,7 @@ func SetUsedUserInviteCode(providedCode string, userIDClaimer uuid.UUID) error {
 		return errors.New("Code not changed in database.")
 	}
 
-	inviterecords = Instance.Model(invitestruct).Where("`invites`.code= ?", providedCode).Update("recipient_id", userIDClaimer)
+	inviterecords = Instance.Model(invitestruct).Where("invites.code= ?", providedCode).Update("recipient_id", userIDClaimer)
 	if inviterecords.Error != nil {
 		return inviterecords.Error
 	}
@@ -64,7 +64,7 @@ func SetUsedUserInviteCode(providedCode string, userIDClaimer uuid.UUID) error {
 // Set invite code to used
 func GetAllEnabledInvites() ([]models.Invite, error) {
 	var invitestruct []models.Invite
-	inviterecords := Instance.Where("`invites`.enabled = ?", 1).Find(&invitestruct)
+	inviterecords := Instance.Where("invites.enabled = ?", true).Find(&invitestruct)
 	if inviterecords.Error != nil {
 		return []models.Invite{}, inviterecords.Error
 	}
@@ -80,7 +80,7 @@ var ErrInviteNotFound = errors.New("Invite not found.")
 
 func GetInviteByID(inviteID uuid.UUID) (models.Invite, error) {
 	var invitestruct models.Invite
-	inviterecords := Instance.Where("`invites`.enabled = ?", 1).Where("`invites`.ID = ?", inviteID).Find(&invitestruct)
+	inviterecords := Instance.Where("invites.enabled = ?", true).Where("invites.ID = ?", inviteID).Find(&invitestruct)
 	if inviterecords.Error != nil {
 		return models.Invite{}, inviterecords.Error
 	}
@@ -93,7 +93,7 @@ func GetInviteByID(inviteID uuid.UUID) (models.Invite, error) {
 // Set invite to disabled by ID
 func DeleteInviteByID(inviteID uuid.UUID) error {
 	var invitestruct models.Invite
-	inviterecords := Instance.Model(invitestruct).Where("`invites`.ID = ?", inviteID).Update("enabled", 0)
+	inviterecords := Instance.Model(invitestruct).Where("invites.ID = ?", inviteID).Update("enabled", false)
 	if inviterecords.Error != nil {
 		return inviterecords.Error
 	}

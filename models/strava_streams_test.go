@@ -17,10 +17,12 @@ func TestStravaStreamsJSONRoundTrip(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Value returned error: %v", err)
 	}
-	encoded, ok := value.([]byte)
+	// A string, not []byte: Postgres reads []byte as bytea rather than text.
+	text, ok := value.(string)
 	if !ok {
-		t.Fatalf("Value returned %T, want []byte", value)
+		t.Fatalf("Value returned %T, want string", value)
 	}
+	encoded := []byte(text)
 
 	for _, form := range []interface{}{encoded, string(encoded)} {
 		var scanned StravaStreamsJSON

@@ -18,6 +18,7 @@ specific test run found belongs in `docs/wip.md` or the relevant `docs/*.md`, no
 | `mailpit` | http://localhost:8025 | catches every mail (verification, password reset, Sunday reminders) |
 | `audiobookshelf` | http://localhost:13378 | the one media provider that runs fully offline (URL + token, no OAuth app) |
 | `mariadb` *(profile `mysql`)* | — | production runs MySQL; collation / FK (errno 150) problems only show up there |
+| `postgres` *(profile `postgres`)* | — | the third supported backend |
 | `ollama` *(profile `ollama`)* | — | front-page AI messages; `ollama-pull` fetches `llama3.2:1b` once |
 
 Not included, because they can't be set up without a human: **Strava** and **Spotify**
@@ -73,6 +74,18 @@ docker compose --profile mysql up -d --build
 Treningheten may restart a couple of times while MariaDB initialises; `restart:
 unless-stopped` covers it. Handy for checking that a new model migrates cleanly on
 MySQL before it reaches production.
+
+### Against Postgres instead of SQLite
+
+On a clean `data/`:
+
+```
+./setup.sh postgres
+docker compose --profile postgres up -d --build
+./seed.sh
+```
+
+As with MariaDB, Treningheten may restart while Postgres initialises.
 
 ### With Ollama
 

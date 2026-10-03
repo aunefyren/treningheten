@@ -682,9 +682,7 @@ func APIUpdateOperationSet(context *gin.Context) {
 
 	operationSet, err = database.GetOperationSetByIDAndUserID(operationSetIDUUID, userID)
 	if err != nil {
-		logger.Log.Info("Failed to get operation set. Error: " + err.Error())
-		context.JSON(http.StatusBadRequest, gin.H{"error": "Failed to get operation set."})
-		context.Abort()
+		abortOperationSetLookup(context, err)
 		return
 	}
 
@@ -775,6 +773,19 @@ func APIDeleteOperation(context *gin.Context) {
 	context.JSON(http.StatusOK, gin.H{"message": "Operation deleted.", "operation": operationObject})
 }
 
+// abortOperationSetLookup answers a failed GetOperationSetByIDAndUserID: 404 when the set
+// doesn't exist or isn't the caller's, 500 otherwise.
+func abortOperationSetLookup(context *gin.Context, err error) {
+	if errors.Is(err, database.ErrOperationSetNotFound) {
+		context.JSON(http.StatusNotFound, gin.H{"error": "Operation set not found."})
+		context.Abort()
+		return
+	}
+	logger.Log.Info("Failed to get operation set. Error: " + err.Error())
+	context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get operation set."})
+	context.Abort()
+}
+
 func APIDeleteOperationSet(context *gin.Context) {
 	var operationSetID = context.Param("operation_set_id")
 
@@ -796,9 +807,7 @@ func APIDeleteOperationSet(context *gin.Context) {
 
 	operationSet, err := database.GetOperationSetByIDAndUserID(operationSetIDUUID, userID)
 	if err != nil {
-		logger.Log.Info("Failed to get operation set. Error: " + err.Error())
-		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get operation set."})
-		context.Abort()
+		abortOperationSetLookup(context, err)
 		return
 	}
 
@@ -1306,9 +1315,7 @@ func APISyncStravaOperationSet(context *gin.Context) {
 
 	operationSet, err := database.GetOperationSetByIDAndUserID(operationSetIDUUID, userID)
 	if err != nil {
-		logger.Log.Info("Failed to get operation set. Error: " + err.Error())
-		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get operation set."})
-		context.Abort()
+		abortOperationSetLookup(context, err)
 		return
 	}
 
@@ -1352,9 +1359,7 @@ func APISyncStravaOperationSet(context *gin.Context) {
 
 	operationSet, err = database.GetOperationSetByIDAndUserID(operationSetIDUUID, userID)
 	if err != nil {
-		logger.Log.Info("Failed to get operation set. Error: " + err.Error())
-		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get operation set."})
-		context.Abort()
+		abortOperationSetLookup(context, err)
 		return
 	}
 

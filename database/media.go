@@ -14,9 +14,9 @@ import (
 func GetMediaConnectionsForUser(userID uuid.UUID) (connections []models.MediaConnection, err error) {
 	connections = []models.MediaConnection{}
 
-	record := Instance.Where("`media_connections`.enabled = ?", 1).
-		Where("`media_connections`.user_id = ?", userID).
-		Order("`media_connections`.provider asc").
+	record := Instance.Where("media_connections.enabled = ?", true).
+		Where("media_connections.user_id = ?", userID).
+		Order("media_connections.provider asc").
 		Find(&connections)
 
 	if record.Error != nil {
@@ -33,7 +33,7 @@ func GetUserIDsWithMediaConnections() ([]uuid.UUID, error) {
 	userIDs := []uuid.UUID{}
 
 	record := Instance.Model(&models.MediaConnection{}).
-		Where("`media_connections`.enabled = ?", 1).
+		Where("media_connections.enabled = ?", true).
 		Distinct().
 		Pluck("user_id", &userIDs)
 
@@ -48,9 +48,9 @@ func GetUserIDsWithMediaConnections() ([]uuid.UUID, error) {
 // provider) pair, or nil when none exists.
 func GetMediaConnectionForUserProvider(userID uuid.UUID, provider string) (connection *models.MediaConnection, err error) {
 	found := models.MediaConnection{}
-	record := Instance.Where("`media_connections`.enabled = ?", 1).
-		Where("`media_connections`.user_id = ?", userID).
-		Where("`media_connections`.provider = ?", provider).
+	record := Instance.Where("media_connections.enabled = ?", true).
+		Where("media_connections.user_id = ?", userID).
+		Where("media_connections.provider = ?", provider).
 		Find(&found)
 
 	if record.Error != nil {
@@ -82,8 +82,8 @@ func UpdateMediaConnectionInDB(connection models.MediaConnection) (models.MediaC
 // provider) pair. The user's already-overlaid MediaPlayback rows are left intact
 // (they are historical facts about past activities, not live credentials).
 func DeleteMediaConnectionForUserProvider(userID uuid.UUID, provider string) error {
-	record := Instance.Where("`media_connections`.user_id = ?", userID).
-		Where("`media_connections`.provider = ?", provider).
+	record := Instance.Where("media_connections.user_id = ?", userID).
+		Where("media_connections.provider = ?", provider).
 		Delete(&models.MediaConnection{})
 	return record.Error
 }
@@ -93,8 +93,8 @@ func DeleteMediaConnectionForUserProvider(userID uuid.UUID, provider string) err
 func GetMediaPlaybackForExercise(exerciseID uuid.UUID) (playback []models.MediaPlayback, err error) {
 	playback = []models.MediaPlayback{}
 
-	record := Instance.Where("`media_playbacks`.exercise_id = ?", exerciseID).
-		Order("`media_playbacks`.started_at asc").
+	record := Instance.Where("media_playbacks.exercise_id = ?", exerciseID).
+		Order("media_playbacks.started_at asc").
 		Find(&playback)
 
 	if record.Error != nil {
@@ -154,7 +154,7 @@ func ReplaceMediaPlaybackForExerciseProvider(exerciseID uuid.UUID, provider stri
 // distinguish "pulled, found nothing" from "never pulled".
 func SetExerciseMediaRetrievedAt(exerciseID uuid.UUID, at time.Time) error {
 	record := Instance.Model(&models.Exercise{}).
-		Where("`exercises`.id = ?", exerciseID).
+		Where("exercises.id = ?", exerciseID).
 		Update("media_retrieved_at", at)
 	return record.Error
 }
@@ -163,7 +163,7 @@ func SetExerciseMediaRetrievedAt(exerciseID uuid.UUID, at time.Time) error {
 // leaves the session alone from then on (see docs/media.md).
 func SetExerciseMediaSettled(exerciseID uuid.UUID, settled bool) error {
 	record := Instance.Model(&models.Exercise{}).
-		Where("`exercises`.id = ?", exerciseID).
+		Where("exercises.id = ?", exerciseID).
 		Update("media_settled", settled)
 	return record.Error
 }
@@ -185,11 +185,11 @@ func GetAllExercisesForMediaSync(userID uuid.UUID) ([]models.Exercise, error) {
 	var exercises []models.Exercise
 
 	record := Instance.
-		Where("`exercises`.enabled = ?", 1).
-		Joins("JOIN `exercise_days` on `exercises`.exercise_day_id = `exercise_days`.id").
-		Where("`exercise_days`.enabled = ?", 1).
-		Where("`exercise_days`.user_id = ?", userID).
-		Order("`exercises`.`time` ASC").
+		Where("exercises.enabled = ?", true).
+		Joins("JOIN exercise_days on exercises.exercise_day_id = exercise_days.id").
+		Where("exercise_days.enabled = ?", true).
+		Where("exercise_days.user_id = ?", userID).
+		Order("exercises.time ASC").
 		Find(&exercises)
 
 	if record.Error != nil {
@@ -203,13 +203,13 @@ func GetExercisesForMediaReconcile(userID uuid.UUID, since time.Time) ([]models.
 	var exercises []models.Exercise
 
 	record := Instance.
-		Where("`exercises`.enabled = ?", 1).
-		Where("`exercises`.created_at >= ?", since).
-		Where("(`exercises`.media_retrieved_at IS NULL OR `exercises`.media_settled = ?)", 0).
-		Joins("JOIN `exercise_days` on `exercises`.exercise_day_id = `exercise_days`.id").
-		Where("`exercise_days`.enabled = ?", 1).
-		Where("`exercise_days`.user_id = ?", userID).
-		Order("`exercises`.`time` ASC").
+		Where("exercises.enabled = ?", true).
+		Where("exercises.created_at >= ?", since).
+		Where("(exercises.media_retrieved_at IS NULL OR exercises.media_settled = ?)", false).
+		Joins("JOIN exercise_days on exercises.exercise_day_id = exercise_days.id").
+		Where("exercise_days.enabled = ?", true).
+		Where("exercise_days.user_id = ?", userID).
+		Order("exercises.time ASC").
 		Find(&exercises)
 
 	if record.Error != nil {

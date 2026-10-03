@@ -2,6 +2,7 @@ package database
 
 import (
 	"testing"
+	"time"
 
 	"github.com/aunefyren/treningheten/models"
 
@@ -14,7 +15,7 @@ import (
 func seedStreamOperation(t *testing.T, userID uuid.UUID, streams models.StravaActivityStreams) uuid.UUID {
 	t.Helper()
 
-	day := models.ExerciseDay{UserID: &userID, Enabled: true}
+	day := models.ExerciseDay{UserID: &userID, Enabled: true, Date: time.Now()}
 	day.ID = uuid.New()
 	insertRow(t, &day)
 

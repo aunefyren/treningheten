@@ -20,8 +20,8 @@ type Operation struct {
 	DistanceUnit string     `json:"distance_unit" gorm:"not null; default: km"`
 	Equipment    *string    `json:"equipment" gorm:""`
 	Note         *string    `json:"note" gorm:"default: null;"`
-	Description  *string    `json:"description" gorm:"type:longtext;default: null;"`
-	Tags         TagList    `json:"tags" gorm:"type:longtext;default: null;"`
+	Description  *string    `json:"description" gorm:"size:4294967295;default: null;"`
+	Tags         TagList    `json:"tags" gorm:"size:4294967295;default: null;"`
 	Duration     *int64     `json:"duration"`
 	// Rollup columns precomputed from the activity's Strava stream at sync time, so the
 	// activity list can show these scalars without loading the stream blob per row. NULL for
@@ -91,7 +91,7 @@ type OperationSet struct {
 	Time                  *int64             `json:"time" gorm:"default: null"`
 	MovingTime            *int64             `json:"moving_time" gorm:"default: null"`
 	StravaID              *string            `json:"strava_id" gorm:"default: null;"`
-	StravaStreams         *StravaStreamsJSON `json:"strava_streams" gorm:"type:longtext;default: null;"`
+	StravaStreams         *StravaStreamsJSON `json:"strava_streams" gorm:"size:4294967295;default: null;"`
 	StravaDataRetrievedAt *time.Time         `json:"strava_data_retrieved_at" gorm:"default: null;"`
 	// StravaDetailRetrievedAt guards the detailed-activity fetch (description), which
 	// is not in the list-sync payload, so the hourly sync only re-fetches when stale.

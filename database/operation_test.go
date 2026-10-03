@@ -1,6 +1,7 @@
 package database
 
 import (
+	"errors"
 	"testing"
 	"time"
 
@@ -140,6 +141,17 @@ func TestGetOperationSetsAndSetByIDForUser(t *testing.T) {
 	}
 	if one.ID != set.ID {
 		t.Errorf("got set %v, want %v", one.ID, set.ID)
+	}
+
+	// Another user's set, or an unknown id, is not found rather than an empty hit.
+	stranger := makeTestUser(t, "opset-stranger@example.com", nil)
+	for name, lookup := range map[string][2]uuid.UUID{
+		"another user's set": {set.ID, stranger.ID},
+		"unknown id":         {uuid.New(), user.ID},
+	} {
+		if _, err := GetOperationSetByIDAndUserID(lookup[0], lookup[1]); !errors.Is(err, ErrOperationSetNotFound) {
+			t.Errorf("%s: err = %v, want ErrOperationSetNotFound", name, err)
+		}
 	}
 }
 

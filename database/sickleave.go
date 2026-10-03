@@ -52,7 +52,7 @@ func GetUsedSickleaveForGoalWithinWeek(time time.Time, goalID uuid.UUID) (sickLe
 		}
 	}
 
-	sickLeaveRecord := Instance.Where("`sickleaves`.enabled = ?", 1).Where("`sickleaves`.goal_id = ?", goalID).Where("`sickleaves`.date >= ?", startDayString).Where("`sickleaves`.date <= ?", endDayString).Find(&sickLeave)
+	sickLeaveRecord := Instance.Where("sickleaves.enabled = ?", true).Where("sickleaves.goal_id = ?", goalID).Where("sickleaves.date >= ?", startDayString).Where("sickleaves.date <= ?", endDayString).Find(&sickLeave)
 
 	if sickLeaveRecord.Error != nil {
 		return nil, sickLeaveRecord.Error
@@ -68,7 +68,7 @@ func GetUnusedSickleaveForGoalWithinWeek(goalID uuid.UUID) ([]models.Sickleave, 
 
 	var sickleavestruct []models.Sickleave
 
-	sickleaverecord := Instance.Where("`sickleaves`.enabled = ?", 1).Where("`sickleaves`.goal_id = ?", goalID).Where("`sickleaves`.used = ?", 0).Find(&sickleavestruct)
+	sickleaverecord := Instance.Where("sickleaves.enabled = ?", true).Where("sickleaves.goal_id = ?", goalID).Where("sickleaves.used = ?", false).Find(&sickleavestruct)
 	if sickleaverecord.Error != nil {
 		return []models.Sickleave{}, false, sickleaverecord.Error
 	} else if sickleaverecord.RowsAffected == 0 {
@@ -95,10 +95,10 @@ func GetSickleavesForGoalIDsBetweenDates(goalIDs []uuid.UUID, startDate time.Tim
 	endDayString := endDate.Format("2006-01-02") + " 23:59:59"
 
 	record := Instance.
-		Where("`sickleaves`.enabled = ?", 1).
-		Where("`sickleaves`.goal_id IN ?", goalIDs).
-		Where("`sickleaves`.date >= ?", startDayString).
-		Where("`sickleaves`.date <= ?", endDayString).
+		Where("sickleaves.enabled = ?", true).
+		Where("sickleaves.goal_id IN ?", goalIDs).
+		Where("sickleaves.date >= ?", startDayString).
+		Where("sickleaves.date <= ?", endDayString).
 		Find(&sickleaves)
 
 	if record.Error != nil {
@@ -118,7 +118,7 @@ func GetUnusedSickleavesForGoalIDs(goalIDs []uuid.UUID) ([]models.Sickleave, err
 		return []models.Sickleave{}, nil
 	}
 
-	record := Instance.Where("`sickleaves`.enabled = ?", 1).Where("`sickleaves`.used = ?", 0).Where("`sickleaves`.goal_id IN ?", goalIDs).Find(&sickleaves)
+	record := Instance.Where("sickleaves.enabled = ?", true).Where("sickleaves.used = ?", false).Where("sickleaves.goal_id IN ?", goalIDs).Find(&sickleaves)
 	if record.Error != nil {
 		return []models.Sickleave{}, record.Error
 	}
@@ -134,14 +134,14 @@ func SetSickleaveToUsedByID(sickleaveID uuid.UUID) error {
 	now := time.Now()
 	Date := now.Format("2006-01-02") + " 00:00:00.000"
 
-	sickleaverecord := Instance.Model(sickleavestruct).Where("`sickleaves`.enabled = ?", 1).Where("`sickleaves`.ID = ?", sickleaveID).Update("used", 1)
+	sickleaverecord := Instance.Model(sickleavestruct).Where("sickleaves.enabled = ?", true).Where("sickleaves.ID = ?", sickleaveID).Update("used", true)
 	if sickleaverecord.Error != nil {
 		return sickleaverecord.Error
 	} else if sickleaverecord.RowsAffected != 1 {
 		return errors.New("No sickleave updated in the database.")
 	}
 
-	sickleaverecordtwo := Instance.Model(sickleavestruct).Where("`sickleaves`.enabled = ?", 1).Where("`sickleaves`.ID = ?", sickleaveID).Update("date", Date)
+	sickleaverecordtwo := Instance.Model(sickleavestruct).Where("sickleaves.enabled = ?", true).Where("sickleaves.ID = ?", sickleaveID).Update("date", Date)
 	if sickleaverecordtwo.Error != nil {
 		return sickleaverecordtwo.Error
 	} else if sickleaverecordtwo.RowsAffected != 1 {

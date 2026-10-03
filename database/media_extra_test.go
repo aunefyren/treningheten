@@ -20,7 +20,9 @@ func TestGetUserIDsWithMediaConnectionsAndUpdate(t *testing.T) {
 		Provider:  models.MediaProviderPlex,
 		AccountID: strPtr("acc-1"),
 	}
-	if _, err := CreateMediaConnectionInDB(conn); err != nil {
+	// Keep the created row: Save writes every column, and MySQL rejects a zero created_at.
+	conn, err := CreateMediaConnectionInDB(conn)
+	if err != nil {
 		t.Fatalf("CreateMediaConnectionInDB returned error: %v", err)
 	}
 	// A second connection for the same user must not double-count the user id.

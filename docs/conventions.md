@@ -360,11 +360,37 @@ sweeps below. Total statement coverage is about 90%.
 - **Schema** changes are applied at startup by GORM `AutoMigrate` — there are **no
   migration files**. Register every new model in `database.Migrate()`
   (`database/client.go`); that's the canonical list.
-- **Data** migrations (anything beyond schema: backfills, format changes) go in
-  `utilities/migrate.go`.
-- Three backends must keep working (`sqlite`, `mysql`, `postgres`); data-access SQL
-  uses MySQL-style backtick-quoted identifiers, which SQLite accepts (so tests run the
-  same queries).
+- **Data** migrations (backfills, format changes, clean-ups) are functions in the
+  `database` package called at the end of `Migrate()`, after the `AutoMigrate`s. They
+  must be self-limiting: safe to run on every boot. (`utilities/migrate.go` is the
+  legacy MySQL-dump importer, not the place for new ones.)
+
+## Portable SQL
+
+Three backends must keep working: `sqlite`, `mysql` and `postgres`. Hand-written SQL
+fragments (`Where`, `Joins`, `Select`, `Order`, `Group`) must run on all of them:
+
+- **No identifier quoting.** Write `exercise_days.user_id`, not backtick- or
+  double-quoted names. Every table and column is lowercase snake_case, which all three
+  accept unquoted. A column named after a reserved word (`seasons.end`) is fine when
+  qualified with its table.
+- **Booleans are `true`/`false`**, never `1`/`0`: `Where("enabled = ?", true)`,
+  `Update("used", true)`, `COALESCE(a.has_logo, false)`. Postgres rejects
+  `boolean = integer`.
+- **Parameters match the column type.** A text column takes a string
+  (`strconv.Itoa(stravaID)` for `strava_id`); Postgres won't compare text with an
+  integer.
+- **No dialect-specific functions or column types.** Unbounded text is
+  `size:4294967295` (longtext on MySQL, text elsewhere), not `type:longtext`. Custom
+  `Valuer` types return a `string`, not `[]byte` (Postgres reads that as `bytea`).
+- **Whole-day date bounds are strings in the server zone**; see
+  [data-conventions.md](data-conventions.md#date-range-bounds-are-strings--never-add-000-to-the-lower-bound).
+
+The test suite runs on SQLite by default. Set `TRENINGHETEN_TEST_POSTGRES_DSN` (e.g.
+`postgres://postgres:test@localhost:5432/treningheten?sslmode=disable`) or
+`TRENINGHETEN_TEST_MYSQL_DSN` (e.g. `root:test@tcp(localhost:3306)/`) to run
+`./database/` and `./controllers/` against a real server; each test gets its own schema
+or database (`internal/testdb`). CI does both.
 
 ## Legacy & refactoring
 

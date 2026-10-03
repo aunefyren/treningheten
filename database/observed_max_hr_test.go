@@ -2,6 +2,7 @@ package database
 
 import (
 	"testing"
+	"time"
 
 	"github.com/aunefyren/treningheten/models"
 
@@ -113,7 +114,7 @@ func reloadObserved(t *testing.T, userID uuid.UUID) *int {
 func seedStreamActivity(t *testing.T, userID uuid.UUID, hr []int) {
 	t.Helper()
 
-	day := models.ExerciseDay{UserID: &userID}
+	day := models.ExerciseDay{UserID: &userID, Date: time.Now()}
 	day.ID = uuid.New()
 	if err := Instance.Create(&day).Error; err != nil {
 		t.Fatalf("create exercise day: %v", err)

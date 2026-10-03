@@ -4,6 +4,7 @@ import (
 	"net/http"
 	"testing"
 
+	"github.com/aunefyren/treningheten/database"
 	"github.com/aunefyren/treningheten/models"
 
 	"github.com/google/uuid"
@@ -30,8 +31,17 @@ func TestOperationSetOwnershipAndStravaEdges(t *testing.T) {
 	if sets := field(t, h.ok("GET", "/api/auth/operation-sets?operation_id="+operationID, strangerToken, nil), "operation_sets").([]any); len(sets) != 0 {
 		t.Errorf("stranger sees %d of the owner's sets", len(sets))
 	}
-	if code := h.do("DELETE", "/api/auth/operation-sets/"+setID, strangerToken, nil).Code; code < 400 {
-		t.Errorf("stranger deleting a set: status = %d, want an error", code)
+	// Twice: the lookup used to return an empty set as a hit, and saving it inserted a
+	// row with a nil id — 200 the first time, a duplicate-key 500 after.
+	for attempt := 1; attempt <= 2; attempt++ {
+		h.expect(http.StatusNotFound, "DELETE", "/api/auth/operation-sets/"+setID, strangerToken, nil)
+		h.expect(http.StatusNotFound, "DELETE", "/api/auth/operation-sets/"+uuid.NewString(), token, nil)
+		h.expect(http.StatusNotFound, "PUT", "/api/auth/operation-sets/"+setID, strangerToken, models.OperationSetUpdateRequest{Repetitions: float64Ptr(1)})
+	}
+	var nilSets int64
+	database.Instance.Model(&models.OperationSet{}).Where("id = ?", uuid.Nil).Count(&nilSets)
+	if nilSets != 0 {
+		t.Errorf("%d operation sets with a nil id were written", nilSets)
 	}
 	h.expect(http.StatusBadRequest, "DELETE", "/api/auth/operation-sets/nope", token, nil)
 	h.expect(http.StatusBadRequest, "PUT", "/api/auth/operation-sets/nope", token, models.OperationSetUpdateRequest{})

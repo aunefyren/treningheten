@@ -226,7 +226,7 @@ func buildGoalObjects(goals []models.Goal) []models.GoalObject {
 // and that week was never processed. The request's time zone is therefore ignored.
 func seasonBoundariesInServerZone(start time.Time, end time.Time) (time.Time, time.Time) {
 	return time.Date(start.Year(), start.Month(), start.Day(), 0, 0, 0, 0, time.Local),
-		time.Date(end.Year(), end.Month(), end.Day(), 23, 59, 59, 59, time.Local)
+		time.Date(end.Year(), end.Month(), end.Day(), 23, 59, 59, 0, time.Local)
 }
 
 func APIRegisterSeason(context *gin.Context) {

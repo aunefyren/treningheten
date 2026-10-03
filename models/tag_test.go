@@ -55,10 +55,12 @@ func TestTagListValueScanRoundTrip(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Value returned error: %v", err)
 	}
-	encoded, ok := value.([]byte)
+	// A string, not []byte: Postgres reads []byte as bytea rather than text.
+	text, ok := value.(string)
 	if !ok {
-		t.Fatalf("Value returned %T, want []byte", value)
+		t.Fatalf("Value returned %T, want string", value)
 	}
+	encoded := []byte(text)
 
 	var fromBytes TagList
 	if err := fromBytes.Scan(encoded); err != nil {
@@ -95,7 +97,7 @@ func TestTagListValueNil(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Value returned error: %v", err)
 	}
-	if string(value.([]byte)) != "[]" {
+	if value != "[]" {
 		t.Errorf("Value of an empty TagList = %s, want []", value)
 	}
 }

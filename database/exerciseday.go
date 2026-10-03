@@ -29,7 +29,7 @@ func GetExerciseDayByGoalAndDate(goalID uuid.UUID, date time.Time) (*models.Exer
 	startDayString := date.Format("2006-01-02") + " 00:00:00"
 	endDayString := date.Format("2006-01-02") + " 23:59:59"
 
-	goalrecord := Instance.Where("`exercise_days`.enabled = ?", 1).Where("`exercise_days`.goal_id = ?", goalID).Where("`exercise_days`.Date >= ?", startDayString).Where("`exercise_days`.Date <= ?", endDayString).Order("`exercise_days`.created_at ASC").Limit(1).Find(&exercise)
+	goalrecord := Instance.Where("exercise_days.enabled = ?", true).Where("exercise_days.goal_id = ?", goalID).Where("exercise_days.Date >= ?", startDayString).Where("exercise_days.Date <= ?", endDayString).Order("exercise_days.created_at ASC").Limit(1).Find(&exercise)
 	if goalrecord.Error != nil {
 		return nil, goalrecord.Error
 	} else if goalrecord.RowsAffected == 0 {
@@ -47,7 +47,7 @@ func GetExerciseDayByUserIDAndDate(userID uuid.UUID, date time.Time) (*models.Ex
 	startDayString := date.Format("2006-01-02") + " 00:00:00"
 	endDayString := date.Format("2006-01-02") + " 23:59:59"
 
-	records := Instance.Where("`exercise_days`.enabled = ?", 1).Where("`exercise_days`.user_id = ?", userID).Where("`exercise_days`.Date >= ?", startDayString).Where("`exercise_days`.Date <= ?", endDayString).Order("`exercise_days`.created_at ASC").Limit(1).Find(&exercise)
+	records := Instance.Where("exercise_days.enabled = ?", true).Where("exercise_days.user_id = ?", userID).Where("exercise_days.Date >= ?", startDayString).Where("exercise_days.Date <= ?", endDayString).Order("exercise_days.created_at ASC").Limit(1).Find(&exercise)
 	if records.Error != nil {
 		return nil, records.Error
 	} else if records.RowsAffected == 0 {
@@ -61,7 +61,7 @@ func GetExerciseDayByUserIDAndDate(userID uuid.UUID, date time.Time) (*models.Ex
 func GetAllExerciseDays() ([]models.ExerciseDay, error) {
 	var exerciseDays []models.ExerciseDay
 
-	records := Instance.Where("`exercise_days`.enabled = ?", 1).
+	records := Instance.Where("exercise_days.enabled = ?", true).
 		Find(&exerciseDays)
 
 	if records.Error != nil {
@@ -96,7 +96,7 @@ func UpdateExerciseDayNoteInDatabase(goalID uuid.UUID, startDayString string, en
 	err = nil
 	var exercisestruct models.ExerciseDay
 
-	exerciserecord := Instance.Model(exercisestruct).Where("`exercise_days`.enabled = ?", 1).Where("`exercise_days`.goal_id = ?", goalID).Where("`exercise_days`.date >= ?", startDayString).Where("`exercise_days`.date <= ?", endDayString).Update("note", note)
+	exerciserecord := Instance.Model(exercisestruct).Where("exercise_days.enabled = ?", true).Where("exercise_days.goal_id = ?", goalID).Where("exercise_days.date >= ?", startDayString).Where("exercise_days.date <= ?", endDayString).Update("note", note)
 	if exerciserecord.Error != nil {
 		return exerciserecord.Error
 	} else if exerciserecord.RowsAffected != 1 {
@@ -114,10 +114,10 @@ func GetExerciseDaysBetweenDatesUsingDatesAndUserID(userID uuid.UUID, startDate 
 	endDayString := endDate.Format("2006-01-02") + " 23:59:59"
 
 	exerciserecord := Instance.
-		Where("`exercise_days`.enabled = ?", 1).
-		Where("`exercise_days`.user_id = ?", userID).
-		Where("`exercise_days`.Date >= ?", startDayString).
-		Where("`exercise_days`.Date <= ?", endDayString).
+		Where("exercise_days.enabled = ?", true).
+		Where("exercise_days.user_id = ?", userID).
+		Where("exercise_days.Date >= ?", startDayString).
+		Where("exercise_days.Date <= ?", endDayString).
 		Find(&exercises)
 
 	if exerciserecord.Error != nil {
@@ -135,8 +135,8 @@ func GetExerciseDaysForUserUsingUserID(userID uuid.UUID) ([]models.ExerciseDay, 
 	var exercises []models.ExerciseDay
 
 	exerciserecord := Instance.Order("date desc").
-		Where("`exercise_days`.enabled = ?", 1).
-		Where("`exercise_days`.user_id = ?", userID).
+		Where("exercise_days.enabled = ?", true).
+		Where("exercise_days.user_id = ?", userID).
 		Find(&exercises)
 
 	if exerciserecord.Error != nil {
@@ -154,11 +154,11 @@ func GetExerciseDaysForUserUsingUserIDAndGoalID(userID uuid.UUID, goalID uuid.UU
 	var exercises []models.ExerciseDay
 
 	exerciserecord := Instance.Order("date desc").
-		Where("`exercise_days`.enabled = ?", 1).
-		Where("`exercise_days`.goal_id = ?", goalID).
-		Joins("JOIN goals on `exercise_days`.goal_id = `goals`.ID").
-		Where("`goals`.user_id = ?", userID).
-		Where("`goals`.enabled = ?", 1).
+		Where("exercise_days.enabled = ?", true).
+		Where("exercise_days.goal_id = ?", goalID).
+		Joins("JOIN goals on exercise_days.goal_id = goals.ID").
+		Where("goals.user_id = ?", userID).
+		Where("goals.enabled = ?", true).
 		Find(&exercises)
 
 	if exerciserecord.Error != nil {
@@ -176,11 +176,11 @@ func GetAllEnabledExerciseDays() ([]models.ExerciseDay, error) {
 	var exercises []models.ExerciseDay
 
 	exerciserecord := Instance.Order("date desc").
-		Where("`exercise_days`.enabled = ?", 1).
-		Joins("JOIN `goals` on `exercise_days`.goal_id = `goals`.id").
-		Where("`goals`.enabled = ?", 1).
-		Joins("JOIN `seasons` on `goals`.season_id = `seasons`.id").
-		Where("`seasons`.enabled = ?", 1).
+		Where("exercise_days.enabled = ?", true).
+		Joins("JOIN goals on exercise_days.goal_id = goals.id").
+		Where("goals.enabled = ?", true).
+		Joins("JOIN seasons on goals.season_id = seasons.id").
+		Where("seasons.enabled = ?", true).
 		Find(&exercises)
 	if exerciserecord.Error != nil {
 		return []models.ExerciseDay{}, exerciserecord.Error
@@ -196,7 +196,7 @@ func GetAllEnabledExerciseDays() ([]models.ExerciseDay, error) {
 func GetExerciseDayByID(exerciseDayID uuid.UUID) (*models.ExerciseDay, error) {
 	var exerciseDay *models.ExerciseDay
 
-	exerciserecord := Instance.Where("`exercise_days`.enabled = ?", 1).Where("`exercise_days`.id = ?", exerciseDayID).Find(&exerciseDay)
+	exerciserecord := Instance.Where("exercise_days.enabled = ?", true).Where("exercise_days.id = ?", exerciseDayID).Find(&exerciseDay)
 	if exerciserecord.Error != nil {
 		return nil, exerciserecord.Error
 	} else if exerciserecord.RowsAffected == 0 {
@@ -210,11 +210,11 @@ func GetExerciseDayByIDAndUserID(exerciseDayID uuid.UUID, userID uuid.UUID) (exe
 	exerciseDay = &models.ExerciseDay{}
 	err = nil
 
-	exerciserecord := Instance.Where("`exercise_days`.enabled = ?", 1).
-		Where("`exercise_days`.id = ?", exerciseDayID).
-		Joins("JOIN `users` on `exercise_days`.user_id = `users`.id").
-		Where("`users`.enabled = ?", 1).
-		Where("`users`.id = ?", userID).
+	exerciserecord := Instance.Where("exercise_days.enabled = ?", true).
+		Where("exercise_days.id = ?", exerciseDayID).
+		Joins("JOIN users on exercise_days.user_id = users.id").
+		Where("users.enabled = ?", true).
+		Where("users.id = ?", userID).
 		Find(&exerciseDay)
 
 	if exerciserecord.Error != nil {
@@ -241,14 +241,14 @@ func GetValidExercisesBetweenDatesUsingDatesByUserID(userID uuid.UUID, startDate
 	endDayString := endDate.Format("2006-01-02") + " 23:59:59"
 
 	exerciserecord := Instance.
-		Where("`exercises`.enabled = ?", 1).
-		Where("`exercises`.is_on = ?", 1).
-		Where("`exercises`.counts_toward_goal = ?", 1).
-		Joins("JOIN `exercise_days` on `exercises`.exercise_day_id = `exercise_days`.id").
-		Where("`exercise_days`.enabled = ?", 1).
-		Where("`exercise_days`.user_id = ?", userID).
-		Where("`exercise_days`.Date >= ?", startDayString).
-		Where("`exercise_days`.Date <= ?", endDayString).
+		Where("exercises.enabled = ?", true).
+		Where("exercises.is_on = ?", true).
+		Where("exercises.counts_toward_goal = ?", true).
+		Joins("JOIN exercise_days on exercises.exercise_day_id = exercise_days.id").
+		Where("exercise_days.enabled = ?", true).
+		Where("exercise_days.user_id = ?", userID).
+		Where("exercise_days.Date >= ?", startDayString).
+		Where("exercise_days.Date <= ?", endDayString).
 		Find(&exercises)
 
 	if exerciserecord.Error != nil {
@@ -274,14 +274,14 @@ func GetValidExercisesForUserIDsBetweenDates(userIDs []uuid.UUID, startDate time
 	endDayString := endDate.Format("2006-01-02") + " 23:59:59"
 
 	exerciserecord := Instance.
-		Joins("JOIN `exercise_days` on `exercises`.exercise_day_id = `exercise_days`.id").
-		Where("`exercises`.enabled = ?", 1).
-		Where("`exercises`.is_on = ?", 1).
-		Where("`exercises`.counts_toward_goal = ?", 1).
-		Where("`exercise_days`.enabled = ?", 1).
-		Where("`exercise_days`.user_id IN ?", userIDs).
-		Where("`exercise_days`.Date >= ?", startDayString).
-		Where("`exercise_days`.Date <= ?", endDayString).
+		Joins("JOIN exercise_days on exercises.exercise_day_id = exercise_days.id").
+		Where("exercises.enabled = ?", true).
+		Where("exercises.is_on = ?", true).
+		Where("exercises.counts_toward_goal = ?", true).
+		Where("exercise_days.enabled = ?", true).
+		Where("exercise_days.user_id IN ?", userIDs).
+		Where("exercise_days.Date >= ?", startDayString).
+		Where("exercise_days.Date <= ?", endDayString).
 		Preload("ExerciseDay").
 		Find(&exercises)
 
@@ -299,11 +299,11 @@ func GetExerciseDayByDateAndGoal(goalID uuid.UUID, date time.Time) (*models.Exer
 	startDayString := date.Format("2006-01-02") + " 00:00:00"
 	endDayString := date.Format("2006-01-02") + " 23:59:59"
 
-	goalrecord := Instance.Where("`exercise_days`.enabled = ?", 1).
-		Where("`exercise_days`.goal_id = ?", goalID).
-		Where("`exercise_days`.Date >= ?", startDayString).
-		Where("`exercise_days`.Date <= ?", endDayString).
-		Order("`exercise_days`.created_at ASC").
+	goalrecord := Instance.Where("exercise_days.enabled = ?", true).
+		Where("exercise_days.goal_id = ?", goalID).
+		Where("exercise_days.Date >= ?", startDayString).
+		Where("exercise_days.Date <= ?", endDayString).
+		Order("exercise_days.created_at ASC").
 		Limit(1).
 		Find(&exercise)
 
@@ -323,11 +323,11 @@ func GetExerciseDayByDateAndUserID(userID uuid.UUID, date time.Time) (*models.Ex
 	startDayString := date.Format("2006-01-02") + " 00:00:00"
 	endDayString := date.Format("2006-01-02") + " 23:59:59"
 
-	goalrecord := Instance.Where("`exercise_days`.enabled = ?", 1).
-		Where("`exercise_days`.user_id = ?", userID).
-		Where("`exercise_days`.Date >= ?", startDayString).
-		Where("`exercise_days`.Date <= ?", endDayString).
-		Order("`exercise_days`.created_at ASC").
+	goalrecord := Instance.Where("exercise_days.enabled = ?", true).
+		Where("exercise_days.user_id = ?", userID).
+		Where("exercise_days.Date >= ?", startDayString).
+		Where("exercise_days.Date <= ?", endDayString).
+		Order("exercise_days.created_at ASC").
 		Limit(1).
 		Find(&exercise)
 
@@ -356,13 +356,13 @@ func GetExerciseDaysForSharingUsersInListUsingDates(userIDs []uuid.UUID, startDa
 	endDayString := endDate.Format("2006-01-02") + " 23:59:59"
 
 	record := Instance.
-		Where("`exercise_days`.enabled = ?", 1).
-		Where("`exercise_days`.Date >= ?", startDayString).
-		Where("`exercise_days`.Date <= ?", endDayString).
-		Where("`exercise_days`.user_id IN ?", userIDs).
-		Joins("JOIN `users` on `exercise_days`.user_id = `users`.id").
-		Where("`users`.enabled = ?", 1).
-		Where("`users`.share_activities = ?", 1).
+		Where("exercise_days.enabled = ?", true).
+		Where("exercise_days.Date >= ?", startDayString).
+		Where("exercise_days.Date <= ?", endDayString).
+		Where("exercise_days.user_id IN ?", userIDs).
+		Joins("JOIN users on exercise_days.user_id = users.id").
+		Where("users.enabled = ?", true).
+		Where("users.share_activities = ?", true).
 		Find(&exerciseDays)
 
 	if record.Error != nil {
@@ -379,12 +379,12 @@ func GetExerciseDaysForSharingUsersUsingDates(startDate time.Time, endDate time.
 	endDayString := endDate.Format("2006-01-02") + " 23:59:59"
 
 	exerciserecord := Instance.
-		Where("`exercise_days`.enabled = ?", 1).
-		Where("`exercise_days`.Date >= ?", startDayString).
-		Where("`exercise_days`.Date <= ?", endDayString).
-		Joins("JOIN `users` on `exercise_days`.user_id = `users`.id").
-		Where("`users`.enabled = ?", 1).
-		Where("`users`.share_activities = ?", 1).
+		Where("exercise_days.enabled = ?", true).
+		Where("exercise_days.Date >= ?", startDayString).
+		Where("exercise_days.Date <= ?", endDayString).
+		Joins("JOIN users on exercise_days.user_id = users.id").
+		Where("users.enabled = ?", true).
+		Where("users.share_activities = ?", true).
 		Find(&exercises)
 
 	if exerciserecord.Error != nil {

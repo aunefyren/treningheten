@@ -58,7 +58,7 @@ friend graph.
 1. Resolve the current Mon–Sun week (`utilities.FindEarlierMonday` / `FindNextSunday`).
 2. Resolve the caller's peer ids — one query.
 3. Fetch enabled exercise days in the window for those users who have
-   `share_activities = 1` (`GetExerciseDaysForSharingUsersInListUsingDates`) — one
+   `share_activities = true` (`GetExerciseDaysForSharingUsersInListUsingDates`) — one
    query. An empty peer list returns nothing, never everyone.
 4. Flatten to `models.Activity` via `buildActivitiesFromExerciseDays`, newest first,
    capped at **50** (`sharedActivityFeedLimit`).

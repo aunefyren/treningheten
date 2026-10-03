@@ -305,14 +305,13 @@ func TestExerciseDayLookupsFindMidnightDays(t *testing.T) {
 	newTestDB(t)
 
 	user := makeTestUser(t, "midnight@example.com", nil)
-	oslo, err := time.LoadLocation("Europe/Oslo")
-	if err != nil {
-		t.Fatal(err)
-	}
 
+	// "Local" is the server zone (time.Local, set from config). Postgres and MySQL read the
+	// string bounds in that zone, so a day stamped at midnight in some other zone isn't a
+	// "local midnight" there; SQLite compares the stored wall-clock text and doesn't care.
 	for name, midnight := range map[string]time.Time{
 		"UTC midnight":   time.Date(2024, 5, 13, 0, 0, 0, 0, time.UTC),
-		"local midnight": time.Date(2024, 6, 17, 0, 0, 0, 0, oslo),
+		"local midnight": time.Date(2024, 6, 17, 0, 0, 0, 0, time.Local),
 	} {
 		t.Run(name, func(t *testing.T) {
 			day := makeDayFor(t, user.ID, nil, midnight)

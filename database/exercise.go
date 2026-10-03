@@ -24,8 +24,8 @@ func GetExerciseByExerciseDayID(exerciseDayID uuid.UUID) ([]models.Exercise, err
 	var exercises []models.Exercise
 
 	exerciseRecord := Instance.
-		Where("`exercises`.enabled = ?", 1).
-		Where("`exercises`.exercise_day_id = ?", exerciseDayID).
+		Where("exercises.enabled = ?", true).
+		Where("exercises.exercise_day_id = ?", exerciseDayID).
 		Find(&exercises)
 
 	if exerciseRecord.Error != nil {
@@ -41,7 +41,7 @@ func UpdateExerciseByTurningOnByExerciseID(exerciseID uuid.UUID) error {
 
 	var exercise models.Exercise
 
-	exerciseRecord := Instance.Model(exercise).Where("`exercises`.enabled = ?", 1).Where("`exercises`.ID = ?", exerciseID).Update("is_on", 1)
+	exerciseRecord := Instance.Model(exercise).Where("exercises.enabled = ?", true).Where("exercises.ID = ?", exerciseID).Update("is_on", true)
 	if exerciseRecord.Error != nil {
 		return exerciseRecord.Error
 	} else if exerciseRecord.RowsAffected != 1 {
@@ -57,7 +57,7 @@ func UpdateExerciseByTurningOffByExerciseID(exerciseID uuid.UUID) error {
 
 	var exercise models.Exercise
 
-	exerciseRecord := Instance.Model(exercise).Where("`exercises`.enabled = ?", 1).Where("`exercises`.ID = ?", exerciseID).Update("is_on", 0)
+	exerciseRecord := Instance.Model(exercise).Where("exercises.enabled = ?", true).Where("exercises.ID = ?", exerciseID).Update("is_on", false)
 	if exerciseRecord.Error != nil {
 		return exerciseRecord.Error
 	} else if exerciseRecord.RowsAffected != 1 {
@@ -78,14 +78,14 @@ func UpdateExerciseByTurningOffByExerciseID(exerciseID uuid.UUID) error {
 func GetExerciseByIDAndUserID(exerciseID uuid.UUID, userID uuid.UUID) (*models.Exercise, error) {
 	var exercise *models.Exercise
 
-	record := Instance.Where("`exercises`.enabled = ?", 1).
-		Where("`exercises`.id = ?", exerciseID).
-		Where("`exercises`.is_on = ?", 1).
-		Joins("JOIN `exercise_days` on `exercises`.exercise_day_id = `exercise_days`.id").
-		Where("`exercise_days`.enabled = ?", 1).
-		Joins("JOIN `users` on `exercise_days`.user_id = `users`.id").
-		Where("`users`.enabled = ?", 1).
-		Where("`users`.id = ?", userID).
+	record := Instance.Where("exercises.enabled = ?", true).
+		Where("exercises.id = ?", exerciseID).
+		Where("exercises.is_on = ?", true).
+		Joins("JOIN exercise_days on exercises.exercise_day_id = exercise_days.id").
+		Where("exercise_days.enabled = ?", true).
+		Joins("JOIN users on exercise_days.user_id = users.id").
+		Where("users.enabled = ?", true).
+		Where("users.id = ?", userID).
 		Find(&exercise)
 
 	if record.Error != nil {
@@ -101,13 +101,13 @@ func GetExerciseByIDAndUserID(exerciseID uuid.UUID, userID uuid.UUID) (*models.E
 func GetAllExerciseByIDAndUserID(exerciseID uuid.UUID, userID uuid.UUID) (models.Exercise, error) {
 	var exercise models.Exercise
 
-	record := Instance.Where("`exercises`.enabled = ?", 1).
-		Where("`exercises`.id = ?", exerciseID).
-		Joins("JOIN `exercise_days` on `exercises`.exercise_day_id = `exercise_days`.id").
-		Where("`exercise_days`.enabled = ?", 1).
-		Joins("JOIN `users` on `exercise_days`.user_id = `users`.id").
-		Where("`users`.enabled = ?", 1).
-		Where("`users`.id = ?", userID).
+	record := Instance.Where("exercises.enabled = ?", true).
+		Where("exercises.id = ?", exerciseID).
+		Joins("JOIN exercise_days on exercises.exercise_day_id = exercise_days.id").
+		Where("exercise_days.enabled = ?", true).
+		Joins("JOIN users on exercise_days.user_id = users.id").
+		Where("users.enabled = ?", true).
+		Where("users.id = ?", userID).
 		Find(&exercise)
 
 	if record.Error != nil {
@@ -140,13 +140,13 @@ func UpdateExerciseInDB(exercise models.Exercise) (models.Exercise, error) {
 // default:true, so a false value never survives a plain Create.
 func SetExerciseIsOn(exerciseID uuid.UUID, isOn bool) error {
 	return Instance.Model(&models.Exercise{}).
-		Where("`exercises`.id = ?", exerciseID).
+		Where("exercises.id = ?", exerciseID).
 		Update("is_on", isOn).Error
 }
 
 func SetExerciseCountsTowardGoal(exerciseID uuid.UUID, countsTowardGoal bool) error {
 	return Instance.Model(&models.Exercise{}).
-		Where("`exercises`.id = ?", exerciseID).
+		Where("exercises.id = ?", exerciseID).
 		Update("counts_toward_goal", countsTowardGoal).Error
 }
 
@@ -157,12 +157,12 @@ func SetExerciseCountsTowardGoal(exerciseID uuid.UUID, countsTowardGoal bool) er
 func CountStravaActivitiesInExercise(exerciseID uuid.UUID) (int64, error) {
 	var count int64
 	err := Instance.Model(&models.OperationSet{}).
-		Where("`operation_sets`.enabled = ?", 1).
-		Where("`operation_sets`.strava_id IS NOT NULL").
-		Joins("JOIN `operations` on `operation_sets`.operation_id = `operations`.id").
-		Where("`operations`.enabled = ?", 1).
-		Where("`operations`.exercise_id = ?", exerciseID).
-		Distinct("`operation_sets`.strava_id").
+		Where("operation_sets.enabled = ?", true).
+		Where("operation_sets.strava_id IS NOT NULL").
+		Joins("JOIN operations on operation_sets.operation_id = operations.id").
+		Where("operations.enabled = ?", true).
+		Where("operations.exercise_id = ?", exerciseID).
+		Distinct("operation_sets.strava_id").
 		Count(&count).Error
 	return count, err
 }
@@ -182,17 +182,17 @@ func GetExerciseForUserWithStravaID(userID uuid.UUID, stravaID string) (exercise
 	stravaIDString := "%" + stravaID + "%"
 
 	exerciseRecord := Instance.Model(exercise).
-		Where("`exercises`.enabled = ?", 1).
-		Joins("JOIN `operations` on `operations`.exercise_id = `exercises`.id").
-		Where("`operations`.enabled = ?", 1).
-		Joins("JOIN `operation_sets` on `operation_sets`.operation_id = `operations`.id").
-		Where("`operation_sets`.enabled = ?", 1).
-		Where("`operation_sets`.strava_id LIKE ?", stravaIDString).
-		Joins("JOIN `exercise_days` on `exercises`.exercise_day_id = `exercise_days`.id").
-		Where("`exercise_days`.enabled = ?", 1).
-		Joins("JOIN `users` on `exercise_days`.user_id = `users`.id").
-		Where("`users`.enabled = ?", 1).
-		Where("`users`.id = ?", userID).
+		Where("exercises.enabled = ?", true).
+		Joins("JOIN operations on operations.exercise_id = exercises.id").
+		Where("operations.enabled = ?", true).
+		Joins("JOIN operation_sets on operation_sets.operation_id = operations.id").
+		Where("operation_sets.enabled = ?", true).
+		Where("operation_sets.strava_id LIKE ?", stravaIDString).
+		Joins("JOIN exercise_days on exercises.exercise_day_id = exercise_days.id").
+		Where("exercise_days.enabled = ?", true).
+		Joins("JOIN users on exercise_days.user_id = users.id").
+		Where("users.enabled = ?", true).
+		Where("users.id = ?", userID).
 		Find(&exercise)
 
 	if exerciseRecord.Error != nil {
@@ -212,11 +212,11 @@ func GetExerciseForUserWithHevyWorkoutID(userID uuid.UUID, hevyWorkoutID string)
 	err = nil
 
 	exerciseRecord := Instance.Model(exercise).
-		Where("`exercises`.enabled = ?", 1).
-		Where("`exercises`.hevy_workout_id = ?", hevyWorkoutID).
-		Joins("JOIN `exercise_days` on `exercises`.exercise_day_id = `exercise_days`.id").
-		Where("`exercise_days`.enabled = ?", 1).
-		Where("`exercise_days`.user_id = ?", userID).
+		Where("exercises.enabled = ?", true).
+		Where("exercises.hevy_workout_id = ?", hevyWorkoutID).
+		Joins("JOIN exercise_days on exercises.exercise_day_id = exercise_days.id").
+		Where("exercise_days.enabled = ?", true).
+		Where("exercise_days.user_id = ?", userID).
 		Find(&exercise)
 
 	if exerciseRecord.Error != nil {
@@ -234,18 +234,18 @@ func GetExerciseForUserWithHevyWorkoutID(userID uuid.UUID, hevyWorkoutID string)
 func GetHevyExerciseForUserNearTime(userID uuid.UUID, start time.Time, window time.Duration) (*models.Exercise, error) {
 	var exercises []models.Exercise
 
-	lower := start.Add(-window).UTC().Format("2006-01-02 15:04:05")
-	upper := start.Add(window).UTC().Format("2006-01-02 15:04:05")
+	lower := instantParam(start.Add(-window))
+	upper := instantParam(start.Add(window))
 
 	record := Instance.
-		Where("`exercises`.enabled = ?", 1).
-		Where("`exercises`.hevy_workout_id IS NOT NULL").
-		Where("`exercises`.`time` >= ?", lower).
-		Where("`exercises`.`time` <= ?", upper).
-		Joins("JOIN `exercise_days` on `exercises`.exercise_day_id = `exercise_days`.id").
-		Where("`exercise_days`.enabled = ?", 1).
-		Where("`exercise_days`.user_id = ?", userID).
-		Order("`exercises`.`time` ASC").
+		Where("exercises.enabled = ?", true).
+		Where("exercises.hevy_workout_id IS NOT NULL").
+		Where("exercises.time >= ?", lower).
+		Where("exercises.time <= ?", upper).
+		Joins("JOIN exercise_days on exercises.exercise_day_id = exercise_days.id").
+		Where("exercise_days.enabled = ?", true).
+		Where("exercise_days.user_id = ?", userID).
+		Order("exercises.time ASC").
 		Limit(1).
 		Find(&exercises)
 
@@ -265,24 +265,24 @@ func GetHevyExerciseForUserNearTime(userID uuid.UUID, start time.Time, window ti
 func GetStravaExerciseForUserNearTime(userID uuid.UUID, start time.Time, window time.Duration) (*models.Exercise, error) {
 	var exercises []models.Exercise
 
-	lower := start.Add(-window).UTC().Format("2006-01-02 15:04:05")
-	upper := start.Add(window).UTC().Format("2006-01-02 15:04:05")
+	lower := instantParam(start.Add(-window))
+	upper := instantParam(start.Add(window))
 
 	record := Instance.
-		Where("`exercises`.enabled = ?", 1).
-		Where("`exercises`.hevy_workout_id IS NULL").
-		Where("`exercises`.`time` >= ?", lower).
-		Where("`exercises`.`time` <= ?", upper).
-		Joins("JOIN `operations` on `operations`.exercise_id = `exercises`.id").
-		Where("`operations`.enabled = ?", 1).
-		Joins("JOIN `operation_sets` on `operation_sets`.operation_id = `operations`.id").
-		Where("`operation_sets`.enabled = ?", 1).
-		Where("`operation_sets`.strava_id IS NOT NULL").
-		Joins("JOIN `exercise_days` on `exercises`.exercise_day_id = `exercise_days`.id").
-		Where("`exercise_days`.enabled = ?", 1).
-		Where("`exercise_days`.user_id = ?", userID).
-		Group("`exercises`.id").
-		Order("`exercises`.`time` ASC").
+		Where("exercises.enabled = ?", true).
+		Where("exercises.hevy_workout_id IS NULL").
+		Where("exercises.time >= ?", lower).
+		Where("exercises.time <= ?", upper).
+		Joins("JOIN operations on operations.exercise_id = exercises.id").
+		Where("operations.enabled = ?", true).
+		Joins("JOIN operation_sets on operation_sets.operation_id = operations.id").
+		Where("operation_sets.enabled = ?", true).
+		Where("operation_sets.strava_id IS NOT NULL").
+		Joins("JOIN exercise_days on exercises.exercise_day_id = exercise_days.id").
+		Where("exercise_days.enabled = ?", true).
+		Where("exercise_days.user_id = ?", userID).
+		Group("exercises.id").
+		Order("exercises.time ASC").
 		Limit(1).
 		Find(&exercises)
 
@@ -300,13 +300,13 @@ func GetAllExerciseDaysWithExerciseByUserID(userID uuid.UUID) ([]models.Exercise
 	var exerciseDays []models.ExerciseDay
 
 	record := Instance.
-		Where("`exercise_days`.enabled = ?", 1).
-		Joins("JOIN `exercises` ON `exercises`.exercise_day_id = `exercise_days`.id").
-		Where("`exercises`.enabled = ?", 1).
-		Where("`exercises`.is_on = ?", 1).
-		Joins("JOIN `users` ON `users`.id = `exercise_days`.user_id").
-		Where("`users`.enabled = ?", 1).
-		Where("`users`.id = ?", userID).
+		Where("exercise_days.enabled = ?", true).
+		Joins("JOIN exercises ON exercises.exercise_day_id = exercise_days.id").
+		Where("exercises.enabled = ?", true).
+		Where("exercises.is_on = ?", true).
+		Joins("JOIN users ON users.id = exercise_days.user_id").
+		Where("users.enabled = ?", true).
+		Where("users.id = ?", userID).
 		Distinct().
 		Find(&exerciseDays)
 
@@ -323,18 +323,18 @@ func GetStravaExercisesByUserID(userID uuid.UUID) (exercises []models.Exercise, 
 	err = nil
 
 	record := Instance.
-		Where("`exercises`.enabled = ?", 1).
-		Where("`exercises`.is_on = ?", 1).
-		Joins("JOIN `operations` on `operations`.exercise_id = `exercises`.id").
-		Where("`operations`.enabled = ?", 1).
-		Joins("JOIN `operation_sets` on `operation_sets`.operation_id = `operations`.id").
-		Where("`operation_sets`.enabled = ?", 1).
-		Where("`operation_sets`.strava_id IS NOT NULL").
-		Joins("JOIN `exercise_days` on `exercises`.exercise_day_id = `exercise_days`.id").
-		Where("`exercise_days`.enabled = ?", 1).
-		Joins("JOIN `users` on `exercise_days`.user_id = `users`.id").
-		Where("`users`.enabled = ?", 1).
-		Where("`users`.id = ?", userID).
+		Where("exercises.enabled = ?", true).
+		Where("exercises.is_on = ?", true).
+		Joins("JOIN operations on operations.exercise_id = exercises.id").
+		Where("operations.enabled = ?", true).
+		Joins("JOIN operation_sets on operation_sets.operation_id = operations.id").
+		Where("operation_sets.enabled = ?", true).
+		Where("operation_sets.strava_id IS NOT NULL").
+		Joins("JOIN exercise_days on exercises.exercise_day_id = exercise_days.id").
+		Where("exercise_days.enabled = ?", true).
+		Joins("JOIN users on exercise_days.user_id = users.id").
+		Where("users.enabled = ?", true).
+		Where("users.id = ?", userID).
 		Find(&exercises)
 
 	if record.Error != nil {

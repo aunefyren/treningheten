@@ -11,7 +11,7 @@ func GetPrizeByID(prizeID uuid.UUID) (models.Prize, bool, error) {
 
 	var prizeStruct models.Prize
 
-	prizeRecord := Instance.Where("`prizes`.enabled = ?", 1).Where("`prizes`.ID = ?", prizeID).Find(&prizeStruct)
+	prizeRecord := Instance.Where("prizes.enabled = ?", true).Where("prizes.ID = ?", prizeID).Find(&prizeStruct)
 	if prizeRecord.Error != nil {
 		return models.Prize{}, false, prizeRecord.Error
 	} else if prizeRecord.RowsAffected == 0 {
@@ -27,7 +27,7 @@ func GetPrizes() ([]models.Prize, bool, error) {
 
 	var prizeStruct []models.Prize
 
-	prizeRecord := Instance.Where("`prizes`.enabled = ?", 1).Find(&prizeStruct)
+	prizeRecord := Instance.Where("prizes.enabled = ?", true).Find(&prizeStruct)
 	if prizeRecord.Error != nil {
 		return []models.Prize{}, false, prizeRecord.Error
 	} else if prizeRecord.RowsAffected == 0 {
@@ -43,7 +43,7 @@ func GetPrizeByNameAndQuantity(prizeName string, prizeQuantity int) (models.Priz
 
 	var prizeStruct models.Prize
 
-	prizeRecord := Instance.Where("`prizes`.enabled = ?", 1).Where("`prizes`.name = ?", prizeName).Where("`prizes`.quantity = ?", prizeQuantity).Find(&prizeStruct)
+	prizeRecord := Instance.Where("prizes.enabled = ?", true).Where("prizes.name = ?", prizeName).Where("prizes.quantity = ?", prizeQuantity).Find(&prizeStruct)
 	if prizeRecord.Error != nil {
 		return models.Prize{}, false, prizeRecord.Error
 	} else if prizeRecord.RowsAffected == 0 {

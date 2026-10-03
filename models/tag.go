@@ -54,11 +54,19 @@ func IsStravaManagedTag(tag string) bool {
 // TagList is a string slice persisted as a JSON column (mirrors StravaStreamsJSON).
 type TagList []string
 
+// GormDataType stores the list as a string column, so its size tag picks the column type.
+func (TagList) GormDataType() string { return "string" }
+
+// Value returns the JSON as a string: Postgres would read []byte as bytea, not text.
 func (t TagList) Value() (driver.Value, error) {
 	if t == nil {
 		return nil, nil
 	}
-	return json.Marshal(t)
+	encoded, err := json.Marshal(t)
+	if err != nil {
+		return nil, err
+	}
+	return string(encoded), nil
 }
 
 func (t *TagList) Scan(value interface{}) error {

@@ -1,23 +1,21 @@
 package controllers
 
 import (
-	"database/sql"
 	"io"
 	"os"
 	"testing"
 	"time"
 
 	"github.com/aunefyren/treningheten/database"
+	"github.com/aunefyren/treningheten/internal/testdb"
 	"github.com/aunefyren/treningheten/logger"
 	"github.com/aunefyren/treningheten/models"
 
 	"github.com/google/uuid"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/crypto/bcrypt"
-	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
 	gormlogger "gorm.io/gorm/logger"
-	_ "modernc.org/sqlite"
 )
 
 // TestMain stubs logger.Log with a discarding logger so controller helpers that log
@@ -35,7 +33,7 @@ func TestMain(m *testing.M) {
 	os.Exit(m.Run())
 }
 
-// newControllerTestDB points database.Instance at an isolated in-memory SQLite database
+// newControllerTestDB points database.Instance at an isolated database (see internal/testdb)
 // with the full schema migrated, restoring the previous instance on cleanup. This
 // mirrors database.newTestDB, which is unexported and lives in the database package.
 // Foreign-key enforcement is left off so tests can seed rows by ID without building the
@@ -43,28 +41,15 @@ func TestMain(m *testing.M) {
 func newControllerTestDB(t *testing.T) {
 	t.Helper()
 
-	sqlDB, err := sql.Open("sqlite", ":memory:")
-	if err != nil {
-		t.Fatalf("failed to open in-memory sqlite: %v", err)
-	}
-	// One connection keeps the :memory: database alive and isolated for the test.
-	sqlDB.SetMaxOpenConns(1)
-
 	// Silent: the fault sweeps fail thousands of queries on purpose, and GORM would print
 	// every one of them, burying real failures in the CI log.
-	gormDB, err := gorm.Open(sqlite.Dialector{Conn: sqlDB}, &gorm.Config{Logger: gormlogger.Default.LogMode(gormlogger.Silent)})
-	if err != nil {
-		t.Fatalf("failed to open gorm: %v", err)
-	}
+	gormDB := testdb.Open(t, &gorm.Config{Logger: gormlogger.Default.LogMode(gormlogger.Silent)})
 
 	prev := database.Instance
 	database.Instance = gormDB
 	database.Migrate()
 
-	t.Cleanup(func() {
-		database.Instance = prev
-		_ = sqlDB.Close()
-	})
+	t.Cleanup(func() { database.Instance = prev })
 }
 
 // seedExerciseDayWithExercises inserts one exercise day for a user on the given date,

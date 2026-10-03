@@ -22,7 +22,7 @@ func GetAllSubscriptionsForUserByUserID(userID uuid.UUID) ([]models.Subscription
 
 	var subscriptionStruct []models.Subscription
 
-	subscriptionRecord := Instance.Where("`subscriptions`.enabled = ?", 1).Where("`subscriptions`.user_id = ?", userID).Find(&subscriptionStruct)
+	subscriptionRecord := Instance.Where("subscriptions.enabled = ?", true).Where("subscriptions.user_id = ?", userID).Find(&subscriptionStruct)
 	if subscriptionRecord.Error != nil {
 		return []models.Subscription{}, subscriptionRecord.Error
 	} else if subscriptionRecord.RowsAffected == 0 {
@@ -38,7 +38,7 @@ func GetAllSubscriptionForUserByUserIDAndEndpoint(userID uuid.UUID, endpoint str
 
 	var subscriptionStruct models.Subscription
 
-	subscriptionRecord := Instance.Where("`subscriptions`.enabled = ?", 1).Where("`subscriptions`.user_id = ?", userID).Where("`subscriptions`.endpoint = ?", endpoint).Find(&subscriptionStruct)
+	subscriptionRecord := Instance.Where("subscriptions.enabled = ?", true).Where("subscriptions.user_id = ?", userID).Where("subscriptions.endpoint = ?", endpoint).Find(&subscriptionStruct)
 	if subscriptionRecord.Error != nil {
 		return models.Subscription{}, false, subscriptionRecord.Error
 	} else if subscriptionRecord.RowsAffected == 0 {
@@ -54,7 +54,7 @@ func GetAllSubscriptionsForAchievementsForUserID(userID uuid.UUID) ([]models.Sub
 
 	var subscriptionStruct []models.Subscription
 
-	subscriptionRecord := Instance.Where("`subscriptions`.enabled = ?", 1).Where("`subscriptions`.achievement_alert = ?", 1).Where("`subscriptions`.user_id = ?", userID).Find(&subscriptionStruct)
+	subscriptionRecord := Instance.Where("subscriptions.enabled = ?", true).Where("subscriptions.achievement_alert = ?", true).Where("subscriptions.user_id = ?", userID).Find(&subscriptionStruct)
 	if subscriptionRecord.Error != nil {
 		return []models.Subscription{}, false, subscriptionRecord.Error
 	} else if subscriptionRecord.RowsAffected == 0 {
@@ -70,7 +70,7 @@ func GetAllSubscriptionsForNews() ([]models.Subscription, bool, error) {
 
 	var subscriptionStruct []models.Subscription
 
-	subscriptionRecord := Instance.Where("`subscriptions`.enabled = ?", 1).Where("`subscriptions`.news_alert = ?", 1).Find(&subscriptionStruct)
+	subscriptionRecord := Instance.Where("subscriptions.enabled = ?", true).Where("subscriptions.news_alert = ?", true).Find(&subscriptionStruct)
 	if subscriptionRecord.Error != nil {
 		return []models.Subscription{}, false, subscriptionRecord.Error
 	} else if subscriptionRecord.RowsAffected == 0 {
@@ -86,7 +86,7 @@ func GetAllSubscriptionsForSundayAlerts() ([]models.Subscription, bool, error) {
 
 	var subscriptionStruct []models.Subscription
 
-	subscriptionRecord := Instance.Where("`subscriptions`.enabled = ?", 1).Where("`subscriptions`.sunday_alert = ?", 1).Find(&subscriptionStruct)
+	subscriptionRecord := Instance.Where("subscriptions.enabled = ?", true).Where("subscriptions.sunday_alert = ?", true).Find(&subscriptionStruct)
 	if subscriptionRecord.Error != nil {
 		return []models.Subscription{}, false, subscriptionRecord.Error
 	} else if subscriptionRecord.RowsAffected == 0 {
@@ -126,7 +126,7 @@ func UpdateSubscriptionSundayReminderByEndpointAndUserID(userID uuid.UUID, endpo
 	var subscriptionStruct models.Subscription
 	err = nil
 
-	subscriptionRecord := Instance.Model(subscriptionStruct).Where("`subscriptions`.enabled = ?", 1).Where("`subscriptions`.user_id = ?", userID).Where("`subscriptions`.endpoint = ?", endpoint).Update("sunday_alert", reminder)
+	subscriptionRecord := Instance.Model(subscriptionStruct).Where("subscriptions.enabled = ?", true).Where("subscriptions.user_id = ?", userID).Where("subscriptions.endpoint = ?", endpoint).Update("sunday_alert", reminder)
 	if subscriptionRecord.Error != nil {
 		return subscriptionRecord.Error
 	} else if subscriptionRecord.RowsAffected != 1 {
@@ -142,7 +142,7 @@ func UpdateSubscriptionAchievementByEndpointAndUserID(userID uuid.UUID, endpoint
 	var subscriptionStruct models.Subscription
 	err = nil
 
-	subscriptionRecord := Instance.Model(subscriptionStruct).Where("`subscriptions`.enabled = ?", 1).Where("`subscriptions`.user_id = ?", userID).Where("`subscriptions`.endpoint = ?", endpoint).Update("achievement_alert", achievement)
+	subscriptionRecord := Instance.Model(subscriptionStruct).Where("subscriptions.enabled = ?", true).Where("subscriptions.user_id = ?", userID).Where("subscriptions.endpoint = ?", endpoint).Update("achievement_alert", achievement)
 	if subscriptionRecord.Error != nil {
 		return subscriptionRecord.Error
 	} else if subscriptionRecord.RowsAffected != 1 {
@@ -158,7 +158,7 @@ func UpdateSubscriptionNewsByEndpointAndUserID(userID uuid.UUID, endpoint string
 	var subscriptionStruct models.Subscription
 	err = nil
 
-	subscriptionRecord := Instance.Model(subscriptionStruct).Where("`subscriptions`.enabled = ?", 1).Where("`subscriptions`.user_id = ?", userID).Where("`subscriptions`.endpoint = ?", endpoint).Update("news_alert", news)
+	subscriptionRecord := Instance.Model(subscriptionStruct).Where("subscriptions.enabled = ?", true).Where("subscriptions.user_id = ?", userID).Where("subscriptions.endpoint = ?", endpoint).Update("news_alert", news)
 	if subscriptionRecord.Error != nil {
 		return subscriptionRecord.Error
 	} else if subscriptionRecord.RowsAffected != 1 {

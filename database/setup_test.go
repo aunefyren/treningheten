@@ -1,23 +1,21 @@
 package database
 
 import (
-	"database/sql"
 	"io"
 	"testing"
 
+	"github.com/aunefyren/treningheten/internal/testdb"
 	"github.com/aunefyren/treningheten/logger"
 	"github.com/aunefyren/treningheten/models"
 
 	"github.com/google/uuid"
 	"github.com/sirupsen/logrus"
-	"gorm.io/driver/sqlite"
-	"gorm.io/gorm"
 )
 
-// newTestDB spins up an isolated in-memory SQLite database, runs the full schema
-// migration, and points the package-global Instance at it for the duration of the
-// test. A single underlying connection is used so the in-memory database survives
-// across GORM calls and stays isolated per test. State is restored on cleanup.
+// newTestDB spins up an isolated database (in-memory SQLite, or Postgres/MySQL when the
+// testdb environment variables are set), runs the full schema migration, and points the
+// package-global Instance at it for the duration of the test. State is restored on
+// cleanup.
 //
 // logger.Log is stubbed to a discarding logger because Migrate() (and most database
 // helpers) log, and the real InitLogger writes to a config/ file we don't want in tests.
@@ -30,26 +28,13 @@ func newTestDB(t *testing.T) {
 		logger.Log = l
 	}
 
-	sqlDB, err := sql.Open("sqlite", ":memory:")
-	if err != nil {
-		t.Fatalf("failed to open in-memory sqlite: %v", err)
-	}
-	// One connection keeps the :memory: database alive and isolated for the test.
-	sqlDB.SetMaxOpenConns(1)
-
-	gormDB, err := gorm.Open(sqlite.Dialector{Conn: sqlDB}, &gorm.Config{})
-	if err != nil {
-		t.Fatalf("failed to open gorm: %v", err)
-	}
+	gormDB := testdb.Open(t, nil)
 
 	prev := Instance
 	Instance = gormDB
 	Migrate()
 
-	t.Cleanup(func() {
-		Instance = prev
-		_ = sqlDB.Close()
-	})
+	t.Cleanup(func() { Instance = prev })
 }
 
 // boolPtr / strPtr are small helpers for the many *bool / *string model fields.

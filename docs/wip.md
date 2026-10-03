@@ -65,19 +65,6 @@ class, but inline `onclick=` handlers are used throughout (`web/js/account.js`,
 task rather than bolting on a weak policy. The cheap headers (`nosniff`, frame-ancestors)
 could land independently.
 
-## In progress
-
-### Postgres support
-Decided: make it work (it was configurable but never functional). `files/config.go`
-rewrites `db_type: postgres` to `mysql`, and the data layer is MySQL-flavoured throughout:
-~617 backtick-quoted identifiers, ~250 integer-for-boolean comparisons/updates
-(`enabled = ?", 1`, `Update("used", 1)`), five `type:longtext` columns, and an invalid
-`sslmode` value in the connect branch. Plan: drop identifier quoting (except the reserved
-`seasons.end`), use `true`/`false`, drop the `longtext` tags, accept `postgres` in config
-and fail on unknown types, run the database suite against Postgres in CI, and add the
-Docker harness profile. The legacy SQL-dump importer in `utilities/migrate.go` stays
-MySQL-only.
-
 ## Decisions taken — no action
 
 - **Goals stored as competing before the fix** stay as they are; nothing records what the
@@ -179,7 +166,12 @@ Is a small model's feedback decent?
 - **Seed ABS listening history** for zero-click soundtrack testing: generate a silent track
   with the ABS image's `ffmpeg`, create a library + scan via the ABS API, post sessions with
   chosen timestamps through ABS's local-session sync, and create a matching manual workout.
-- **Postgres profile** — part of the Postgres work under *In progress*.
+- **Background goroutines outlive their test.** `goSafely` work (achievement grants and
+  their push notifications) can still be querying after the test that started it has
+  swapped `database.Instance` back or dropped its schema — visible as
+  `relation "subscriptions" does not exist` in the Postgres log. Harmless today, but a
+  likely source of rare flakes; the harness could wait for in-flight `goSafely` work
+  before cleanup.
 
 ## Unclear
 

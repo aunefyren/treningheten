@@ -71,7 +71,7 @@ units are treated as km, the dominant case); follow that pattern, or report per-
 ## Soft deletes
 
 Most tables carry an `Enabled` flag (and GORM's `DeletedAt`). "Deleting" generally
-means setting `Enabled = false`; the standard getters filter on `enabled = 1`. Don't
+means setting `Enabled = false`; the standard getters filter on `enabled = true`. Don't
 assume a row is gone just because it's "deleted."
 
 `Exercise` additionally has `IsOn` (a *reversible* builder soft-delete — off = removed
@@ -122,6 +122,13 @@ DATETIME, which is why it only showed up on SQLite. Regression test:
 
 (The upper bound has the mirror-image edge — a value stamped exactly `23:59:59` sorts
 above `"… 23:59:59"` on SQLite — but nothing stamps that time today.)
+
+On MySQL and Postgres the string bounds are read in the **server zone**: MySQL because
+the driver connects with `loc=Local` and `main.go` sets `time.Local` from the configured
+`timezone`, Postgres because `Connect` passes the same zone as the session `TimeZone`. So
+a "day" is a calendar day in the configured zone. Manual days (local midnight) and
+Strava/Hevy days (UTC midnight, a few hours later in Nordic zones) both land on the right
+date; SQLite instead compares the stored wall-clock text.
 
 The single-day lookups order by `created_at` and take one row, so if duplicate days for a
 date ever exist they all resolve to the oldest — "find or create" callers keep reusing it

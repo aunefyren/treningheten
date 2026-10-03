@@ -13,9 +13,9 @@ import (
 func GetActivityTypeActions() (actions []models.Action, err error) {
 	actions = []models.Action{}
 	record := Instance.
-		Where("`actions`.enabled = ?", 1).
-		Where("`actions`.strava_name <> ?", "").
-		Order("`actions`.name asc").
+		Where("actions.enabled = ?", true).
+		Where("actions.strava_name <> ?", "").
+		Order("actions.name asc").
 		Find(&actions)
 	if record.Error != nil {
 		return []models.Action{}, record.Error
@@ -28,7 +28,7 @@ func GetActivityTypeActions() (actions []models.Action, err error) {
 // only need the rows that exist.
 func GetActivityGoalSettingsForUserID(userID uuid.UUID) (settings []models.UserActivityGoalSetting, err error) {
 	settings = []models.UserActivityGoalSetting{}
-	record := Instance.Where("`user_activity_goal_settings`.user_id = ?", userID).Find(&settings)
+	record := Instance.Where("user_activity_goal_settings.user_id = ?", userID).Find(&settings)
 	if record.Error != nil {
 		return []models.UserActivityGoalSetting{}, record.Error
 	}
@@ -40,8 +40,8 @@ func GetActivityGoalSettingsForUserID(userID uuid.UUID) (settings []models.UserA
 func GetActivityGoalSettingForUserAndAction(userID uuid.UUID, actionID uuid.UUID) (*models.UserActivityGoalSetting, error) {
 	setting := models.UserActivityGoalSetting{}
 	record := Instance.
-		Where("`user_activity_goal_settings`.user_id = ?", userID).
-		Where("`user_activity_goal_settings`.action_id = ?", actionID).
+		Where("user_activity_goal_settings.user_id = ?", userID).
+		Where("user_activity_goal_settings.action_id = ?", actionID).
 		First(&setting)
 	if record.Error != nil {
 		if record.Error.Error() == "record not found" {
@@ -62,7 +62,7 @@ func UpsertActivityGoalSettingInDB(userID uuid.UUID, actionID uuid.UUID, countsT
 	}
 	if existing != nil {
 		return Instance.Model(&models.UserActivityGoalSetting{}).
-			Where("`user_activity_goal_settings`.id = ?", existing.ID).
+			Where("user_activity_goal_settings.id = ?", existing.ID).
 			Update("counts_toward_goal", countsTowardGoal).Error
 	}
 
@@ -72,6 +72,6 @@ func UpsertActivityGoalSettingInDB(userID uuid.UUID, actionID uuid.UUID, countsT
 		return err
 	}
 	return Instance.Model(&models.UserActivityGoalSetting{}).
-		Where("`user_activity_goal_settings`.id = ?", setting.ID).
+		Where("user_activity_goal_settings.id = ?", setting.ID).
 		Update("counts_toward_goal", countsTowardGoal).Error
 }

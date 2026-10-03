@@ -9,7 +9,7 @@ import (
 // Verify if season with name exists
 func VerifyUniqueSeasonName(providedSeasonName string) (bool, error) {
 	var season models.Season
-	seasonrecords := Instance.Where("`seasons`.enabled = ?", 1).Where("`seasons`.name = ?", providedSeasonName).Find(&season)
+	seasonrecords := Instance.Where("seasons.enabled = ?", true).Where("seasons.name = ?", providedSeasonName).Find(&season)
 	if seasonrecords.Error != nil {
 		return false, seasonrecords.Error
 	}
@@ -22,7 +22,7 @@ func VerifyUniqueSeasonName(providedSeasonName string) (bool, error) {
 // Get all enabled seasons
 func GetAllEnabledSeasons() ([]models.Season, error) {
 	var seasons []models.Season
-	seasonrecord := Instance.Order("start desc").Where("`seasons`.enabled = ?", 1).Find(&seasons)
+	seasonrecord := Instance.Order("start desc").Where("seasons.enabled = ?", true).Find(&seasons)
 	if seasonrecord.Error != nil {
 		return []models.Season{}, seasonrecord.Error
 	}
@@ -32,7 +32,7 @@ func GetAllEnabledSeasons() ([]models.Season, error) {
 // Get season by ID
 func GetSeasonByID(seasonID uuid.UUID) (*models.Season, error) {
 	var season models.Season
-	seasonrecord := Instance.Where("`seasons`.enabled = ?", 1).Where("`seasons`.ID = ?", seasonID).Find(&season)
+	seasonrecord := Instance.Where("seasons.enabled = ?", true).Where("seasons.ID = ?", seasonID).Find(&season)
 	if seasonrecord.Error != nil {
 		return nil, seasonrecord.Error
 	} else if seasonrecord.RowsAffected != 1 {

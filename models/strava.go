@@ -126,13 +126,21 @@ type StravaActivityStreams struct {
 	VelocitySmooth *StravaStream[float64]   `json:"velocity_smooth"`
 }
 
-// StravaStreamsJSON is a GORM-compatible JSONB type
+// StravaStreamsJSON is the Strava streams payload persisted as a JSON text column.
 type StravaStreamsJSON struct {
 	StravaActivityStreams
 }
 
+// GormDataType stores the streams as a string column, so its size tag picks the column type.
+func (StravaStreamsJSON) GormDataType() string { return "string" }
+
+// Value returns the JSON as a string: Postgres would read []byte as bytea, not text.
 func (s StravaStreamsJSON) Value() (driver.Value, error) {
-	return json.Marshal(s)
+	encoded, err := json.Marshal(s)
+	if err != nil {
+		return nil, err
+	}
+	return string(encoded), nil
 }
 
 func (s *StravaStreamsJSON) Scan(value interface{}) error {

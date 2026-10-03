@@ -40,7 +40,7 @@ func TestSeasonCreatedFromAnotherZoneProcessesItsFinalWeek(t *testing.T) {
 	}
 
 	wantStart := time.Date(start.Year(), start.Month(), start.Day(), 0, 0, 0, 0, time.Local)
-	wantEnd := time.Date(end.Year(), end.Month(), end.Day(), 23, 59, 59, 59, time.Local)
+	wantEnd := time.Date(end.Year(), end.Month(), end.Day(), 23, 59, 59, 0, time.Local)
 	if !stored.Start.Equal(wantStart) {
 		t.Errorf("start = %v, want the picked Monday at midnight server time %v", stored.Start, wantStart)
 	}

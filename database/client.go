@@ -29,12 +29,7 @@ func Connect(dbType string, timezone string, dbUsername string, dbPassword strin
 	if strings.ToLower(dbType) == "postgres" {
 		logger.Log.Debug("attempting to connect to postgres database")
 
-		var sslString = "disable"
-		if dbSSL {
-			sslString = "enabled"
-		}
-
-		connStrDb := "host=" + dbIP + " user=" + dbUsername + " password=" + dbPassword + " dbname=" + dbName + " port=" + strconv.Itoa(dbPort) + " sslmode=" + sslString + " TimeZone=" + timezone
+		connStrDb := postgresDSN(dbIP, dbPort, dbUsername, dbPassword, dbName, dbSSL, timezone)
 		Instance, dbError = gorm.Open(postgres.New(postgres.Config{
 			DSN:                  connStrDb,
 			PreferSimpleProtocol: true,
@@ -118,6 +113,28 @@ func Connect(dbType string, timezone string, dbUsername string, dbPassword strin
 	}
 
 	return nil
+}
+
+// postgresDSN builds a libpq key/value connection string. Values are single-quoted with
+// backslash escaping, so a password containing spaces or quotes stays one value.
+func postgresDSN(host string, port int, username string, password string, dbName string, ssl bool, timezone string) string {
+	sslMode := "disable"
+	if ssl {
+		sslMode = "require"
+	}
+
+	quote := func(value string) string {
+		value = strings.ReplaceAll(value, `\`, `\\`)
+		return "'" + strings.ReplaceAll(value, "'", `\'`) + "'"
+	}
+
+	return "host=" + quote(host) +
+		" port=" + strconv.Itoa(port) +
+		" user=" + quote(username) +
+		" password=" + quote(password) +
+		" dbname=" + quote(dbName) +
+		" sslmode=" + sslMode +
+		" TimeZone=" + quote(timezone)
 }
 
 // CreateTable creates the MySQL database when it doesn't exist yet. It connects without
@@ -218,13 +235,13 @@ func Migrate() {
 // scan); a stream with no usable channel at all is marked with elevation_gain_m = 0 so it can't
 // keep the scan alive. Going forward, the Strava sync writes the rollups on every import.
 func backfillOperationStreamRollups() {
-	allNull := "`operations`.avg_heartrate IS NULL AND `operations`.max_heartrate IS NULL AND " +
-		"`operations`.avg_cadence IS NULL AND `operations`.temp_c IS NULL AND `operations`.elevation_gain_m IS NULL"
+	allNull := "operations.avg_heartrate IS NULL AND operations.max_heartrate IS NULL AND " +
+		"operations.avg_cadence IS NULL AND operations.temp_c IS NULL AND operations.elevation_gain_m IS NULL"
 
 	var pending int64
 	if err := Instance.Table("operations").
-		Joins("JOIN operation_sets ON `operation_sets`.operation_id = `operations`.id").
-		Where("`operation_sets`.strava_streams IS NOT NULL").
+		Joins("JOIN operation_sets ON operation_sets.operation_id = operations.id").
+		Where("operation_sets.strava_streams IS NOT NULL").
 		Where(allNull).
 		Count(&pending).Error; err != nil {
 		logger.Log.Warn("Failed to count operations needing stream-rollup backfill. Error: " + err.Error())
@@ -237,9 +254,9 @@ func backfillOperationStreamRollups() {
 	// One row per stream-bearing set; the first stream seen for an operation wins, mirroring the
 	// runtime's "first set with streams" selection.
 	rows, err := Instance.Table("operation_sets").
-		Select("`operations`.id AS operation_id, `operation_sets`.strava_streams AS streams").
-		Joins("JOIN operations ON `operations`.id = `operation_sets`.operation_id").
-		Where("`operation_sets`.strava_streams IS NOT NULL").
+		Select("operations.id AS operation_id, operation_sets.strava_streams AS streams").
+		Joins("JOIN operations ON operations.id = operation_sets.operation_id").
+		Where("operation_sets.strava_streams IS NOT NULL").
 		Where(allNull).
 		Rows()
 	if err != nil {
@@ -285,7 +302,7 @@ func backfillOperationStreamRollups() {
 			zero := 0.0
 			fields["elevation_gain_m"] = &zero
 		}
-		if err := Instance.Model(&models.Operation{}).Where("`id` = ?", opID).Updates(fields).Error; err != nil {
+		if err := Instance.Model(&models.Operation{}).Where("id = ?", opID).Updates(fields).Error; err != nil {
 			logger.Log.Warn("Failed to write stream rollup for operation " + opID.String() + ". Error: " + err.Error())
 			continue
 		}
@@ -302,7 +319,7 @@ func backfillOperationStreamRollups() {
 // forward, BumpObservedMaxHeartrate keeps the value current on each sync.
 func backfillObservedMaxHeartrate() {
 	var nullCount int64
-	if err := Instance.Model(&models.User{}).Where("`observed_max_heartrate` IS NULL").Count(&nullCount).Error; err != nil {
+	if err := Instance.Model(&models.User{}).Where("observed_max_heartrate IS NULL").Count(&nullCount).Error; err != nil {
 		logger.Log.Warn("Failed to count users needing observed-max backfill. Error: " + err.Error())
 		return
 	}
@@ -313,11 +330,11 @@ func backfillObservedMaxHeartrate() {
 	// Walk every stored stream once, joining up to the owning user, tracking each user's
 	// peak plausible HR. Streams are JSON in a longtext column, so the max is computed in Go.
 	rows, err := Instance.Table("operation_sets").
-		Select("`exercise_days`.user_id AS user_id, `operation_sets`.strava_streams AS streams").
-		Joins("JOIN operations on `operations`.id = `operation_sets`.operation_id").
-		Joins("JOIN exercises on `exercises`.id = `operations`.exercise_id").
-		Joins("JOIN exercise_days on `exercise_days`.id = `exercises`.exercise_day_id").
-		Where("`operation_sets`.strava_streams IS NOT NULL AND `exercise_days`.user_id IS NOT NULL").
+		Select("exercise_days.user_id AS user_id, operation_sets.strava_streams AS streams").
+		Joins("JOIN operations on operations.id = operation_sets.operation_id").
+		Joins("JOIN exercises on exercises.id = operations.exercise_id").
+		Joins("JOIN exercise_days on exercise_days.id = exercises.exercise_day_id").
+		Where("operation_sets.strava_streams IS NOT NULL AND exercise_days.user_id IS NOT NULL").
 		Rows()
 	if err != nil {
 		logger.Log.Warn("Failed to scan streams for observed-max backfill. Error: " + err.Error())
@@ -346,7 +363,7 @@ func backfillObservedMaxHeartrate() {
 	}
 
 	// Mark every legacy row processed (0), then raise the ones we found a peak for.
-	if err := Instance.Model(&models.User{}).Where("`observed_max_heartrate` IS NULL").Update("observed_max_heartrate", 0).Error; err != nil {
+	if err := Instance.Model(&models.User{}).Where("observed_max_heartrate IS NULL").Update("observed_max_heartrate", 0).Error; err != nil {
 		logger.Log.Warn("Failed to mark users processed in observed-max backfill. Error: " + err.Error())
 		return
 	}

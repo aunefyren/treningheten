@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/aunefyren/treningheten/database"
+	"github.com/aunefyren/treningheten/internal/testdb"
 )
 
 // upstreamFaults fails exactly the Nth request any fake third-party server (Strava,
@@ -115,6 +116,10 @@ func sweepUpstream(t *testing.T, scenario faultScenario) {
 func TestUpstreamFaultSweep(t *testing.T) {
 	if testing.Short() {
 		t.Skip("upstream sweep replays every integration scenario per request and failure mode")
+	}
+	// A fresh database per injected failure; it exercises error handling, not SQL.
+	if testdb.Backend() != "sqlite" {
+		t.Skip("upstream sweep runs on SQLite only")
 	}
 	integrations := map[string]bool{
 		"strava connect and sync": true, "strava resync": true, "strava sync by activity id": true, "strava set resync": true,

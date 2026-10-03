@@ -10,9 +10,9 @@ func GetGearForUser(userID uuid.UUID) (gear []models.Gear, err error) {
 	gear = []models.Gear{}
 	err = nil
 
-	record := Instance.Where("`gear`.enabled = ?", 1).
-		Where("`gear`.user_id = ?", userID).
-		Order("`gear`.retired asc, `gear`.name asc").
+	record := Instance.Where("gear.enabled = ?", true).
+		Where("gear.user_id = ?", userID).
+		Order("gear.retired asc, gear.name asc").
 		Find(&gear)
 
 	if record.Error != nil {
@@ -27,9 +27,9 @@ func GetGearByIDAndUserID(gearID uuid.UUID, userID uuid.UUID) (gear *models.Gear
 	err = nil
 
 	found := models.Gear{}
-	record := Instance.Where("`gear`.enabled = ?", 1).
-		Where("`gear`.id = ?", gearID).
-		Where("`gear`.user_id = ?", userID).
+	record := Instance.Where("gear.enabled = ?", true).
+		Where("gear.id = ?", gearID).
+		Where("gear.user_id = ?", userID).
 		Find(&found)
 
 	if record.Error != nil {
@@ -48,7 +48,7 @@ func GetGearByID(gearID uuid.UUID) (gear *models.Gear, err error) {
 	err = nil
 
 	found := models.Gear{}
-	record := Instance.Where("`gear`.id = ?", gearID).
+	record := Instance.Where("gear.id = ?", gearID).
 		Find(&found)
 
 	if record.Error != nil {
@@ -65,9 +65,9 @@ func GetGearByStravaGearIDAndUserID(stravaGearID string, userID uuid.UUID) (gear
 	err = nil
 
 	found := models.Gear{}
-	record := Instance.Where("`gear`.enabled = ?", 1).
-		Where("`gear`.user_id = ?", userID).
-		Where("`gear`.strava_gear_id = ?", stravaGearID).
+	record := Instance.Where("gear.enabled = ?", true).
+		Where("gear.user_id = ?", userID).
+		Where("gear.strava_gear_id = ?", stravaGearID).
 		Find(&found)
 
 	if record.Error != nil {
@@ -99,8 +99,8 @@ func UpdateGearInDB(gear models.Gear) (models.Gear, error) {
 // a user except exceptID, so a single gear can be promoted to primary.
 func UnsetPrimaryGearForUser(userID uuid.UUID, exceptID uuid.UUID) error {
 	record := Instance.Model(&models.Gear{}).
-		Where("`gear`.user_id = ?", userID).
-		Where("`gear`.id != ?", exceptID).
+		Where("gear.user_id = ?", userID).
+		Where("gear.id != ?", exceptID).
 		Update("is_primary", false)
 	return record.Error
 }
@@ -116,17 +116,17 @@ func GetGearDistanceTotalsForUser(userID uuid.UUID) (map[uuid.UUID]float64, erro
 
 	rows := []gearDistanceRow{}
 	record := Instance.Model(&models.OperationSet{}).
-		Select("`operations`.gear_id as gear_id, COALESCE(SUM(`operation_sets`.distance), 0) as distance").
-		Joins("JOIN `operations` on `operation_sets`.operation_id = `operations`.id").
-		Joins("JOIN `exercises` on `operations`.exercise_id = `exercises`.id").
-		Joins("JOIN `exercise_days` on `exercises`.exercise_day_id = `exercise_days`.id").
-		Where("`operation_sets`.enabled = ?", 1).
-		Where("`operations`.enabled = ?", 1).
-		Where("`exercises`.enabled = ?", 1).
-		Where("`exercise_days`.enabled = ?", 1).
-		Where("`exercise_days`.user_id = ?", userID).
-		Where("`operations`.gear_id IS NOT NULL").
-		Group("`operations`.gear_id").
+		Select("operations.gear_id as gear_id, COALESCE(SUM(operation_sets.distance), 0) as distance").
+		Joins("JOIN operations on operation_sets.operation_id = operations.id").
+		Joins("JOIN exercises on operations.exercise_id = exercises.id").
+		Joins("JOIN exercise_days on exercises.exercise_day_id = exercise_days.id").
+		Where("operation_sets.enabled = ?", true).
+		Where("operations.enabled = ?", true).
+		Where("exercises.enabled = ?", true).
+		Where("exercise_days.enabled = ?", true).
+		Where("exercise_days.user_id = ?", userID).
+		Where("operations.gear_id IS NOT NULL").
+		Group("operations.gear_id").
 		Scan(&rows)
 
 	if record.Error != nil {

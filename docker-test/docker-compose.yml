@@ -62,6 +62,19 @@ services:
       - ./data/mariadb:/var/lib/mysql
     restart: unless-stopped
 
+  # Optional: `docker compose --profile postgres up -d --build`, after `./setup.sh postgres`.
+  postgres:
+    image: postgres:16-alpine
+    container_name: tt-postgres
+    profiles: ["postgres"]
+    environment:
+      POSTGRES_USER: treningheten
+      POSTGRES_PASSWORD: treningheten
+      POSTGRES_DB: treningheten
+    volumes:
+      - ./data/postgres:/var/lib/postgresql/data
+    restart: unless-stopped
+
   # Optional: `docker compose --profile ollama up -d`. ollama-pull fetches a small
   # model once; flip `ollama.enabled` in data/treningheten/config/config.json after.
   ollama:

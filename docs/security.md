@@ -168,7 +168,7 @@ doesn't re-derive them:
 - **CSRF** — the API authenticates from the `Authorization` header, not the cookie. The one
   cookie-accepting group, `AuthImageReadOnly`, is GET-only and `SameSite=Strict`.
 - **Social feeds** — all three go through `buildActivitiesFromExerciseDays`, which drops
-  private sessions, and `share_activities = 1` is enforced **in SQL**
+  private sessions, and `share_activities = true` is enforced **in SQL**
   (see [activity-feed.md](activity-feed.md)). Season activities also require the caller to
   hold a goal in the season.
 - **`ShareStatistics`** is not nil-ed by `CensorUserObject`, so that gate genuinely works.

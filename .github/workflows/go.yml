@@ -28,6 +28,47 @@ jobs:
       - name: Vet
         run: go vet ./...
 
+  # The suite again on the server backends. internal/testdb gives each test its own
+  # Postgres schema / MySQL database when these DSNs are set (SQLite otherwise).
+  test-server-databases:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - backend: postgres
+            postgres_dsn: postgres://postgres:test@localhost:5432/treningheten?sslmode=disable
+          - backend: mysql
+            mysql_dsn: root:test@tcp(localhost:3306)/?charset=utf8mb4
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_PASSWORD: test
+          POSTGRES_DB: treningheten
+        ports: [ "5432:5432" ]
+        options: >-
+          --health-cmd "pg_isready -U postgres" --health-interval 5s --health-timeout 5s --health-retries 10
+      mysql:
+        image: mysql:8.4
+        env:
+          MYSQL_ROOT_PASSWORD: test
+          MYSQL_DATABASE: treningheten
+        ports: [ "3306:3306" ]
+        options: >-
+          --health-cmd "mysqladmin ping -ptest" --health-interval 5s --health-timeout 5s --health-retries 20
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.25.x'
+      - name: Test against ${{ matrix.backend }}
+        env:
+          TRENINGHETEN_TEST_POSTGRES_DSN: ${{ matrix.postgres_dsn }}
+          TRENINGHETEN_TEST_MYSQL_DSN: ${{ matrix.mysql_dsn }}
+        run: go test ./database/ ./controllers/ -count=1 -timeout 60m
+
   coverage:
     runs-on: ubuntu-latest
     steps:

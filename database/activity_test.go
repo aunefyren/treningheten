@@ -188,7 +188,7 @@ func TestSessionFeedDefaultDateOrderAndAggregates(t *testing.T) {
 func makeSessionOff(t *testing.T, dayID uuid.UUID, at time.Time) models.Exercise {
 	t.Helper()
 	session := makeSession(t, dayID, at)
-	if err := Instance.Model(&session).Update("is_on", 0).Error; err != nil {
+	if err := Instance.Model(&session).Update("is_on", false).Error; err != nil {
 		t.Fatalf("failed to toggle session off: %v", err)
 	}
 	session.IsOn = false
@@ -201,7 +201,7 @@ func makeSessionOff(t *testing.T, dayID uuid.UUID, at time.Time) models.Exercise
 func makeSessionNotCounting(t *testing.T, dayID uuid.UUID, at time.Time) models.Exercise {
 	t.Helper()
 	session := makeSession(t, dayID, at)
-	if err := Instance.Model(&session).Update("counts_toward_goal", 0).Error; err != nil {
+	if err := Instance.Model(&session).Update("counts_toward_goal", false).Error; err != nil {
 		t.Fatalf("failed to flag session not-counting: %v", err)
 	}
 	session.CountsTowardGoal = false
@@ -257,7 +257,7 @@ func TestSessionFeedExcludesOffSessions(t *testing.T) {
 	// A toggled-off session with no activities at all must be excluded too: the session query
 	// is what filters now, so this is the case the old operation-rooted feed never reached.
 	offBare := makeSession(t, day.ID, time.Date(2025, 5, 4, 20, 0, 0, 0, time.UTC))
-	if err := Instance.Model(&offBare).Update("is_on", 0).Error; err != nil {
+	if err := Instance.Model(&offBare).Update("is_on", false).Error; err != nil {
 		t.Fatalf("failed to toggle bare session off: %v", err)
 	}
 

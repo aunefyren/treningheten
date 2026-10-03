@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/aunefyren/treningheten/database"
+	"github.com/aunefyren/treningheten/internal/testdb"
 	"github.com/aunefyren/treningheten/models"
 
 	"github.com/google/uuid"
@@ -248,6 +249,11 @@ func expandPath(path string, w faultWorld) string {
 func TestFaultInjectionSweep(t *testing.T) {
 	if testing.Short() {
 		t.Skip("fault sweep replays every scenario once per database operation")
+	}
+	// It builds a fresh database per injected failure (thousands), and exercises Go error
+	// handling rather than SQL, so it gains nothing from a server backend.
+	if testdb.Backend() != "sqlite" {
+		t.Skip("fault sweep runs on SQLite only")
 	}
 	for _, scenario := range append(append(faultScenarios(), moreFaultScenarios()...), richFaultScenarios()...) {
 		scenario := scenario
