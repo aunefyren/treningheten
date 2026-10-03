@@ -380,7 +380,7 @@ func initRouter(configFile models.ConfigStruct) *gin.Engine {
 			admin.POST("/seasons", controllers.APIRegisterSeason)
 
 			admin.POST("/news", controllers.RegisterNewsPost)
-			admin.DELETE("/news/:news_id", controllers.DeleteNewsPost)
+			admin.DELETE("/news/:news_id", controllers.APIDeleteNewsPost)
 
 			admin.GET("/server-info", controllers.APIGetServerInfo)
 
@@ -390,6 +390,8 @@ func initRouter(configFile models.ConfigStruct) *gin.Engine {
 
 			admin.POST("/debts", controllers.APIGenerateDebtForWeek)
 
+			admin.GET("/users", controllers.APIAdminGetUsers)
+			admin.PUT("/users/:user_id/enabled", controllers.APIAdminSetUserEnabled)
 			admin.POST("/users/:user_id/achievement-delegations", controllers.APIGiveUserAnAchievement)
 
 			admin.GET("/prizes", controllers.APIGetPrizes)

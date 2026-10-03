@@ -18,6 +18,7 @@ type ServerInfoReply struct {
 	MCP      ServerInfoMCP      `json:"mcp"`
 	AI       ServerInfoAI       `json:"ai"`
 	Push     ServerInfoPush     `json:"push"`
+	Media    ServerInfoMedia    `json:"media"`
 }
 
 type ServerInfoDatabase struct {
@@ -55,6 +56,15 @@ type ServerInfoAI struct {
 	URL       string `json:"url,omitempty"`
 	Model     string `json:"model,omitempty"`
 	APIKeySet bool   `json:"api_key_set"`
+}
+
+// ServerInfoMedia reports the media feature flag and which providers are switched on. A
+// provider counts only when the feature flag is on too, matching how the API gates it.
+type ServerInfoMedia struct {
+	Enabled        bool `json:"enabled"`
+	Plex           bool `json:"plex"`
+	Spotify        bool `json:"spotify"`
+	Audiobookshelf bool `json:"audiobookshelf"`
 }
 
 type ServerInfoPush struct {

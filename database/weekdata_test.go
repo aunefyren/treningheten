@@ -163,12 +163,12 @@ func TestGetUsersByIDs(t *testing.T) {
 		t.Fatalf("failed to disable user: %v", err)
 	}
 
-	users, err := GetUsersByIDs([]uuid.UUID{enabled1.ID, enabled2.ID, disabled.ID})
+	users, err := GetUsersByIDs([]uuid.UUID{enabled1.ID, enabled2.ID, disabled.ID, uuid.New()})
 	if err != nil {
 		t.Fatalf("GetUsersByIDs returned error: %v", err)
 	}
-	if len(users) != 2 {
-		t.Errorf("got %d users, want 2 (disabled excluded)", len(users))
+	if len(users) != 3 {
+		t.Errorf("got %d users, want 3 (disabled included, unknown absent)", len(users))
 	}
 	// GetUsersByIDs returns the public view, so credentials are absent from the type
 	// rather than blanked. assertOnlyPublicFields pins the exact set that may go out.

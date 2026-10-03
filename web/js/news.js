@@ -273,7 +273,7 @@ function deleteNews(newsID) {
         }
     };
     xhttp.withCredentials = true;
-    xhttp.open("delete", api_url + "admin/news/" + newsID + "/delete");
+    xhttp.open("delete", api_url + "admin/news/" + newsID);
     xhttp.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
     xhttp.setRequestHeader("Authorization", jwt);
     xhttp.send();

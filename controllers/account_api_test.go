@@ -233,7 +233,11 @@ func TestAdminContentAndReads(t *testing.T) {
 	h.expect(http.StatusCreated, "GET", "/api/auth/news", token, nil)
 	h.expect(http.StatusCreated, "GET", "/api/auth/news/"+newsID, token, nil)
 	h.expect(http.StatusBadRequest, "GET", "/api/auth/news/nope", token, nil)
-	h.expect(http.StatusCreated, "DELETE", "/api/admin/news/"+newsID, adminToken, nil)
+	h.expect(http.StatusOK, "DELETE", "/api/admin/news/"+newsID, adminToken, nil)
+	h.expect(http.StatusNotFound, "DELETE", "/api/admin/news/"+newsID, adminToken, nil)
+	h.expect(http.StatusNotFound, "GET", "/api/auth/news/"+newsID, token, nil)
+	h.expect(http.StatusBadRequest, "DELETE", "/api/admin/news/nope", adminToken, nil)
+	h.expect(http.StatusForbidden, "DELETE", "/api/admin/news/"+newsID, token, nil)
 
 	// Invites: create, list, delete.
 	invite := h.expect(http.StatusCreated, "POST", "/api/admin/invites", adminToken, nil)
@@ -257,7 +261,10 @@ func TestAdminContentAndReads(t *testing.T) {
 		t.Errorf("server-info has no server object: %v", server)
 	}
 	h.ok("GET", "/api/admin/stats", adminToken, nil)
-	h.ok("GET", "/api/admin/exercise-days", adminToken, nil)
+	exerciseDays := h.ok("GET", "/api/admin/exercise-days", adminToken, nil)
+	if _, found := exerciseDays["exercise_days"].([]any); !found {
+		t.Errorf("admin exercise-days has no exercise_days list: %v", exerciseDays)
+	}
 	h.expect(http.StatusForbidden, "GET", "/api/admin/stats", token, nil)
 
 	// Weights.

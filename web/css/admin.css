@@ -92,3 +92,78 @@
 .info-badge--neutral {
   background-color: var(--mediumblue);
 }
+
+/* Generic admin modules (users, achievements, push, sync). Mirrors the card look of
+   the legacy module classes in components.css. */
+
+.admin-module {
+  color: var(--black);
+  margin: 1rem;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  border-radius: 0.5rem;
+  width: 20rem;
+  max-width: 100%;
+  padding: 1rem;
+  background-color: var(--white);
+  box-sizing: border-box;
+  text-align: left;
+}
+
+.admin-module h3 {
+  text-align: center;
+}
+
+.admin-module--wide {
+  width: 32rem;
+}
+
+.admin-module form + form {
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--inset-border);
+}
+
+/* User list */
+
+.admin-user-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  max-height: 30rem;
+  overflow-y: auto;
+}
+
+.admin-user {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.75rem;
+  border: 1px solid var(--inset-border);
+  border-radius: var(--radius-sm);
+  padding: 0.5rem 0.75rem;
+  background-color: var(--inset-bg);
+}
+
+.admin-user--disabled {
+  opacity: 0.6;
+}
+
+.admin-user-identity {
+  min-width: 0;
+}
+
+.admin-user-name {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.35rem;
+  font-weight: bold;
+}
+
+.admin-user-email {
+  font-size: 0.85rem;
+  color: var(--mediumblue);
+  word-break: break-all;
+}

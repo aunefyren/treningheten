@@ -42,8 +42,12 @@ func GetNewsPost(context *gin.Context) {
 	// Get the news post by id
 	newsPost, err := database.GetNewsPostByNewsID(newsIDInt)
 	if err != nil {
-		// If there is an error getting the news, return an internal server error
-		context.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		logger.Log.Info("Failed to get news post. Error: " + err.Error())
+		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get news post."})
+		context.Abort()
+		return
+	} else if newsPost == nil {
+		context.JSON(http.StatusNotFound, gin.H{"error": "News post not found."})
 		context.Abort()
 		return
 	}
@@ -114,45 +118,42 @@ func RegisterNewsPost(context *gin.Context) {
 	context.JSON(http.StatusCreated, gin.H{"message": "News post created.", "news": newsPosts})
 }
 
-func DeleteNewsPost(context *gin.Context) {
-
-	// Bind news request and get news_id ID from URL parameter
-	newsID := context.Param("news_id")
-
-	// Parse news ID as integer
-	newsIDInt, err := uuid.Parse(newsID)
+func APIDeleteNewsPost(context *gin.Context) {
+	newsID, err := uuid.Parse(context.Param("news_id"))
 	if err != nil {
-		context.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		context.JSON(http.StatusBadRequest, gin.H{"error": "Failed to parse news ID."})
 		context.Abort()
 		return
 	}
 
-	// Verify that news post exists
-	_, err = database.GetNewsPostByNewsID(newsIDInt)
+	newsPost, err := database.GetNewsPostByNewsID(newsID)
 	if err != nil {
-		// If there is an error getting the news, return an internal server error
-		context.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		logger.Log.Info("Failed to get news post. Error: " + err.Error())
+		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get news post."})
+		context.Abort()
+		return
+	} else if newsPost == nil {
+		context.JSON(http.StatusNotFound, gin.H{"error": "News post not found."})
 		context.Abort()
 		return
 	}
 
-	// Set the news post to disabled in the database
-	err = database.DeleteNewsPost(newsIDInt)
+	err = database.DeleteNewsPost(newsID)
 	if err != nil {
-		context.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		logger.Log.Info("Failed to delete news post. Error: " + err.Error())
+		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to delete news post."})
 		context.Abort()
 		return
 	}
 
-	// Get updated list of news
+	// The news page re-renders from the returned list.
 	newsPosts, err := database.GetNewsPosts()
 	if err != nil {
-		// If there is an error getting the list of news, return an internal server error
-		context.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		logger.Log.Info("Failed to get news posts. Error: " + err.Error())
+		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get news posts."})
 		context.Abort()
 		return
 	}
 
-	context.JSON(http.StatusCreated, gin.H{"message": "News post deleted.", "news": newsPosts})
-
+	context.JSON(http.StatusOK, gin.H{"message": "News post deleted.", "news": newsPosts})
 }

@@ -12,7 +12,7 @@ func ConvertWheelviewToWheelviewObject(wheelview models.Wheelview) (models.Wheel
 
 	wheelviewObject := models.WheelviewObject{}
 
-	user, err := database.GetUserInformation(wheelview.UserID)
+	user, err := database.GetUserInformationIncludingDisabled(wheelview.UserID)
 	if err != nil {
 		logger.Log.Info("Failed to get user information for user '" + wheelview.UserID.String() + "'. Returning. Error: " + err.Error())
 		return models.WheelviewObject{}, err

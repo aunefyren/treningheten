@@ -467,8 +467,6 @@ func APIGetExerciseDays(context *gin.Context) {
 
 // Get full workout calender for the week from the database, and return to user
 func APIAdminGetExerciseDays(context *gin.Context) {
-	var exerciseDays = []models.ExerciseDay{}
-
 	exerciseDays, err := database.GetAllExerciseDays()
 	if err != nil {
 		logger.Log.Info("Failed to get exercise days. Error: " + err.Error())
@@ -485,7 +483,7 @@ func APIAdminGetExerciseDays(context *gin.Context) {
 		return
 	}
 
-	context.JSON(http.StatusOK, gin.H{"message": "Exercise days retrieved.", "exercise": exerciseDayObjects})
+	context.JSON(http.StatusOK, gin.H{"message": "Exercise days retrieved.", "exercise_days": exerciseDayObjects})
 }
 
 // Change exercises to correlate with exercise days
@@ -670,7 +668,7 @@ func ConvertExerciseDayToExerciseDayObject(exerciseDay models.ExerciseDay) (exer
 		return exerciseDayObject, errors.New("Exercise day conversion error.")
 	}
 
-	user, err := database.GetUserInformation(*exerciseDay.UserID)
+	user, err := database.GetUserInformationIncludingDisabled(*exerciseDay.UserID)
 	if err != nil {
 		logger.Log.Info("Failed to get user using user ID. Error: " + err.Error())
 		return exerciseDayObject, errors.New("Failed to get user using user ID.")

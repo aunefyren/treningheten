@@ -158,8 +158,8 @@ func ConvertSeasonsToSeasonObjects(seasons []models.Season) (seasonObjects []mod
 
 // buildGoalObjects converts a season's goals to GoalObjects using two bulk queries (users
 // + unused sick leave) instead of the two queries per goal that ConvertGoalToGoalObject
-// issues. Goals whose enabled user can't be found are skipped, matching the previous
-// per-goal behaviour in ConvertSeasonToSeasonObject.
+// issues. Disabled users are included (their past goals are history); goals whose user
+// can't be found at all are skipped.
 func buildGoalObjects(goals []models.Goal) []models.GoalObject {
 	goalObjects := []models.GoalObject{}
 	if len(goals) == 0 {

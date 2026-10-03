@@ -58,8 +58,9 @@ func TestGetNewsPostByNewsID(t *testing.T) {
 		t.Errorf("news title: got %q, want %q", found.Title, "Headline")
 	}
 
-	if _, err := GetNewsPostByNewsID(uuid.New()); err == nil {
-		t.Errorf("expected error for unknown news id")
+	missing, err := GetNewsPostByNewsID(uuid.New())
+	if err != nil || missing != nil {
+		t.Errorf("unknown news id: got (%v, %v), want (nil, nil)", missing, err)
 	}
 }
 
@@ -73,8 +74,8 @@ func TestDeleteNewsPost(t *testing.T) {
 	}
 
 	// Now soft-deleted: lookup fails.
-	if _, err := GetNewsPostByNewsID(news.ID); err == nil {
-		t.Errorf("expected disabled news post to be unfindable")
+	if deleted, err := GetNewsPostByNewsID(news.ID); err != nil || deleted != nil {
+		t.Errorf("expected disabled news post to be unfindable, got (%v, %v)", deleted, err)
 	}
 
 	// Deleting a non-existent post affects no rows and errors.

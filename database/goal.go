@@ -2,6 +2,7 @@ package database
 
 import (
 	"errors"
+	"time"
 
 	"github.com/aunefyren/treningheten/models"
 
@@ -113,6 +114,24 @@ func DisableGoalInDBUsingGoalID(goalID uuid.UUID) error {
 
 	return nil
 
+}
+
+// DisableGoalsForUserInUnfinishedSeasons takes a user out of every season that hasn't ended
+// by now (ongoing and upcoming), returning how many goals were disabled. Goals in finished
+// seasons are left alone so the user's history stays intact.
+func DisableGoalsForUserInUnfinishedSeasons(userID uuid.UUID, now time.Time) (int64, error) {
+	unfinishedSeasonIDs := Instance.Model(&models.Season{}).Select("seasons.id").Where("seasons.end >= ?", now)
+
+	goalRecord := Instance.Model(&models.Goal{}).
+		Where("goals.user_id = ?", userID).
+		Where("goals.enabled = ?", true).
+		Where("goals.season_id IN (?)", unfinishedSeasonIDs).
+		Update("enabled", false)
+	if goalRecord.Error != nil {
+		return 0, goalRecord.Error
+	}
+
+	return goalRecord.RowsAffected, nil
 }
 
 func GetGoalsForUserUsingUserID(userID uuid.UUID) ([]models.Goal, error) {

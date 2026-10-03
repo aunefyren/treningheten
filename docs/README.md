@@ -39,6 +39,8 @@ architecture overview.
   (Leaflet + Leaflet.heat over stored Strava `latlng` streams).
 - [admin-stats.md](admin-stats.md) — aggregate usage statistics on the admin panel
   (users in seasons / with notifications / with Strava, achievement completion).
+- [admin-users.md](admin-users.md) — disabling and re-enabling users from the admin
+  panel: access cut-off, leaving unfinished seasons, and keeping history readable.
 - [image-serving.md](image-serving.md) — how profile/achievement images are served (raw
   bytes via `<img src>`, cookie-or-header auth, HTTP + server-side resize caching).
 - [gear.md](gear.md) — gear tracking (shoes/bikes): manual + Strava-imported equipment,

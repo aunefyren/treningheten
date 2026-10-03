@@ -58,6 +58,12 @@ func APIGetServerInfo(context *gin.Context) {
 			Configured: config.VAPIDPublicKey != "" && config.VAPIDSecretKey != "",
 			Contact:    config.VAPIDContact,
 		},
+		Media: models.ServerInfoMedia{
+			Enabled:        config.Media.Enabled,
+			Plex:           config.Media.Enabled && config.Media.Plex.Enabled,
+			Spotify:        config.Media.Enabled && config.Media.Spotify.Enabled,
+			Audiobookshelf: config.Media.Enabled && config.Media.Audiobookshelf.Enabled,
+		},
 	}
 
 	// Reply

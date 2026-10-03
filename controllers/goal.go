@@ -117,7 +117,7 @@ func ConvertGoalToGoalObject(goal models.Goal) (models.GoalObject, error) {
 
 	var goalObject models.GoalObject
 
-	user, err := database.GetUserInformation(goal.UserID)
+	user, err := database.GetUserInformationIncludingDisabled(goal.UserID)
 	if err != nil {
 		logger.Log.Info("Failed to get information for user '" + goal.User.ID.String() + "'. Returning. Error: " + err.Error())
 		return models.GoalObject{}, err

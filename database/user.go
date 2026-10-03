@@ -276,6 +276,67 @@ func GetUserInformation(UserID uuid.UUID) (models.PublicUser, error) {
 	return CensorUserObject(user), nil
 }
 
+// GetUserInformationIncludingDisabled is GetUserInformation without the enabled filter. Read
+// paths that render history (goals, debts, wheels, invites, exercise days) use it so a
+// disabled user still shows up by name instead of breaking the conversion.
+func GetUserInformationIncludingDisabled(userID uuid.UUID) (models.PublicUser, error) {
+	var user models.User
+	userRecord := Instance.Where("users.id = ?", userID).Find(&user)
+	if userRecord.Error != nil {
+		return models.PublicUser{}, userRecord.Error
+	} else if userRecord.RowsAffected != 1 {
+		return models.PublicUser{}, errors.New("Failed to find correct user in DB.")
+	}
+
+	return CensorUserObject(user), nil
+}
+
+// GetUserByIDIncludingDisabled returns the full user row regardless of the enabled flag, or
+// nil when no such user exists. Server-side only; convert before it reaches a response.
+func GetUserByIDIncludingDisabled(userID uuid.UUID) (*models.User, error) {
+	var user models.User
+	userRecord := Instance.Where("users.id = ?", userID).Find(&user)
+	if userRecord.Error != nil {
+		return nil, userRecord.Error
+	} else if userRecord.RowsAffected != 1 {
+		return nil, nil
+	}
+
+	return &user, nil
+}
+
+// GetAllUsersIncludingDisabled returns every user row, enabled or not, for the admin user
+// list. Server-side only; convert with ToAdminUser before it reaches a response.
+func GetAllUsersIncludingDisabled() ([]models.User, error) {
+	var users []models.User
+	userRecord := Instance.Order("users.first_name asc").Order("users.last_name asc").Find(&users)
+	if userRecord.Error != nil {
+		return []models.User{}, userRecord.Error
+	}
+
+	return users, nil
+}
+
+// SetUserEnabled flips a user's enabled flag. It does not check RowsAffected: MySQL reports
+// zero for an update that leaves the value unchanged, which is not a failure here.
+func SetUserEnabled(userID uuid.UUID, enabled bool) error {
+	return Instance.Model(&models.User{}).Where("users.id = ?", userID).Update("enabled", enabled).Error
+}
+
+// ToAdminUser reduces a full user row to the admin page's allowlist.
+func ToAdminUser(user models.User) models.AdminUser {
+	return models.AdminUser{
+		ID:        user.ID,
+		CreatedAt: user.CreatedAt,
+		FirstName: user.FirstName,
+		LastName:  user.LastName,
+		Email:     user.Email,
+		Admin:     user.Admin,
+		Enabled:   user.Enabled,
+		Verified:  user.Verified,
+	}
+}
+
 // Get all enabled users information (censored)
 func GetUsersInformation() ([]models.PublicUser, error) {
 	users, err := GetAllUsersUncensored()
@@ -307,10 +368,10 @@ func GetAllUsersUncensored() ([]models.User, error) {
 }
 
 // Get user information using email (censored)
-// GetUsersByIDs returns the enabled, censored users for the given IDs in a single query,
-// so callers converting many goals don't issue one GetUserInformation per goal. Users that
-// are missing/disabled are simply absent from the result. Returns an empty slice when no
-// IDs are supplied.
+// GetUsersByIDs returns the censored users for the given IDs in a single query, so callers
+// converting many goals don't issue one GetUserInformation per goal. Disabled users are
+// included: their goals in past seasons are history and should still render. Missing users
+// are simply absent from the result. Returns an empty slice when no IDs are supplied.
 func GetUsersByIDs(userIDs []uuid.UUID) ([]models.PublicUser, error) {
 	var users []models.User
 
@@ -318,7 +379,7 @@ func GetUsersByIDs(userIDs []uuid.UUID) ([]models.PublicUser, error) {
 		return []models.PublicUser{}, nil
 	}
 
-	userrecord := Instance.Where("users.enabled = ?", true).Where("users.id IN ?", userIDs).Find(&users)
+	userrecord := Instance.Where("users.id IN ?", userIDs).Find(&users)
 	if userrecord.Error != nil {
 		return []models.PublicUser{}, userrecord.Error
 	}

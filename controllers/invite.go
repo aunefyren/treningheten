@@ -127,7 +127,7 @@ func ConvertInviteToInviteObject(invite models.Invite) (models.InviteObject, err
 	if invite.RecipientID == nil {
 		inviteObject.Recipient = nil
 	} else {
-		user, err := database.GetUserInformation(*invite.RecipientID)
+		user, err := database.GetUserInformationIncludingDisabled(*invite.RecipientID)
 		if err != nil {
 			logger.Log.Info("Failed to get user information for user '" + invite.Recipient.ID.String() + "'. Returning. Error: " + err.Error())
 			return models.InviteObject{}, err

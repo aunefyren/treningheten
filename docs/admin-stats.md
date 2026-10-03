@@ -36,6 +36,6 @@ denominator (returning `0` when there are no users / achievements).
   `percentageOf` and responds with `{ "stats": ... }`.
 - Route: `GET /api/admin/stats`, registered in `main.go` under the
   `middlewares.Auth(true)` admin group.
-- Frontend: `web/js/admin.js` — `get_admin_stats()` fetches and
-  `place_admin_stats()` renders the module, reusing the `server_info_row` /
+- Frontend: `web/js/admin.js` — `getAdminStats()` fetches and
+  `placeAdminStats()` renders the module, reusing the `serverInfoRow` /
   `info-badge` helpers from the Server info module.

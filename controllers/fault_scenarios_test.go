@@ -219,7 +219,7 @@ func faultScenarios() []faultScenario {
 		scenario("news", 201, get("/api/auth/news", true)),
 		scenario("news post", 201, get("/api/auth/news/{news}", true)),
 		scenario("create news", 201, send("POST", "/api/admin/news", false, models.NewsCreationRequest{Title: "More news", Body: "Body text", Date: time.Now()})),
-		scenario("delete news", 201, send("DELETE", "/api/admin/news/{news}", false, nil)),
+		scenario("delete news", 200, send("DELETE", "/api/admin/news/{news}", false, nil)),
 		scenario("create invite", 201, send("POST", "/api/admin/invites", false, nil)),
 		scenario("invites", 200, get("/api/admin/invites", false)),
 		scenario("prizes", 200, get("/api/admin/prizes", false)),

@@ -47,7 +47,7 @@ which is the join record. There is **one goal per user per season**.
 | `SeasonID`, `UserID` | The participation link |
 | `ExerciseInterval` | The user's **weekly target** — number of workouts per week |
 | `Competing` | `true` = competing for the prize (and exposed to debts); `false` = participating casually |
-| `Enabled` | Soft-delete flag (leaving a season) |
+| `Enabled` | Soft-delete flag (leaving a season; also set when an admin disables the user — see [admin-users.md](admin-users.md)) |
 
 `GoalObject` (the enriched read form, via `ConvertGoalToGoalObject`) adds a computed
 `SickleaveLeft`. Because of this indirection, **"my seasons" = "the seasons I have a

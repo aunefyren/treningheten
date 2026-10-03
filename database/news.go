@@ -28,20 +28,18 @@ func GetNewsPosts() ([]models.News, error) {
 
 }
 
-func GetNewsPostByNewsID(newsID uuid.UUID) (models.News, error) {
-
+// GetNewsPostByNewsID returns the enabled news post, or nil when there is none.
+func GetNewsPostByNewsID(newsID uuid.UUID) (*models.News, error) {
 	var newsPost models.News
 
 	newsPostRecords := Instance.Where("news.enabled = ?", true).Where("news.id = ?", newsID).Find(&newsPost)
-
 	if newsPostRecords.Error != nil {
-		return models.News{}, newsPostRecords.Error
+		return nil, newsPostRecords.Error
 	} else if newsPostRecords.RowsAffected != 1 {
-		return models.News{}, errors.New("News post was not found.")
+		return nil, nil
 	}
 
-	return newsPost, nil
-
+	return &newsPost, nil
 }
 
 // Set news post to disabled

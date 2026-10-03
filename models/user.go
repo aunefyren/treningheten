@@ -105,6 +105,26 @@ type PublicUser struct {
 	WheelEmoji       *string `json:"wheel_emoji"`
 }
 
+// AdminUser is what an admin sees of a user on the admin page: identity plus the account
+// flags they manage. Like PublicUser it is an allowlist, so credentials and personal
+// health data stay out of the admin list too.
+type AdminUser struct {
+	ID        uuid.UUID `json:"id"`
+	CreatedAt time.Time `json:"created_at"`
+	FirstName string    `json:"first_name"`
+	LastName  string    `json:"last_name"`
+	Email     string    `json:"email"`
+	Admin     *bool     `json:"admin"`
+	Enabled   bool      `json:"enabled"`
+	Verified  bool      `json:"verified"`
+}
+
+// UserEnabledRequest toggles a user's access from the admin page. A pointer, so a missing
+// field is rejected rather than read as "disable".
+type UserEnabledRequest struct {
+	Enabled *bool `json:"enabled"`
+}
+
 type UserCreationRequest struct {
 	FirstName      string `json:"first_name"`
 	LastName       string `json:"last_name"`
