@@ -123,6 +123,12 @@ DATETIME, which is why it only showed up on SQLite. Regression test:
 (The upper bound has the mirror-image edge — a value stamped exactly `23:59:59` sorts
 above `"… 23:59:59"` on SQLite — but nothing stamps that time today.)
 
+The single-day lookups order by `created_at` and take one row, so if duplicate days for a
+date ever exist they all resolve to the oldest — "find or create" callers keep reusing it
+rather than adding another. Duplicates left over from before the fix are merged at startup
+by `mergeDuplicateExerciseDays` (`database/exerciseday_merge.go`): sessions move to the
+oldest day, notes are appended, a missing goal is adopted, and the rest are disabled.
+
 ## Batch inserts with mixed optional fields fail on SQLite
 
 `tx.Create(&slice)` issues one multi-row `INSERT`. When the rows differ in which

@@ -204,6 +204,7 @@ func Migrate() {
 	migrateStravaIgnoreWalksToGoalSettings()
 	backfillObservedMaxHeartrate()
 	backfillOperationStreamRollups()
+	mergeDuplicateExerciseDays()
 
 	logger.Log.Info("Database migration completed.")
 }

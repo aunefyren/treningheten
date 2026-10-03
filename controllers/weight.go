@@ -13,6 +13,15 @@ import (
 	"github.com/google/uuid"
 )
 
+// maxBodyWeightKg is the upper bound accepted for a weight entry. Weights carry no unit
+// and are implicitly kilograms; the bound only rejects obvious typos.
+const maxBodyWeightKg = 500
+
+// validBodyWeight reports whether weight is a plausible body weight in kilograms.
+func validBodyWeight(weight float64) bool {
+	return weight > 0 && weight <= maxBodyWeightKg
+}
+
 func APIGetWeightsForUser(context *gin.Context) {
 	// Get user ID
 	userID, err := middlewares.GetAuthUsername(context.GetHeader("Authorization"))
@@ -86,6 +95,12 @@ func APICreateWeightForUser(context *gin.Context) {
 	if err := context.ShouldBindJSON(&weightCreationRequest); err != nil {
 		logger.Log.Error("Failed to parse creation request. Error: " + err.Error())
 		context.JSON(http.StatusBadRequest, gin.H{"error": "Failed to parse creation request."})
+		context.Abort()
+		return
+	}
+
+	if !validBodyWeight(weightCreationRequest.Weight) {
+		context.JSON(http.StatusBadRequest, gin.H{"error": "Weight must be above 0 and at most 500 kg."})
 		context.Abort()
 		return
 	}

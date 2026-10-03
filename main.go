@@ -336,7 +336,7 @@ func initRouter(configFile models.ConfigStruct) *gin.Engine {
 			auth.POST("/exercises/:exercise_id/media-sync", controllers.APISyncMediaForExercise)
 			auth.POST("/users/:user_id/hevy-sync", controllers.APISyncHevyForUser)
 			auth.GET("/users", controllers.GetUsers)
-			auth.POST("/users/:user_id", controllers.UpdateUser)
+			auth.POST("/users/:user_id", controllers.APIUpdateUser)
 			auth.PATCH("/users/:user_id", controllers.APIPartialUpdateUser)
 			auth.GET("/users/:user_id/activities", controllers.APIGetUserActivities)
 			auth.GET("/users/:user_id/statistics", controllers.APIGetUserStatistics)

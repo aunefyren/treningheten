@@ -261,6 +261,9 @@ func TestAdminContentAndReads(t *testing.T) {
 	h.expect(http.StatusForbidden, "GET", "/api/admin/stats", token, nil)
 
 	// Weights.
+	for _, invalid := range []float64{0, -1, maxBodyWeightKg + 0.01} {
+		h.expect(http.StatusBadRequest, "POST", "/api/auth/weights", token, models.WeightValueCreationRequest{Date: time.Now(), Weight: invalid})
+	}
 	weight := h.expect(http.StatusCreated, "POST", "/api/auth/weights", token, models.WeightValueCreationRequest{Date: time.Now(), Weight: 80.5, UserID: user.ID})
 	weightID := idOf(t, weight, "weight")
 	h.ok("GET", "/api/auth/weights", token, nil)

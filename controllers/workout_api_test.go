@@ -87,6 +87,12 @@ func TestWorkoutLoggingFlow(t *testing.T) {
 		ExerciseID: uuid.MustParse(sessionID), Action: &actionID, Type: "lifting", WeightUnit: "kg", DistanceUnit: "km",
 	})
 	operationID := idOf(t, operation, "operation")
+	if got := field(t, operation, "operation", "action", "id"); got != actionID.String() {
+		t.Errorf("created operation action = %v, want %s", got, actionID)
+	}
+	if got, want := field(t, operation, "operation", "type"), field(t, actionList[0], "type"); got != want {
+		t.Errorf("created operation type = %v, want the action's type %v", got, want)
+	}
 
 	set := h.expect(http.StatusCreated, "POST", "/api/auth/operation-sets", token, models.OperationSetCreationRequest{
 		OperationID: uuid.MustParse(operationID), Repetitions: float64Ptr(10), Weight: float64Ptr(60),

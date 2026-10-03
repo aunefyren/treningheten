@@ -131,7 +131,7 @@ func newAPIHarness(t *testing.T) *apiHarness {
 	a.POST("/exercises/:exercise_id/media-sync", APISyncMediaForExercise)
 	a.POST("/users/:user_id/hevy-sync", APISyncHevyForUser)
 	a.GET("/users", GetUsers)
-	a.POST("/users/:user_id", UpdateUser)
+	a.POST("/users/:user_id", APIUpdateUser)
 	a.PATCH("/users/:user_id", APIPartialUpdateUser)
 	a.GET("/users/:user_id/activities", APIGetUserActivities)
 	a.GET("/users/:user_id/statistics", APIGetUserStatistics)

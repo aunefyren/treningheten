@@ -114,12 +114,11 @@ func TestAccountUpdateEdgeCases(t *testing.T) {
 	// A bad image is the client's mistake: 400, with the reason.
 	h.expect(http.StatusBadRequest, "POST", userPath, token, models.UserUpdateRequest{Email: "me@update.test", OldPassword: "Password123", ProfileImage: "data:image/jpeg;base64,bm90IGFuIGltYWdl"})
 
-	// Characterizes current behaviour: changing the address keeps the account verified
-	// and sends no verification mail (the re-verify branch only runs for accounts that
-	// are already unverified, which the auth middleware keeps out). See docs/wip.md.
+	// With SMTP on, a changed address is re-verified: the account drops to unverified and
+	// a code goes to the new address.
 	before := len(server.Messages())
 	updated := h.ok("POST", userPath, token, models.UserUpdateRequest{Email: "new@update.test", OldPassword: "Password123"})
-	if updated["verified"] != true || len(server.Messages()) != before {
+	if updated["verified"] != false || len(server.Messages()) != before+1 {
 		t.Errorf("e-mail change: verified = %v, mails sent = %d", updated["verified"], len(server.Messages())-before)
 	}
 	if changed, _ := database.GetAllUserInformation(user.ID); changed.Email != "new@update.test" {

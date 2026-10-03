@@ -82,12 +82,14 @@ func TestOperationCreationValidation(t *testing.T) {
 	_, token := h.user("opvalid@validation.test", false)
 	sessionID := uuid.MustParse(createTodaySession(t, h, token))
 	equipment := "anvil"
+	unknownAction := uuid.New()
 
 	for name, request := range map[string]models.OperationCreationRequest{
 		"type":          {ExerciseID: sessionID, Type: "flying", WeightUnit: "kg", DistanceUnit: "km"},
 		"distance unit": {ExerciseID: sessionID, Type: "moving", WeightUnit: "kg", DistanceUnit: "parsecs"},
 		"weight unit":   {ExerciseID: sessionID, Type: "lifting", WeightUnit: "stone", DistanceUnit: "km"},
 		"equipment":     {ExerciseID: sessionID, Type: "lifting", WeightUnit: "kg", DistanceUnit: "km", Equipment: &equipment},
+		"action":        {ExerciseID: sessionID, Action: &unknownAction, Type: "lifting", WeightUnit: "kg", DistanceUnit: "km"},
 	} {
 		if code := h.do("POST", "/api/auth/operations", token, request).Code; code != http.StatusBadRequest && code != http.StatusNotFound {
 			t.Errorf("invalid %s: status = %d, want a client error", name, code)

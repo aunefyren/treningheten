@@ -29,7 +29,7 @@ func GetExerciseDayByGoalAndDate(goalID uuid.UUID, date time.Time) (*models.Exer
 	startDayString := date.Format("2006-01-02") + " 00:00:00"
 	endDayString := date.Format("2006-01-02") + " 23:59:59"
 
-	goalrecord := Instance.Where("`exercise_days`.enabled = ?", 1).Where("`exercise_days`.goal_id = ?", goalID).Where("`exercise_days`.Date >= ?", startDayString).Where("`exercise_days`.Date <= ?", endDayString).Find(&exercise)
+	goalrecord := Instance.Where("`exercise_days`.enabled = ?", 1).Where("`exercise_days`.goal_id = ?", goalID).Where("`exercise_days`.Date >= ?", startDayString).Where("`exercise_days`.Date <= ?", endDayString).Order("`exercise_days`.created_at ASC").Limit(1).Find(&exercise)
 	if goalrecord.Error != nil {
 		return nil, goalrecord.Error
 	} else if goalrecord.RowsAffected == 0 {
@@ -47,7 +47,7 @@ func GetExerciseDayByUserIDAndDate(userID uuid.UUID, date time.Time) (*models.Ex
 	startDayString := date.Format("2006-01-02") + " 00:00:00"
 	endDayString := date.Format("2006-01-02") + " 23:59:59"
 
-	records := Instance.Where("`exercise_days`.enabled = ?", 1).Where("`exercise_days`.user_id = ?", userID).Where("`exercise_days`.Date >= ?", startDayString).Where("`exercise_days`.Date <= ?", endDayString).Find(&exercise)
+	records := Instance.Where("`exercise_days`.enabled = ?", 1).Where("`exercise_days`.user_id = ?", userID).Where("`exercise_days`.Date >= ?", startDayString).Where("`exercise_days`.Date <= ?", endDayString).Order("`exercise_days`.created_at ASC").Limit(1).Find(&exercise)
 	if records.Error != nil {
 		return nil, records.Error
 	} else if records.RowsAffected == 0 {
@@ -303,12 +303,14 @@ func GetExerciseDayByDateAndGoal(goalID uuid.UUID, date time.Time) (*models.Exer
 		Where("`exercise_days`.goal_id = ?", goalID).
 		Where("`exercise_days`.Date >= ?", startDayString).
 		Where("`exercise_days`.Date <= ?", endDayString).
+		Order("`exercise_days`.created_at ASC").
+		Limit(1).
 		Find(&exercise)
 
 	if goalrecord.Error != nil {
 		return nil, goalrecord.Error
-	} else if goalrecord.RowsAffected != 1 {
-		return nil, err
+	} else if goalrecord.RowsAffected == 0 {
+		return nil, nil
 	}
 
 	return &exercise, err
@@ -325,12 +327,14 @@ func GetExerciseDayByDateAndUserID(userID uuid.UUID, date time.Time) (*models.Ex
 		Where("`exercise_days`.user_id = ?", userID).
 		Where("`exercise_days`.Date >= ?", startDayString).
 		Where("`exercise_days`.Date <= ?", endDayString).
+		Order("`exercise_days`.created_at ASC").
+		Limit(1).
 		Find(&exercise)
 
 	if goalrecord.Error != nil {
 		return nil, goalrecord.Error
-	} else if goalrecord.RowsAffected != 1 {
-		return nil, err
+	} else if goalrecord.RowsAffected == 0 {
+		return nil, nil
 	}
 
 	return &exercise, err

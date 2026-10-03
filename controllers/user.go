@@ -357,21 +357,17 @@ func SendUserVerificationCode(context *gin.Context) {
 
 }
 
-func UpdateUser(context *gin.Context) {
-
-	// Initialize variables
+// APIUpdateUser updates the caller's account settings. The current password is required.
+// Every field is validated before anything is written, so a rejected request changes nothing.
+func APIUpdateUser(context *gin.Context) {
 	var userUpdateRequest models.UserUpdateRequest
-	var err error
-
-	// Parse creation request
 	if err := context.ShouldBindJSON(&userUpdateRequest); err != nil {
-		logger.Log.Info("Failed to prase update request. Error: " + err.Error())
-		context.JSON(http.StatusBadRequest, gin.H{"error": "Failed to prase update request."})
+		logger.Log.Info("Failed to parse update request. Error: " + err.Error())
+		context.JSON(http.StatusBadRequest, gin.H{"error": "Failed to parse update request."})
 		context.Abort()
 		return
 	}
 
-	// Get user ID
 	userID, err := middlewares.GetAuthUsername(context.GetHeader("Authorization"))
 	if err != nil {
 		context.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
@@ -379,7 +375,7 @@ func UpdateUser(context *gin.Context) {
 		return
 	}
 
-	userObject, err := database.GetAllUserInformation(userID)
+	user, err := database.GetAllUserInformation(userID)
 	if err != nil {
 		logger.Log.Info("Failed to get user information. Error: " + err.Error())
 		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get user information."})
@@ -392,7 +388,7 @@ func UpdateUser(context *gin.Context) {
 		middlewares.AbortPasswordCostBusy(context)
 		return
 	}
-	credentialError := userObject.CheckPassword(userUpdateRequest.OldPassword)
+	credentialError := user.CheckPassword(userUpdateRequest.OldPassword)
 	checkRelease()
 	if credentialError != nil {
 		logger.Log.Info("Invalid credentials. Error: " + credentialError.Error())
@@ -401,65 +397,30 @@ func UpdateUser(context *gin.Context) {
 		return
 	}
 
-	// Make sure password match
-	if userUpdateRequest.Password != "" && userUpdateRequest.Password != userUpdateRequest.PasswordRepeat {
-		context.JSON(http.StatusBadRequest, gin.H{"error": "Passwords must match."})
-		context.Abort()
-		return
-	}
-
-	// Make password is strong enough
-	valid, requirements, err := utilities.ValidatePasswordFormat(userUpdateRequest.Password)
+	message, err := validateUserUpdate(userUpdateRequest, time.Now())
 	if err != nil {
-		logger.Log.Info("Failed to verify password quality. Error: " + err.Error())
+		logger.Log.Info("Failed to validate user update. Error: " + err.Error())
 		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to verify password quality."})
 		context.Abort()
 		return
-	} else if !valid && userUpdateRequest.Password != "" {
-		context.JSON(http.StatusBadRequest, gin.H{"error": requirements})
+	} else if message != "" {
+		context.JSON(http.StatusBadRequest, gin.H{"error": message})
 		context.Abort()
 		return
 	}
 
-	// Get user object
-	var userOriginal models.User
-	record := database.Instance.Where("ID = ?", userID).First(&userOriginal)
-	if record.Error != nil {
-		logger.Log.Info("Invalid credentials. Error: " + record.Error.Error())
-		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get user details."})
+	message, err = applyEmailChange(&user, userUpdateRequest.Email, files.ConfigFile.SMTPEnabled)
+	if err != nil {
+		logger.Log.Info("Failed to change e-mail. Error: " + err.Error())
+		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to verify e-mail."})
+		context.Abort()
+		return
+	} else if message != "" {
+		context.JSON(http.StatusBadRequest, gin.H{"error": message})
 		context.Abort()
 		return
 	}
 
-	userUpdateRequest.Email = html.EscapeString(strings.TrimSpace(strings.ToLower(userUpdateRequest.Email)))
-
-	if userOriginal.Email != userUpdateRequest.Email {
-
-		// Verify e-mail is not in use
-		unique_email, err := database.VerifyUniqueUserEmail(userUpdateRequest.Email)
-		if err != nil {
-			context.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-			context.Abort()
-			return
-		} else if !unique_email {
-			context.JSON(http.StatusBadRequest, gin.H{"error": "E-mail is already in use."})
-			context.Abort()
-			return
-		}
-
-		// Set account to not verified
-		err = database.SetUserVerification(userID, false)
-		if err != nil {
-			context.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-			context.Abort()
-			return
-		}
-
-		userOriginal.Email = userUpdateRequest.Email
-
-	}
-
-	// Hash the selected password
 	passwordChanged := userUpdateRequest.Password != ""
 	if passwordChanged {
 		hashRelease, hashSlotFree := middlewares.AcquirePasswordCostSlot()
@@ -467,7 +428,7 @@ func UpdateUser(context *gin.Context) {
 			middlewares.AbortPasswordCostBusy(context)
 			return
 		}
-		hashError := userOriginal.HashPassword(userUpdateRequest.Password)
+		hashError := user.HashPassword(userUpdateRequest.Password)
 		hashRelease()
 		if hashError != nil {
 			context.JSON(http.StatusInternalServerError, gin.H{"error": hashError.Error()})
@@ -476,13 +437,14 @@ func UpdateUser(context *gin.Context) {
 		}
 	}
 
-	// Transfer share values
-	userOriginal.ShareActivities = userUpdateRequest.ShareActivities
-	userOriginal.ShareStatistics = userUpdateRequest.ShareStatistics
+	user.ShareActivities = userUpdateRequest.ShareActivities
+	user.ShareStatistics = userUpdateRequest.ShareStatistics
+	user.BirthDate = userUpdateRequest.BirthDate
+	user.MaxHeartrate = userUpdateRequest.MaxHeartrate
+	user.RestingHeartrate = userUpdateRequest.RestingHeartrate
 
-	// Update profile image
 	if userUpdateRequest.ProfileImage != "" {
-		err = UpdateUserProfileImage(userOriginal.ID, userUpdateRequest.ProfileImage)
+		err = UpdateUserProfileImage(user.ID, userUpdateRequest.ProfileImage)
 		var invalidImage *InvalidProfileImageError
 		if errors.As(err, &invalidImage) {
 			context.JSON(http.StatusBadRequest, gin.H{"error": invalidImage.Message})
@@ -497,49 +459,11 @@ func UpdateUser(context *gin.Context) {
 
 		// Give achievement to user for changing profile photo, ignore outcome
 		goSafely("achievement grant", func() {
-			GiveUserAnAchievement(userOriginal.ID, uuid.MustParse("05a3579f-aa8d-4814-b28f-5824a2d904ec"), time.Now(), 5)
+			GiveUserAnAchievement(user.ID, uuid.MustParse("05a3579f-aa8d-4814-b28f-5824a2d904ec"), time.Now(), 5)
 		})
 	}
 
-	// Validate birth date
-	if userUpdateRequest.BirthDate != nil {
-		ThirteenYearsDuration := time.Hour * 24 * 365 * 13
-		if userUpdateRequest.BirthDate.After(time.Now().Add(-ThirteenYearsDuration)) {
-			context.JSON(http.StatusBadRequest, gin.H{"error": "Your birth date must be more than thirteen years ago."})
-			context.Abort()
-			return
-		}
-	}
-
-	// Transfer birth date
-	userOriginal.BirthDate = userUpdateRequest.BirthDate
-
-	// Validate heart-rate settings (optional; plausible physiological ranges). These feed
-	// the activity heart-rate zones — an explicit max overrides the age-based estimate, and
-	// a resting HR switches the zones to heart-rate reserve (Karvonen).
-	if userUpdateRequest.MaxHeartrate != nil && (*userUpdateRequest.MaxHeartrate < 100 || *userUpdateRequest.MaxHeartrate > 240) {
-		context.JSON(http.StatusBadRequest, gin.H{"error": "Your maximum heart rate must be between 100 and 240 bpm."})
-		context.Abort()
-		return
-	}
-	if userUpdateRequest.RestingHeartrate != nil && (*userUpdateRequest.RestingHeartrate < 25 || *userUpdateRequest.RestingHeartrate > 120) {
-		context.JSON(http.StatusBadRequest, gin.H{"error": "Your resting heart rate must be between 25 and 120 bpm."})
-		context.Abort()
-		return
-	}
-	if userUpdateRequest.MaxHeartrate != nil && userUpdateRequest.RestingHeartrate != nil &&
-		*userUpdateRequest.RestingHeartrate >= *userUpdateRequest.MaxHeartrate {
-		context.JSON(http.StatusBadRequest, gin.H{"error": "Your resting heart rate must be below your maximum heart rate."})
-		context.Abort()
-		return
-	}
-
-	// Transfer heart-rate settings
-	userOriginal.MaxHeartrate = userUpdateRequest.MaxHeartrate
-	userOriginal.RestingHeartrate = userUpdateRequest.RestingHeartrate
-
-	// Update user in database
-	user, err := database.UpdateUser(userOriginal)
+	user, err = database.UpdateUser(user)
 	if err != nil {
 		logger.Log.Info("Failed to update user in the database. Error: " + err.Error())
 		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update user in the database."})
@@ -572,9 +496,8 @@ func UpdateUser(context *gin.Context) {
 		return
 	}
 
-	// If user is not verified and SMTP is enabled, send verification e-mail
+	// An unverified account (a changed e-mail with SMTP on) gets a fresh code at the new address
 	if files.ConfigFile.SMTPEnabled && !user.Verified {
-
 		verificationCode, err := database.GenerateRandomVerificationCodeForUser(userID)
 		if err != nil {
 			context.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
@@ -584,7 +507,7 @@ func UpdateUser(context *gin.Context) {
 
 		user.VerificationCode = &verificationCode
 
-		logger.Log.Info("Sending verification e-mail to new user: " + user.FirstName + " " + user.LastName + ".")
+		logger.Log.Info("Sending verification e-mail to user: " + user.FirstName + " " + user.LastName + ".")
 
 		err = utilities.SendSMTPVerificationEmail(user)
 		if err != nil {
@@ -594,9 +517,67 @@ func UpdateUser(context *gin.Context) {
 		}
 	}
 
-	// Reply
 	context.JSON(http.StatusOK, gin.H{"message": "Account updated.", "data": tokenSet, "verified": user.Verified})
+}
 
+// validateUserUpdate checks the request fields that need no database access. It returns a
+// user-facing message when the request is invalid, or "" when it is valid.
+func validateUserUpdate(request models.UserUpdateRequest, now time.Time) (string, error) {
+	if request.Password != "" {
+		if request.Password != request.PasswordRepeat {
+			return "Passwords must match.", nil
+		}
+		valid, requirements, err := utilities.ValidatePasswordFormat(request.Password)
+		if err != nil {
+			return "", err
+		} else if !valid {
+			return requirements, nil
+		}
+	}
+
+	if request.BirthDate != nil && request.BirthDate.After(now.Add(-time.Hour*24*365*13)) {
+		return "Your birth date must be more than thirteen years ago.", nil
+	}
+
+	// Heart-rate settings are optional, within plausible physiological ranges. They feed
+	// the activity heart-rate zones — an explicit max overrides the age-based estimate, and
+	// a resting HR switches the zones to heart-rate reserve (Karvonen).
+	if request.MaxHeartrate != nil && (*request.MaxHeartrate < 100 || *request.MaxHeartrate > 240) {
+		return "Your maximum heart rate must be between 100 and 240 bpm.", nil
+	}
+	if request.RestingHeartrate != nil && (*request.RestingHeartrate < 25 || *request.RestingHeartrate > 120) {
+		return "Your resting heart rate must be between 25 and 120 bpm.", nil
+	}
+	if request.MaxHeartrate != nil && request.RestingHeartrate != nil &&
+		*request.RestingHeartrate >= *request.MaxHeartrate {
+		return "Your resting heart rate must be below your maximum heart rate.", nil
+	}
+
+	return "", nil
+}
+
+// applyEmailChange moves user to newEmail when it differs from the current address. The
+// new address must be unused. It is re-verified when SMTP is on; with SMTP off there is no
+// way to deliver a code, so the account stays verified rather than locking the user out.
+// It returns a user-facing message when the address is taken.
+func applyEmailChange(user *models.User, newEmail string, smtpEnabled bool) (string, error) {
+	newEmail = html.EscapeString(strings.TrimSpace(strings.ToLower(newEmail)))
+	if newEmail == user.Email {
+		return "", nil
+	}
+
+	uniqueEmail, err := database.VerifyUniqueUserEmail(newEmail)
+	if err != nil {
+		return "", err
+	} else if !uniqueEmail {
+		return "E-mail is already in use.", nil
+	}
+
+	user.Email = newEmail
+	if smtpEnabled {
+		user.Verified = false
+	}
+	return "", nil
 }
 
 func APIResetPassword(context *gin.Context) {

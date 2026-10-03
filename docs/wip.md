@@ -65,25 +65,23 @@ class, but inline `onclick=` handlers are used throughout (`web/js/account.js`,
 task rather than bolting on a weak policy. The cheap headers (`nosniff`, frame-ancestors)
 could land independently.
 
-## Decisions pending
+## In progress
 
-- **`db_type: postgres` is silently rewritten to `mysql`.** `files/config.go` only accepts
-  `mysql`/`sqlite` and saves anything else as `mysql`, while `CLAUDE.md` claims three
-  backends. Fix the check, or drop Postgres from the docs. (Blocks a Postgres profile in
-  the Docker test harness.)
-- **Changing your e-mail doesn't re-verify it.** The account stays verified and no code is
-  sent; the re-verify branch in `UpdateUser` only runs for already-unverified accounts,
-  which the auth middleware keeps out. Intended?
-- **`APICreateOperationForUser` ignores `action`** and always stores none; the builder sets
-  it with a follow-up update. Drop the field, or use it.
-- **Weight entries accept any value, including negative.** `APICreateWeightForUser` stores
-  `-1`. Add a range check (> 0, some upper bound); the test in
-  `controllers/account_api_test.go` deliberately doesn't assert it yet.
-- **Legacy data from fixed bugs:**
-  - Goals created as non-competing before the fix are stored `competing = true`, and
-    nothing records what the member chose. Ask affected members, or leave it?
-  - Existing SQLite installs may hold duplicate exercise days (two rows for one date) from
-    before the midnight fix. Merge them?
+### Postgres support
+Decided: make it work (it was configurable but never functional). `files/config.go`
+rewrites `db_type: postgres` to `mysql`, and the data layer is MySQL-flavoured throughout:
+~617 backtick-quoted identifiers, ~250 integer-for-boolean comparisons/updates
+(`enabled = ?", 1`, `Update("used", 1)`), five `type:longtext` columns, and an invalid
+`sslmode` value in the connect branch. Plan: drop identifier quoting (except the reserved
+`seasons.end`), use `true`/`false`, drop the `longtext` tags, accept `postgres` in config
+and fail on unknown types, run the database suite against Postgres in CI, and add the
+Docker harness profile. The legacy SQL-dump importer in `utilities/migrate.go` stays
+MySQL-only.
+
+## Decisions taken — no action
+
+- **Goals stored as competing before the fix** stay as they are; nothing records what the
+  member chose. Fix by hand if a member raises it.
 
 ## Plans & ideas
 
@@ -181,7 +179,7 @@ Is a small model's feedback decent?
 - **Seed ABS listening history** for zero-click soundtrack testing: generate a silent track
   with the ABS image's `ffmpeg`, create a library + scan via the ABS API, post sessions with
   chosen timestamps through ABS's local-session sync, and create a matching manual workout.
-- **Postgres profile** — blocked on the `db_type` decision above.
+- **Postgres profile** — part of the Postgres work under *In progress*.
 
 ## Unclear
 

@@ -67,7 +67,7 @@ needs its proxy's range added to `trustedProxyCIDRs`.
 `database.RevokeAllRefreshTokensForUser` revokes every live refresh token for a user in
 one statement. It is called from both password-change paths:
 
-- `UpdateUser` (`PUT /api/auth/users`) — only when a new password was actually
+- `APIUpdateUser` (`POST /api/auth/users/:user_id`) — only when a new password was actually
   submitted, and **before** the handler issues its fresh token set. The caller's own
   session therefore survives (the frontend stores the pair the handler returns) while
   every other session dies.
