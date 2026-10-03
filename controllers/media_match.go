@@ -1,6 +1,7 @@
 package controllers
 
 import (
+	"math"
 	"sort"
 	"strings"
 	"time"
@@ -157,11 +158,52 @@ func scrobbleSpan(finishedAt time.Time, lengthSec int64) (startedAt, coverageEnd
 	return finishedAt.Add(-time.Duration(lengthSec) * time.Second), finishedAt
 }
 
+// listenedWithinWindow scales a listened-time item (an Audiobookshelf session) down to
+// the part that fell inside the activity window. The provider's listened total covers
+// the whole listen — including any before the workout began or after it ended — so
+// shown raw, a podcast started before a run and finished after it claims more minutes
+// than the run lasted. Pauses are assumed spread evenly over the wall-clock span: the
+// result is listened × overlap ÷ span, capped at the overlap itself — merged duplicate
+// sessions can report more listened time than wall-clock span, and nobody listens
+// longer than the window they were in. With no known end the span is the listened time
+// itself, so this reduces to the overlap.
+func listenedWithinWindow(event mediaPlayEvent, start, end time.Time) int64 {
+	if event.trackLengthSec <= 0 {
+		return 0
+	}
+
+	// With a positive listened time the span is always positive: eventCoverageEnd falls
+	// back to start + listened when the provider gave no later end.
+	spanEnd := eventCoverageEnd(event)
+	span := spanEnd.Sub(event.startedAt)
+
+	overlapStart := event.startedAt
+	if overlapStart.Before(start) {
+		overlapStart = start
+	}
+	overlapEnd := spanEnd
+	if overlapEnd.After(end) {
+		overlapEnd = end
+	}
+	overlap := overlapEnd.Sub(overlapStart)
+	if overlap <= 0 {
+		return 0
+	}
+
+	listened := int64(math.Round(float64(event.trackLengthSec) * overlap.Seconds() / span.Seconds()))
+	if capSec := int64(overlap.Seconds()); listened > capSec {
+		listened = capSec
+	}
+	return listened
+}
+
 // playbackForWindow keeps the events whose play span overlaps the activity window
 // (plus grace) and turns them into MediaPlayback rows. StartedAt is the play start,
 // clamped up to the activity start; EndedAt is the known end (else StartedAt + track
 // length), clamped to the activity end when the item started inside the activity.
-// Identity fields (id/exercise/provider) are filled later by
+// TrackLength is the item length, or for listened-time items the time listened within
+// the window (listenedWithinWindow). Identity fields (id/exercise/provider) are filled
+// later by
 // ReplaceMediaPlaybackForExerciseProvider.
 func playbackForWindow(events []mediaPlayEvent, start, end time.Time) []models.MediaPlayback {
 	playback := []models.MediaPlayback{}
@@ -233,8 +275,11 @@ func playbackForWindow(events []mediaPlayEvent, start, end time.Time) []models.M
 			row.ArtworkURL = &art
 		}
 
-		if event.trackLengthSec > 0 {
-			length := event.trackLengthSec
+		length := event.trackLengthSec
+		if event.trackLengthIsListened {
+			length = listenedWithinWindow(event, start, end)
+		}
+		if length > 0 {
 			row.TrackLength = &length
 		}
 

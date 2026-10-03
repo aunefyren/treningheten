@@ -235,18 +235,23 @@ no PIN, no OAuth redirect. The account page posts the server URL + API token dir
 Disconnect is the generic `DELETE /media/audiobookshelf`. The pull
 (`AudiobookshelfSyncExerciseForUser`) resolves the session window, fetches
 `/api/me/listening-sessions?itemsPerPage=100&page=0` (durable history, most-recent first),
-maps each session via `buildAudiobookshelfPlaybackForWindow` (start-time-in-window match
-through the shared `playbackForWindow`; `mediaType` `book`→`audiobook`, `podcast`→`podcast`;
-`TimeListening` as the rail span; `LibraryItemID` as the provider item id), and writes via
+maps each session via `buildAudiobookshelfPlaybackForWindow` (overlap match of
+`[startedAt, updatedAt]` through the shared `playbackForWindow`; `mediaType`
+`book`→`audiobook`, `podcast`→`podcast`; `TimeListening` as the listened time; the episode
+id, else `LibraryItemID`, as the provider item id), and writes via
 the idempotent delete-and-replace primitive. Because the history endpoint is `/api/me`
 (inherently the token user's), there's **no privacy fail-closed** step. TLS uses default
 verification (ABS sits behind the user's own normal certs, unlike Plex's plex.direct).
 
-> **Session-granularity caveat (V1).** ABS listening sessions are coarse — one continuous
-> listen, not per-track scrobbles. The shared matcher keys on the session **start** time,
-> so a listen that *began before* the workout and continued into it is missed. Accepted for
-> V1; an overlap-based match (`[startedAt, updatedAt]` intersects the window) is the later
-> refinement if it proves annoying (it would diverge from the shared matcher).
+> **Listened time is clipped to the workout.** ABS listening sessions are coarse — one
+> continuous listen, not per-track scrobbles — and `TimeListening` covers the *whole*
+> listen, including any before the workout began or after it ended. Stored raw, a podcast
+> started before a 60-minute run and another finished after it read as 40 + 49 minutes.
+> `listenedWithinWindow` (`controllers/media_match.go`) stores only the in-window share:
+> `TimeListening × overlap ÷ wall-clock span`, assuming pauses are spread evenly, capped at
+> the overlap (merged duplicate sessions can sum to more listened time than their span). A
+> long pause just before the run makes it slightly under-count. The timeline minutes, the `/statistics` spoken-time totals and
+> the MCP `track_length_seconds` all read this value.
 
 `spotifyEnsureToken` transparently refreshes the ~1h access token before each pull
 (persisting the new token + expiry, and the rotated refresh token when Spotify sends
@@ -307,7 +312,7 @@ session activity's `OperationSet.StravaStreams`).
 | `ArtworkURL`* | |
 | `StartedAt`, `EndedAt`* | absolute; `EndedAt` clamped to activity end |
 | `StartedBefore` | the item was already playing when the session began, so `StartedAt` is the clamped session start rather than the real start |
-| `TrackLength`* | full length in **seconds** (repo convention), display-only |
+| `TrackLength`* | **seconds** (repo convention), display-only: the item's full length for a scrobbled track (Plex/Spotify); the time listened *within the session window* for a listened-time item (ABS) |
 
 **Every provider id is captured, even where nothing reads it yet.** They are one nullable
 column each and are effectively impossible to backfill — the provider history endpoints
@@ -379,7 +384,8 @@ single span it actually was:
   a pause and resume still reads as two listens.
 - **Merging** keeps the earliest start and latest end, and fills any metadata the first record
   was missing. `trackLengthSec` combines according to `trackLengthIsListened`: time actually
-  *listened* (ABS `timeListening`) **adds up**, whereas an item's own length (a Plex/Spotify
+  *listened* (ABS `timeListening`) **adds up** (and is then clipped to the window, see the
+  Audiobookshelf section), whereas an item's own length (a Plex/Spotify
   track) takes the **longest** — two overlapping records of one track don't make it twice as
   long.
 

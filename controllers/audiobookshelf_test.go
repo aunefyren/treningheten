@@ -146,3 +146,59 @@ func TestBuildAudiobookshelfPlaybackForWindowStartedBeforeWindow(t *testing.T) {
 		t.Errorf("EndedAt should be the session UpdatedAt, got %v", row.EndedAt)
 	}
 }
+
+// TestBuildAudiobookshelfPlaybackClipsListenedTimeToWindow covers the reported case: a
+// podcast started before a 60-minute run and another finished after it read as 40 + 49
+// minutes, because TimeListening covers the whole listen. Only the in-window share is
+// kept: listened × overlap ÷ span, capped at the overlap.
+func TestBuildAudiobookshelfPlaybackClipsListenedTimeToWindow(t *testing.T) {
+	start := time.Date(2026, 6, 28, 10, 0, 0, 0, time.UTC)
+	end := start.Add(time.Hour)
+	ms := func(min int) int64 { return start.Add(time.Duration(min) * time.Minute).UnixMilli() }
+
+	cases := []struct {
+		name          string
+		startedAt     int64
+		updatedAt     int64
+		timeListening float64
+		want          *int64
+	}{
+		// 40 min listened over a 45-minute span, 30 of them in the run.
+		{"started before the run", ms(-15), ms(30), 2400, int64Ptr(1600)},
+		// 49 min listened over a 60-minute span, 39 of them in the run.
+		{"ran past the end", ms(21), ms(81), 2940, int64Ptr(1911)},
+		{"fully inside is unchanged", ms(10), ms(40), 1500, int64Ptr(1500)},
+		// More listened than wall-clock time can't be true of the window: cap at overlap.
+		{"capped at the overlap", ms(10), ms(20), 900, int64Ptr(600)},
+		// No UpdatedAt: the span is the listened time itself, so the result is the overlap.
+		{"unknown end reduces to the overlap", ms(50), 0, 1200, int64Ptr(600)},
+		// Matched only through the grace after the end: nothing listened in the run.
+		{"only in the grace has no length", end.Add(2 * time.Minute).UnixMilli(), end.Add(20 * time.Minute).UnixMilli(), 1080, nil},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			sessions := []models.AudiobookshelfListenSession{{
+				ID: "s", LibraryItemID: "li", DisplayTitle: "Episode", MediaType: "podcast",
+				TimeListening: tc.timeListening, StartedAt: tc.startedAt, UpdatedAt: tc.updatedAt,
+			}}
+			got := buildAudiobookshelfPlaybackForWindow(sessions, start, end)
+			if len(got) != 1 {
+				t.Fatalf("expected 1 row, got %d", len(got))
+			}
+			switch {
+			case tc.want == nil && got[0].TrackLength != nil:
+				t.Errorf("TrackLength: got %d, want nil", *got[0].TrackLength)
+			case tc.want != nil && (got[0].TrackLength == nil || *got[0].TrackLength != *tc.want):
+				t.Errorf("TrackLength: got %v, want %d", got[0].TrackLength, *tc.want)
+			}
+		})
+	}
+}
+
+func TestListenedWithinWindowWithoutListenedTime(t *testing.T) {
+	start := time.Date(2026, 6, 28, 10, 0, 0, 0, time.UTC)
+	event := mediaPlayEvent{startedAt: start, trackLengthIsListened: true}
+	if got := listenedWithinWindow(event, start, start.Add(time.Hour)); got != 0 {
+		t.Errorf("no listened time should give 0, got %d", got)
+	}
+}

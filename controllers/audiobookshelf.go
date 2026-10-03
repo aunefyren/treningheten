@@ -219,8 +219,9 @@ func absFetchListeningSessions(serverURL, token string) ([]models.Audiobookshelf
 
 // buildAudiobookshelfPlaybackForWindow maps ABS listening sessions into provider-
 // neutral play events and defers window matching to the shared playbackForWindow. A
-// session is coarser than a scrobble (one continuous listen), matched by its start
-// time; TimeListening (seconds actually listened) is the rail span.
+// session is coarser than a scrobble (one continuous listen), matched when its
+// [startedAt, updatedAt] span overlaps the window; TimeListening (seconds actually
+// listened) is scaled down to the in-window share by playbackForWindow.
 func buildAudiobookshelfPlaybackForWindow(sessions []models.AudiobookshelfListenSession, start, end time.Time) []models.MediaPlayback {
 	events := []mediaPlayEvent{}
 

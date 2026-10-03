@@ -66,9 +66,11 @@ func TestBuildAudiobookshelfPlaybackMergesOverlappingSessionsOfOneEpisode(t *tes
 	if merged.EndedAt == nil || !merged.EndedAt.Equal(wantEnd) {
 		t.Errorf("merged end: got %v, want %s", merged.EndedAt, wantEnd)
 	}
-	// ABS reports time listened, so merged sessions add up rather than taking the max.
-	if merged.TrackLength == nil || *merged.TrackLength != 720+1380+1320 {
-		t.Errorf("merged listened time should be the sum, got %v", merged.TrackLength)
+	// ABS reports time listened, so merged sessions add up (720+1380+1320 = 3420 s over a
+	// 53-minute span) before being clipped to the window: scaled to the 43 in-window
+	// minutes that exceeds the overlap itself, so it caps at 43 minutes.
+	if merged.TrackLength == nil || *merged.TrackLength != 43*60 {
+		t.Errorf("merged listened time should be the in-window share capped at the overlap, got %v", merged.TrackLength)
 	}
 	if merged.ProviderItemID == nil || *merged.ProviderItemID != "ep-25" {
 		t.Errorf("provider item id should be the episode, got %v", merged.ProviderItemID)

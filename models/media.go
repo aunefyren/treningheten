@@ -88,8 +88,10 @@ type MediaPlayback struct {
 	// StartedAt is clamped up to the session start for layout, so without this the
 	// timeline would claim several such items all started at 00:00.
 	StartedBefore bool `json:"started_before" gorm:"not null; default: false"`
-	// TrackLength is the full item length in seconds (repo convention: duration-ish
-	// fields hold a plain seconds count as int64), display-only.
+	// TrackLength is in seconds (repo convention: duration-ish fields hold a plain
+	// seconds count as int64), display-only. For a scrobbled track (Plex/Spotify) it is
+	// the item's full length; for a listened-time item (Audiobookshelf) it is the time
+	// listened *within this session's window*, not the whole listen.
 	TrackLength *int64 `json:"track_length" gorm:"default: null"`
 }
 
