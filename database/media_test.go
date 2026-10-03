@@ -286,3 +286,76 @@ func TestReplaceMediaPlaybackStoresRowsWithDifferentOptionalFields(t *testing.T)
 		t.Errorf("episode row = %+v, want its ids and started_before kept", stored[1])
 	}
 }
+
+// TestCapListenedTimeToPlaySpan covers the backfill for Audiobookshelf rows stored before
+// listened time was clipped to the workout — the reported run, where a podcast started
+// before it read 40 min over a 21-minute overlap and the next one 49 min over 38.
+func TestCapListenedTimeToPlaySpan(t *testing.T) {
+	newTestDB(t)
+	user := makeTestUser(t, "listened-cap@example.com", nil)
+	dayID := seedDay(t, user.ID, time.Now(), true)
+	exerciseID := seedExerciseWithID(t, dayID)
+
+	base := time.Date(2026, 9, 29, 16, 41, 29, 0, time.UTC)
+	int64Ptr := func(v int64) *int64 { return &v }
+	row := func(provider string, startOffset, endOffset time.Duration, length *int64) models.MediaPlayback {
+		pb := makeMediaPlayback(exerciseID, provider, "Episode", base.Add(startOffset))
+		pb.MediaType = models.MediaTypePodcast
+		if endOffset >= 0 {
+			ended := base.Add(endOffset)
+			pb.EndedAt = &ended
+		}
+		pb.TrackLength = length
+		return pb
+	}
+
+	cases := []struct {
+		name string
+		row  models.MediaPlayback
+		want *int64
+	}{
+		{"started before the run", row(models.MediaProviderAudiobookshelf, 0, 21*time.Minute+16*time.Second, int64Ptr(2392)), int64Ptr(1276)},
+		{"ran to the end of the run", row(models.MediaProviderAudiobookshelf, 21*time.Minute+17*time.Second, 58*time.Minute+55*time.Second, int64Ptr(2966)), int64Ptr(2258)},
+		{"already within its span", row(models.MediaProviderAudiobookshelf, 0, 30*time.Minute, int64Ptr(1500)), int64Ptr(1500)},
+		{"zero-width span clears the length", row(models.MediaProviderAudiobookshelf, 10*time.Minute, 10*time.Minute, int64Ptr(600)), nil},
+		{"no end is left alone", row(models.MediaProviderAudiobookshelf, 0, -1, int64Ptr(9000)), int64Ptr(9000)},
+		// A Plex track's length is the item's own length, not time listened.
+		{"other providers are left alone", row(models.MediaProviderPlex, 0, time.Minute, int64Ptr(240)), int64Ptr(240)},
+	}
+	for _, tc := range cases {
+		if err := Instance.Create(&tc.row).Error; err != nil {
+			t.Fatalf("%s: failed to seed row: %v", tc.name, err)
+		}
+	}
+
+	capListenedTimeToPlaySpan()
+	// Self-limiting: a second boot must leave the capped values as they are.
+	capListenedTimeToPlaySpan()
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			var got models.MediaPlayback
+			if err := Instance.First(&got, "id = ?", tc.row.ID).Error; err != nil {
+				t.Fatalf("failed to reload row: %v", err)
+			}
+			switch {
+			case tc.want == nil && got.TrackLength != nil:
+				t.Errorf("TrackLength: got %d, want nil", *got.TrackLength)
+			case tc.want != nil && (got.TrackLength == nil || *got.TrackLength != *tc.want):
+				t.Errorf("TrackLength: got %v, want %d", got.TrackLength, *tc.want)
+			}
+		})
+	}
+}
+
+func TestCapListenedTimeToPlaySpanScanFailure(t *testing.T) {
+	newTestDB(t)
+	sqlDB, err := Instance.DB()
+	if err != nil {
+		t.Fatalf("failed to get sql db: %v", err)
+	}
+	sqlDB.Close()
+
+	// A failed scan is logged and skipped, never a panic during startup.
+	capListenedTimeToPlaySpan()
+}

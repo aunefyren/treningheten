@@ -19,10 +19,16 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-// absListeningSessionsPageSize bounds the history page pulled per sync. Sessions are
-// returned most-recent first, so one page comfortably covers any recent workout
-// window (ABS history is durable, unlike Spotify's ~24h — no urgency to page deeper).
+// absListeningSessionsPageSize is the history page size requested per call. Sessions
+// come back most-recent first, so a recent workout sits on the first page — but ABS
+// opens a fresh session on every device switch or unclean close, so an older one can
+// be several pages back (see absFetchListeningSessions).
 const absListeningSessionsPageSize = 100
+
+// absMaxListeningSessionPages caps how far back one sync pages, so a session months
+// old (or a server ignoring the paging parameters) can't turn one sync into an
+// unbounded crawl of the user's history.
+const absMaxListeningSessionPages = 20
 
 // absEnabled reports whether Audiobookshelf is usable: the tenant media flag AND the
 // provider flag must both be on. Unlike Plex/Spotify there are no app-level
@@ -197,24 +203,74 @@ func absClassifyMediaType(absType string) string {
 	}
 }
 
-// absFetchListeningSessions pulls the most recent listening sessions for the token's
-// user (the /api/me endpoint is inherently user-scoped — no privacy filtering needed).
-func absFetchListeningSessions(serverURL, token string) ([]models.AudiobookshelfListenSession, error) {
-	path := "/api/me/listening-sessions?itemsPerPage=" + strconv.Itoa(absListeningSessionsPageSize) + "&page=0"
-	body, status, err := absRequest(serverURL, path, token)
-	if err != nil {
-		return nil, err
-	}
-	if err := absStatusError("Audiobookshelf history", status); err != nil {
-		return nil, err
+// absFetchListeningSessions pulls the token user's listening sessions back to `since`
+// (the /api/me endpoint is inherently user-scoped — no privacy filtering needed).
+// Sessions come most-recently-active first, so it pages until a page reaches a session
+// last active before `since` — nothing further back can overlap the window — or the
+// history runs out, or absMaxListeningSessionPages is hit. Stopping after the first
+// page instead made a re-pull of an older workout silently match nothing, and the
+// non-destructive empty guard then kept its stale rows.
+func absFetchListeningSessions(serverURL, token string, since time.Time) ([]models.AudiobookshelfListenSession, error) {
+	sessions := []models.AudiobookshelfListenSession{}
+
+	for page := 0; page < absMaxListeningSessionPages; page++ {
+		response, err := absFetchListeningSessionsPage(serverURL, token, page)
+		if err != nil {
+			return nil, err
+		}
+		sessions = append(sessions, response.Sessions...)
+
+		if !absHasOlderListeningSessions(response, page, since) {
+			break
+		}
 	}
 
+	return sessions, nil
+}
+
+// absFetchListeningSessionsPage fetches one page of the listening-session history.
+func absFetchListeningSessionsPage(serverURL, token string, page int) (models.AudiobookshelfListeningSessionsResponse, error) {
 	response := models.AudiobookshelfListeningSessionsResponse{}
+
+	path := "/api/me/listening-sessions?itemsPerPage=" + strconv.Itoa(absListeningSessionsPageSize) + "&page=" + strconv.Itoa(page)
+	body, status, err := absRequest(serverURL, path, token)
+	if err != nil {
+		return response, err
+	}
+	if err := absStatusError("Audiobookshelf history", status); err != nil {
+		return response, err
+	}
+
 	if err := json.Unmarshal(body, &response); err != nil {
 		logger.Log.Error("Failed to parse Audiobookshelf history. Error: " + err.Error())
-		return nil, integrationUnavailableError("Failed to parse Audiobookshelf history.")
+		return response, integrationUnavailableError("Failed to parse Audiobookshelf history.")
 	}
-	return response.Sessions, nil
+	return response, nil
+}
+
+// absHasOlderListeningSessions reports whether the page after `page` is worth
+// fetching: the page was full, the server doesn't say it was the last one, and every
+// session on it was still active at or after `since`. A short page means the history
+// ran out even when the server leaves numPages unset.
+func absHasOlderListeningSessions(response models.AudiobookshelfListeningSessionsResponse, page int, since time.Time) bool {
+	if len(response.Sessions) < absListeningSessionsPageSize {
+		return false
+	}
+	if response.NumPages > 0 && page+1 >= response.NumPages {
+		return false
+	}
+
+	sinceMs := since.UnixMilli()
+	for _, session := range response.Sessions {
+		lastActive := session.UpdatedAt
+		if session.StartedAt > lastActive {
+			lastActive = session.StartedAt
+		}
+		if lastActive < sinceMs {
+			return false
+		}
+	}
+	return true
 }
 
 // buildAudiobookshelfPlaybackForWindow maps ABS listening sessions into provider-
@@ -295,7 +351,7 @@ func AudiobookshelfSyncExerciseForUser(user models.User, exercise models.Exercis
 		return database.SetExerciseMediaRetrievedAt(exercise.ID, time.Now())
 	}
 
-	sessions, err := absFetchListeningSessions(*connection.ServerURL, token)
+	sessions, err := absFetchListeningSessions(*connection.ServerURL, token, start.Add(-mediaMatchGrace))
 	recordIntegrationOutcome(user.ID, models.IntegrationProviderAudiobookshelf, err)
 	if err != nil {
 		return err

@@ -2,15 +2,19 @@ package controllers
 
 import (
 	"encoding/base64"
+	"encoding/json"
 	"errors"
 	"io"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
+	"strconv"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/aunefyren/treningheten/files"
+	"github.com/aunefyren/treningheten/models"
 )
 
 // --- Audiobookshelf ---
@@ -101,7 +105,7 @@ func TestABSFetchListeningSessions(t *testing.T) {
 	}))
 	defer server.Close()
 
-	sessions, err := absFetchListeningSessions(server.URL, "the-token")
+	sessions, err := absFetchListeningSessions(server.URL, "the-token", time.Time{})
 	if err != nil {
 		t.Fatalf("absFetchListeningSessions returned error: %v", err)
 	}
@@ -135,7 +139,7 @@ func TestABSFetchListeningSessionsFailures(t *testing.T) {
 			writer.WriteHeader(status)
 		}))
 
-		sessions, err := absFetchListeningSessions(server.URL, "the-token")
+		sessions, err := absFetchListeningSessions(server.URL, "the-token", time.Time{})
 		server.Close()
 
 		if err == nil {
@@ -151,8 +155,129 @@ func TestABSFetchListeningSessionsFailures(t *testing.T) {
 	}))
 	defer malformed.Close()
 
-	if _, err := absFetchListeningSessions(malformed.URL, "the-token"); err == nil {
+	if _, err := absFetchListeningSessions(malformed.URL, "the-token", time.Time{}); err == nil {
 		t.Errorf("a malformed body returned no error")
+	}
+}
+
+// absHistoryPage builds one listening-sessions page of `count` sessions, each last
+// active at lastActive. The paging tests only care about counts and timestamps.
+func absHistoryPage(count int, lastActive time.Time, numPages int) models.AudiobookshelfListeningSessionsResponse {
+	response := models.AudiobookshelfListeningSessionsResponse{NumPages: numPages}
+	for i := 0; i < count; i++ {
+		response.Sessions = append(response.Sessions, models.AudiobookshelfListenSession{
+			ID:        strconv.Itoa(i),
+			StartedAt: lastActive.Add(-time.Hour).UnixMilli(),
+			UpdatedAt: lastActive.UnixMilli(),
+		})
+	}
+	return response
+}
+
+// TestABSFetchListeningSessionsPagesBackToTheWindow covers the reported case: re-pulling
+// an older workout whose sessions had fallen off the first page matched nothing, and the
+// non-destructive empty guard kept its stale rows. The fetch now pages back until it
+// reaches sessions older than the window, and stops there.
+func TestABSFetchListeningSessionsPagesBackToTheWindow(t *testing.T) {
+	since := time.Date(2026, 9, 29, 16, 36, 0, 0, time.UTC)
+	pages := []models.AudiobookshelfListeningSessionsResponse{
+		absHistoryPage(absListeningSessionsPageSize, since.Add(72*time.Hour), 5),
+		absHistoryPage(absListeningSessionsPageSize, since.Add(time.Hour), 5),
+		// Reaches past the window: nothing further back can overlap it.
+		absHistoryPage(absListeningSessionsPageSize, since.Add(-time.Hour), 5),
+		absHistoryPage(absListeningSessionsPageSize, since.Add(-48*time.Hour), 5),
+	}
+
+	requested := []string{}
+	server := httptest.NewServer(http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
+		page, _ := strconv.Atoi(request.URL.Query().Get("page"))
+		requested = append(requested, request.URL.Query().Get("page"))
+		_ = json.NewEncoder(writer).Encode(pages[page])
+	}))
+	defer server.Close()
+
+	sessions, err := absFetchListeningSessions(server.URL, "the-token", since)
+	if err != nil {
+		t.Fatalf("absFetchListeningSessions returned error: %v", err)
+	}
+	if strings.Join(requested, ",") != "0,1,2" {
+		t.Errorf("requested pages %v, want 0,1,2 (stop at the page reaching past the window)", requested)
+	}
+	if len(sessions) != 3*absListeningSessionsPageSize {
+		t.Errorf("got %d sessions, want every session from the three pages fetched", len(sessions))
+	}
+}
+
+// TestABSFetchListeningSessionsStopsAtPageLimit covers the cap: a history that never
+// reaches the window (or a server ignoring the page parameter) stops after
+// absMaxListeningSessionPages instead of crawling forever.
+func TestABSFetchListeningSessionsStopsAtPageLimit(t *testing.T) {
+	since := time.Date(2026, 9, 29, 16, 36, 0, 0, time.UTC)
+	calls := 0
+	server := httptest.NewServer(http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
+		calls++
+		_ = json.NewEncoder(writer).Encode(absHistoryPage(absListeningSessionsPageSize, since.Add(time.Hour), 0))
+	}))
+	defer server.Close()
+
+	if _, err := absFetchListeningSessions(server.URL, "the-token", since); err != nil {
+		t.Fatalf("absFetchListeningSessions returned error: %v", err)
+	}
+	if calls != absMaxListeningSessionPages {
+		t.Errorf("made %d requests, want the %d-page cap", calls, absMaxListeningSessionPages)
+	}
+}
+
+// TestABSFetchListeningSessionsLaterPageFailure covers that a failing later page fails
+// the pull rather than storing a partial history.
+func TestABSFetchListeningSessionsLaterPageFailure(t *testing.T) {
+	since := time.Date(2026, 9, 29, 16, 36, 0, 0, time.UTC)
+	server := httptest.NewServer(http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
+		if request.URL.Query().Get("page") != "0" {
+			writer.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+		_ = json.NewEncoder(writer).Encode(absHistoryPage(absListeningSessionsPageSize, since.Add(time.Hour), 3))
+	}))
+	defer server.Close()
+
+	sessions, err := absFetchListeningSessions(server.URL, "the-token", since)
+	if err == nil {
+		t.Errorf("a failing second page returned no error")
+	}
+	if sessions != nil {
+		t.Errorf("a failing second page returned %d sessions, want nil", len(sessions))
+	}
+}
+
+func TestABSHasOlderListeningSessions(t *testing.T) {
+	since := time.Date(2026, 9, 29, 16, 36, 0, 0, time.UTC)
+	full := absListeningSessionsPageSize
+
+	// A session with no UpdatedAt is judged by its start.
+	startOnly := absHistoryPage(full, since.Add(time.Hour), 0)
+	startOnly.Sessions[3].UpdatedAt = 0
+	startOnly.Sessions[3].StartedAt = since.Add(time.Minute).UnixMilli()
+
+	cases := []struct {
+		name     string
+		response models.AudiobookshelfListeningSessionsResponse
+		page     int
+		want     bool
+	}{
+		{"full page, all after the window start", absHistoryPage(full, since.Add(time.Hour), 4), 0, true},
+		{"short page: the history ran out", absHistoryPage(full-1, since.Add(time.Hour), 4), 0, false},
+		{"last page per numPages", absHistoryPage(full, since.Add(time.Hour), 2), 1, false},
+		{"numPages unset still pages while full", absHistoryPage(full, since.Add(time.Hour), 0), 7, true},
+		{"page reaches past the window start", absHistoryPage(full, since.Add(-time.Minute), 4), 0, false},
+		{"start-only session still in range", startOnly, 0, true},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			if got := absHasOlderListeningSessions(tc.response, tc.page, since); got != tc.want {
+				t.Errorf("got %v, want %v", got, tc.want)
+			}
+		})
 	}
 }
 

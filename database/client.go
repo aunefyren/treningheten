@@ -223,6 +223,7 @@ func Migrate() {
 	backfillObservedMaxHeartrate()
 	backfillOperationStreamRollups()
 	mergeDuplicateExerciseDays()
+	capListenedTimeToPlaySpan()
 
 	logger.Log.Info("Database migration completed.")
 }

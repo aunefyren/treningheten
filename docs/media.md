@@ -234,7 +234,9 @@ no PIN, no OAuth redirect. The account page posts the server URL + API token dir
 
 Disconnect is the generic `DELETE /media/audiobookshelf`. The pull
 (`AudiobookshelfSyncExerciseForUser`) resolves the session window, fetches
-`/api/me/listening-sessions?itemsPerPage=100&page=0` (durable history, most-recent first),
+`/api/me/listening-sessions?itemsPerPage=100&page=N` (durable history, most-recently-active
+first), paging back until a page reaches a session last active before the window start
+(minus grace), the history runs out, or 20 pages are read (`absFetchListeningSessions`),
 maps each session via `buildAudiobookshelfPlaybackForWindow` (overlap match of
 `[startedAt, updatedAt]` through the shared `playbackForWindow`; `mediaType`
 `book`→`audiobook`, `podcast`→`podcast`; `TimeListening` as the listened time; the episode
@@ -252,6 +254,16 @@ verification (ABS sits behind the user's own normal certs, unlike Plex's plex.di
 > the overlap (merged duplicate sessions can sum to more listened time than their span). A
 > long pause just before the run makes it slightly under-count. The timeline minutes, the `/statistics` spoken-time totals and
 > the MCP `track_length_seconds` all read this value.
+
+> **Why paging matters.** ABS opens a fresh session on every device switch or unclean
+> close, so 100 sessions can be only a few days of history. Reading just the first page
+> made a re-pull of an older workout match nothing — and because an empty pull is a
+> no-op (the non-destructive guard), its stale rows stayed, with no warning shown.
+> Rows stored before the clip landed are fixed at startup by `capListenedTimeToPlaySpan`
+> (`database/media.go`), a self-limiting backfill that caps `TrackLength` at the stored,
+> window-clamped `EndedAt − StartedAt`. It applies the overlap cap only — the
+> proportional scaling needs the real start of a listen that began before the run, which
+> was never stored — and leaves alone a row matched only through the trailing grace.
 
 `spotifyEnsureToken` transparently refreshes the ~1h access token before each pull
 (persisting the new token + expiry, and the rotated refresh token when Spotify sends

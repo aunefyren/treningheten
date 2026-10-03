@@ -1,8 +1,10 @@
 package database
 
 import (
+	"strconv"
 	"time"
 
+	"github.com/aunefyren/treningheten/logger"
 	"github.com/aunefyren/treningheten/models"
 
 	"github.com/google/uuid"
@@ -253,4 +255,50 @@ func GetExercisesForMediaBackfill(userID uuid.UUID, since time.Time) ([]models.E
 	}
 
 	return exercises, nil
+}
+
+// capListenedTimeToPlaySpan is a one-time backfill for Audiobookshelf rows stored before
+// listened time was clipped to the workout: TrackLength then held the whole listen's
+// TimeListening, so a podcast started before a run read as more minutes than it
+// overlapped. The stored [StartedAt, EndedAt] is already clamped to the window, so
+// capping TrackLength at that span applies the fix's overlap cap without re-pulling —
+// which matters, since ABS history may no longer reach those sessions. (The fix's
+// proportional scaling can't be redone: the real start of a listen that began before
+// the run was not stored.) Self-limiting: a capped row no longer exceeds its span, so
+// later boots write nothing. Timestamps are compared in Go to keep the SQL portable.
+func capListenedTimeToPlaySpan() {
+	rows := []models.MediaPlayback{}
+	record := Instance.
+		Where("provider = ?", models.MediaProviderAudiobookshelf).
+		Where("track_length IS NOT NULL AND ended_at IS NOT NULL").
+		Find(&rows)
+	if record.Error != nil {
+		logger.Log.Warn("Failed to scan Audiobookshelf playback for the listened-time cap. Error: " + record.Error.Error())
+		return
+	}
+
+	capped := 0
+	for _, row := range rows {
+		spanSec := int64(row.EndedAt.Sub(row.StartedAt).Seconds())
+		if *row.TrackLength <= spanSec {
+			continue
+		}
+
+		var length any
+		if spanSec > 0 {
+			length = spanSec
+		}
+		update := Instance.Model(&models.MediaPlayback{}).
+			Where("id = ?", row.ID).
+			Update("track_length", length)
+		if update.Error != nil {
+			logger.Log.Warn("Failed to cap Audiobookshelf listened time. Error: " + update.Error.Error())
+			continue
+		}
+		capped++
+	}
+
+	if capped > 0 {
+		logger.Log.Info("Capped listened time to the play span on " + strconv.Itoa(capped) + " Audiobookshelf playback rows.")
+	}
 }
