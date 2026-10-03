@@ -106,24 +106,6 @@ func UpdateExerciseDayNoteInDatabase(goalID uuid.UUID, startDayString string, en
 	return err
 }
 
-func GetExerciseDaysBetweenDatesUsingDates(goalID uuid.UUID, startDate time.Time, endDate time.Time) ([]models.ExerciseDay, error) {
-
-	var exercises []models.ExerciseDay
-
-	startDayString := startDate.Format("2006-01-02") + " 00:00:00"
-	endDayString := endDate.Format("2006-01-02") + " 23:59:59"
-
-	exerciserecord := Instance.Where("`exercise_days`.enabled = ?", 1).Where("`exercise_days`.goal_id = ?", goalID).Where("`exercise_days`.Date >= ?", startDayString).Where("`exercise_days`.Date <= ?", endDayString).Find(&exercises)
-	if exerciserecord.Error != nil {
-		return []models.ExerciseDay{}, exerciserecord.Error
-	} else if exerciserecord.RowsAffected == 0 {
-		return []models.ExerciseDay{}, nil
-	}
-
-	return exercises, nil
-
-}
-
 func GetExerciseDaysBetweenDatesUsingDatesAndUserID(userID uuid.UUID, startDate time.Time, endDate time.Time) ([]models.ExerciseDay, error) {
 
 	var exercises []models.ExerciseDay

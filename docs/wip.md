@@ -65,19 +65,6 @@ class, but inline `onclick=` handlers are used throughout (`web/js/account.js`,
 task rather than bolting on a weak policy. The cheap headers (`nosniff`, frame-ancestors)
 could land independently.
 
-## Bugs
-
-### Season creation validates the weekday in the browser's zone
-`web/js/admin.js` parses the picked `<input type="date">` value with `new Date("YYYY-MM-DD")`,
-which is UTC midnight, then checks `getDay()`, which is local. West of UTC the picked Monday
-reads as Sunday and the form refuses it. The server side is correct (it keeps the date as
-sent; see `seasons-and-goals.md`). Fix: validate with `getUTCDay()`, or build the date from
-its parts.
-
-### Dead code (follow-up)
-`database.GetExerciseDaysBetweenDatesUsingDates` lost its only production caller when
-`GetExerciseDaysForWeekUsingGoal` was removed; only its tests use it now. Remove with them?
-
 ## Decisions pending
 
 - **`db_type: postgres` is silently rewritten to `mysql`.** `files/config.go` only accepts

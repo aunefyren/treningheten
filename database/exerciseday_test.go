@@ -188,14 +188,6 @@ func TestGetExerciseDaysBetweenDates(t *testing.T) {
 	makeDayFor(t, user.ID, &goal.ID, time.Date(2024, 1, 10, 8, 0, 0, 0, time.UTC)) // in range
 	makeDayFor(t, user.ID, &goal.ID, time.Date(2024, 2, 10, 8, 0, 0, 0, time.UTC)) // out of range
 
-	byGoal, err := GetExerciseDaysBetweenDatesUsingDates(goal.ID, rangeStart, rangeEnd)
-	if err != nil {
-		t.Fatalf("GetExerciseDaysBetweenDatesUsingDates returned error: %v", err)
-	}
-	if len(byGoal) != 1 {
-		t.Errorf("by goal: got %d days, want 1", len(byGoal))
-	}
-
 	byUser, err := GetExerciseDaysBetweenDatesUsingDatesAndUserID(user.ID, rangeStart, rangeEnd)
 	if err != nil {
 		t.Fatalf("GetExerciseDaysBetweenDatesUsingDatesAndUserID returned error: %v", err)

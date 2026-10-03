@@ -110,7 +110,7 @@ function load_page(result) {
 
                             <h3 id="season-module-title">Season:</h3>
 
-                            <form action="" onsubmit="event.preventDefault(); add_season();">
+                            <form action="" onsubmit="event.preventDefault(); addSeason();">
 
                                 <div class="field-row">
                                     <div class="field">
@@ -648,113 +648,108 @@ function place_prizes(prizesArray) {
 
 }
 
-function add_season() {
+// parsePickedDate turns an <input type="date"> value ("YYYY-MM-DD") into a Date at local
+// midnight on that calendar day. new Date("YYYY-MM-DD") would be UTC midnight instead, so
+// getDay() west of UTC lands on the day before; returns null for a malformed value.
+function parsePickedDate(value) {
+    var parts = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
+    if(!parts) {
+        return null;
+    }
+    return new Date(parseInt(parts[1], 10), parseInt(parts[2], 10) - 1, parseInt(parts[3], 10));
+}
 
+// addSeason validates the season form and posts it. The weekday and "in the future" checks run
+// on the picked calendar dates in the browser's zone; the dates are sent as UTC midnight of the
+// same calendar day, and the server builds the boundaries in its own zone from that date.
+function addSeason() {
     clearResponse();
 
-    var now = new Date;
+    var seasonStartValue = document.getElementById("season-start").value;
+    var seasonEndValue = document.getElementById("season-end").value;
+    var seasonJoinAnytime = document.getElementById("join_anytime").checked;
+    var seasonName = document.getElementById("season-name").value;
+    var seasonDescription = document.getElementById("season-desc").value;
+    var seasonSickleave = parseInt(document.getElementById("season-sickleave").value);
 
-    var season_start = document.getElementById("season-start").value;
-    var season_end = document.getElementById("season-end").value;
-    var season_start_string = "";
-    var season_end_string = "";
-    var season_join_anytime = document.getElementById("join_anytime").checked;
-
+    var seasonPrize;
     try {
-        var season_prize_select = document.getElementById("season-prize");
-        var season_prize = season_prize_select[season_prize_select.selectedIndex].value;
+        var seasonPrizeSelect = document.getElementById("season-prize");
+        seasonPrize = seasonPrizeSelect[seasonPrizeSelect.selectedIndex].value;
     } catch(e) {
-        console.log("Failed to parse prize. Error: " + e)
-        error("Failed to parse prize.")
-        return
+        console.log("Failed to parse prize. Error: " + e);
+        error("Failed to parse prize.");
+        return false;
     }
 
-    var season_name = document.getElementById("season-name").value;
-    var season_desc = document.getElementById("season-desc").value;
-    var season_sickleave = parseInt(document.getElementById("season-sickleave").value);
-
-    try {
-
-        var season_start_object = new Date(season_start);
-        season_start_string = season_start_object.toISOString()
-        var season_end_object = new Date(season_end);
-        season_end_string = season_end_object.toISOString()
-
-        if(season_start_object.getDay() != 1) {
-            console.log("Day: " + season_start_object.getDay())
-            error("Season start must be a monday.");
-            return;
-        }
-
-        if(season_end_object.getDay() != 0) {
-            error("Season end must be a sunday.");
-            return;
-        }
-
-        if(season_end_object < season_start_object) {
-            error("Season start must be before season end.");
-            return;
-        }
-
-        if(season_start_object < now) {
-            error("Season start must later than now.");
-            return;
-        }
-        
-    } catch(e) {
-        error("Failed to parse date object.")
-        console.log("Error: " + e)
-        return;
+    var seasonStart = parsePickedDate(seasonStartValue);
+    var seasonEnd = parsePickedDate(seasonEndValue);
+    if(!seasonStart || !seasonEnd) {
+        error("Failed to parse date object.");
+        return false;
     }
 
-    var form_obj = { 
-        "start" : season_start_string,
-        "end" : season_end_string,
-        "name" : season_name,
-        "description" : season_desc,
-        "prize_id" : season_prize,
-        "sickleave" : season_sickleave,
-        "timezone" : Intl.DateTimeFormat().resolvedOptions().timeZone,
-        "join_anytime": season_join_anytime
-    };
+    if(seasonStart.getDay() != 1) {
+        error("Season start must be a monday.");
+        return false;
+    }
 
-    var form_data = JSON.stringify(form_obj);
+    if(seasonEnd.getDay() != 0) {
+        error("Season end must be a sunday.");
+        return false;
+    }
+
+    if(seasonEnd < seasonStart) {
+        error("Season start must be before season end.");
+        return false;
+    }
+
+    if(seasonStart < new Date()) {
+        error("Season start must be later than now.");
+        return false;
+    }
+
+    var formData = JSON.stringify({
+        "start": seasonStartValue + "T00:00:00Z",
+        "end": seasonEndValue + "T00:00:00Z",
+        "name": seasonName,
+        "description": seasonDescription,
+        "prize_id": seasonPrize,
+        "sickleave": seasonSickleave,
+        "join_anytime": seasonJoinAnytime
+    });
 
     var xhttp = new XMLHttpRequest();
     xhttp.onreadystatechange = function() {
-        if (this.readyState == 4) {
-            
-            try {
-                result = JSON.parse(this.responseText);
-            } catch(e) {
-                console.log(e +' - Response: ' + this.responseText);
-                error("Could not reach API.");
-                return;
-            }
-            
-            if(result.error) {
-
-                error(result.error);
-
-            } else {
-
-                success(result.message);
-
-                document.getElementById("season-name").value = "";
-                document.getElementById("season-desc").value = "";
-                document.getElementById("season-sickleave").value = 0;
-                
-            }
-
+        if (this.readyState != 4) {
+            return;
         }
+
+        var result;
+        try {
+            result = JSON.parse(this.responseText);
+        } catch(e) {
+            console.log(e + ' - Response: ' + this.responseText);
+            error("Could not reach API.");
+            return;
+        }
+
+        if(result.error) {
+            error(result.error);
+            return;
+        }
+
+        success(result.message);
+        document.getElementById("season-name").value = "";
+        document.getElementById("season-desc").value = "";
+        document.getElementById("season-sickleave").value = 0;
     };
     xhttp.withCredentials = true;
     xhttp.open("post", api_url + "admin/seasons");
     xhttp.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
     xhttp.setRequestHeader("Authorization", jwt);
-    xhttp.send(form_data);
+    xhttp.send(formData);
     return false;
-
 }
 
 function add_prize() {

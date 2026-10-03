@@ -33,7 +33,9 @@ picked and builds `Start` (Monday 00:00) and `End` (Sunday 23:59:59) in `time.Lo
 configured `timezone` — via `seasonBoundariesInServerZone`. The request's `timezone` field is
 accepted but ignored. Weekly processing computes its Monday–Sunday windows in that same zone,
 and a season stored in another one put its final Sunday outside the last window, so that
-week was never processed.
+week was never processed. The admin form (`addSeason` in `web/js/admin.js`) validates the
+weekday on the picked calendar date in the browser's zone (`parsePickedDate`) and sends it
+as `YYYY-MM-DDT00:00:00Z`, so the date survives unchanged whatever zone the browser is in.
 
 ## Goals — how a user participates
 

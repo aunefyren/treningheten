@@ -114,10 +114,6 @@ var closedDBCalls = []struct {
 	{"GetExerciseDayByID", true, func() error { _, err := GetExerciseDayByID(uuid.UUID{}); return err }},
 	{"GetExerciseDayByIDAndUserID", true, func() error { _, err := GetExerciseDayByIDAndUserID(uuid.UUID{}, uuid.UUID{}); return err }},
 	{"GetExerciseDayByUserIDAndDate", true, func() error { _, err := GetExerciseDayByUserIDAndDate(uuid.UUID{}, time.Time{}); return err }},
-	{"GetExerciseDaysBetweenDatesUsingDates", true, func() error {
-		_, err := GetExerciseDaysBetweenDatesUsingDates(uuid.UUID{}, time.Time{}, time.Time{})
-		return err
-	}},
 	{"GetExerciseDaysBetweenDatesUsingDatesAndUserID", true, func() error {
 		_, err := GetExerciseDaysBetweenDatesUsingDatesAndUserID(uuid.UUID{}, time.Time{}, time.Time{})
 		return err
