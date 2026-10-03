@@ -59,19 +59,21 @@ func hevyAPIGet(apiKey string, path string) (body []byte, err error) {
 	client := &http.Client{Timeout: 30 * time.Second}
 	resp, err := client.Do(req)
 	if err != nil {
-		return nil, errors.New("failed to reach Hevy: " + err.Error())
+		return nil, integrationUnavailableError("failed to reach Hevy: " + err.Error())
 	}
 	defer resp.Body.Close()
 
 	body, err = io.ReadAll(resp.Body)
 	if err != nil {
-		return nil, errors.New("failed to read Hevy response: " + err.Error())
+		return nil, integrationUnavailableError("failed to read Hevy response: " + err.Error())
 	}
 
+	// A rejected key means it was regenerated or the Hevy PRO subscription lapsed: only
+	// the user can fix that.
 	if resp.StatusCode == http.StatusUnauthorized || resp.StatusCode == http.StatusForbidden {
-		return nil, errors.New("the Hevy API key was rejected")
+		return nil, integrationAuthError("the Hevy API key was rejected")
 	} else if resp.StatusCode != http.StatusOK {
-		return nil, errors.New("unexpected response from Hevy: " + resp.Status)
+		return nil, integrationUnavailableError("unexpected response from Hevy: " + resp.Status)
 	}
 
 	return body, nil
@@ -419,7 +421,8 @@ func HevyBackfillForUser(user models.User) error {
 
 	templates, err := hevyFetchExerciseTemplates(apiKey)
 	if err != nil {
-		return errors.New("failed to fetch Hevy exercise templates: " + err.Error())
+		recordIntegrationFailure(user.ID, models.IntegrationProviderHevy, err)
+		return fmt.Errorf("failed to fetch Hevy exercise templates: %w", err)
 	}
 
 	// Give user the "Influencer" achievement for connecting Hevy, ignore outcome
@@ -431,6 +434,7 @@ func HevyBackfillForUser(user models.User) error {
 	for {
 		body, err := hevyAPIGet(apiKey, fmt.Sprintf("/workouts?page=%d&pageSize=10", page))
 		if err != nil {
+			recordIntegrationFailure(user.ID, models.IntegrationProviderHevy, err)
 			return err
 		}
 
@@ -456,6 +460,7 @@ func HevyBackfillForUser(user models.User) error {
 		return errors.New("failed to record Hevy sync baseline: " + err.Error())
 	}
 
+	recordIntegrationSuccess(user.ID, models.IntegrationProviderHevy)
 	return nil
 }
 
@@ -504,7 +509,8 @@ func HevyEventsSyncForUser(user models.User) error {
 
 	templates, err := hevyFetchExerciseTemplates(apiKey)
 	if err != nil {
-		return errors.New("failed to fetch Hevy exercise templates: " + err.Error())
+		recordIntegrationFailure(user.ID, models.IntegrationProviderHevy, err)
+		return fmt.Errorf("failed to fetch Hevy exercise templates: %w", err)
 	}
 
 	// Give user the "Influencer" achievement for connecting Hevy, ignore outcome
@@ -516,6 +522,7 @@ func HevyEventsSyncForUser(user models.User) error {
 	for {
 		body, err := hevyAPIGet(apiKey, fmt.Sprintf("/workouts/events?since=%s&page=%d&pageSize=10", url.QueryEscape(since), page))
 		if err != nil {
+			recordIntegrationFailure(user.ID, models.IntegrationProviderHevy, err)
 			return err
 		}
 
@@ -557,6 +564,9 @@ func HevyEventsSyncForUser(user models.User) error {
 		return errors.New("failed to advance Hevy sync baseline: " + err.Error())
 	}
 
+	// The baseline only moves on success, so this run already covered any gap a
+	// breakage left: recovery needs no backfill of its own.
+	recordIntegrationSuccess(user.ID, models.IntegrationProviderHevy)
 	return nil
 }
 
@@ -666,6 +676,9 @@ func APISetHevyAPIKey(context *gin.Context) {
 		return
 	}
 
+	// A new key replaces a rejected one; the backfill below re-imports everything anyway.
+	clearIntegrationStatus(user.ID, models.IntegrationProviderHevy)
+
 	// Backfill the user's workout history in the background so the connect response stays
 	// fast; the full history can span many pages (pageSize max 10).
 	goSafely("hevy backfill", func() {
@@ -703,6 +716,8 @@ func APIDeleteHevyAPIKey(context *gin.Context) {
 		context.Abort()
 		return
 	}
+
+	clearIntegrationStatus(user.ID, models.IntegrationProviderHevy)
 
 	context.JSON(http.StatusOK, gin.H{"message": "Hevy disconnected."})
 }

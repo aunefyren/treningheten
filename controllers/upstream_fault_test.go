@@ -127,6 +127,7 @@ func TestUpstreamFaultSweep(t *testing.T) {
 		"audiobookshelf connect": true, "media sync": true, "media reconcile": true,
 		"plex pin": true, "plex pin check": true, "plex server override": true, "plex sync": true, "plex artwork": true,
 		"integration health check": true, "plex broken connection": true, "plex recovery": true,
+		"media health check": true, "plex moved server": true, "strava recovery": true,
 		"spotify connect": true, "spotify sync": true, "ollama greeting": true, "push all devices": true,
 	}
 	all := append(append(faultScenarios(), moreFaultScenarios()...), richFaultScenarios()...)

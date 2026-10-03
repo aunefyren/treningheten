@@ -2,6 +2,7 @@ package controllers
 
 import (
 	"errors"
+	"github.com/aunefyren/treningheten/models"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
@@ -33,10 +34,10 @@ func stubStrava(t *testing.T, handler http.HandlerFunc) *httptest.Server {
 	return server
 }
 
-// TestStravaAuthorizeSessionInvalid covers the sentinel that decides whether a failed token
-// exchange clears the user's connection. Strava answers 400/401 for a used authorization
-// code or a revoked token — permanent failures the user must reconnect from — while a 429
-// or 5xx is transient and must leave the stored credential alone.
+// TestStravaAuthorizeSessionInvalid covers how a failed token exchange is classified.
+// Strava answers 400/401 for a used authorization code or a revoked token — permanent
+// failures the user must reconnect from, so the connection is marked auth_failed. A 5xx
+// is an outage, and a 429 is our own rate limit: not the connection's fault at all.
 func TestStravaAuthorizeSessionInvalid(t *testing.T) {
 	permanent := []int{http.StatusBadRequest, http.StatusUnauthorized}
 	for _, status := range permanent {
@@ -45,8 +46,8 @@ func TestStravaAuthorizeSessionInvalid(t *testing.T) {
 				writer.WriteHeader(status)
 			})
 			_, err := StravaAuthorize("the-code")
-			if !errors.Is(err, ErrStravaSessionInvalid) {
-				t.Errorf("error = %v, want ErrStravaSessionInvalid so the connection is cleared", err)
+			if !errors.Is(err, ErrStravaSessionInvalid) || integrationErrorStatus(err) != models.IntegrationStatusAuthFailed {
+				t.Errorf("error = %v, want ErrStravaSessionInvalid marking the connection auth_failed", err)
 			}
 		})
 
@@ -55,8 +56,8 @@ func TestStravaAuthorizeSessionInvalid(t *testing.T) {
 				writer.WriteHeader(status)
 			})
 			_, err := StravaReauthorize("the-refresh-token")
-			if !errors.Is(err, ErrStravaSessionInvalid) {
-				t.Errorf("error = %v, want ErrStravaSessionInvalid so the connection is cleared", err)
+			if !errors.Is(err, ErrStravaSessionInvalid) || integrationErrorStatus(err) != models.IntegrationStatusAuthFailed {
+				t.Errorf("error = %v, want ErrStravaSessionInvalid marking the connection auth_failed", err)
 			}
 		})
 	}
@@ -71,8 +72,11 @@ func TestStravaAuthorizeSessionInvalid(t *testing.T) {
 			if err == nil {
 				t.Fatalf("status %d returned no error", status)
 			}
-			if errors.Is(err, ErrStravaSessionInvalid) {
-				t.Errorf("status %d was treated as permanent; it would wrongly clear the connection", status)
+			if errors.Is(err, ErrStravaSessionInvalid) || integrationErrorStatus(err) == models.IntegrationStatusAuthFailed {
+				t.Errorf("status %d was treated as permanent; it would wrongly tell the user to reconnect", status)
+			}
+			if want := stravaTransientStatus(status); integrationErrorStatus(err) != want {
+				t.Errorf("status %d classified as %q, want %q", status, integrationErrorStatus(err), want)
 			}
 		})
 
@@ -84,8 +88,11 @@ func TestStravaAuthorizeSessionInvalid(t *testing.T) {
 			if err == nil {
 				t.Fatalf("status %d returned no error", status)
 			}
-			if errors.Is(err, ErrStravaSessionInvalid) {
-				t.Errorf("status %d was treated as permanent; it would wrongly clear the connection", status)
+			if errors.Is(err, ErrStravaSessionInvalid) || integrationErrorStatus(err) == models.IntegrationStatusAuthFailed {
+				t.Errorf("status %d was treated as permanent; it would wrongly tell the user to reconnect", status)
+			}
+			if want := stravaTransientStatus(status); integrationErrorStatus(err) != want {
+				t.Errorf("status %d classified as %q, want %q", status, integrationErrorStatus(err), want)
 			}
 		})
 	}
@@ -257,4 +264,13 @@ func TestStravaGetGear(t *testing.T) {
 			t.Errorf("a 404 returned no error")
 		}
 	})
+}
+
+// stravaTransientStatus is the health a transient Strava reply should map to: none for
+// our own rate limit, unavailable for everything else.
+func stravaTransientStatus(status int) string {
+	if status == http.StatusTooManyRequests {
+		return ""
+	}
+	return models.IntegrationStatusUnavailable
 }

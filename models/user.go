@@ -50,11 +50,14 @@ type User struct {
 	HevyPublic               *bool      `json:"hevy_public" gorm:"default: true"`
 	HevyConnected            bool       `json:"hevy_connected" gorm:"-"`
 	StravaConnected          bool       `json:"strava_connected" gorm:"-"`
-	WheelColor               *string    `json:"wheel_color" gorm:"default: null"`
-	WheelBorderColor         *string    `json:"wheel_border_color" gorm:"default: null"`
-	WheelEmoji               *string    `json:"wheel_emoji" gorm:"default: null"`
-	ShareActivities          *bool      `json:"share_activities" gorm:"default: true"`
-	ShareStatistics          *bool      `json:"share_statistics" gorm:"default: true"`
+	// IntegrationHealth is set only when a user reads their own account: the health of
+	// their Strava / Hevy connections, keyed by provider. See docs/integration-health.md.
+	IntegrationHealth map[string]IntegrationHealthObject `json:"integration_health,omitempty" gorm:"-"`
+	WheelColor        *string                            `json:"wheel_color" gorm:"default: null"`
+	WheelBorderColor  *string                            `json:"wheel_border_color" gorm:"default: null"`
+	WheelEmoji        *string                            `json:"wheel_emoji" gorm:"default: null"`
+	ShareActivities   *bool                              `json:"share_activities" gorm:"default: true"`
+	ShareStatistics   *bool                              `json:"share_statistics" gorm:"default: true"`
 }
 
 // PublicUser is what one user is allowed to see of another. It exists as a distinct type

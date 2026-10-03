@@ -155,6 +155,42 @@ func richFaultScenarios() []faultScenario {
 			storePlexConnection(t, w.member.ID, "revoked-token", pmsURL)
 			return func() error { IntegrationHealthCheckForAllUsers(); return nil }
 		}),
+		callScenario("media health check", func(t *testing.T, h *apiHarness, w faultWorld) func() error {
+			connectPlex(t, h, w)
+			withInlineIntegrationRecovery(t)
+			abs := fakeAudiobookshelf(t, todayAt(10))
+			h.ok("POST", "/api/auth/media/audiobookshelf/connect", w.memberToken, models.AudiobookshelfConnectRequest{ServerURL: abs.URL, Token: "abs-token"})
+			stubSpotify(t, spotifyFakeHandler(todayAt(10)))
+			h.ok("POST", "/api/auth/media/spotify/callback", w.memberToken, models.SpotifyCallbackRequest{Code: "code"})
+			// Every provider was failing, so a good check also runs each recovery.
+			for _, provider := range []string{models.MediaProviderPlex, models.MediaProviderSpotify, models.MediaProviderAudiobookshelf} {
+				row := models.IntegrationStatus{UserID: w.member.ID, Provider: provider, Status: models.IntegrationStatusUnavailable}
+				since := time.Now().Add(-48 * time.Hour)
+				row.FailingSince = &since
+				if _, err := database.SaveIntegrationStatus(row); err != nil {
+					t.Fatal(err)
+				}
+			}
+			return func() error { IntegrationHealthCheckForAllUsers(); return nil }
+		}),
+		callScenario("plex moved server", func(t *testing.T, h *apiHarness, w faultWorld) func() error {
+			connectPlex(t, h, w)
+			withInlineIntegrationRecovery(t)
+			storePlexConnection(t, w.member.ID, "plex-token", "http://127.0.0.1:1")
+			return func() error { IntegrationHealthCheckForAllUsers(); return nil }
+		}),
+		callScenario("strava recovery", func(t *testing.T, h *apiHarness, w faultWorld) func() error {
+			withStrava(t)
+			withInlineIntegrationRecovery(t)
+			h.ok("POST", "/api/auth/users/"+w.member.ID.String()+"/strava", w.memberToken, models.UserStravaCodeUpdateRequest{StravaCode: "code"})
+			since := time.Now().Add(-10 * 24 * time.Hour)
+			row := models.IntegrationStatus{UserID: w.member.ID, Provider: models.IntegrationProviderStrava, Status: models.IntegrationStatusAuthFailed, FailingSince: &since}
+			if _, err := database.SaveIntegrationStatus(row); err != nil {
+				t.Fatal(err)
+			}
+			user, _ := database.GetAllUserInformation(w.member.ID)
+			return func() error { return StravaSyncWeekForUser(user, time.Now()) }
+		}),
 		callScenario("plex recovery", func(t *testing.T, h *apiHarness, w faultWorld) func() error {
 			connectPlex(t, h, w)
 			withInlineIntegrationRecovery(t)

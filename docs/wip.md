@@ -155,23 +155,12 @@ Feedback in its own space (not the front-page greeting). How to avoid spamming t
 Is a small model's feedback decent?
 
 ### Integration health follow-ups
-The framework and Plex are built — see [integration-health.md](integration-health.md).
-Next:
-- **Remaining providers.** Spotify (a refused refresh grant is `auth_failed`),
-  Audiobookshelf (401), Hevy (the existing "key rejected" 401/403). Each needs the five
-  steps in "Adding a provider".
-- **Strava: stop clearing the connection on `ErrStravaSessionInvalid`** (agreed). Keep it
-  and mark it `auth_failed`, so the account page says "broken" instead of a silent "not
-  connected". The backfill needs to re-sync *weeks* since `FailingSince` — the hourly sync
-  only covers the current week, so a gap longer than that is never re-imported today.
-- **Plex auto re-discovery:** when the stored server URL stops answering but the token
-  still works at plex.tv, re-pick a reachable server (fixes a moved Plex with no user
-  action). Must not overwrite a URL the user set by hand — needs a "manual" marker on the
-  connection.
-- **Setup gaps aren't reported:** a Plex connection with no server or account id resolved
-  silently skips every pull (fail-closed). Arguably the same "needs reconnect" state.
-- **Front-page banner** for a broken connection — push only for now; revisit if people
-  miss the notification.
+Built for all five integrations; see [integration-health.md](integration-health.md). Left:
+- **Front-page banner** for a broken connection. Push plus the account-page notice for
+  now; revisit if people miss the notification.
+- **Plex: server up, token revoked at plex.tv.** If the stored server is unreachable *and*
+  plex.tv rejects the token, the check reports `unavailable` (the server outage) rather
+  than `auth_failed`. The rediscovery's plex.tv call could escalate it.
 
 ### Integrations
 - **Garmin Connect**

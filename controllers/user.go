@@ -210,6 +210,7 @@ func GetUser(context *gin.Context) {
 		// Surface connection state without ever serializing the credentials themselves
 		userObject.HevyConnected = userObject.HevyAPIKey != nil && *userObject.HevyAPIKey != ""
 		userObject.StravaConnected = userObject.StravaCode != nil && *userObject.StravaCode != ""
+		userObject.IntegrationHealth = userIntegrationHealth(userObject)
 
 		context.JSON(http.StatusOK, gin.H{"user": userObject, "message": "User retrieved."})
 		return

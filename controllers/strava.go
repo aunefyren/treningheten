@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io"
 	"net/http"
 	"slices"
@@ -33,9 +34,24 @@ var (
 
 // ErrStravaSessionInvalid signals that Strava rejected the stored credential as
 // permanently invalid (an already-used authorization code or a revoked refresh
-// token), as opposed to a transient failure (rate limiting, 5xx, network). The
-// caller uses this to clear the connection so the user is prompted to reconnect.
+// token), as opposed to a transient failure (rate limiting, 5xx, network). It is
+// always returned wrapped as an integration auth error, so the connection is kept and
+// marked broken and the user is told to reconnect (see docs/integration-health.md).
 var ErrStravaSessionInvalid = errors.New("Strava session invalid.")
+
+// stravaStatusError maps a non-200 Strava reply onto an error: 400/401 is a dead
+// credential, 429 is our own rate limit (not the connection's fault, so not a health
+// signal), anything else means Strava isn't answering properly.
+func stravaStatusError(what string, resp *http.Response) error {
+	switch resp.StatusCode {
+	case http.StatusBadRequest, http.StatusUnauthorized:
+		return integrationAuthErrorFor(ErrStravaSessionInvalid, "")
+	case http.StatusTooManyRequests:
+		return errors.New(what + " was rate limited by Strava.")
+	default:
+		return integrationUnavailableError(what + " returned non-200 status: " + resp.Status)
+	}
+}
 
 // Strava's default read rate limit is ~100 requests per 15-minute window (plus a
 // daily cap). A flat per-minute ticker can exceed the 15-minute window under load, so
@@ -156,7 +172,7 @@ func StravaAuthorize(code string) (authorization models.StravaAuthorizeRequestRe
 	resp, err := client.Do(req)
 	if err != nil {
 		logger.Log.Error("URL request threw error. Error: " + err.Error())
-		return authorization, errors.New("URL request threw error.")
+		return authorization, integrationUnavailableError("URL request threw error.")
 	}
 	defer resp.Body.Close()
 
@@ -165,15 +181,12 @@ func StravaAuthorize(code string) (authorization models.StravaAuthorizeRequestRe
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		logger.Log.Error("Failed to read reply body. Error: " + err.Error())
-		return authorization, errors.New("Failed to read reply body.")
+		return authorization, integrationUnavailableError("Failed to read reply body.")
 	}
 
 	if resp.StatusCode != 200 {
 		logger.Log.Error("Strava authorize returned non-200. Body: " + string(body))
-		if resp.StatusCode == http.StatusBadRequest || resp.StatusCode == http.StatusUnauthorized {
-			return authorization, ErrStravaSessionInvalid
-		}
-		return authorization, errors.New("Strava authorize returned non-200 status: " + resp.Status)
+		return authorization, stravaStatusError("Strava authorize", resp)
 	}
 
 	err = json.Unmarshal(body, &authorization)
@@ -213,7 +226,7 @@ func StravaReauthorize(code string) (authorization models.StravaReauthorizationR
 	resp, err := client.Do(req)
 	if err != nil {
 		logger.Log.Error("URL request threw error. Error: " + err.Error())
-		return authorization, errors.New("URL request threw error.")
+		return authorization, integrationUnavailableError("URL request threw error.")
 	}
 	defer resp.Body.Close()
 
@@ -222,15 +235,12 @@ func StravaReauthorize(code string) (authorization models.StravaReauthorizationR
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		logger.Log.Error("Failed to read reply body. Error: " + err.Error())
-		return authorization, errors.New("Failed to read reply body.")
+		return authorization, integrationUnavailableError("Failed to read reply body.")
 	}
 
 	if resp.StatusCode != 200 {
 		logger.Log.Error("Strava reauthorize returned non-200. Body: " + string(body))
-		if resp.StatusCode == http.StatusBadRequest || resp.StatusCode == http.StatusUnauthorized {
-			return authorization, ErrStravaSessionInvalid
-		}
-		return authorization, errors.New("Strava reauthorize returned non-200 status: " + resp.Status)
+		return authorization, stravaStatusError("Strava reauthorize", resp)
 	}
 
 	err = json.Unmarshal(body, &authorization)
@@ -277,7 +287,7 @@ func StravaGetActivities(token string, before int, after int) (activities []mode
 	resp, err := client.Do(req)
 	if err != nil {
 		logger.Log.Info("URL request threw error. Error: " + err.Error())
-		return activities, errors.New("URL request threw error.")
+		return activities, integrationUnavailableError("URL request threw error.")
 	}
 	defer resp.Body.Close()
 
@@ -286,18 +296,18 @@ func StravaGetActivities(token string, before int, after int) (activities []mode
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		logger.Log.Info("Failed to read reply body. Error: " + err.Error())
-		return activities, errors.New("Failed to read reply body.")
+		return activities, integrationUnavailableError("Failed to read reply body.")
 	}
 
 	if resp.StatusCode != 200 {
 		logger.Log.Info("Get activities returned non-200. Body: " + string(body))
-		return activities, errors.New("Strava returned non-200 status: " + resp.Status)
+		return activities, stravaStatusError("Strava activities", resp)
 	}
 
 	err = json.Unmarshal(body, &activities)
 	if err != nil {
 		logger.Log.Info("Failed to parse reply body. Error: " + err.Error())
-		return activities, errors.New("Failed to parse reply body.")
+		return activities, integrationUnavailableError("Failed to parse reply body.")
 	}
 
 	return
@@ -341,13 +351,15 @@ func StravaSyncWeekForUser(user models.User, pointInTime time.Time) (err error) 
 	token, err := StravaGetAuthorizationForUser(user)
 	if err != nil {
 		logger.Log.Error("failed to find authorize user toward Strava. error: " + err.Error())
-		return errors.New("failed to find authorize user toward Strava")
+		recordIntegrationFailure(user.ID, models.IntegrationProviderStrava, err)
+		return fmt.Errorf("failed to find authorize user toward Strava: %w", err)
 	}
 
 	activities, err := StravaGetActivities(token, int(sunday.Unix()), int(monday.Unix()))
+	recordIntegrationOutcome(user.ID, models.IntegrationProviderStrava, err)
 	if err != nil {
 		logger.Log.Error("Failed to get activities. ID: " + user.ID.String())
-		return errors.New("Failed to get activities.")
+		return fmt.Errorf("Failed to get activities: %w", err)
 	}
 
 	logger.Log.Debug("Got '" + strconv.Itoa((len(activities))) + "' activities for user.")
@@ -391,16 +403,12 @@ func StravaGetAuthorizationForUser(user models.User) (token string, err error) {
 		// Fresh one-time authorization code from the OAuth callback.
 		authorization, err := StravaAuthorize(stravaCodeData[1])
 		if err != nil {
-			// A transient error (rate limiting, 5xx, network) must not brick the
-			// connection, so it is left intact. An explicitly invalid session
-			// (already-used code / revoked access) is cleared so the user is
-			// prompted to reconnect on the account page.
-			if errors.Is(err, ErrStravaSessionInvalid) {
-				clearStravaConnection(user.ID)
-				return token, ErrStravaSessionInvalid
-			}
+			// The connection is kept either way. An explicitly invalid session
+			// (already-used code / revoked access) comes back as an integration auth
+			// error, which the sync records so the user is told to reconnect; the
+			// connection stays visible as broken rather than silently vanishing.
 			logger.Log.Error("Failed to authorize user. ID: " + user.ID.String() + ". Error: " + err.Error())
-			return token, errors.New("Failed to authorize user.")
+			return token, fmt.Errorf("Failed to authorize user: %w", err)
 		}
 		if authorization.AccessToken == "" || authorization.RefreshToken == "" {
 			return token, errors.New("Strava authorize returned empty tokens.")
@@ -428,14 +436,10 @@ func StravaGetAuthorizationForUser(user models.User) (token string, err error) {
 
 		authorization, err := StravaReauthorize(refreshToken)
 		if err != nil {
-			// Same policy as the "c" branch: clear only on an explicitly invalid
-			// session (revoked / invalid refresh token), keep it on transient errors.
-			if errors.Is(err, ErrStravaSessionInvalid) {
-				clearStravaConnection(user.ID)
-				return token, ErrStravaSessionInvalid
-			}
+			// Same policy as the "c" branch: keep the connection, pass the
+			// classification on.
 			logger.Log.Error("Failed to re-authorize user. ID: " + user.ID.String() + ". Error: " + err.Error())
-			return token, errors.New("Failed to re-authorize user.")
+			return token, fmt.Errorf("Failed to re-authorize user: %w", err)
 		}
 		if authorization.AccessToken == "" || authorization.RefreshToken == "" {
 			return token, errors.New("Strava reauthorize returned empty tokens.")
@@ -476,16 +480,6 @@ func storeStravaRefreshToken(userID uuid.UUID, refreshToken string, stravaID *st
 	return nil
 }
 
-// clearStravaConnection removes the stored Strava credential and athlete id for a
-// user, disconnecting them. Failures are logged but not surfaced — the caller is
-// already returning an error for the failed authorization.
-func clearStravaConnection(userID uuid.UUID) {
-	logger.Log.Warn("Clearing invalid Strava connection for user. ID: " + userID.String())
-	if err := database.ClearStravaConnectionForUser(userID); err != nil {
-		logger.Log.Error("Failed to clear Strava connection. ID: " + userID.String() + ". Error: " + err.Error())
-	}
-}
-
 // APIDeleteStravaConnection disconnects Strava by clearing the stored authorization
 // code / refresh token and athlete id for the requesting user.
 func APIDeleteStravaConnection(context *gin.Context) {
@@ -503,6 +497,8 @@ func APIDeleteStravaConnection(context *gin.Context) {
 		context.Abort()
 		return
 	}
+
+	clearIntegrationStatus(userID, models.IntegrationProviderStrava)
 
 	context.JSON(http.StatusOK, gin.H{"message": "Strava disconnected."})
 }
@@ -1218,4 +1214,41 @@ func StravaGetActivity(token string, activityID string) (activity models.StravaG
 	}
 
 	return
+}
+
+// stravaBackfillSince re-syncs every week from the start of a Strava breakage up to the
+// current one. The hourly sync only looks at the current week, so without this a
+// connection broken for longer than that would never re-import the weeks in between.
+// The shared rate limiter paces it; it runs in the background.
+//
+// If Strava fails again part-way, the backfill stops and the gap's start is kept, so the
+// next recovery picks up where this one left off.
+func stravaBackfillSince(user models.User, since time.Time) {
+	currentMonday, err := utilities.FindEarlierMonday(time.Now())
+	if err != nil {
+		logger.Log.Warn("Strava backfill could not find the current week. Error: " + err.Error())
+		return
+	}
+
+	synced := 0
+	for week := since; ; week = week.AddDate(0, 0, 7) {
+		monday, err := utilities.FindEarlierMonday(week)
+		if err != nil || !monday.Before(currentMonday) {
+			// The current week is the hourly sync's job (and the one that just recovered).
+			break
+		}
+
+		if err := StravaSyncWeekForUser(user, week); err != nil {
+			if integrationErrorStatus(err) != "" {
+				recordIntegrationFailureSince(user.ID, models.IntegrationProviderStrava, err, since)
+				logger.Log.Warn("Strava backfill stopped after " + strconv.Itoa(synced) + " weeks. Error: " + err.Error())
+				return
+			}
+			logger.Log.Warn("Strava backfill skipped the week of " + monday.Format("2006-01-02") + ". Error: " + err.Error())
+			continue
+		}
+		synced++
+	}
+
+	logger.Log.Info("Strava backfill re-synced " + strconv.Itoa(synced) + " weeks for user " + user.ID.String() + ".")
 }

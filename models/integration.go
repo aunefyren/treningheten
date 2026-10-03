@@ -9,7 +9,11 @@ import (
 // Integration providers tracked by IntegrationStatus. The media providers reuse their
 // MediaProvider* identifiers so the two never drift apart.
 const (
-	IntegrationProviderPlex = MediaProviderPlex
+	IntegrationProviderPlex           = MediaProviderPlex
+	IntegrationProviderSpotify        = MediaProviderSpotify
+	IntegrationProviderAudiobookshelf = MediaProviderAudiobookshelf
+	IntegrationProviderStrava         = "strava"
+	IntegrationProviderHevy           = "hevy"
 )
 
 // Integration health states. A connection with no IntegrationStatus row is healthy;
@@ -24,6 +28,18 @@ const (
 	// IntegrationStatusUnavailable means the provider has not answered for longer than
 	// the grace period. It usually comes back on its own.
 	IntegrationStatusUnavailable = "unavailable"
+)
+
+// Integration status reasons refine a status where the generic advice would be wrong.
+// Empty is the common case.
+const (
+	// IntegrationReasonNotAllowlisted: Spotify refuses the account because it isn't on
+	// the app's Development Mode allowlist. Reconnecting doesn't help; the admin has to
+	// add the user.
+	IntegrationReasonNotAllowlisted = "not_allowlisted"
+	// IntegrationReasonSetupIncomplete: the connection was stored but never resolved what
+	// it needs to sync (for Plex, a server URL and the server-local account id).
+	IntegrationReasonSetupIncomplete = "setup_incomplete"
 )
 
 // IntegrationStatus records that a user's connection to an external service is failing,
@@ -41,10 +57,21 @@ type IntegrationStatus struct {
 	User     User   `json:"-" gorm:"foreignKey:UserID; references:ID"`
 	Provider string `json:"provider" gorm:"type:varchar(50); not null; uniqueIndex:idx_integration_status_user_provider"`
 	Status   string `json:"status" gorm:"type:varchar(50); not null"`
+	// Reason refines Status (IntegrationReason*); empty for the plain case.
+	Reason string `json:"reason" gorm:"type:varchar(50); not null; default: ''"`
 	// FailingSince is when the current run of failures began: the start of the gap that
 	// is re-pulled on recovery.
 	FailingSince *time.Time `json:"failing_since" gorm:"default: null"`
 	// NotifiedAt is set when the user was told about this run of failures, so they are
 	// told once per breakage rather than on every failed sync.
 	NotifiedAt *time.Time `json:"notified_at" gorm:"default: null"`
+}
+
+// IntegrationHealthObject is the read shape of a connection's health for the account
+// page: "ok" unless the connection is known to be broken. The JSON keys match the flat
+// ones on MediaConnectionObject, so the frontend renders both the same way.
+type IntegrationHealthObject struct {
+	Status       string     `json:"status"`
+	StatusReason string     `json:"status_reason"`
+	FailingSince *time.Time `json:"failing_since"`
 }

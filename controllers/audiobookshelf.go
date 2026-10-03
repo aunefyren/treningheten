@@ -60,7 +60,7 @@ func absRequest(serverURL, path, token string) ([]byte, int, error) {
 	resp, err := mediaHTTPClient(20*time.Second, nil).Do(req)
 	if err != nil {
 		logger.Log.Error("Audiobookshelf request threw error. Error: " + err.Error())
-		return nil, 0, errors.New("Audiobookshelf request threw error.")
+		return nil, 0, integrationUnavailableError("Audiobookshelf request threw error.")
 	}
 	defer resp.Body.Close()
 
@@ -142,8 +142,46 @@ func APIAudiobookshelfConnect(context *gin.Context) {
 		return
 	}
 
+	// A reconnect replaces a dead token: clear the broken status and re-pull the gap.
+	resumeIntegrationAfterReconnect(userID, models.IntegrationProviderAudiobookshelf)
+
 	object := ConvertMediaConnectionToObject(connection)
 	context.JSON(http.StatusOK, gin.H{"message": "Audiobookshelf connected.", "connection": object})
+}
+
+// absStatusError maps an ABS reply status onto an integration error: 401/403 is a
+// rejected token (revoked, or a newer ABS expiring it), anything else that isn't a 200
+// means the server isn't answering properly. nil for a 200.
+func absStatusError(what string, statusCode int) error {
+	switch {
+	case statusCode == http.StatusOK:
+		return nil
+	case statusCode == http.StatusUnauthorized || statusCode == http.StatusForbidden:
+		logger.Log.Error(what + " rejected the Audiobookshelf token. Status: " + strconv.Itoa(statusCode))
+		return integrationAuthError(what + " rejected the Audiobookshelf token.")
+	default:
+		logger.Log.Error(what + " returned non-200. Status: " + strconv.Itoa(statusCode))
+		return integrationUnavailableError(what + " returned non-200 status.")
+	}
+}
+
+// absCheckConnection is Audiobookshelf's health check: one call to /api/me with the
+// stored token.
+func absCheckConnection(connection *models.MediaConnection) error {
+	if connection.ServerURL == nil || *connection.ServerURL == "" {
+		return nil
+	}
+
+	token, err := utilities.DecryptString(*connection.AccessToken, files.ConfigFile.Media.TokenKey)
+	if err != nil {
+		return errors.New("Failed to decrypt Audiobookshelf token. Error: " + err.Error())
+	}
+
+	_, status, err := absRequest(*connection.ServerURL, "/api/me", token)
+	if err != nil {
+		return err
+	}
+	return absStatusError("Audiobookshelf health check", status)
 }
 
 // absClassifyMediaType maps an ABS session mediaType to Treningheten's vocabulary.
@@ -167,15 +205,14 @@ func absFetchListeningSessions(serverURL, token string) ([]models.Audiobookshelf
 	if err != nil {
 		return nil, err
 	}
-	if status != http.StatusOK {
-		logger.Log.Error("Audiobookshelf listening-sessions returned non-200. Status: " + strconv.Itoa(status))
-		return nil, errors.New("Audiobookshelf history returned non-200 status.")
+	if err := absStatusError("Audiobookshelf history", status); err != nil {
+		return nil, err
 	}
 
 	response := models.AudiobookshelfListeningSessionsResponse{}
 	if err := json.Unmarshal(body, &response); err != nil {
 		logger.Log.Error("Failed to parse Audiobookshelf history. Error: " + err.Error())
-		return nil, errors.New("Failed to parse Audiobookshelf history.")
+		return nil, integrationUnavailableError("Failed to parse Audiobookshelf history.")
 	}
 	return response.Sessions, nil
 }
@@ -258,6 +295,7 @@ func AudiobookshelfSyncExerciseForUser(user models.User, exercise models.Exercis
 	}
 
 	sessions, err := absFetchListeningSessions(*connection.ServerURL, token)
+	recordIntegrationOutcome(user.ID, models.IntegrationProviderAudiobookshelf, err)
 	if err != nil {
 		return err
 	}

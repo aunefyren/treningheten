@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/aunefyren/treningheten/database"
+	"github.com/aunefyren/treningheten/files"
 	"github.com/aunefyren/treningheten/logger"
 	"github.com/aunefyren/treningheten/models"
 
@@ -41,17 +42,33 @@ var startIntegrationRecovery = goSafely
 
 // integrationError keeps the provider's own message while marking what kind of failure
 // it is, so errors.Is(err, ErrIntegrationAuth) works without rewording every message.
+// cause keeps a provider's own sentinel reachable too (errors.Is(err,
+// ErrSpotifyForbidden)); reason refines the status (models.IntegrationReason*).
 type integrationError struct {
 	kind    error
+	cause   error
+	reason  string
 	message string
 }
 
 func (e *integrationError) Error() string { return e.message }
-func (e *integrationError) Unwrap() error { return e.kind }
+
+func (e *integrationError) Unwrap() []error {
+	if e.cause != nil {
+		return []error{e.kind, e.cause}
+	}
+	return []error{e.kind}
+}
 
 // integrationAuthError marks a failure as the provider rejecting the stored credential.
 func integrationAuthError(message string) error {
 	return &integrationError{kind: ErrIntegrationAuth, message: message}
+}
+
+// integrationAuthErrorFor marks a provider sentinel (or a refined reason) as a rejected
+// credential, keeping the sentinel's message and identity.
+func integrationAuthErrorFor(cause error, reason string) error {
+	return &integrationError{kind: ErrIntegrationAuth, cause: cause, reason: reason, message: cause.Error()}
 }
 
 // integrationUnavailableError marks a failure as the provider not answering (network
@@ -73,23 +90,46 @@ func integrationErrorStatus(failure error) string {
 	}
 }
 
+// integrationErrorReason returns the reason a failure carries, or "".
+func integrationErrorReason(failure error) string {
+	var tagged *integrationError
+	if errors.As(failure, &tagged) {
+		return tagged.reason
+	}
+	return ""
+}
+
 // integrationDisplayName is the provider name as the user knows it.
 func integrationDisplayName(provider string) string {
 	switch provider {
 	case models.IntegrationProviderPlex:
 		return "Plex"
+	case models.IntegrationProviderSpotify:
+		return "Spotify"
+	case models.IntegrationProviderAudiobookshelf:
+		return "Audiobookshelf"
+	case models.IntegrationProviderStrava:
+		return "Strava"
+	case models.IntegrationProviderHevy:
+		return "Hevy"
 	default:
 		return provider
 	}
 }
 
 // integrationAlertBody is the push notification text for a newly broken connection.
-func integrationAlertBody(provider string, status string) string {
+func integrationAlertBody(provider string, status string, reason string) string {
 	name := integrationDisplayName(provider)
-	if status == models.IntegrationStatusAuthFailed {
+	switch {
+	case reason == models.IntegrationReasonNotAllowlisted:
+		return "Your " + name + " account isn't allowed to use this app yet. Ask the admin to add it so your history can sync."
+	case reason == models.IntegrationReasonSetupIncomplete:
+		return "Your " + name + " connection isn't finished. Open your account page to complete it so your history can sync."
+	case status == models.IntegrationStatusAuthFailed:
 		return "Your " + name + " connection has stopped working. Reconnect it on your account page to keep your history in sync."
+	default:
+		return name + " hasn't responded for a day. Your history will catch up once it's reachable again."
 	}
-	return "Your " + name + " server hasn't responded for a day. Your history will catch up once it's reachable again."
 }
 
 // recordIntegrationFailure notes a failed provider call. Errors that aren't health
@@ -101,7 +141,8 @@ func recordIntegrationFailure(userID uuid.UUID, provider string, failure error) 
 // recordIntegrationFailureSince notes a failed provider call whose run of failures began
 // at since (now, unless a recovery backfill failed part-way and must keep the start of
 // the gap it was filling). The user is notified once per breakage: when the connection
-// first turns bad, and again only if it gets worse (unavailable → auth failed).
+// first turns bad, and again only if what they have to do changes (unavailable → auth
+// failed, or a different reason).
 func recordIntegrationFailureSince(userID uuid.UUID, provider string, failure error, since time.Time) {
 	failureStatus := integrationErrorStatus(failure)
 	if failureStatus == "" {
@@ -118,7 +159,7 @@ func recordIntegrationFailureSince(userID uuid.UUID, provider string, failure er
 	if existing != nil {
 		status = *existing
 	}
-	previousStatus := status.Status
+	previousStatus, previousReason := status.Status, status.Reason
 	previousFailingSince := status.FailingSince
 
 	if status.FailingSince == nil || since.Before(*status.FailingSince) {
@@ -129,25 +170,28 @@ func recordIntegrationFailureSince(userID uuid.UUID, provider string, failure er
 	switch failureStatus {
 	case models.IntegrationStatusAuthFailed:
 		status.Status = models.IntegrationStatusAuthFailed
+		status.Reason = integrationErrorReason(failure)
 	case models.IntegrationStatusUnavailable:
 		// A rejected credential stays the headline even if the server also goes quiet:
 		// reconnecting is what the user has to do either way.
 		if status.Status != models.IntegrationStatusAuthFailed && now.Sub(*status.FailingSince) >= integrationUnavailableGrace {
 			status.Status = models.IntegrationStatusUnavailable
+			status.Reason = integrationErrorReason(failure)
 		}
 	}
 
-	notify := status.Status != models.IntegrationStatusOK && (status.NotifiedAt == nil || status.Status != previousStatus)
+	changed := status.Status != previousStatus || status.Reason != previousReason
+	notify := status.Status != models.IntegrationStatusOK && (status.NotifiedAt == nil || changed)
 	if notify {
 		status.NotifiedAt = &now
 	}
 
 	// Most failures repeat a known state; don't rewrite the row every hour for them.
-	if existing != nil && !notify && status.Status == previousStatus && previousFailingSince != nil && previousFailingSince.Equal(*status.FailingSince) {
+	if existing != nil && !notify && !changed && previousFailingSince != nil && previousFailingSince.Equal(*status.FailingSince) {
 		return
 	}
 
-	if status.Status != previousStatus {
+	if changed {
 		logger.Log.Warn("Integration '" + provider + "' for user " + userID.String() + " is now '" + status.Status + "'. Error: " + failure.Error())
 	}
 
@@ -157,10 +201,20 @@ func recordIntegrationFailureSince(userID uuid.UUID, provider string, failure er
 	}
 
 	if notify {
-		if err := PushNotificationsForAccountAlert(userID, integrationAlertBody(provider, status.Status)); err != nil {
+		if err := PushNotificationsForAccountAlert(userID, integrationAlertBody(provider, status.Status, status.Reason)); err != nil {
 			logger.Log.Warn("Failed to notify user about integration status. Error: " + err.Error())
 		}
 	}
+}
+
+// recordIntegrationOutcome records a provider call's result: a failure (when it is a
+// health signal) or a success.
+func recordIntegrationOutcome(userID uuid.UUID, provider string, failure error) {
+	if failure != nil {
+		recordIntegrationFailure(userID, provider, failure)
+		return
+	}
+	recordIntegrationSuccess(userID, provider)
 }
 
 // recordIntegrationSuccess notes a working provider call. When the connection had been
@@ -224,32 +278,56 @@ func recoverIntegration(userID uuid.UUID, provider string, since time.Time) {
 	}
 
 	switch provider {
-	case models.IntegrationProviderPlex:
-		plexBackfillSince(user, since)
+	case models.IntegrationProviderPlex, models.IntegrationProviderSpotify, models.IntegrationProviderAudiobookshelf:
+		mediaBackfillSince(user, provider, since)
+	case models.IntegrationProviderStrava:
+		stravaBackfillSince(user, since)
+	case models.IntegrationProviderHevy:
+		// Nothing to do: the events sync only advances HevyLastSync after a run that
+		// succeeded, so the first good run after a breakage already covers the gap.
 	}
 }
 
 // IntegrationHealthCheckForAllUsers is the daily cron job: it makes one cheap
-// authenticated call per connection, so a broken one is noticed even when the user
-// hasn't logged a workout that would have tripped over it.
+// authenticated call per media connection, so a broken one is noticed even when the user
+// hasn't logged a workout that would have tripped over it. Strava and Hevy need no check
+// of their own — their hourly syncs make the same call anyway.
 func IntegrationHealthCheckForAllUsers() {
-	if plexEnabled() {
-		PlexHealthCheckForAllUsers()
+	for _, provider := range []string{models.MediaProviderPlex, models.MediaProviderSpotify, models.MediaProviderAudiobookshelf} {
+		if mediaProviderEnabled(provider) {
+			MediaHealthCheckForProvider(provider)
+		}
 	}
 
 	logger.Log.Info("Integration health check task finished.")
 }
 
-// integrationStatusForUser returns the status to show for a connection: "ok" unless
-// the connection is known to be broken, with the time it started failing. A transient
-// failure still inside its grace period reads as ok.
-func integrationStatusForUser(userID uuid.UUID, provider string) (string, *time.Time) {
+// integrationHealthForUser returns the health to show for a connection: "ok" unless the
+// connection is known to be broken. A transient failure still inside its grace period
+// reads as ok.
+func integrationHealthForUser(userID uuid.UUID, provider string) models.IntegrationHealthObject {
+	healthy := models.IntegrationHealthObject{Status: models.IntegrationStatusOK}
+
 	existing, err := database.GetIntegrationStatus(userID, provider)
 	if err != nil {
 		logger.Log.Warn("Failed to get integration status. Error: " + err.Error())
-		return models.IntegrationStatusOK, nil
+		return healthy
 	} else if existing == nil || existing.Status == models.IntegrationStatusOK {
-		return models.IntegrationStatusOK, nil
+		return healthy
 	}
-	return existing.Status, existing.FailingSince
+
+	return models.IntegrationHealthObject{Status: existing.Status, StatusReason: existing.Reason, FailingSince: existing.FailingSince}
+}
+
+// userIntegrationHealth is the health of the user's own Strava / Hevy connections, for
+// the account page. Only connected, enabled integrations are included.
+func userIntegrationHealth(user models.User) map[string]models.IntegrationHealthObject {
+	health := map[string]models.IntegrationHealthObject{}
+	if files.ConfigFile.StravaEnabled && user.StravaCode != nil && *user.StravaCode != "" {
+		health[models.IntegrationProviderStrava] = integrationHealthForUser(user.ID, models.IntegrationProviderStrava)
+	}
+	if files.ConfigFile.HevyEnabled && user.HevyAPIKey != nil && *user.HevyAPIKey != "" {
+		health[models.IntegrationProviderHevy] = integrationHealthForUser(user.ID, models.IntegrationProviderHevy)
+	}
+	return health
 }

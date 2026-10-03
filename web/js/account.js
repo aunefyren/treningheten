@@ -697,12 +697,23 @@ function renderStravaSection(user_object) {
             `;
         }
 
+        // A broken connection is kept (and flagged) rather than cleared, so offer the way
+        // back in alongside the usual controls.
+        var stravaHealth = integrationHealthFor(user_object, "strava");
+        var reconnectStravaButton = "";
+        if(stravaHealth && stravaHealth.status == "auth_failed") {
+            reconnectStravaButton = `<button onclick="window.location.href='${stravaOauth}';" class="btn integration-btn" type="submit" href="">Reconnect Strava</button>`;
+        }
+
         stravaHTML = `
+            ${integrationAlertHTML("Strava", stravaHealth)}
+
             <p class="u-w-full u-text-center">
                 Strava is connected. Exercises sync automatically every hour. Be careful to only log your sessions to either Strava or {{.appName}}.
             </p>
 
             <div class="notification-options" id="">
+                ${reconnectStravaButton}
                 <button onclick="syncStrava('${user_object.id}');" class="btn integration-btn" type="submit" href="">Sync Strava now</button>
                 <button onclick="disconnectStrava('${user_object.id}');" class="btn btn--danger integration-btn" type="submit" href="">Disconnect Strava</button>
             </div>
@@ -765,6 +776,8 @@ function renderHevySection(user_object) {
         var hevyPublicHTML = user_object.hevy_public ? "checked" : "";
 
         hevyHTML = `
+            ${integrationAlertHTML("Hevy", integrationHealthFor(user_object, "hevy"), "Paste a new API key below (Hevy PRO is required)")}
+
             <p class="u-w-full u-text-center">
                 Hevy is connected. Workouts sync automatically. Be careful to only log your sessions to either Hevy or {{.appName}}.
             </p>
@@ -1066,31 +1079,46 @@ function renderPlexSection(connection) {
 }
 
 // integrationAlertHTML renders a notice for a connected service that has stopped
-// working (status from the connection's health, see docs/integration-health.md), or
-// nothing when it is fine.
-function integrationAlertHTML(providerName, connection) {
-    if(!connection || !connection.status || connection.status == "ok") {
+// working, or nothing when it is fine. health carries status / status_reason /
+// failing_since — a media connection object, or an entry of the user's
+// integration_health (see docs/integration-health.md). fixHint says how to fix a
+// rejected credential in this section.
+function integrationAlertHTML(providerName, health, fixHint) {
+    if(!health || !health.status || health.status == "ok") {
         return "";
     }
 
     var since = "";
-    if(connection.failing_since) {
-        since = " since " + GetDateString(new Date(connection.failing_since), false);
+    if(health.failing_since) {
+        since = " since " + GetDateString(new Date(health.failing_since), false);
     }
 
-    if(connection.status == "auth_failed") {
-        return `
-            <p class="u-w-full u-text-center integration-alert">
-                ${providerName} stopped accepting the connection${since}. Reconnect below; history missed in the meantime is fetched automatically.
-            </p>
-        `;
+    var message = "";
+    var modifier = "";
+    if(health.status_reason == "not_allowlisted") {
+        message = `${providerName} doesn't allow this account yet${since}. Ask the admin to add it to the ${providerName} app — reconnecting won't help.`;
+    } else if(health.status_reason == "setup_incomplete") {
+        message = `${providerName} isn't fully set up${since}: no server or account was found. Enter the server URL below, or reconnect.`;
+    } else if(health.status == "auth_failed") {
+        message = `${providerName} stopped accepting the connection${since}. ${fixHint || "Reconnect below"}; history missed in the meantime is fetched automatically.`;
+    } else {
+        message = `${providerName} hasn't responded${since}. History will catch up once it's reachable again.`;
+        modifier = " integration-alert--unavailable";
     }
 
     return `
-        <p class="u-w-full u-text-center integration-alert integration-alert--unavailable">
-            Your ${providerName} server hasn't responded${since}. History will catch up once it's reachable again — check the server URL if it moved.
+        <p class="u-w-full u-text-center integration-alert${modifier}">
+            ${message}
         </p>
     `;
+}
+
+// integrationHealthFor returns the user's own health entry for a provider, if any.
+function integrationHealthFor(userObject, provider) {
+    if(!userObject.integration_health) {
+        return null;
+    }
+    return userObject.integration_health[provider] || null;
 }
 
 // connectPlex starts the plex.tv PIN flow: it asks the API for a PIN, opens the
@@ -1276,6 +1304,8 @@ function renderSpotifySection(connection) {
 
     if(connection && connection.connected) {
         spotifyHTML = `
+            ${integrationAlertHTML("Spotify", connection)}
+
             <p class="u-w-full u-text-center">
                 Spotify is connected. Recent listening is matched onto activities by time. Because Spotify only exposes the last ~24 hours, older workouts can't be back-filled.
             </p>
@@ -1351,6 +1381,8 @@ function renderAudiobookshelfSection(connection) {
     if(connection && connection.connected) {
         var serverValue = connection.server_url ? escapeHTML(connection.server_url) : "";
         absHTML = `
+            ${integrationAlertHTML("Audiobookshelf", connection, "Paste a fresh API token below")}
+
             <p class="u-w-full u-text-center">
                 Audiobookshelf is connected. Your listening history is matched onto activities by time.
             </p>

@@ -2,6 +2,7 @@ package controllers
 
 import (
 	"encoding/json"
+	"errors"
 	"net/http"
 	"strconv"
 	"strings"
@@ -221,15 +222,38 @@ func TestStravaConnectSyncAndReshape(t *testing.T) {
 	SyncStravaActivitiesForUsers([]models.User{stored}, []string{"1001"})
 	StravaSyncWeekForAllUsers()
 
-	// A revoked connection is cleared on the next sync.
+	// A revoked connection is kept, but marked broken so the user is told to reconnect
+	// (it used to be cleared, which looked like "never connected" on the account page).
+	withInlineIntegrationRecovery(t)
 	fake.revoke.Store(true)
 	refreshed, _ := database.GetAllUserInformation(user.ID)
-	if _, err := StravaGetAuthorizationForUser(refreshed); err == nil {
-		t.Fatal("authorization succeeded against a revoked token")
+	if err := StravaSyncWeekForUser(refreshed, time.Now()); !errors.Is(err, ErrStravaSessionInvalid) {
+		t.Fatalf("sync against a revoked token = %v, want ErrStravaSessionInvalid", err)
 	}
-	cleared, _ := database.GetAllUserInformation(user.ID)
-	if cleared.StravaCode != nil || cleared.StravaID != nil {
-		t.Error("a revoked Strava connection was not cleared")
+	kept, _ := database.GetAllUserInformation(user.ID)
+	if kept.StravaCode == nil || kept.StravaID == nil {
+		t.Error("a revoked Strava connection was cleared; it should be kept and marked broken")
+	}
+	self := h.ok("GET", userPath, token, nil)
+	if field(t, self, "user", "integration_health", "strava", "status") != models.IntegrationStatusAuthFailed {
+		t.Errorf("own user health = %v, want strava auth_failed", field(t, self, "user", "integration_health"))
+	}
+
+	// Once Strava accepts the credential again, the next sync clears the status.
+	fake.revoke.Store(false)
+	if err := StravaSyncWeekForUser(kept, time.Now()); err != nil {
+		t.Fatalf("sync after recovery: %v", err)
+	}
+	self = h.ok("GET", userPath, token, nil)
+	if field(t, self, "user", "integration_health", "strava", "status") != models.IntegrationStatusOK {
+		t.Errorf("own user health after recovery = %v", field(t, self, "user", "integration_health"))
+	}
+
+	// Disconnecting drops a status along with the connection.
+	recordIntegrationFailure(user.ID, models.IntegrationProviderStrava, integrationAuthErrorFor(ErrStravaSessionInvalid, ""))
+	h.ok("DELETE", userPath+"/strava", token, nil)
+	if row, _ := database.GetIntegrationStatus(user.ID, models.IntegrationProviderStrava); row != nil {
+		t.Errorf("status survived the Strava disconnect: %+v", row)
 	}
 }
 

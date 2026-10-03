@@ -157,6 +157,10 @@ is bucketed — otherwise late-night workouts would land on the wrong exercise d
   (`hevyDeleteWorkoutForUser`); a no-op if the workout was never imported.
 - It runs only once a backfill has set `HevyLastSync` (so it never races the initial
   import), and advances `HevyLastSync` to the run's start time on success.
+- A rejected key (401/403: regenerated, or Hevy PRO lapsed) marks the connection
+  `auth_failed` and the user is notified once. Because the baseline only moves on
+  success, the first good run after a new key covers the gap by itself. No separate
+  backfill is needed. See [integration-health.md](integration-health.md).
 
 `HevyEventsSyncForAllUsers()` is the cron entrypoint (`database.GetHevyUsers()` → each
 user). Scheduled hourly at **:30** when `HevyEnabled` (offset from Strava's :00), in

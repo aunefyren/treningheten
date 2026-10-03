@@ -636,7 +636,7 @@ never per matching operation.
 - **Per-(session, provider) pull guard:** the single `Exercise.MediaRetrievedAt` spans
   all providers. Fine for the common case, but connecting a provider *after* a session
   was already pulled relies on the 🎧 re-pull button. A provider that *failed* while
-  another succeeded is now covered for Plex: when the connection recovers, the
+  another succeeded is now covered for every media provider: when the connection recovers, the
   [integration-health](integration-health.md#recovery-backfill) backfill re-pulls the gap
   regardless of the guard. Generalise when it becomes annoying.
 - **Cross-provider de-dupe detail:** the within-provider overlap merge groups by provider

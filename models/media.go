@@ -115,6 +115,7 @@ type MediaConnectionObject struct {
 	// Status is the connection's health: "ok", "auth_failed" or "unavailable" (see
 	// models.IntegrationStatus). FailingSince is set when it isn't ok.
 	Status       string     `json:"status"`
+	StatusReason string     `json:"status_reason"`
 	FailingSince *time.Time `json:"failing_since"`
 }
 

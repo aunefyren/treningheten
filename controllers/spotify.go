@@ -73,22 +73,42 @@ func spotifyTokenRequest(form url.Values) (models.SpotifyTokenResponse, error) {
 	resp, err := client.Do(req)
 	if err != nil {
 		logger.Log.Error("Spotify token request threw error. Error: " + err.Error())
-		return token, errors.New("Spotify token request threw error.")
+		return token, integrationUnavailableError("Spotify token request threw error.")
 	}
 	defer resp.Body.Close()
 
 	body, _ := io.ReadAll(resp.Body)
 	if resp.StatusCode != http.StatusOK {
 		logger.Log.Error("Spotify token endpoint returned non-200. Status: " + strconv.Itoa(resp.StatusCode) + " Body: " + string(body))
-		return token, errors.New("Spotify rejected the token request.")
+		if spotifyTokenRejected(resp.StatusCode, body) {
+			return token, integrationAuthError("Spotify rejected the token request.")
+		}
+		return token, integrationUnavailableError("Spotify rejected the token request.")
 	}
 
 	if err := json.Unmarshal(body, &token); err != nil {
 		logger.Log.Error("Failed to parse Spotify token response. Error: " + err.Error())
-		return token, errors.New("Failed to parse Spotify token response.")
+		return token, integrationUnavailableError("Failed to parse Spotify token response.")
 	}
 
 	return token, nil
+}
+
+// spotifyTokenRejected reports whether a token-endpoint failure means the credential
+// itself is dead: a 401, or a 400 with invalid_grant (a revoked or expired refresh
+// token, or a used authorization code). Anything else — a 5xx, or a 400 about our own
+// app credentials — is not something reconnecting would fix.
+func spotifyTokenRejected(statusCode int, body []byte) bool {
+	if statusCode == http.StatusUnauthorized {
+		return true
+	}
+	if statusCode != http.StatusBadRequest {
+		return false
+	}
+	reply := struct {
+		Error string `json:"error"`
+	}{}
+	return json.Unmarshal(body, &reply) == nil && reply.Error == "invalid_grant"
 }
 
 // APISpotifyCallback completes the OAuth flow: it exchanges the authorization code
@@ -137,6 +157,9 @@ func APISpotifyCallback(context *gin.Context) {
 		context.Abort()
 		return
 	}
+
+	// A reconnect replaces a dead token: clear the broken status and re-pull the gap.
+	resumeIntegrationAfterReconnect(userID, models.IntegrationProviderSpotify)
 
 	object := ConvertMediaConnectionToObject(connection)
 	context.JSON(http.StatusOK, gin.H{"message": "Spotify connected.", "connection": object})
@@ -249,23 +272,28 @@ func spotifyFetchRecentlyPlayed(token string) ([]models.SpotifyPlayHistory, erro
 	resp, err := client.Do(req)
 	if err != nil {
 		logger.Log.Error("Spotify history request threw error. Error: " + err.Error())
-		return nil, errors.New("Spotify history request threw error.")
+		return nil, integrationUnavailableError("Spotify history request threw error.")
 	}
 	defer resp.Body.Close()
 
-	if resp.StatusCode == http.StatusForbidden {
+	switch resp.StatusCode {
+	case http.StatusOK:
+	case http.StatusForbidden:
+		// Reconnecting won't fix this one — the admin has to allowlist the account.
 		logger.Log.Warn("Spotify history returned 403 — account likely not allowlisted in the app.")
-		return nil, ErrSpotifyForbidden
-	}
-	if resp.StatusCode != http.StatusOK {
+		return nil, integrationAuthErrorFor(ErrSpotifyForbidden, models.IntegrationReasonNotAllowlisted)
+	case http.StatusUnauthorized:
+		logger.Log.Error("Spotify history rejected the access token.")
+		return nil, integrationAuthError("Spotify history rejected the access token.")
+	default:
 		logger.Log.Error("Spotify history returned non-200. Status: " + strconv.Itoa(resp.StatusCode))
-		return nil, errors.New("Spotify history returned non-200 status.")
+		return nil, integrationUnavailableError("Spotify history returned non-200 status.")
 	}
 
 	history := models.SpotifyRecentlyPlayed{}
 	if err := json.NewDecoder(resp.Body).Decode(&history); err != nil {
 		logger.Log.Error("Failed to parse Spotify history. Error: " + err.Error())
-		return nil, errors.New("Failed to parse Spotify history.")
+		return nil, integrationUnavailableError("Failed to parse Spotify history.")
 	}
 
 	return history.Items, nil
@@ -333,6 +361,7 @@ func SpotifySyncExerciseForUser(user models.User, exercise models.Exercise) erro
 
 	token, err := spotifyEnsureToken(connection)
 	if err != nil {
+		recordIntegrationFailure(user.ID, models.IntegrationProviderSpotify, err)
 		return err
 	}
 
@@ -344,6 +373,7 @@ func SpotifySyncExerciseForUser(user models.User, exercise models.Exercise) erro
 	}
 
 	items, err := spotifyFetchRecentlyPlayed(token)
+	recordIntegrationOutcome(user.ID, models.IntegrationProviderSpotify, err)
 	if err != nil {
 		return err
 	}
@@ -365,4 +395,15 @@ func SpotifySyncExerciseForUser(user models.User, exercise models.Exercise) erro
 
 	logger.Log.Info("Synced " + strconv.Itoa(len(playback)) + " Spotify playback rows for session " + exercise.ID.String())
 	return nil
+}
+
+// spotifyCheckConnection is Spotify's health check: refresh the token if it is due, and
+// read the recently-played list once.
+func spotifyCheckConnection(connection *models.MediaConnection) error {
+	token, err := spotifyEnsureToken(connection)
+	if err != nil {
+		return err
+	}
+	_, err = spotifyFetchRecentlyPlayed(token)
+	return err
 }

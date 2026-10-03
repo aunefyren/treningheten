@@ -89,15 +89,21 @@ re-encrypted on the next successful exchange — so no migration is needed.
 **Failure handling:** the token exchanges return an error on any non-200 response, and
 never store an empty token. The response is then split into two cases:
 
-- **Transient failure** (rate limiting, 5xx, network): `StravaCode` is **left intact**,
-  so the failure surfaces as a failed sync and the next run retries the same credential.
-- **Invalid session** — Strava answers the token exchange with **HTTP 400 or 401**
+- **Transient failure** (5xx, network): `StravaCode` is **left intact**, so the failure
+  surfaces as a failed sync and the next run retries the same credential. After 24
+  hours of it the connection is reported as unavailable. A **429** is our own rate limit,
+  not the connection's fault, and is never reported.
+- **Invalid session**: Strava answers the token exchange with **HTTP 400 or 401**
   (an already-used authorization code, or a revoked/invalid refresh token). The
-  exchange returns the `ErrStravaSessionInvalid` sentinel, and
-  `StravaGetAuthorizationForUser` **clears the connection** via
-  `database.ClearStravaConnectionForUser` (NULLs `StravaCode` + `StravaID`). The user
-  then sees the disconnected state on `/account` and is prompted to reconnect, instead
-  of the connection silently retrying a dead credential forever.
+  exchange returns the `ErrStravaSessionInvalid` sentinel, wrapped as an integration
+  auth error. The connection is **kept** and marked `auth_failed`. The user gets one
+  push notification, and `/account` shows the notice with a **Reconnect Strava**
+  button. It used to be cleared instead, which looked like "never connected" and gave
+  no hint that weeks were going missing.
+- **Recovery:** the first sync that works again clears the status and re-syncs every
+  week since the breakage began (`stravaBackfillSince`). The hourly sync only looks at
+  the current week, so without this a longer gap would never be re-imported. See
+  [integration-health.md](integration-health.md).
 
 A user can also disconnect manually: `DELETE /api/auth/users/:user_id/strava`
 (`APIDeleteStravaConnection`) clears the same fields. The account page shows a

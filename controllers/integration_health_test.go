@@ -104,11 +104,30 @@ func TestPlexServerStatusError(t *testing.T) {
 }
 
 func TestIntegrationAlertText(t *testing.T) {
-	if body := integrationAlertBody(models.IntegrationProviderPlex, models.IntegrationStatusAuthFailed); !strings.Contains(body, "Plex connection") || !strings.Contains(body, "Reconnect") {
-		t.Errorf("auth body = %q", body)
+	cases := []struct {
+		name     string
+		provider string
+		status   string
+		reason   string
+		want     []string
+	}{
+		{"plex rejected", models.IntegrationProviderPlex, models.IntegrationStatusAuthFailed, "", []string{"Plex connection", "Reconnect"}},
+		{"plex unavailable", models.IntegrationProviderPlex, models.IntegrationStatusUnavailable, "", []string{"Plex hasn't responded"}},
+		{"plex setup", models.IntegrationProviderPlex, models.IntegrationStatusAuthFailed, models.IntegrationReasonSetupIncomplete, []string{"Plex connection isn't finished"}},
+		{"spotify allowlist", models.IntegrationProviderSpotify, models.IntegrationStatusAuthFailed, models.IntegrationReasonNotAllowlisted, []string{"Spotify account", "admin"}},
+		{"strava rejected", models.IntegrationProviderStrava, models.IntegrationStatusAuthFailed, "", []string{"Strava connection"}},
+		{"hevy rejected", models.IntegrationProviderHevy, models.IntegrationStatusAuthFailed, "", []string{"Hevy connection"}},
+		{"audiobookshelf down", models.IntegrationProviderAudiobookshelf, models.IntegrationStatusUnavailable, "", []string{"Audiobookshelf hasn't responded"}},
 	}
-	if body := integrationAlertBody(models.IntegrationProviderPlex, models.IntegrationStatusUnavailable); !strings.Contains(body, "Plex server") {
-		t.Errorf("unavailable body = %q", body)
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			body := integrationAlertBody(c.provider, c.status, c.reason)
+			for _, want := range c.want {
+				if !strings.Contains(body, want) {
+					t.Errorf("body %q lacks %q", body, want)
+				}
+			}
+		})
 	}
 	if name := integrationDisplayName("somethingelse"); name != "somethingelse" {
 		t.Errorf("unknown provider display name = %q", name)
@@ -131,8 +150,8 @@ func TestRecordIntegrationFailureTransitions(t *testing.T) {
 	if row == nil || row.Status != models.IntegrationStatusOK || row.FailingSince == nil || row.NotifiedAt != nil {
 		t.Fatalf("after a first outage = %+v, want ok with failing_since and no notification", row)
 	}
-	if status, since := integrationStatusForUser(user.ID, models.IntegrationProviderPlex); status != models.IntegrationStatusOK || since != nil {
-		t.Errorf("shown status inside the grace period = %q, %v; want ok", status, since)
+	if health := integrationHealthForUser(user.ID, models.IntegrationProviderPlex); health.Status != models.IntegrationStatusOK || health.FailingSince != nil {
+		t.Errorf("shown health inside the grace period = %+v; want ok", health)
 	}
 
 	// An earlier gap start (a failed backfill) moves failing_since back.
@@ -163,8 +182,8 @@ func TestRecordIntegrationFailureTransitions(t *testing.T) {
 	if row = plexStatusRow(t, user.ID); row.Status != models.IntegrationStatusAuthFailed {
 		t.Errorf("status after a later outage = %q, want auth_failed", row.Status)
 	}
-	if status, since := integrationStatusForUser(user.ID, models.IntegrationProviderPlex); status != models.IntegrationStatusAuthFailed || since == nil {
-		t.Errorf("shown status = %q, %v; want auth_failed with a start time", status, since)
+	if health := integrationHealthForUser(user.ID, models.IntegrationProviderPlex); health.Status != models.IntegrationStatusAuthFailed || health.FailingSince == nil {
+		t.Errorf("shown health = %+v; want auth_failed with a start time", health)
 	}
 
 	// Clearing reports where the gap began, once.
@@ -343,36 +362,36 @@ func TestPlexBackfillKeepsTheGapWhenItFailsAgain(t *testing.T) {
 func TestPlexHealthCheckEdges(t *testing.T) {
 	h := newAPIHarness(t)
 	withMedia(t)
+	pmsURL := fakePlex(t, todayAt(10))
 	user, _ := h.user("edges@plex.test", false)
 
-	// No connection, or one without a server yet: nothing to check.
-	if err := checkPlexConnectionForUser(user.ID); err != nil {
+	// No connection: nothing to check.
+	if err := checkMediaConnectionForUser(user.ID, models.MediaProviderPlex); err != nil {
 		t.Errorf("no connection: %v", err)
-	}
-	if _, err := upsertMediaConnection(user.ID, models.MediaProviderPlex, "plex-token", nil, nil); err != nil {
-		t.Fatal(err)
-	}
-	if err := checkPlexConnectionForUser(user.ID); err != nil {
-		t.Errorf("connection without a server: %v", err)
 	}
 
 	// A token that can't be decrypted is our problem, not the provider's: not tracked.
-	connection, _ := database.GetMediaConnectionForUserProvider(user.ID, models.MediaProviderPlex)
-	garbage, serverURL := "not-ciphertext", "http://127.0.0.1:1"
-	connection.AccessToken, connection.ServerURL = &garbage, &serverURL
-	if _, err := database.UpdateMediaConnectionInDB(*connection); err != nil {
+	garbage := "not-ciphertext"
+	broken := models.MediaConnection{Enabled: true, UserID: user.ID, Provider: models.MediaProviderPlex, AccessToken: &garbage, ServerURL: &pmsURL}
+	broken.ID = uuid.New()
+	if _, err := database.CreateMediaConnectionInDB(broken); err != nil {
 		t.Fatal(err)
 	}
-	if err := checkPlexConnectionForUser(user.ID); err == nil {
+	if err := checkMediaConnectionForUser(user.ID, models.MediaProviderPlex); err == nil {
 		t.Errorf("an undecryptable token passed the check")
 	}
 	if row := plexStatusRow(t, user.ID); row != nil {
 		t.Errorf("a decrypt failure was recorded as a connection problem: %+v", row)
 	}
 
-	// A server that refuses connections is an outage, not a rejected token.
-	storePlexConnection(t, user.ID, "plex-token", serverURL)
-	err := checkPlexConnectionForUser(user.ID)
+	// A server that refuses connections, with no other advertised address that answers,
+	// is an outage, not a rejected token.
+	previousResources := plexResourcesURL
+	plexResourcesURL = "http://127.0.0.1:1/api/v2/resources"
+	deadURL := "http://127.0.0.1:1"
+	storePlexConnection(t, user.ID, "plex-token", deadURL)
+	err := checkMediaConnectionForUser(user.ID, models.MediaProviderPlex)
+	plexResourcesURL = previousResources
 	if integrationErrorStatus(err) != models.IntegrationStatusUnavailable {
 		t.Errorf("unreachable server: %v", err)
 	}
@@ -380,9 +399,15 @@ func TestPlexHealthCheckEdges(t *testing.T) {
 		t.Errorf("a fresh outage = %+v, want noted but still ok", row)
 	}
 
-	// The disabled provider is skipped by the cron entry point (withMedia restores the
-	// flag); an unknown provider has nothing to recover.
+	// Disabled providers are skipped by the cron entry point (withMedia restores the
+	// flags); an unknown provider has nothing to check, sync or recover.
 	files.ConfigFile.Media.Plex.Enabled = false
+	files.ConfigFile.Media.Spotify.Enabled = false
+	files.ConfigFile.Media.Audiobookshelf.Enabled = false
 	IntegrationHealthCheckForAllUsers()
+	if mediaProviderEnabled("unknown") || mediaProviderSync("unknown") != nil || mediaProviderCheck("unknown", &models.MediaConnection{}) == nil {
+		t.Errorf("an unknown media provider is treated as real")
+	}
 	recoverIntegration(user.ID, "unknown", time.Now().Add(-365*24*time.Hour))
+	mediaBackfillSince(user, "unknown", time.Now())
 }

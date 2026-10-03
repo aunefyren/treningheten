@@ -342,7 +342,7 @@ func resolveMediaArtworkURL(provider string, artwork *string) *string {
 // stripping the credential fields. Connected reflects whether a usable token is
 // stored; Status whether that token still works (see docs/integration-health.md).
 func ConvertMediaConnectionToObject(connection models.MediaConnection) models.MediaConnectionObject {
-	status, failingSince := integrationStatusForUser(connection.UserID, connection.Provider)
+	health := integrationHealthForUser(connection.UserID, connection.Provider)
 
 	return models.MediaConnectionObject{
 		GormModel:    connection.GormModel,
@@ -352,7 +352,8 @@ func ConvertMediaConnectionToObject(connection models.MediaConnection) models.Me
 		ServerURL:    connection.ServerURL,
 		Connected:    connection.AccessToken != nil && *connection.AccessToken != "",
 		LastSyncedAt: connection.LastSyncedAt,
-		Status:       status,
-		FailingSince: failingSince,
+		Status:       health.Status,
+		StatusReason: health.StatusReason,
+		FailingSince: health.FailingSince,
 	}
 }

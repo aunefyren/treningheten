@@ -342,10 +342,11 @@ sweeps below. Total statement coverage is about 90%.
   need no such swap — their server URL is already a function argument. Test both what
   the client *sends* (auth header shape, paths, query params) and how it maps
   responses, especially the status codes that carry meaning: Strava's 400/401 →
-  `ErrStravaSessionInvalid` (clears the connection) vs a transient 429/5xx, Hevy's
-  401/403 → "key rejected", Spotify's 403 → `ErrSpotifyForbidden`, and a Plex 401/403 →
-  `ErrIntegrationAuth` vs any other failure → `ErrIntegrationUnavailable` (see
-  [integration-health.md](integration-health.md)).
+  `ErrStravaSessionInvalid` (marks the connection broken) vs a transient 429/5xx, Hevy's
+  401/403 → "key rejected", Spotify's 403 → `ErrSpotifyForbidden` (reason
+  `not_allowlisted`). Every provider tags these as `ErrIntegrationAuth` vs
+  `ErrIntegrationUnavailable`, so assert on `integrationErrorStatus(err)` too (see
+  [integration-health.md](integration-health.md#classifying-failures)).
 - **Password tests are slow** outside `controllers/`: bcrypt runs at cost 14, so each
   hash *and each comparison* costs about a second. `controllers/` lowers
   `models.PasswordHashCost` in `TestMain`; elsewhere keep the case list short and put

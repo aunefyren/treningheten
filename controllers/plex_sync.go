@@ -277,9 +277,17 @@ func PlexSyncExerciseForUser(user models.User, exercise models.Exercise) error {
 		return err
 	}
 
-	// No usable connection — record the attempt and move on.
-	if connection == nil || connection.AccessToken == nil || connection.ServerURL == nil || *connection.ServerURL == "" {
+	// No connection — record the attempt and move on.
+	if connection == nil || connection.AccessToken == nil {
 		logger.Log.Trace("No usable Plex connection for media sync; stamping guard only.")
+		return database.SetExerciseMediaRetrievedAt(exercise.ID, time.Now())
+	}
+
+	// Connected, but discovery never found a server: nothing can sync until the user
+	// finishes the setup, so say so rather than skipping in silence.
+	if connection.ServerURL == nil || *connection.ServerURL == "" {
+		logger.Log.Trace("Plex connection has no server; stamping guard only.")
+		recordIntegrationFailure(user.ID, models.IntegrationProviderPlex, errPlexSetupIncomplete())
 		return database.SetExerciseMediaRetrievedAt(exercise.ID, time.Now())
 	}
 
@@ -306,6 +314,7 @@ func PlexSyncExerciseForUser(user models.User, exercise models.Exercise) error {
 	// guard and stop rather than leak (reconnect re-resolves the account).
 	if accountID == "" {
 		logger.Log.Warn("Plex media sync skipped: no server-local account id resolved (reconnect to fix). Stamping guard only.")
+		recordIntegrationFailure(user.ID, models.IntegrationProviderPlex, errPlexSetupIncomplete())
 		return database.SetExerciseMediaRetrievedAt(exercise.ID, time.Now())
 	}
 
@@ -546,75 +555,70 @@ func plexCheckServer(serverURL, token string) error {
 	return plexServerStatusError("Plex health check", resp.StatusCode)
 }
 
-// checkPlexConnectionForUser checks one user's Plex connection and records the outcome.
-// A connection that can't be used yet (no server or account resolved) is not checked:
-// that is a setup problem the account page already shows, not a breakage.
-func checkPlexConnectionForUser(userID uuid.UUID) error {
-	connection, err := database.GetMediaConnectionForUserProvider(userID, models.MediaProviderPlex)
-	if err != nil {
-		return err
-	} else if connection == nil || connection.AccessToken == nil || connection.ServerURL == nil || *connection.ServerURL == "" {
-		return nil
-	}
+// errPlexSetupIncomplete is the health signal for a Plex connection that was stored but
+// never resolved a server URL or the server-local account id, so nothing can sync. It is
+// a function so each caller gets a fresh value.
+func errPlexSetupIncomplete() error {
+	return integrationAuthErrorFor(errors.New("The Plex connection has no server or account resolved."), models.IntegrationReasonSetupIncomplete)
+}
 
+// plexCheckConnection is Plex's health check. It first tries to repair the connection:
+// a missing server or account id is looked up again, and a server that stopped answering
+// is replaced by another advertised address that does answer (a moved or re-addressed
+// Plex).
+func plexCheckConnection(connection *models.MediaConnection) error {
 	token, err := utilities.DecryptString(*connection.AccessToken, files.ConfigFile.Media.TokenKey)
 	if err != nil {
 		return errors.New("Failed to decrypt Plex token. Error: " + err.Error())
 	}
 
-	if err := plexCheckServer(*connection.ServerURL, token); err != nil {
-		recordIntegrationFailure(userID, models.IntegrationProviderPlex, err)
-		return err
+	incomplete := func() bool {
+		return connection.ServerURL == nil || *connection.ServerURL == "" || connection.AccountID == nil || *connection.AccountID == ""
+	}
+	if incomplete() {
+		plexRediscoverServer(connection, token)
+	}
+	if incomplete() {
+		return errPlexSetupIncomplete()
 	}
 
-	recordIntegrationSuccess(userID, models.IntegrationProviderPlex)
-	return nil
+	err = plexCheckServer(*connection.ServerURL, token)
+	if integrationErrorStatus(err) == models.IntegrationStatusUnavailable && plexRediscoverServer(connection, token) {
+		err = plexCheckServer(*connection.ServerURL, token)
+	}
+	return err
 }
 
-// PlexHealthCheckForAllUsers checks every Plex connection; see
-// IntegrationHealthCheckForAllUsers.
-func PlexHealthCheckForAllUsers() {
-	connections, err := database.GetMediaConnectionsForProvider(models.MediaProviderPlex)
-	if err != nil {
-		logger.Log.Error("Plex health check failed to list connections. Error: " + err.Error())
-		return
-	}
-
-	for _, connection := range connections {
-		if err := checkPlexConnectionForUser(connection.UserID); err != nil {
-			logger.Log.Info("Plex health check failed for user " + connection.UserID.String() + ". Error: " + err.Error())
-		}
-	}
-}
-
-// plexBackfillSince re-pulls the Plex soundtrack for every session created since a
-// connection started failing. The session-level pull guards (MediaRetrievedAt,
-// MediaSettled) can't be trusted for that gap: another provider's success stamps the
-// session as pulled even when Plex failed. A day of slack covers a session created just
-// before the first failure whose pull came after it.
+// plexRediscoverServer asks plex.tv for the user's servers again, probes them, and stores
+// the first one that answers (with its server-local account id) when it differs from what
+// is stored. It reports whether anything changed.
 //
-// If Plex fails again part-way, the backfill stops and the gap's start is kept, so the
-// next recovery picks up where this one left off.
-func plexBackfillSince(user models.User, since time.Time) {
-	exercises, err := database.GetExercisesForMediaBackfill(user.ID, since.Add(-24*time.Hour))
-	if err != nil {
-		logger.Log.Warn("Plex backfill could not load sessions. Error: " + err.Error())
-		return
+// A URL the user set by hand is replaced too, but only by one that answers — a working
+// address always beats a dead one, and a reverse-proxy setup whose advertised addresses
+// are unreachable never finds a candidate, so it is left alone.
+func plexRediscoverServer(connection *models.MediaConnection, token string) bool {
+	accountID, serverURL, err := plexFetchAccountAndServer(token)
+	if err != nil || serverURL == nil {
+		return false
 	}
 
-	synced := 0
-	for _, exercise := range exercises {
-		if err := PlexSyncExerciseForUser(user, exercise); err != nil {
-			if integrationErrorStatus(err) != "" {
-				recordIntegrationFailureSince(user.ID, models.IntegrationProviderPlex, err, since)
-				logger.Log.Warn("Plex backfill stopped after " + strconv.Itoa(synced) + " sessions. Error: " + err.Error())
-				return
-			}
-			logger.Log.Warn("Plex backfill skipped session " + exercise.ID.String() + ". Error: " + err.Error())
-			continue
-		}
-		synced++
+	changed := false
+	if connection.ServerURL == nil || *connection.ServerURL != *serverURL {
+		logger.Log.Info("Plex server for user " + connection.UserID.String() + " moved; switching to a reachable address.")
+		connection.ServerURL = serverURL
+		changed = true
+	}
+	if accountID != "" && (connection.AccountID == nil || *connection.AccountID != accountID) {
+		connection.AccountID = &accountID
+		changed = true
+	}
+	if !changed {
+		return false
 	}
 
-	logger.Log.Info("Plex backfill re-pulled " + strconv.Itoa(synced) + " sessions for user " + user.ID.String() + ".")
+	if _, err := database.UpdateMediaConnectionInDB(*connection); err != nil {
+		logger.Log.Warn("Failed to store rediscovered Plex server. Error: " + err.Error())
+		return false
+	}
+	return true
 }
