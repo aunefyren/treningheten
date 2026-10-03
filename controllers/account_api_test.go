@@ -247,7 +247,8 @@ func TestAdminContentAndReads(t *testing.T) {
 	if inviteID == "" {
 		t.Fatalf("new invite %s not in the returned list", inviteCode)
 	}
-	h.expect(http.StatusCreated, "DELETE", "/api/admin/invites/"+inviteID, adminToken, nil)
+	h.expect(http.StatusOK, "DELETE", "/api/admin/invites/"+inviteID, adminToken, nil)
+	h.expect(http.StatusNotFound, "DELETE", "/api/admin/invites/"+inviteID, adminToken, nil)
 	h.expect(http.StatusBadRequest, "DELETE", "/api/admin/invites/nope", adminToken, nil)
 
 	// Admin reads.

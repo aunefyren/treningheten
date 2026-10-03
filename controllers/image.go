@@ -329,20 +329,33 @@ func ResizeImage(maxWidth uint, maxHeight uint, imageBytes []byte) ([]byte, erro
 	return resizedImageBytes, nil
 }
 
+// InvalidProfileImageError is every rejection of the uploaded image itself (encoding, size,
+// type, undecodable data) — a client error, as opposed to a failure to store a valid image.
+// Message is fit to show the user.
+type InvalidProfileImageError struct {
+	Message string
+}
+
+func (e *InvalidProfileImageError) Error() string { return e.Message }
+
+func invalidProfileImage(message string) error {
+	return &InvalidProfileImageError{Message: message}
+}
+
 func UpdateUserProfileImage(userID uuid.UUID, base64String string) error {
 
 	imageBytes, mimeType, err := Base64ToImageBytes(base64String)
 	if err != nil {
 		logger.Log.Info("Failed to convert Base64 String to bytes. Error: " + err.Error())
-		return errors.New("Invalid Base64 string.")
+		return invalidProfileImage("Invalid Base64 string.")
 	}
 
 	if len(imageBytes) > 10000000 {
-		return errors.New("Image is too large.")
+		return invalidProfileImage("Image is too large.")
 	}
 
 	if len(imageBytes) < 10000 {
-		return errors.New("Image is too small.")
+		return invalidProfileImage("Image is too small.")
 	}
 
 	var imageObject image.Image
@@ -351,17 +364,17 @@ func UpdateUserProfileImage(userID uuid.UUID, base64String string) error {
 		imageObject, err = jpeg.Decode(bytes.NewReader(imageBytes))
 		if err != nil {
 			logger.Log.Info("Failed to create image from byte array. Returning. Error: " + err.Error())
-			return errors.New("Failed to create image from, byte array.")
+			return invalidProfileImage("The image could not be read.")
 		}
 	} else if mimeType == "image/png" {
 		imageObject, err = png.Decode(bytes.NewReader(imageBytes))
 		if err != nil {
 			logger.Log.Info("Failed to create image from byte array. Returning. Error: " + err.Error())
-			return errors.New("Failed to create image from, byte array.")
+			return invalidProfileImage("The image could not be read.")
 		}
 	} else {
 		logger.Log.Info("Invalid mime type for image. Type: " + mimeType)
-		return errors.New("Invalid image type.")
+		return invalidProfileImage("Invalid image type.")
 	}
 
 	userIDString := userID.String()

@@ -1,6 +1,7 @@
 package controllers
 
 import (
+	"errors"
 	"net/http"
 
 	"github.com/aunefyren/treningheten/database"
@@ -45,29 +46,33 @@ func APIDeleteInvite(context *gin.Context) {
 	// Get ID
 	var inviteID = context.Param("invite_id")
 
-	// Parse group id
-	inviteIDInt, err := uuid.Parse(inviteID)
+	inviteIDParsed, err := uuid.Parse(inviteID)
 	if err != nil {
-		context.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		context.JSON(http.StatusBadRequest, gin.H{"error": "Failed to parse invite ID."})
 		context.Abort()
 		return
 	}
 
-	invite, err := database.GetInviteByID(inviteIDInt)
-	if err != nil {
+	invite, err := database.GetInviteByID(inviteIDParsed)
+	if errors.Is(err, database.ErrInviteNotFound) {
+		context.JSON(http.StatusNotFound, gin.H{"error": "Invite not found."})
+		context.Abort()
+		return
+	} else if err != nil {
 		logger.Log.Info("Failed to find invite. Error: " + err.Error())
 		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to find invite."})
 		context.Abort()
 		return
 	}
 
+	// A used invite is the record of how a member joined, so it stays.
 	if invite.Used {
-		context.JSON(http.StatusInternalServerError, gin.H{"error": "Invite already used."})
+		context.JSON(http.StatusConflict, gin.H{"error": "Invite already used."})
 		context.Abort()
 		return
 	}
 
-	err = database.DeleteInviteByID(inviteIDInt)
+	err = database.DeleteInviteByID(inviteIDParsed)
 	if err != nil {
 		logger.Log.Info("Failed to delete invite. Error: " + err.Error())
 		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to delete invite."})
@@ -91,7 +96,7 @@ func APIDeleteInvite(context *gin.Context) {
 		return
 	}
 
-	context.JSON(http.StatusCreated, gin.H{"message": "Invite deleted.", "invites": inviteObjects})
+	context.JSON(http.StatusOK, gin.H{"message": "Invite deleted.", "invites": inviteObjects})
 }
 
 func APIGetAllInvites(context *gin.Context) {

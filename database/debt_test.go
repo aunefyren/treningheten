@@ -123,6 +123,18 @@ func TestUnchosenDebtAndUpdateWinner(t *testing.T) {
 	if err := UpdateDebtWinner(uuid.New(), winner.ID); err == nil {
 		t.Errorf("expected error updating winner of unknown debt")
 	}
+
+	// A second spin of an already-decided debt is refused and the first result stands.
+	if err := UpdateDebtWinner(debt.ID, loser.ID); err == nil {
+		t.Errorf("expected error overwriting an already-chosen winner")
+	}
+	stored, found, err := GetDebtByDebtID(debt.ID)
+	if err != nil || !found {
+		t.Fatalf("GetDebtByDebtID returned found=%v err=%v", found, err)
+	}
+	if stored.WinnerID == nil || *stored.WinnerID != winner.ID {
+		t.Errorf("winner = %v, want the first spin's %v", stored.WinnerID, winner.ID)
+	}
 }
 
 func TestUnpaidUnreceivedAndPaidUpdate(t *testing.T) {

@@ -164,9 +164,15 @@ safe.
 - No sport type is skipped anymore — every activity imports. On a **new** import the session's
   `CountsTowardGoal` is snapshotted from the user's per-activity-type settings
   (`stravaActivityCountsTowardGoal`); re-syncs leave it alone so a manual builder toggle sticks.
+- **On/off (`IsOn`) is the user's, too.** Only a new import is switched on; a re-sync refreshes
+  a session's contents but leaves `IsOn` as stored, so a session deleted in the builder stays
+  deleted (and restorable) instead of reappearing on the next hourly run. Field ownership on
+  re-sync: `CountsTowardGoal` and `IsOn` are snapshotted at import; `Private` is mirrored from
+  Strava (below); everything else is Strava's and is overwritten.
 - The user's `StravaID` is **not** set here — it is captured at authorization time (see
-  `StravaCode` above). The activity loop must not save the (possibly stale) `user` struct,
-  which would clobber `StravaCode`.
+  `StravaCode` above). Nothing in the sync saves the (possibly stale) `user` struct: the
+  rotated refresh token and the athlete id are written as their own columns
+  (`database.SetStravaCredentialsForUser`), so a profile edit made mid-sync survives.
 
 **Activity → ExerciseDay → Exercise**
 - Find the exercise already linked to this Strava id

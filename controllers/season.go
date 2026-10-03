@@ -219,6 +219,16 @@ func buildGoalObjects(goals []models.Goal) []models.GoalObject {
 	return goalObjects
 }
 
+// seasonBoundariesInServerZone pins a season to the calendar dates the admin picked, as
+// midnight Monday to 23:59:59 Sunday in the server's configured zone (time.Local). Weekly
+// processing builds its Monday–Sunday windows in that zone, so a season stored in any other
+// zone (the admin's browser zone, say) put its final Sunday outside the last computed week
+// and that week was never processed. The request's time zone is therefore ignored.
+func seasonBoundariesInServerZone(start time.Time, end time.Time) (time.Time, time.Time) {
+	return time.Date(start.Year(), start.Month(), start.Day(), 0, 0, 0, 0, time.Local),
+		time.Date(end.Year(), end.Month(), end.Day(), 23, 59, 59, 59, time.Local)
+}
+
 func APIRegisterSeason(context *gin.Context) {
 
 	// Create season request
@@ -232,18 +242,9 @@ func APIRegisterSeason(context *gin.Context) {
 		return
 	}
 
-	seasonLocation, err := time.LoadLocation(season.TimeZone)
-	if err != nil {
-		logger.Log.Info("Failed to parse time zone. Error: " + err.Error())
-		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to parse time zone."})
-		context.Abort()
-		return
-	}
-
 	season.Name = strings.TrimSpace(season.Name)
 	season.Description = strings.TrimSpace(season.Description)
-	season.Start = time.Date(season.Start.Year(), season.Start.Month(), season.Start.Day(), 00, 00, 00, 00, seasonLocation)
-	season.End = time.Date(season.End.Year(), season.End.Month(), season.End.Day(), 23, 59, 59, 59, seasonLocation)
+	season.Start, season.End = seasonBoundariesInServerZone(season.Start, season.End)
 
 	// Verify season name
 	if season.Name == "" || len(season.Name) < 5 {
@@ -322,10 +323,6 @@ func APIRegisterSeason(context *gin.Context) {
 	}
 
 	context.JSON(http.StatusCreated, gin.H{"message": "Season created."})
-}
-
-func compareTimes(t1, t2 time.Time) int {
-	return int(t1.Sub(t2))
 }
 
 // Get current leaderboard from ongoing season

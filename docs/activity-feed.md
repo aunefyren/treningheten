@@ -66,7 +66,10 @@ friend graph.
 The flattening step is shared with the season-scoped
 `GET /api/auth/seasons/:season_id/activities` (`APIGetCurrentSeasonActivities`), which
 still exists for a season-specific view, and with the profile feed
-`GET /api/auth/users/:user_id/activities` (`APIGetUserActivities`). It applies the
+`GET /api/auth/users/:user_id/activities` (`APIGetUserActivities`) — which fetches with the
+same SQL-scoped `GetExerciseDaysForSharingUsersInListUsingDates` for the single requested
+user, so `share_activities` is enforced in the query and the handler's explicit gate on the
+real user row is defence in depth. The builder applies the
 `IsOn`/`Enabled`/`Private` filter, the `StravaPublic` gate, and the
 general-"Workout"-action fallback so an activity is never actionless. Every social
 surface goes through this one builder on purpose — a visibility rule added in one place

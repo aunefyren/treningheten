@@ -114,11 +114,6 @@ func TestSeasonAdminCreationValidation(t *testing.T) {
 		}
 	}
 
-	badZone := valid
-	badZone.TimeZone = "Not/AZone"
-	if code := h.do("POST", "/api/admin/seasons", adminToken, badZone).Code; code != http.StatusInternalServerError {
-		t.Errorf("bad time zone: status = %d, want 500", code)
-	}
 	if code := h.do("POST", "/api/admin/seasons", adminToken, "{not json").Code; code != http.StatusBadRequest {
 		t.Errorf("malformed body: status = %d, want 400", code)
 	}

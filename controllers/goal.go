@@ -94,7 +94,14 @@ func APIRegisterGoalToSeason(context *gin.Context) {
 			GoalID: goalID,
 		}
 		sickleave.ID = uuid.New()
-		database.CreateSickleave(sickleave)
+		if err := database.CreateSickleave(sickleave); err != nil {
+			// The goal itself exists, so the member is in the season; only part of the
+			// allowance is missing, which an admin can top up.
+			logger.Log.Error("Failed to create sick leave for goal. ID: " + goalID.String() + ". Error: " + err.Error())
+			context.JSON(http.StatusInternalServerError, gin.H{"error": "Goal created, but its sick leave could not be set up."})
+			context.Abort()
+			return
+		}
 	}
 
 	// Give achievement to user, ignore outcome

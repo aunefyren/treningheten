@@ -261,12 +261,13 @@ func HevySyncWorkoutForUser(user models.User, workout models.HevyWorkout, templa
 		}
 	}
 
-	exercise.Enabled = true
-	exercise.IsOn = true
-	// Default a fresh import to counting; the per-type opt-out below writes the real value
-	// once the workout's activity types are known (through SetExerciseCountsTowardGoal, since
-	// an insert here would drop a false). Re-syncs keep whatever the user set.
+	// Default a fresh import to on and counting; the per-type opt-out below writes the real
+	// goal-counting value once the workout's activity types are known (through
+	// SetExerciseCountsTowardGoal, since an insert here would drop a false). Re-syncs keep
+	// whatever the user set — including a session they deleted (is_on=false) in the builder.
 	if isNewExercise {
+		exercise.Enabled = true
+		exercise.IsOn = true
 		exercise.CountsTowardGoal = true
 	}
 	startTime := workout.StartTime

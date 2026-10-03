@@ -280,78 +280,6 @@ func APIGetWeek(context *gin.Context) {
 
 }
 
-func GetExerciseDaysForWeekUsingGoal(timeReq time.Time, goalID uuid.UUID) (models.Week, error) {
-	week := models.Week{}
-	var startTime time.Time
-	startTimeWeek := 0
-	var endTime time.Time
-	endTimeWeek := 0
-	_, timeReqWeek := timeReq.ISOWeek()
-
-	// Find monday
-	startTime, err := utilities.FindEarlierMonday(timeReq)
-	if err != nil {
-		logger.Log.Info("Failed to find earlier Monday for date. Error: " + err.Error())
-		return models.Week{}, errors.New("Failed to find earlier Monday for date.")
-	}
-	_, startTimeWeek = startTime.ISOWeek()
-
-	// Find sunday
-	endTime, err = utilities.FindNextSunday(timeReq)
-	if err != nil {
-		logger.Log.Info("Failed to find next Sunday for date. Error: " + err.Error())
-		return models.Week{}, errors.New("Failed to find next Sunday for date.")
-	}
-	_, endTimeWeek = endTime.ISOWeek()
-
-	// Verify all dates are the same week
-	if timeReqWeek != startTimeWeek || timeReqWeek != endTimeWeek {
-		logger.Log.Info("Required time week: " + strconv.Itoa(timeReqWeek))
-		logger.Log.Info("Start time week: " + strconv.Itoa(startTimeWeek))
-		logger.Log.Info("End time week: " + strconv.Itoa(endTimeWeek))
-		return models.Week{}, errors.New("Managed to find dates outside of chosen week.")
-	}
-
-	exercises, err := database.GetExerciseDaysBetweenDatesUsingDates(goalID, startTime, endTime)
-	if err != nil {
-		return models.Week{}, err
-	}
-
-	for i := 0; i < 7; i++ {
-
-		currentDate := startTime.AddDate(0, 0, i)
-		added := false
-
-		for _, exercise := range exercises {
-
-			if currentDate.Format("2006-01-02") == exercise.Date.Format("2006-01-02") {
-
-				exerciseDayObject, err := ConvertExerciseDayToExerciseDayObject(exercise)
-				if err != nil {
-					logger.Log.Info("Failed to convert exercise day to exercise day object. Error: " + err.Error())
-					return models.Week{}, errors.New("Failed to convert exercise day to exercise day object.")
-				}
-
-				week.Days = append(week.Days, exerciseDayObject)
-				added = true
-				break
-
-			}
-
-		}
-
-		if !added {
-			newExercise := models.ExerciseDayObject{
-				Date: utilities.SetClockToMinimum(currentDate),
-			}
-			week.Days = append(week.Days, newExercise)
-		}
-
-	}
-
-	return week, nil
-}
-
 func GetExerciseDaysForWeekUsingUserID(timeReq time.Time, userID uuid.UUID) (models.Week, error) {
 	week := models.Week{}
 	var startTime time.Time
@@ -1045,6 +973,9 @@ func APIUpdateExerciseDay(context *gin.Context) {
 		return
 	}
 
+	// The write above is checked; the conversion degrades secondary lookups (it logs and
+	// returns partial data), so a 2xx here can carry a thinner object. That is intended:
+	// the update was saved, and failing the request would invite a pointless retry.
 	exerciseDayObject, err := ConvertExerciseDayToExerciseDayObject(*exerciseDay)
 	if err != nil {
 		logger.Log.Info("Failed to convert exercise day to exercise day object. Error: " + err.Error())
@@ -1207,6 +1138,8 @@ func APIUpdateExercise(context *gin.Context) {
 		return
 	}
 
+	// As in APIUpdateExerciseDay: the write is checked, and only the response enrichment
+	// degrades on a failed secondary lookup — deliberately not an error.
 	exerciseObject, err := ConvertExerciseToExerciseObject(exercise)
 	if err != nil {
 		logger.Log.Info("Failed to get convert exercise to exercise object. Error: " + err.Error())

@@ -48,23 +48,9 @@ func assembleUserWeights(userID uuid.UUID, limit int) ([]models.MCPWeight, error
 	return result, nil
 }
 
-// assembleUserActivities flattens the ExerciseDay -> Exercise -> Operation -> Set
-// model into a date-sorted list of activities. It walks the enriched *Object tree
-// (see ConvertExerciseDaysToExerciseDayObjects) rather than raw GORM models, so it
-// inherits action resolution and the exercise-time fallback for free.
-// actionFilter (case-insensitive) limits to a single exercise type when non-empty;
-// limit caps the result count.
-func assembleUserActivities(userID uuid.UUID, actionFilter string, limit int) ([]models.MCPActivity, error) {
-	dayObjects, err := loadUserExerciseDayObjects(userID)
-	if err != nil {
-		return nil, err
-	}
-	return flattenActivities(dayObjects, actionFilter, limit), nil
-}
-
 // assembleWorkoutSearch runs the query-time /exercises feed (database.GetSessionFeedForUser)
 // and maps each pre-aggregated session to a slim MCPWorkoutSummary carrying its activities.
-// Unlike assembleUserActivities it does NOT load or convert the whole exercise-day tree — the
+// Unlike loadUserExerciseDayObjects it does NOT load or convert the whole exercise-day tree — the
 // filtering, sorting and pagination happen in the database, so a client can find relevant
 // workouts without pulling everything. It returns the summaries plus the total match count and
 // whether more pages remain.

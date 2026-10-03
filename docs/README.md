@@ -48,7 +48,8 @@ architecture overview.
 
 - [security.md](security.md) — cross-cutting hardening: rate limiting and the bcrypt
   cost budget, trusted-proxy/client-IP resolution, session invalidation on password
-  change, and config file permissions.
+  change, config file permissions, accepted risks, and the audit's "checked and found
+  sound" list.
 - [oauth.md](oauth.md) — Treningheten as an OAuth 2.0 authorization server.
 - [pat.md](pat.md) — Personal Access Tokens.
 - [mcp.md](mcp.md) — Model Context Protocol server (read-only, personal tools for LLM

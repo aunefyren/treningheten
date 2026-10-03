@@ -111,10 +111,8 @@ func TestAccountUpdateEdgeCases(t *testing.T) {
 
 	maxHR, restHR := 150, 150
 	h.expect(http.StatusBadRequest, "POST", userPath, token, models.UserUpdateRequest{Email: "me@update.test", OldPassword: "Password123", MaxHeartrate: &maxHR, RestingHeartrate: &restHR})
-	// A bad image is refused (currently as a 500, not a 400 — see docs/wip.md).
-	if code := h.do("POST", userPath, token, models.UserUpdateRequest{Email: "me@update.test", OldPassword: "Password123", ProfileImage: "data:image/jpeg;base64,bm90IGFuIGltYWdl"}).Code; code < 400 {
-		t.Errorf("invalid profile image: status = %d, want an error", code)
-	}
+	// A bad image is the client's mistake: 400, with the reason.
+	h.expect(http.StatusBadRequest, "POST", userPath, token, models.UserUpdateRequest{Email: "me@update.test", OldPassword: "Password123", ProfileImage: "data:image/jpeg;base64,bm90IGFuIGltYWdl"})
 
 	// Characterizes current behaviour: changing the address keeps the account verified
 	// and sends no verification mail (the re-verify branch only runs for accounts that

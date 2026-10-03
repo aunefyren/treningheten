@@ -300,7 +300,7 @@ func moreFaultScenarios() []faultScenario {
 			goal := seedGoal(t, w.member.ID, future, 2)
 			return faultRequest{"DELETE", "/api/auth/goals/" + goal.ID.String(), w.memberToken, nil, nil}
 		}),
-		scenario("delete invite", http.StatusCreated, func(t *testing.T, h *apiHarness, w faultWorld) faultRequest {
+		scenario("delete invite", http.StatusOK, func(t *testing.T, h *apiHarness, w faultWorld) faultRequest {
 			h.expect(http.StatusCreated, "POST", "/api/admin/invites", w.adminToken, nil)
 			invites := field(t, h.ok("GET", "/api/admin/invites", w.adminToken, nil), "invites").([]any)
 			return faultRequest{"DELETE", "/api/admin/invites/" + idOf(t, invites[0]), w.adminToken, nil, nil}

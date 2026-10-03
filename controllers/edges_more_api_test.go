@@ -32,9 +32,8 @@ func TestGoalInviteGearNewsEdges(t *testing.T) {
 	})
 	for _, invite := range field(t, h.ok("GET", "/api/admin/invites", adminToken, nil), "invites").([]any) {
 		if field(t, invite, "code") == code {
-			// Refused — currently as a 500 rather than a 4xx (see docs/wip.md).
-			if code := h.do("DELETE", "/api/admin/invites/"+idOf(t, invite), adminToken, nil).Code; code < 400 {
-				t.Errorf("deleting a used invite: status = %d, want a refusal", code)
+			if code := h.do("DELETE", "/api/admin/invites/"+idOf(t, invite), adminToken, nil).Code; code != http.StatusConflict {
+				t.Errorf("deleting a used invite: status = %d, want %d", code, http.StatusConflict)
 			}
 		}
 	}

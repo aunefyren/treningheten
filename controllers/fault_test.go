@@ -139,8 +139,8 @@ func sweepFaults(t *testing.T, scenario faultScenario) {
 		faulted, _, faultedBody := run(failAt)
 		if faulted >= 200 && faulted < 300 {
 			// Reported, not failed: many handlers deliberately degrade (log and return
-			// partial data) when a secondary lookup fails. Which of these should be
-			// errors instead is an open question — see docs/wip.md.
+			// partial data) when a secondary lookup fails. A lost *primary write* must
+			// not land here — those are pinned as errors in partial_write_test.go.
 			swallowed.record(scenario.name, faulted, faultedBody)
 		}
 	}

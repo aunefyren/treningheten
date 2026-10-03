@@ -1,6 +1,7 @@
 package controllers
 
 import (
+	"errors"
 	"html"
 	"net/http"
 	"strconv"
@@ -482,7 +483,12 @@ func UpdateUser(context *gin.Context) {
 	// Update profile image
 	if userUpdateRequest.ProfileImage != "" {
 		err = UpdateUserProfileImage(userOriginal.ID, userUpdateRequest.ProfileImage)
-		if err != nil {
+		var invalidImage *InvalidProfileImageError
+		if errors.As(err, &invalidImage) {
+			context.JSON(http.StatusBadRequest, gin.H{"error": invalidImage.Message})
+			context.Abort()
+			return
+		} else if err != nil {
 			logger.Log.Info("Failed to update profile image. Error: " + err.Error())
 			context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update profile image."})
 			context.Abort()

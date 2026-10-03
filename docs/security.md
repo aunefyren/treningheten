@@ -114,9 +114,71 @@ before the fix, without a data migration. Tests: `database.TestCreateOAuthClient
 and `controllers.TestOAuthConfidentialClientRegistration` (including a deliberately
 mis-stored legacy row).
 
+## Accepted risks
+
+Deliberate trade-offs, recorded so they aren't rediscovered as findings:
+
+- **Limiter state is in-memory.** A restart forgives every counter, and limits are code
+  constants rather than config (see [Rate limiting](#rate-limiting-and-the-password-hash-budget)).
+- **`media.allow_private_targets` defaults to `true`.** A LAN or loopback Plex is the
+  normal deployment and `false` would break existing installs on upgrade. With it on, an
+  authenticated user can still probe the host's own network — the Audiobookshelf connect
+  errors stay a coarse port oracle, kept because they are useful when a URL is wrong. An
+  instance with untrusted users should set it to `false`. Revisit if a guided setup ever
+  ships that could ask. See [media.md](media.md#outbound-request-safety).
+- **`/api/admin/exercise-days` returns every user's full day tree** — private sessions,
+  notes, raw `latlng` streams and the listening timeline. An admin has direct DB access
+  anyway, so withholding it at the API would be theatre. The remaining concern is size:
+  the response is unbounded and inlines every stream blob, so it wants a date bound
+  eventually on memory/latency grounds.
+- **Achievements have no share gate** (`APIGetAchievements?user=<id>` ignores both share
+  toggles). They read as public trophies.
+- **Imported GPS has no privacy-zone concept.** Strava applies privacy zones to its own
+  map rendering, not to the streams API, so a stored `latlng` track starts at the user's
+  front door. Self-scoped everywhere today — **do not add any "share this route" feature
+  without addressing this first.**
+
+## Audited and found sound
+
+From the 2026-08-29 security audit and the 2026-09-03 privacy audit, so a later pass
+doesn't re-derive them:
+
+- **SQL injection** — no string-built queries in `database/`; everything is GORM with bound
+  parameters. The one `fmt.Sprintf` into SQL (`CREATE DATABASE` in `database/client.go`)
+  takes its value from config, not a request.
+- **Path traversal on images** — `safeImageFilePath` (`controllers/image.go`), with the
+  filename built from the *parsed* UUID rather than the raw parameter.
+- **OAuth authorization-code flow** — exact-match redirect URI, mandatory PKCE S256,
+  constant-time verifier comparison, single-use codes consumed atomically, code bound to
+  the issuing client, scope narrowed to the client's grant (`controllers/oauth_authorize.go`).
+- **Refresh-token lifecycle** — rotation with reuse detection revoking the whole chain;
+  admin status re-derived from the DB on each refresh (`auth/auth.go`).
+- **Credential encryption at rest** — AES-256-GCM, random nonce per encryption, correct
+  length checks (`utilities/crypto.go`).
+- **Ownership scoping** — the `…ByIDAndUserID` pattern covers operations, operation sets,
+  exercises, gear, weights, PATs and media sync. Pointer-returning getters must return
+  `nil` on a miss (see [conventions.md](conventions.md#a-not-found-getter-must-return-nil-and-the-caller-must-check-it)).
+- **Admin enforcement** — `Auth(true)` requires both the admin scope on the token and a
+  live `admin` flag on the DB row; read-only scopes are blocked from write methods
+  (`middlewares/auth.go`).
+- **MCP** — authenticated, scope-checked, and every tool closes over the authenticated
+  `userID` rather than taking one as an argument.
+- **Password reset codes** — 16 random uppercase chars (~82 bits), 24h expiry, rotated on
+  use; the request endpoint answers identically whether or not the account exists.
+- **CSRF** — the API authenticates from the `Authorization` header, not the cookie. The one
+  cookie-accepting group, `AuthImageReadOnly`, is GET-only and `SameSite=Strict`.
+- **Social feeds** — all three go through `buildActivitiesFromExerciseDays`, which drops
+  private sessions, and `share_activities = 1` is enforced **in SQL**
+  (see [activity-feed.md](activity-feed.md)). Season activities also require the caller to
+  hold a goal in the season.
+- **`ShareStatistics`** is not nil-ed by `CensorUserObject`, so that gate genuinely works.
+- **Ollama greeting** — generated and cached per user, served only to its subject, so the
+  private-session data in its prompt never reaches anyone else.
+
 ## Still open
 
-Tracked in [wip.md](wip.md) under the security audit: the wildcard CORS configuration
-(currently inert by registration order), the JS-readable 30-day refresh cookie,
-unauthenticated dynamic client registration, and the absence of security response
-headers (notably a CSP).
+Tracked in [wip.md](wip.md#security--open): the wildcard CORS configuration (currently
+inert by registration order), the JS-readable 30-day refresh cookie, whether the `admin`
+scope should be grantable to dynamically registered clients, the absence of security
+response headers (notably a CSP), secrets passed as argv by `entrypoint.sh`, and toolchain
+patch drift.

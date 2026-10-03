@@ -130,6 +130,8 @@ tree, idempotent by `Exercise.HevyWorkoutID`:
 - Re-import rebuilds children: existing operations/sets are soft-disabled
   (`hevyDisableExerciseChildren`) and recreated, since Hevy exercises/sets have no stable
   ids to diff against.
+- Re-import leaves the user's decisions alone: `IsOn` and `CountsTowardGoal` are set only on
+  a new import, so a workout deleted in the builder stays deleted (and restorable).
 
 `HevyBackfillForUser(user)` fetches the template catalog once, then pages `GET /workouts`
 (pageSize 10), importing each workout. It runs **asynchronously** after a successful

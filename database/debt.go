@@ -190,12 +190,15 @@ func GetDebtByDebtID(debtID uuid.UUID) (models.Debt, bool, error) {
 
 }
 
-// Update debt winner
+// UpdateDebtWinner records the wheel's result, only while no winner is stored: the
+// winner_id IS NULL condition makes the check-and-set atomic, so two concurrent spins of
+// the same debt cannot both land — the second affects no row and errors.
 func UpdateDebtWinner(debtID uuid.UUID, winnerID uuid.UUID) error {
-
-	var debt models.Debt
-
-	debtRecords := Instance.Model(debt).Where("`debts`.enabled = ?", 1).Where("`debts`.ID = ?", debtID).Update("winner_id", winnerID)
+	debtRecords := Instance.Model(&models.Debt{}).
+		Where("`debts`.enabled = ?", 1).
+		Where("`debts`.ID = ?", debtID).
+		Where("`debts`.winner_id IS NULL").
+		Update("winner_id", winnerID)
 	if debtRecords.Error != nil {
 		return debtRecords.Error
 	}

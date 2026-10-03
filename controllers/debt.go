@@ -2,6 +2,7 @@ package controllers
 
 import (
 	"errors"
+	"fmt"
 	"net/http"
 	"strconv"
 	"time"
@@ -77,9 +78,18 @@ func ProcessWeekOfSeason(season models.Season, pointInTime time.Time, generateDe
 	// Get results for time given
 	if generateDebt {
 		logger.Log.Trace("generating debt for week results for point in time: " + pointInTime.String())
-		weekResults, err := GenerateDebtForWeek(pointInTime, season, targetUser)
-		if err != nil {
-			logger.Log.Error("Got error generating last weeks debt. Error: " + err.Error())
+		weekResults, debtErr := GenerateDebtForWeek(pointInTime, season, targetUser)
+		if errors.Is(debtErr, ErrDebtPartiallyGenerated) {
+			// The week's results are sound and the other losers' debts were written, so the
+			// achievements still run; the failure is reported once processing is done.
+			logger.Log.Error("Debt generation failed for some users. Error: " + debtErr.Error())
+			defer func() {
+				if err == nil {
+					err = debtErr
+				}
+			}()
+		} else if debtErr != nil {
+			logger.Log.Error("Got error generating last weeks debt. Error: " + debtErr.Error())
 			return errors.New("Got error generating last weeks debt.")
 		}
 
@@ -125,7 +135,14 @@ func ProcessWeekOfSeason(season models.Season, pointInTime time.Time, generateDe
 	return
 }
 
+// ErrDebtPartiallyGenerated means the week's results were computed and every loser was
+// attempted, but the debt for at least one of them could not be checked or written. The
+// returned WeekResults are still valid.
+var ErrDebtPartiallyGenerated = errors.New("debt could not be generated for every loser")
+
 // Receives a time and generates resulting debts based on the results of that week. Should be run on weeks after the results are gathered.
+// A per-loser failure does not stop the others; they are collected and returned together,
+// wrapped in ErrDebtPartiallyGenerated, so callers can tell a partial run from a failed one.
 func GenerateDebtForWeek(givenTime time.Time, season models.Season, targetUser *uuid.UUID) (models.WeekResults, error) {
 	// Stop if not within season
 	if season.Start.After(givenTime) || season.End.Before(givenTime) {
@@ -206,6 +223,7 @@ func GenerateDebtForWeek(givenTime time.Time, season models.Season, targetUser *
 	}
 
 	_, weekNumber := givenTime.ISOWeek()
+	debtFailures := []error{}
 
 	for _, user := range losers {
 		if targetUser != nil && user != *targetUser {
@@ -215,7 +233,8 @@ func GenerateDebtForWeek(givenTime time.Time, season models.Season, targetUser *
 
 		_, debtFound, err := database.GetDebtForWeekForUserInSeasonID(givenTime, user, seasonObject.ID)
 		if err != nil {
-			logger.Log.Info("Failed check for debt for '" + user.String() + "'. Skipping.")
+			logger.Log.Error("Failed check for debt for '" + user.String() + "'. Skipping. Error: " + err.Error())
+			debtFailures = append(debtFailures, fmt.Errorf("check debt for user %s: %w", user, err))
 			continue
 		} else if debtFound {
 			logger.Log.Info("Debt found for '" + user.String() + "'. Skipping.")
@@ -233,7 +252,8 @@ func GenerateDebtForWeek(givenTime time.Time, season models.Season, targetUser *
 
 		debtObject, err := database.RegisterDebtInDB(debt)
 		if err != nil {
-			logger.Log.Info("Failed to log debt for '" + user.String() + "'. Skipping.")
+			logger.Log.Error("Failed to log debt for '" + user.String() + "'. Skipping. Error: " + err.Error())
+			debtFailures = append(debtFailures, fmt.Errorf("register debt for user %s: %w", user, err))
 			continue
 		}
 
@@ -321,6 +341,10 @@ func GenerateDebtForWeek(givenTime time.Time, season models.Season, targetUser *
 			}
 
 		}
+	}
+
+	if len(debtFailures) > 0 {
+		return lastWeek, fmt.Errorf("%w: %w", ErrDebtPartiallyGenerated, errors.Join(debtFailures...))
 	}
 
 	logger.Log.Info("Done logging debt. Returning.")
@@ -726,16 +750,27 @@ func APIChooseWinnerForDebt(context *gin.Context) {
 	// Pick winner
 	winnerID := chooser.Pick()
 
-	// Update winner in DB
-	database.UpdateDebtWinner(debtIDInt, winnerID)
+	// Persist the winner before anything announces it: wheel views, the achievement and the
+	// e-mails all present the spin as final, and a failed save would let the loser spin again
+	// for a different result.
+	if err := database.UpdateDebtWinner(debtIDInt, winnerID); err != nil {
+		logger.Log.Error("Failed to save debt winner. Error: " + err.Error())
+		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to save winner."})
+		context.Abort()
+		return
+	}
 
 	// Give achievement to loser for losing, ignore outcome
 	goSafely("achievement grant", func() {
 		GiveUserAnAchievement(userID, uuid.MustParse("d415fffc-ea99-4b27-8929-aeb02ae44da3"), sundayDate, 10)
 	})
 
-	// Get user object
+	// The winner is already saved, so a failed lookup only costs the response its winner
+	// details; the client re-reads the debt anyway.
 	winnerUser, err := database.GetUserInformation(winnerID)
+	if err != nil {
+		logger.Log.Warn("Failed to get winner for response. Error: " + err.Error())
+	}
 
 	// Create wheel views
 	for _, user := range winners {
@@ -939,7 +974,12 @@ func APIGenerateDebtForWeek(context *gin.Context) {
 	} else {
 		for _, season := range seasons {
 			err = ProcessWeekOfSeason(season, debtCreationRequest.Date, true, true, debtCreationRequest.TargetUser)
-			if err != nil {
+			if errors.Is(err, ErrDebtPartiallyGenerated) {
+				logger.Log.Error("Debt generated for some users only. Error: " + err.Error())
+				context.JSON(http.StatusInternalServerError, gin.H{"error": "Debt could not be generated for every user. Check the log, then run it again."})
+				context.Abort()
+				return
+			} else if err != nil {
 				logger.Log.Error("Got error processing week for season. Error: " + err.Error())
 				context.JSON(http.StatusInternalServerError, gin.H{"error": "Got error processing week for season."})
 				context.Abort()

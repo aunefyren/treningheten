@@ -227,6 +227,7 @@ var closedDBCalls = []struct {
 	{"SetExerciseMediaRetrievedAt", true, func() error { err := SetExerciseMediaRetrievedAt(uuid.UUID{}, time.Time{}); return err }},
 	{"SetExerciseMediaSettled", true, func() error { err := SetExerciseMediaSettled(uuid.UUID{}, false); return err }},
 	{"SetHevyLastSyncForUser", true, func() error { err := SetHevyLastSyncForUser(uuid.UUID{}, time.Time{}); return err }},
+	{"SetStravaCredentialsForUser", true, func() error { err := SetStravaCredentialsForUser(uuid.UUID{}, "", nil); return err }},
 	{"SetSickleaveToUsedByID", true, func() error { err := SetSickleaveToUsedByID(uuid.UUID{}); return err }},
 	{"SetUsedUserInviteCode", true, func() error { err := SetUsedUserInviteCode("", uuid.UUID{}); return err }},
 	{"SetUserVerification", true, func() error { err := SetUserVerification(uuid.UUID{}, false); return err }},

@@ -28,6 +28,13 @@ owned by a user.
 Code: `models/season.go`, `controllers/season.go`, `database/season.go`. Seasons are
 created by admins (`POST /api/admin/seasons`).
 
+**Seasons live in the server's zone.** `APIRegisterSeason` keeps the calendar dates the admin
+picked and builds `Start` (Monday 00:00) and `End` (Sunday 23:59:59) in `time.Local` — the
+configured `timezone` — via `seasonBoundariesInServerZone`. The request's `timezone` field is
+accepted but ignored. Weekly processing computes its Monday–Sunday windows in that same zone,
+and a season stored in another one put its final Sunday outside the last window, so that
+week was never processed.
+
 ## Goals — how a user participates
 
 A user **does not join a season directly**. They create a `Goal` (`models/goal.go`),
@@ -90,6 +97,13 @@ weekly rhythm:
 | `SendSundayReminders` | 18:00 Sunday (`0 0 18 * * 7`) | Nudges users who haven't hit their goal yet |
 | `ProcessLastWeek` | 08:00 Monday (`0 0 8 * * 1`) | Finalises the finished week for each ongoing season (`ProcessWeekOfSeason`): generates **debts** (`GenerateDebtForWeek`) and awards weekly/season **achievements**. Week results — including streaks — are computed as part of this; they are not stored on their own. |
 
+A loser whose debt can't be checked or written doesn't stop the others: `GenerateDebtForWeek`
+attempts every loser, then returns the collected failures wrapped in
+`ErrDebtPartiallyGenerated`. `ProcessWeekOfSeason` still runs the achievements (the week's
+results are sound) and then returns that error, so the cron logs it and the admin "generate
+debt" action answers 500 instead of claiming success. Re-running is safe — losers who already
+have a debt for the week are skipped.
+
 For display, the leaderboard rebuilds week results on demand via
 `RetrieveWeekResultsFromSeasonWithinTimeframe`, which walks the season's weeks calling
 `GetWeekResultForGoal` and threading each user's running streak through. **Season
@@ -109,7 +123,9 @@ table on the front page and `/seasons` links every participant's debt, so
 `GET /api/auth/debts/:debt_id` is scoped to **season membership** — the caller must hold a
 `Goal` in the debt's season (`database.VerifyUserGoalInSeason`), otherwise 403. Acting on a
 debt is narrower still: only the loser may spin it (`APIChooseWinnerForDebt` checks
-`debt.LoserID`). The candidate list returned alongside a debt is built from the **censored**
+`debt.LoserID`). The winner is saved before anything announces it, with a
+`winner_id IS NULL` condition (`database.UpdateDebtWinner`) so two concurrent spins can't both
+land; a failed save answers 500 and creates no wheel views, so the loser can simply spin again. The candidate list returned alongside a debt is built from the **censored**
 user getter — it is a response body, so it must never carry credentials (see
 [conventions.md](conventions.md#never-serialize-a-credential)).
 

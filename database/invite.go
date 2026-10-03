@@ -75,6 +75,9 @@ func GetAllEnabledInvites() ([]models.Invite, error) {
 }
 
 // Get invite using ID
+// ErrInviteNotFound is returned by GetInviteByID when no enabled invite has the id.
+var ErrInviteNotFound = errors.New("Invite not found.")
+
 func GetInviteByID(inviteID uuid.UUID) (models.Invite, error) {
 	var invitestruct models.Invite
 	inviterecords := Instance.Where("`invites`.enabled = ?", 1).Where("`invites`.ID = ?", inviteID).Find(&invitestruct)
@@ -82,7 +85,7 @@ func GetInviteByID(inviteID uuid.UUID) (models.Invite, error) {
 		return models.Invite{}, inviterecords.Error
 	}
 	if inviterecords.RowsAffected != 1 {
-		return models.Invite{}, errors.New("Invite not found.")
+		return models.Invite{}, ErrInviteNotFound
 	}
 	return invitestruct, nil
 }

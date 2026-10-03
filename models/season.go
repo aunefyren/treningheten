@@ -39,8 +39,11 @@ type SeasonCreationRequest struct {
 	End         time.Time `json:"end"`
 	Prize       uuid.UUID `json:"prize_id"`
 	Sickleave   int       `json:"sickleave"`
-	TimeZone    string    `json:"timezone"`
-	JoinAnytime bool      `json:"join_anytime"`
+	// Deprecated: ignored. Season boundaries are always built in the server's configured
+	// zone (see seasonBoundariesInServerZone); the field is still accepted so older clients
+	// keep working.
+	TimeZone    string `json:"timezone"`
+	JoinAnytime bool   `json:"join_anytime"`
 }
 
 type SeasonObject struct {

@@ -445,7 +445,7 @@ function place_invites(invites_array) {
                         <div class="leaderboard-object-user">
                             Not used
                         </div>
-                        <img class="btn btn--icon clickable" onclick="delete_invite(` + invites_array[i].id + `)" src="/assets/trash-2.svg"></img>
+                        <img class="btn btn--icon clickable" onclick="deleteInvite('` + invites_array[i].id + `')" src="/assets/trash-2.svg"></img>
                     `;
             }
 
@@ -496,44 +496,42 @@ function generate_invite() {
 
 }
 
-function delete_invite(invite_id) {
-
+// deleteInvite withdraws an unused invite. The route is DELETE; a used invite is refused
+// with a 409 and its message shown.
+function deleteInvite(inviteID) {
     if(!confirm("Are you sure you want to delete this invite?")) {
-        return
+        return false;
     }
 
     var xhttp = new XMLHttpRequest();
     xhttp.onreadystatechange = function() {
-        if (this.readyState == 4) {
-            
-            try {
-                result = JSON.parse(this.responseText);
-            } catch(e) {
-                console.log(e +' - Response: ' + this.responseText);
-                error("Could not reach API.");
-                return;
-            }
-            
-            if(result.error) {
-
-                error(result.error);
-
-            } else {
-
-                success(result.message)
-                place_invites(result.invites)
-                
-            }
-
+        if (this.readyState != 4) {
+            return;
         }
+
+        var result;
+        try {
+            result = JSON.parse(this.responseText);
+        } catch(e) {
+            console.log(e + ' - Response: ' + this.responseText);
+            error("Could not reach API.");
+            return;
+        }
+
+        if(result.error) {
+            error(result.error);
+            return;
+        }
+
+        success(result.message);
+        place_invites(result.invites);
     };
     xhttp.withCredentials = true;
-    xhttp.open("post", api_url + "admin/invites/" + invite_id);
+    xhttp.open("delete", api_url + "admin/invites/" + inviteID);
     xhttp.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
     xhttp.setRequestHeader("Authorization", jwt);
     xhttp.send();
     return false;
-
 }
 
 function generate_debt() {

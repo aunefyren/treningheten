@@ -540,6 +540,19 @@ func ClearStravaConnectionForUser(userID uuid.UUID) error {
 	return record.Error
 }
 
+// SetStravaCredentialsForUser stores only the Strava credential, plus the athlete id when one
+// is given (nil leaves the stored id alone). Like SetHevyLastSyncForUser it never writes the
+// whole row: the sync holds a copy of the user loaded before it started, and saving that copy
+// would undo any profile change made in the meantime.
+func SetStravaCredentialsForUser(userID uuid.UUID, stravaCode string, stravaID *string) error {
+	updates := map[string]interface{}{"strava_code": stravaCode}
+	if stravaID != nil {
+		updates["strava_id"] = *stravaID
+	}
+	record := Instance.Model(&models.User{}).Where("id = ?", userID).Updates(updates)
+	return record.Error
+}
+
 // SetHevyLastSyncForUser advances only the Hevy sync baseline, and only while the user is
 // still connected. The sync runs in the background on a copy of the user loaded before it
 // started, so saving that whole copy would write back a Hevy key the user removed in the

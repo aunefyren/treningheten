@@ -465,7 +465,10 @@ never-pulled.
   `ConvertMediaPlaybackToObjects`) rewrites a Plex `/library/…` value to an authenticated
   proxy URL — `GET /api/auth/media/plex/artwork?path=…` (`APIGetPlexArtwork`, in the
   image-auth group so an `<img>`/CSS background loads it via the session cookie). The proxy
-  validates the path is under `/library/` (SSRF guard), then streams the thumb from the
+  validates the path (`plexArtworkPathAllowed`: must match `^/library/[A-Za-z0-9/._-]+$`
+  and contain no `..` — Go's HTTP client does not clean dot-segments, and a real thumb path
+  never needs cleaning, so anything `path.Clean` would rewrite is rejected rather than
+  normalised), then streams the thumb from the
   **requesting user's** Plex server with their decrypted token. Spotify already carries a
   public artwork URL (passed through unchanged); both surface in the `/statistics`
   Soundtrack block. (The exercise rail is a hairline time-spine and shows no thumbnails.)
@@ -629,6 +632,12 @@ never per matching operation.
   (noted, not solved). Notably, a manual past-day session that had no clock time (so
   its soundtrack was skipped) will match once a real time is set and the user
   re-pulls.
+- **Per-(session, provider) pull guard:** the single `Exercise.MediaRetrievedAt` spans
+  all providers. Fine for the common case, but connecting a provider *after* a session
+  was already pulled relies on the 🎧 re-pull button. Generalise when it becomes annoying.
+- **Cross-provider de-dupe detail:** the within-provider overlap merge groups by provider
+  id, so it does *not* catch the same play through two providers (two unrelated ids). A
+  cross-provider pass would have to match on title/artist + time overlap.
 - **Per-operation placement:** the soundtrack is session-level because operations
   carry no absolute start. If per-operation start times ever land (e.g. Hevy exercise
   timestamps), the timeline could be subdivided per activity.

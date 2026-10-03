@@ -410,12 +410,13 @@ func StravaGetAuthorizationForUser(user models.User) (token string, err error) {
 		// athlete object, so this is where the user's Strava ID is captured. Persist it
 		// in the same write as the refresh token so a connection always records the ID,
 		// regardless of whether the user has any activities to sync.
+		var stravaID *string
 		if user.StravaID == nil && authorization.Athlete.ID != 0 {
-			stravaID := strconv.Itoa(authorization.Athlete.ID)
-			user.StravaID = &stravaID
+			athleteID := strconv.Itoa(authorization.Athlete.ID)
+			stravaID = &athleteID
 		}
 
-		if err := storeStravaRefreshToken(user, authorization.RefreshToken); err != nil {
+		if err := storeStravaRefreshToken(user.ID, authorization.RefreshToken, stravaID); err != nil {
 			logger.Log.Error("Failed to store Strava refresh token. ID: " + user.ID.String() + ". Error: " + err.Error())
 			return token, errors.New("Failed to store Strava refresh token.")
 		}
@@ -440,7 +441,7 @@ func StravaGetAuthorizationForUser(user models.User) (token string, err error) {
 			return token, errors.New("Strava reauthorize returned empty tokens.")
 		}
 
-		if err := storeStravaRefreshToken(user, authorization.RefreshToken); err != nil {
+		if err := storeStravaRefreshToken(user.ID, authorization.RefreshToken, nil); err != nil {
 			logger.Log.Error("Failed to store Strava refresh token. ID: " + user.ID.String() + ". Error: " + err.Error())
 			return token, errors.New("Failed to store Strava refresh token.")
 		}
@@ -455,8 +456,10 @@ func StravaGetAuthorizationForUser(user models.User) (token string, err error) {
 }
 
 // storeStravaRefreshToken encrypts the refresh token at rest and persists it on the
-// user as "r:<ciphertext>". It refuses to store an empty token.
-func storeStravaRefreshToken(user models.User, refreshToken string) error {
+// user as "r:<ciphertext>", together with the athlete id when one was just captured (nil
+// keeps the stored id). It refuses to store an empty token. Only those columns are
+// written — see database.SetStravaCredentialsForUser.
+func storeStravaRefreshToken(userID uuid.UUID, refreshToken string, stravaID *string) error {
 	if refreshToken == "" {
 		return errors.New("empty Strava refresh token")
 	}
@@ -466,9 +469,7 @@ func storeStravaRefreshToken(user models.User, refreshToken string) error {
 		return errors.New("failed to encrypt Strava refresh token: " + err.Error())
 	}
 
-	newCode := "r:" + encrypted
-	user.StravaCode = &newCode
-	if _, err := database.UpdateUser(user); err != nil {
+	if err := database.SetStravaCredentialsForUser(userID, "r:"+encrypted, stravaID); err != nil {
 		return errors.New("failed to update user: " + err.Error())
 	}
 
@@ -661,9 +662,13 @@ func StravaSyncActivityForUser(activity models.StravaGetActivitiesRequestReply, 
 	}
 
 	// Note and Duration are derived from the operations by
-	// SyncStravaOperationsToExerciseSession below, so they are not set here.
-	exercise.Enabled = true
-	exercise.IsOn = true
+	// SyncStravaOperationsToExerciseSession below, so they are not set here. On/off is the
+	// user's decision: only a fresh import is switched on, so a session deleted in the
+	// builder (is_on=false) stays deleted through later syncs and can still be restored.
+	if isNewExercise {
+		exercise.Enabled = true
+		exercise.IsOn = true
+	}
 	exercise.Time = &activity.StartDate
 
 	// Strava owns the privacy of the activities it exports, so this is mirrored on every
