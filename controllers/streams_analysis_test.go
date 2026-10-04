@@ -259,7 +259,7 @@ func TestComputeAnalysis_EndToEnd(t *testing.T) {
 		alt[i] = 0.2 * float64(i) // gentle steady climb
 	}
 	run := analysisStreams(seq(n), fillF(n, 3.0), fillI(n, 150), alt)
-	summary := SummarizeStreams(run, "km", 190, 0, "max")
+	summary := SummarizeStreams(run, "km", hrAnchor{MaxBpm: 190, Basis: "max"})
 	if summary == nil || summary.Analysis == nil {
 		t.Fatal("expected an analysis block")
 	}

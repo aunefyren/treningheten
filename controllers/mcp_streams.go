@@ -24,7 +24,7 @@ const (
 // given). resolution (seconds between samples; 1 = full fidelity) lets the caller zoom a
 // narrow window back to full resolution.
 func assembleWorkoutStreams(userID uuid.UUID, activityID uuid.UUID, fromSeconds int, toSeconds int, resolution int, maxPoints int) (models.MCPWorkoutStreams, error) {
-	streams, distanceUnit, hrMax, hrRest, hrBasis, err := loadActivityStreamContext(userID, activityID)
+	streams, distanceUnit, hr, err := loadActivityStreamContext(userID, activityID)
 	if err != nil {
 		return models.MCPWorkoutStreams{}, err
 	}
@@ -35,7 +35,7 @@ func assembleWorkoutStreams(userID uuid.UUID, activityID uuid.UUID, fromSeconds 
 		}, nil
 	}
 
-	summary := SummarizeStreams(streams, distanceUnit, hrMax, hrRest, hrBasis)
+	summary := SummarizeStreams(streams, distanceUnit, hr)
 	out := models.MCPWorkoutStreams{HasStreams: true}
 	if summary != nil {
 		out.StreamSummary = *summary
@@ -138,13 +138,13 @@ func selectStreamIndices(times []int, from int, to int, resolution int, maxPoint
 
 // loadActivityStreamContext gathers everything SummarizeStreams needs for one activity: the
 // raw streams (nil when the activity has none), the distance unit (km vs mile splits) and the
-// resolved HR-zone anchors. The athlete's age (for age-based zones) is taken from the
+// resolved HR-zone anchors and zone system. The athlete's age (for age-based zones) is taken from the
 // activity's own date, not today, so an old activity stays historically accurate. Shared by
 // get_activity_streams (which also builds the raw series) and get_activity (summary only).
-func loadActivityStreamContext(userID uuid.UUID, activityID uuid.UUID) (streams *models.StravaActivityStreams, distanceUnit string, hrMax int, hrRest int, hrBasis string, err error) {
+func loadActivityStreamContext(userID uuid.UUID, activityID uuid.UUID) (streams *models.StravaActivityStreams, distanceUnit string, hr hrAnchor, err error) {
 	sets, err := database.GetOperationSetsByOperationIDAndUserID(activityID, userID)
 	if err != nil {
-		return nil, "", 0, 0, "", err
+		return nil, "", hrAnchor{}, err
 	}
 	for i := range sets {
 		if sets[i].StravaStreams != nil {
@@ -153,7 +153,7 @@ func loadActivityStreamContext(userID uuid.UUID, activityID uuid.UUID) (streams 
 		}
 	}
 	if streams == nil {
-		return nil, "", 0, 0, "", nil
+		return nil, "", hrAnchor{}, nil
 	}
 
 	distanceUnit = "km"
@@ -170,9 +170,9 @@ func loadActivityStreamContext(userID uuid.UUID, activityID uuid.UUID) (streams 
 	}
 	// Needs the user's own heart-rate settings, which are not part of the public view.
 	if user, err := database.GetAllUserInformation(userID); err == nil {
-		hrMax, hrRest, hrBasis = resolveUserHR(user, activityDate)
+		hr = resolveUserHR(user, activityDate)
 	}
-	return streams, distanceUnit, hrMax, hrRest, hrBasis, nil
+	return streams, distanceUnit, hr, nil
 }
 
 // assembleActivityStreamSummary returns the processed StreamSummary for one activity, or nil
@@ -180,14 +180,14 @@ func loadActivityStreamContext(userID uuid.UUID, activityID uuid.UUID) (streams 
 // raw series — get_activity attaches the requested blocks so a caller can read splits, zones
 // and derived metrics without pulling thousands of samples.
 func assembleActivityStreamSummary(userID uuid.UUID, activityID uuid.UUID) (*models.StreamSummary, error) {
-	streams, distanceUnit, hrMax, hrRest, hrBasis, err := loadActivityStreamContext(userID, activityID)
+	streams, distanceUnit, hr, err := loadActivityStreamContext(userID, activityID)
 	if err != nil {
 		return nil, err
 	}
 	if streams == nil {
 		return nil, nil
 	}
-	return SummarizeStreams(streams, distanceUnit, hrMax, hrRest, hrBasis), nil
+	return SummarizeStreams(streams, distanceUnit, hr), nil
 }
 
 // Recognized get_activity include tokens, mapping the caller-facing name to a summary block.
@@ -227,6 +227,7 @@ func filterStreamSummary(full *models.StreamSummary, include []string) *models.S
 		case includeZones:
 			out.HRZones = full.HRZones
 			out.HRMaxBasis = full.HRMaxBasis
+			out.HRZoneSystem = full.HRZoneSystem
 			out.HRMaxBpm = full.HRMaxBpm
 			out.HRRestBpm = full.HRRestBpm
 		case includeElevation:

@@ -788,10 +788,10 @@ const WV_INFO_TOPICS = {
                heart rate you configured, an age-based estimate, the highest rate seen
                across your activities, or the peak in this one activity.
                <br><br>
-               When you have set a resting heart rate, the bands use heart-rate reserve
-               (the Karvonen method) — measuring effort as a share of the range between
-               rest and maximum, rather than of the maximum alone. It is the more accurate
-               of the two.`
+               You choose the zone system on your account page: the common five zones as a
+               share of your maximum; the same five on heart-rate reserve (the Karvonen
+               method, which measures effort across the range between rest and maximum and
+               needs a resting heart rate); or Olympiatoppen's intensity scale, I-1 to I-5.`
     },
     "gradient": {
         title: "Effort by gradient",
@@ -1087,26 +1087,33 @@ function renderHRZonesHTML(summary) {
     const anyTime = zones.some(z => z.seconds > 0);
     if (!anyTime) return "";
 
+    const code = z => escapeHTML(z.code || ("Z" + z.zone));
     const bar = zones.map(z =>
-        `<span class="wv-zone-seg wv-zone-${z.zone}" style="width:${z.percent}%" title="Z${z.zone} ${escapeHTML(z.name)}"></span>`
+        `<span class="wv-zone-seg wv-zone-${z.zone}" style="width:${z.percent}%" title="${code(z)} ${escapeHTML(z.name)}"></span>`
     ).join("");
 
     // Each zone carries its own bpm bounds (server-side, already Karvonen-adjusted when
     // the zones are anchored on heart-rate reserve) — show them, or the zone names alone
     // give no sense of what heart rate they actually stand for.
     const legend = zones.filter(z => z.seconds > 0).map(z =>
-        `<span class="wv-zone-key"><i class="wv-zone-dot wv-zone-${z.zone}"></i>Z${z.zone} ${escapeHTML(z.name)}<span class="wv-zone-range">${hrZoneRange(z)}</span> · ${secondsToDurationString(z.seconds)} · ${wvNum(z.percent)}%</span>`
+        `<span class="wv-zone-key"><i class="wv-zone-dot wv-zone-${z.zone}"></i>${code(z)} ${escapeHTML(z.name)}<span class="wv-zone-range">${hrZoneRange(z)}</span> · ${secondsToDurationString(z.seconds)} · ${wvNum(z.percent)}%</span>`
     ).join("");
 
     var basis = "";
     if (summary.hr_max_bpm) {
-        var how;
+        // Where the max came from, then how the zone system uses it.
+        var source;
         switch (summary.hr_max_basis) {
-            case "max": how = "% of max HR"; break;
-            case "reserve": how = `HR reserve · rest ${summary.hr_rest_bpm || "?"} bpm · max`; break;
-            case "observed_max": how = "% of your observed max"; break;
-            case "age": how = "% of age-based max"; break;
-            default: how = "% of this activity's peak";
+            case "max": source = "max HR"; break;
+            case "observed_max": source = "your observed max"; break;
+            case "age": source = "age-based max"; break;
+            default: source = "this activity's peak";
+        }
+        var how;
+        switch (summary.hr_zone_system) {
+            case "reserve": how = `HR reserve · rest ${summary.hr_rest_bpm || "?"} bpm · ${source}`; break;
+            case "olympiatoppen": how = `Olympiatoppen · % of ${source}`; break;
+            default: how = `% of ${source}`;
         }
         basis = `<span class="wv-zones-basis">${how} ${summary.hr_max_bpm} bpm</span>`;
     }
@@ -1122,9 +1129,7 @@ function renderHRZonesHTML(summary) {
 // hrZoneRange renders a zone's heart-rate bounds. The top zone is open-ended (max_bpm 0),
 // and the bottom zone starts at 0 unless the zones are anchored on heart-rate reserve.
 function hrZoneRange(z) {
-    if (!z.max_bpm) return ` ${z.min_bpm}+ bpm`;
-    if (!z.min_bpm) return ` under ${z.max_bpm} bpm`;
-    return ` ${z.min_bpm}–${z.max_bpm} bpm`;
+    return " " + formatZoneRange(z.min_bpm, z.max_bpm, "bpm");
 }
 
 function renderStrengthSubCard(operation, exercise) {

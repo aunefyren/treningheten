@@ -38,12 +38,12 @@ func steadyRun(seconds int, speedMps float64, hr int) *models.StravaActivityStre
 }
 
 func TestSummarizeStreams_NilAndEmpty(t *testing.T) {
-	if SummarizeStreams(nil, "km", 0, 0, "age") != nil {
+	if SummarizeStreams(nil, "km", hrAnchor{}) != nil {
 		t.Fatal("nil streams should summarize to nil")
 	}
 	// Streams present but every channel empty: header stats nil, no segments/route/zones.
 	empty := &models.StravaActivityStreams{Heartrate: intStream([]int{})}
-	s := SummarizeStreams(empty, "km", 0, 0, "age")
+	s := SummarizeStreams(empty, "km", hrAnchor{})
 	if s == nil {
 		t.Fatal("empty (non-nil) streams should still return a summary")
 	}
@@ -69,7 +69,7 @@ func TestSummarizeStreams_Header(t *testing.T) {
 		return d
 	}())
 
-	s := SummarizeStreams(streams, "km", 200, 0, "age")
+	s := SummarizeStreams(streams, "km", hrAnchor{MaxBpm: 200, Basis: "age"})
 	if s.Heartrate == nil || s.Heartrate.Avg != 150 {
 		t.Fatalf("avg HR = %+v, want 150", s.Heartrate)
 	}
@@ -90,7 +90,7 @@ func TestSummarizeStreams_Header(t *testing.T) {
 func TestSummarizeStreams_Segments(t *testing.T) {
 	// 1000 s at 3 m/s = ~3000 m -> three full km splits plus a small trailing split.
 	streams := steadyRun(1000, 3.0, 150)
-	s := SummarizeStreams(streams, "km", 0, 0, "age")
+	s := SummarizeStreams(streams, "km", hrAnchor{})
 	if len(s.Segments) < 3 {
 		t.Fatalf("got %d segments, want >= 3", len(s.Segments))
 	}
@@ -122,8 +122,8 @@ func TestSummarizeStreams_Segments(t *testing.T) {
 func TestSummarizeStreams_SegmentsMileUnit(t *testing.T) {
 	// Same distance measured in miles yields fewer (longer) splits than in km.
 	streams := steadyRun(1000, 3.0, 150)
-	km := SummarizeStreams(streams, "km", 0, 0, "age")
-	mi := SummarizeStreams(steadyRun(1000, 3.0, 150), "mi", 0, 0, "age")
+	km := SummarizeStreams(streams, "km", hrAnchor{})
+	mi := SummarizeStreams(steadyRun(1000, 3.0, 150), "mi", hrAnchor{})
 	if !(len(mi.Segments) < len(km.Segments)) {
 		t.Fatalf("mile splits (%d) should be fewer than km splits (%d)", len(mi.Segments), len(km.Segments))
 	}
@@ -138,7 +138,7 @@ func TestSummarizeStreams_NoDistanceNoSegments(t *testing.T) {
 		Time:      intStream([]int{0, 1, 2, 3}),
 		Heartrate: intStream([]int{120, 130, 140, 150}),
 	}
-	s := SummarizeStreams(streams, "km", 190, 0, "age")
+	s := SummarizeStreams(streams, "km", hrAnchor{MaxBpm: 190, Basis: "age"})
 	if len(s.Segments) != 0 {
 		t.Fatalf("expected no segments without distance, got %d", len(s.Segments))
 	}
@@ -156,7 +156,7 @@ func TestSummarizeStreams_Route(t *testing.T) {
 		Time:   intStream([]int{0, 10, 20}),
 		LatLng: llStream(pts),
 	}
-	s := SummarizeStreams(streams, "km", 0, 0, "age")
+	s := SummarizeStreams(streams, "km", hrAnchor{})
 	if !s.HasGPS || s.Route == nil {
 		t.Fatal("expected a route with GPS")
 	}
@@ -186,68 +186,13 @@ func TestSummarizeStreams_RouteDownsample(t *testing.T) {
 		pts[i] = []float64{59.9 + float64(i)*1e-5, 10.7}
 	}
 	streams := &models.StravaActivityStreams{LatLng: llStream(pts)}
-	s := SummarizeStreams(streams, "km", 0, 0, "age")
+	s := SummarizeStreams(streams, "km", hrAnchor{})
 	if len(s.Route.Polyline) > routeOverviewMaxPoints+1 {
 		t.Fatalf("polyline has %d points, want <= %d", len(s.Route.Polyline), routeOverviewMaxPoints+1)
 	}
 	last := s.Route.Polyline[len(s.Route.Polyline)-1]
 	if !sameLatLng(last, s.Route.End) {
 		t.Fatalf("polyline end %v != route end %v", last, s.Route.End)
-	}
-}
-
-func TestComputeHRZones(t *testing.T) {
-	tests := []struct {
-		name       string
-		hr         []int
-		times      []int
-		hrMax      int
-		wantBasis  string
-		wantMaxBpm int
-		wantZone   int // 1-based zone expected to hold ~all time
-	}{
-		{
-			name:       "age based tempo",
-			hr:         []int{150, 150, 150, 150},
-			times:      []int{0, 1, 2, 3},
-			hrMax:      200, // 150/200 = 75% -> zone 3
-			wantBasis:  "age",
-			wantMaxBpm: 200,
-			wantZone:   3,
-		},
-		{
-			name:       "observed fallback",
-			hr:         []int{100, 200, 200, 200},
-			times:      []int{0, 1, 2, 3},
-			hrMax:      0, // observed max 200
-			wantBasis:  "observed",
-			wantMaxBpm: 200,
-			wantZone:   5, // 200/200 = 100% -> top zone holds most time
-		},
-	}
-	for _, tc := range tests {
-		t.Run(tc.name, func(t *testing.T) {
-			zones, basis, maxBpm := computeHRZones(&models.StravaActivityStreams{
-				Heartrate: intStream(tc.hr),
-				Time:      intStream(tc.times),
-			}, tc.times, tc.hrMax, 0, "age")
-			if basis != tc.wantBasis || maxBpm != tc.wantMaxBpm {
-				t.Fatalf("basis/max = %q/%d, want %q/%d", basis, maxBpm, tc.wantBasis, tc.wantMaxBpm)
-			}
-			if len(zones) != 5 {
-				t.Fatalf("got %d zones, want 5", len(zones))
-			}
-			var pct float64
-			for _, z := range zones {
-				pct += z.Percent
-			}
-			if math.Abs(pct-100) > 0.5 {
-				t.Fatalf("zone percents sum to %v, want ~100", pct)
-			}
-			if zones[tc.wantZone-1].Percent < 50 {
-				t.Fatalf("expected most time in zone %d, got %+v", tc.wantZone, zones)
-			}
-		})
 	}
 }
 
@@ -272,7 +217,7 @@ func TestSummarizeStreams_Elevation(t *testing.T) {
 		VelocitySmooth: f64Stream(vel),
 		Altitude:       f64Stream(alt),
 	}
-	s := SummarizeStreams(streams, "km", 0, 0, "age")
+	s := SummarizeStreams(streams, "km", hrAnchor{})
 
 	if s.Elevation == nil {
 		t.Fatal("expected elevation stats")
@@ -310,92 +255,9 @@ func TestSummarizeStreams_FlatNoClimb(t *testing.T) {
 		flat[i] = 12
 	}
 	streams.Altitude = f64Stream(flat)
-	s := SummarizeStreams(streams, "km", 0, 0, "age")
+	s := SummarizeStreams(streams, "km", hrAnchor{})
 	if s.Elevation != nil && s.Elevation.BiggestClimb != nil {
 		t.Fatalf("flat course should have no biggest climb, got %+v", s.Elevation.BiggestClimb)
-	}
-}
-
-func TestComputeHRZones_Reserve(t *testing.T) {
-	// Reserve (Karvonen): rest 50, max 200 -> 150 bpm reserve. Boundaries: 60% = 50+0.6*150
-	// = 140, 70% = 155. A steady 150 bpm sits between them, in zone 2; basis flips to
-	// "reserve". (On a plain %-max model, 150/200 = 75% would instead land in zone 3 — this
-	// asserts the reserve boundaries are actually applied.)
-	streams := &models.StravaActivityStreams{
-		Heartrate: intStream([]int{150, 150, 150, 150}),
-		Time:      intStream([]int{0, 1, 2, 3}),
-	}
-	zones, basis, maxBpm := computeHRZones(streams, []int{0, 1, 2, 3}, 200, 50, "max")
-	if basis != "reserve" || maxBpm != 200 {
-		t.Fatalf("basis/max = %q/%d, want reserve/200", basis, maxBpm)
-	}
-	if zones[1].Percent < 50 {
-		t.Fatalf("expected most reserve time in zone 2, got %+v", zones)
-	}
-	// Zone 1 lower bound is the resting HR under reserve, not 0.
-	if zones[0].MinBpm != 50 {
-		t.Fatalf("zone 1 min = %d, want 50 (resting HR)", zones[0].MinBpm)
-	}
-}
-
-func TestResolveUserHR(t *testing.T) {
-	now := time.Date(2026, 7, 21, 0, 0, 0, 0, time.UTC)
-	birth := timePtr(time.Date(1996, 1, 1, 0, 0, 0, 0, time.UTC)) // age 30 -> 190
-	tests := []struct {
-		name              string
-		user              models.User
-		wantMax, wantRest int
-		wantBasis         string
-	}{
-		{"nothing set", models.User{}, 0, 0, ""},
-		{"age only", models.User{BirthDate: birth}, 190, 0, "age"},
-		{"observed only", models.User{ObservedMaxHeartrate: intPtr(185)}, 185, 0, "observed_max"},
-		{"observed beats age", models.User{BirthDate: birth, ObservedMaxHeartrate: intPtr(196)}, 196, 0, "observed_max"},
-		{"explicit beats observed", models.User{MaxHeartrate: intPtr(198), ObservedMaxHeartrate: intPtr(196)}, 198, 0, "max"},
-		{"explicit max wins", models.User{BirthDate: birth, MaxHeartrate: intPtr(198)}, 198, 0, "max"},
-		{"reserve inputs", models.User{MaxHeartrate: intPtr(198), RestingHeartrate: intPtr(48)}, 198, 48, "max"},
-		{"observed zero ignored", models.User{BirthDate: birth, ObservedMaxHeartrate: intPtr(0)}, 190, 0, "age"},
-	}
-	for _, tc := range tests {
-		t.Run(tc.name, func(t *testing.T) {
-			max, rest, basis := resolveUserHR(tc.user, now)
-			if max != tc.wantMax || rest != tc.wantRest || basis != tc.wantBasis {
-				t.Fatalf("got %d/%d/%q, want %d/%d/%q", max, rest, basis, tc.wantMax, tc.wantRest, tc.wantBasis)
-			}
-		})
-	}
-}
-
-func TestResolveUserHR_AgeUsesActivityDate(t *testing.T) {
-	// Same birth date, two different activity dates → the age-based max reflects the age
-	// *at the activity*, so an old activity's zones don't drift as the athlete ages.
-	user := models.User{BirthDate: timePtr(time.Date(1990, 1, 1, 0, 0, 0, 0, time.UTC))}
-	if max, _, basis := resolveUserHR(user, time.Date(2010, 6, 1, 0, 0, 0, 0, time.UTC)); max != 200 || basis != "age" {
-		t.Fatalf("age 20 activity: max=%d basis=%q, want 200/age", max, basis)
-	}
-	if max, _, basis := resolveUserHR(user, time.Date(2024, 6, 1, 0, 0, 0, 0, time.UTC)); max != 186 || basis != "age" {
-		t.Fatalf("age 34 activity: max=%d basis=%q, want 186/age", max, basis)
-	}
-}
-
-func TestHRMaxFromBirthDate(t *testing.T) {
-	now := time.Date(2026, 7, 21, 0, 0, 0, 0, time.UTC)
-	tests := []struct {
-		name  string
-		birth *time.Time
-		want  int
-	}{
-		{"nil", nil, 0},
-		{"age 30", timePtr(time.Date(1996, 1, 1, 0, 0, 0, 0, time.UTC)), 190},
-		{"birthday not yet this year", timePtr(time.Date(1996, 12, 31, 0, 0, 0, 0, time.UTC)), 191},
-		{"implausible future", timePtr(time.Date(2030, 1, 1, 0, 0, 0, 0, time.UTC)), 0},
-	}
-	for _, tc := range tests {
-		t.Run(tc.name, func(t *testing.T) {
-			if got := hrMaxFromBirthDate(tc.birth, now); got != tc.want {
-				t.Fatalf("hrMaxFromBirthDate = %d, want %d", got, tc.want)
-			}
-		})
 	}
 }
 
@@ -427,6 +289,9 @@ func TestAttachStreamSummaries(t *testing.T) {
 	}
 	if withStreams.StreamSummary.HRMaxBasis != "age" {
 		t.Fatalf("HR basis = %q, want age (birth date present)", withStreams.StreamSummary.HRMaxBasis)
+	}
+	if withStreams.StreamSummary.HRZoneSystem != models.HRZoneSystemPercentMax {
+		t.Fatalf("HR zone system = %q, want percent_max (nothing chosen, no resting HR)", withStreams.StreamSummary.HRZoneSystem)
 	}
 	if day.Exercises[0].Operations[1].StreamSummary != nil {
 		t.Fatal("operation without streams should have no summary")

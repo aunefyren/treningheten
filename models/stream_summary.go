@@ -130,11 +130,12 @@ type StreamSummary struct {
 	Segments         []StreamSegment        `json:"segments,omitempty" jsonschema:"per-unit-distance splits (per km or per mile per the activity's distance_unit); the final split may be shorter than a full unit"`
 	Route            *StreamRoute           `json:"route,omitempty" jsonschema:"a summary of the GPS path (present only when the activity has GPS)"`
 	ElevationProfile []StreamElevationPoint `json:"elevation_profile,omitempty" jsonschema:"a down-sampled altitude-over-distance profile of the activity"`
-	HRZones          []StreamHRZone         `json:"hr_zones,omitempty" jsonschema:"time spent in each of five heart-rate zones"`
+	HRZones          []StreamHRZone         `json:"hr_zones,omitempty" jsonschema:"time spent in each heart-rate zone of the athlete's chosen zone system (see hr_zone_system)"`
 	Analysis         *StreamAnalysis        `json:"analysis,omitempty" jsonschema:"precomputed derived metrics (aerobic decoupling, first/second-half splits, pace consistency, breaks, HR-by-gradient) — the kind of second-order analysis a coach reads off the raw stream"`
-	HRMaxBasis       string                 `json:"hr_max_basis,omitempty" jsonschema:"how the HR zones were anchored: 'max' (the athlete's configured maximum), 'age' (220 minus their age AT THE TIME OF THIS ACTIVITY — the age is taken from the activity's own date, so an old activity's zones do not drift as the athlete ages), 'reserve' (heart-rate reserve / Karvonen, using their resting and max HR), or 'observed' (the peak heart rate in this activity, used when nothing is configured). Only the HR zones depend on the athlete's current settings; every other field here (segments, elevation, route) is derived purely from the immutable recorded stream and is identical whenever the activity is viewed"`
+	HRMaxBasis       string                 `json:"hr_max_basis,omitempty" jsonschema:"where the maximum heart rate behind the HR zones came from: 'max' (the athlete's configured maximum), 'observed_max' (the highest heart rate seen across all their activities), 'age' (220 minus their age AT THE TIME OF THIS ACTIVITY — the age is taken from the activity's own date, so an old activity's zones do not drift as the athlete ages), or 'observed' (the peak heart rate in this activity, used when nothing is configured). Only the HR zones depend on the athlete's current settings; every other field here (segments, elevation, route) is derived purely from the immutable recorded stream and is identical whenever the activity is viewed"`
+	HRZoneSystem     string                 `json:"hr_zone_system,omitempty" jsonschema:"the zone model applied (the athlete's choice, except that 'reserve' falls back to 'percent_max' when no usable resting HR is set): 'percent_max' (five zones at 60/70/80/90% of max HR), 'reserve' (the same five zones on heart-rate reserve / Karvonen, using their resting and max HR), or 'olympiatoppen' (Olympiatoppen's intensity scale I-1 to I-5 at 72/82/87/92% of max HR)"`
 	HRMaxBpm         int                    `json:"hr_max_bpm,omitempty" jsonschema:"the maximum heart rate the zone boundaries were derived from"`
-	HRRestBpm        int                    `json:"hr_rest_bpm,omitempty" jsonschema:"the resting heart rate used for reserve (Karvonen) zones, when applicable"`
+	HRRestBpm        int                    `json:"hr_rest_bpm,omitempty" jsonschema:"the resting heart rate used for reserve (Karvonen) zones; only present when hr_zone_system is 'reserve'"`
 }
 
 // StreamAnalysis holds second-order metrics derived from the raw stream — the numbers a
@@ -274,10 +275,11 @@ type StreamBBox struct {
 	MaxLng float64 `json:"max_lng"`
 }
 
-// StreamHRZone is time-in-zone for one of five heart-rate zones. MaxBpm is 0 for the
-// open-ended top zone. Percent is of total time with a valid heart-rate reading.
+// StreamHRZone is time-in-zone for one heart-rate zone. MaxBpm is 0 for the open-ended
+// top zone. Percent is of total time with a valid heart-rate reading.
 type StreamHRZone struct {
-	Zone    int     `json:"zone" jsonschema:"1 (easy) to 5 (maximal)"`
+	Zone    int     `json:"zone" jsonschema:"1 (easiest) upward; the highest zone is maximal"`
+	Code    string  `json:"code" jsonschema:"the zone's short label in its zone system, e.g. 'Z3' or 'I-3'"`
 	Name    string  `json:"name"`
 	MinBpm  int     `json:"min_bpm"`
 	MaxBpm  int     `json:"max_bpm" jsonschema:"upper bound of the zone; 0 means open-ended (the top zone)"`

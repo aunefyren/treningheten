@@ -246,6 +246,19 @@
 .tag-chip-selected { background: var(--lightgreen); opacity: 1 !important; font-weight: bold; }
 .tag-chip-readonly { cursor: default; }
 
+/* Heart-rate zone-system preview (/account "Heart rate and age"): one row per zone with
+   its colour, code, name and range for the values currently in the form. */
+.hr-zone-preview { display: flex; flex-direction: column; gap: 0.3rem; }
+.hr-zone-preview-row {
+    display: flex;
+    align-items: center;
+    gap: 0.45rem;
+    font-size: 0.85rem;
+    color: var(--darkblue);
+    font-variant-numeric: tabular-nums;
+}
+.hr-zone-preview-range { margin-left: auto; color: var(--lightblue); }
+
 /* Goal-counting exclusion multi-select (/account "Goal counting"): a search box with a dropdown
    of activity types to exclude, and the chosen exclusions shown as removable chips. */
 .goal-exclude { display: flex; flex-direction: column; gap: 0.75rem; width: 100%; }

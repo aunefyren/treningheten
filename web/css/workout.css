@@ -709,17 +709,8 @@
   opacity: 0.75;
   margin-left: 0.1rem;
 }
-.wv-zone-dot {
-  width: 0.6rem;
-  height: 0.6rem;
-  border-radius: 0.15rem;
-  flex-shrink: 0;
-}
-.wv-zone-1 { background: var(--lightblue); }
-.wv-zone-2 { background: var(--blue); }
-.wv-zone-3 { background: var(--flame-1); }
-.wv-zone-4 { background: var(--flame-2); }
-.wv-zone-5 { background: var(--flame-3); }
+/* .wv-zone-dot and the .wv-zone-1…5 ramp live in components.css — /account's zone
+   preview uses them too. */
 
 /* ── Effort analysis (decoupling · pace consistency · stops · gradient) ────────
    Second-order metrics the server derives from the stream. Insight tiles reuse the

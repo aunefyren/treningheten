@@ -122,6 +122,7 @@ function load_page(result) {
         GetProfileImage(user_id);
         CheckForSubscription();
         renderPATSection(admin);
+        loadHRZoneSystems();
         if(listeningConnectionsEnabled) {
             renderMediaSection();
         }
@@ -289,15 +290,22 @@ function trainingBodyHTML(goalCountingEnabled) {
             <div class="field-row">
                 <div class="field">
                     <label for="max_heartrate" class="field-label">Max heart rate</label>
-                    <input type="number" name="max_heartrate" id="max_heartrate" min="100" max="240" placeholder="Automatic" oninput="updateMaxHRHint()" />
+                    <input type="number" name="max_heartrate" id="max_heartrate" min="100" max="240" placeholder="Automatic" oninput="updateMaxHRHint(); updateHRZonePreview();" />
                     <span class="field-hint">Optional. Leave it on automatic and {{.appName}} uses the highest heart rate seen in your activities, or estimates from your age.</span>
                     <span class="field-hint" id="max_heartrate_status"></span>
                 </div>
                 <div class="field">
                     <label for="resting_heartrate" class="field-label">Resting heart rate</label>
-                    <input type="number" name="resting_heartrate" id="resting_heartrate" min="25" max="120" placeholder="e.g. 50" />
-                    <span class="field-hint">Optional. When set, zones switch to heart-rate reserve (Karvonen) instead of a plain percentage of your max.</span>
+                    <input type="number" name="resting_heartrate" id="resting_heartrate" min="25" max="120" placeholder="e.g. 50" oninput="updateHRZonePreview()" />
+                    <span class="field-hint">Optional. Only the heart-rate reserve zone system uses it.</span>
                 </div>
+            </div>
+
+            <div class="field">
+                <label for="hr_zone_system" class="field-label">Zone system</label>
+                <select name="hr_zone_system" id="hr_zone_system" onchange="updateHRZonePreview()"></select>
+                <span class="field-hint" id="hr_zone_system_description"></span>
+                <div class="hr-zone-preview" id="hr_zone_preview"></div>
             </div>
 
             <div class="btn-group">
@@ -408,11 +416,13 @@ function saveTrainingProfile() {
     var birthDate = document.getElementById('birth_date').value;
     var maxHeartrate = document.getElementById('max_heartrate').value;
     var restingHeartrate = document.getElementById('resting_heartrate').value;
+    var zoneSystem = document.getElementById('hr_zone_system').value;
 
     var formObject = {
         "birth_date": birthDate === "" ? null : new Date(birthDate).toISOString(),
         "max_heartrate": maxHeartrate === "" ? null : parseInt(maxHeartrate, 10),
-        "resting_heartrate": restingHeartrate === "" ? null : parseInt(restingHeartrate, 10)
+        "resting_heartrate": restingHeartrate === "" ? null : parseInt(restingHeartrate, 10),
+        "hr_zone_system": zoneSystem === "" ? null : zoneSystem
     };
 
     var xhttp = new XMLHttpRequest();
@@ -434,7 +444,9 @@ function saveTrainingProfile() {
 
             success(result.message);
             hrAgeEstimate = ageBasedMaxHR(formObject.birth_date);
+            hrZoneSystemStored = formObject.hr_zone_system;
             updateMaxHRHint();
+            updateHRZonePreview();
         } else {
             info("Saving training profile...");
         }
@@ -535,10 +547,107 @@ function updateMaxHRHint() {
 function useObservedMaxHeartrate(value) {
     document.getElementById("max_heartrate").value = value;
     updateMaxHRHint();
+    updateHRZonePreview();
 }
 function clearMaxHRAnchor() {
     document.getElementById("max_heartrate").value = "";
     updateMaxHRHint();
+    updateHRZonePreview();
+}
+
+// Selectable zone systems from the API ({key, label, description, uses_resting, bounds,
+// codes, names}) and the user's stored choice (null = never chosen). The select is only
+// filled once both the systems and the user have loaded, whichever lands last.
+var hrZoneSystems = [];
+var hrZoneSystemStored = null;
+var hrZoneUserLoaded = false;
+
+function loadHRZoneSystems() {
+    var xhttp = new XMLHttpRequest();
+    xhttp.onreadystatechange = function() {
+        if (this.readyState == 4) {
+            var result;
+            try {
+                result = JSON.parse(this.responseText);
+            } catch(e) {
+                console.log(e + ' - Response: ' + this.responseText);
+                return;
+            }
+            if(result.error) {
+                return;
+            }
+            hrZoneSystems = result.hr_zone_systems || [];
+            placeHRZoneSystemOptions();
+        }
+    };
+    xhttp.withCredentials = true;
+    xhttp.open("get", api_url + "auth/hr-zone-systems");
+    xhttp.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
+    xhttp.setRequestHeader("Authorization", jwt);
+    xhttp.send();
+}
+
+// placeHRZoneSystemOptions fills the zone-system select and picks the system currently in
+// effect. A user who never chose one gets what the server applies for them: reserve when a
+// resting HR is set, otherwise the first (default) system.
+function placeHRZoneSystemOptions() {
+    var select = document.getElementById("hr_zone_system");
+    if (!select || !hrZoneUserLoaded || hrZoneSystems.length === 0) return;
+
+    select.innerHTML = hrZoneSystems.map(function(system) {
+        return `<option value="${escapeHTML(system.key)}">${escapeHTML(system.label)}</option>`;
+    }).join("");
+
+    var effective = hrZoneSystems[0].key;
+    if (hrZoneSystems.some(function(system) { return system.key === hrZoneSystemStored; })) {
+        effective = hrZoneSystemStored;
+    } else if (document.getElementById("resting_heartrate").value !== "") {
+        effective = "reserve";
+    }
+    select.value = effective;
+    updateHRZonePreview();
+}
+
+// updateHRZonePreview describes the selected system and lists each zone's range for the
+// values currently in the form — bpm when a max is known (entered, observed or age-based),
+// otherwise the system's percentages.
+function updateHRZonePreview() {
+    var select = document.getElementById("hr_zone_system");
+    var preview = document.getElementById("hr_zone_preview");
+    var description = document.getElementById("hr_zone_system_description");
+    if (!select || !preview || !description) return;
+    var system = hrZoneSystems.find(function(candidate) { return candidate.key === select.value; });
+    if (!system) {
+        preview.innerHTML = "";
+        description.innerHTML = "";
+        return;
+    }
+
+    var maxValue = parseInt(document.getElementById("max_heartrate").value, 10);
+    var max = maxValue > 0 ? maxValue : (hrObservedMax || hrAgeEstimate || 0);
+    var restValue = parseInt(document.getElementById("resting_heartrate").value, 10);
+    var rest = restValue > 0 ? restValue : 0;
+
+    var note = "";
+    if (system.uses_resting && !(rest > 0 && (max === 0 || rest < max))) {
+        note = " Enter a resting heart rate below your max to use it.";
+    }
+    description.innerHTML = escapeHTML(system.description + note);
+
+    var useBpm = max > 0 && (!system.uses_resting || (rest > 0 && rest < max));
+    var edges = system.bounds.map(function(fraction) {
+        if (!useBpm) return Math.round(fraction * 100);
+        if (system.uses_resting) return Math.round(rest + fraction * (max - rest));
+        return Math.round(fraction * max);
+    });
+    var unit = useBpm ? "bpm" : (system.uses_resting ? "% of reserve" : "% of max");
+    var floor = useBpm && system.uses_resting ? rest : 0;
+
+    preview.innerHTML = system.codes.map(function(code, i) {
+        var min = i === 0 ? floor : edges[i - 1];
+        var upper = i < edges.length ? edges[i] : 0;
+        return `<span class="hr-zone-preview-row"><i class="wv-zone-dot wv-zone-${i + 1}"></i>${escapeHTML(code)} ${escapeHTML(system.names[i])}<span class="hr-zone-preview-range">${formatZoneRange(min, upper, unit)}</span></span>`;
+    }).join("");
 }
 
 function placeUserData(userObject, stravaOauth, stravaEnabled, hevyEnabled) {
@@ -560,6 +669,10 @@ function placeUserData(userObject, stravaOauth, stravaEnabled, hevyEnabled) {
     hrObservedMax = (userObject.observed_max_heartrate != null && userObject.observed_max_heartrate > 0) ? userObject.observed_max_heartrate : null;
     hrAgeEstimate = ageBasedMaxHR(userObject.birth_date);
     updateMaxHRHint();
+
+    hrZoneSystemStored = userObject.hr_zone_system;
+    hrZoneUserLoaded = true;
+    placeHRZoneSystemOptions();
 
     var dateString = "Error";
     try {

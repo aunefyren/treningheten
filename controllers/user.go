@@ -545,7 +545,7 @@ func validateTrainingProfile(request models.UserTrainingProfileRequest, now time
 
 	// Heart-rate settings sit within plausible physiological ranges. They feed the activity
 	// heart-rate zones — an explicit max overrides the age-based estimate, and a resting HR
-	// switches the zones to heart-rate reserve (Karvonen).
+	// anchors the heart-rate reserve (Karvonen) zone system.
 	if request.MaxHeartrate != nil && (*request.MaxHeartrate < 100 || *request.MaxHeartrate > 240) {
 		return "Your maximum heart rate must be between 100 and 240 bpm."
 	}
@@ -557,10 +557,21 @@ func validateTrainingProfile(request models.UserTrainingProfileRequest, now time
 		return "Your resting heart rate must be below your maximum heart rate."
 	}
 
+	if request.HRZoneSystem != nil {
+		system, ok := hrZoneSystemByKey(*request.HRZoneSystem)
+		if !ok {
+			return "Unknown heart-rate zone system."
+		}
+		if system.UsesResting && request.RestingHeartrate == nil {
+			return "Heart-rate reserve zones need a resting heart rate."
+		}
+	}
+
 	return ""
 }
 
-// APIUpdateTrainingProfile replaces the caller's birth date and heart-rate anchors. Like
+// APIUpdateTrainingProfile replaces the caller's birth date, heart-rate anchors and zone
+// system. Like
 // the PATCH, the path id is ignored: it always updates the authenticated user.
 func APIUpdateTrainingProfile(context *gin.Context) {
 	var request models.UserTrainingProfileRequest
@@ -597,6 +608,7 @@ func APIUpdateTrainingProfile(context *gin.Context) {
 	user.BirthDate = request.BirthDate
 	user.MaxHeartrate = request.MaxHeartrate
 	user.RestingHeartrate = request.RestingHeartrate
+	user.HRZoneSystem = request.HRZoneSystem
 
 	_, err = database.UpdateUser(user)
 	if err != nil {

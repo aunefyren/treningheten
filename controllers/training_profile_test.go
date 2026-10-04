@@ -28,6 +28,11 @@ func TestValidateTrainingProfile(t *testing.T) {
 		{"resting too low", models.UserTrainingProfileRequest{RestingHeartrate: intPtr(24)}, "Your resting heart rate must be between 25 and 120 bpm."},
 		{"resting too high", models.UserTrainingProfileRequest{RestingHeartrate: intPtr(121)}, "Your resting heart rate must be between 25 and 120 bpm."},
 		{"resting equals max", models.UserTrainingProfileRequest{MaxHeartrate: intPtr(110), RestingHeartrate: intPtr(110)}, "Your resting heart rate must be below your maximum heart rate."},
+		{"olympiatoppen without resting", models.UserTrainingProfileRequest{HRZoneSystem: systemPtr(models.HRZoneSystemOlympiatoppen)}, ""},
+		{"percent of max", models.UserTrainingProfileRequest{HRZoneSystem: systemPtr(models.HRZoneSystemPercentMax), RestingHeartrate: intPtr(50)}, ""},
+		{"reserve with resting", models.UserTrainingProfileRequest{HRZoneSystem: systemPtr(models.HRZoneSystemReserve), RestingHeartrate: intPtr(50)}, ""},
+		{"reserve without resting", models.UserTrainingProfileRequest{HRZoneSystem: systemPtr(models.HRZoneSystemReserve)}, "Heart-rate reserve zones need a resting heart rate."},
+		{"unknown zone system", models.UserTrainingProfileRequest{HRZoneSystem: systemPtr("zones-by-vibes")}, "Unknown heart-rate zone system."},
 	}
 
 	for _, test := range tests {
@@ -53,18 +58,19 @@ func TestTrainingProfileAPI(t *testing.T) {
 	}
 
 	t.Run("saves every field", func(t *testing.T) {
-		h.ok("PUT", profilePath, token, models.UserTrainingProfileRequest{BirthDate: &birth, MaxHeartrate: intPtr(190), RestingHeartrate: intPtr(50)})
+		h.ok("PUT", profilePath, token, models.UserTrainingProfileRequest{BirthDate: &birth, MaxHeartrate: intPtr(190), RestingHeartrate: intPtr(50), HRZoneSystem: systemPtr(models.HRZoneSystemOlympiatoppen)})
 		user := readProfile(t)
-		if user["max_heartrate"] != float64(190) || user["resting_heartrate"] != float64(50) || user["birth_date"] == nil {
-			t.Errorf("profile after save = max %v, resting %v, birth %v", user["max_heartrate"], user["resting_heartrate"], user["birth_date"])
+		if user["max_heartrate"] != float64(190) || user["resting_heartrate"] != float64(50) || user["birth_date"] == nil || user["hr_zone_system"] != models.HRZoneSystemOlympiatoppen {
+			t.Errorf("profile after save = max %v, resting %v, birth %v, system %v", user["max_heartrate"], user["resting_heartrate"], user["birth_date"], user["hr_zone_system"])
 		}
 	})
 
 	t.Run("rejects invalid values and keeps the old ones", func(t *testing.T) {
 		h.expect(http.StatusBadRequest, "PUT", profilePath, token, models.UserTrainingProfileRequest{MaxHeartrate: intPtr(150), RestingHeartrate: intPtr(150)})
 		h.expect(http.StatusBadRequest, "PUT", profilePath, token, "not json")
-		if user := readProfile(t); user["max_heartrate"] != float64(190) {
-			t.Errorf("max_heartrate = %v after a rejected save, want 190", user["max_heartrate"])
+		h.expect(http.StatusBadRequest, "PUT", profilePath, token, models.UserTrainingProfileRequest{MaxHeartrate: intPtr(190), HRZoneSystem: systemPtr(models.HRZoneSystemReserve)})
+		if user := readProfile(t); user["max_heartrate"] != float64(190) || user["hr_zone_system"] != models.HRZoneSystemOlympiatoppen {
+			t.Errorf("max_heartrate/system = %v/%v after a rejected save, want 190/olympiatoppen", user["max_heartrate"], user["hr_zone_system"])
 		}
 	})
 
@@ -87,8 +93,29 @@ func TestTrainingProfileAPI(t *testing.T) {
 	t.Run("null clears", func(t *testing.T) {
 		h.ok("PUT", profilePath, token, models.UserTrainingProfileRequest{})
 		user := readProfile(t)
-		if user["max_heartrate"] != nil || user["resting_heartrate"] != nil || user["birth_date"] != nil {
-			t.Errorf("profile after clearing = max %v, resting %v, birth %v", user["max_heartrate"], user["resting_heartrate"], user["birth_date"])
+		if user["max_heartrate"] != nil || user["resting_heartrate"] != nil || user["birth_date"] != nil || user["hr_zone_system"] != nil {
+			t.Errorf("profile after clearing = max %v, resting %v, birth %v, system %v", user["max_heartrate"], user["resting_heartrate"], user["birth_date"], user["hr_zone_system"])
 		}
 	})
+}
+
+func TestHRZoneSystemsAPI(t *testing.T) {
+	h := newAPIHarness(t)
+	_, token := h.user("zones@training.test", false)
+
+	systems := field(t, h.ok("GET", "/api/auth/hr-zone-systems", token, nil), "hr_zone_systems").([]any)
+	if len(systems) != len(hrZoneSystems) {
+		t.Fatalf("got %d systems, want %d", len(systems), len(hrZoneSystems))
+	}
+	for i, raw := range systems {
+		system := raw.(map[string]any)
+		if system["key"] != hrZoneSystems[i].Key || system["uses_resting"] != hrZoneSystems[i].UsesResting {
+			t.Errorf("system %d = %v, want key %q uses_resting %v", i, system, hrZoneSystems[i].Key, hrZoneSystems[i].UsesResting)
+		}
+		if len(system["bounds"].([]any)) != len(hrZoneSystems[i].Bounds) || len(system["codes"].([]any)) != len(hrZoneSystems[i].Codes) {
+			t.Errorf("system %q bounds/codes not serialised in full: %v", hrZoneSystems[i].Key, system)
+		}
+	}
+
+	h.expect(http.StatusUnauthorized, "GET", "/api/auth/hr-zone-systems", "", nil)
 }

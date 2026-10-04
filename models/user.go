@@ -31,6 +31,10 @@ type User struct {
 	BirthDate                  *time.Time `json:"birth_date" gorm:"default: null"`
 	MaxHeartrate               *int       `json:"max_heartrate" gorm:"default: null"`
 	RestingHeartrate           *int       `json:"resting_heartrate" gorm:"default: null"`
+	// HRZoneSystem is the key of the heart-rate zone model the user chose (see
+	// HRZoneSystemPercentMax and friends). NULL means "never chosen": zones then follow the
+	// legacy rule — reserve when a resting HR is set, plain % of max otherwise.
+	HRZoneSystem *string `json:"hr_zone_system" gorm:"default: null"`
 	// ObservedMaxHeartrate is the highest heart rate seen across the user's imported
 	// activities — maintained on Strava sync and used to anchor HR zones when no explicit
 	// max is set. System-derived (not user-editable); NULL means "not yet computed" (a
@@ -145,12 +149,13 @@ type UserUpdateRequest struct {
 }
 
 // UserTrainingProfileRequest replaces the settings that shape how a user's workouts are
-// read (age and heart-rate zone anchors). Every field is written as sent, so a null
+// read (age, heart-rate zone anchors and zone system). Every field is written as sent, so a null
 // clears it. Not password-gated: none of it is a credential.
 type UserTrainingProfileRequest struct {
 	BirthDate        *time.Time `json:"birth_date"`
 	MaxHeartrate     *int       `json:"max_heartrate"`
 	RestingHeartrate *int       `json:"resting_heartrate"`
+	HRZoneSystem     *string    `json:"hr_zone_system"`
 }
 
 type UserPartialUpdateRequest struct {

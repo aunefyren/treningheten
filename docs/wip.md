@@ -130,6 +130,14 @@ E.g. Easy, Splits. Must respect Strava sync.
 - Soundtrack is session-scoped, so builder changes to session time affect the media match
   window (see [media.md](media.md#open-questions)).
 
+### Heart-rate zones per sport
+Max HR differs by sport (cycling typically sits 5–10 bpm under running), and Olympiatoppen
+publishes sport-specific models. Today one max anchors every activity. The seam is
+`resolveUserHR` → `hrAnchor` (`controllers/hr_zones.go`): pass the activity's action in
+(both callers — `attachStreamSummaries` and `loadActivityStreamContext` — have it to hand),
+resolve a per-sport max (stored per user + action, falling back to the global one) into
+`hrAnchor.MaxBpm`, and the zone maths stays untouched. The observed max would need to be tracked per sport as well.
+
 ### Gear follow-ups
 - **Auto-assign primary:** the selector suggests the primary gear but doesn't persist it
   until the user interacts. Could auto-assign on the first operation.

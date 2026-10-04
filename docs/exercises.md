@@ -131,6 +131,28 @@ anchoring precedence, and the stability-over-time guarantees live in [mcp.md](mc
 anchoring is driven by optional **max / resting heart rate** settings on `/account` plus an
 auto-maintained **observed max HR**.
 
+### Heart-rate zones
+
+The user picks a **zone system** on `/account` (`User.HRZoneSystem`, saved with the training
+profile). Systems are defined once, server-side, in `hrZoneSystems` (`controllers/hr_zones.go`)
+and served to `/account` by `GET /api/auth/hr-zone-systems` for its live preview:
+
+| Key | Zones | Edges |
+|---|---|---|
+| `percent_max` (default) | Z1 Recovery → Z5 Anaerobic | 60 / 70 / 80 / 90 % of max HR |
+| `reserve` | same five | same fractions of heart-rate reserve (Karvonen); needs a resting HR |
+| `olympiatoppen` | I-1 Easy → I-5 Very hard | 72 / 82 / 87 / 92 % of max HR ([Olympiatoppen I-scale](https://olt-skala.nif.no/)) |
+
+- The bottom zone has no floor: time under Olympiatoppen's nominal 55 % counts as I-1.
+  I-6 – I-8 (anaerobic, sprint, strength) can't be read from heart rate and are left out.
+- **NULL means never chosen**, and keeps the pre-selection rule: `reserve` when a resting HR
+  is set, `percent_max` otherwise. No backfill. Saving `reserve` without a resting HR is
+  rejected; a reserve system that can't be applied at read time (rest not below the max)
+  falls back to `percent_max`, and `hr_zone_system` reports what was actually applied.
+- Adding a system is one entry in `hrZoneSystems` plus a key constant in `models/hr_zone.go`.
+  The UI reads codes/names/bounds from the server; the colour ramp (`.wv-zone-1…5`,
+  `components.css`) covers five zones, so a system with a different count needs more steps.
+
 ## Ownership
 
 Every read and write in this area is scoped to the calling user at the query, not by a

@@ -2,7 +2,6 @@ package controllers
 
 import (
 	"math"
-	"time"
 
 	"github.com/aunefyren/treningheten/models"
 )
@@ -16,18 +15,12 @@ const (
 	routeOverviewMaxPoints = 120
 )
 
-// hrZoneBounds are the upper fractions of HRmax for zones 1-4 (zone 5 is open-ended).
-// Standard five-zone %-of-max model: recovery / endurance / tempo / threshold / anaerobic.
-var hrZoneBounds = []float64{0.60, 0.70, 0.80, 0.90}
-var hrZoneNames = []string{"Recovery", "Endurance", "Tempo", "Threshold", "Anaerobic"}
-
 // SummarizeStreams turns one activity's raw Strava sensor streams into the shared,
 // presentation-ready StreamSummary consumed by both the MCP get_activity_streams tool
-// and the /exercises detail page. It is pure: distanceUnit selects km vs mile splits;
-// hrMax anchors the HR zones (0 falls back to the activity's own peak); hrRest (when set
-// and below hrMax) switches the zones to heart-rate reserve (Karvonen); hrBasis labels
-// where hrMax came from ("max"/"age"). Returns nil when there are no streams.
-func SummarizeStreams(streams *models.StravaActivityStreams, distanceUnit string, hrMax int, hrRest int, hrBasis string) *models.StreamSummary {
+// and the /exercises detail page. It is pure: distanceUnit selects km vs mile splits and
+// hr carries the athlete's resolved heart-rate anchors and zone system (see resolveUserHR).
+// Returns nil when there are no streams.
+func SummarizeStreams(streams *models.StravaActivityStreams, distanceUnit string, hr hrAnchor) *models.StreamSummary {
 	if streams == nil {
 		return nil
 	}
@@ -70,9 +63,14 @@ func SummarizeStreams(streams *models.StravaActivityStreams, distanceUnit string
 	if out.Elevation != nil {
 		out.Elevation.BiggestClimb = computeBiggestClimb(streams, cumMeters)
 	}
-	out.HRZones, out.HRMaxBasis, out.HRMaxBpm = computeHRZones(streams, times, hrMax, hrRest, hrBasis)
-	if out.HRMaxBasis == "reserve" {
-		out.HRRestBpm = hrRest
+	if zones, applied := computeHRZones(streams, times, hr); zones != nil {
+		out.HRZones = zones
+		out.HRMaxBasis = applied.Basis
+		out.HRMaxBpm = applied.MaxBpm
+		out.HRZoneSystem = applied.System.Key
+		if applied.System.UsesResting {
+			out.HRRestBpm = applied.RestBpm
+		}
 	}
 	out.Analysis = computeAnalysis(streams, times, cumMeters, out.Segments)
 
@@ -399,25 +397,6 @@ func gradientBandIndex(grad float64) int {
 	return len(gradientBandBounds)
 }
 
-// resolveUserHR turns a user's configured heart-rate settings into the inputs the zone
-// model needs: their maximum HR, their resting HR (for reserve zones), and a basis label.
-// Max precedence: an explicit setting wins, then the all-time max observed across their
-// activities (real data beats a formula), then the age-based estimate. A zero max means
-// "use this activity's observed peak" — resolved inside computeHRZones.
-func resolveUserHR(user models.User, now time.Time) (hrMax int, hrRest int, basis string) {
-	if user.MaxHeartrate != nil && *user.MaxHeartrate > 0 {
-		hrMax, basis = *user.MaxHeartrate, "max"
-	} else if user.ObservedMaxHeartrate != nil && *user.ObservedMaxHeartrate > 0 {
-		hrMax, basis = *user.ObservedMaxHeartrate, "observed_max"
-	} else if age := hrMaxFromBirthDate(user.BirthDate, now); age > 0 {
-		hrMax, basis = age, "age"
-	}
-	if user.RestingHeartrate != nil && *user.RestingHeartrate > 0 {
-		hrRest = *user.RestingHeartrate
-	}
-	return
-}
-
 // computeElevationProfile builds a down-sampled altitude-over-distance profile. Returns
 // nil without both an altitude channel and a distance signal to plot it against.
 func computeElevationProfile(streams *models.StravaActivityStreams, cumMeters []float64) []models.StreamElevationPoint {
@@ -502,7 +481,7 @@ func computeBiggestClimb(streams *models.StravaActivityStreams, cumMeters []floa
 // attachStreamSummaries walks an exercise day and populates OperationObject.StreamSummary
 // for every moving activity that carries Strava streams, so the /exercises detail page
 // renders the same processed summary the MCP tool exposes instead of re-deriving stats in
-// JS. HR zones anchor from the day owner's settings; the age-based estimate uses the
+// JS. HR zones follow the day owner's settings (anchors and zone system); the age-based estimate uses the
 // activity's own date (not today), so an old activity's zones stay historically accurate
 // and don't drift as the user ages.
 // The day owner is passed in rather than read off day.User: that field is the public view
@@ -512,7 +491,7 @@ func attachStreamSummaries(day *models.ExerciseDayObject, owner models.User) {
 	if day == nil {
 		return
 	}
-	hrMax, hrRest, hrBasis := resolveUserHR(owner, day.Date)
+	hr := resolveUserHR(owner, day.Date)
 	for ei := range day.Exercises {
 		ops := day.Exercises[ei].Operations
 		for oi := range ops {
@@ -526,7 +505,7 @@ func attachStreamSummaries(day *models.ExerciseDayObject, owner models.User) {
 			if streams == nil {
 				continue
 			}
-			ops[oi].StreamSummary = SummarizeStreams(streams, ops[oi].DistanceUnit, hrMax, hrRest, hrBasis)
+			ops[oi].StreamSummary = SummarizeStreams(streams, ops[oi].DistanceUnit, hr)
 		}
 	}
 }
@@ -700,119 +679,6 @@ func computeRoute(streams *models.StravaActivityStreams, cumMeters []float64) *m
 	route.Polyline = poly
 
 	return route
-}
-
-// computeHRZones buckets heart-rate time into five zones. Boundaries are percentages of
-// hrMax, unless a resting HR below hrMax is given — then they use heart-rate reserve
-// (Karvonen: rest + pct·(max−rest)) and the basis becomes "reserve". When hrMax<=0
-// nothing is configured, so the zones anchor to the activity's own peak and the basis is
-// "observed". Returns nil when there is no heart-rate data.
-func computeHRZones(streams *models.StravaActivityStreams, times []int, hrMax int, hrRest int, basis string) ([]models.StreamHRZone, string, int) {
-	if streams.Heartrate == nil || len(streams.Heartrate.Data) == 0 {
-		return nil, "", 0
-	}
-	hr := streams.Heartrate.Data
-
-	if hrMax <= 0 {
-		basis = "observed"
-		for _, v := range hr {
-			if v > hrMax {
-				hrMax = v
-			}
-		}
-	}
-	if hrMax <= 0 {
-		return nil, "", 0
-	}
-
-	useReserve := hrRest > 0 && hrRest < hrMax
-	if useReserve {
-		basis = "reserve"
-	}
-
-	// Zone bpm boundaries, rounded once so display bounds and bucketing agree.
-	bounds := make([]int, len(hrZoneBounds))
-	for i, f := range hrZoneBounds {
-		if useReserve {
-			bounds[i] = int(math.Round(float64(hrRest) + f*float64(hrMax-hrRest)))
-		} else {
-			bounds[i] = int(math.Round(f * float64(hrMax)))
-		}
-	}
-
-	floorBpm := 0
-	if useReserve {
-		floorBpm = hrRest
-	}
-
-	seconds := make([]int64, len(hrZoneNames))
-	var total int64
-	for i, v := range hr {
-		if v <= 0 {
-			continue
-		}
-		dt := int64(1)
-		if i > 0 && i < len(times) {
-			d := int64(times[i] - times[i-1])
-			if d > 0 {
-				dt = d
-			} else {
-				dt = 0
-			}
-		}
-		seconds[hrZoneIndex(v, bounds)] += dt
-		total += dt
-	}
-	if total == 0 {
-		return nil, "", 0
-	}
-
-	zones := make([]models.StreamHRZone, len(hrZoneNames))
-	for i := range hrZoneNames {
-		minBpm := floorBpm
-		if i > 0 {
-			minBpm = bounds[i-1]
-		}
-		maxBpm := 0 // open-ended top zone
-		if i < len(bounds) {
-			maxBpm = bounds[i]
-		}
-		zones[i] = models.StreamHRZone{
-			Zone:    i + 1,
-			Name:    hrZoneNames[i],
-			MinBpm:  minBpm,
-			MaxBpm:  maxBpm,
-			Seconds: seconds[i],
-			Percent: round1(float64(seconds[i]) / float64(total) * 100),
-		}
-	}
-	return zones, basis, hrMax
-}
-
-// hrZoneIndex maps a heart rate to a 0-based zone using the rounded boundaries.
-func hrZoneIndex(v int, bounds []int) int {
-	for i, b := range bounds {
-		if v < b {
-			return i
-		}
-	}
-	return len(bounds) // top (open-ended) zone
-}
-
-// hrMaxFromBirthDate returns an age-based maximum heart rate (220 - age) or 0 when the
-// birth date is unknown, in which case zones fall back to the observed peak.
-func hrMaxFromBirthDate(birthDate *time.Time, now time.Time) int {
-	if birthDate == nil {
-		return 0
-	}
-	age := now.Year() - birthDate.Year()
-	if now.YearDay() < birthDate.YearDay() {
-		age--
-	}
-	if age <= 0 || age > 120 {
-		return 0
-	}
-	return 220 - age
 }
 
 // elevationGainOver sums positive altitude changes across [fromIdx, toIdx].

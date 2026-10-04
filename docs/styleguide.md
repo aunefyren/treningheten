@@ -570,6 +570,11 @@ not theme — left inline on purpose. Dynamic (`${…}`) values stay inline too.
 
 ## Decisions log
 
+- **HR-zone ramp shared; zone-system preview on `/account`.** `.wv-zone-dot` and the
+  `.wv-zone-1…5` calm→hot ramp moved from `workout.css` to `components.css` so `/account`'s new
+  zone-system preview (`.hr-zone-preview`, `instrument.css` — one row per zone: dot, code, name,
+  right-aligned range) shows the same colours as the `/exercises` zone bar. Zone legends now print
+  the server's zone `code` (`Z3`, `I-3`) and share `formatZoneRange` (`functions.js`). No new tokens.
 - **`/account` regrouped; toggle cards retired.** The settings accordion was one long panel of
   twelve rows, its checkboxes were `.notification-option` / `.strava-option` **toggle cards** (a
   10rem centred column, checkbox stacked over its label, `1rem` margin all round — far too much air),

@@ -189,10 +189,11 @@ tool processes them into:
    elevation gain, avg cadence/power, and the raw-sample index range); a **`route`**
    overview (point count, GPS distance, start/end, bounding box, a down-sampled overview
    polyline); an **`elevation_profile`** (down-sampled altitude-over-distance points); and
-   **`hr_zones`** (time and % in five zones). `hr_max_basis` records how the zones were
-   anchored — `max` (the athlete's configured maximum), `age` (220 − age), `reserve`
-   (heart-rate reserve / Karvonen, using their resting + max HR, with `hr_rest_bpm`), or
-   `observed` (the activity's own peak, when nothing is configured); and an **`analysis`**
+   **`hr_zones`** (time and % in each zone, each with its `code` — `Z3`, `I-3` — and bpm
+   bounds). `hr_zone_system` names the zone model applied (`percent_max`, `reserve` with
+   `hr_rest_bpm`, or `olympiatoppen`) and `hr_max_basis` where the max came from — `max`
+   (the athlete's configured maximum), `observed_max` (their all-time observed max), `age`
+   (220 − age), or `observed` (the activity's own peak, when nothing is configured); and an **`analysis`**
    block of second-order coach metrics: `decoupling_pct` (aerobic decoupling — the drop in
    pace-to-HR efficiency from the first half to the second), `split_halves` (first vs second
    half time/distance/HR/pace), `pace_std_dev_seconds` (pacing consistency across the full
@@ -215,9 +216,9 @@ HR-zone anchoring is resolved from the user's settings by `resolveUserHR`, in pr
 order: an explicit **max heart rate**, then the **all-time max observed** across the
 user's activities (real data over a formula; maintained on Strava sync via
 `database.BumpObservedMaxHeartrate` and seeded once by `backfillObservedMaxHeartrate`),
-then the **age-based** estimate (220 − age), then this activity's own peak. A **resting
-heart rate** additionally switches the zones to heart-rate reserve (Karvonen). Users set the
-birth date, max and resting heart rate under **Training** on `/account`, saved through
+then the **age-based** estimate (220 − age), then this activity's own peak. The **zone
+system** is the user's choice (see [exercises.md](exercises.md#heart-rate-zones)). Users set the
+birth date, max and resting heart rate and the zone system under **Training** on `/account`, saved through
 `PUT /api/auth/users/:user_id/training-profile` (`APIUpdateTrainingProfile`, full replace — a null
 clears a field; not password-gated). The password-gated account update no longer touches them.
 
@@ -340,6 +341,7 @@ Point an MCP client at `https://<your-host>/mcp`. Either:
 - `controllers/mcp.go` — server construction, tool registration, gin handler + auth.
 - `controllers/mcp_data.go` — assembly of the operation-centric model into flat DTOs.
 - `controllers/streams.go` — `SummarizeStreams`, the shared pure summarizer (header stats, segments, route, HR zones, and the `analysis` metrics via `computeAnalysis`) consumed by both the MCP tool and the `/exercises` detail page; `attachStreamSummaries` enriches an exercise day for the web card.
+- `controllers/hr_zones.go` — the selectable zone systems (`hrZoneSystems`), `resolveUserHR` / `effectiveHRZoneSystem` (the athlete's `hrAnchor`), `computeHRZones`, and `GET /api/auth/hr-zone-systems`.
 - `controllers/mcp_streams.go` — the MCP streams tool: `loadActivityStreamContext` gathers the streams + HR anchors (shared with `get_activity`), `assembleActivityStreamSummary` builds the summary, `filterStreamSummary` keeps only the `include`d blocks, and the streams tool adds the downsampled `series`.
 - `controllers/mcp_engagement.go` — assembly of seasons, achievements and achievement delegations (all user-scoped).
 - `models/mcp.go` — MCP DTOs (`MCPProfile`, `MCPWeight`, `MCPActivity`, `MCPActivitySummary`, `MCPStatistics`, `MCPWorkoutStreams`, `MCPSeason`, `MCPAchievement`, `MCPAchievementDelegation`). `MCPActivity` optionally carries a filtered `StreamSummary`; `MCPWorkoutStreams` embeds the full shared `models.StreamSummary`.

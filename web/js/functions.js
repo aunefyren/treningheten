@@ -919,3 +919,13 @@ function toLocalISOString(date) {
            `T${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}` +
            `${sign}${absH}:${absM}`;
 }
+
+// formatZoneRange renders one zone's bounds for a legend: "under 140 bpm", "140–160 bpm" or
+// "179+ bpm". A 0 max means the open-ended top zone; a 0 min the open bottom. A unit starting
+// with "%" sits flush against the number ("under 72% of max").
+function formatZoneRange(min, max, unit) {
+    var suffix = (unit.charAt(0) === "%" ? "" : " ") + unit;
+    if (!max) return `${min}+${suffix}`;
+    if (!min) return `under ${max}${suffix}`;
+    return `${min}–${max}${suffix}`;
+}
