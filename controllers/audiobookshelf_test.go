@@ -172,8 +172,9 @@ func TestBuildAudiobookshelfPlaybackClipsListenedTimeToWindow(t *testing.T) {
 		{"capped at the overlap", ms(10), ms(20), 900, int64Ptr(600)},
 		// No UpdatedAt: the span is the listened time itself, so the result is the overlap.
 		{"unknown end reduces to the overlap", ms(50), 0, 1200, int64Ptr(600)},
-		// Matched only through the grace after the end: nothing listened in the run.
-		{"only in the grace has no length", end.Add(2 * time.Minute).UnixMilli(), end.Add(20 * time.Minute).UnixMilli(), 1080, nil},
+		// Within the grace after the end but nothing listened in the run: no row at all,
+		// rather than an "already playing" row with no minutes.
+		{"only in the grace is dropped", end.Add(2 * time.Minute).UnixMilli(), end.Add(20 * time.Minute).UnixMilli(), 1080, nil},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
@@ -182,13 +183,16 @@ func TestBuildAudiobookshelfPlaybackClipsListenedTimeToWindow(t *testing.T) {
 				TimeListening: tc.timeListening, StartedAt: tc.startedAt, UpdatedAt: tc.updatedAt,
 			}}
 			got := buildAudiobookshelfPlaybackForWindow(sessions, start, end)
+			if tc.want == nil {
+				if len(got) != 0 {
+					t.Fatalf("expected no row, got %+v", got)
+				}
+				return
+			}
 			if len(got) != 1 {
 				t.Fatalf("expected 1 row, got %d", len(got))
 			}
-			switch {
-			case tc.want == nil && got[0].TrackLength != nil:
-				t.Errorf("TrackLength: got %d, want nil", *got[0].TrackLength)
-			case tc.want != nil && (got[0].TrackLength == nil || *got[0].TrackLength != *tc.want):
+			if got[0].TrackLength == nil || *got[0].TrackLength != *tc.want {
 				t.Errorf("TrackLength: got %v, want %d", got[0].TrackLength, *tc.want)
 			}
 		})
@@ -200,5 +204,81 @@ func TestListenedWithinWindowWithoutListenedTime(t *testing.T) {
 	event := mediaPlayEvent{startedAt: start, trackLengthIsListened: true}
 	if got := listenedWithinWindow(event, start, start.Add(time.Hour)); got != 0 {
 		t.Errorf("no listened time should give 0, got %d", got)
+	}
+}
+
+func TestMatchAudiobookshelfSessionsMatchesTheSyncMatcher(t *testing.T) {
+	start := time.Date(2026, 6, 28, 10, 0, 0, 0, time.UTC)
+	end := start.Add(time.Hour)
+
+	sessions := []models.AudiobookshelfListenSession{
+		{ID: "in", EpisodeID: "ep1", LibraryItemID: "show", DisplayTitle: "Episode", MediaType: "podcast",
+			TimeListening: 600, StartedAt: start.Add(10 * time.Minute).UnixMilli()},
+		{ID: "out", EpisodeID: "ep2", LibraryItemID: "show", DisplayTitle: "Later", MediaType: "podcast",
+			TimeListening: 600, StartedAt: end.Add(time.Hour).UnixMilli()},
+	}
+
+	got := MatchAudiobookshelfSessions(sessions, start, end)
+	want := buildAudiobookshelfPlaybackForWindow(sessions, start, end)
+
+	if len(got) != 1 || len(want) != 1 {
+		t.Fatalf("got %d rows, want 1 (sync matcher gave %d)", len(got), len(want))
+	}
+	if got[0].Title != want[0].Title || !got[0].StartedAt.Equal(want[0].StartedAt) {
+		t.Errorf("got %+v, want %+v", got[0], want[0])
+	}
+}
+
+func TestABSListenedSeconds(t *testing.T) {
+	tests := []struct {
+		name    string
+		session models.AudiobookshelfListenSession
+		want    int64
+	}{
+		{"listened time as sent", models.AudiobookshelfListenSession{TimeListening: 600.4, StartTime: 0, CurrentTime: 900}, 600},
+		{"null listened falls back to the position delta", models.AudiobookshelfListenSession{StartTime: 1332, CurrentTime: 2604}, 1272},
+		{"nothing to go on", models.AudiobookshelfListenSession{StartTime: 50, CurrentTime: 50}, 0},
+		{"capped at the wall-clock span", models.AudiobookshelfListenSession{TimeListening: 900, StartedAt: 1_000, UpdatedAt: 601_000}, 600},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			if got := absListenedSeconds(test.session); got != test.want {
+				t.Errorf("got %d, want %d", got, test.want)
+			}
+		})
+	}
+}
+
+// absCoverageEnd ends a session at UpdatedAt unless the session held a pause and was
+// closed when the next session resumed it — then listening was at its start.
+func TestABSCoverageEnd(t *testing.T) {
+	start := time.Date(2026, 6, 28, 10, 0, 0, 0, time.UTC)
+	ms := func(offset time.Duration) int64 { return start.Add(offset).UnixMilli() }
+	paused := models.AudiobookshelfListenSession{StartedAt: ms(0), UpdatedAt: ms(40 * time.Minute)}
+	nextAt := func(offset time.Duration) *models.AudiobookshelfListenSession {
+		return &models.AudiobookshelfListenSession{StartedAt: ms(offset)}
+	}
+
+	tests := []struct {
+		name     string
+		session  models.AudiobookshelfListenSession
+		listened int64
+		next     *models.AudiobookshelfListenSession
+		want     time.Time
+	}{
+		{"continuous listen ends at UpdatedAt", models.AudiobookshelfListenSession{StartedAt: ms(0), UpdatedAt: ms(11 * time.Minute)}, 600, nextAt(11*time.Minute + 5*time.Second), start.Add(11 * time.Minute)},
+		{"closed on resume ends after the listened time", paused, 600, nextAt(40*time.Minute + 10*time.Second), start.Add(10 * time.Minute)},
+		{"pause with no resume handoff is spread to UpdatedAt", paused, 600, nextAt(2 * time.Hour), start.Add(40 * time.Minute)},
+		{"pause with no later session is spread to UpdatedAt", paused, 600, nil, start.Add(40 * time.Minute)},
+		{"unknown listened time ends at UpdatedAt", paused, 0, nextAt(40 * time.Minute), start.Add(40 * time.Minute)},
+		{"no UpdatedAt ends after the listened time", models.AudiobookshelfListenSession{StartedAt: ms(0)}, 600, nil, start.Add(10 * time.Minute)},
+		{"nothing known is zero", models.AudiobookshelfListenSession{StartedAt: ms(0)}, 0, nil, time.Time{}},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			if got := absCoverageEnd(test.session, test.listened, test.next); !got.Equal(test.want) {
+				t.Errorf("got %s, want %s", got, test.want)
+			}
+		})
 	}
 }

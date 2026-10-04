@@ -13,6 +13,15 @@ import (
 // are approximate, and a provider's timestamp can land a little off the activity's.
 const mediaMatchGrace = 5 * time.Minute
 
+// Resumed-listen merging (listened-time items only). A pause shorter than
+// mediaResumeMaxPause doesn't split a listen into two rows; a resume must also pick up
+// within mediaResumePositionSlack of where the previous record stopped, so restarting
+// an episode from the top stays a separate listen.
+const (
+	mediaResumeMaxPause      = 15 * time.Minute
+	mediaResumePositionSlack = 60.0 // seconds of item position
+)
+
 // mediaPlayEvent is a provider-neutral played item. Each provider maps its own
 // history payload into these, then calls playbackForWindow — so the timestamp-
 // overlap matching and the EndedAt clamp live in one place rather than per provider.
@@ -40,6 +49,20 @@ type mediaPlayEvent struct {
 	// two merged plays combine it: time actually *listened* (Audiobookshelf) adds up,
 	// whereas the item's own length (a Plex/Spotify track) does not.
 	trackLengthIsListened bool
+	// Playback positions within the item (seconds) at the start and end of the record,
+	// when the provider reports them (Audiobookshelf). A record that starts where the
+	// previous one stopped is a resumed listen.
+	hasPosition   bool
+	positionStart float64
+	positionEnd   float64
+	// listenedInWindowSec is the listened time inside the activity window, computed per
+	// record before merging (playbackForWindow) so each record's own span is used for
+	// clipping, and summed when records merge.
+	listenedInWindowSec int64
+	// titleWeightSec is the length of the record that supplied the title. A merge takes
+	// the title of its longest record: some clients log seconds-long blips named after
+	// the show rather than the episode.
+	titleWeightSec int64
 }
 
 // mediaMergeIdentity is the key overlapping plays are grouped by: the most specific
@@ -69,8 +92,8 @@ func mediaMergeIdentity(event mediaPlayEvent) string {
 //
 // Overlap is required, not merely a shared identity: replaying an item later in a
 // workout is a real second listen and must stay its own row. Touching spans join
-// (one ends exactly where the next begins); a real gap does not, so a pause and resume
-// still reads as two listens.
+// (one ends exactly where the next begins). The exception is a resumed listen of a
+// listened-time item (see continuesListen): a short pause doesn't split it.
 func coalesceOverlappingEvents(events []mediaPlayEvent) []mediaPlayEvent {
 	if len(events) < 2 {
 		return events
@@ -91,7 +114,7 @@ func coalesceOverlappingEvents(events []mediaPlayEvent) []mediaPlayEvent {
 		identity := mediaMergeIdentity(event)
 		end := eventCoverageEnd(event)
 
-		if at, ok := open[identity]; ok && !event.startedAt.After(eventCoverageEnd(merged[at])) {
+		if at, ok := open[identity]; ok && continuesListen(merged[at], event) {
 			merged[at] = mergeEvents(merged[at], event, end)
 			continue
 		}
@@ -101,6 +124,24 @@ func coalesceOverlappingEvents(events []mediaPlayEvent) []mediaPlayEvent {
 	}
 
 	return merged
+}
+
+// continuesListen reports whether `next` (starting no earlier than `previous`) belongs
+// to the same listen: their spans overlap or touch, or — for listened-time items with
+// positions — `next` resumes where `previous` stopped after a pause of at most
+// mediaResumeMaxPause.
+func continuesListen(previous, next mediaPlayEvent) bool {
+	previousEnd := eventCoverageEnd(previous)
+	if !next.startedAt.After(previousEnd) {
+		return true
+	}
+
+	if !previous.trackLengthIsListened || !next.trackLengthIsListened ||
+		!previous.hasPosition || !next.hasPosition {
+		return false
+	}
+	return next.startedAt.Sub(previousEnd) <= mediaResumeMaxPause &&
+		math.Abs(next.positionStart-previous.positionEnd) <= mediaResumePositionSlack
 }
 
 // eventCoverageEnd is an event's best-known end: the provider's own end when it has one,
@@ -118,12 +159,27 @@ func eventCoverageEnd(event mediaPlayEvent) time.Time {
 // mergeEvents folds `next` into `into`, keeping the earliest start and latest end and
 // filling any metadata the first record was missing.
 func mergeEvents(into, next mediaPlayEvent, nextEnd time.Time) mediaPlayEvent {
+	// The longest record names the merge; weigh before the lengths are combined.
+	intoWeight := into.titleWeightSec
+	if intoWeight == 0 {
+		intoWeight = into.trackLengthSec
+	}
+	into.titleWeightSec = intoWeight
+	if strings.TrimSpace(next.title) != "" && next.trackLengthSec > intoWeight {
+		into.title = next.title
+		into.titleWeightSec = next.trackLengthSec
+	}
+
 	if next.startedAt.Before(into.startedAt) {
 		into.startedAt = next.startedAt
 	}
 	if nextEnd.After(eventCoverageEnd(into)) {
 		into.coverageEnd = nextEnd
+		// The listen now stops where the later record stopped.
+		into.positionEnd = next.positionEnd
 	}
+	into.hasPosition = into.hasPosition && next.hasPosition
+	into.listenedInWindowSec += next.listenedInWindowSec
 
 	if into.trackLengthIsListened || next.trackLengthIsListened {
 		// Listened time is additive: two sessions on one episode listened to the sum.
@@ -177,15 +233,7 @@ func listenedWithinWindow(event mediaPlayEvent, start, end time.Time) int64 {
 	spanEnd := eventCoverageEnd(event)
 	span := spanEnd.Sub(event.startedAt)
 
-	overlapStart := event.startedAt
-	if overlapStart.Before(start) {
-		overlapStart = start
-	}
-	overlapEnd := spanEnd
-	if overlapEnd.After(end) {
-		overlapEnd = end
-	}
-	overlap := overlapEnd.Sub(overlapStart)
+	overlap := windowOverlap(event.startedAt, spanEnd, start, end)
 	if overlap <= 0 {
 		return 0
 	}
@@ -195,6 +243,39 @@ func listenedWithinWindow(event mediaPlayEvent, start, end time.Time) int64 {
 		listened = capSec
 	}
 	return listened
+}
+
+// windowOverlap is how much of [from, to] falls inside [start, end]; zero when disjoint.
+func windowOverlap(from, to, start, end time.Time) time.Duration {
+	if from.Before(start) {
+		from = start
+	}
+	if to.After(end) {
+		to = end
+	}
+	if overlap := to.Sub(from); overlap > 0 {
+		return overlap
+	}
+	return 0
+}
+
+// listenedInWindow clips each listened-time record to the window and drops the records
+// with nothing heard inside it, before merging. Without this a listen that stopped just
+// before the workout matched through the grace and showed as "already playing" with no
+// minutes, and a pre-workout record within a pause of the workout's first one would pull
+// the merged start back before the session.
+func listenedInWindow(events []mediaPlayEvent, start, end time.Time) []mediaPlayEvent {
+	kept := make([]mediaPlayEvent, 0, len(events))
+	for _, event := range events {
+		if event.trackLengthIsListened && event.trackLengthSec > 0 {
+			event.listenedInWindowSec = listenedWithinWindow(event, start, end)
+			if event.listenedInWindowSec == 0 {
+				continue
+			}
+		}
+		kept = append(kept, event)
+	}
+	return kept
 }
 
 // playbackForWindow keeps the events whose play span overlaps the activity window
@@ -213,7 +294,7 @@ func playbackForWindow(events []mediaPlayEvent, start, end time.Time) []models.M
 
 	// Merge duplicate records of one listen before matching, so an item split across
 	// several provider records is tested (and displayed) as the single span it was.
-	for _, event := range coalesceOverlappingEvents(events) {
+	for _, event := range coalesceOverlappingEvents(listenedInWindow(events, start, end)) {
 		if event.startedAt.IsZero() {
 			continue
 		}
@@ -277,7 +358,13 @@ func playbackForWindow(events []mediaPlayEvent, start, end time.Time) []models.M
 
 		length := event.trackLengthSec
 		if event.trackLengthIsListened {
-			length = listenedWithinWindow(event, start, end)
+			// The records' in-window shares, capped at the merged span's overlap: merged
+			// duplicate records can claim more listening than the time they cover.
+			length = event.listenedInWindowSec
+			overlap := int64(windowOverlap(event.startedAt, eventCoverageEnd(event), start, end).Seconds())
+			if length > overlap {
+				length = overlap
+			}
 		}
 		if length > 0 {
 			row.TrackLength = &length

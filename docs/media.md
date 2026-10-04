@@ -237,23 +237,53 @@ Disconnect is the generic `DELETE /media/audiobookshelf`. The pull
 `/api/me/listening-sessions?itemsPerPage=100&page=N` (durable history, most-recently-active
 first), paging back until a page reaches a session last active before the window start
 (minus grace), the history runs out, or 20 pages are read (`absFetchListeningSessions`),
-maps each session via `buildAudiobookshelfPlaybackForWindow` (overlap match of
-`[startedAt, updatedAt]` through the shared `playbackForWindow`; `mediaType`
-`book`→`audiobook`, `podcast`→`podcast`; `TimeListening` as the listened time; the episode
-id, else `LibraryItemID`, as the provider item id), and writes via
+maps each session via `buildAudiobookshelfPlaybackForWindow` (overlap match of the
+session's listening stretch — see [Reading an ABS session](#reading-an-abs-session) — through
+the shared `playbackForWindow`; `mediaType` `book`→`audiobook`, `podcast`→`podcast`; the
+episode id, else `LibraryItemID`, as the provider item id), and writes via
 the idempotent delete-and-replace primitive. Because the history endpoint is `/api/me`
 (inherently the token user's), there's **no privacy fail-closed** step. TLS uses default
 verification (ABS sits behind the user's own normal certs, unlike Plex's plex.direct).
 
-> **Listened time is clipped to the workout.** ABS listening sessions are coarse — one
-> continuous listen, not per-track scrobbles — and `TimeListening` covers the *whole*
-> listen, including any before the workout began or after it ended. Stored raw, a podcast
-> started before a 60-minute run and another finished after it read as 40 + 49 minutes.
-> `listenedWithinWindow` (`controllers/media_match.go`) stores only the in-window share:
-> `TimeListening × overlap ÷ wall-clock span`, assuming pauses are spread evenly, capped at
-> the overlap (merged duplicate sessions can sum to more listened time than their span). A
-> long pause just before the run makes it slightly under-count. The timeline minutes, the `/statistics` spoken-time totals and
-> the MCP `track_length_seconds` all read this value.
+### Reading an ABS session
+
+A listening session is `startedAt`, `updatedAt` (epoch ms), `timeListening` (seconds), and
+`startTime` → `currentTime` (playback positions within the item). Real history, dumped with
+[`scripts/mediaprobe`](#duplicate-plays--overlap-merging), showed none of these can be taken
+at face value, and that clients differ:
+
+| | AudioBooth iOS | ABS iOS (TestFlight 0.14.x) | ABS Web |
+| --- | --- | --- | --- |
+| `timeListening` | always set | often **null** | set |
+| A pause | often closes the session **when playback resumes**, so `updatedAt` is the resume time — hours later | kept **inside** the session | kept inside |
+| Next session's `startTime` | = previous `currentTime` (±20 s) | = previous `currentTime` | same, across device switches |
+
+So `buildAudiobookshelfPlaybackForWindow` reads a session as follows:
+
+- **Listened time** (`absListenedSeconds`) is `timeListening`, else the position delta
+  `currentTime − startTime`, capped at the wall-clock span.
+- **Where the listening sits** (`absCoverageEnd`). A session whose span is within
+  `absContinuousSlack` (2 min) of its listened time was one continuous listen, so
+  `[startedAt, updatedAt]` is exact. A longer span holds a pause. When the next session of the
+  same item starts within `absResumeHandoff` (1 min) of `updatedAt`, the session was closed on
+  resume: the pause was at its end, and the listening was `[startedAt, startedAt + listened]`.
+  Taking `updatedAt` there put a podcast paused the night before into the next morning's
+  workout, as an "already playing" row. Otherwise the pause could be anywhere, so the span
+  stays `[startedAt, updatedAt]` and the listened time is assumed spread evenly over it.
+- **Positions** go on the play event, so a listen resumed in a fresh session merges with the
+  one before it (see [Duplicate plays & overlap merging](#duplicate-plays--overlap-merging)).
+
+> **Listened time is clipped to the workout.** `timeListening` covers the *whole* listen,
+> including any before the workout began or after it ended. Stored raw, a podcast started
+> before a 60-minute run and another finished after it read as 40 + 49 minutes.
+> `listenedWithinWindow` (`controllers/media_match.go`) keeps only each session's in-window
+> share, `listened × overlap ÷ span`, capped at the overlap. It runs **per session, before
+> merging** (`listenedInWindow`), so each session is clipped against its own span; a merged row
+> sums them, capped at the merged span's overlap (duplicate sessions can claim more listening
+> than the time they cover). A session with **nothing heard inside the window** is dropped
+> there, even when it matched through the grace, rather than shown as "already playing" with no
+> minutes. The timeline minutes, the `/statistics` spoken-time totals and the MCP
+> `track_length_seconds` all read this value.
 
 > **Why paging matters.** ABS opens a fresh session on every device switch or unclean
 > close, so 100 sessions can be only a few days of history. Reading just the first page
@@ -392,10 +422,16 @@ single span it actually was:
   fallback keeps the merge working for a provider that names nothing, at the cost of grouping
   two same-titled items — acceptable, since they still only merge when their spans overlap.
 - **Overlap is required, not merely a shared identity.** Replaying an item later in a workout
-  is a real second listen and stays its own row. Touching spans join; a real gap does not, so
-  a pause and resume still reads as two listens.
-- **Merging** keeps the earliest start and latest end, and fills any metadata the first record
-  was missing. `trackLengthSec` combines according to `trackLengthIsListened`: time actually
+  is a real second listen and stays its own row. Touching spans join; a real gap does not.
+- **Except a resumed listen** (`continuesListen`). A listened-time item (ABS) whose next
+  record starts **where the previous one stopped** (positions within
+  `mediaResumePositionSlack`, 60 s) after a pause of at most `mediaResumeMaxPause` (**15
+  min**) is the same listen: a short pause doesn't split a podcast into several rows. A longer
+  pause, or a restart from the top, stays a separate row. Songs are never merged across a gap:
+  there, a play a few minutes later is a replay.
+- **Merging** keeps the earliest start and latest end, takes the **title of the longest
+  record** (AudioBooth logs seconds-long blips titled with the *show*), and fills any metadata
+  the first record was missing. `trackLengthSec` combines according to `trackLengthIsListened`: time actually
   *listened* (ABS `timeListening`) **adds up** (and is then clipped to the window, see the
   Audiobookshelf section), whereas an item's own length (a Plex/Spotify
   track) takes the **longest** — two overlapping records of one track don't make it twice as
@@ -411,6 +447,20 @@ overlapping scrobbles for one track across clients.
 **Not retroactive on its own.** Rows regenerate from the provider on each pull, so already-
 viewed sessions need a re-pull (the 🎧 button, or the admin bulk media re-sync) to pick the
 merge up.
+
+**Diagnosing with real history.** `scripts/mediaprobe` is a read-only developer tool that
+dumps the raw ABS listening sessions around a workout window (every field ABS sends, with
+the user id and device details redacted) and, with `-match`, replays them through the app's
+matcher (`MatchAudiobookshelfSessions`). Its table shows the wall-clock and in-episode
+position gap between consecutive sessions of the same item. The stdout JSON can go straight
+into a test fixture. `controllers/testdata/abs_listening_sessions.json` holds trimmed real
+windows (the reported AudioBooth soundtracks, an ABS iOS null-`timeListening` listen, a device
+switch), replayed by `TestBuildAudiobookshelfPlaybackFromRealSessions`:
+
+```bash
+ABS_URL=https://abs.example.com ABS_TOKEN=… go run ./scripts/mediaprobe \
+  -from 2026-10-01T17:00:00+02:00 -to 2026-10-01T18:30:00+02:00 -match > probe.json
+```
 
 ## Window resolution
 

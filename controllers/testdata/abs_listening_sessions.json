@@ -1,0 +1,374 @@
+{
+  "audiobooth-ep10": {
+    "from": "2026-08-04T17:33:37+02:00",
+    "to": "2026-08-04T19:40:00+02:00",
+    "sessions": [
+      {
+        "id": "3ac4e902-f671-4d8f-a613-32a67783aa8a",
+        "libraryItemId": "987125e7-2475-468a-87e9-2def1c8a6572",
+        "episodeId": "137001b9-1803-4fbc-a32e-5dfc5d307ad8",
+        "displayTitle": "Ep. 10 - LUDWIG KISSES SLIME ON CAMERA",
+        "displayAuthor": "The Yard",
+        "mediaType": "podcast",
+        "duration": 5606.922449,
+        "timeListening": 2380.585846185684,
+        "startTime": 0,
+        "currentTime": 2379.50174195,
+        "startedAt": 1785851747930,
+        "updatedAt": 1785855441113
+      },
+      {
+        "id": "922fb53e-24cf-4b8d-9b39-00e264252ce5",
+        "libraryItemId": "987125e7-2475-468a-87e9-2def1c8a6572",
+        "episodeId": "137001b9-1803-4fbc-a32e-5dfc5d307ad8",
+        "displayTitle": "Ep. 10 - LUDWIG KISSES SLIME ON CAMERA",
+        "displayAuthor": "The Yard",
+        "mediaType": "podcast",
+        "duration": 5606.922449,
+        "timeListening": 121.01465010643005,
+        "startTime": 2359.500181897,
+        "currentTime": 2500.687499033,
+        "startedAt": 1785855451774,
+        "updatedAt": 1785857710832
+      },
+      {
+        "id": "09fa4816-966a-4d99-a2d6-ec7674049b53",
+        "libraryItemId": "987125e7-2475-468a-87e9-2def1c8a6572",
+        "episodeId": "137001b9-1803-4fbc-a32e-5dfc5d307ad8",
+        "displayTitle": "Ep. 10 - LUDWIG KISSES SLIME ON CAMERA",
+        "displayAuthor": "The Yard",
+        "mediaType": "podcast",
+        "duration": 5606.922449,
+        "timeListening": 1015.1366913318634,
+        "startTime": 2500.687499033,
+        "currentTime": 3514.663,
+        "startedAt": 1785857714275,
+        "updatedAt": 1785858744221
+      },
+      {
+        "id": "9f331b97-7411-4d50-a9d7-addac6553e56",
+        "libraryItemId": "987125e7-2475-468a-87e9-2def1c8a6572",
+        "episodeId": "137001b9-1803-4fbc-a32e-5dfc5d307ad8",
+        "displayTitle": "Ep. 10 - LUDWIG KISSES SLIME ON CAMERA",
+        "displayAuthor": "The Yard",
+        "mediaType": "podcast",
+        "duration": 5606.922449,
+        "timeListening": 2123.4456725120544,
+        "startTime": 3512.500182793,
+        "currentTime": 5606.922449,
+        "startedAt": 1785858746249,
+        "updatedAt": 1785860873001
+      },
+      {
+        "id": "274d2e56-dff2-4e5d-8265-edf6093408b7",
+        "libraryItemId": "987125e7-2475-468a-87e9-2def1c8a6572",
+        "episodeId": "1d2684dd-6d3d-4ad2-b473-d11868480b20",
+        "displayTitle": "Ep. 11 - Ludwig Can't Read",
+        "displayAuthor": "The Yard",
+        "mediaType": "podcast",
+        "duration": 5819.010612,
+        "timeListening": 3891.1805753707886,
+        "startTime": 0,
+        "currentTime": 3890.687,
+        "startedAt": 1785860873947,
+        "updatedAt": 1785864849173
+      }
+    ]
+  },
+  "audiobooth-ep13": {
+    "from": "2026-08-08T14:38:00+02:00",
+    "to": "2026-08-08T17:00:00+02:00",
+    "sessions": [
+      {
+        "id": "af4a7b04-50e9-4c80-946b-1d7b422c1f98",
+        "libraryItemId": "987125e7-2475-468a-87e9-2def1c8a6572",
+        "episodeId": "d488b970-baae-49cc-a236-62cd887e0eb1",
+        "displayTitle": "Ep. 12 - Minecraft ends our friendship",
+        "displayAuthor": "The Yard",
+        "mediaType": "podcast",
+        "duration": 5655.771429,
+        "timeListening": 2736.723372578621,
+        "startTime": 2950.441103409,
+        "currentTime": 5655.771429,
+        "startedAt": 1786192690265,
+        "updatedAt": 1786195430027
+      },
+      {
+        "id": "c4ca290a-84d7-4234-ac09-84e03ee5d2b2",
+        "libraryItemId": "987125e7-2475-468a-87e9-2def1c8a6572",
+        "episodeId": "8fc3ff49-2c7e-4da8-98d1-03a9ed09e82d",
+        "displayTitle": "Ep. 13 - What really happens at Shitcamp",
+        "displayAuthor": "The Yard",
+        "mediaType": "podcast",
+        "duration": 5093.041633,
+        "timeListening": 347.32074332237244,
+        "startTime": 0,
+        "currentTime": 328.382045864,
+        "startedAt": 1786195431600,
+        "updatedAt": 1786196455449
+      },
+      {
+        "id": "0a4a8f4b-d148-40c9-878d-cebf63c739e9",
+        "libraryItemId": "987125e7-2475-468a-87e9-2def1c8a6572",
+        "episodeId": "8fc3ff49-2c7e-4da8-98d1-03a9ed09e82d",
+        "displayTitle": "Ep. 13 - What really happens at Shitcamp",
+        "displayAuthor": "The Yard",
+        "mediaType": "podcast",
+        "duration": 5093.041633,
+        "timeListening": 916.6632211208344,
+        "startTime": 328.382045864,
+        "currentTime": 1244.087130044,
+        "startedAt": 1786196475970,
+        "updatedAt": 1786197392904
+      },
+      {
+        "id": "c2cae060-68b3-483a-b8f7-a63113f58f3a",
+        "libraryItemId": "987125e7-2475-468a-87e9-2def1c8a6572",
+        "episodeId": "8fc3ff49-2c7e-4da8-98d1-03a9ed09e82d",
+        "displayTitle": "Ep. 13 - What really happens at Shitcamp",
+        "displayAuthor": "The Yard",
+        "mediaType": "podcast",
+        "duration": 5093.041633,
+        "timeListening": 2625.3456650972366,
+        "startTime": 1244.000267544,
+        "currentTime": 3830.66379721,
+        "startedAt": 1786197995823,
+        "updatedAt": 1786202615993
+      },
+      {
+        "id": "179b7888-3981-47de-b8e3-1f2a05421379",
+        "libraryItemId": "987125e7-2475-468a-87e9-2def1c8a6572",
+        "episodeId": "8fc3ff49-2c7e-4da8-98d1-03a9ed09e82d",
+        "displayTitle": "Ep. 13 - What really happens at Shitcamp",
+        "displayAuthor": "The Yard",
+        "mediaType": "podcast",
+        "duration": 5093.041633,
+        "timeListening": 951.9970574378967,
+        "startTime": 3830.66379721,
+        "currentTime": 4770.628529034,
+        "startedAt": 1786203279236,
+        "updatedAt": 1786204954308
+      }
+    ]
+  },
+  "audiobooth-ep25": {
+    "from": "2026-08-22T08:24:25+02:00",
+    "to": "2026-08-22T09:25:00+02:00",
+    "sessions": [
+      {
+        "id": "a72badb7-3f87-4194-ae4f-7b14dd8db284",
+        "libraryItemId": "987125e7-2475-468a-87e9-2def1c8a6572",
+        "episodeId": "38c4d224-c5f1-426c-81d4-583e10555110",
+        "displayTitle": "Ep. 25 - We flew 5,000 miles to interview Ludwig's mom",
+        "displayAuthor": "The Yard",
+        "mediaType": "podcast",
+        "duration": 5754.88,
+        "timeListening": 2000.8850651979446,
+        "startTime": 494.695726543,
+        "currentTime": 2458.883248892,
+        "startedAt": 1787330064830,
+        "updatedAt": 1787332839688
+      },
+      {
+        "id": "2134128e-9983-4a6d-b478-5df6cdd576b9",
+        "libraryItemId": "987125e7-2475-468a-87e9-2def1c8a6572",
+        "episodeId": "38c4d224-c5f1-426c-81d4-583e10555110",
+        "displayTitle": "Ep. 25 - We flew 5,000 miles to interview Ludwig's mom",
+        "displayAuthor": "The Yard",
+        "mediaType": "podcast",
+        "duration": 5754.88,
+        "timeListening": 696.8065659999847,
+        "startTime": 2458.883248892,
+        "currentTime": 3124.21779892,
+        "startedAt": 1787346794050,
+        "updatedAt": 1787379737237
+      },
+      {
+        "id": "d9f17ba4-d5e1-4d6c-afc8-853d0a0bd932",
+        "libraryItemId": "987125e7-2475-468a-87e9-2def1c8a6572",
+        "episodeId": "38c4d224-c5f1-426c-81d4-583e10555110",
+        "displayTitle": "Ep. 25 - We flew 5,000 miles to interview Ludwig's mom",
+        "displayAuthor": "The Yard",
+        "mediaType": "podcast",
+        "duration": 5754.88,
+        "timeListening": 1366.0141899585724,
+        "startTime": 3124.21779892,
+        "currentTime": 4453.543,
+        "startedAt": 1787379748374,
+        "updatedAt": 1787381118049
+      },
+      {
+        "id": "e2f9166a-0824-434a-a888-1808051f95f1",
+        "libraryItemId": "987125e7-2475-468a-87e9-2def1c8a6572",
+        "episodeId": "38c4d224-c5f1-426c-81d4-583e10555110",
+        "displayTitle": "Ep. 25 - We flew 5,000 miles to interview Ludwig's mom",
+        "displayAuthor": "The Yard",
+        "mediaType": "podcast",
+        "duration": 5754.88,
+        "timeListening": 1334.8767483234406,
+        "startTime": 4453.534269152,
+        "currentTime": 5754.88,
+        "startedAt": 1787381123336,
+        "updatedAt": 1787382460838
+      },
+      {
+        "id": "bbcefedc-9e11-4e48-9039-42d2b211a817",
+        "libraryItemId": "987125e7-2475-468a-87e9-2def1c8a6572",
+        "episodeId": "efff0828-ac3b-4603-94a9-c219ddc4d942",
+        "displayTitle": "Ep. 26 - How Ludwig Instantly Lost $50,000",
+        "displayAuthor": "The Yard",
+        "mediaType": "podcast",
+        "duration": 6144.365714,
+        "timeListening": 2551.7068334817886,
+        "startTime": 0,
+        "currentTime": 2547.525344317,
+        "startedAt": 1787382467515,
+        "updatedAt": 1787385796584
+      },
+      {
+        "id": "a54c95c9-c566-4e6c-aa2d-740be7eeb1da",
+        "libraryItemId": "987125e7-2475-468a-87e9-2def1c8a6572",
+        "episodeId": "efff0828-ac3b-4603-94a9-c219ddc4d942",
+        "displayTitle": "Ep. 26 - How Ludwig Instantly Lost $50,000",
+        "displayAuthor": "The Yard",
+        "mediaType": "podcast",
+        "duration": 6144.365714,
+        "timeListening": 45.63727688789368,
+        "startTime": 2547.525344317,
+        "currentTime": 2592.688349231,
+        "startedAt": 1787388208238,
+        "updatedAt": 1787388254284
+      }
+    ]
+  },
+  "audiobooth-show-titled-blip": {
+    "from": "2026-09-24T07:00:00+02:00",
+    "to": "2026-09-24T07:30:00+02:00",
+    "sessions": [
+      {
+        "id": "9b4d78e3-36dc-4799-9949-366a7a18514b",
+        "libraryItemId": "987125e7-2475-468a-87e9-2def1c8a6572",
+        "episodeId": "205adb57-5901-4da6-a1cb-15e10a8bcfd0",
+        "displayTitle": "Ep. 269 - Ranking Every Fast Food Fries",
+        "displayAuthor": "The Yard",
+        "mediaType": "podcast",
+        "duration": 9666.533878,
+        "timeListening": 656.5994337797165,
+        "startTime": 442.000210657,
+        "currentTime": 1068.169638362,
+        "startedAt": 1790224510430,
+        "updatedAt": 1790225201990
+      },
+      {
+        "id": "c5db8925-877b-41ab-9c59-d070395094ea",
+        "libraryItemId": "987125e7-2475-468a-87e9-2def1c8a6572",
+        "episodeId": "205adb57-5901-4da6-a1cb-15e10a8bcfd0",
+        "displayTitle": "The Yard",
+        "displayAuthor": "",
+        "mediaType": "podcast",
+        "duration": 9666.533878,
+        "timeListening": 17.549510836601257,
+        "startTime": 1062.00014269,
+        "currentTime": 1064.810031524,
+        "startedAt": 1790226242736,
+        "updatedAt": 1790226282879
+      },
+      {
+        "id": "4027062d-2845-4780-b12b-39aa74bcdedb",
+        "libraryItemId": "987125e7-2475-468a-87e9-2def1c8a6572",
+        "episodeId": "205adb57-5901-4da6-a1cb-15e10a8bcfd0",
+        "displayTitle": "Ep. 269 - Ranking Every Fast Food Fries",
+        "displayAuthor": "The Yard",
+        "mediaType": "podcast",
+        "duration": 9666.533878,
+        "timeListening": 1270.76229929924,
+        "startTime": 1064.787298315,
+        "currentTime": 2305.000283794,
+        "startedAt": 1790226292017,
+        "updatedAt": 1790227566317
+      }
+    ]
+  },
+  "absios-null-listened": {
+    "from": "2026-09-30T23:20:00+02:00",
+    "to": "2026-09-30T23:50:00+02:00",
+    "sessions": [
+      {
+        "id": "53130489-adbf-4e63-a8f0-d35ae7e90f81",
+        "libraryItemId": "987125e7-2475-468a-87e9-2def1c8a6572",
+        "episodeId": "467a7ec6-80d9-4c26-aaeb-2a04d4bd26dc",
+        "displayTitle": "Ep. 270 - The Influencers Are Here",
+        "displayAuthor": "The Yard",
+        "mediaType": "podcast",
+        "duration": 5485.609796,
+        "timeListening": 1333.8339169025421,
+        "startTime": 0,
+        "currentTime": 1332.21310864,
+        "startedAt": 1790790789013,
+        "updatedAt": 1790793660565
+      },
+      {
+        "id": "254694e7-e1aa-4d74-914f-b85882572583",
+        "libraryItemId": "987125e7-2475-468a-87e9-2def1c8a6572",
+        "episodeId": "467a7ec6-80d9-4c26-aaeb-2a04d4bd26dc",
+        "displayTitle": "Ep. 270 - The Influencers Are Here",
+        "displayAuthor": "The Yard",
+        "mediaType": "podcast",
+        "duration": 5485.609796,
+        "timeListening": null,
+        "startTime": 1332.21310864,
+        "currentTime": 2604.317587595,
+        "startedAt": 1790803534695,
+        "updatedAt": 1790804809626
+      }
+    ]
+  },
+  "absios-cross-device": {
+    "from": "2026-09-29T19:00:00+02:00",
+    "to": "2026-09-29T20:00:00+02:00",
+    "sessions": [
+      {
+        "id": "f3b2196f-5d58-4303-a6a3-2a9c2923e39b",
+        "libraryItemId": "987125e7-2475-468a-87e9-2def1c8a6572",
+        "episodeId": "a196989b-379f-4d7a-9b54-12fd6db74f15",
+        "displayTitle": "Ep. 50 - We Broke Into MrBeast's Studio (ft. MrBeast)",
+        "displayAuthor": "The Yard",
+        "mediaType": "podcast",
+        "duration": 5653.498776,
+        "timeListening": 1035.2461111545563,
+        "startTime": 0,
+        "currentTime": 1046.758084683,
+        "startedAt": 1790697305301,
+        "updatedAt": 1790698352946
+      },
+      {
+        "id": "994481aa-aa78-4765-842b-9b7c6daaa795",
+        "libraryItemId": "987125e7-2475-468a-87e9-2def1c8a6572",
+        "episodeId": "a196989b-379f-4d7a-9b54-12fd6db74f15",
+        "displayTitle": "Ep. 50 - We Broke Into MrBeast's Studio (ft. MrBeast)",
+        "displayAuthor": "The Yard",
+        "mediaType": "podcast",
+        "duration": 5653.498776,
+        "timeListening": 1430,
+        "startTime": 1046.758084683,
+        "currentTime": 2478.125794,
+        "startedAt": 1790701242952,
+        "updatedAt": 1790702674685
+      },
+      {
+        "id": "9381aeb6-f6a9-4d13-a1cb-2c5c8750267b",
+        "libraryItemId": "987125e7-2475-468a-87e9-2def1c8a6572",
+        "episodeId": "a196989b-379f-4d7a-9b54-12fd6db74f15",
+        "displayTitle": "Ep. 50 - We Broke Into MrBeast's Studio (ft. MrBeast)",
+        "displayAuthor": "The Yard",
+        "mediaType": "podcast",
+        "duration": 5653.498776,
+        "timeListening": 1992.154791355133,
+        "startTime": 2478.125794,
+        "currentTime": 4479.755861944,
+        "startedAt": 1790702714997,
+        "updatedAt": 1790704707621
+      }
+    ]
+  }
+}

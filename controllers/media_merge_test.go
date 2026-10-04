@@ -258,3 +258,126 @@ func TestScrobbleSpan(t *testing.T) {
 		})
 	}
 }
+
+// continuesListen merges a resumed listen across a short pause, but only for
+// listened-time items that resume where they stopped.
+func TestContinuesListen(t *testing.T) {
+	base := time.Date(2026, 6, 28, 10, 0, 0, 0, time.UTC)
+	previous := mediaPlayEvent{
+		startedAt: base, coverageEnd: base.Add(10 * time.Minute), trackLengthSec: 600,
+		trackLengthIsListened: true, hasPosition: true, positionStart: 0, positionEnd: 600,
+	}
+	resumeAfter := func(pause time.Duration, position float64) mediaPlayEvent {
+		next := previous
+		next.startedAt = previous.coverageEnd.Add(pause)
+		next.coverageEnd = next.startedAt.Add(10 * time.Minute)
+		next.positionStart, next.positionEnd = position, position+600
+		return next
+	}
+	song := func(event mediaPlayEvent) mediaPlayEvent {
+		event.trackLengthIsListened = false
+		return event
+	}
+	unpositioned := func(event mediaPlayEvent) mediaPlayEvent {
+		event.hasPosition = false
+		return event
+	}
+
+	tests := []struct {
+		name           string
+		previous, next mediaPlayEvent
+		want           bool
+	}{
+		{"overlapping records", previous, resumeAfter(-time.Minute, 540), true},
+		{"resumed after a short pause", previous, resumeAfter(10*time.Minute, 610), true},
+		{"resumed at the pause limit", previous, resumeAfter(mediaResumeMaxPause, 600), true},
+		{"pause longer than the limit", previous, resumeAfter(mediaResumeMaxPause+time.Second, 600), false},
+		{"restarted from the top", previous, resumeAfter(time.Minute, 0), false},
+		{"skipped ahead", previous, resumeAfter(time.Minute, 1200), false},
+		{"songs are never gap-merged", song(previous), song(resumeAfter(time.Minute, 600)), false},
+		{"no positions to compare", unpositioned(previous), unpositioned(resumeAfter(time.Minute, 600)), false},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			if got := continuesListen(test.previous, test.next); got != test.want {
+				t.Errorf("continuesListen = %t, want %t", got, test.want)
+			}
+		})
+	}
+}
+
+// A merge is named by its longest record, so a seconds-long record carrying the show's
+// name doesn't title the episode.
+func TestMergeEventsTakesTheLongestRecordsTitle(t *testing.T) {
+	base := time.Date(2026, 6, 28, 10, 0, 0, 0, time.UTC)
+	blip := mediaPlayEvent{title: "The Show", startedAt: base, trackLengthSec: 18, trackLengthIsListened: true}
+	episode := mediaPlayEvent{title: "Ep. 1", startedAt: base.Add(time.Minute), trackLengthSec: 1200, trackLengthIsListened: true}
+	untitled := mediaPlayEvent{startedAt: base.Add(30 * time.Minute), trackLengthSec: 3000, trackLengthIsListened: true}
+	shortTail := mediaPlayEvent{title: "The Show", startedAt: base.Add(80 * time.Minute), trackLengthSec: 30, trackLengthIsListened: true}
+
+	merged := mergeEvents(blip, episode, eventCoverageEnd(episode))
+	merged = mergeEvents(merged, untitled, eventCoverageEnd(untitled))
+	merged = mergeEvents(merged, shortTail, eventCoverageEnd(shortTail))
+
+	if merged.title != "Ep. 1" {
+		t.Errorf("title = %q, want the longest titled record's", merged.title)
+	}
+	if merged.trackLengthSec != 18+1200+3000+30 {
+		t.Errorf("listened = %d, want the sum", merged.trackLengthSec)
+	}
+}
+
+// playbackForWindow's fallbacks: skip an event with no start, name an untitled one,
+// end a span from its length when the provider gave no end, and never end a row before
+// its clamped start.
+func TestPlaybackForWindowFallbacks(t *testing.T) {
+	start := time.Date(2026, 6, 28, 10, 0, 0, 0, time.UTC)
+	end := start.Add(time.Hour)
+
+	got := playbackForWindow([]mediaPlayEvent{
+		{title: "No start"},
+		{providerItemID: "untitled", startedAt: start.Add(10 * time.Minute), trackLengthSec: 240},
+		// Ends inside the grace before the window: its end is pulled up to the clamped start.
+		{title: "Just before", providerItemID: "early", startedAt: start.Add(-6 * time.Minute), coverageEnd: start.Add(-2 * time.Minute)},
+	}, start, end)
+
+	if len(got) != 2 {
+		t.Fatalf("got %d rows, want 2: %+v", len(got), got)
+	}
+	early, untitled := got[0], got[1]
+	if untitled.Title != "Unknown" {
+		t.Errorf("untitled row title = %q", untitled.Title)
+	}
+	if untitled.EndedAt == nil || !untitled.EndedAt.Equal(start.Add(14*time.Minute)) {
+		t.Errorf("untitled row should end start + length, got %v", untitled.EndedAt)
+	}
+	if early.EndedAt == nil || !early.EndedAt.Equal(start) {
+		t.Errorf("an end before the clamped start should clamp to it, got %v", early.EndedAt)
+	}
+}
+
+func TestMergeEventsKeepsTheEarlierStart(t *testing.T) {
+	base := time.Date(2026, 6, 28, 10, 0, 0, 0, time.UTC)
+	later := mediaPlayEvent{startedAt: base.Add(time.Minute), coverageEnd: base.Add(5 * time.Minute)}
+	earlier := mediaPlayEvent{startedAt: base, coverageEnd: base.Add(3 * time.Minute)}
+
+	if merged := mergeEvents(later, earlier, earlier.coverageEnd); !merged.startedAt.Equal(base) {
+		t.Errorf("start = %s, want the earlier record's", merged.startedAt)
+	}
+}
+
+func TestMediaMergeIdentityPrecedence(t *testing.T) {
+	tests := []struct {
+		event mediaPlayEvent
+		want  string
+	}{
+		{mediaPlayEvent{providerItemID: "42", providerGUID: "g", title: "T"}, "item:42"},
+		{mediaPlayEvent{providerGUID: "spotify:track:1", title: "T"}, "guid:spotify:track:1"},
+		{mediaPlayEvent{title: " Roads ", artist: "Portishead"}, "name:roads|portishead"},
+	}
+	for _, test := range tests {
+		if got := mediaMergeIdentity(test.event); got != test.want {
+			t.Errorf("got %q, want %q", got, test.want)
+		}
+	}
+}

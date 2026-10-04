@@ -42,9 +42,19 @@ type AudiobookshelfListenSession struct {
 	DisplayAuthor string  `json:"displayAuthor"`
 	MediaType     string  `json:"mediaType"`
 	Duration      float64 `json:"duration"`
+	// TimeListening is null from some clients (the ABS iOS app sends it on only some
+	// sessions), which decodes as 0 — fall back to CurrentTime − StartTime.
 	TimeListening float64 `json:"timeListening"`
-	StartedAt     int64   `json:"startedAt"`
-	UpdatedAt     int64   `json:"updatedAt"`
+	// StartTime/CurrentTime are the playback positions within the item (seconds) where
+	// the session began and where it last was. A session that resumes a listen begins
+	// where the previous one stopped, on every client and across device switches.
+	StartTime   float64 `json:"startTime"`
+	CurrentTime float64 `json:"currentTime"`
+	StartedAt   int64   `json:"startedAt"`
+	// UpdatedAt is when the session was last touched, which is not always when listening
+	// stopped: a session can hold a pause, and some clients close a paused session only
+	// when playback resumes — hours later.
+	UpdatedAt int64 `json:"updatedAt"`
 }
 
 // AudiobookshelfConnectRequest is the account-page connect payload: the self-hosted

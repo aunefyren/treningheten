@@ -4,7 +4,9 @@ import (
 	"encoding/json"
 	"errors"
 	"io"
+	"math"
 	"net/http"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -273,36 +275,42 @@ func absHasOlderListeningSessions(response models.AudiobookshelfListeningSession
 	return true
 }
 
+// absContinuousSlack is how much longer than its listened time a session may span and
+// still count as one continuous listen, so its UpdatedAt is the real end.
+const absContinuousSlack = 2 * time.Minute
+
+// absResumeHandoff is how soon after a session's UpdatedAt the next session of the same
+// item must start for the old one to count as closed on resume (see absCoverageEnd).
+const absResumeHandoff = time.Minute
+
 // buildAudiobookshelfPlaybackForWindow maps ABS listening sessions into provider-
 // neutral play events and defers window matching to the shared playbackForWindow. A
-// session is coarser than a scrobble (one continuous listen), matched when its
-// [startedAt, updatedAt] span overlaps the window; TimeListening (seconds actually
-// listened) is scaled down to the in-window share by playbackForWindow.
+// session is coarser than a scrobble (one continuous listen, or one with pauses in it);
+// absCoverageEnd decides which stretch of [startedAt, updatedAt] was listening, and the
+// playback positions let a listen resumed in a fresh session merge with the one before.
 func buildAudiobookshelfPlaybackForWindow(sessions []models.AudiobookshelfListenSession, start, end time.Time) []models.MediaPlayback {
-	events := []mediaPlayEvent{}
-
+	ordered := make([]models.AudiobookshelfListenSession, 0, len(sessions))
 	for _, session := range sessions {
-		if session.StartedAt <= 0 {
-			continue
+		if session.StartedAt > 0 {
+			ordered = append(ordered, session)
 		}
+	}
+	sort.SliceStable(ordered, func(i, j int) bool { return ordered[i].StartedAt < ordered[j].StartedAt })
 
-		var lengthSeconds int64
-		if session.TimeListening > 0 {
-			lengthSeconds = int64(session.TimeListening)
+	// The session that follows each one on the same item, for the closed-on-resume check.
+	nextOfItem := make([]*models.AudiobookshelfListenSession, len(ordered))
+	lastOfItem := map[string]int{}
+	for i, session := range ordered {
+		item := absSessionItemID(session)
+		if previous, ok := lastOfItem[item]; ok {
+			nextOfItem[previous] = &ordered[i]
 		}
+		lastOfItem[item] = i
+	}
 
-		startedAt := time.UnixMilli(session.StartedAt).UTC()
-
-		// coverageEnd is the wall-clock end of the session. Prefer UpdatedAt (last
-		// activity) since a session started before the workout can still be playing
-		// through it; TimeListening excludes pauses and would end the span too early.
-		// Fall back to startedAt + listened seconds when UpdatedAt is absent.
-		coverageEnd := time.Time{}
-		if session.UpdatedAt > session.StartedAt {
-			coverageEnd = time.UnixMilli(session.UpdatedAt).UTC()
-		} else if lengthSeconds > 0 {
-			coverageEnd = startedAt.Add(time.Duration(lengthSeconds) * time.Second)
-		}
+	events := []mediaPlayEvent{}
+	for i, session := range ordered {
+		listened := absListenedSeconds(session)
 
 		events = append(events, mediaPlayEvent{
 			mediaType: absClassifyMediaType(session.MediaType),
@@ -312,19 +320,83 @@ func buildAudiobookshelfPlaybackForWindow(sessions []models.AudiobookshelfListen
 			// identity; books have no episode and are identified by the item itself.
 			// Without this every episode of a series shares one id and the overlap
 			// merge would collapse unrelated episodes into each other.
-			providerItemID:    firstNonEmpty(session.EpisodeID, session.LibraryItemID),
+			providerItemID:    absSessionItemID(session),
 			providerParentID:  session.LibraryItemID,
 			providerSessionID: session.ID,
-			startedAt:         startedAt,
-			coverageEnd:       coverageEnd,
-			trackLengthSec:    lengthSeconds,
+			startedAt:         time.UnixMilli(session.StartedAt).UTC(),
+			coverageEnd:       absCoverageEnd(session, listened, nextOfItem[i]),
+			trackLengthSec:    listened,
 			// ABS reports time actually listened, not the item's length — so merged
 			// sessions on one episode add up rather than taking the longest.
 			trackLengthIsListened: true,
+			hasPosition:           session.StartTime > 0 || session.CurrentTime > 0,
+			positionStart:         session.StartTime,
+			positionEnd:           session.CurrentTime,
 		})
 	}
 
 	return playbackForWindow(events, start, end)
+}
+
+// absSessionItemID is the most specific thing a session played: the episode, else the
+// library item (a book).
+func absSessionItemID(session models.AudiobookshelfListenSession) string {
+	return firstNonEmpty(session.EpisodeID, session.LibraryItemID)
+}
+
+// absListenedSeconds is the time a session actually listened: TimeListening, or — when
+// the client sent it as null — how far the playback position moved. Either way it is
+// capped at the session's wall-clock span, since no one listens longer than that.
+func absListenedSeconds(session models.AudiobookshelfListenSession) int64 {
+	listened := session.TimeListening
+	if listened <= 0 {
+		listened = session.CurrentTime - session.StartTime
+	}
+	if listened <= 0 {
+		return 0
+	}
+	if session.UpdatedAt > session.StartedAt {
+		listened = math.Min(listened, float64(session.UpdatedAt-session.StartedAt)/1000)
+	}
+	return int64(math.Round(listened))
+}
+
+// absCoverageEnd is the end of the stretch of a session that was listening. UpdatedAt is
+// only when the session was last touched, so it is the end just when the session was one
+// continuous listen (its span barely exceeds the listened time). Otherwise the session
+// holds a pause, and where it fell is only known in one case: some clients (AudioBooth)
+// close a paused session when playback resumes, so when the next session of the item
+// starts right after UpdatedAt the pause was at the end and listening was
+// [startedAt, startedAt + listened]. Taking UpdatedAt there put a podcast paused the
+// night before into the next morning's workout. In any other case the pause could be
+// anywhere (the ABS iOS app keeps it inside the session), so UpdatedAt stays the end and
+// the listened time is spread over the span. Zero = unknown.
+func absCoverageEnd(session models.AudiobookshelfListenSession, listenedSec int64, next *models.AudiobookshelfListenSession) time.Time {
+	startedAt := time.UnixMilli(session.StartedAt).UTC()
+	listenedEnd := startedAt.Add(time.Duration(listenedSec) * time.Second)
+
+	if session.UpdatedAt <= session.StartedAt {
+		if listenedSec > 0 {
+			return listenedEnd
+		}
+		return time.Time{}
+	}
+	updatedAt := time.UnixMilli(session.UpdatedAt).UTC()
+
+	if listenedSec > 0 && updatedAt.Sub(listenedEnd) > absContinuousSlack && next != nil {
+		handoff := time.UnixMilli(next.StartedAt).Sub(updatedAt)
+		if handoff >= -absResumeHandoff && handoff <= absResumeHandoff {
+			return listenedEnd
+		}
+	}
+	return updatedAt
+}
+
+// MatchAudiobookshelfSessions exposes the ABS window matcher to developer tooling
+// (scripts/mediaprobe), so real history can be replayed through exactly the logic a
+// sync runs without a database or a stored connection.
+func MatchAudiobookshelfSessions(sessions []models.AudiobookshelfListenSession, start, end time.Time) []models.MediaPlayback {
+	return buildAudiobookshelfPlaybackForWindow(sessions, start, end)
 }
 
 // AudiobookshelfSyncExerciseForUser pulls the ABS listening history overlapping a
