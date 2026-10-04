@@ -133,6 +133,7 @@ func newAPIHarness(t *testing.T) *apiHarness {
 	a.GET("/users", GetUsers)
 	a.POST("/users/:user_id", APIUpdateUser)
 	a.PATCH("/users/:user_id", APIPartialUpdateUser)
+	a.PUT("/users/:user_id/training-profile", APIUpdateTrainingProfile)
 	a.GET("/users/:user_id/activities", APIGetUserActivities)
 	a.GET("/users/:user_id/statistics", APIGetUserStatistics)
 	a.GET("/debts/unchosen", APIGetUnchosenDebt)

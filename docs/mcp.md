@@ -216,7 +216,10 @@ order: an explicit **max heart rate**, then the **all-time max observed** across
 user's activities (real data over a formula; maintained on Strava sync via
 `database.BumpObservedMaxHeartrate` and seeded once by `backfillObservedMaxHeartrate`),
 then the **age-based** estimate (220 − age), then this activity's own peak. A **resting
-heart rate** additionally switches the zones to heart-rate reserve (Karvonen).
+heart rate** additionally switches the zones to heart-rate reserve (Karvonen). Users set the
+birth date, max and resting heart rate under **Training** on `/account`, saved through
+`PUT /api/auth/users/:user_id/training-profile` (`APIUpdateTrainingProfile`, full replace — a null
+clears a field; not password-gated). The password-gated account update no longer touches them.
 
 **Stability over time.** The summary is recomputed on each read, so it matters which parts
 can change. Everything derived from the recorded stream — header stats, **segments**,

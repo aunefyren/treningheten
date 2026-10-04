@@ -14,9 +14,6 @@ import (
 
 func TestValidateUserUpdate(t *testing.T) {
 	now := time.Date(2026, 10, 3, 12, 0, 0, 0, time.UTC)
-	adult := now.AddDate(-30, 0, 0)
-	child := now.AddDate(-5, 0, 0)
-	maxHR, restHR, tooHigh, tooLow := 190, 50, 300, 10
 
 	tests := []struct {
 		name    string
@@ -27,12 +24,6 @@ func TestValidateUserUpdate(t *testing.T) {
 		{"strong password", models.UserUpdateRequest{Password: "Password123", PasswordRepeat: "Password123"}, true},
 		{"password mismatch", models.UserUpdateRequest{Password: "Password123", PasswordRepeat: "Password124"}, false},
 		{"weak password", models.UserUpdateRequest{Password: "weak", PasswordRepeat: "weak"}, false},
-		{"adult birth date", models.UserUpdateRequest{BirthDate: &adult}, true},
-		{"too young", models.UserUpdateRequest{BirthDate: &child}, false},
-		{"valid heart rates", models.UserUpdateRequest{MaxHeartrate: &maxHR, RestingHeartrate: &restHR}, true},
-		{"max HR too high", models.UserUpdateRequest{MaxHeartrate: &tooHigh}, false},
-		{"resting HR too low", models.UserUpdateRequest{RestingHeartrate: &tooLow}, false},
-		{"resting above max", models.UserUpdateRequest{MaxHeartrate: intPtr(110), RestingHeartrate: intPtr(115)}, false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

@@ -135,16 +135,22 @@ type UserCreationRequest struct {
 }
 
 type UserUpdateRequest struct {
-	Email            string     `json:"email"`
-	Password         string     `json:"password"`
-	PasswordRepeat   string     `json:"password_repeat"`
-	ProfileImage     string     `json:"profile_image"`
-	OldPassword      string     `json:"password_old"`
+	Email           string `json:"email"`
+	Password        string `json:"password"`
+	PasswordRepeat  string `json:"password_repeat"`
+	ProfileImage    string `json:"profile_image"`
+	OldPassword     string `json:"password_old"`
+	ShareActivities *bool  `json:"share_activities"`
+	ShareStatistics *bool  `json:"share_statistics"`
+}
+
+// UserTrainingProfileRequest replaces the settings that shape how a user's workouts are
+// read (age and heart-rate zone anchors). Every field is written as sent, so a null
+// clears it. Not password-gated: none of it is a credential.
+type UserTrainingProfileRequest struct {
 	BirthDate        *time.Time `json:"birth_date"`
 	MaxHeartrate     *int       `json:"max_heartrate"`
 	RestingHeartrate *int       `json:"resting_heartrate"`
-	ShareActivities  *bool      `json:"share_activities"`
-	ShareStatistics  *bool      `json:"share_statistics"`
 }
 
 type UserPartialUpdateRequest struct {

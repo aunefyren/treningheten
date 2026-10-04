@@ -440,9 +440,6 @@ func APIUpdateUser(context *gin.Context) {
 
 	user.ShareActivities = userUpdateRequest.ShareActivities
 	user.ShareStatistics = userUpdateRequest.ShareStatistics
-	user.BirthDate = userUpdateRequest.BirthDate
-	user.MaxHeartrate = userUpdateRequest.MaxHeartrate
-	user.RestingHeartrate = userUpdateRequest.RestingHeartrate
 
 	if userUpdateRequest.ProfileImage != "" {
 		err = UpdateUserProfileImage(user.ID, userUpdateRequest.ProfileImage)
@@ -536,25 +533,80 @@ func validateUserUpdate(request models.UserUpdateRequest, now time.Time) (string
 		}
 	}
 
+	return "", nil
+}
+
+// validateTrainingProfile checks a training-profile update. It returns a user-facing
+// message when the request is invalid, or "" when it is valid. Every field is optional.
+func validateTrainingProfile(request models.UserTrainingProfileRequest, now time.Time) string {
 	if request.BirthDate != nil && request.BirthDate.After(now.Add(-time.Hour*24*365*13)) {
-		return "Your birth date must be more than thirteen years ago.", nil
+		return "Your birth date must be more than thirteen years ago."
 	}
 
-	// Heart-rate settings are optional, within plausible physiological ranges. They feed
-	// the activity heart-rate zones — an explicit max overrides the age-based estimate, and
-	// a resting HR switches the zones to heart-rate reserve (Karvonen).
+	// Heart-rate settings sit within plausible physiological ranges. They feed the activity
+	// heart-rate zones — an explicit max overrides the age-based estimate, and a resting HR
+	// switches the zones to heart-rate reserve (Karvonen).
 	if request.MaxHeartrate != nil && (*request.MaxHeartrate < 100 || *request.MaxHeartrate > 240) {
-		return "Your maximum heart rate must be between 100 and 240 bpm.", nil
+		return "Your maximum heart rate must be between 100 and 240 bpm."
 	}
 	if request.RestingHeartrate != nil && (*request.RestingHeartrate < 25 || *request.RestingHeartrate > 120) {
-		return "Your resting heart rate must be between 25 and 120 bpm.", nil
+		return "Your resting heart rate must be between 25 and 120 bpm."
 	}
 	if request.MaxHeartrate != nil && request.RestingHeartrate != nil &&
 		*request.RestingHeartrate >= *request.MaxHeartrate {
-		return "Your resting heart rate must be below your maximum heart rate.", nil
+		return "Your resting heart rate must be below your maximum heart rate."
 	}
 
-	return "", nil
+	return ""
+}
+
+// APIUpdateTrainingProfile replaces the caller's birth date and heart-rate anchors. Like
+// the PATCH, the path id is ignored: it always updates the authenticated user.
+func APIUpdateTrainingProfile(context *gin.Context) {
+	var request models.UserTrainingProfileRequest
+	err := context.ShouldBindJSON(&request)
+	if err != nil {
+		logger.Log.Info("Failed to parse training profile request. Error: " + err.Error())
+		context.JSON(http.StatusBadRequest, gin.H{"error": "Failed to parse training profile request."})
+		context.Abort()
+		return
+	}
+
+	userID, err := middlewares.GetAuthUsername(context.GetHeader("Authorization"))
+	if err != nil {
+		logger.Log.Info("Failed to get user from header. Error: " + err.Error())
+		context.JSON(http.StatusBadRequest, gin.H{"error": "Failed to get user from header."})
+		context.Abort()
+		return
+	}
+
+	if message := validateTrainingProfile(request, time.Now()); message != "" {
+		context.JSON(http.StatusBadRequest, gin.H{"error": message})
+		context.Abort()
+		return
+	}
+
+	user, err := database.GetAllUserInformation(userID)
+	if err != nil {
+		logger.Log.Info("Failed to get user information. Error: " + err.Error())
+		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get user information."})
+		context.Abort()
+		return
+	}
+
+	user.BirthDate = request.BirthDate
+	user.MaxHeartrate = request.MaxHeartrate
+	user.RestingHeartrate = request.RestingHeartrate
+
+	_, err = database.UpdateUser(user)
+	if err != nil {
+		logger.Log.Info("Failed to update user in the database. Error: " + err.Error())
+		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update user in the database."})
+		context.Abort()
+		return
+	}
+
+	context.JSON(http.StatusOK, gin.H{"message": "Training profile saved."})
 }
 
 // applyEmailChange moves user to newEmail when it differs from the current address. The

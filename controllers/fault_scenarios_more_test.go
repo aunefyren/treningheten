@@ -108,12 +108,22 @@ func moreFaultScenarios() []faultScenario {
 			userID := registerWithPassword(t, h, w, "update@fault.test")
 			_, login := passwordLogin(h, "update@fault.test", "Password123")
 			token := login["access_token"].(string)
-			birth := time.Now().AddDate(-30, 0, 0)
-			maxHR, restHR := 190, 50
 			return func() error {
 				return statusError(h.do("POST", "/api/auth/users/"+userID.String(), token, models.UserUpdateRequest{
 					Email: "update2@fault.test", OldPassword: "Password123", Password: "Password456", PasswordRepeat: "Password456",
-					BirthDate: &birth, MaxHeartrate: &maxHR, RestingHeartrate: &restHR, ShareActivities: boolPtr(false), ShareStatistics: boolPtr(true),
+					ShareActivities: boolPtr(false), ShareStatistics: boolPtr(true),
+				}), http.StatusOK)
+			}
+		}),
+		callScenario("update training profile", func(t *testing.T, h *apiHarness, w faultWorld) func() error {
+			userID := registerWithPassword(t, h, w, "training@fault.test")
+			_, login := passwordLogin(h, "training@fault.test", "Password123")
+			token := login["access_token"].(string)
+			birth := time.Now().AddDate(-30, 0, 0)
+			maxHR, restHR := 190, 50
+			return func() error {
+				return statusError(h.do("PUT", "/api/auth/users/"+userID.String()+"/training-profile", token, models.UserTrainingProfileRequest{
+					BirthDate: &birth, MaxHeartrate: &maxHR, RestingHeartrate: &restHR,
 				}), http.StatusOK)
 			}
 		}),

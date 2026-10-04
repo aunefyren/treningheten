@@ -180,18 +180,12 @@ func TestAccountSettings(t *testing.T) {
 	}
 	h.expect(http.StatusBadRequest, "GET", "/api/auth/users/nope", token, nil)
 
-	birth := time.Now().AddDate(-30, 0, 0)
-	tooYoung := time.Now().AddDate(-5, 0, 0)
-	maxHR, restHR, badHR := 190, 50, 300
 	userPath := "/api/auth/users/" + myID
 
 	h.expect(http.StatusUnauthorized, "POST", userPath, token, models.UserUpdateRequest{Email: "me@settings.test", OldPassword: "Wrong123"})
 	for name, request := range map[string]models.UserUpdateRequest{
 		"password mismatch": {Email: "me@settings.test", OldPassword: "Password123", Password: "Password999", PasswordRepeat: "Password998"},
 		"weak password":     {Email: "me@settings.test", OldPassword: "Password123", Password: "weak", PasswordRepeat: "weak"},
-		"too young":         {Email: "me@settings.test", OldPassword: "Password123", BirthDate: &tooYoung},
-		"bad max HR":        {Email: "me@settings.test", OldPassword: "Password123", MaxHeartrate: &badHR},
-		"bad resting HR":    {Email: "me@settings.test", OldPassword: "Password123", RestingHeartrate: &badHR},
 		"e-mail in use":     {Email: "admin@settings.test", OldPassword: "Password123"},
 	} {
 		if code := h.do("POST", userPath, token, request).Code; code != http.StatusBadRequest {
@@ -200,8 +194,7 @@ func TestAccountSettings(t *testing.T) {
 	}
 
 	updated := h.ok("POST", userPath, token, models.UserUpdateRequest{
-		Email: "me@settings.test", OldPassword: "Password123", BirthDate: &birth, MaxHeartrate: &maxHR, RestingHeartrate: &restHR,
-		ShareActivities: boolPtr(true), ShareStatistics: boolPtr(false),
+		Email: "me@settings.test", OldPassword: "Password123", ShareActivities: boolPtr(true), ShareStatistics: boolPtr(false),
 	})
 	if _, found := updated["data"]; !found {
 		t.Errorf("update did not return a fresh token set: %v", updated)

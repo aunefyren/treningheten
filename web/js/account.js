@@ -56,8 +56,10 @@ function load_page(result) {
     var strava_oauth = `http://www.strava.com/oauth/authorize?client_id=${encodeURI(strava_client_id)}&response_type=code&redirect_uri=${encodeURI(strava_redirect_uri)}&approval_prompt=force&scope=activity:read_all`
     spotify_oauth = `https://accounts.spotify.com/authorize?client_id=${encodeURIComponent(spotify_client_id)}&response_type=code&redirect_uri=${encodeURIComponent(spotify_redirect_uri)}&scope=${encodeURIComponent('user-read-recently-played')}&state=spotify`
 
-    var html = `
+    var exerciseConnectionsEnabled = strava_enabled || hevy_enabled;
+    var listeningConnectionsEnabled = plex_enabled || spotify_enabled || audiobookshelf_enabled;
 
+    var html = `
         <div class="module">
 
             <div class="user-active-profile-photo">
@@ -69,258 +71,45 @@ function load_page(result) {
             <p id="user_admin"></p>
 
             <div class="btn-group">
-                <button onclick="window.location.href = '/users/${user_id}';"class="btn" type="submit" href="">Public profile</button>
-                <button onclick="window.location.href = '/gear';" class="btn" type="submit" href="">Manage gear</button>
+                <button onclick="window.location.href = '/users/${user_id}';" class="btn" type="button">Public profile</button>
+                <button onclick="window.location.href = '/gear';" class="btn" type="button">Manage gear</button>
             </div>
 
-            <div class="account-section-wrapper">
+            ${settingsGroupHTML("Account",
+                accountSectionHTML("settings", "Account settings", accountSettingsBodyHTML(), "settings-body") +
+                accountSectionHTML("notifications", "Notifications", notificationsBodyHTML(vapid_public_key), "settings-body") +
+                accountSectionHTML("wheel", "Wheel appearance", "")
+            )}
 
-                <div class="account-section">
+            ${settingsGroupHTML("Training",
+                accountSectionHTML("training", "Training", trainingBodyHTML(exerciseConnectionsEnabled), "settings-body")
+            )}
 
-                    <div class="account-section-tab clickable" onclick="toggleSection('notifications-wrapper', 'section-button-notifications')">
-                        <div class="">Device Notifications</div>
-                        <img id="section-button-notifications"  src="assets/chevron-right.svg" class="color-invert u-m-2">
-                    </div>
+            ${exerciseConnectionsEnabled ? settingsGroupHTML("Exercise connections",
+                (strava_enabled ? accountSectionHTML("strava", "Strava", "", "settings-body") : "") +
+                (hevy_enabled ? accountSectionHTML("hevy", "Hevy", "", "settings-body") : "")
+            ) : ""}
 
-                    <div id="notifications-wrapper" class="notifications-wrapper minimized">
-                        <div class="notification-options" id="">
-                            <div class="notification-option" id="">
-                                <input class="clickable" type="checkbox" id="notification-reminder-toggle" name="notification-reminder-toggle" value="">
-                                <label for="notification-reminder-toggle" class="clickable u-m-0">Logging reminders</label><br>
-                            </div>
+            ${listeningConnectionsEnabled ? settingsGroupHTML("Listening connections",
+                (plex_enabled ? accountSectionHTML("plex", "Plex", "", "settings-body") : "") +
+                (spotify_enabled ? accountSectionHTML("spotify", "Spotify", "", "settings-body") : "") +
+                (audiobookshelf_enabled ? accountSectionHTML("audiobookshelf", "Audiobookshelf", "", "settings-body") : "")
+            ) : ""}
 
-                            <div class="notification-option" id="">
-                                <input class="clickable" type="checkbox" id="notification-achievement-toggle" name="notification-achievement-toggle" value="">
-                                <label for="notification-achievement-toggle" class="clickable u-m-0">Achievements</label><br>
-                            </div>
+            ${settingsGroupHTML("Developer",
+                accountSectionHTML("pat", "Access tokens", "")
+            )}
 
-                            <div class="notification-option" id="">
-                                <input class="clickable" type="checkbox" id="notification-news-toggle" name="notification-news-toggle" value="">
-                                <label for="notification-news-toggle" class="clickable u-m-0">News</label><br>
-                            </div>
-
-                            <div class="notification-option" id="">
-                                <input class="clickable" type="checkbox" id="notification-account-toggle" name="notification-account-toggle" value="" checked>
-                                <label for="notification-account-toggle" class="clickable u-m-0">Account updates</label><br>
-                            </div>
-                        
-                        </div>
-
-                        <div class="btn-group u-mt-3">
-                            <button type="submit" class="btn btn--primary" onclick="create_push('${vapid_public_key}'); return false;">
-                                Notify me on this device
-                            </button>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="account-section">
-
-                    <div class="account-section-tab clickable" onclick="toggleSection('mail-notifications-wrapper', 'section-button-mail-notifications')">
-                        <div class="">E-mail Notifications</div>
-                        <img id="section-button-mail-notifications" src="assets/chevron-right.svg" class="color-invert u-m-2">
-                    </div>
-
-                    <div id="mail-notifications-wrapper" class="mail-notifications-wrapper minimized">
-                        
-                        <div class="notification-options" id="">
-
-                            <div class="notification-option" id="">
-                                <input class="clickable u-mt-3" type="checkbox" id="sunday_alert" name="sunday_alert" value="sunday_alert" onchange="updateAccountValue('sunday_alert');">
-                                <label for="sunday_alert" class="clickable u-m-0">Send me e-mail logging reminders on Sundays.</label><br>
-                            </div>
-
-                        </div>
-
-                    </div>
-                </div>
-
-                <div class="account-section">
-
-                    <div class="account-section-tab clickable" onclick="toggleSection('settings-wrapper', 'section-button-settings')">
-                        <div class="">Account Settings</div>
-                        <img id="section-button-settings" src="assets/chevron-right.svg" class="color-invert u-m-2">
-                    </div>
-                    
-                    <div id="settings-wrapper" class="settings-wrapper minimized">
-                        <form action="" onsubmit="event.preventDefault(); send_update('${user_id}');">
-
-                            <div class="field">
-                                <label for="email" class="field-label">Replace email</label>
-                                <input type="email" name="email" id="email" placeholder="Email" required/>
-                            </div>
-
-                            <div class="field">
-                                <label for="birth_date" class="field-label">Birth date</label>
-                                <input type="date" name="birth_date" id="birth_date" />
-                            </div>
-
-                            <div class="field-row">
-                                <div class="field">
-                                    <label for="max_heartrate" class="field-label">Max heart rate</label>
-                                    <input type="number" name="max_heartrate" id="max_heartrate" min="100" max="240" placeholder="Automatic" oninput="updateMaxHRHint()" />
-                                    <span class="field-hint">Optional. Anchors your activity heart-rate zones. Leave it on automatic and Treningheten uses the highest heart rate seen in your activities, or estimates from your age.</span>
-                                    <span class="field-hint" id="max_heartrate_status"></span>
-                                </div>
-                                <div class="field">
-                                    <label for="resting_heartrate" class="field-label">Resting heart rate</label>
-                                    <input type="number" name="resting_heartrate" id="resting_heartrate" min="25" max="120" placeholder="e.g. 50" />
-                                    <span class="field-hint">Optional. When set, zones switch to heart-rate reserve (Karvonen) instead of a plain percentage of your max.</span>
-                                </div>
-                            </div>
-
-                            <div class="field">
-                                <label for="new_profile_image" class="field-label">Replace profile image</label>
-                                <input type="file" name="new_profile_image" id="new_profile_image" accept="image/png, image/jpeg" />
-                            </div>
-
-                            <div class="field-check">
-                                <input onclick="change_password_toggle();" type="checkbox" id="password-toggle" name="confirm" value="confirm">
-                                <label for="password-toggle">Change my password.</label>
-                            </div>
-
-                            <div id="change-password-box" style="display:none;">
-
-                                <div class="field">
-                                    <label for="password" class="field-label">New password</label>
-                                    <input type="password" name="password" id="password" placeholder="New password" />
-                                </div>
-
-                                <div class="field">
-                                    <label for="password_repeat" class="field-label">Repeat password</label>
-                                    <input type="password" name="password_repeat" id="password_repeat" placeholder="Repeat the password" />
-                                </div>
-
-                            </div>
-
-                            <div class="field-check">
-                                <input type="checkbox" id="share_activities" name="share_activities" value="share_activities">
-                                <label for="share_activities">Share my activities on the activity feed. Visible to everyone you have shared a season with, including past seasons.</label>
-                            </div>
-
-                            <div class="field-check">
-                                <input type="checkbox" id="share_statistics" name="share_statistics" value="share_statistics">
-                                <label for="share_statistics">Share my statistics on my page.</label>
-                            </div>
-
-                            <div class="field">
-                                <label for="password_old" class="field-label">Current password</label>
-                                <input type="password" name="password_old" id="password_old" placeholder="To save your changes, type your current password." required />
-                            </div>
-
-                            <button class="btn btn--primary u-mt-2" id="update-button" type="submit">Update account</button>
-
-                        </form>
-                    </div>
-
-                </div>
-
-                <div class="account-section" style="display: none;" id="strava-section">
-
-                    <div class="account-section-tab clickable" onclick="toggleSection('strava-wrapper', 'section-button-strava')">
-                        <div class="">Strava</div>
-                        <img id="section-button-strava" src="assets/chevron-right.svg" class="color-invert u-m-2">
-                    </div>
-
-                    <div id="strava-wrapper" class="strava-wrapper minimized">
-                    </div>
-                </div>
-
-                <div class="account-section" style="display: none;" id="hevy-section">
-
-                    <div class="account-section-tab clickable" onclick="toggleSection('hevy-wrapper', 'section-button-hevy')">
-                        <div class="">Hevy</div>
-                        <img id="section-button-hevy" src="assets/chevron-right.svg" class="color-invert u-m-2">
-                    </div>
-
-                    <div id="hevy-wrapper" class="hevy-wrapper minimized">
-                    </div>
-                </div>
-
-                <div class="account-section" style="display: none;" id="goal-counting-section">
-
-                    <div class="account-section-tab clickable" onclick="toggleSection('goal-counting-wrapper', 'section-button-goal-counting')">
-                        <div class="">Goal counting</div>
-                        <img id="section-button-goal-counting" src="assets/chevron-right.svg" class="color-invert u-m-2">
-                    </div>
-
-                    <div id="goal-counting-wrapper" class="goal-counting-wrapper minimized">
-                    </div>
-                </div>
-
-                <div class="account-section" style="display: none;" id="plex-section">
-
-                    <div class="account-section-tab clickable" onclick="toggleSection('plex-wrapper', 'section-button-plex')">
-                        <div class="">Plex</div>
-                        <img id="section-button-plex" src="assets/chevron-right.svg" class="color-invert u-m-2">
-                    </div>
-
-                    <div id="plex-wrapper" class="plex-wrapper minimized">
-                    </div>
-                </div>
-
-                <div class="account-section" style="display: none;" id="spotify-section">
-
-                    <div class="account-section-tab clickable" onclick="toggleSection('spotify-wrapper', 'section-button-spotify')">
-                        <div class="">Spotify</div>
-                        <img id="section-button-spotify" src="assets/chevron-right.svg" class="color-invert u-m-2">
-                    </div>
-
-                    <div id="spotify-wrapper" class="spotify-wrapper minimized">
-                    </div>
-                </div>
-
-                <div class="account-section" style="display: none;" id="audiobookshelf-section">
-
-                    <div class="account-section-tab clickable" onclick="toggleSection('audiobookshelf-wrapper', 'section-button-audiobookshelf')">
-                        <div class="">Audiobookshelf</div>
-                        <img id="section-button-audiobookshelf" src="assets/chevron-right.svg" class="color-invert u-m-2">
-                    </div>
-
-                    <div id="audiobookshelf-wrapper" class="audiobookshelf-wrapper minimized">
-                    </div>
-                </div>
-
-                <div class="account-section" id="wheel-section">
-
-                    <div class="account-section-tab clickable" onclick="toggleSection('wheel-wrapper', 'section-button-wheel')">
-                        <div class="">Wheel appearance</div>
-                        <img id="section-button-wheel" src="assets/chevron-right.svg" class="color-invert u-m-2">
-                    </div>
-
-                    <div id="wheel-wrapper" class="wheel-wrapper minimized">
-                    </div>
-                </div>
-
-                <div class="account-section" id="pat-section">
-
-                    <div class="account-section-tab clickable" onclick="toggleSection('pat-wrapper', 'section-button-pat')">
-                        <div class="">Developer access tokens</div>
-                        <img id="section-button-pat" src="assets/chevron-right.svg" class="color-invert u-m-2">
-                    </div>
-
-                    <div id="pat-wrapper" class="pat-wrapper minimized">
-                    </div>
-                </div>
-
-
-            </div>
-
-
-            <div class="module" id="">
+            <div class="module">
                 <hr>
             </div>
 
             <div class="btn-group">
-
-                <button onclick="leave_season();"class="btn btn--danger" type="submit" href="">Leave season</button>
-
-                <button onclick="delete_account();" class="btn btn--danger" type="submit" href="">Delete account</button>
-
+                <button onclick="leaveSeason();" class="btn btn--danger" type="button">Leave season</button>
+                <button onclick="deleteAccount();" class="btn btn--danger" type="button">Delete account</button>
             </div>
 
         </div>
-
     `;
 
     document.getElementById('content').innerHTML = html;
@@ -329,14 +118,14 @@ function load_page(result) {
 
     if(result !== false) {
         showLoggedInMenu();
-        GetUserData(user_id, strava_oauth, strava_enabled, hevy_enabled);
+        getUserData(user_id, strava_oauth, strava_enabled, hevy_enabled);
         GetProfileImage(user_id);
         CheckForSubscription();
         renderPATSection(admin);
-        if(plex_enabled || spotify_enabled || audiobookshelf_enabled) {
+        if(listeningConnectionsEnabled) {
             renderMediaSection();
         }
-        if(strava_enabled || hevy_enabled) {
+        if(exerciseConnectionsEnabled) {
             renderGoalCountingSection();
         }
     } else {
@@ -345,111 +134,235 @@ function load_page(result) {
     }
 }
 
-function change_password_toggle() {
-
-    var check_box = document.getElementById("password-toggle").checked;
-    var password_box = document.getElementById("change-password-box")
-
-    if(check_box) {
-        password_box.style.display = "inline-block"
-    } else {
-        password_box.style.display = "none"
-    }
-
+// settingsGroupHTML wraps a run of accordion sections in one titled panel. The page is split
+// into groups (account, training, exercise and listening connections, developer) so related
+// settings sit together; a group whose sections are all disabled on this server isn't rendered.
+function settingsGroupHTML(title, sectionsHTML) {
+    return `
+        <section class="settings-group">
+            <h2 class="settings-group-title">${title}</h2>
+            <div class="account-section-wrapper">
+                ${sectionsHTML}
+            </div>
+        </section>
+    `;
 }
 
-function send_update(user_id) {
+// accountSectionHTML renders one accordion row: a header button (title, a status slot the
+// connection sections fill, and the chevron) over a collapsed body. key derives the ids the
+// rest of the page uses: `${key}-section`, `${key}-wrapper`, `section-button-${key}` and
+// `section-status-${key}`. bodyClass adds a layout modifier to the body (e.g. settings-body).
+function accountSectionHTML(key, title, bodyHTML, bodyClass) {
+    return `
+        <div class="account-section" id="${key}-section">
+            <button type="button" class="account-section-tab" aria-expanded="false" aria-controls="${key}-wrapper" onclick="toggleSection('${key}-wrapper', 'section-button-${key}')">
+                <span class="account-section-title">${title}<span id="section-status-${key}"></span></span>
+                <img id="section-button-${key}" src="assets/chevron-right.svg" class="u-m-2" alt="">
+            </button>
+            <div id="${key}-wrapper" class="account-section-body ${bodyClass || ""} minimized">
+                ${bodyHTML}
+            </div>
+        </div>
+    `;
+}
 
-    var password = ""
-    var password_repeat = ""
-    
+function accountSettingsBodyHTML() {
+    return `
+        <form action="" onsubmit="event.preventDefault(); updateAccount('${user_id}');">
+
+            <div class="field">
+                <label for="email" class="field-label">Replace email</label>
+                <input type="email" name="email" id="email" placeholder="Email" required/>
+            </div>
+
+            <div class="field">
+                <label for="new_profile_image" class="field-label">Replace profile image</label>
+                <input type="file" name="new_profile_image" id="new_profile_image" accept="image/png, image/jpeg" />
+            </div>
+
+            <div class="field-check">
+                <input onclick="togglePasswordFields();" type="checkbox" id="password-toggle" name="confirm" value="confirm">
+                <label for="password-toggle">Change my password.</label>
+            </div>
+
+            <div id="change-password-box" class="settings-stack" style="display:none;">
+
+                <div class="field">
+                    <label for="password" class="field-label">New password</label>
+                    <input type="password" name="password" id="password" placeholder="New password" />
+                </div>
+
+                <div class="field">
+                    <label for="password_repeat" class="field-label">Repeat password</label>
+                    <input type="password" name="password_repeat" id="password_repeat" placeholder="Repeat the password" />
+                </div>
+
+            </div>
+
+            <div class="field-check">
+                <input type="checkbox" id="share_activities" name="share_activities" value="share_activities">
+                <label for="share_activities">Share my activities on the activity feed. Visible to everyone you have shared a season with, including past seasons.</label>
+            </div>
+
+            <div class="field-check">
+                <input type="checkbox" id="share_statistics" name="share_statistics" value="share_statistics">
+                <label for="share_statistics">Share my statistics on my page.</label>
+            </div>
+
+            <div class="field">
+                <label for="password_old" class="field-label">Current password</label>
+                <input type="password" name="password_old" id="password_old" placeholder="To save your changes, type your current password." required />
+            </div>
+
+            <div class="btn-group">
+                <button class="btn btn--primary" id="update-button" type="submit">Update account</button>
+            </div>
+
+        </form>
+    `;
+}
+
+// notificationsBodyHTML holds both channels: push on this device (chosen per device, saved by
+// the button) and e-mail (saved per account as soon as it is ticked).
+function notificationsBodyHTML(vapidPublicKey) {
+    return `
+        <h3 class="settings-subtitle">This device</h3>
+        <p class="settings-text">Pick what this device alerts you about, then press the button. Press it again after changing these.</p>
+
+        <div class="field-check-group">
+            <div class="field-check">
+                <input type="checkbox" id="notification-reminder-toggle" name="notification-reminder-toggle">
+                <label for="notification-reminder-toggle">Logging reminders</label>
+            </div>
+            <div class="field-check">
+                <input type="checkbox" id="notification-achievement-toggle" name="notification-achievement-toggle">
+                <label for="notification-achievement-toggle">Achievements</label>
+            </div>
+            <div class="field-check">
+                <input type="checkbox" id="notification-news-toggle" name="notification-news-toggle">
+                <label for="notification-news-toggle">News</label>
+            </div>
+            <div class="field-check">
+                <input type="checkbox" id="notification-account-toggle" name="notification-account-toggle" checked>
+                <label for="notification-account-toggle">Account updates</label>
+            </div>
+        </div>
+
+        <div class="btn-group">
+            <button type="button" class="btn btn--primary" onclick="create_push('${vapidPublicKey}'); return false;">Notify me on this device</button>
+        </div>
+
+        <h3 class="settings-subtitle">E-mail</h3>
+
+        <div class="field-check">
+            <input type="checkbox" id="sunday_alert" name="sunday_alert" onchange="updateAccountValue('sunday_alert');">
+            <label for="sunday_alert">Send me e-mail logging reminders on Sundays.</label>
+        </div>
+    `;
+}
+
+// trainingBodyHTML holds the settings that shape how workouts are read: the heart-rate zone
+// anchors (saved on their own, no password) and, when an import integration is on, which
+// activity types count toward the weekly goal (filled by renderGoalCountingSection).
+function trainingBodyHTML(goalCountingEnabled) {
+    var goalCountingHTML = "";
+    if(goalCountingEnabled) {
+        goalCountingHTML = `
+            <h3 class="settings-subtitle" id="goal-counting-title">What counts toward your goal</h3>
+            <div id="goal-counting-body">
+                <p class="settings-text">Loading activity types…</p>
+            </div>
+        `;
+    }
+
+    return `
+        <h3 class="settings-subtitle">Heart rate and age</h3>
+        <p class="settings-text">These set the heart-rate zones on your activities.</p>
+
+        <form action="" onsubmit="event.preventDefault(); saveTrainingProfile();">
+
+            <div class="field">
+                <label for="birth_date" class="field-label">Birth date</label>
+                <input type="date" name="birth_date" id="birth_date" />
+            </div>
+
+            <div class="field-row">
+                <div class="field">
+                    <label for="max_heartrate" class="field-label">Max heart rate</label>
+                    <input type="number" name="max_heartrate" id="max_heartrate" min="100" max="240" placeholder="Automatic" oninput="updateMaxHRHint()" />
+                    <span class="field-hint">Optional. Leave it on automatic and {{.appName}} uses the highest heart rate seen in your activities, or estimates from your age.</span>
+                    <span class="field-hint" id="max_heartrate_status"></span>
+                </div>
+                <div class="field">
+                    <label for="resting_heartrate" class="field-label">Resting heart rate</label>
+                    <input type="number" name="resting_heartrate" id="resting_heartrate" min="25" max="120" placeholder="e.g. 50" />
+                    <span class="field-hint">Optional. When set, zones switch to heart-rate reserve (Karvonen) instead of a plain percentage of your max.</span>
+                </div>
+            </div>
+
+            <div class="btn-group">
+                <button class="btn btn--primary" id="training-save-button" type="submit">Save heart rate and age</button>
+            </div>
+
+        </form>
+
+        ${goalCountingHTML}
+    `;
+}
+
+function togglePasswordFields() {
+    var passwordBox = document.getElementById("change-password-box");
+    passwordBox.style.display = document.getElementById("password-toggle").checked ? "flex" : "none";
+}
+
+// updateAccount sends the password-gated account form: e-mail, password, profile image and
+// sharing. The training profile (birth date, heart rate) is saved separately by
+// saveTrainingProfile.
+function updateAccount(userID) {
+    var password = "";
+    var passwordRepeat = "";
     if(document.getElementById("password-toggle").checked) {
         password = document.getElementById("password").value;
-        password_repeat = document.getElementById("password_repeat").value;
-    }
-    
-    var email = document.getElementById("email").value;
-    var password_old = document.getElementById("password_old").value;
-    var share_activities = document.getElementById("share_activities").checked;
-    var share_statistics = document.getElementById("share_statistics").checked;
-    var new_profile_image = document.getElementById('new_profile_image').files[0];
-    var birth_date = document.getElementById('birth_date').value;
-
-    try {
-        var birth_date_object = new Date(birth_date);
-        var birth_date_string = birth_date_object.toISOString()
-    } catch(e) {
-        var birth_date_string = null
+        passwordRepeat = document.getElementById("password_repeat").value;
     }
 
-    // Optional heart-rate settings — send null when left blank so they clear cleanly.
-    var max_hr_raw = document.getElementById('max_heartrate').value;
-    var resting_hr_raw = document.getElementById('resting_heartrate').value;
-    var max_heartrate = max_hr_raw === "" ? null : parseInt(max_hr_raw, 10);
-    var resting_heartrate = resting_hr_raw === "" ? null : parseInt(resting_hr_raw, 10);
+    var formObject = {
+        "email": document.getElementById("email").value,
+        "password": password,
+        "password_repeat": passwordRepeat,
+        "profile_image": "",
+        "password_old": document.getElementById("password_old").value,
+        "share_activities": document.getElementById("share_activities").checked,
+        "share_statistics": document.getElementById("share_statistics").checked
+    };
 
-    if(new_profile_image) {
-
-        if(new_profile_image.size > 10000000) {
-            error("Image exceeds 10MB size limit.")
-            return;
-        } else if(new_profile_image.size < 10000) {
-            error("Image smaller than 0.01MB size requirement.")
-            document.getElementById("password_old").value = "";
-            return;
-        }
-
-        new_profile_image = get_base64(new_profile_image);
-        
-        new_profile_image.then(function(result) {
-            
-            var form_obj = { 
-                "email" : email,
-                "password" : password,
-                "password_repeat": password_repeat,
-                "profile_image": result,
-                "password_old": password_old,
-                "birth_date": birth_date_string,
-                "max_heartrate": max_heartrate,
-                "resting_heartrate": resting_heartrate,
-                "share_activities": share_activities,
-                "share_statistics": share_statistics
-            };
-
-            var form_data = JSON.stringify(form_obj);
-
-            document.getElementById("user-active-profile-photo-img").src = 'assets/images/barbell.gif';
-
-            send_update_two(form_data, user_id);
-        
-        });
-
-    } else {
-        var form_obj = { 
-            "email" : email,
-            "password" : password,
-            "password_repeat": password_repeat,
-            "profile_image": "",
-            "password_old": password_old,
-            "birth_date": birth_date_string,
-            "max_heartrate": max_heartrate,
-            "resting_heartrate": resting_heartrate,
-            "share_activities": share_activities,
-            "share_statistics": share_statistics
-        };
-
-        var form_data = JSON.stringify(form_obj);
-        
-        send_update_two(form_data, user_id);
+    var newProfileImage = document.getElementById('new_profile_image').files[0];
+    if(!newProfileImage) {
+        submitAccountUpdate(JSON.stringify(formObject), userID);
+        return;
     }
+
+    if(newProfileImage.size > 10000000) {
+        error("Image exceeds 10MB size limit.");
+        return;
+    } else if(newProfileImage.size < 10000) {
+        error("Image smaller than 0.01MB size requirement.");
+        document.getElementById("password_old").value = "";
+        return;
+    }
+
+    get_base64(newProfileImage).then(function(result) {
+        formObject.profile_image = result;
+        document.getElementById("user-active-profile-photo-img").src = 'assets/images/barbell.gif';
+        submitAccountUpdate(JSON.stringify(formObject), userID);
+    });
 }
 
-function send_update_two(form_data, user_id) {
-
+function submitAccountUpdate(formData, userID) {
     var xhttp = new XMLHttpRequest();
     xhttp.onreadystatechange = function() {
         if (this.readyState == 4) {
-            
+            var result;
             try {
                 result = JSON.parse(this.responseText);
             } catch(e) {
@@ -458,40 +371,80 @@ function send_update_two(form_data, user_id) {
                 document.getElementById("password_old").value = "";
                 return;
             }
-            
-            if(result.error) {
 
+            if(result.error) {
                 error(result.error);
                 document.getElementById("password_old").value = "";
-
-            } else {
-
-                success(result.message);
-
-                // store the refreshed OAuth token pair
-                if(result.data) {
-                    store_tokens(result.data.access_token, result.data.refresh_token);
-                }
-
-                if(result.verified) {
-                    location.reload();
-                } else {
-                    location.href = '/';
-                }
-                
+                return;
             }
 
+            success(result.message);
+
+            // store the refreshed OAuth token pair
+            if(result.data) {
+                store_tokens(result.data.access_token, result.data.refresh_token);
+            }
+
+            if(result.verified) {
+                location.reload();
+            } else {
+                location.href = '/';
+            }
         } else {
             info("Updating account...");
         }
     };
     xhttp.withCredentials = true;
-    xhttp.open("post", api_url + "auth/users/" + user_id);
+    xhttp.open("post", api_url + "auth/users/" + userID);
     xhttp.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
     xhttp.setRequestHeader("Authorization", jwt);
-    xhttp.send(form_data);
+    xhttp.send(formData);
     return false;
+}
 
+// saveTrainingProfile replaces the birth date and heart-rate anchors. A blank field is sent as
+// null, which clears it (back to automatic).
+function saveTrainingProfile() {
+    var birthDate = document.getElementById('birth_date').value;
+    var maxHeartrate = document.getElementById('max_heartrate').value;
+    var restingHeartrate = document.getElementById('resting_heartrate').value;
+
+    var formObject = {
+        "birth_date": birthDate === "" ? null : new Date(birthDate).toISOString(),
+        "max_heartrate": maxHeartrate === "" ? null : parseInt(maxHeartrate, 10),
+        "resting_heartrate": restingHeartrate === "" ? null : parseInt(restingHeartrate, 10)
+    };
+
+    var xhttp = new XMLHttpRequest();
+    xhttp.onreadystatechange = function() {
+        if (this.readyState == 4) {
+            var result;
+            try {
+                result = JSON.parse(this.responseText);
+            } catch(e) {
+                console.log(e + ' - Response: ' + this.responseText);
+                error("Could not reach API.");
+                return;
+            }
+
+            if(result.error) {
+                error(result.error);
+                return;
+            }
+
+            success(result.message);
+            hrAgeEstimate = ageBasedMaxHR(formObject.birth_date);
+            updateMaxHRHint();
+        } else {
+            info("Saving training profile...");
+        }
+    };
+    xhttp.withCredentials = true;
+    xhttp.open("put", api_url + "auth/users/" + user_id + "/training-profile");
+    xhttp.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
+    xhttp.setRequestHeader("Authorization", jwt);
+    xhttp.send(JSON.stringify(formObject));
+    return false;
 }
 
 
@@ -508,12 +461,11 @@ function GetProfileImage(userID) {
 
 }
 
-function GetUserData(userID, stravaOauth, stravaEnabled, hevyEnabled) {
-
+function getUserData(userID, stravaOauth, stravaEnabled, hevyEnabled) {
     var xhttp = new XMLHttpRequest();
     xhttp.onreadystatechange = function() {
         if (this.readyState == 4) {
-            
+            var result;
             try {
                 result = JSON.parse(this.responseText);
             } catch(e) {
@@ -521,19 +473,12 @@ function GetUserData(userID, stravaOauth, stravaEnabled, hevyEnabled) {
                 error("Could not reach API.");
                 return;
             }
-            
+
             if(result.error) {
-
                 error(result.error);
-
             } else {
-
-                PlaceUserData(result.user, stravaOauth, stravaEnabled, hevyEnabled)
-                
+                placeUserData(result.user, stravaOauth, stravaEnabled, hevyEnabled);
             }
-
-        } else {
-            // info("Loading week...");
         }
     };
     xhttp.withCredentials = true;
@@ -541,9 +486,6 @@ function GetUserData(userID, stravaOauth, stravaEnabled, hevyEnabled) {
     xhttp.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
     xhttp.setRequestHeader("Authorization", jwt);
     xhttp.send();
-
-    return;
-
 }
 
 // What "automatic" would resolve to, captured from the loaded user so the anchor status
@@ -599,140 +541,115 @@ function clearMaxHRAnchor() {
     updateMaxHRHint();
 }
 
-function PlaceUserData(user_object, stravaOauth, stravaEnabled, hevyEnabled) {
+function placeUserData(userObject, stravaOauth, stravaEnabled, hevyEnabled) {
+    document.getElementById("user_name").innerHTML = userObject.first_name + " " + userObject.last_name;
+    document.getElementById("email").value = userObject.email;
 
-    document.getElementById("user_name").innerHTML = user_object.first_name + " " + user_object.last_name
-    document.getElementById("email").value = user_object.email
-
-    if(user_object.birth_date != null) {
-        var birth_date_object = new Date(Date.parse(user_object.birth_date))
-        var birth_date = GetShortDate(birth_date_object)
-        document.getElementById("birth_date").value = birth_date
+    if(userObject.birth_date != null) {
+        document.getElementById("birth_date").value = GetShortDate(new Date(Date.parse(userObject.birth_date)));
     }
-
-    if(user_object.max_heartrate != null) {
-        document.getElementById("max_heartrate").value = user_object.max_heartrate
+    if(userObject.max_heartrate != null) {
+        document.getElementById("max_heartrate").value = userObject.max_heartrate;
     }
-    if(user_object.resting_heartrate != null) {
-        document.getElementById("resting_heartrate").value = user_object.resting_heartrate
+    if(userObject.resting_heartrate != null) {
+        document.getElementById("resting_heartrate").value = userObject.resting_heartrate;
     }
 
     // Remember what "automatic" resolves to (the observed max, else an age-based estimate)
     // so the anchor status can spell out the alternative to whatever is set.
-    hrObservedMax = (user_object.observed_max_heartrate != null && user_object.observed_max_heartrate > 0) ? user_object.observed_max_heartrate : null;
-    hrAgeEstimate = ageBasedMaxHR(user_object.birth_date);
+    hrObservedMax = (userObject.observed_max_heartrate != null && userObject.observed_max_heartrate > 0) ? userObject.observed_max_heartrate : null;
+    hrAgeEstimate = ageBasedMaxHR(userObject.birth_date);
     updateMaxHRHint();
 
-    // parse date object
+    var dateString = "Error";
     try {
-        var date = new Date(Date.parse(user_object.created_at));
-        var date_string = GetDateString(date)
-    } catch {
-        var date_string = "Error"
-    }
+        dateString = GetDateString(new Date(Date.parse(userObject.created_at)));
+    } catch {}
+    document.getElementById("join_date").innerHTML = "Joined: " + dateString;
+    document.getElementById("user_admin").innerHTML = "Administrator: " + (userObject.admin ? "Yes" : "No");
 
-    document.getElementById("join_date").innerHTML = "Joined: " + date_string
-
-    if(user_object.admin) {
-        var admin_string = "Yes"
-    } else {
-        var admin_string = "No"
-    }
-
-    document.getElementById("user_admin").innerHTML = "Administrator: " + admin_string
-
-    if(user_object.sunday_alert) {
-        document.getElementById("sunday_alert").checked = true;
-    }
-
-    if(user_object.share_activities) {
-        document.getElementById("share_activities").checked = true;
-    }
-
-    if(user_object.share_statistics) {
-        document.getElementById("share_statistics").checked = true;
-    }
+    document.getElementById("sunday_alert").checked = !!userObject.sunday_alert;
+    document.getElementById("share_activities").checked = !!userObject.share_activities;
+    document.getElementById("share_statistics").checked = !!userObject.share_statistics;
 
     if(stravaEnabled) {
         // Promote to globals so the section can be re-rendered after disconnect
         // without re-fetching server config.
         stravaOauthURL = stravaOauth;
         stravaHevyEnabled = hevyEnabled;
-        renderStravaSection(user_object);
+        renderStravaSection(userObject);
     }
 
     if(hevyEnabled) {
-        renderHevySection(user_object);
+        renderHevySection(userObject);
     }
 
-    renderWheelSection(user_object);
+    renderWheelSection(userObject);
 }
 
-function renderStravaSection(user_object) {
+function renderStravaSection(userObject) {
     var stravaOauth = stravaOauthURL;
     var hevyEnabled = stravaHevyEnabled;
 
     var stravaHTML = `
-        <p class="u-w-full u-text-center">
+        <p class="settings-text">
             Strava exercises sync automatically every hour. Be careful to only log your sessions to either Strava or {{.appName}}.
         </p>
 
-        <button onclick="window.location.href='${stravaOauth}';" class="btn u-w-10" type="submit" href="">Connect Strava</button>
+        <div class="btn-group">
+            <button onclick="window.location.href='${stravaOauth}';" class="btn btn--primary integration-btn" type="button">Connect Strava</button>
+        </div>
     `;
 
     // The Strava credential itself is no longer serialized — the API reports connection
     // state as a derived boolean instead (mirrors hevy_connected).
-    if(user_object.strava_connected) {
-        var publicHTML = user_object.strava_public ? "checked" : "";
-
+    var stravaHealth = integrationHealthFor(userObject, "strava");
+    if(userObject.strava_connected) {
         // Only relevant when Hevy is available on this server.
         var skipHevyOption = "";
         if(hevyEnabled) {
-            var skipHevyHTML = user_object.strava_skip_hevy ? "checked" : "";
             skipHevyOption = `
-                <div class="strava-option" id="">
-                    <input class="clickable" type="checkbox" id="strava_skip_hevy" name="strava_skip_hevy" value="" onchange="updateAccountValue('strava_skip_hevy');" ${skipHevyHTML}>
-                    <label for="strava_skip_hevy" class="clickable u-m-0">Skip Strava activities already in Hevy</label><br>
+                <div class="field-check">
+                    <input type="checkbox" id="strava_skip_hevy" name="strava_skip_hevy" onchange="updateAccountValue('strava_skip_hevy');" ${userObject.strava_skip_hevy ? "checked" : ""}>
+                    <label for="strava_skip_hevy">Skip Strava activities already in Hevy</label>
                 </div>
             `;
         }
 
         // A broken connection is kept (and flagged) rather than cleared, so offer the way
         // back in alongside the usual controls.
-        var stravaHealth = integrationHealthFor(user_object, "strava");
         var reconnectStravaButton = "";
         if(stravaHealth && stravaHealth.status == "auth_failed") {
-            reconnectStravaButton = `<button onclick="window.location.href='${stravaOauth}';" class="btn integration-btn" type="submit" href="">Reconnect Strava</button>`;
+            reconnectStravaButton = `<button onclick="window.location.href='${stravaOauth}';" class="btn integration-btn" type="button">Reconnect Strava</button>`;
         }
 
         stravaHTML = `
             ${integrationAlertHTML("Strava", stravaHealth)}
 
-            <p class="u-w-full u-text-center">
+            <p class="settings-text">
                 Strava is connected. Exercises sync automatically every hour. Be careful to only log your sessions to either Strava or {{.appName}}.
             </p>
 
-            <div class="notification-options" id="">
-                ${reconnectStravaButton}
-                <button onclick="syncStrava('${user_object.id}');" class="btn integration-btn" type="submit" href="">Sync Strava now</button>
-                <button onclick="disconnectStrava('${user_object.id}');" class="btn btn--danger integration-btn" type="submit" href="">Disconnect Strava</button>
+            <div class="field-check-group">
+                <div class="field-check">
+                    <input type="checkbox" id="strava_public" name="strava_public" onchange="updateAccountValue('strava_public');" ${userObject.strava_public ? "checked" : ""}>
+                    <label for="strava_public">Show my Strava on my profile</label>
+                </div>
+                ${skipHevyOption}
             </div>
 
             ${goalCountingHintHTML()}
 
-            <div class="notification-options" id="">
-                <div class="strava-option" id="">
-                    <input class="clickable" type="checkbox" id="strava_public" name="strava_public" value="" onchange="updateAccountValue('strava_public');" ${publicHTML}>
-                    <label for="strava_public" class="clickable u-m-0">Show my Strava on my profile</label><br>
-                </div>
-
-                ${skipHevyOption}
+            <div class="btn-group">
+                ${reconnectStravaButton}
+                <button onclick="syncStrava('${userObject.id}');" class="btn integration-btn" type="button">Sync Strava now</button>
+                <button onclick="disconnectStrava('${userObject.id}');" class="btn btn--danger integration-btn" type="button">Disconnect Strava</button>
             </div>
         `;
     }
 
-    document.getElementById("strava-wrapper").innerHTML = stravaHTML
-    document.getElementById('strava-section').style.display = 'flex'
+    document.getElementById("strava-wrapper").innerHTML = stravaHTML;
+    setSectionStatus("strava", userObject.strava_connected, stravaHealth);
 }
 
 // Re-fetch the user and re-render only the Strava section (used after disconnect
@@ -760,48 +677,71 @@ function refreshStravaSection(user_id) {
     return;
 }
 
-function renderHevySection(user_object) {
+function renderHevySection(userObject) {
     var hevyHTML = `
-        <p class="u-w-full u-text-center">
+        <p class="settings-text">
             Connect Hevy to sync your workouts automatically. Your Hevy API key is found under Settings in the Hevy app and requires a Hevy PRO subscription.
         </p>
 
-        <div class="notification-options" id="">
-            <input id="hevy_api_key" type="password" placeholder="Hevy API key" autocomplete="off" class="u-w-16">
-            <button onclick="setHevy('${user_object.id}');" class="btn integration-btn" type="submit" href="">Connect Hevy</button>
+        <div class="btn-group">
+            <input id="hevy_api_key" type="password" placeholder="Hevy API key" autocomplete="off" aria-label="Hevy API key" class="u-w-16">
+            <button onclick="setHevy('${userObject.id}');" class="btn btn--primary integration-btn" type="button">Connect Hevy</button>
         </div>
     `;
 
-    if(user_object.hevy_connected) {
-        var hevyPublicHTML = user_object.hevy_public ? "checked" : "";
-
+    var hevyHealth = integrationHealthFor(userObject, "hevy");
+    if(userObject.hevy_connected) {
         hevyHTML = `
-            ${integrationAlertHTML("Hevy", integrationHealthFor(user_object, "hevy"), "Paste a new API key below (Hevy PRO is required)")}
+            ${integrationAlertHTML("Hevy", hevyHealth, "Paste a new API key below (Hevy PRO is required)")}
 
-            <p class="u-w-full u-text-center">
+            <p class="settings-text">
                 Hevy is connected. Workouts sync automatically. Be careful to only log your sessions to either Hevy or {{.appName}}.
             </p>
 
-            <div class="notification-options" id="">
-                <input id="hevy_api_key" type="password" placeholder="Replace Hevy API key" autocomplete="off" class="u-w-16">
-                <button onclick="setHevy('${user_object.id}');" class="btn integration-btn" type="submit" href="">Update key</button>
-                <button onclick="syncHevy('${user_object.id}');" class="btn integration-btn" type="submit" href="">Sync Hevy now</button>
-                <button onclick="disconnectHevy('${user_object.id}');" class="btn btn--danger integration-btn" type="submit" href="">Disconnect Hevy</button>
+            <div class="field-check">
+                <input type="checkbox" id="hevy_public" name="hevy_public" onchange="updateAccountValue('hevy_public');" ${userObject.hevy_public ? "checked" : ""}>
+                <label for="hevy_public">Show my Hevy on my profile</label>
             </div>
 
             ${goalCountingHintHTML()}
 
-            <div class="notification-options" id="">
-                <div class="strava-option" id="">
-                    <input class="clickable" type="checkbox" id="hevy_public" name="hevy_public" value="" onchange="updateAccountValue('hevy_public');" ${hevyPublicHTML}>
-                    <label for="hevy_public" class="clickable u-m-0">Show my Hevy on my profile</label><br>
-                </div>
+            <div class="btn-group">
+                <input id="hevy_api_key" type="password" placeholder="Replace Hevy API key" autocomplete="off" aria-label="Replace Hevy API key" class="u-w-16">
+                <button onclick="setHevy('${userObject.id}');" class="btn integration-btn" type="button">Update key</button>
+            </div>
+
+            <div class="btn-group">
+                <button onclick="syncHevy('${userObject.id}');" class="btn integration-btn" type="button">Sync Hevy now</button>
+                <button onclick="disconnectHevy('${userObject.id}');" class="btn btn--danger integration-btn" type="button">Disconnect Hevy</button>
             </div>
         `;
     }
 
-    document.getElementById("hevy-wrapper").innerHTML = hevyHTML
-    document.getElementById('hevy-section').style.display = 'flex'
+    document.getElementById("hevy-wrapper").innerHTML = hevyHTML;
+    setSectionStatus("hevy", userObject.hevy_connected, hevyHealth);
+}
+
+// setSectionStatus puts a small status tag after a connection section's title, so the state
+// reads without expanding it: connected, or a signal colour when it has stopped working.
+// Nothing is shown while disconnected.
+function setSectionStatus(key, connected, health) {
+    var slot = document.getElementById("section-status-" + key);
+    if(!slot) return;
+    slot.innerHTML = connectionStatusTagHTML(connected, health);
+}
+
+// connectionStatusTagHTML maps a connection's health (see integrationAlertHTML) onto a tag.
+function connectionStatusTagHTML(connected, health) {
+    if(!connected) {
+        return "";
+    }
+    if(!health || !health.status || health.status == "ok") {
+        return '<span class="meta-tag meta-tag--success">Connected</span>';
+    }
+    if(health.status == "auth_failed" || health.status_reason == "not_allowlisted" || health.status_reason == "setup_incomplete") {
+        return '<span class="meta-tag meta-tag--error">Needs attention</span>';
+    }
+    return '<span class="meta-tag meta-tag--warning">Not responding</span>';
 }
 
 // --- Goal counting ----------------------------------------------------------
@@ -815,7 +755,7 @@ var goalCountingSettings = [];
 var goalExcludeOutsideCloseRegistered = false;
 
 // renderGoalCountingSection fetches the per-activity-type preferences and renders the exclusion
-// multi-select. Excluded types (counts_toward_goal=false) don't count toward the weekly goal for
+// multi-select into the Training section. Excluded types (counts_toward_goal=false) don't count toward the weekly goal for
 // new Strava/Hevy imports; existing sessions keep whatever they were.
 function renderGoalCountingSection() {
     var xhttp = new XMLHttpRequest();
@@ -844,20 +784,21 @@ function renderGoalCountingSection() {
 
 function placeGoalCountingSection() {
     var html = `
-        <p class="u-w-full u-text-center">
+        <p class="settings-text">
             Everything you import counts toward your weekly goal by default. Add any activity types below that should <strong>not</strong> count — they still show up in your history, they just don't move the needle. This only affects future Strava/Hevy imports; edit an existing session in the workout builder to change it there.
         </p>
         <div class="goal-exclude">
             <div class="goal-exclude-input-wrap">
-                <input type="text" id="goal-exclude-search" autocomplete="off" placeholder="Search activity types to exclude…" onkeyup="filterGoalExcludeOptions()" onfocus="showGoalExcludeDropdown(true)">
+                <input type="text" id="goal-exclude-search" autocomplete="off" aria-label="Search activity types to exclude" placeholder="Search activity types to exclude…" onkeyup="filterGoalExcludeOptions()" onfocus="showGoalExcludeDropdown(true)">
                 <div id="goal-exclude-dropdown" class="goal-exclude-dropdown" style="display: none;"></div>
             </div>
             <div id="goal-exclude-chips" class="goal-exclude-chips"></div>
         </div>
     `;
 
-    document.getElementById("goal-counting-wrapper").innerHTML = html;
-    document.getElementById('goal-counting-section').style.display = 'flex';
+    var body = document.getElementById("goal-counting-body");
+    if(!body) return;
+    body.innerHTML = html;
     renderGoalExcludeChips();
     renderGoalExcludeOptions("");
     registerGoalExcludeOutsideClose();
@@ -945,24 +886,24 @@ function updateGoalCounting(actionID, countsTowardGoal) {
     xhttp.send(JSON.stringify({ "action_id": actionID, "counts_toward_goal": countsTowardGoal }));
 }
 
-// openGoalCountingSection expands the Goal counting section (if collapsed) and scrolls to it —
-// the target of the "manage exclusions" hints in the Strava/Hevy blocks.
-function openGoalCountingSection() {
-    var wrapper = document.getElementById('goal-counting-wrapper');
-    var section = document.getElementById('goal-counting-section');
-    if(!wrapper || !section) return;
+// openGoalCounting expands the Training section (if collapsed) and scrolls to its goal-counting
+// part — the target of the "manage exclusions" hints in the Strava/Hevy blocks.
+function openGoalCounting() {
+    var wrapper = document.getElementById('training-wrapper');
+    var title = document.getElementById('goal-counting-title');
+    if(!wrapper || !title) return;
     if(wrapper.classList.contains('minimized')) {
-        toggleSection('goal-counting-wrapper', 'section-button-goal-counting');
+        toggleSection('training-wrapper', 'section-button-training');
     }
-    section.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    title.scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 
 // goalCountingHintHTML is the shared "not everything has to count" line shown in the connected
-// Strava/Hevy blocks, linking to the Goal counting section.
+// Strava/Hevy blocks, linking to the goal-counting part of the Training section.
 function goalCountingHintHTML() {
     return `
-        <p class="u-w-full u-text-center goal-count-hint">
-            Not every activity has to count — pick which types are excluded under <a class="clickable goal-count-hint-link" onclick="openGoalCountingSection();">Goal counting</a>.
+        <p class="goal-count-hint">
+            Not every activity has to count — pick which types are excluded under <a href="#" class="goal-count-hint-link" onclick="openGoalCounting(); return false;">Training</a>.
         </p>
     `;
 }
@@ -1036,46 +977,47 @@ function renderMediaSection() {
 
 function renderPlexSection(connection) {
     var plexHTML = `
-        <p class="u-w-full u-text-center">
+        <p class="settings-text">
             Connect Plex to overlay what you listened to onto your workouts. You will be sent to Plex to approve the connection.
         </p>
 
-        <div class="notification-options" id="">
-            <button onclick="connectPlex();" class="btn integration-btn" type="submit" href="">Connect Plex</button>
+        <div class="btn-group">
+            <button onclick="connectPlex();" class="btn btn--primary integration-btn" type="button">Connect Plex</button>
         </div>
     `;
 
     if(connection && connection.connected) {
         var serverValue = connection.server_url ? escapeHTML(connection.server_url) : "";
         var serverHint = connection.server_url
-            ? "If syncing fails, your server may be behind a reverse proxy — set the URL you actually reach it on (e.g. https://plex.example.com)."
-            : "No server auto-detected. Enter the URL you reach Plex on, e.g. https://plex.example.com";
+            ? "If syncing fails, your server may be behind a reverse proxy — set the URL you actually reach it on."
+            : "No server auto-detected. Enter the URL you reach Plex on.";
 
         plexHTML = `
             ${integrationAlertHTML("Plex", connection)}
 
-            <p class="u-w-full u-text-center">
+            <p class="settings-text">
                 Plex is connected. Your listening history is matched onto activities by time.
             </p>
 
-            <div class="notification-options" id="">
-                <input id="plex_server_url" type="text" placeholder="https://plex.example.com" autocomplete="off" value="${serverValue}" class="u-w-18">
-                <button onclick="savePlexServerURL();" class="btn integration-btn" type="submit" href="">Save server URL</button>
+            <div class="field">
+                <label for="plex_server_url" class="field-label">Server URL</label>
+                <input id="plex_server_url" type="text" placeholder="https://plex.example.com" autocomplete="off" value="${serverValue}">
+                <span class="field-hint">${serverHint}</span>
             </div>
 
-            <p class="u-w-full u-text-center u-dim u-fs-sm">
-                ${serverHint}
-            </p>
+            <div class="btn-group">
+                <button onclick="savePlexServerURL();" class="btn integration-btn" type="button">Save server URL</button>
+            </div>
 
-            <div class="notification-options" id="">
-                <button onclick="connectPlex();" class="btn integration-btn" type="submit" href="">Reconnect Plex</button>
-                <button onclick="disconnectPlex();" class="btn btn--danger integration-btn" type="submit" href="">Disconnect Plex</button>
+            <div class="btn-group">
+                <button onclick="connectPlex();" class="btn integration-btn" type="button">Reconnect Plex</button>
+                <button onclick="disconnectPlex();" class="btn btn--danger integration-btn" type="button">Disconnect Plex</button>
             </div>
         `;
     }
 
     document.getElementById("plex-wrapper").innerHTML = plexHTML;
-    document.getElementById('plex-section').style.display = 'flex';
+    setSectionStatus("plex", connection && connection.connected, connection);
 }
 
 // integrationAlertHTML renders a notice for a connected service that has stopped
@@ -1107,7 +1049,7 @@ function integrationAlertHTML(providerName, health, fixHint) {
     }
 
     return `
-        <p class="u-w-full u-text-center integration-alert${modifier}">
+        <p class="integration-alert${modifier}">
             ${message}
         </p>
     `;
@@ -1293,12 +1235,12 @@ function savePlexServerURL() {
 
 function renderSpotifySection(connection) {
     var spotifyHTML = `
-        <p class="u-w-full u-text-center">
+        <p class="settings-text">
             Connect Spotify to overlay what you listened to onto your workouts. Spotify only keeps the last ~24 hours of listening, so connect it before (or soon after) you train.
         </p>
 
-        <div class="notification-options" id="">
-            <button onclick="connectSpotify();" class="btn integration-btn" type="submit" href="">Connect Spotify</button>
+        <div class="btn-group">
+            <button onclick="connectSpotify();" class="btn btn--primary integration-btn" type="button">Connect Spotify</button>
         </div>
     `;
 
@@ -1306,19 +1248,19 @@ function renderSpotifySection(connection) {
         spotifyHTML = `
             ${integrationAlertHTML("Spotify", connection)}
 
-            <p class="u-w-full u-text-center">
+            <p class="settings-text">
                 Spotify is connected. Recent listening is matched onto activities by time. Because Spotify only exposes the last ~24 hours, older workouts can't be back-filled.
             </p>
 
-            <div class="notification-options" id="">
-                <button onclick="connectSpotify();" class="btn integration-btn" type="submit" href="">Reconnect Spotify</button>
-                <button onclick="disconnectSpotify();" class="btn btn--danger integration-btn" type="submit" href="">Disconnect Spotify</button>
+            <div class="btn-group">
+                <button onclick="connectSpotify();" class="btn integration-btn" type="button">Reconnect Spotify</button>
+                <button onclick="disconnectSpotify();" class="btn btn--danger integration-btn" type="button">Disconnect Spotify</button>
             </div>
         `;
     }
 
     document.getElementById("spotify-wrapper").innerHTML = spotifyHTML;
-    document.getElementById('spotify-section').style.display = 'flex';
+    setSectionStatus("spotify", connection && connection.connected, connection);
 }
 
 // connectSpotify sends the user to Spotify's consent screen; the /oauth page relays
@@ -1364,45 +1306,39 @@ function disconnectSpotify() {
 // --- Media / Audiobookshelf -------------------------------------------------
 
 function renderAudiobookshelfSection(connection) {
-    var absHTML = `
-        <p class="u-w-full u-text-center">
-            Connect Audiobookshelf to overlay the audiobooks and podcasts you listened to onto your workouts. Enter your server URL and an API token from your Audiobookshelf account settings.
-        </p>
+    var connected = connection && connection.connected;
+    var serverValue = connected && connection.server_url ? escapeHTML(connection.server_url) : "";
 
-        <div class="notification-options" id="">
-            <input id="abs_server_url" type="text" placeholder="https://abs.example.com" autocomplete="off" value="" class="u-w-18">
+    var introHTML = connected
+        ? `${integrationAlertHTML("Audiobookshelf", connection, "Paste a fresh API token below")}
+           <p class="settings-text">Audiobookshelf is connected. Your listening history is matched onto activities by time.</p>`
+        : `<p class="settings-text">Connect Audiobookshelf to overlay the audiobooks and podcasts you listened to onto your workouts. Enter your server URL and an API token from your Audiobookshelf account settings.</p>`;
+
+    var disconnectHTML = connected
+        ? `<button onclick="disconnectAudiobookshelf();" class="btn btn--danger integration-btn" type="button">Disconnect</button>`
+        : "";
+
+    var absHTML = `
+        ${introHTML}
+
+        <div class="field">
+            <label for="abs_server_url" class="field-label">Server URL</label>
+            <input id="abs_server_url" type="text" placeholder="https://abs.example.com" autocomplete="off" value="${serverValue}">
         </div>
-        <div class="notification-options" id="">
-            <input id="abs_token" type="password" placeholder="API token" autocomplete="off" value="" class="u-w-18">
-            <button onclick="connectAudiobookshelf();" class="btn integration-btn" type="submit" href="">Connect</button>
+
+        <div class="field">
+            <label for="abs_token" class="field-label">API token</label>
+            <input id="abs_token" type="password" placeholder="${connected ? "New API token (to update)" : "API token"}" autocomplete="off" value="">
+        </div>
+
+        <div class="btn-group">
+            <button onclick="connectAudiobookshelf();" class="btn ${connected ? "" : "btn--primary "}integration-btn" type="button">${connected ? "Reconnect" : "Connect"}</button>
+            ${disconnectHTML}
         </div>
     `;
 
-    if(connection && connection.connected) {
-        var serverValue = connection.server_url ? escapeHTML(connection.server_url) : "";
-        absHTML = `
-            ${integrationAlertHTML("Audiobookshelf", connection, "Paste a fresh API token below")}
-
-            <p class="u-w-full u-text-center">
-                Audiobookshelf is connected. Your listening history is matched onto activities by time.
-            </p>
-
-            <div class="notification-options" id="">
-                <input id="abs_server_url" type="text" placeholder="https://abs.example.com" autocomplete="off" value="${serverValue}" class="u-w-18">
-            </div>
-            <div class="notification-options" id="">
-                <input id="abs_token" type="password" placeholder="New API token (to update)" autocomplete="off" value="" class="u-w-18">
-                <button onclick="connectAudiobookshelf();" class="btn integration-btn" type="submit" href="">Reconnect</button>
-            </div>
-
-            <div class="notification-options" id="">
-                <button onclick="disconnectAudiobookshelf();" class="btn btn--danger integration-btn" type="submit" href="">Disconnect</button>
-            </div>
-        `;
-    }
-
     document.getElementById("audiobookshelf-wrapper").innerHTML = absHTML;
-    document.getElementById('audiobookshelf-section').style.display = 'flex';
+    setSectionStatus("audiobookshelf", connected, connection);
 }
 
 // connectAudiobookshelf validates the entered server URL + API token server-side and
@@ -1503,11 +1439,11 @@ function refreshHevySection(user_id) {
     return;
 }
 
-function leave_season() {
+function leaveSeason() {
     alert("Doesn't work yet :(");
 }
 
-function delete_account() {
+function deleteAccount() {
     alert("Doesn't work yet :(");
 }
 
@@ -1674,21 +1610,18 @@ function syncHevy(user_id) {
     return false;
 }
 
+// toggleSection expands or collapses one accordion body and keeps its header's chevron and
+// aria-expanded in step.
 function toggleSection(divID, buttonID) {
-    section = document.getElementById(divID)
+    var section = document.getElementById(divID);
+    var chevron = document.getElementById(buttonID);
+    var expand = section.classList.contains("minimized");
 
-    if(section.classList.contains("minimized")) {
-        section.classList.remove("minimized")
-        section.classList.add("expand")
-        section.style.display = 'flex';
-        document.getElementById(buttonID).src = "assets/chevron-down.svg"
-    } else {
-        section.classList.add("minimized")
-        section.classList.remove("expand")
-        section.style.display = 'none';
-        document.getElementById(buttonID).src = "assets/chevron-right.svg"
-        return
-    }
+    section.classList.toggle("minimized", !expand);
+    section.classList.toggle("expand", expand);
+    section.style.display = expand ? 'flex' : 'none';
+    chevron.src = expand ? "assets/chevron-down.svg" : "assets/chevron-right.svg";
+    chevron.closest(".account-section-tab").setAttribute("aria-expanded", expand ? "true" : "false");
 }
 
 function updateAccountValue(property) {
@@ -1899,9 +1832,9 @@ function renderPATSection(isAdmin) {
     var adminCheckbox = "";
     if(isAdmin) {
         adminCheckbox = `
-            <div class="pat-option">
-                <input class="clickable" type="checkbox" id="pat_admin" name="pat_admin">
-                <label for="pat_admin" class="clickable u-m-0">Include admin access</label>
+            <div class="field-check pat-option">
+                <input type="checkbox" id="pat_admin" name="pat_admin">
+                <label for="pat_admin">Include admin access</label>
             </div>`;
     }
 

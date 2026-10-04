@@ -109,8 +109,6 @@ func TestAccountUpdateEdgeCases(t *testing.T) {
 	token := login["access_token"].(string)
 	userPath := "/api/auth/users/" + user.ID.String()
 
-	maxHR, restHR := 150, 150
-	h.expect(http.StatusBadRequest, "POST", userPath, token, models.UserUpdateRequest{Email: "me@update.test", OldPassword: "Password123", MaxHeartrate: &maxHR, RestingHeartrate: &restHR})
 	// A bad image is the client's mistake: 400, with the reason.
 	h.expect(http.StatusBadRequest, "POST", userPath, token, models.UserUpdateRequest{Email: "me@update.test", OldPassword: "Password123", ProfileImage: "data:image/jpeg;base64,bm90IGFuIGltYWdl"})
 

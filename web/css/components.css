@@ -1022,30 +1022,6 @@ input[type=checkbox]
 /* .danger-button / .regular-button retired — call sites migrated to the .btn
    primitive (.btn--danger / .btn). See docs/styleguide.md. */
 
-.notification-options {
-  display: flex;
-  flex-direction: row;
-  flex-wrap: wrap;
-  align-content: center;
-  justify-content: center;
-  align-items: center;
-  gap: var(--space-2);   /* keep wrapped button/input rows (Strava/Hevy/Plex/…) from butting together */
-  width: 100%;
-  width: -webkit-fill-available;
-  width: -moz-available;
-}
-
-.notification-option {
-  display: flex;
-  flex-direction: column;
-  flex-wrap: wrap;
-  align-content: center;
-  justify-content: center;
-  align-items: center;
-  margin: 1rem;
-  width: 10rem;
-}
-
 @keyframes shine{
   0%{top:-120%;left:-120%;}
   10%{left:100%;top:100%;}
@@ -1560,16 +1536,6 @@ label {
   align-items: center;
 }
 
-.strava-option {
-  display: flex;
-  flex-direction: column;
-  flex-wrap: wrap;
-  align-content: center;
-  justify-content: center;
-  align-items: center;
-  margin: 1rem;
-}
-
 .achievement-delegation-sum {
   position: absolute;
   top: 1rem;
@@ -1804,6 +1770,7 @@ label {
   box-sizing: inherit;
 }
 
+/* The section header is a real <button> (keyboard + aria-expanded), reset to read as a row. */
 .account-section-tab {
   display: flex;
   flex-direction: row;
@@ -1812,12 +1779,18 @@ label {
   align-content: center;
   align-items: center;
   width: 100%;
-  width: -webkit-fill-available;
-  width: -moz-available;
   padding: 0 1rem;
+  background: none;
+  border: 0;
+  border-radius: var(--radius-sm);
+  font: inherit;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
 }
+.account-section-tab:focus-visible { outline: 0; box-shadow: 0 0 0 3px var(--focus-ring); }
 
-.notifications-wrapper, .settings-wrapper, .strava-wrapper, .hevy-wrapper, .plex-wrapper, .spotify-wrapper, .audiobookshelf-wrapper, .mail-notifications-wrapper, .pat-wrapper, .wheel-wrapper, .goal-counting-wrapper {
+.account-section-body {
   display: none;
   flex-direction: column;
   flex-wrap: wrap;
@@ -1928,11 +1901,7 @@ label {
   overflow-y: auto;
 }
 
-.pat-option {
-  display: flex;
-  align-items: center;
-  gap: 0.4rem;
-}
+.pat-form .field-check { max-width: 22em; margin-bottom: 0; }
 
 .pat-list-item {
   display: flex;
@@ -2444,6 +2413,10 @@ label {
   border-radius: var(--radius-sm);
   padding: 0.12rem 0.35rem;
 }
+/* Signal variants — only when the tag reports a state (e.g. a connection's health). */
+.meta-tag--success { color: var(--success); }
+.meta-tag--warning { color: var(--warning); }
+.meta-tag--error   { color: var(--error); }
 
 /* Activity logo in a stats section title. */
 .stat-title-logo { height: 1.4em; width: 1.4em; vertical-align: middle; margin-right: 0.4em; }
@@ -2531,7 +2504,11 @@ label {
   text-align: left; width: 100%; margin: 0 0 var(--space-4);
 }
 .field-check input { width: auto; margin: 0.15rem 0 0 0; flex: 0 0 auto; }
-.field-check label { margin: 0; text-align: left; font-size: 0.9rem; line-height: 1.35; }
+.field-check label { margin: 0; text-align: left; font-size: 0.9rem; line-height: 1.35; cursor: pointer; }
+
+/* A list of related .field-checks (e.g. notification types) — packed tighter than standalone rows. */
+.field-check-group { display: flex; flex-direction: column; gap: var(--space-2); }
+.field-check-group > .field-check { margin: 0; }
 
 /* ══ Account page (/account) — Phase 6 light sweep ═════════════════════════════════════════
    The collapsible settings accordion sits in one white module panel; section rows are separated
@@ -2551,6 +2528,54 @@ label {
 .card .account-section:last-child { border-bottom: none; }
 .card .account-section-tab { padding: var(--space-3) var(--space-2); }
 .card .account-section-tab img { filter: none; }   /* dark chevron on the light surface */
+
+/* Settings groups — the accordion is split into titled panels (Account, Training, Exercise
+   connections, Listening connections, Developer). The title sits outside the panel, aligned to
+   its edge; the panel inside drops its own outer margin so the group sets the rhythm. */
+.settings-group {
+  width: 100%;
+  max-width: 40rem;
+  margin: var(--space-6) auto 0;
+  text-align: left;
+}
+.settings-group-title {
+  font-family: var(--font-body);
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--darkblue);
+  margin: 0 0 var(--space-2) var(--space-2);
+}
+.card .settings-group .account-section-wrapper { margin: 0; max-width: none; }
+
+/* A section header's title plus its optional status tag (connections). */
+.account-section-title { display: inline-flex; align-items: center; flex-wrap: wrap; gap: var(--space-2); }
+
+/* .settings-body — a section body laid out as a left-aligned form: prose, sub-headings,
+   .field/.field-check controls and left-packed .btn-group rows. Section bodies built around a
+   centred widget (wheel preview, token form) stay on the plain centred body. */
+.account-section-body.settings-body {
+  align-items: stretch;
+  text-align: left;
+  gap: var(--space-3);
+  padding: var(--space-2) var(--space-2) var(--space-5);
+}
+.settings-body > form { flex-wrap: nowrap; align-items: stretch; margin: 0; }
+.settings-body .field-row { row-gap: var(--space-4); }
+/* A vertical run of fields revealed together (e.g. the change-password pair). */
+.settings-stack { display: flex; flex-direction: column; gap: var(--space-4); }
+.settings-body .btn-group { justify-content: flex-start; }
+.settings-body .field,
+.settings-body .field-check { margin-bottom: 0; }
+.settings-body form > * + * { margin-top: var(--space-4); }
+.settings-subtitle {
+  font-family: var(--font-body);
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--darkblue);
+  margin: var(--space-4) 0 0;
+}
+.settings-subtitle:first-child { margin-top: 0; }
+.settings-text { font-size: 0.9rem; line-height: 1.45; color: var(--darkblue); margin: 0; }
 /* File-upload control keeps a comfortable height (was an inline style). */
 .card input[type="file"] { height: 2.5em; }
 

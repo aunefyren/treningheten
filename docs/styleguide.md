@@ -352,13 +352,35 @@ as the `.btn--primary` and **Deny** as a `.btn--ghost` (both `.btn--block`).
 
 ### Settings accordion
 
-The `/account` settings live in a collapsible accordion inside **one white module panel**
-(`.account-section-wrapper`). Each `.account-section` is a row separated from the next by the
-single **`--grey` hairline** (last row none); its `.account-section-tab` is the clickable header
-(title + a chevron `<img>` that swaps `chevron-right`↔`chevron-down` on toggle — rendered **dark**
-on the light surface, `filter: none`, not `color-invert`). Bodies (`…-wrapper`) toggle `display`.
-Rows of buttons use `.btn-group`; each section's own submit is a `.btn` (its primary action may be
-`.btn--primary`); destructive actions (`Leave season`, `Delete account`) are `.btn--danger`.
+The `/account` settings are a collapsible accordion split into **titled groups**. Each group is a
+`.settings-group`: a `.settings-group-title` (an `<h2>`, body font, sentence case, semibold
+`--darkblue`, aligned to the panel edge — not a display-font or all-caps eyebrow) over **one white
+module panel** (`.account-section-wrapper`). The groups are *Account* (account settings,
+notifications, wheel appearance), *Training*, *Exercise connections* (Strava, Hevy), *Listening
+connections* (Plex, Spotify, Audiobookshelf) and *Developer* (access tokens). A section the server
+has disabled is **not rendered** (rather than hidden), so the last-row hairline rule stays right; a
+group with no enabled sections is dropped entirely.
+
+Each `.account-section` is a row separated from the next by the single **`--grey` hairline** (last
+row none). Its `.account-section-tab` is a real **`<button>`** (keyboard reachable, `aria-expanded`
+kept in step, the one `--focus-ring` on `:focus-visible`), reset to read as a row: a
+`.account-section-title` (title + an optional status tag) and a chevron `<img>` that swaps
+`chevron-right`↔`chevron-down` — rendered **dark** on the light surface, `filter: none`. Bodies are
+`.account-section-body` and toggle `display`. In `account.js`, build rows with
+`accountSectionHTML(key, title, body, bodyClass)` and groups with `settingsGroupHTML(title, rows)`.
+
+- **`.settings-body`** (on the body) lays it out as a **left-aligned form**: `.settings-text` prose,
+  `.settings-subtitle` (`<h3>`) to split a section into parts (e.g. Notifications → *This device* /
+  *E-mail*; Training → *Heart rate and age* / *What counts toward your goal*), `.field` /
+  `.field-check` controls and left-packed `.btn-group` rows, all on one `--space-*` rhythm. Use
+  `.settings-stack` for a run of fields revealed together (the change-password pair). Bodies built
+  around a centred widget (wheel preview, token form) stay on the plain centred body.
+- **Connection status** — a connection section shows a signal `.meta-tag` after its title so its
+  state reads without expanding: `--success` *Connected*, `--error` *Needs attention* (rejected
+  credential, not allowlisted, setup incomplete), `--warning` *Not responding*. Nothing while
+  disconnected. Set it with `setSectionStatus(key, connected, health)`.
+- Each section's own submit is a `.btn` (its primary action may be `.btn--primary`); destructive
+  actions (`Disconnect …`, `Leave season`, `Delete account`) are `.btn--danger`.
 
 ### Chips & tags
 
@@ -378,7 +400,9 @@ profile's month / year / all-time stats). Each segment is a light
 
 `.meta-tag` — a small hairline label (an achievement's category, a "Stackable" flag). Outline in
 `currentColor`, `--radius-sm`, tiny text. Compose margins with `.u-*` utilities. Use it for a short
-static descriptor on a tile; for interactive tag selection use `.tag-chip` instead.
+static descriptor on a tile; for interactive tag selection use `.tag-chip` instead. When the tag
+**reports a state**, add a signal modifier — `.meta-tag--success` / `--warning` / `--error` (e.g. the
+account page's connection status). Never colour a plain descriptor.
 
 ### Skeletons
 
@@ -451,7 +475,8 @@ ragged). One field per control keeps label, control and hint together with consi
 | `.field-hint` | small muted (`--lightblue`) helper/secondary text — under a control, or inline in a label (e.g. "User (optional)"). |
 | `.field-req` | wrap a required-marker `*` (renders `--error`). |
 | `.field-row` | lay two `.field`s side by side; wraps to stacked once the row is too narrow. |
-| `.field-check` | checkbox/radio + label on one line, aligned to the label's first line. Generalises `.auth-consent`. |
+| `.field-check` | checkbox/radio + label on one line, aligned to the label's first line. Generalises `.auth-consent`. **The** checkbox layout — don't stack a checkbox above its label in a centred card. |
+| `.field-check-group` | a list of related `.field-check`s (e.g. notification types), packed at `--space-2` instead of each row's own bottom margin. |
 
 - **Every control still uses the one field skin** (see Form controls) — `.field` only handles the
   *label + layout*, not the control's look.
@@ -545,6 +570,21 @@ not theme — left inline on purpose. Dynamic (`${…}`) values stay inline too.
 
 ## Decisions log
 
+- **`/account` regrouped; toggle cards retired.** The settings accordion was one long panel of
+  twelve rows, its checkboxes were `.notification-option` / `.strava-option` **toggle cards** (a
+  10rem centred column, checkbox stacked over its label, `1rem` margin all round — far too much air),
+  and heart-rate settings sat inside the password-gated *Account settings* form. Now: (1) every
+  account checkbox is a `.field-check` row (lists in the new `.field-check-group`); the toggle-card
+  rules and the `.notification-options` row wrapper are deleted in favour of `.btn-group`. (2) The
+  accordion is split into titled **settings groups** (Account, Training, Exercise connections,
+  Listening connections, Developer); disabled integrations are not rendered at all. (3) Birth date,
+  max and resting heart rate moved to a **Training** section with goal counting, saved on their
+  own (`PUT /api/auth/users/:id/training-profile`, no password — they aren't credentials); Device
+  and E-mail notifications merged into one **Notifications** section. (4) Connection headers carry a
+  signal `.meta-tag` (new `--success`/`--warning`/`--error` modifiers). (5) Section headers became
+  real `<button>`s with `aria-expanded` and the focus ring, and connection bodies (`.settings-body`)
+  went **left-aligned** — centred prose over left-aligned checkbox rows read as two layouts. The
+  long per-section `…-wrapper` selector list collapsed into one `.account-section-body` class.
 - **`/users/:id` profile row — two stray dividers removed.** The profile column drew a thick
   bluish rule on its right *and* a grey hairline across its bottom. The bottom one was
   accidental: the block reuses the `.account-section` class, so it picked up
@@ -893,11 +933,11 @@ Small residuals (safe to use as-is; migrate on touch). Phase status lives in [`w
 - **Form controls are unified** (one `:where()` field skin — text inputs, `select`, `textarea` — that
   the modal fields match; one `--focus-ring`). **Alerts** are the remaining un-unified control: `.alert-*`
   still sits on the legacy semantic palette (and see the modal-over-alert-bar direction in Alerts). Unify on touch.
-- **Fields & labels are systematised** (`.field` / `.field-label` / `.field-row` / `.field-check`);
-  admin, news, registergoal, account (text fields) and the weight modal are migrated. **One known
-  remainder:** account's **toggle-card** components (`.notification-option`, `.strava-option`) —
-  bespoke centred-card layouts, a dedicated account redesign, not the `.field` system. (The
-  exercise-builder set inputs are already on the unified field via `.we-set-input`/`.we-input`.)
+- **Fields & labels are systematised** (`.field` / `.field-label` / `.field-row` / `.field-check` /
+  `.field-check-group`); admin, news, registergoal, account (all of it, including the former
+  toggle cards) and the weight modal are migrated. (The exercise-builder set inputs are already on
+  the unified field via `.we-set-input`/`.we-input`.) The account page's wheel-appearance and
+  access-token bodies are still centred bespoke widgets — fine as-is, migrate on touch.
 - **Buttons: nothing outstanding.** The legacy global `button` rule is **gone**; every clickable
   action is `.btn` (+ modifier) or a self-contained component (`.we-add-*`, `.user-stat-tab`,
   `.wv-media-repull`, `.trm-close`, `.wheel-swatch`, `.nav-toggle`). New buttons must carry `.btn`.
