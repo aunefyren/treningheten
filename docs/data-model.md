@@ -108,6 +108,12 @@ Strava and media features read.
   compared against the goal's own `ExerciseInterval` (the weekly target) by the front-page
   progress ring, so it uses `exerciseCountsTowardGoal` (enabled + on + counts), not a raw
   session count. Non-counting sessions still appear in `Exercises`.
+  Saving the front-page calendar (`APIRegisterWeek` → `CorrelateExerciseWithExerciseDay`) moves
+  the day to the requested count by the **same rule**, so an on-but-not-counting session neither
+  satisfies a +1 nor is switched off by a -1. `planSessionCorrelation` decides the changes: a +1
+  reuses a switched-off, empty, manual counting session before creating one (it never restores a
+  session with activities or an import); a -1 switches off empty sessions first, then manual
+  sessions with activities, and imports (Strava/Hevy) last.
   `ExerciseDaySummary` is the slim list view.
 - **Exercise** (`models/exercise.go`) — **one session** within a day (several per day
   allowed). `Duration` is `*time.Duration` holding **seconds**.
@@ -121,7 +127,8 @@ Strava and media features read.
   - `CountsTowardGoal` — whether the session **tallies toward the weekly goal, season
     streak and personal streak**. Distinct from `IsOn`: a session can be fully on and
     visible in the activity feed yet not count (e.g. an imported walk). Snapshotted at
-    creation (manual sessions default `true`); later flipped via the builder toggle. The
+    creation (manual sessions default `true`); later flipped via the builder toggle, or
+    re-snapshotted when a Strava activity's sport type changes (see [strava.md](strava.md)). The
     goal-counting DB queries (`GetValidExercises…` in `database/exerciseday.go`) filter
     `enabled=1 AND is_on=1 AND counts_toward_goal=1`; the in-memory equivalent is
     `exerciseCountsTowardGoal` in `controllers/exercise.go`.

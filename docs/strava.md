@@ -170,10 +170,18 @@ safe.
 - No sport type is skipped anymore — every activity imports. On a **new** import the session's
   `CountsTowardGoal` is snapshotted from the user's per-activity-type settings
   (`stravaActivityCountsTowardGoal`); re-syncs leave it alone so a manual builder toggle sticks.
+- **One exception: the sport type changed on Strava** (a walk edited into a hike). The re-sync
+  rewrites the operation's action, so `reevaluateStravaSessionGoalCounting` re-snapshots the flag
+  for the new type — but only when the session holds a single Strava activity, its week is still
+  current (the same freeze as the builder toggle), and the stored flag still equals what the
+  *old* type would have snapshotted, i.e. the user never toggled it by hand. The rules are the
+  pure `stravaGoalCountingAfterActionChange`. No schema change: "never toggled" is inferred, so a
+  user who toggled a session and then toggled it back is treated as untouched.
 - **On/off (`IsOn`) is the user's, too.** Only a new import is switched on; a re-sync refreshes
   a session's contents but leaves `IsOn` as stored, so a session deleted in the builder stays
   deleted (and restorable) instead of reappearing on the next hourly run. Field ownership on
-  re-sync: `CountsTowardGoal` and `IsOn` are snapshotted at import; `Private` is mirrored from
+  re-sync: `CountsTowardGoal` (bar the sport-type exception above) and `IsOn` are snapshotted
+  at import; `Private` is mirrored from
   Strava (below); everything else is Strava's and is overwritten.
 - The user's `StravaID` is **not** set here — it is captured at authorization time (see
   `StravaCode` above). Nothing in the sync saves the (possibly stale) `user` struct: the

@@ -531,6 +531,81 @@ func stravaActivityCountsTowardGoal(userID uuid.UUID, sportType string) bool {
 	return countsTowardGoalForActions([]uuid.UUID{action.ID}, offActions)
 }
 
+// reevaluateStravaSessionGoalCounting re-snapshots a re-synced session's CountsTowardGoal
+// when its sport type changed on Strava, so a walk edited into a hike stops being excluded
+// as a walk. Best effort: a lookup failure leaves the stored flag alone. The rules live in
+// stravaGoalCountingAfterActionChange.
+func reevaluateStravaSessionGoalCounting(userID uuid.UUID, exercise models.Exercise, previousActionID *uuid.UUID, actionID *uuid.UUID, activityDate time.Time) {
+	if previousActionID == nil || actionID == nil || *previousActionID == *actionID {
+		return
+	}
+
+	offActions, err := loadOffCountActions(userID)
+	if err != nil {
+		logger.Log.Warn("Failed to load activity goal settings for Strava re-sync. Error: " + err.Error())
+		return
+	}
+
+	stravaActivityCount, err := database.CountStravaActivitiesInExercise(exercise.ID)
+	if err != nil {
+		logger.Log.Warn("Failed to count Strava activities in session for goal re-evaluation. Error: " + err.Error())
+		return
+	}
+
+	countsTowardGoal, changed := stravaGoalCountingAfterActionChange(stravaGoalCountingChange{
+		stored:              exercise.CountsTowardGoal,
+		previousActionID:    *previousActionID,
+		actionID:            *actionID,
+		offActions:          offActions,
+		stravaActivityCount: stravaActivityCount,
+		weekIsCurrent:       isCurrentISOWeek(activityDate, time.Now()),
+	})
+	if !changed {
+		return
+	}
+
+	if err := database.SetExerciseCountsTowardGoal(exercise.ID, countsTowardGoal); err != nil {
+		logger.Log.Warn("Failed to update Strava session goal-counting flag. Error: " + err.Error())
+	}
+}
+
+// stravaGoalCountingChange is the input to stravaGoalCountingAfterActionChange.
+type stravaGoalCountingChange struct {
+	stored              bool
+	previousActionID    uuid.UUID
+	actionID            uuid.UUID
+	offActions          map[uuid.UUID]bool
+	stravaActivityCount int64
+	weekIsCurrent       bool
+}
+
+// stravaGoalCountingAfterActionChange decides whether a session whose Strava sport type
+// changed should have its goal-counting flag re-snapshotted, and to what. It only does so
+// when all of these hold:
+//   - the session holds a single Strava activity (a combined session's flag is not this
+//     activity's alone to decide);
+//   - the week is still current (the same freeze as the builder toggle, so a backfill can't
+//     rewrite a settled week);
+//   - the stored flag still equals what the previous sport type would have snapshotted, i.e.
+//     the user never toggled it by hand — a manual choice always wins.
+func stravaGoalCountingAfterActionChange(change stravaGoalCountingChange) (countsTowardGoal bool, changed bool) {
+	if change.previousActionID == change.actionID || change.stravaActivityCount > 1 || !change.weekIsCurrent {
+		return change.stored, false
+	}
+	if change.stored != countsTowardGoalForActions([]uuid.UUID{change.previousActionID}, change.offActions) {
+		return change.stored, false
+	}
+	countsTowardGoal = countsTowardGoalForActions([]uuid.UUID{change.actionID}, change.offActions)
+	return countsTowardGoal, countsTowardGoal != change.stored
+}
+
+// isCurrentISOWeek reports whether date falls in the same ISO week as now.
+func isCurrentISOWeek(date time.Time, now time.Time) bool {
+	dateYear, dateWeek := date.ISOWeek()
+	nowYear, nowWeek := now.ISOWeek()
+	return dateYear == nowYear && dateWeek == nowWeek
+}
+
 // stravaVisibilityOnlyMe is the Strava `visibility` value for "Only you".
 const stravaVisibilityOnlyMe = "only_me"
 
@@ -718,6 +793,19 @@ func StravaSyncActivityForUser(activity models.StravaGetActivitiesRequestReply, 
 		}
 	}
 
+	// Remember the activity's previous action, so a sport type changed on Strava (a walk
+	// edited into a hike) can re-evaluate the goal-counting snapshot once the operation has
+	// been re-synced.
+	var previousActionID *uuid.UUID
+	if !isNewExercise {
+		previousOperation, err := database.GetOperationByStravaIDAndUserIDAndExerciseID(user.ID, int(activity.ID), finalExercise.ID)
+		if err != nil {
+			logger.Log.Warn("Failed to look up previous Strava operation. Error: " + err.Error())
+		} else if previousOperation != nil {
+			previousActionID = previousOperation.ActionID
+		}
+	}
+
 	operation, err := StravaSyncOperationForActivity(activity, user, finalExercise, stravaStreams, detailRetrieved, token)
 	if err != nil {
 		logger.Log.Error("Failed to sync operation. Error: " + err.Error())
@@ -726,6 +814,8 @@ func StravaSyncActivityForUser(activity models.StravaGetActivitiesRequestReply, 
 		logger.Log.Error("Failed to sync operation. No error.")
 		logger.Log.Error("Sport type was: " + activity.SportType)
 	} else {
+		reevaluateStravaSessionGoalCounting(user.ID, finalExercise, previousActionID, operation.ActionID, activity.StartDateLocal)
+
 		// A Strava activity carries a fully known time window, so this is the prime
 		// trigger to overlay listening history (async; appears on next load). The
 		// soundtrack attaches to the session, and each Strava activity is its own

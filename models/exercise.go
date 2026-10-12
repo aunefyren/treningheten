@@ -45,8 +45,8 @@ type Exercise struct {
 	// CountsTowardGoal decides whether this session tallies toward the weekly goal,
 	// season streak and personal streak. Distinct from IsOn (a reversible builder
 	// soft-delete): a session can be fully "on" and visible in the activity feed yet
-	// not count (e.g. an imported walk). Snapshotted at creation; later edits only flip
-	// it via the builder. See docs/data-model.md.
+	// not count (e.g. an imported walk). Snapshotted at creation; later flipped via the
+	// builder, or re-snapshotted when a Strava sport type changes. See docs/data-model.md.
 	CountsTowardGoal bool `json:"counts_toward_goal" gorm:"not null; default: true"`
 	// Private hides this session from everyone else — it is left out of every activity
 	// feed and profile view, while staying fully visible to its owner and still counting

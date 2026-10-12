@@ -27,6 +27,11 @@ func currentWeekDays(interval int) []models.ExerciseDayCreationRequest {
 	days := make([]models.ExerciseDayCreationRequest, 0, 7)
 	for i := 0; i < 7; i++ {
 		date := monday.AddDate(0, 0, i)
+		// Days are stamped at noon, which is still in the future before midday — today must
+		// use the current time or a morning run zeroes it and every interval check passes.
+		if date.Format("2006-01-02") == now.Format("2006-01-02") {
+			date = now
+		}
 		dayInterval := interval
 		if date.After(now) {
 			dayInterval = 0

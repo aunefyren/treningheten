@@ -139,9 +139,6 @@ func APIRegisterWeek(context *gin.Context) {
 
 	}
 
-	// Declare variable for later user
-	newExercise := models.Exercise{}
-
 	// Process each day for database
 	for _, day := range week.Days {
 
@@ -206,7 +203,7 @@ func APIRegisterWeek(context *gin.Context) {
 			}
 			exerciseDay.ID = uuid.New()
 
-			exerciseDayID, err := database.CreateExerciseDayForGoalInDatabase(exerciseDay)
+			_, err := database.CreateExerciseDayForGoalInDatabase(exerciseDay)
 			if err != nil {
 				logger.Log.Info("Failed to save exercise-day in database. Error: " + err.Error())
 				context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to save exercise-day in database."})
@@ -215,18 +212,7 @@ func APIRegisterWeek(context *gin.Context) {
 			}
 
 			for i := 0; i < day.ExerciseInterval; i++ {
-				newExercise = models.Exercise{
-					ExerciseDayID: exerciseDayID,
-				}
-				newExercise.ID = uuid.New()
-
-				if now.Format("2006-01-02") == exerciseDay.Date.Format("2006-01-02") {
-					newExercise.Time = &now
-				} else {
-					newExercise.Time = &exerciseDay.Date
-				}
-
-				err = database.CreateExerciseForExerciseDayInDatabase(newExercise)
+				err = createSessionForExerciseDay(exerciseDay, now)
 				if err != nil {
 					logger.Log.Info("Failed to create exercise in database. Error: " + err.Error())
 					context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create exercise in database."})
@@ -487,6 +473,11 @@ func APIAdminGetExerciseDays(context *gin.Context) {
 }
 
 // Change exercises to correlate with exercise days
+// CorrelateExerciseWithExerciseDay brings a day's goal-counting session count in line with
+// the count the user set on the front-page calendar. It counts with the same rule the
+// calendar displays (countGoalCountingExercises), so a session that is on but flagged not to
+// count — an imported walk, say — neither satisfies a +1 nor gets switched off by a -1.
+// See planSessionCorrelation for which sessions are reused, switched off or created.
 func CorrelateExerciseWithExerciseDay(exerciseDayID uuid.UUID, exerciseDayExerciseInterval int) error {
 	exerciseDay, err := database.GetExerciseDayByID(exerciseDayID)
 	if err != nil {
@@ -503,144 +494,137 @@ func CorrelateExerciseWithExerciseDay(exerciseDayID uuid.UUID, exerciseDayExerci
 		return errors.New("Failed to get exercises for exercise-day.")
 	}
 
-	onExercisesSum := 0
+	exerciseObjects, err := ConvertExercisesToExerciseObjects(exercises)
+	if err != nil {
+		logger.Log.Info("Failed to convert exercises to exercise objects. Error: " + err.Error())
+		return errors.New("Failed to convert exercises to exercise objects.")
+	}
 
-	for _, exercise := range exercises {
-		if exercise.IsOn {
-			onExercisesSum += 1
+	plan := planSessionCorrelation(exerciseObjects, exerciseDayExerciseInterval)
+
+	for _, exerciseID := range plan.turnOff {
+		if err := database.UpdateExerciseByTurningOffByExerciseID(exerciseID); err != nil {
+			logger.Log.Info("Failed to turn off exercise. Error: " + err.Error())
+			return errors.New("Failed to turn off exercise.")
 		}
 	}
 
-	if onExercisesSum == exerciseDayExerciseInterval {
-		return nil
-	} else if onExercisesSum > exerciseDayExerciseInterval {
-
-		differential := onExercisesSum - exerciseDayExerciseInterval
-		changed, err := TurnOffExercisesForExerciseDayByAmount(differential, exerciseDayID)
-		if err != nil {
-			logger.Log.Info("Failed to turn off exercises for exercise day. Error: " + err.Error())
-			return errors.New("Failed to turn off exercises for exercise day.")
+	for _, exerciseID := range plan.turnOn {
+		if err := database.UpdateExerciseByTurningOnByExerciseID(exerciseID); err != nil {
+			logger.Log.Info("Failed to turn on exercise. Error: " + err.Error())
+			return errors.New("Failed to turn on exercise.")
 		}
+	}
 
-		newDifferential := differential - changed
-
-		if newDifferential == 0 {
-			return nil
-		} else {
-			return errors.New("Failed to turn off enough exercises for exercise-day. Differential: " + strconv.Itoa(newDifferential))
+	now := time.Now()
+	for i := 0; i < plan.create; i++ {
+		if err := createSessionForExerciseDay(*exerciseDay, now); err != nil {
+			logger.Log.Info("Failed to create exercise in database. Error: " + err.Error())
+			return errors.New("Failed to create exercise in database.")
 		}
-
-	} else {
-
-		differential := exerciseDayExerciseInterval - onExercisesSum
-		changed, err := TurnOnExercisesForExerciseDayByAmount(differential, exerciseDayID)
-		if err != nil {
-			logger.Log.Info("Failed to turn off exercises for exercise day. Error: " + err.Error())
-			return errors.New("Failed to turn off exercises for exercise day.")
-		}
-
-		newDifferential := differential - changed
-
-		if newDifferential == 0 {
-			return nil
-		}
-
-		for i := 0; i < newDifferential; i++ {
-			newExercise := models.Exercise{
-				ExerciseDayID: exerciseDayID,
-			}
-			newExercise.ID = uuid.New()
-
-			now := time.Now()
-			if now.Format("2006-01-02") == exerciseDay.Date.Format("2006-01-02") {
-				newExercise.Time = &now
-			} else {
-				newExercise.Time = &exerciseDay.Date
-			}
-
-			err = database.CreateExerciseForExerciseDayInDatabase(newExercise)
-			if err != nil {
-				logger.Log.Info("Failed to create exercise in database. Error: " + err.Error())
-				return errors.New("Failed to create exercise in database.")
-			}
-		}
-
 	}
 
 	return nil
-
 }
 
-func TurnOnExercisesForExerciseDayByAmount(amount int, exerciseDayID uuid.UUID) (int, error) {
-
-	if amount == 0 {
-		return 0, errors.New("Amount must be more than 0.")
-	}
-
-	turnedOn := 0
-
-	exercises, err := database.GetExerciseByExerciseDayID(exerciseDayID)
-	if err != nil {
-		logger.Log.Info("Failed to get exercises for exercise-day. Error: " + err.Error())
-		return 0, errors.New("Failed to get exercises for exercise-day.")
-	}
-
-	for _, exercise := range exercises {
-
-		if !exercise.IsOn {
-			err = database.UpdateExerciseByTurningOnByExerciseID(exercise.ID)
-			if err != nil {
-				logger.Log.Info("Failed to turn on exercise. Error: " + err.Error())
-				return 0, errors.New("Failed to turn on exercise.")
-			}
-
-			turnedOn += 1
-		}
-
-		if turnedOn >= amount {
-			break
-		}
-
-	}
-
-	return turnedOn, nil
-
+// sessionCorrelationPlan is what CorrelateExerciseWithExerciseDay has to do to a day's
+// sessions: which to switch off, which to switch back on, and how many to create.
+type sessionCorrelationPlan struct {
+	turnOff []uuid.UUID
+	turnOn  []uuid.UUID
+	create  int
 }
 
-func TurnOffExercisesForExerciseDayByAmount(amount int, exerciseDayID uuid.UUID) (int, error) {
+// planSessionCorrelation works out how to move a day from its current goal-counting session
+// count to target.
+//
+// Raising the count reuses switched-off, empty manual sessions that are flagged to count
+// before creating new ones. It never restores a session that holds activities or came from
+// an import: those were deleted on purpose in the builder, and a +1 isn't a request to
+// bring them back.
+//
+// Lowering the count only switches off sessions that count, cheapest loss first: empty
+// sessions, then manual sessions with activities, and imported (Strava/Hevy) sessions last
+// — an import switched off here stays off through later syncs.
+func planSessionCorrelation(exercises []models.ExerciseObject, target int) sessionCorrelationPlan {
+	plan := sessionCorrelationPlan{}
 
-	if amount == 0 {
-		return 0, errors.New("Amount must be more than 0.")
-	}
-
-	turnedOff := 0
-
-	exercises, err := database.GetExerciseByExerciseDayID(exerciseDayID)
-	if err != nil {
-		logger.Log.Info("Failed to get exercises for exercise-day. Error: " + err.Error())
-		return 0, errors.New("Failed to get exercises for exercise-day.")
-	}
-
+	counting := []models.ExerciseObject{}
 	for _, exercise := range exercises {
-
-		if exercise.IsOn {
-			err = database.UpdateExerciseByTurningOffByExerciseID(exercise.ID)
-			if err != nil {
-				logger.Log.Info("Failed to turn on exercise. Error: " + err.Error())
-				return 0, errors.New("Failed to turn on exercise.")
-			}
-
-			turnedOff += 1
+		if exerciseCountsTowardGoal(exercise) {
+			counting = append(counting, exercise)
 		}
+	}
 
-		if turnedOff >= amount {
+	if len(counting) > target {
+		sort.SliceStable(counting, func(i, j int) bool {
+			return sessionRemovalRank(counting[i]) < sessionRemovalRank(counting[j])
+		})
+		for _, exercise := range counting[:len(counting)-target] {
+			plan.turnOff = append(plan.turnOff, exercise.ID)
+		}
+		return plan
+	}
+
+	missing := target - len(counting)
+	for _, exercise := range exercises {
+		if missing == 0 {
 			break
 		}
+		if isReusableEmptySession(exercise) {
+			plan.turnOn = append(plan.turnOn, exercise.ID)
+			missing--
+		}
+	}
+	plan.create = missing
 
+	return plan
+}
+
+// sessionRemovalRank orders sessions for switching off when the calendar count is lowered:
+// empty sessions (0) go first, then manual sessions with activities (1), then imports (2).
+func sessionRemovalRank(exercise models.ExerciseObject) int {
+	switch {
+	case isImportedSession(exercise):
+		return 2
+	case len(exercise.Operations) > 0:
+		return 1
+	default:
+		return 0
+	}
+}
+
+// isImportedSession reports whether a session came from an integration (Strava or Hevy).
+func isImportedSession(exercise models.ExerciseObject) bool {
+	return len(exercise.StravaID) > 0 || exercise.HevyWorkoutID != nil
+}
+
+// isReusableEmptySession reports whether a switched-off session can be switched back on to
+// satisfy a calendar +1: enabled, off, flagged to count, manual and holding no activities.
+func isReusableEmptySession(exercise models.ExerciseObject) bool {
+	return exercise.Enabled && !exercise.IsOn && exercise.CountsTowardGoal &&
+		len(exercise.Operations) == 0 && !isImportedSession(exercise)
+}
+
+// createSessionForExerciseDay creates an empty, switched-on, goal-counting session on the
+// day — what a calendar +1 means. It is timed now when the day is today, otherwise at the
+// day's own date.
+func createSessionForExerciseDay(exerciseDay models.ExerciseDay, now time.Time) error {
+	exercise := models.Exercise{
+		Enabled:          true,
+		IsOn:             true,
+		CountsTowardGoal: true,
+		ExerciseDayID:    exerciseDay.ID,
+	}
+	exercise.ID = uuid.New()
+
+	if now.Format("2006-01-02") == exerciseDay.Date.Format("2006-01-02") {
+		exercise.Time = &now
+	} else {
+		exercise.Time = &exerciseDay.Date
 	}
 
-	return turnedOff, nil
-
+	return database.CreateExerciseForExerciseDayInDatabase(exercise)
 }
 
 func ConvertExerciseDayToExerciseDayObject(exerciseDay models.ExerciseDay) (exerciseDayObject models.ExerciseDayObject, err error) {

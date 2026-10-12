@@ -826,8 +826,10 @@ function place_week(week, fireworks, user_id) {
     document.getElementById("day_" + day + "_check").classList.add("active-day") 
 
     // Enable workout buttons
-    addExerciseButton = document.getElementById("add-exercise-button")
-    addExerciseButton.addEventListener("click", function(e) {
+    // Assigned rather than added: place_week runs again after every save, and stacked
+    // listeners made one click create several sessions.
+    var addExerciseButton = document.getElementById("add-exercise-button")
+    addExerciseButton.onclick = function() {
         var xhttp = new XMLHttpRequest();
         xhttp.onreadystatechange = function() {
             if (this.readyState == 4) {
@@ -850,7 +852,7 @@ function place_week(week, fireworks, user_id) {
         xhttp.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
         xhttp.setRequestHeader("Authorization", jwt);
         xhttp.send();
-    }, false);
+    };
     addExerciseButton.style.display = 'flex'
 
     // Place editing icon for exercise
@@ -1485,14 +1487,12 @@ function exerciseRedirect(exerciseDayID) {
 }
 
 function addExercise(exerciseDayID) {
-    var form_obj = {
+    var formData = JSON.stringify({
         "exercise_day_id": exerciseDayID,
-        "on" : true,
+        "is_on": true,
         "note": "",
         "duration": null
-    };
-
-    var form_data = JSON.stringify(form_obj);
+    });
 
     var xhttp = new XMLHttpRequest();
     xhttp.onreadystatechange = function() {
@@ -1518,7 +1518,7 @@ function addExercise(exerciseDayID) {
     xhttp.open("post", api_url + "auth/exercises");
     xhttp.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
     xhttp.setRequestHeader("Authorization", jwt);
-    xhttp.send(form_data);
+    xhttp.send(formData);
     return false;
 }
 

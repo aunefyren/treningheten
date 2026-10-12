@@ -210,7 +210,7 @@ function placeExercises(exercises) {
             </div>
         `;
 
-        if(exerciseGenerated != null) {
+        if(exerciseGenerated) {
             exercisesHTML += exerciseHTML;
             counter += 1;
         }
@@ -257,8 +257,10 @@ function sessionRestoreButton(exercise, count) {
     return `<button type="submit" onclick="updateExercise('${exercise.id}', true, ${count}, '${exercise.time}', true)" id="restore-exercise-button-${exercise.id}" class="btn u-w-8"><img src="/assets/refresh-cw.svg" class="color-invert">Restore</button>`;
 }
 
+// generateExerciseHTML returns the session's markup, or "" for a switched-off session with
+// no activities — there is nothing to restore, so it isn't shown at all.
 function generateExerciseHTML(exercise, count, forceFullEditor = false) {
-    var exerciseHTML = null;
+    var exerciseHTML = "";
 
     if(exercise.is_on) {
 
@@ -2215,14 +2217,12 @@ function processExerciseList(operationID) {
 }
 
 function addExercise(exerciseDayID) {
-    var form_obj = {
+    var formData = JSON.stringify({
         "exercise_day_id": exerciseDayID,
-        "on" : true,
+        "is_on": true,
         "note": "",
         "duration": null
-    };
-
-    var form_data = JSON.stringify(form_obj);
+    });
 
     var xhttp = new XMLHttpRequest();
     xhttp.onreadystatechange = function() {
@@ -2248,7 +2248,7 @@ function addExercise(exerciseDayID) {
     xhttp.open("post", api_url + "auth/exercises");
     xhttp.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
     xhttp.setRequestHeader("Authorization", jwt);
-    xhttp.send(form_data);
+    xhttp.send(formData);
     return false;
 }
 

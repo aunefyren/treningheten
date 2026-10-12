@@ -12,7 +12,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        go-version: [ '1.24.x', '1.25.x', '1.26.x' ]
+        go-version: [ '1.26.x' ]
 
     steps:
       - uses: actions/checkout@v4
@@ -62,7 +62,7 @@ jobs:
       - name: Setup Go
         uses: actions/setup-go@v5
         with:
-          go-version: '1.25.x'
+          go-version: '1.26.x'
       - name: Test against ${{ matrix.backend }}
         env:
           TRENINGHETEN_TEST_POSTGRES_DSN: ${{ matrix.postgres_dsn }}
@@ -76,7 +76,7 @@ jobs:
       - name: Setup Go
         uses: actions/setup-go@v5
         with:
-          go-version: '1.25.x'
+          go-version: '1.26.x'
       - name: Run tests with coverage
         run: go test ./... -coverprofile=coverage.out -covermode=atomic
       - name: Extract total coverage
