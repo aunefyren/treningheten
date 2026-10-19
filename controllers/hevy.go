@@ -30,10 +30,6 @@ import (
 // reassigns it.
 var hevyAPIBaseURL = "https://api.hevyapp.com/v1"
 
-// hevyStravaOverlapWindow is how close a Strava activity and a Hevy workout must start to
-// be treated as the same session for de-duplication.
-const hevyStravaOverlapWindow = 15 * time.Minute
-
 // hevyLocation returns the app's configured timezone, falling back to UTC.
 func hevyLocation() *time.Location {
 	if loc, err := time.LoadLocation(files.ConfigFile.Timezone); err == nil && loc != nil {
@@ -223,6 +219,17 @@ func HevySyncWorkoutForUser(user models.User, workout models.HevyWorkout, templa
 		return errors.New("failed to look up exercise for Hevy workout: " + err.Error())
 	}
 
+	// A workout already hidden as a duplicate of a higher-priority source is left alone rather
+	// than imported again. Duplicates themselves are resolved at the end of the import.
+	if exercise == nil {
+		hiddenExercise, err := database.GetSupersededExerciseForUserWithHevyWorkoutID(user.ID, workoutID)
+		if err != nil {
+			return errors.New("failed to check for a hidden duplicate of Hevy workout: " + err.Error())
+		} else if hiddenExercise != nil {
+			return nil
+		}
+	}
+
 	// Hevy reports start_time in UTC with no local-time field, so resolve the calendar
 	// day in the app's configured timezone before bucketing (otherwise late-night
 	// workouts land on the wrong day).
@@ -272,7 +279,9 @@ func HevySyncWorkoutForUser(user models.User, workout models.HevyWorkout, templa
 		exercise.IsOn = true
 		exercise.CountsTowardGoal = true
 	}
-	startTime := workout.StartTime
+	// Stored in UTC, like Strava's StartDate: SQLite compares datetimes as text, so a zoned
+	// value would fall outside the UTC bounds the duplicate-window queries use.
+	startTime := workout.StartTime.UTC()
 	exercise.Time = &startTime
 
 	// Session note from the workout title; duration from start/end span (stored as a
@@ -286,24 +295,6 @@ func HevySyncWorkoutForUser(user models.User, workout models.HevyWorkout, templa
 	finalExercise, err := database.UpdateExerciseInDB(*exercise)
 	if err != nil {
 		return errors.New("failed to save exercise: " + err.Error())
-	}
-
-	// Hevy wins: if enabled, supersede any already-imported Strava activity that
-	// overlaps this workout's start by disabling it (and its operations/sets).
-	if user.StravaSkipHevyDuplicates != nil && *user.StravaSkipHevyDuplicates {
-		stravaExercise, overlapErr := database.GetStravaExerciseForUserNearTime(user.ID, workout.StartTime, hevyStravaOverlapWindow)
-		if overlapErr != nil {
-			logger.Log.Warn("Failed to check Strava overlap for Hevy workout " + workoutID + ". Error: " + overlapErr.Error())
-		} else if stravaExercise != nil {
-			if err := hevyDisableExerciseChildren(stravaExercise.ID); err != nil {
-				logger.Log.Warn("Failed to disable Strava operations superseded by Hevy. Error: " + err.Error())
-			} else {
-				stravaExercise.Enabled = false
-				if _, err := database.UpdateExerciseInDB(*stravaExercise); err != nil {
-					logger.Log.Warn("Failed to disable Strava exercise superseded by Hevy. Error: " + err.Error())
-				}
-			}
-		}
 	}
 
 	actionIDs := []uuid.UUID{}
@@ -398,6 +389,10 @@ func HevySyncWorkoutForUser(user models.User, workout models.HevyWorkout, templa
 		}
 	}
 
+	if _, err := resolveImportedDuplicates(user, finalExercise); err != nil {
+		logger.Log.Warn("Failed to resolve duplicates for Hevy workout " + workoutID + ". Error: " + err.Error())
+	}
+
 	return nil
 }
 
@@ -471,7 +466,7 @@ func hevyDeleteWorkoutForUser(user models.User, workoutID string) error {
 	if err != nil {
 		return errors.New("failed to look up exercise for deleted Hevy workout: " + err.Error())
 	} else if exercise == nil {
-		return nil
+		return hevyForgetHiddenWorkoutForUser(user, workoutID)
 	}
 
 	if err := hevyDisableExerciseChildren(exercise.ID); err != nil {
@@ -483,6 +478,29 @@ func hevyDeleteWorkoutForUser(user models.User, workoutID string) error {
 		return errors.New("failed to disable exercise for deleted Hevy workout: " + err.Error())
 	}
 
+	// The workout no longer hides anything: bring back the duplicates it was preferred over.
+	if err := restoreDuplicatesOf(user, exercise.ID); err != nil {
+		return errors.New("failed to restore duplicates of deleted Hevy workout: " + err.Error())
+	}
+
+	return nil
+}
+
+// hevyForgetHiddenWorkoutForUser handles a deleted Hevy workout that was hidden as a
+// duplicate: it stays disabled, but loses its hidden-duplicate mark so a later reconcile
+// can't restore a workout that no longer exists in Hevy.
+func hevyForgetHiddenWorkoutForUser(user models.User, workoutID string) error {
+	hiddenExercise, err := database.GetSupersededExerciseForUserWithHevyWorkoutID(user.ID, workoutID)
+	if err != nil {
+		return errors.New("failed to look up hidden exercise for deleted Hevy workout: " + err.Error())
+	} else if hiddenExercise == nil {
+		return nil
+	}
+
+	hiddenExercise.SupersededByID = nil
+	if _, err := database.UpdateExerciseInDB(*hiddenExercise); err != nil {
+		return errors.New("failed to forget hidden exercise for deleted Hevy workout: " + err.Error())
+	}
 	return nil
 }
 
@@ -655,11 +673,11 @@ func APISetHevyAPIKey(context *gin.Context) {
 
 	user.HevyAPIKey = &encrypted
 
-	// On first connect, default to skipping Strava activities that duplicate Hevy
-	// workouts (Hevy carries the richer set/rep data). A later explicit choice is kept.
-	if user.StravaSkipHevyDuplicates == nil {
-		skip := true
-		user.StravaSkipHevyDuplicates = &skip
+	// On first connect, turn on duplicate detection with the default ranking (Hevy first: it
+	// carries the richer set/rep data). A ranking the user has chosen — including off — is kept.
+	if user.ActivitySourcePriority == nil {
+		priority := defaultActivitySourcePriority()
+		user.ActivitySourcePriority = &priority
 	}
 
 	// Default to showing the Hevy link on the profile (mirrors Strava). The gorm default

@@ -68,6 +68,10 @@ type Exercise struct {
 	// pull). The reconcile cron does a single settle pass to catch providers whose
 	// history lags (Spotify); once true it's left alone (see docs/media.md).
 	MediaSettled bool `json:"media_settled" gorm:"not null; default: false"`
+	// SupersededByID marks an imported session hidden as a duplicate of a higher-priority
+	// source's session (Enabled is false while it is set). Distinguishes "hidden duplicate,
+	// restorable" from "deleted" — see docs/activity-dedup.md.
+	SupersededByID *uuid.UUID `json:"superseded_by_id" gorm:"type:varchar(100);default: null"`
 }
 
 type ExerciseUpdateRequest struct {

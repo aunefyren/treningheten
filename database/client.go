@@ -221,6 +221,7 @@ func Migrate() {
 	}
 
 	migrateStravaIgnoreWalksToGoalSettings()
+	migrateStravaSkipHevyToSourcePriority()
 	backfillObservedMaxHeartrate()
 	backfillOperationStreamRollups()
 	mergeDuplicateExerciseDays()
@@ -421,6 +422,39 @@ func migrateStravaIgnoreWalksToGoalSettings() {
 		logger.Log.Warn("Failed to clear migrated strava_walks flags. Error: " + err.Error())
 	}
 	logger.Log.Info("Migrated " + strconv.Itoa(migrated) + " users' 'ignore walks' preference to Walking goal settings.")
+}
+
+// migrateStravaSkipHevyToSourcePriority is a one-time backfill: the per-user "skip Strava
+// activities already in Hevy" flag is replaced by the general ActivitySourcePriority ranking.
+// Each user with the flag on gets "hevy,strava" (unless they already have a ranking), which
+// keeps Hevy winning. Self-limiting: the flag is cleared once migrated and nothing sets it
+// any more, so later boots find no rows.
+func migrateStravaSkipHevyToSourcePriority() {
+	if !Instance.Migrator().HasColumn(&models.User{}, "strava_skip_hevy_duplicates") {
+		return
+	}
+
+	var skipHevyUserIDs []uuid.UUID
+	if err := Instance.Model(&models.User{}).Where("strava_skip_hevy_duplicates = ?", true).Pluck("id", &skipHevyUserIDs).Error; err != nil {
+		logger.Log.Warn("Failed to read strava_skip_hevy_duplicates for source-priority migration. Error: " + err.Error())
+		return
+	}
+	if len(skipHevyUserIDs) == 0 {
+		return
+	}
+
+	migrated := Instance.Model(&models.User{}).
+		Where("strava_skip_hevy_duplicates = ?", true).
+		Where("activity_source_priority IS NULL").
+		Update("activity_source_priority", models.IntegrationProviderHevy+","+models.IntegrationProviderStrava)
+	if migrated.Error != nil {
+		logger.Log.Warn("Failed to migrate strava_skip_hevy_duplicates to source priority. Error: " + migrated.Error.Error())
+		return
+	}
+	if err := Instance.Model(&models.User{}).Where("strava_skip_hevy_duplicates = ?", true).Update("strava_skip_hevy_duplicates", false).Error; err != nil {
+		logger.Log.Warn("Failed to clear migrated strava_skip_hevy_duplicates flags. Error: " + err.Error())
+	}
+	logger.Log.Info("Migrated " + strconv.FormatInt(migrated.RowsAffected, 10) + " users' 'skip Strava duplicates of Hevy' preference to a source priority.")
 }
 
 func InitializeSQLiteDB() error {

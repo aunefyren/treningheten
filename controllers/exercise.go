@@ -1438,6 +1438,19 @@ func APIStravaCombine(context *gin.Context) {
 		}
 	}
 
+	// A combined session takes no part in duplicate detection, so whatever its parts were
+	// hiding comes back. The combine itself has succeeded, so a failure here is only logged.
+	user, err := database.GetAllUserInformation(userID)
+	if err != nil {
+		logger.Log.Warn("Failed to get user to restore duplicates after combining. Error: " + err.Error())
+	} else {
+		for _, exercise := range exercises {
+			if err := restoreDuplicatesOf(user, exercise.ID); err != nil {
+				logger.Log.Warn("Failed to restore duplicates after combining. Error: " + err.Error())
+			}
+		}
+	}
+
 	context.JSON(http.StatusCreated, gin.H{"message": "Exercises combined."})
 }
 

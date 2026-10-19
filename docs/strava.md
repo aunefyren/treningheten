@@ -34,6 +34,11 @@ Per-user state lives on the `User` model (`models/user.go`):
 | `StravaID` | The athlete's numeric Strava id (captured at authorization time from the auth-code exchange's `athlete` object, in `StravaGetAuthorizationForUser`'s `c:` branch — the only Strava response that includes it) |
 | `StravaIgnoreWalks` | **Deprecated.** Formerly skipped `walk` activities on import. Walks now import like any other activity; whether they count toward the goal is governed per-activity-type by `UserActivityGoalSetting` (see [data-model.md](data-model.md)). `Migrate()` backfills any user who had this on into a `Walking → doesn't count` setting and clears the flag. |
 | `StravaPublic` | Whether the user's Strava-derived activities are shown on their profile |
+| `StravaSkipHevyDuplicates` | **Deprecated.** Formerly skipped Strava activities that overlapped a Hevy workout. Replaced by the source ranking `ActivitySourcePriority`. See [activity-dedup.md](activity-dedup.md). |
+
+An imported activity that duplicates a session from a higher-ranked source (typically Hevy's
+auto-push of a Hevy workout) is still imported, then hidden. Later syncs leave the hidden copy
+alone. See [activity-dedup.md](activity-dedup.md).
 
 ## Connecting an account (OAuth login)
 

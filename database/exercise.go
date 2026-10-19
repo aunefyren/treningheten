@@ -2,7 +2,6 @@ package database
 
 import (
 	"errors"
-	"time"
 
 	"github.com/aunefyren/treningheten/models"
 
@@ -226,73 +225,6 @@ func GetExerciseForUserWithHevyWorkoutID(userID uuid.UUID, hevyWorkoutID string)
 	}
 
 	return exercise, err
-}
-
-// GetHevyExerciseForUserNearTime returns an enabled Hevy-imported exercise whose start
-// time falls within ±window of start, for the given user (used to skip a Strava activity
-// that duplicates a Hevy workout). Returns nil when there is no match.
-func GetHevyExerciseForUserNearTime(userID uuid.UUID, start time.Time, window time.Duration) (*models.Exercise, error) {
-	var exercises []models.Exercise
-
-	lower := instantParam(start.Add(-window))
-	upper := instantParam(start.Add(window))
-
-	record := Instance.
-		Where("exercises.enabled = ?", true).
-		Where("exercises.hevy_workout_id IS NOT NULL").
-		Where("exercises.time >= ?", lower).
-		Where("exercises.time <= ?", upper).
-		Joins("JOIN exercise_days on exercises.exercise_day_id = exercise_days.id").
-		Where("exercise_days.enabled = ?", true).
-		Where("exercise_days.user_id = ?", userID).
-		Order("exercises.time ASC").
-		Limit(1).
-		Find(&exercises)
-
-	if record.Error != nil {
-		return nil, record.Error
-	} else if len(exercises) == 0 {
-		return nil, nil
-	}
-
-	return &exercises[0], nil
-}
-
-// GetStravaExerciseForUserNearTime returns an enabled Strava-sourced exercise (one with a
-// set carrying a Strava id, and not itself a Hevy import) whose start time falls within
-// ±window of start, for the given user (used so a Hevy workout can supersede an
-// already-imported Strava duplicate). Returns nil when there is no match.
-func GetStravaExerciseForUserNearTime(userID uuid.UUID, start time.Time, window time.Duration) (*models.Exercise, error) {
-	var exercises []models.Exercise
-
-	lower := instantParam(start.Add(-window))
-	upper := instantParam(start.Add(window))
-
-	record := Instance.
-		Where("exercises.enabled = ?", true).
-		Where("exercises.hevy_workout_id IS NULL").
-		Where("exercises.time >= ?", lower).
-		Where("exercises.time <= ?", upper).
-		Joins("JOIN operations on operations.exercise_id = exercises.id").
-		Where("operations.enabled = ?", true).
-		Joins("JOIN operation_sets on operation_sets.operation_id = operations.id").
-		Where("operation_sets.enabled = ?", true).
-		Where("operation_sets.strava_id IS NOT NULL").
-		Joins("JOIN exercise_days on exercises.exercise_day_id = exercise_days.id").
-		Where("exercise_days.enabled = ?", true).
-		Where("exercise_days.user_id = ?", userID).
-		Group("exercises.id").
-		Order("exercises.time ASC").
-		Limit(1).
-		Find(&exercises)
-
-	if record.Error != nil {
-		return nil, record.Error
-	} else if len(exercises) == 0 {
-		return nil, nil
-	}
-
-	return &exercises[0], nil
 }
 
 // Return exercise days where there are exercises that are enabled, is on, for a user

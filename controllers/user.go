@@ -1060,8 +1060,18 @@ func APIPartialUpdateUser(context *gin.Context) {
 		userObject.StravaPublic = userUpdateRequest.StravaPublic
 	}
 
-	if userUpdateRequest.StravaSkipHevyDuplicates != nil {
-		userObject.StravaSkipHevyDuplicates = userUpdateRequest.StravaSkipHevyDuplicates
+	// A changed source ranking is re-applied to the whole history once saved (below).
+	reconcileDuplicates := false
+	if userUpdateRequest.ActivitySourcePriority != nil {
+		priority, err := normaliseActivitySourcePriority(*userUpdateRequest.ActivitySourcePriority)
+		if err != nil {
+			logger.Log.Info("Invalid activity source priority. Error: " + err.Error())
+			context.JSON(http.StatusBadRequest, gin.H{"error": "Invalid activity source priority."})
+			context.Abort()
+			return
+		}
+		reconcileDuplicates = userObject.ActivitySourcePriority == nil || *userObject.ActivitySourcePriority != priority
+		userObject.ActivitySourcePriority = &priority
 	}
 
 	if userUpdateRequest.HevyPublic != nil {
@@ -1115,6 +1125,14 @@ func APIPartialUpdateUser(context *gin.Context) {
 		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update user in the database."})
 		context.Abort()
 		return
+	}
+
+	if reconcileDuplicates {
+		goSafely("duplicate activity reconcile", func() {
+			if err := reconcileDuplicateActivitiesForUser(userObject); err != nil {
+				logger.Log.Warn("Failed to reconcile duplicate activities for user " + userObject.ID.String() + ". Error: " + err.Error())
+			}
+		})
 	}
 
 	// Reply

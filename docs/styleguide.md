@@ -363,7 +363,7 @@ The `/account` settings are a collapsible accordion split into **titled groups**
 `.settings-group`: a `.settings-group-title` (an `<h2>`, body font, sentence case, semibold
 `--darkblue`, aligned to the panel edge — not a display-font or all-caps eyebrow) over **one white
 module panel** (`.account-section-wrapper`). The groups are *Account* (account settings,
-notifications, wheel appearance), *Training*, *Exercise connections* (Strava, Hevy), *Listening
+notifications, wheel appearance), *Training*, *Exercise connections* (Strava, Hevy, duplicate activities), *Listening
 connections* (Plex, Spotify, Audiobookshelf) and *Developer* (access tokens). A section the server
 has disabled is **not rendered** (rather than hidden), so the last-row hairline rule stays right; a
 group with no enabled sections is dropped entirely.
@@ -576,6 +576,13 @@ not theme — left inline on purpose. Dynamic (`${…}`) values stay inline too.
    conventions — don't extend the legacy pattern.
 
 ## Decisions log
+
+- **Duplicate-activity ranking on `/account`.** Replaces the Strava section's Hevy-only
+  "skip duplicates" checkbox with a *Duplicate activities* section under *Exercise
+  connections*, shown when at least two import sources are enabled: a `.field-check` toggle over
+  a ranked `.source-priority-list` (rank, name, `.btn--ghost.btn--sm` "Move up"), modelled on
+  the per-sport max HR rows. Move buttons rather than drag-and-drop: with two or three sources
+  that is enough, and it works with a keyboard. No new tokens.
 
 - **Front page reflects sick leave.** A sick-leave week used to show as a normal, behind-on-goal
   ring, while the calendar was greyed out with `.transparent`/`.noninteractive` from inside the

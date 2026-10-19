@@ -44,16 +44,23 @@ type User struct {
 	// Deprecated: superseded by UserActivityGoalSetting (Walking → doesn't count). No longer
 	// read on import; the Migrate() backfill converts any lingering true value to a goal
 	// setting and clears it. Default is now false so new users don't re-trigger that migration.
-	StravaIgnoreWalks        *bool      `json:"strava_walks" gorm:"column:strava_walks;default: false"`
-	StravaID                 *string    `json:"strava_id" gorm:"default: null"`
-	StravaPublic             *bool      `json:"strava_public" gorm:"default: true"`
-	StravaSkipHevyDuplicates *bool      `json:"strava_skip_hevy" gorm:"default: false"`
-	HevyAPIKey               *string    `json:"-" gorm:"default: null"`
-	HevyLastSync             *time.Time `json:"-" gorm:"default: null"`
-	HevyProfileURL           *string    `json:"hevy_profile_url" gorm:"default: null"`
-	HevyPublic               *bool      `json:"hevy_public" gorm:"default: true"`
-	HevyConnected            bool       `json:"hevy_connected" gorm:"-"`
-	StravaConnected          bool       `json:"strava_connected" gorm:"-"`
+	StravaIgnoreWalks *bool   `json:"strava_walks" gorm:"column:strava_walks;default: false"`
+	StravaID          *string `json:"strava_id" gorm:"default: null"`
+	StravaPublic      *bool   `json:"strava_public" gorm:"default: true"`
+	// Deprecated: superseded by ActivitySourcePriority. No longer read; the Migrate() backfill
+	// converts a lingering true value to "hevy,strava" and clears it.
+	StravaSkipHevyDuplicates *bool `json:"-" gorm:"default: false"`
+	// ActivitySourcePriority ranks the import sources for duplicate detection, highest first,
+	// as a comma-separated list of integration providers (e.g. "hevy,strava"). NULL means never
+	// set; empty (or a single source) means duplicate detection is off. See
+	// docs/activity-dedup.md.
+	ActivitySourcePriority *string    `json:"activity_source_priority" gorm:"default: null"`
+	HevyAPIKey             *string    `json:"-" gorm:"default: null"`
+	HevyLastSync           *time.Time `json:"-" gorm:"default: null"`
+	HevyProfileURL         *string    `json:"hevy_profile_url" gorm:"default: null"`
+	HevyPublic             *bool      `json:"hevy_public" gorm:"default: true"`
+	HevyConnected          bool       `json:"hevy_connected" gorm:"-"`
+	StravaConnected        bool       `json:"strava_connected" gorm:"-"`
 	// IntegrationHealth is set only when a user reads their own account: the health of
 	// their Strava / Hevy connections, keyed by provider. See docs/integration-health.md.
 	IntegrationHealth map[string]IntegrationHealthObject `json:"integration_health,omitempty" gorm:"-"`
@@ -161,13 +168,15 @@ type UserTrainingProfileRequest struct {
 }
 
 type UserPartialUpdateRequest struct {
-	SundayAlert              *bool   `json:"sunday_alert"`
-	StravaPublic             *bool   `json:"strava_public"`
-	StravaSkipHevyDuplicates *bool   `json:"strava_skip_hevy"`
-	HevyPublic               *bool   `json:"hevy_public"`
-	WheelColor               *string `json:"wheel_color"`
-	WheelBorderColor         *string `json:"wheel_border_color"`
-	WheelEmoji               *string `json:"wheel_emoji"`
+	SundayAlert  *bool `json:"sunday_alert"`
+	StravaPublic *bool `json:"strava_public"`
+	// ActivitySourcePriority is a comma-separated, highest-first source list; empty turns
+	// duplicate detection off.
+	ActivitySourcePriority *string `json:"activity_source_priority"`
+	HevyPublic             *bool   `json:"hevy_public"`
+	WheelColor             *string `json:"wheel_color"`
+	WheelBorderColor       *string `json:"wheel_border_color"`
+	WheelEmoji             *string `json:"wheel_emoji"`
 }
 
 type UserUpdatePasswordRequest struct {

@@ -87,7 +87,8 @@ function load_page(result) {
 
             ${exerciseConnectionsEnabled ? settingsGroupHTML("Exercise connections",
                 (strava_enabled ? accountSectionHTML("strava", "Strava", "", "settings-body") : "") +
-                (hevy_enabled ? accountSectionHTML("hevy", "Hevy", "", "settings-body") : "")
+                (hevy_enabled ? accountSectionHTML("hevy", "Hevy", "", "settings-body") : "") +
+                (availableActivitySources(strava_enabled, hevy_enabled).length > 1 ? accountSectionHTML("duplicates", "Duplicate activities", "", "settings-body") : "")
             ) : ""}
 
             ${listeningConnectionsEnabled ? settingsGroupHTML("Listening connections",
@@ -820,7 +821,6 @@ function placeUserData(userObject, stravaOauth, stravaEnabled, hevyEnabled) {
         // Promote to globals so the section can be re-rendered after disconnect
         // without re-fetching server config.
         stravaOauthURL = stravaOauth;
-        stravaHevyEnabled = hevyEnabled;
         renderStravaSection(userObject);
     }
 
@@ -828,12 +828,16 @@ function placeUserData(userObject, stravaOauth, stravaEnabled, hevyEnabled) {
         renderHevySection(userObject);
     }
 
+    var activitySources = availableActivitySources(stravaEnabled, hevyEnabled);
+    if(activitySources.length > 1) {
+        placeDuplicateActivities(userObject, activitySources);
+    }
+
     renderWheelSection(userObject);
 }
 
 function renderStravaSection(userObject) {
     var stravaOauth = stravaOauthURL;
-    var hevyEnabled = stravaHevyEnabled;
 
     var stravaHTML = `
         <p class="settings-text">
@@ -849,17 +853,6 @@ function renderStravaSection(userObject) {
     // state as a derived boolean instead (mirrors hevy_connected).
     var stravaHealth = integrationHealthFor(userObject, "strava");
     if(userObject.strava_connected) {
-        // Only relevant when Hevy is available on this server.
-        var skipHevyOption = "";
-        if(hevyEnabled) {
-            skipHevyOption = `
-                <div class="field-check">
-                    <input type="checkbox" id="strava_skip_hevy" name="strava_skip_hevy" onchange="updateAccountValue('strava_skip_hevy');" ${userObject.strava_skip_hevy ? "checked" : ""}>
-                    <label for="strava_skip_hevy">Skip Strava activities already in Hevy</label>
-                </div>
-            `;
-        }
-
         // A broken connection is kept (and flagged) rather than cleared, so offer the way
         // back in alongside the usual controls.
         var reconnectStravaButton = "";
@@ -879,7 +872,6 @@ function renderStravaSection(userObject) {
                     <input type="checkbox" id="strava_public" name="strava_public" onchange="updateAccountValue('strava_public');" ${userObject.strava_public ? "checked" : ""}>
                     <label for="strava_public">Show my Strava on my profile</label>
                 </div>
-                ${skipHevyOption}
             </div>
 
             ${goalCountingHintHTML()}
@@ -963,6 +955,119 @@ function renderHevySection(userObject) {
 
     document.getElementById("hevy-wrapper").innerHTML = hevyHTML;
     setSectionStatus("hevy", userObject.hevy_connected, hevyHealth);
+}
+
+// --- Duplicate activities ---------------------------------------------------
+// The same workout imported from two sources (a Hevy workout auto-pushed to Strava) is kept
+// once: the copy from the highest-ranked source shows, the rest are hidden. The ranking is
+// stored as a comma-separated, highest-first list; an empty list turns detection off. See
+// docs/activity-dedup.md.
+
+var activitySourceNames = { hevy: "Hevy", strava: "Strava" };
+
+// Sources ranked in the user's order (unranked ones after, in the default order) and whether
+// detection is on.
+var activitySourceOrder = [];
+var duplicateDetectionOn = false;
+
+// availableActivitySources lists the import sources this server has enabled, in the default
+// ranking order (Hevy first, matching the server's default).
+function availableActivitySources(stravaEnabled, hevyEnabled) {
+    var sources = [];
+    if(hevyEnabled) sources.push("hevy");
+    if(stravaEnabled) sources.push("strava");
+    return sources;
+}
+
+function placeDuplicateActivities(userObject, sources) {
+    var stored = (userObject.activity_source_priority || "").split(",").map(function(source) {
+        return source.trim().toLowerCase();
+    }).filter(function(source) {
+        return sources.indexOf(source) !== -1;
+    });
+
+    duplicateDetectionOn = stored.length > 1;
+    activitySourceOrder = stored.concat(sources.filter(function(source) { return stored.indexOf(source) === -1; }));
+
+    document.getElementById("duplicates-wrapper").innerHTML = `
+        <p class="settings-text">
+            A workout imported from more than one source — like a Hevy workout that is also sent to Strava — is only kept once. Sessions from different sources that start within 15 minutes of each other count as the same workout, and the copy from the source ranked highest is the one that shows.
+        </p>
+
+        <div class="field-check">
+            <input type="checkbox" id="duplicate_detection" onchange="toggleDuplicateDetection(this.checked);" ${duplicateDetectionOn ? "checked" : ""}>
+            <label for="duplicate_detection">Hide duplicate activities</label>
+        </div>
+
+        <div class="field" id="activity-source-field">
+            <span class="field-label">Keep the copy from</span>
+            <ol class="source-priority-list" id="source-priority-list"></ol>
+            <span class="field-hint">Changes apply to your past activities too, but results of weeks already processed are not recalculated.</span>
+        </div>
+    `;
+    renderActivitySourceOrder();
+}
+
+function renderActivitySourceOrder() {
+    var field = document.getElementById("activity-source-field");
+    var list = document.getElementById("source-priority-list");
+    if(!field || !list) return;
+
+    field.style.display = duplicateDetectionOn ? "" : "none";
+    list.innerHTML = activitySourceOrder.map(function(source, index) {
+        var moveUp = index === 0 ? "" : `<button type="button" class="btn btn--ghost btn--sm" onclick="moveActivitySourceUp(${index});">Move up</button>`;
+        return `
+            <li class="source-priority-row">
+                <span class="source-priority-rank">${index + 1}</span>
+                <span class="source-priority-name">${escapeHTML(activitySourceNames[source] || source)}</span>
+                ${moveUp}
+            </li>
+        `;
+    }).join("");
+}
+
+function toggleDuplicateDetection(on) {
+    duplicateDetectionOn = on;
+    renderActivitySourceOrder();
+    saveActivitySourcePriority();
+}
+
+function moveActivitySourceUp(index) {
+    if(index < 1 || index >= activitySourceOrder.length) return;
+    var source = activitySourceOrder[index];
+    activitySourceOrder[index] = activitySourceOrder[index - 1];
+    activitySourceOrder[index - 1] = source;
+    renderActivitySourceOrder();
+    saveActivitySourcePriority();
+}
+
+function saveActivitySourcePriority() {
+    var formData = JSON.stringify({
+        activity_source_priority: duplicateDetectionOn ? activitySourceOrder.join(",") : ""
+    });
+
+    var xhttp = new XMLHttpRequest();
+    xhttp.onreadystatechange = function() {
+        if (this.readyState == 4) {
+            var result;
+            try {
+                result = JSON.parse(this.responseText);
+            } catch(e) {
+                console.log(e +' - Response: ' + this.responseText);
+                error("Could not reach API.");
+                return;
+            }
+
+            if(result.error) {
+                error(result.error);
+            }
+        }
+    };
+    xhttp.withCredentials = true;
+    xhttp.open("PATCH", api_url + "auth/users/" + user_id);
+    xhttp.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
+    xhttp.setRequestHeader("Authorization", jwt);
+    xhttp.send(formData);
 }
 
 // setSectionStatus puts a small status tag after a connection section's title, so the state

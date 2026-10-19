@@ -186,7 +186,3 @@ Built for all five integrations; see [integration-health.md](integration-health.
   before cleanup. Seen 2026-10-03 in the controller fault sweep:
   `TestFaultInjectionSweep/admin_stats/fault-5` got a 401 from `POST /api/auth/gear`
   during setup (1 run in 3), plausibly a stray goroutine consuming the injected fault.
-
-## Skip Strava activities in Hevy
-- This option should also be within Hevy
-- Maybe a separate setting/priority setting? That way it apples to all external connections

@@ -62,6 +62,9 @@ architecture overview.
   clients).
 - [strava.md](strava.md) — Strava integration: OAuth connect, the token-lifecycle
   scheme, hourly sync, rate limiting, and activity-to-exercise conversion.
+- [activity-dedup.md](activity-dedup.md) — duplicate activities across import sources:
+  the user's source ranking, what counts as a duplicate, hiding vs restoring, and the
+  reconcile when the ranking changes.
 - [hevy.md](hevy.md) — Hevy integration: per-user API-key auth (no OAuth), account
   setup/validation, and the planned workout sync + exercise mapping (WIP).
 - [ollama.md](ollama.md) — AI-generated front-page greeting: the pre-computed payload

@@ -172,43 +172,6 @@ func TestGetExerciseForUserWithStravaAndHevyID(t *testing.T) {
 	}
 }
 
-func TestGetExercisesForUserNearTime(t *testing.T) {
-	newTestDB(t)
-
-	user := makeTestUser(t, "neartime@example.com", nil)
-	day := makeDay(t, user.ID, time.Now())
-	base := time.Date(2024, 6, 15, 12, 0, 0, 0, time.UTC)
-	window := time.Hour
-
-	// A Hevy session near base, and a Strava session near base.
-	hevySession := seedHevyExercise(t, day.ID, "hw-near", base.Add(10*time.Minute))
-	stravaSession := makeSession(t, day.ID, base.Add(-15*time.Minute))
-	op := makeOperation(t, stravaSession.ID, nil)
-	seedOperationStravaSet(t, op.ID, "998877")
-
-	nearHevy, err := GetHevyExerciseForUserNearTime(user.ID, base, window)
-	if err != nil {
-		t.Fatalf("GetHevyExerciseForUserNearTime returned error: %v", err)
-	}
-	if nearHevy == nil || nearHevy.ID != hevySession.ID {
-		t.Errorf("expected to find hevy session near time")
-	}
-
-	nearStrava, err := GetStravaExerciseForUserNearTime(user.ID, base, window)
-	if err != nil {
-		t.Fatalf("GetStravaExerciseForUserNearTime returned error: %v", err)
-	}
-	if nearStrava == nil || nearStrava.ID != stravaSession.ID {
-		t.Errorf("expected to find strava session near time")
-	}
-
-	// Far away in time → no match.
-	far := base.Add(5 * time.Hour)
-	if got, _ := GetHevyExerciseForUserNearTime(user.ID, far, window); got != nil {
-		t.Errorf("expected no hevy session far from window, got %v", got)
-	}
-}
-
 func TestGetAllExerciseDaysWithExerciseByUserID(t *testing.T) {
 	newTestDB(t)
 

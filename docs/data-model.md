@@ -121,6 +121,9 @@ Strava and media features read.
   The soundtrack and Strava streams attach here, at the session grain. A session carries
   **four independent booleans** — don't conflate them:
   - `Enabled` — hard soft-delete (GORM level); a disabled row is gone from every read.
+    When `SupersededByID` is also set, the session is not deleted but **hidden as a
+    duplicate** of that session (an import from a higher-ranked source), and can be restored.
+    See [activity-dedup.md](activity-dedup.md).
   - `IsOn` — a **reversible builder soft-delete**. Turning a session off in the
     `/exercises/:id` builder keeps the row (it still shows as a struck-out session with
     its operations, and can be turned back on) but removes it from activity + goal counts.

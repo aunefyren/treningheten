@@ -9,6 +9,7 @@ import "testing"
 // empty playback list) — correctly, since there is nothing to read or write.
 var shortCircuitOnEmptyInput = map[string]bool{
 	"BumpObservedMaxHeartrate":                       true,
+	"CountStravaActivitiesForExercises":              true,
 	"GetDebtsForUserIDsBetweenDates":                 true,
 	"GetExerciseDaysForSharingUsersInListUsingDates": true,
 	"GetSickleavesForGoalIDsBetweenDates":            true,

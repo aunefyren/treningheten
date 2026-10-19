@@ -636,15 +636,16 @@ func StravaSyncActivityForUser(activity models.StravaGetActivitiesRequestReply, 
 	// the new exercise below, rather than dropping the activity and losing its streams/media.
 	logger.Log.Trace("Sport type is: " + activity.SportType)
 
-	// skip activities that duplicate an imported Hevy workout (Hevy wins), when enabled
-	if user.StravaSkipHevyDuplicates != nil && *user.StravaSkipHevyDuplicates {
-		hevyExercise, hevyErr := database.GetHevyExerciseForUserNearTime(user.ID, activity.StartDate, hevyStravaOverlapWindow)
-		if hevyErr != nil {
-			logger.Log.Warn("Failed to check Hevy overlap for Strava activity. Error: " + hevyErr.Error())
-		} else if hevyExercise != nil {
-			logger.Log.Trace("Skipping Strava activity because it overlaps an imported Hevy workout.")
-			return nil
-		}
+	// An activity already hidden as a duplicate of a higher-priority source is left alone, so
+	// the hourly sync neither imports it again nor spends rate-limited calls refreshing it.
+	// Duplicates themselves are resolved after the import below (resolveImportedDuplicates).
+	hiddenExercise, err := database.GetSupersededExerciseForUserWithStravaID(user.ID, strconv.FormatInt(activity.ID, 10))
+	if err != nil {
+		logger.Log.Error("Failed to check for a hidden duplicate of Strava activity. Error: " + err.Error())
+		return errors.New("Failed to check for a hidden duplicate.")
+	} else if hiddenExercise != nil {
+		logger.Log.Trace("Skipping Strava activity hidden as a duplicate.")
+		return nil
 	}
 
 	// The user's Strava ID is captured at authorization time (see
@@ -816,11 +817,20 @@ func StravaSyncActivityForUser(activity models.StravaGetActivitiesRequestReply, 
 	} else {
 		reevaluateStravaSessionGoalCounting(user.ID, finalExercise, previousActionID, operation.ActionID, activity.StartDateLocal)
 
+		// Resolved once the operation exists, since that is what marks the session as
+		// Strava-sourced.
+		hidden, err := resolveImportedDuplicates(user, finalExercise)
+		if err != nil {
+			logger.Log.Warn("Failed to resolve duplicates for Strava activity. Error: " + err.Error())
+		}
+
 		// A Strava activity carries a fully known time window, so this is the prime
 		// trigger to overlay listening history (async; appears on next load). The
 		// soundtrack attaches to the session, and each Strava activity is its own
-		// session, so trigger once per exercise.
-		TriggerMediaSyncForExercise(user, finalExercise.ID)
+		// session, so trigger once per exercise — unless it was just hidden as a duplicate.
+		if !hidden {
+			TriggerMediaSyncForExercise(user, finalExercise.ID)
+		}
 	}
 
 	logger.Log.Trace("Synced operations.")

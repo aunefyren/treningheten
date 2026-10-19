@@ -182,20 +182,10 @@ per-workout URL (the workout `id` is a private UUID, not the share slug).
   mirroring the Strava athlete link gated by `strava_public`. The "Show my Hevy on my
   profile" toggle lives in the `/account` Hevy section.
 
-## Strava de-duplication (implemented)
+## Duplicates of Strava activities
 
-When both integrations are connected, a strength session often lands twice (Hevy plus its
-auto-push to Strava). "From Hevy" is **not** reliably detectable from the Strava API
-(`external_id`/`device_name` are heuristics only), so dedup is done by **start-time
-overlap on our own data** instead, gated by `User.StravaSkipHevyDuplicates` (auto-enabled
-on first Hevy connect; toggle in the Strava settings on `/account`, shown only when Hevy is
-enabled). Window: `hevyStravaOverlapWindow` (±15 min).
+When both integrations are connected, a strength session often lands twice: once from Hevy
+and once from Hevy's auto-push to Strava. This is handled by the shared duplicate detection,
+not by Hevy-specific logic. The user ranks the sources, and connecting Hevy defaults the
+ranking to Hevy first. See [activity-dedup.md](activity-dedup.md).
 
-Bidirectional, so import order doesn't matter:
-
-- **Strava import** (`StravaSyncActivityForUser`): if an enabled Hevy exercise overlaps the
-  activity's start (`GetHevyExerciseForUserNearTime`), the activity is skipped.
-- **Hevy import** (`HevySyncWorkoutForUser`): any enabled **Strava-sourced** exercise that
-  overlaps (`GetStravaExerciseForUserNearTime` — only matches exercises with a set carrying
-  a `strava_id`, never manual entries) is soft-disabled, so Hevy supersedes an
-  already-imported Strava duplicate.
