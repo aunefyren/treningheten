@@ -112,6 +112,28 @@ func TestSubscriptionAlertFilters(t *testing.T) {
 	}
 }
 
+// TestUpdateSubscriptionUnchanged re-saves settings that are already stored. Every setter
+// requires RowsAffected == 1, which MySQL only reports for a row it didn't change when
+// the connection counts matched rows (clientFoundRows): otherwise a re-save landing in the
+// same millisecond of updated_at reads as 0 rows and fails. The frozen clock makes that
+// millisecond collision certain instead of a CI-speed flake.
+func TestUpdateSubscriptionUnchanged(t *testing.T) {
+	newTestDB(t)
+	user := makeTestUser(t, "subunchanged@example.com", nil)
+	makeSubscription(t, user.ID, "ep", true, true, true)
+
+	frozen := time.Now()
+	previous := Instance.Config.NowFunc
+	Instance.Config.NowFunc = func() time.Time { return frozen }
+	t.Cleanup(func() { Instance.Config.NowFunc = previous })
+
+	for i := range 2 {
+		if err := UpdateSubscriptionForUserByUserIDAndEndpoint(user.ID, "ep", true, true, true, boolPtr(true)); err != nil {
+			t.Fatalf("re-save %d of unchanged settings returned error: %v", i+1, err)
+		}
+	}
+}
+
 func TestUpdateSubscriptionForUserByUserIDAndEndpoint(t *testing.T) {
 	newTestDB(t)
 

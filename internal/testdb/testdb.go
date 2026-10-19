@@ -157,9 +157,11 @@ func openMySQL(t testing.TB, dsn string, config *gorm.Config) *gorm.DB {
 		t.Fatalf("failed to create database: %v", err)
 	}
 
-	// Mirrors database.Connect's mysql branch (parseTime, local time, utf8mb4).
+	// Mirrors database.Connect's mysql branch (parseTime, local time, utf8mb4, matched-row
+	// counts).
 	parsed.DBName = name
 	parsed.ParseTime = true
+	parsed.ClientFoundRows = true
 	parsed.Loc = serverZone(t)
 	db, err := gorm.Open(mysql.Open(parsed.FormatDSN()), config)
 	if err != nil {

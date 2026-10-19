@@ -77,7 +77,11 @@ func Connect(dbType string, timezone string, dbUsername string, dbPassword strin
 	} else if strings.ToLower(dbType) == "mysql" {
 		logger.Log.Debug("attempting to connect to mysql database")
 
-		connStrDb := dbUsername + ":" + dbPassword + "@tcp(" + dbIP + ":" + strconv.Itoa(dbPort) + ")/" + dbName + "?parseTime=True&loc=Local&charset=utf8mb4"
+		// clientFoundRows: MySQL otherwise reports an UPDATE's affected rows as the rows it
+		// *changed*, so re-saving an unchanged value (within the same millisecond of
+		// updated_at) reads as 0 rows and fails every "RowsAffected != 1" check. With it,
+		// MySQL counts matched rows like SQLite and Postgres. See docs/conventions.md.
+		connStrDb := dbUsername + ":" + dbPassword + "@tcp(" + dbIP + ":" + strconv.Itoa(dbPort) + ")/" + dbName + "?parseTime=True&loc=Local&charset=utf8mb4&clientFoundRows=true"
 
 		// Connect to DB without DB Name
 		Instance, dbError = gorm.Open(mysql.Open(connStrDb), &gorm.Config{

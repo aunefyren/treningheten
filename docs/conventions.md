@@ -386,6 +386,11 @@ fragments (`Where`, `Joins`, `Select`, `Order`, `Group`) must run on all of them
 - **No dialect-specific functions or column types.** Unbounded text is
   `size:4294967295` (longtext on MySQL, text elsewhere), not `type:longtext`. Custom
   `Valuer` types return a `string`, not `[]byte` (Postgres reads that as `bytea`).
+- **`RowsAffected` counts matched rows**, on every backend: an UPDATE that writes the
+  values already stored still reports 1. MySQL only does so because `Connect` (and
+  `internal/testdb`) set `clientFoundRows=true`; by default it counts *changed* rows, and
+  a re-save within the same millisecond of `updated_at` would fail every
+  `RowsAffected != 1` check. Keep the flag on any new MySQL connection.
 - **Whole-day date bounds are strings in the server zone**; see
   [data-conventions.md](data-conventions.md#date-range-bounds-are-strings--never-add-000-to-the-lower-bound).
 
