@@ -1,6 +1,7 @@
 package database
 
 import (
+	"sync"
 	"testing"
 	"time"
 
@@ -79,6 +80,48 @@ func TestMediaConnectionLifecycle(t *testing.T) {
 	}
 	if gone, _ := GetMediaConnectionForUserProvider(user.ID, models.MediaProviderPlex); gone != nil {
 		t.Errorf("expected connection gone after delete, got %v", gone)
+	}
+}
+
+// TestReplaceMediaPlaybackConcurrently covers overlapping pulls of one session (the hourly
+// reconcile racing the re-pull button, say): however they interleave, the session ends up
+// with one soundtrack, never the rows of several pulls side by side. SQLite serialises writes
+// anyway; run against Postgres/MySQL (internal/testdb) this is what the row lock guards.
+func TestReplaceMediaPlaybackConcurrently(t *testing.T) {
+	newTestDB(t)
+	user := makeTestUser(t, "playback-race@example.com", nil)
+	dayID := seedDay(t, user.ID, time.Now(), true)
+	exerciseID := seedExerciseWithID(t, dayID)
+	base := time.Date(2026, 6, 27, 10, 0, 0, 0, time.UTC)
+
+	const pulls = 8
+	var wait sync.WaitGroup
+	errs := make(chan error, pulls)
+	for range pulls {
+		wait.Add(1)
+		go func() {
+			defer wait.Done()
+			playback := []models.MediaPlayback{
+				makeMediaPlayback(exerciseID, models.MediaProviderAudiobookshelf, "Book", base),
+				makeMediaPlayback(exerciseID, models.MediaProviderAudiobookshelf, "Episode", base.Add(20*time.Minute)),
+			}
+			errs <- ReplaceMediaPlaybackForExerciseProvider(exerciseID, models.MediaProviderAudiobookshelf, playback)
+		}()
+	}
+	wait.Wait()
+	close(errs)
+	for err := range errs {
+		if err != nil {
+			t.Fatalf("concurrent replace failed: %v", err)
+		}
+	}
+
+	all, err := GetMediaPlaybackForExercise(exerciseID)
+	if err != nil {
+		t.Fatalf("get playback failed: %v", err)
+	}
+	if len(all) != 2 {
+		t.Errorf("rows after %d concurrent pulls = %d, want one pull's 2", pulls, len(all))
 	}
 }
 

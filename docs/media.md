@@ -401,6 +401,14 @@ provider and reinsert. This side-steps a fragile compound de-dupe key (a song ca
 legitimately repeat within one session) and makes re-pull "just work" — the same
 spirit as Strava sync. Other providers' rows on the same session are untouched.
 
+**Concurrent pulls are serialised per session.** The hourly reconcile, the re-pull button,
+the trigger after a Strava sync and the admin bulk sync can pull the same session at the
+same time. On Postgres/MySQL, two delete-and-replace transactions would each delete only the
+rows they can see and both insert, doubling the soundtrack. So the transaction first locks
+the session row (`SELECT … FOR UPDATE`, via `forUpdate` in `database/dialect.go`), which
+makes the next pull wait and then delete what the previous one committed. SQLite has no row
+locks and doesn't need them, since it allows only one write at a time.
+
 **Non-destructive empty guard:** an **empty** pull won't delete existing rows for that
 provider (so a stale/out-of-window Spotify pull can't erase the first pull's tracks) — see
 [Delayed settle re-pull & media reconcile cron](#delayed-settle-re-pull--media-reconcile-cron).

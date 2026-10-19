@@ -124,6 +124,16 @@ func ReplaceMediaPlaybackForExerciseProvider(exerciseID uuid.UUID, provider stri
 	}
 
 	return Instance.Transaction(func(tx *gorm.DB) error {
+		// Concurrent pulls of the same session (the hourly reconcile, the re-pull button, the
+		// post-sync trigger, the admin bulk sync) must not interleave: under Postgres/MySQL
+		// isolation, two transactions each delete only the rows they can see and both
+		// insert, doubling the soundtrack. Locking the session row first queues them, so
+		// each delete sees — and removes — what the previous one committed.
+		var locked []models.Exercise
+		if err := forUpdate(tx).Select("id").Where("id = ?", exerciseID).Find(&locked).Error; err != nil {
+			return err
+		}
+
 		del := tx.Unscoped().
 			Where("exercise_id = ?", exerciseID).
 			Where("provider = ?", provider).
