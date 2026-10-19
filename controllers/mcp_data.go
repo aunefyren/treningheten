@@ -145,9 +145,12 @@ func feedItemToSummary(item models.ActivityFeedItem) models.MCPActivitySummary {
 		SessionActivityCount: item.SessionActivityCount,
 		AvgHeartrateBpm:      item.AvgHeartrate,
 		MaxHeartrateBpm:      item.MaxHeartrate,
-		AvgCadenceRpm:        item.AvgCadence,
+		AvgCadenceRpm:        scaleCadence(item.AvgCadence, cadenceUnitForSport(item.ActionStravaName)),
 		TemperatureC:         item.TempC,
 		ElevationGainM:       item.ElevationGainM,
+	}
+	if item.AvgCadence != nil {
+		summary.CadenceUnit = cadenceUnitForSport(item.ActionStravaName)
 	}
 	if item.Distance > 0 {
 		summary.DistanceUnit = item.DistanceUnit

@@ -110,8 +110,9 @@ func computeAnalysis(streams *models.StravaActivityStreams, times []int, cumMete
 		analysis.SplitHalves = s
 		populated = true
 	}
-	if p := computePaceStdDev(segments); p != nil {
-		analysis.PaceStdDevSeconds = p
+	if stdDev, variation := computePaceVariation(segments); stdDev != nil {
+		analysis.PaceStdDevSeconds = stdDev
+		analysis.PaceVariationPct = variation
 		populated = true
 	}
 	if b := computeBreaks(streams, times, cumMeters); b != nil {
@@ -217,10 +218,11 @@ func computeSplitHalves(streams *models.StravaActivityStreams, times []int, cumM
 	return &models.StreamSplitHalves{First: first, Second: second}
 }
 
-// computePaceStdDev returns the standard deviation of the full-length splits' pace, in seconds
-// per unit distance. The trailing partial split is excluded. Returns nil with fewer than two
-// full splits.
-func computePaceStdDev(segments []models.StreamSegment) *float64 {
+// computePaceVariation returns how much the full-length splits' pace varied: the standard
+// deviation in seconds per kilometre, and the same as a percentage of the mean pace (the
+// coefficient of variation), which compares fairly across easy and fast efforts. The trailing
+// partial split is excluded. Returns nils with fewer than two full splits.
+func computePaceVariation(segments []models.StreamSegment) (stdDev *float64, variationPct *float64) {
 	paces := []float64{}
 	for _, s := range segments {
 		// Full-length splits only (the last split may be a partial unit).
@@ -229,7 +231,7 @@ func computePaceStdDev(segments []models.StreamSegment) *float64 {
 		}
 	}
 	if len(paces) < 2 {
-		return nil
+		return nil, nil
 	}
 	mean := 0.0
 	for _, p := range paces {
@@ -241,8 +243,10 @@ func computePaceStdDev(segments []models.StreamSegment) *float64 {
 		d := p - mean
 		varSum += d * d
 	}
-	std := round1(math.Sqrt(varSum / float64(len(paces))))
-	return &std
+	raw := math.Sqrt(varSum / float64(len(paces)))
+	std := round1(raw)
+	pct := round1(raw / mean * 100)
+	return &std, &pct
 }
 
 // computeBreaks finds sustained stretches of near-zero speed (stops and walk breaks). Speed
@@ -513,7 +517,9 @@ func attachStreamSummaries(day *models.ExerciseDayObject, owner models.User, spo
 				actionID = &ops[oi].Action.ID
 			}
 			hr := resolveUserHR(owner, sportMaxHeartrate(sportMax, actionID), day.Date)
-			ops[oi].StreamSummary = SummarizeStreams(streams, ops[oi].DistanceUnit, hr)
+			summary := SummarizeStreams(streams, ops[oi].DistanceUnit, hr)
+			applyCadenceUnit(summary, cadenceUnitForAction(ops[oi].Action))
+			ops[oi].StreamSummary = summary
 		}
 	}
 }
@@ -861,10 +867,52 @@ func powerStat(data []int, times []int) *models.StreamPowerStat {
 		return nil
 	}
 	return &models.StreamPowerStat{
-		AvgW:   round1(float64(sum) / float64(count)),
-		MaxW:   float64(max),
-		WorkKj: round1(work / 1000.0),
+		AvgW:        round1(float64(sum) / float64(count)),
+		MaxW:        float64(max),
+		WorkKj:      round1(work / 1000.0),
+		NormalizedW: normalizedPower(data, times),
 	}
+}
+
+// normalizedPowerWindowSeconds is the rolling-average window behind normalised power.
+const normalizedPowerWindowSeconds = 30
+
+// normalizedPower is the fourth-power mean of the 30-second rolling average power. The window
+// is time-based (samples with t in (t_i - 30, t_i]) so a series that isn't 1 Hz still averages
+// over 30 seconds; a 1 Hz clock is assumed where the time channel is missing or short. Only
+// windows that span a full 30 seconds contribute. Returns nil when none does.
+func normalizedPower(data []int, times []int) *float64 {
+	timeAt := func(i int) int {
+		if i < len(times) {
+			return times[i]
+		}
+		return i
+	}
+	if len(data) == 0 {
+		return nil
+	}
+
+	start := timeAt(0)
+	left, windowSum := 0, 0
+	fourthSum, windows := 0.0, 0
+	for i, v := range data {
+		windowSum += v
+		for timeAt(i)-timeAt(left) >= normalizedPowerWindowSeconds {
+			windowSum -= data[left]
+			left++
+		}
+		if timeAt(i)-start < normalizedPowerWindowSeconds-1 {
+			continue
+		}
+		avg := float64(windowSum) / float64(i-left+1)
+		fourthSum += avg * avg * avg * avg
+		windows++
+	}
+	if windows == 0 {
+		return nil
+	}
+	np := round1(math.Pow(fourthSum/float64(windows), 0.25))
+	return &np
 }
 
 func streamLength(s *models.StravaActivityStreams) int {

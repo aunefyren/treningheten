@@ -84,6 +84,9 @@ func TestSummarizeStreams_Header(t *testing.T) {
 	if s.Power == nil || s.Power.AvgW != 200 {
 		t.Fatalf("avg power = %+v, want 200 W", s.Power)
 	}
+	if s.Power.NormalizedW == nil || *s.Power.NormalizedW != 200 {
+		t.Fatalf("normalised power = %v, want 200 W for a steady effort", s.Power.NormalizedW)
+	}
 	if s.DurationSeconds != 100 {
 		t.Fatalf("duration = %d, want 100", s.DurationSeconds)
 	}
@@ -347,6 +350,49 @@ func TestAttachStreamSummaries_PerSportMax(t *testing.T) {
 			}
 			if tc.summary.HRMaxBpm != tc.wantMax || tc.summary.HRMaxBasis != tc.wantBasis {
 				t.Fatalf("got %d/%q, want %d/%q", tc.summary.HRMaxBpm, tc.summary.HRMaxBasis, tc.wantMax, tc.wantBasis)
+			}
+		})
+	}
+}
+
+func TestNormalizedPower(t *testing.T) {
+	constant := func(n, watts int) []int {
+		d := make([]int, n)
+		for i := range d {
+			d[i] = watts
+		}
+		return d
+	}
+	clock := func(n, step int) []int {
+		d := make([]int, n)
+		for i := range d {
+			d[i] = i * step
+		}
+		return d
+	}
+	// 60 s easy then 60 s hard: the same 200 W average as a steady ride, but surges cost more.
+	surges := append(constant(60, 100), constant(60, 300)...)
+
+	tests := []struct {
+		name   string
+		data   []int
+		times  []int
+		check  func(np *float64) bool
+		expect string
+	}{
+		{"no samples", nil, nil, func(np *float64) bool { return np == nil }, "nil"},
+		{"shorter than one window", constant(20, 250), clock(20, 1), func(np *float64) bool { return np == nil }, "nil"},
+		{"exactly one window", constant(30, 180), clock(30, 1), func(np *float64) bool { return np != nil && *np == 180 }, "180"},
+		{"steady effort equals average", constant(100, 200), clock(100, 1), func(np *float64) bool { return np != nil && *np == 200 }, "200"},
+		{"sparse samples average over time", constant(31, 250), clock(31, 2), func(np *float64) bool { return np != nil && *np == 250 }, "250"},
+		{"missing time channel assumes 1 Hz", constant(40, 150), nil, func(np *float64) bool { return np != nil && *np == 150 }, "150"},
+		{"surges weigh above the average", surges, clock(120, 1), func(np *float64) bool { return np != nil && *np > 200 && *np < 300 }, "between 200 and 300"},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			np := normalizedPower(tc.data, tc.times)
+			if !tc.check(np) {
+				t.Fatalf("normalizedPower = %v, want %s", deref(np), tc.expect)
 			}
 		})
 	}

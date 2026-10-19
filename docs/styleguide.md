@@ -150,6 +150,8 @@ used by legacy components until they're migrated.
 - **Radius:** `--radius-xs` `.25rem`, `--radius-sm` `.5rem`, `--radius-md` `1rem`,
   `--radius-lg` `1.25rem`, `--radius-pill` `999px`, `--radius-circle` `50%`.
 - **Elevation:** `--shadow-sm`, `--shadow-md`, `--shadow-lg`.
+- **Layout:** `--nav-height` (the sticky top bar's height). Anything else that sticks to the
+  viewport top offsets by it so it lands under the bar.
 
 ## Components
 
@@ -569,6 +571,23 @@ not theme — left inline on purpose. Dynamic (`${…}`) values stay inline too.
    conventions — don't extend the legacy pattern.
 
 ## Decisions log
+
+- **Workout read view: richer tiles, one over-time chart, map paired with splits.** (1) Metric
+  tiles gained a quiet **detail line** (`.wv-stat-detail`, sentence case, `--text-dim`) for the
+  number behind the headline — max HR/speed/cadence/power, the descent (the separate *Descent*
+  tile folded into *Elevation*), moving time. Foot sports show **average pace** instead of speed.
+  (2) The bare HR chart became an **over-time chart** (`.wv-trace`): one Chart.js canvas, the
+  existing **segmented tabs** (`.user-stat-tab`) switching heart rate / cadence / power (only
+  recorded channels get a tab; one channel gets a plain title), a readout of avg/max, and a dashed
+  average line. HR keeps its red line; cadence and power draw in `--mediumblue`, since the tab
+  already names the channel. (3) **Map + splits** are one `.wv-route` block: side by side when the
+  card is ≥34rem (a container query — the card, not the viewport, decides), otherwise the map is
+  `position: sticky` under the nav (`--nav-height`, new token) while the splits scroll beneath.
+  That needed `.wv-session` to switch `overflow: hidden` → `clip` — hidden makes it a scroll
+  container and traps the sticky. Split rows are now real **buttons** (hover/focus preview, click
+  pins one at a time, `aria-pressed`, focus ring); the old click toggle could pin several and lost
+  the pin on mouse-out. (4) The duplicated splits/zones/analysis title rules merged into one
+  selector list. No new colours.
 
 - **HR-zone ramp shared; zone-system preview on `/account`.** `.wv-zone-dot` and the
   `.wv-zone-1…5` calm→hot ramp moved from `workout.css` to `components.css` so `/account`'s new

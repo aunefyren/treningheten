@@ -133,31 +133,55 @@ func TestComputeSplitHalves(t *testing.T) {
 	}
 }
 
-func TestComputePaceStdDev(t *testing.T) {
-	if computePaceStdDev(nil) != nil {
-		t.Fatal("no segments: want nil")
+func TestComputePaceVariation(t *testing.T) {
+	tests := []struct {
+		name       string
+		segments   []models.StreamSegment
+		wantStdDev *float64
+		wantPct    *float64
+	}{
+		{"no segments", nil, nil, nil},
+		{"single full split", []models.StreamSegment{{Distance: 1, AvgPaceMinKm: 5}}, nil, nil},
+		{"identical splits, partial ignored", []models.StreamSegment{
+			{Distance: 1, AvgPaceMinKm: 5},
+			{Distance: 1, AvgPaceMinKm: 5},
+			{Distance: 0.4, AvgPaceMinKm: 12},
+		}, floatPtr(0), floatPtr(0)},
+		// 300s and 360s per km → std dev 30s around a 330s mean → 9.1%.
+		{"varied splits", []models.StreamSegment{
+			{Distance: 1, AvgPaceMinKm: 5},
+			{Distance: 1, AvgPaceMinKm: 6},
+		}, floatPtr(30), floatPtr(9.1)},
+		// The same ±30s on a slower effort is a smaller share of the pace.
+		{"varied slow splits", []models.StreamSegment{
+			{Distance: 1, AvgPaceMinKm: 9.5},
+			{Distance: 1, AvgPaceMinKm: 10.5},
+		}, floatPtr(30), floatPtr(5)},
 	}
-	// One full split → not enough to vary.
-	if computePaceStdDev([]models.StreamSegment{{Distance: 1, AvgPaceMinKm: 5}}) != nil {
-		t.Fatal("single split: want nil")
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			stdDev, pct := computePaceVariation(tc.segments)
+			if !floatPtrEqual(stdDev, tc.wantStdDev) || !floatPtrEqual(pct, tc.wantPct) {
+				t.Fatalf("got %v/%v, want %v/%v", deref(stdDev), deref(pct), deref(tc.wantStdDev), deref(tc.wantPct))
+			}
+		})
 	}
-	// Two identical full splits → 0; the partial trailing split is ignored.
-	segs := []models.StreamSegment{
-		{Distance: 1, AvgPaceMinKm: 5},
-		{Distance: 1, AvgPaceMinKm: 5},
-		{Distance: 0.4, AvgPaceMinKm: 12},
+}
+
+func floatPtr(v float64) *float64 { return &v }
+
+func floatPtrEqual(a, b *float64) bool {
+	if a == nil || b == nil {
+		return a == nil && b == nil
 	}
-	if p := computePaceStdDev(segs); p == nil || *p != 0 {
-		t.Fatalf("identical splits: want 0, got %v", p)
+	return *a == *b
+}
+
+func deref(p *float64) any {
+	if p == nil {
+		return nil
 	}
-	// 5.0 and 6.0 min/km → 300s and 360s → std dev 30s.
-	varied := []models.StreamSegment{
-		{Distance: 1, AvgPaceMinKm: 5},
-		{Distance: 1, AvgPaceMinKm: 6},
-	}
-	if p := computePaceStdDev(varied); p == nil || *p != 30 {
-		t.Fatalf("varied splits: want 30, got %v", p)
-	}
+	return *p
 }
 
 func TestComputeBreaks(t *testing.T) {
@@ -264,7 +288,7 @@ func TestComputeAnalysis_EndToEnd(t *testing.T) {
 		t.Fatal("expected an analysis block")
 	}
 	a := summary.Analysis
-	if a.DecouplingPct == nil || a.SplitHalves == nil || a.PaceStdDevSeconds == nil || len(a.HRByGradient) == 0 {
+	if a.DecouplingPct == nil || a.SplitHalves == nil || a.PaceStdDevSeconds == nil || a.PaceVariationPct == nil || len(a.HRByGradient) == 0 {
 		t.Fatalf("analysis missing blocks: %+v", a)
 	}
 

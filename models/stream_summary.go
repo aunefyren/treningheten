@@ -121,7 +121,8 @@ type StreamSummary struct {
 	DurationSeconds int64    `json:"duration_seconds,omitempty"`
 
 	Heartrate   *StreamStat          `json:"heartrate_bpm,omitempty" jsonschema:"heart rate, beats per minute"`
-	Cadence     *StreamStat          `json:"cadence_rpm,omitempty" jsonschema:"cadence, revolutions/steps per minute"`
+	Cadence     *StreamStat          `json:"cadence_rpm,omitempty" jsonschema:"cadence in cadence_unit: steps per minute (both legs) for runs, walks and hikes; revolutions per minute otherwise. The field name is kept for compatibility"`
+	CadenceUnit string               `json:"cadence_unit,omitempty" jsonschema:"unit of every cadence value in this summary (header and splits): 'spm' (steps per minute) or 'rpm' (revolutions per minute); present when cadence was recorded"`
 	Speed       *StreamSpeedStat     `json:"speed,omitempty"`
 	Elevation   *StreamElevationStat `json:"elevation,omitempty"`
 	Power       *StreamPowerStat     `json:"power,omitempty"`
@@ -146,7 +147,8 @@ type StreamSummary struct {
 type StreamAnalysis struct {
 	DecouplingPct     *float64                 `json:"decoupling_pct,omitempty" jsonschema:"aerobic decoupling: the percent drop in pace-to-heart-rate efficiency from the first half to the second half of the activity. Near 0 (under ~5%) means a well-controlled aerobic effort held pace without HR drift; higher values indicate cardiac drift or fatigue. A negative value means efficiency improved in the second half (e.g. a warm-up or negative split)"`
 	SplitHalves       *StreamSplitHalves       `json:"split_halves,omitempty" jsonschema:"first-half vs second-half comparison (time, distance, avg HR, avg pace) — positive/negative split detection in two rows"`
-	PaceStdDevSeconds *float64                 `json:"pace_std_dev_seconds,omitempty" jsonschema:"standard deviation of the per-split pace, in seconds per unit distance; pacing consistency in a single number, where lower is steadier. Uses only the full-length splits"`
+	PaceStdDevSeconds *float64                 `json:"pace_std_dev_seconds,omitempty" jsonschema:"standard deviation of the per-split pace, in seconds per kilometre; pacing consistency in a single number, where lower is steadier. Uses only the full-length splits"`
+	PaceVariationPct  *float64                 `json:"pace_variation_pct,omitempty" jsonschema:"pace_std_dev_seconds as a percentage of the mean split pace (coefficient of variation), so consistency compares fairly across easy and fast efforts and across sports. Rough reading for a steady effort on flat ground: under 3% very even, 3-6% moderate, over 6% uneven; intervals, hills and stops push it up by design"`
 	Breaks            *StreamBreaks            `json:"breaks,omitempty" jsonschema:"stops and walk breaks detected as sustained stretches of near-zero speed"`
 	HRByGradient      []StreamHRGradientBucket `json:"hr_by_gradient,omitempty" jsonschema:"time and average heart rate bucketed by terrain gradient — shows how much the terrain, rather than effort, drove heart rate"`
 }
@@ -234,6 +236,8 @@ type StreamPowerStat struct {
 	AvgW   float64 `json:"avg_w"`
 	MaxW   float64 `json:"max_w"`
 	WorkKj float64 `json:"work_kj" jsonschema:"total mechanical work, in kilojoules"`
+	// NormalizedW is nil when the activity is too short to fill one rolling window.
+	NormalizedW *float64 `json:"normalized_w,omitempty" jsonschema:"normalised power: the fourth-power mean of 30-second rolling average power, in watts. Weights surges more heavily than the plain average, so it estimates what a steady effort of the same physiological cost would have been; absent for activities shorter than 30 seconds"`
 }
 
 // StreamSegment is one split of a moving activity — one distance unit long, except the
@@ -249,7 +253,7 @@ type StreamSegment struct {
 	AvgSpeedKmh     float64 `json:"avg_speed_kmh,omitempty"`
 	AvgPaceMinKm    float64 `json:"avg_pace_min_km,omitempty" jsonschema:"average pace in minutes per kilometre over this split"`
 	AvgHeartrateBpm *int    `json:"avg_heartrate_bpm,omitempty"`
-	AvgCadenceRpm   *int    `json:"avg_cadence_rpm,omitempty"`
+	AvgCadenceRpm   *int    `json:"avg_cadence_rpm,omitempty" jsonschema:"average cadence over this split, in the summary's cadence_unit"`
 	AvgWatts        *int    `json:"avg_watts,omitempty"`
 	ElevationGainM  float64 `json:"elevation_gain_m,omitempty"`
 	FromPoint       int     `json:"from_point" jsonschema:"first raw-sample index of this split"`

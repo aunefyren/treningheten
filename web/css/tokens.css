@@ -121,6 +121,10 @@
   --radius-pill: 999px;
   --radius-circle: 50%;
 
+  /* Layout. The sticky top bar's height — anything else that sticks to the viewport top
+     (e.g. the workout route map) offsets by it so it lands under the bar, not behind it. */
+  --nav-height: 3.25rem;
+
   /* Elevation. */
   --shadow-sm: 0.1rem 0.2rem 0.5rem rgba(0, 0, 0, 0.09);
   --shadow-md: 0 2px 4px rgba(0, 0, 0, 0.2), 0 3px 10px rgba(0, 0, 0, 0.19);

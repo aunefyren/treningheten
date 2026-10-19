@@ -115,14 +115,25 @@ activities inside it are unboxed, so the panel keeps one border system.
 ## Activity detail (`/exercises/:id`)
 
 The day/session builder (`web/js/exercise.js`) also renders a rich **read view** per activity.
-For **cardio** (GPS/sensor) activities it surfaces the processed stream summary: per-distance
-**splits** (each with a relative-pace bar and hover-to-highlight on the route map), a
-**heart-rate chart** and an **elevation profile chart**, metric tiles (distance, pace, elevation
-gain/descent, cadence, power, temperature), a **route map + overview**, and a **heart-rate zone**
-bar — plus a **negative-split** badge when the second half was faster. When the summary carries an
-`analysis` block it adds an **Effort analysis** section (`.wv-analysis`): insight tiles for
-**aerobic decoupling** (with a signal-coloured verdict chip), **pace consistency** and **stops**,
-and an **Effort by gradient** widget (per-terrain-band share bar + avg HR on the calm→hot zone ramp).
+For **cardio** (GPS/sensor) activities it surfaces the processed stream summary, in this order:
+
+- **Metric tiles** — duration (with moving time when pauses are long), distance, average
+  **pace** for foot sports or average **speed** (with its max) otherwise, elevation (with the
+  descent), avg HR, cadence (steps per minute for foot sports), avg power and normalised power
+  (with max and work). Each tile appears only when its channel was recorded; the peak or related
+  total sits under the headline as a quiet detail line.
+- **Route** — the map and the per-distance **splits** (relative-pace bars, a **negative-split**
+  badge) side by side in a wide card, or the map pinned above the splits in a narrow one. Each
+  split is a button: hover/focus previews it on the map, click/tap pins it.
+- An **elevation profile chart**.
+- An **over-time chart** for heart rate, cadence and power: one chart, a segmented switch
+  between the recorded channels, a readout of avg/max(/min, normalised) and a dashed average
+  line.
+- A **heart-rate zone** bar.
+- When the summary carries an `analysis` block, an **Effort analysis** section
+  (`.wv-analysis`): insight tiles for **aerobic decoupling** (with a signal-coloured verdict
+  chip), **pace consistency** (seconds per km, plus the share of average pace) and **stops**, and
+  an **Effort by gradient** widget (per-terrain-band share bar + avg HR on the calm→hot zone ramp).
 
 All of it consumes one server-computed `models.StreamSummary` attached to each `OperationObject`
 (`stream_summary` — the same shape the MCP `get_activity_streams` tool returns), rather than

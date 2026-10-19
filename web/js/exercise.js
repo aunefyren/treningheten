@@ -670,12 +670,8 @@ function renderCardioSubCard(operation, exercise) {
     const durationSecs = totalSecs || movingSecs || operation.duration || 0;
     const durationHTML = durationSecs ? secondsToDurationString(durationSecs) : "—";
     const distanceHTML = hasDistance ? wvNum(parseFloat(distance.toFixed(2))) + " " + operation.distance_unit : "—";
-
-    var avgHTML = "—";
-    const speedSecs = movingSecs || totalSecs;
-    if (hasDistance && speedSecs) {
-        avgHTML = parseFloat(distance / (speedSecs / 3600)).toFixed(2) + " " + operation.distance_unit + "/h";
-    }
+    // Pauses only earn a sub-line when they are long enough to matter.
+    const movingDetail = movingSecs && totalSecs - movingSecs >= 30 ? secondsToDurationString(movingSecs) + " moving" : "";
 
     // The server attaches the processed stream summary (segments, route, HR zones and
     // header stats) whenever the activity has Strava streams. Prefer it over re-deriving
@@ -683,37 +679,28 @@ function renderCardioSubCard(operation, exercise) {
     const summary = operation.stream_summary || null;
     const streams = streamSet ? streamSet.strava_streams : null;
     const setForStreams = streamSet || sets[0] || {};
-    const hasHeartrate = streams && streams.heartrate && streams.heartrate.data && streams.heartrate.data.length > 0;
     const latlngData = streams && (streams.latlng || streams.lat_lng);
     const hasRoute = latlngData && latlngData.data && latlngData.data.length > 0;
 
-    // Extra header tiles — sourced from the summary so the card reads deeper than before.
-    const elevation = summary && summary.elevation;
-    var tilesHTML = "";
-    tilesHTML += cardioStatTile(elevationGainMetres(summary, streams), "m", "Elevation");
-    if (elevation && elevation.loss_m > 0) tilesHTML += cardioStatTile(Math.round(elevation.loss_m), "m", "Descent");
-    tilesHTML += cardioStatTile(avgHeartrate(summary, streams), "bpm", "Avg HR");
-    if (summary && summary.cadence_rpm) tilesHTML += cardioStatTile(Math.round(summary.cadence_rpm.avg), "rpm", "Avg cadence");
-    if (summary && summary.power) tilesHTML += cardioStatTile(Math.round(summary.power.avg_w), "W", "Avg power");
-    if (summary && summary.temperature_c) tilesHTML += cardioStatTile(Math.round(summary.temperature_c.avg), "°C", "Temp");
-
     const setKey = setForStreams.id || operation.id;
-    const hrCanvasID = `hr-chart-${setKey}`;
+    const traceID = `trace-${setKey}`;
     const elevCanvasID = `elev-chart-${setKey}`;
     const mapDivID = `route-map-${setKey}`;
     const splitsID = `splits-${setKey}`;
-    const hrHTML = hasHeartrate ? `<div class="wv-hr-wrapper"><canvas id="${hrCanvasID}" class="wv-hr-chart"></canvas></div>` : "";
+
+    const elevation = summary && summary.elevation;
     const elevProfile = (summary && summary.elevation_profile) || null;
     const hasElevChart = elevProfile && elevProfile.length > 1;
     const elevHTML = hasElevChart ? `${climbCaptionHTML(elevation)}<div class="wv-hr-wrapper"><canvas id="${elevCanvasID}" class="wv-elev-chart"></canvas></div>` : "";
-    const mapHTML = hasRoute ? `<div id="${mapDivID}" class="wv-map"></div>${routeCaptionHTML(summary)}` : "";
-    const splitsHTML = renderSplitsHTML(summary, operation, splitsID);
+    const splitsHTML = renderSplitsHTML(summary, operation, splitsID, hasRoute);
+    const routeHTML = renderRouteHTML(hasRoute ? mapDivID : null, summary, splitsHTML);
+    const trace = buildTrace(traceID, summary, streams, setForStreams);
     const zonesHTML = renderHRZonesHTML(summary);
     const analysisHTML = renderAnalysisHTML(summary);
 
     const segments = (summary && summary.segments) || [];
-    if (hasHeartrate || hasRoute || hasElevChart) {
-        scheduleCardioStreamRender(setForStreams, streams, hrCanvasID, mapDivID, hasHeartrate, hasRoute, latlngData, segments, splitsID, hasElevChart ? elevCanvasID : null, elevProfile);
+    if (trace || hasRoute || hasElevChart) {
+        scheduleCardioStreamRender(trace ? traceID : null, mapDivID, hasRoute, latlngData, segments, splitsID, hasElevChart ? elevCanvasID : null, elevProfile);
     }
 
     // Surface the gear used (moving activities only) so it reads without editing.
@@ -733,19 +720,265 @@ function renderCardioSubCard(operation, exercise) {
             ${gearHTML}
             ${activityDescriptionHTML(operation)}
             <div class="wv-stats">
-                <div class="wv-stat"><span class="wv-stat-value">${durationHTML}</span><span class="wv-stat-label">Duration</span></div>
-                <div class="wv-stat"><span class="wv-stat-value">${distanceHTML}</span><span class="wv-stat-label">Distance</span></div>
-                <div class="wv-stat"><span class="wv-stat-value">${avgHTML}</span><span class="wv-stat-label">Avg speed</span></div>
-                ${tilesHTML}
+                ${statTileHTML(durationHTML, "", "Duration", movingDetail)}
+                ${statTileHTML(distanceHTML, "", "Distance")}
+                ${speedTileHTML(operation, summary, hasDistance ? distance : 0, movingSecs || totalSecs)}
+                ${cardioStatTiles(summary, streams)}
             </div>
-            ${splitsHTML}
+            ${routeHTML}
+            ${elevHTML}
+            ${trace ? trace.html : ""}
             ${zonesHTML}
             ${analysisHTML}
-            ${mapHTML}
-            ${hrHTML}
-            ${elevHTML}
         </div>
     `;
+}
+
+// statTileHTML renders one headline tile: the value, its label, and an optional quiet
+// detail line underneath (a max, a descent, the moving time) for the number behind the
+// headline. The label may carry an ⓘ.
+function statTileHTML(value, unit, label, detail) {
+    const unitHTML = unit ? `<span class="wv-stat-unit">${unit}</span>` : "";
+    const detailHTML = detail ? `<span class="wv-stat-detail">${detail}</span>` : "";
+    return `<div class="wv-stat"><span class="wv-stat-value">${value}${unitHTML}</span><span class="wv-stat-label">${label}</span>${detailHTML}</div>`;
+}
+
+// cardioStatTile renders one metric tile, or nothing when the value is absent.
+function cardioStatTile(value, unit, label, detail) {
+    if (value == null || value === "" || (typeof value === "number" && !isFinite(value))) return "";
+    return statTileHTML(value, unit, label, detail);
+}
+
+// cardioStatTiles renders the sensor tiles after duration/distance/speed. Each appears only
+// when its channel was recorded, and carries its peak (or the related total) as a detail.
+function cardioStatTiles(summary, streams) {
+    const s = summary || {};
+    var html = "";
+
+    const descent = s.elevation && s.elevation.loss_m > 0 ? Math.round(s.elevation.loss_m) + " m down" : "";
+    html += cardioStatTile(elevationGainMetres(summary, streams), "m", "Elevation", descent);
+
+    const hrMax = s.heartrate_bpm ? "max " + Math.round(s.heartrate_bpm.max) : "";
+    html += cardioStatTile(avgHeartrate(summary, streams), "bpm", "Avg HR", hrMax);
+
+    if (s.cadence_rpm) {
+        html += cardioStatTile(Math.round(s.cadence_rpm.avg), s.cadence_unit || "rpm", "Avg cadence", "max " + Math.round(s.cadence_rpm.max));
+    }
+    if (s.power) {
+        html += cardioStatTile(Math.round(s.power.avg_w), "W", "Avg power", "max " + Math.round(s.power.max_w) + " W");
+        if (s.power.normalized_w != null) {
+            const work = s.power.work_kj > 0 ? Math.round(s.power.work_kj) + " kJ work" : "";
+            html += cardioStatTile(Math.round(s.power.normalized_w), "W", "Norm. power" + infoMarkHTML("power"), work);
+        }
+    }
+    if (s.temperature_c) html += cardioStatTile(Math.round(s.temperature_c.avg), "°C", "Temp");
+    return html;
+}
+
+// speedTileHTML is the third headline tile: average pace for foot sports (the number
+// runners and walkers think in), average speed with its peak for everything else.
+function speedTileHTML(operation, summary, distance, speedSecs) {
+    const unit = operation.distance_unit || "km";
+    if (isFootActivity(operation)) {
+        const pace = distance > 0 && speedSecs ? formatPace(speedSecs / distance) : "—";
+        return statTileHTML(pace, distance > 0 && speedSecs ? "/" + paceUnitLabel(unit) : "", "Avg pace");
+    }
+
+    if (!(distance > 0) || !speedSecs) return statTileHTML("—", "", "Avg speed");
+    const speed = parseFloat(distance / (speedSecs / 3600)).toFixed(1);
+    var peak = "";
+    if (summary && summary.speed && summary.speed.max_kmh > 0) {
+        // The summary is always km/h; follow the activity's own unit.
+        const max = isMileUnitJS(unit) ? summary.speed.max_kmh / 1.609344 : summary.speed.max_kmh;
+        peak = "max " + max.toFixed(1);
+    }
+    return statTileHTML(speed, unit + "/h", "Avg speed", peak);
+}
+
+// Strava sports whose activities are measured on foot: they read as pace, and their cadence
+// is steps per minute (see controllers/cadence.go).
+const WV_FOOT_SPORTS = ["Run", "TrailRun", "VirtualRun", "Walk", "Hike"];
+
+// isFootActivity keys off the action's Strava sport, falling back to the title for
+// activities without one.
+function isFootActivity(operation) {
+    const sport = operation.action && operation.action.strava_name;
+    if (sport) return WV_FOOT_SPORTS.indexOf(sport) !== -1;
+    return /\brun|jog|walk|hike|hiking/.test(activityTitle(operation).toLowerCase());
+}
+
+// formatPace renders seconds per distance unit as m:ss.
+function formatPace(secsPerUnit) {
+    var m = Math.floor(secsPerUnit / 60);
+    var sec = Math.round(secsPerUnit % 60);
+    if (sec === 60) { m += 1; sec = 0; }
+    return m + ":" + (sec < 10 ? "0" + sec : "" + sec);
+}
+
+function paceUnitLabel(unit) {
+    return isMileUnitJS(unit) ? "mi" : (unit || "km");
+}
+
+// renderRouteHTML pairs the map with the splits so tracing a split on the route never needs
+// a scroll in between: side by side when the card is wide, the map pinned above the list
+// when it is narrow (see .wv-route in workout.css). Either half renders alone when the
+// other is missing.
+function renderRouteHTML(mapDivID, summary, splitsHTML) {
+    if (!mapDivID) return splitsHTML;
+    const mapHTML = `<div class="wv-route-map"><div id="${mapDivID}" class="wv-map"></div>${routeCaptionHTML(summary)}</div>`;
+    if (!splitsHTML) return `<div class="wv-route">${mapHTML}</div>`;
+    return `<div class="wv-route wv-route--paired"><div class="wv-route-layout">${mapHTML}${splitsHTML}</div></div>`;
+}
+
+// ── Over-time chart ─────────────────────────────────────────────────────────
+// One chart for the time-based channels — heart rate, cadence, power — with a segmented
+// switch between them, instead of a stacked chart per channel. Only recorded channels get a
+// tab; a single channel gets a plain title. The readout above the chart carries the
+// numbers the line can't (average, peak, low), and a dashed line marks the average.
+
+// wvTraces holds each rendered trace's channels and Chart.js instance, keyed by trace id,
+// so the delegated tab handler can redraw without re-deriving the data.
+var wvTraces = {};
+
+// buildTrace prepares the over-time section for one activity, or returns null when no
+// time-based channel was recorded. The chart itself is drawn once the canvas exists.
+function buildTrace(traceID, summary, streams, set) {
+    if (!streams) return null;
+    const timeline = traceTimeline(streams, set);
+    const s = summary || {};
+    const candidates = [
+        {
+            key: "hr", label: "Heart rate", unit: "bpm", colorToken: "--error",
+            stream: streams.heartrate, factor: 1, skipZero: true, smooth: 1,
+            stats: s.heartrate_bpm ? [["Avg", s.heartrate_bpm.avg], ["Max", s.heartrate_bpm.max], ["Min", s.heartrate_bpm.min]] : null
+        },
+        {
+            // The raw stream is per leg for foot sports; the summary says which unit it shows.
+            key: "cadence", label: "Cadence", unit: s.cadence_unit || "rpm", colorToken: "--mediumblue",
+            stream: streams.cadence, factor: s.cadence_unit === "spm" ? 2 : 1, skipZero: true, smooth: 1,
+            stats: s.cadence_rpm ? [["Avg", s.cadence_rpm.avg], ["Max", s.cadence_rpm.max]] : null
+        },
+        {
+            // Raw watts swing hard second to second, so the line is a 10-sample rolling mean.
+            key: "power", label: "Power", unit: "W", colorToken: "--mediumblue",
+            stream: streams.watts, factor: 1, skipZero: false, smooth: 10,
+            stats: s.power ? [["Avg", s.power.avg_w], ["Max", s.power.max_w]]
+                .concat(s.power.normalized_w != null ? [["Normalised", s.power.normalized_w]] : []) : null
+        }
+    ];
+
+    const channels = candidates
+        .map(c => Object.assign(c, { points: tracePoints(c, timeline) }))
+        .filter(c => c.points.length > 1);
+    if (channels.length === 0) return null;
+
+    wvTraces[traceID] = { channels: channels, maxSecs: timeline.maxSecs, chart: null };
+
+    const head = channels.length > 1
+        ? `<div class="user-stat-tabs wv-trace-tabs" role="group" aria-label="Chart">${channels.map((c, i) =>
+            `<button type="button" class="user-stat-tab${i === 0 ? " user-stat-tab-active" : ""}" data-trace-channel="${c.key}" aria-pressed="${i === 0}">${c.label}</button>`
+          ).join("")}</div>`
+        : `<span class="wv-trace-title">${channels[0].label}</span>`;
+
+    return {
+        html: `
+            <div class="wv-trace" id="${traceID}">
+                <div class="wv-trace-head">${head}</div>
+                <div class="wv-trace-readout">${traceReadoutHTML(channels[0])}</div>
+                <div class="wv-hr-wrapper"><canvas id="${traceID}-canvas" class="wv-hr-chart"></canvas></div>
+            </div>`
+    };
+}
+
+// traceTimeline maps stream samples onto the chart's x-axis. Streams are distance-sampled,
+// not time-sampled, so it keeps only the moving samples (velocity > 0.5 m/s) and spaces them
+// evenly across moving_time so the axis matches the activity duration; without a usable
+// velocity channel it falls back to the recorded clock.
+function traceTimeline(streams, set) {
+    const n = streams.time && streams.time.data ? streams.time.data.length : 0;
+    const velocity = streams.velocity_smooth && streams.velocity_smooth.data;
+    const movingTimeSecs = set.moving_time || set.time;
+    if (velocity && velocity.length === n && movingTimeSecs) {
+        const indices = [];
+        for (let i = 0; i < n; i++) {
+            if (velocity[i] > 0.5) indices.push(i);
+        }
+        const last = Math.max(indices.length - 1, 1);
+        return { indices: indices, times: indices.map((idx, j) => Math.round(j / last * movingTimeSecs)), maxSecs: movingTimeSecs };
+    }
+    const indices = [];
+    for (let i = 0; i < n; i++) indices.push(i);
+    return { indices: indices, times: n ? streams.time.data.slice() : [], maxSecs: movingTimeSecs || (n ? streams.time.data[n - 1] : 0) };
+}
+
+// tracePoints turns one channel into chart points along the timeline: scaled into the
+// presented unit, optionally smoothed, and without the zero readings heart rate and cadence
+// record while paused.
+function tracePoints(channel, timeline) {
+    const data = channel.stream && channel.stream.data;
+    if (!data || data.length === 0) return [];
+    const values = timeline.indices.map(i => (data[i] || 0) * channel.factor);
+    const smoothed = channel.smooth > 1 ? rollingMean(values, channel.smooth) : values;
+    const points = [];
+    for (let j = 0; j < smoothed.length; j++) {
+        if (channel.skipZero && !(values[j] > 0)) continue;
+        points.push({ x: timeline.times[j], y: Math.round(smoothed[j]) });
+    }
+    return points.some(p => p.y > 0) ? points : [];
+}
+
+// rollingMean averages each value with the window - 1 before it.
+function rollingMean(values, window) {
+    const out = new Array(values.length);
+    var sum = 0;
+    for (let i = 0; i < values.length; i++) {
+        sum += values[i];
+        if (i >= window) sum -= values[i - window];
+        out[i] = sum / Math.min(i + 1, window);
+    }
+    return out;
+}
+
+// traceReadoutHTML lists a channel's summary numbers in its unit; the first is the average.
+function traceReadoutHTML(channel) {
+    if (!channel.stats) return "";
+    return channel.stats.map(([label, value]) =>
+        `<span class="wv-trace-stat">${label} <span class="wv-trace-stat-value">${Math.round(value)}<span class="wv-stat-unit">${channel.unit}</span></span></span>`
+    ).join("");
+}
+
+// drawTrace (re)draws a trace's chart for one channel.
+function drawTrace(traceID, key) {
+    const trace = wvTraces[traceID];
+    if (!trace) return;
+    const channel = trace.channels.find(c => c.key === key) || trace.channels[0];
+    if (trace.chart) { trace.chart.destroy(); trace.chart = null; }
+    const average = channel.stats ? channel.stats[0][1] : null;
+    trace.chart = renderTraceChart(`${traceID}-canvas`, channel, trace.maxSecs, average);
+}
+
+// wireTraceTabs binds one delegated handler for every chart switch on the page, like the ⓘ
+// marks — the read view re-renders on edit, so per-element listeners would leak.
+var wvTraceTabsWired = false;
+function wireTraceTabs() {
+    if (wvTraceTabsWired) return;
+    wvTraceTabsWired = true;
+    document.addEventListener("click", function(e) {
+        const tab = e.target.closest && e.target.closest("[data-trace-channel]");
+        if (!tab) return;
+        const section = tab.closest(".wv-trace");
+        const trace = section && wvTraces[section.id];
+        if (!trace) return;
+        const key = tab.getAttribute("data-trace-channel");
+        section.querySelectorAll("[data-trace-channel]").forEach(t => {
+            const active = t === tab;
+            t.classList.toggle("user-stat-tab-active", active);
+            t.setAttribute("aria-pressed", active ? "true" : "false");
+        });
+        const channel = trace.channels.find(c => c.key === key);
+        section.querySelector(".wv-trace-readout").innerHTML = channel ? traceReadoutHTML(channel) : "";
+        drawTrace(section.id, key);
+    });
 }
 
 // ── Explainers ──────────────────────────────────────────────────────────────
@@ -766,12 +999,29 @@ const WV_INFO_TOPICS = {
     },
     "pace-consistency": {
         title: "Pace consistency",
-        body: `How much your pace varied from one split to the next, as a standard deviation
-               in seconds.
+        body: `How much your pace varied from one full split to the next: the big number is
+               the typical spread in seconds per kilometre, and the line beneath it is the
+               same spread as a share of your average pace.
                <br><br>
-               A smaller number means a more evenly paced effort. Hills, traffic and stops
-               all push it up, so it reads best against your other activities on similar
-               ground rather than against a fixed target.`
+               The share is the fairer guide, because 15 seconds is a bigger swing on a fast
+               run than on a slow one. For a steady effort on flat ground, under 3% is very
+               even, 3–6% is moderate, and over 6% is uneven.
+               <br><br>
+               Intervals, hills, traffic and stops all push it up by design. Judge those
+               against your other sessions of the same kind, not against these bands.`
+    },
+    "power": {
+        title: "Power",
+        body: `Average power is the mean of every reading, including the zeros while you
+               coast. Max is your single highest reading.
+               <br><br>
+               Normalised power weighs hard surges more heavily than the plain average. It
+               estimates what a perfectly steady effort with the same cost to your body would
+               have averaged. On a steady ride it sits close to the average. The further above
+               the average it is, the more stop-start the ride was.
+               <br><br>
+               Work is the total energy you put into the pedals, in kilojoules. For cycling it
+               is roughly the number of kilocalories you burned.`
     },
     "stops": {
         title: "Stops",
@@ -857,8 +1107,9 @@ function renderAnalysisHTML(summary) {
     if (a.pace_std_dev_seconds != null) {
         tiles += `
             <div class="wv-insight">
-                <span class="wv-insight-value">±${Math.round(a.pace_std_dev_seconds)}<span class="wv-stat-unit">s</span></span>
+                <span class="wv-insight-value">±${Math.round(a.pace_std_dev_seconds)}<span class="wv-stat-unit">s/km</span></span>
                 <span class="wv-insight-label">Pace consistency${infoMarkHTML("pace-consistency")}</span>
+                ${a.pace_variation_pct != null ? `<span class="wv-insight-detail">${wvNum(a.pace_variation_pct)}% of your average pace</span>` : ""}
             </div>`;
     }
     if (a.breaks && a.breaks.count > 0) {
@@ -945,12 +1196,6 @@ function climbCaptionHTML(elevation) {
     return `<div class="wv-route-caption">${line}</div>`;
 }
 
-// cardioStatTile renders one metric tile, or nothing when the value is absent.
-function cardioStatTile(value, unit, label) {
-    if (value == null || value === "" || (typeof value === "number" && !isFinite(value))) return "";
-    return `<div class="wv-stat"><span class="wv-stat-value">${value}<span class="wv-stat-unit">${unit}</span></span><span class="wv-stat-label">${label}</span></div>`;
-}
-
 // elevationGainMetres / avgHeartrate prefer the server summary and fall back to deriving
 // from the raw stream (kept so activities predating the summary still show the metric).
 function elevationGainMetres(summary, streams) {
@@ -993,8 +1238,9 @@ function isCyclingActivity(operation) {
 // renderSplitsHTML draws the per-distance splits as a scoreboard: each split's bar length
 // is its speed relative to the fastest split, so the shape of the effort (a fast finish, a
 // mid-run fade) reads at a glance. The fastest split is marked. from/to point indices are
-// carried on each row so hovering highlights that split on the route map.
-function renderSplitsHTML(summary, operation, splitsID) {
+// carried on each row; when the activity has a route the rows are buttons that trace their
+// split on the map (see wireSplitHighlight).
+function renderSplitsHTML(summary, operation, splitsID, interactive) {
     const segments = (summary && summary.segments) || [];
     if (segments.length < 2) return ""; // one split is just the whole activity — skip
 
@@ -1018,12 +1264,14 @@ function renderSplitsHTML(summary, operation, splitsID) {
         // whole row out of alignment with the others.
         const partial = s.distance < 0.95 ? `<span class="wv-split-partial">${wvNum(s.distance)} ${unit}</span>` : "";
         const fast = i === fastestIdx ? " wv-split-fast" : "";
+        const tag = interactive ? "button" : "div";
+        const buttonAttrs = interactive ? ` type="button" aria-pressed="false"` : "";
         return `
-            <div class="wv-split${fast}" data-from="${s.from_point}" data-to="${s.to_point}">
+            <${tag} class="wv-split${fast}"${buttonAttrs} data-from="${s.from_point}" data-to="${s.to_point}">
                 <span class="wv-split-idx">${s.index}</span>
                 <span class="wv-split-track"><span class="wv-split-bar" style="width:${width}%"></span><span class="wv-split-primary">${primary}</span>${partial}</span>
                 ${hr}${climb}
-            </div>`;
+            </${tag}>`;
     }).join("");
 
     const negSplit = isNegativeSplit(segments) ? `<span class="wv-splits-flag">Negative split</span>` : "";
@@ -1067,10 +1315,7 @@ function isMileUnitJS(unit) {
 function splitPace(segment, unit) {
     if (!(segment.distance > 0) || !(segment.elapsed_seconds > 0)) return "—";
     const secsPerUnit = segment.elapsed_seconds / segment.distance;
-    const m = Math.floor(secsPerUnit / 60);
-    const sec = Math.round(secsPerUnit % 60);
-    const ss = sec < 10 ? "0" + sec : "" + sec;
-    return `${m}:${ss}<span class="wv-split-primary-unit">/${isMileUnitJS(unit) ? "mi" : (unit || "km")}</span>`;
+    return `${formatPace(secsPerUnit)}<span class="wv-split-primary-unit">/${paceUnitLabel(unit)}</span>`;
 }
 
 // splitSpeed formats a split as distance-unit per hour (cycling).
@@ -1197,39 +1442,20 @@ function renderTimeSubCard(operation, exercise) {
 
 // Deferred chart/map render: summary HTML is injected via innerHTML, so poll
 // until the canvas/map nodes exist, then draw. (Ported from the old simple card.)
-function scheduleCardioStreamRender(set, streams, hrCanvasID, mapDivID, hasHeartrate, hasRoute, latlngData, segments, splitsID, elevCanvasID, elevProfile) {
+function scheduleCardioStreamRender(traceID, mapDivID, hasRoute, latlngData, segments, splitsID, elevCanvasID, elevProfile) {
     var attempts = 0;
     var interval = setInterval(function() {
         attempts++;
-        var hrReady = !hasHeartrate || document.getElementById(hrCanvasID);
+        var traceReady = !traceID || document.getElementById(traceID + "-canvas");
         var mapReady = !hasRoute || document.getElementById(mapDivID);
         var elevReady = !elevCanvasID || document.getElementById(elevCanvasID);
-        if (hrReady && mapReady && elevReady) {
+        if (traceReady && mapReady && elevReady) {
             clearInterval(interval);
             if (elevCanvasID && elevProfile) {
                 renderElevationChart(elevCanvasID, elevProfile);
             }
-            if (hasHeartrate) {
-                // Streams are distance-sampled, not time-sampled, so keep only the
-                // moving samples (velocity > 0.5 m/s) and space them evenly across
-                // moving_time so the x-axis matches the activity duration.
-                const hrRaw = streams.heartrate.data;
-                const velocity = streams.velocity_smooth && streams.velocity_smooth.data;
-                const movingTimeSecs = set.moving_time || set.time;
-                let chartHrData, chartTimeData;
-                if (velocity && velocity.length === hrRaw.length && movingTimeSecs) {
-                    const movingIndices = [];
-                    for (let i = 0; i < hrRaw.length; i++) {
-                        if (velocity[i] > 0.5) movingIndices.push(i);
-                    }
-                    const n = movingIndices.length;
-                    chartTimeData = movingIndices.map((idx, j) => Math.round(j / (n - 1) * movingTimeSecs));
-                    chartHrData = movingIndices.map(idx => hrRaw[idx]);
-                } else {
-                    chartTimeData = streams.time.data;
-                    chartHrData = hrRaw;
-                }
-                renderHeartrateChart(hrCanvasID, chartTimeData, chartHrData, movingTimeSecs);
+            if (traceID) {
+                drawTrace(traceID);
             }
             if (hasRoute) {
                 const map = renderRouteMap(mapDivID, latlngData.data);
@@ -1243,8 +1469,11 @@ function scheduleCardioStreamRender(set, streams, hrCanvasID, mapDivID, hasHeart
     }, 50);
 }
 
-// wireSplitHighlight lets hovering (or tapping) a split row trace that split on the map.
-// Split from/to indices align with the raw latlng samples the map was drawn from.
+// wireSplitHighlight traces a split on the map. Hovering or focusing a row previews it;
+// clicking (or tapping, where there is no hover) pins it until it is clicked again or
+// another split is pinned, and leaving a row falls back to the pinned split. A pinned split
+// outside the current map view is panned into it. Split from/to indices align with the raw
+// latlng samples the map was drawn from.
 function wireSplitHighlight(map, latlngData, splitsID) {
     if (typeof L === 'undefined') return;
     const container = document.getElementById(splitsID);
@@ -1253,24 +1482,42 @@ function wireSplitHighlight(map, latlngData, splitsID) {
     const rootStyle = getComputedStyle(document.documentElement);
     const hiColor = rootStyle.getPropertyValue("--mediumblue").trim() || "#3a6ea5";
     var highlight = null;
+    var pinned = null;
 
-    function clear() {
+    function draw(row) {
         if (highlight) { map.removeLayer(highlight); highlight = null; }
-    }
-    function show(row) {
-        clear();
+        if (!row) return null;
         const from = parseInt(row.getAttribute("data-from"), 10);
         const to = parseInt(row.getAttribute("data-to"), 10);
-        if (isNaN(from) || isNaN(to) || to <= from) return;
+        if (isNaN(from) || isNaN(to) || to <= from) return null;
         const slice = latlngData.slice(from, to + 1).map(p => [p[0], p[1]]);
-        if (slice.length < 2) return;
+        if (slice.length < 2) return null;
         highlight = L.polyline(slice, { color: hiColor, weight: 7, opacity: 0.95 }).addTo(map);
+        return highlight;
+    }
+    function restore() { draw(pinned); }
+    function pin(row) {
+        if (pinned) {
+            pinned.classList.remove("wv-split-active");
+            pinned.setAttribute("aria-pressed", "false");
+        }
+        pinned = pinned === row ? null : row;
+        if (pinned) {
+            pinned.classList.add("wv-split-active");
+            pinned.setAttribute("aria-pressed", "true");
+        }
+        const line = draw(pinned);
+        if (line && !map.getBounds().contains(line.getBounds())) {
+            map.fitBounds(line.getBounds(), { padding: [24, 24] });
+        }
     }
 
     container.querySelectorAll(".wv-split").forEach(row => {
-        row.addEventListener("mouseenter", () => show(row));
-        row.addEventListener("mouseleave", clear);
-        row.addEventListener("click", () => { row.classList.toggle("wv-split-active"); if (row.classList.contains("wv-split-active")) show(row); else clear(); });
+        row.addEventListener("mouseenter", () => draw(row));
+        row.addEventListener("mouseleave", restore);
+        row.addEventListener("focus", () => draw(row));
+        row.addEventListener("blur", restore);
+        row.addEventListener("click", () => pin(row));
     });
 }
 
@@ -1284,44 +1531,47 @@ function hexToRGBA(hex, alpha) {
     return `rgba(${(n >> 16) & 255}, ${(n >> 8) & 255}, ${n & 255}, ${alpha})`;
 }
 
-function renderHeartrateChart(canvasID, timeData, hrData, maxSecs) {
+// renderTraceChart draws one over-time channel as a filled line, with a dashed line at its
+// average when one is known. Returns the Chart.js instance so a tab switch can destroy it.
+function renderTraceChart(canvasID, channel, maxSecs, average) {
     var canvas = document.getElementById(canvasID);
-    if (!canvas) return;
-
-    // Build {x, y} points — both arrays are already aligned (same length)
-    var points = [];
-    for (var i = 0; i < hrData.length; i++) {
-        if (hrData[i] > 0) {
-            points.push({
-                x: timeData[i],
-                y: hrData[i]
-            });
-        }
-    }
-
-    if (points.length === 0) return;
+    if (!canvas || channel.points.length === 0) return null;
 
     // Read the theme tokens so the chart's axis text/grid match the light surface (was white-on-dark).
     var rootStyle = getComputedStyle(document.documentElement);
     var tickColor = rootStyle.getPropertyValue("--lightblue").trim() || "#7fa8cf";
     var gridColor = rootStyle.getPropertyValue("--grey").trim() || "#cecece";
-    var hrColor = rootStyle.getPropertyValue("--error").trim() || "#e5555b";
+    var lineColor = rootStyle.getPropertyValue(channel.colorToken).trim() || "#3a6ea5";
+    var unit = channel.unit;
 
-    new Chart(canvas, {
+    var datasets = [{
+        label: channel.label,
+        data: channel.points,
+        fill: true,
+        borderColor: lineColor,
+        pointBackgroundColor: lineColor,
+        backgroundColor: hexToRGBA(lineColor, 0.2),
+        tension: 0.3,
+        pointRadius: 0,
+        borderWidth: 2
+    }];
+    if (average != null) {
+        var first = channel.points[0].x, last = channel.points[channel.points.length - 1].x;
+        datasets.push({
+            label: "Average",
+            data: [{ x: first, y: average }, { x: last, y: average }],
+            fill: false,
+            borderColor: tickColor,
+            borderDash: [5, 4],
+            borderWidth: 1.5,
+            pointRadius: 0,
+            pointHitRadius: 0
+        });
+    }
+
+    return new Chart(canvas, {
         type: "line",
-        data: {
-            datasets: [{
-                label: "Heart Rate (bpm)",
-                data: points,
-                fill: true,
-                borderColor: hrColor,
-                pointBackgroundColor: hrColor,
-                backgroundColor: hexToRGBA(hrColor, 0.2),
-                tension: 0.3,
-                pointRadius: 0,
-                borderWidth: 2
-            }]
-        },
+        data: { datasets: datasets },
         options: {
             legend: { display: false },
             scales: {
@@ -1345,17 +1595,18 @@ function renderHeartrateChart(canvasID, timeData, hrData, maxSecs) {
                         fontColor: tickColor,
                         beginAtZero: false,
                         precision: 0,
-                        callback: function(value) { return value + " bpm"; }
+                        callback: function(value) { return value + " " + unit; }
                     }
                 }]
             },
             tooltips: {
+                filter: function(item) { return item.datasetIndex === 0; },
                 callbacks: {
                     title: function(items) {
                         return secondsToDurationString(items[0].xLabel);
                     },
                     label: function(item) {
-                        return item.yLabel + " bpm";
+                        return item.yLabel + " " + unit;
                     }
                 }
             }
@@ -2753,3 +3004,4 @@ function stravaSyncOperationSet(operationSetID) {
 // Bind the ⓘ explainer handler for the page. Delegated on `document`, so it survives every
 // re-render of the read view and needs no re-binding.
 wireInfoMarks();
+wireTraceTabs();

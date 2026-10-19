@@ -115,7 +115,8 @@ type MCPActivitySummary struct {
 	AvgPaceMinKm         float64    `json:"avg_pace_min_km,omitempty" jsonschema:"average pace in minutes per kilometre, from moving time when available; only for activities that record distance"`
 	AvgHeartrateBpm      *int       `json:"avg_heartrate_bpm,omitempty" jsonschema:"average heart rate over the activity, from its Strava stream; absent without one"`
 	MaxHeartrateBpm      *int       `json:"max_heartrate_bpm,omitempty" jsonschema:"peak heart rate over the activity, from its Strava stream"`
-	AvgCadenceRpm        *int       `json:"avg_cadence_rpm,omitempty" jsonschema:"average cadence (steps/revolutions per minute), from its Strava stream"`
+	AvgCadenceRpm        *int       `json:"avg_cadence_rpm,omitempty" jsonschema:"average cadence in cadence_unit, from its Strava stream"`
+	CadenceUnit          string     `json:"cadence_unit,omitempty" jsonschema:"unit of avg_cadence_rpm: 'spm' (steps per minute, both legs) for runs, walks and hikes; 'rpm' otherwise"`
 	TemperatureC         *int       `json:"temperature_c,omitempty" jsonschema:"average recorded temperature in Celsius, from its Strava stream"`
 	ElevationGainM       *float64   `json:"elevation_gain_m,omitempty" jsonschema:"total elevation gained in metres, from its Strava stream"`
 	Repetitions          float64    `json:"repetitions" jsonschema:"total repetitions summed across the activity's sets"`
@@ -209,7 +210,7 @@ type MCPStreamSeries struct {
 	HeartrateBpm []int       `json:"heartrate_bpm,omitempty"`
 	AltitudeM    []float64   `json:"altitude_m,omitempty"`
 	SpeedKmh     []float64   `json:"speed_kmh,omitempty"`
-	CadenceRpm   []int       `json:"cadence_rpm,omitempty"`
+	CadenceRpm   []int       `json:"cadence_rpm,omitempty" jsonschema:"cadence per sample, in the summary's cadence_unit (steps per minute for runs, walks and hikes)"`
 	Watts        []int       `json:"watts,omitempty"`
 	TempC        []int       `json:"temperature_c,omitempty"`
 	LatLng       [][]float64 `json:"latlng,omitempty" jsonschema:"GPS coordinate pairs [lat, lng]"`

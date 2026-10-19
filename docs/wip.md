@@ -198,12 +198,3 @@ Built for all five integrations; see [integration-health.md](integration-health.
 ## Skip Strava activities in Hevy
 - This option should also be within Hevy
 - Maybe a separate setting/priority setting? That way it apples to all external connections
-
-## Activity card improvements
-- No showing if the activity count towards goal
-- Top summary numbers are good, but sometimes you could want more. Top heart rate for examples. Maybe more HR data by the graph? Needs to be dynamic based on the data provided of course.
-- Could/should Pace consistency info button say something about what is good or bad consistency?
-- Cadence graph section?
-- Power information/info button?
-- Highlight on split toward map is great, but it only works on hover, and there could be a scrolling distance in between
-- Could the split highlight feature work along a color-based on speed system?

@@ -16,25 +16,26 @@ import (
 // page carries it. Shaped so precomputed Operation rollup columns can back this later
 // without changing the JSON.
 type ActivityFeedItem struct {
-	OperationID     uuid.UUID  `json:"operation_id"`
-	ExerciseID      uuid.UUID  `json:"exercise_id"`     // the session
-	ExerciseDayID   uuid.UUID  `json:"exercise_day_id"` // the day (the /exercises/:id link)
-	Date            time.Time  `json:"date"`            // day date
-	Time            *time.Time `json:"time"`            // session start time (nullable)
-	ActionID        *uuid.UUID `json:"action_id"`
-	ActionName      string     `json:"action_name"`
-	ActionType      string     `json:"action_type"`
-	ActionHasLogo   bool       `json:"action_has_logo"`
-	Note            *string    `json:"note"`
-	DistanceUnit    string     `json:"distance_unit"`
-	WeightUnit      string     `json:"weight_unit"`
-	Distance        float64    `json:"distance"`
-	DurationSeconds int64      `json:"duration_seconds"`
-	MovingSeconds   int64      `json:"moving_seconds"` // summed moving time (excludes pauses); usually Strava-only
-	Repetitions     float64    `json:"repetitions"`
-	TopWeight       float64    `json:"top_weight"`
-	SetCount        int        `json:"set_count"`
-	HasStrava       bool       `json:"has_strava"`
+	OperationID      uuid.UUID  `json:"operation_id"`
+	ExerciseID       uuid.UUID  `json:"exercise_id"`     // the session
+	ExerciseDayID    uuid.UUID  `json:"exercise_day_id"` // the day (the /exercises/:id link)
+	Date             time.Time  `json:"date"`            // day date
+	Time             *time.Time `json:"time"`            // session start time (nullable)
+	ActionID         *uuid.UUID `json:"action_id"`
+	ActionName       string     `json:"action_name"`
+	ActionType       string     `json:"action_type"`
+	ActionHasLogo    bool       `json:"action_has_logo"`
+	ActionStravaName string     `json:"action_strava_name"` // the action's Strava sport; decides the cadence unit (see controllers/cadence.go)
+	Note             *string    `json:"note"`
+	DistanceUnit     string     `json:"distance_unit"`
+	WeightUnit       string     `json:"weight_unit"`
+	Distance         float64    `json:"distance"`
+	DurationSeconds  int64      `json:"duration_seconds"`
+	MovingSeconds    int64      `json:"moving_seconds"` // summed moving time (excludes pauses); usually Strava-only
+	Repetitions      float64    `json:"repetitions"`
+	TopWeight        float64    `json:"top_weight"`
+	SetCount         int        `json:"set_count"`
+	HasStrava        bool       `json:"has_strava"`
 	// Rollup scalars precomputed on the Operation from its Strava stream (nil without one), so
 	// the list can show them without touching the stream blob. See models.ComputeStreamRollup.
 	AvgHeartrate         *int     `json:"avg_heartrate"`

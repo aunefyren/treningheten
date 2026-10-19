@@ -25,10 +25,11 @@ const (
 // given). resolution (seconds between samples; 1 = full fidelity) lets the caller zoom a
 // narrow window back to full resolution.
 func assembleWorkoutStreams(userID uuid.UUID, activityID uuid.UUID, fromSeconds int, toSeconds int, resolution int, maxPoints int) (models.MCPWorkoutStreams, error) {
-	streams, distanceUnit, hr, err := loadActivityStreamContext(userID, activityID)
+	streamContext, err := loadActivityStreamContext(userID, activityID)
 	if err != nil {
 		return models.MCPWorkoutStreams{}, err
 	}
+	streams := streamContext.streams
 	if streams == nil {
 		return models.MCPWorkoutStreams{
 			HasStreams: false,
@@ -36,7 +37,7 @@ func assembleWorkoutStreams(userID uuid.UUID, activityID uuid.UUID, fromSeconds 
 		}, nil
 	}
 
-	summary := SummarizeStreams(streams, distanceUnit, hr)
+	summary := streamContext.summarize()
 	out := models.MCPWorkoutStreams{HasStreams: true}
 	if summary != nil {
 		out.StreamSummary = *summary
@@ -83,7 +84,7 @@ func assembleWorkoutStreams(userID uuid.UUID, activityID uuid.UUID, fromSeconds 
 			series.SpeedKmh = append(series.SpeedKmh, round1(floatAt(streams.VelocitySmooth.Data, i)*3.6))
 		}
 		if streams.Cadence != nil {
-			series.CadenceRpm = append(series.CadenceRpm, intAt(streams.Cadence.Data, i))
+			series.CadenceRpm = append(series.CadenceRpm, intAt(streams.Cadence.Data, i)*cadenceFactor(streamContext.cadenceUnit))
 		}
 		if streams.Watts != nil {
 			series.Watts = append(series.Watts, intAt(streams.Watts.Data, i))
@@ -137,38 +138,61 @@ func selectStreamIndices(times []int, from int, to int, resolution int, maxPoint
 	return idx, total
 }
 
-// loadActivityStreamContext gathers everything SummarizeStreams needs for one activity: the
-// raw streams (nil when the activity has none), the distance unit (km vs mile splits) and the
-// resolved HR-zone anchors and zone system. The athlete's age (for age-based zones) is taken from the
-// activity's own date, not today, so an old activity stays historically accurate. Shared by
-// get_activity_streams (which also builds the raw series) and get_activity (summary only).
-func loadActivityStreamContext(userID uuid.UUID, activityID uuid.UUID) (streams *models.StravaActivityStreams, distanceUnit string, hr hrAnchor, err error) {
+// activityStreamContext is everything SummarizeStreams and the presentation step need for one
+// activity: the raw streams (nil when the activity has none), the distance unit (km vs mile
+// splits), the resolved HR-zone anchors and zone system, and the unit cadence is presented in.
+type activityStreamContext struct {
+	streams      *models.StravaActivityStreams
+	distanceUnit string
+	hr           hrAnchor
+	cadenceUnit  string
+}
+
+// summarize runs SummarizeStreams for the context and presents cadence in the sport's unit.
+// Returns nil when the activity has no streams.
+func (c activityStreamContext) summarize() *models.StreamSummary {
+	summary := SummarizeStreams(c.streams, c.distanceUnit, c.hr)
+	applyCadenceUnit(summary, c.cadenceUnit)
+	return summary
+}
+
+// loadActivityStreamContext gathers the activityStreamContext for one activity. The athlete's
+// age (for age-based zones) is taken from the activity's own date, not today, so an old
+// activity stays historically accurate. Shared by get_activity_streams (which also builds the
+// raw series) and get_activity (summary only).
+func loadActivityStreamContext(userID uuid.UUID, activityID uuid.UUID) (activityStreamContext, error) {
+	streamContext := activityStreamContext{distanceUnit: "km", cadenceUnit: cadenceUnitRevolutions}
 	sets, err := database.GetOperationSetsByOperationIDAndUserID(activityID, userID)
 	if err != nil {
-		return nil, "", hrAnchor{}, err
+		return activityStreamContext{}, err
 	}
 	for i := range sets {
 		if sets[i].StravaStreams != nil {
-			streams = &sets[i].StravaStreams.StravaActivityStreams
+			streamContext.streams = &sets[i].StravaStreams.StravaActivityStreams
 			break
 		}
 	}
-	if streams == nil {
-		return nil, "", hrAnchor{}, nil
+	if streamContext.streams == nil {
+		return activityStreamContext{}, nil
 	}
 
-	distanceUnit = "km"
 	activityDate := time.Now()
 	var actionID *uuid.UUID
 	if operation, err := database.GetOperationByIDAndUserID(activityID, userID); err == nil {
 		actionID = operation.ActionID
 		if operation.DistanceUnit != "" {
-			distanceUnit = operation.DistanceUnit
+			streamContext.distanceUnit = operation.DistanceUnit
 		}
 		if exercise, err := database.GetExerciseByIDAndUserID(operation.ExerciseID, userID); err == nil && exercise != nil {
 			if day, err := database.GetExerciseDayByIDAndUserID(exercise.ExerciseDayID, userID); err == nil && day != nil {
 				activityDate = day.Date
 			}
+		}
+	}
+	// A failed action lookup only costs the step-cadence conversion, so it degrades to rpm.
+	if actionID != nil {
+		if action, err := database.GetActionByID(*actionID); err == nil {
+			streamContext.cadenceUnit = cadenceUnitForAction(&action)
 		}
 	}
 	// Needs the user's own heart-rate settings, which are not part of the public view. Like
@@ -179,9 +203,9 @@ func loadActivityStreamContext(userID uuid.UUID, activityID uuid.UUID) (streams 
 		if err != nil {
 			logger.Log.Warn("Failed to get sport max heart rates for user " + userID.String() + ". Error: " + err.Error())
 		}
-		hr = resolveUserHR(user, sportMaxHeartrate(sportMax, actionID), activityDate)
+		streamContext.hr = resolveUserHR(user, sportMaxHeartrate(sportMax, actionID), activityDate)
 	}
-	return streams, distanceUnit, hr, nil
+	return streamContext, nil
 }
 
 // assembleActivityStreamSummary returns the processed StreamSummary for one activity, or nil
@@ -189,14 +213,14 @@ func loadActivityStreamContext(userID uuid.UUID, activityID uuid.UUID) (streams 
 // raw series — get_activity attaches the requested blocks so a caller can read splits, zones
 // and derived metrics without pulling thousands of samples.
 func assembleActivityStreamSummary(userID uuid.UUID, activityID uuid.UUID) (*models.StreamSummary, error) {
-	streams, distanceUnit, hr, err := loadActivityStreamContext(userID, activityID)
+	streamContext, err := loadActivityStreamContext(userID, activityID)
 	if err != nil {
 		return nil, err
 	}
-	if streams == nil {
+	if streamContext.streams == nil {
 		return nil, nil
 	}
-	return SummarizeStreams(streams, distanceUnit, hr), nil
+	return streamContext.summarize(), nil
 }
 
 // Recognized get_activity include tokens, mapping the caller-facing name to a summary block.
@@ -224,6 +248,7 @@ func filterStreamSummary(full *models.StreamSummary, include []string) *models.S
 		DurationSeconds: full.DurationSeconds,
 		Heartrate:       full.Heartrate,
 		Cadence:         full.Cadence,
+		CadenceUnit:     full.CadenceUnit,
 		Speed:           full.Speed,
 		Power:           full.Power,
 		Temperature:     full.Temperature,

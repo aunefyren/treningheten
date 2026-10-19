@@ -122,7 +122,8 @@ detail, `tags`, `description` and soundtrack are fetched by drilling into one re
 `get_activity`. A bad `sort`, `order` or date is a client error.
 
 Each row also carries **stream scalars** — `avg_heartrate_bpm`, `max_heartrate_bpm`,
-`avg_cadence_rpm`, `temperature_c` and `elevation_gain_m` — plus `moving_seconds` (summed active
+`avg_cadence_rpm` (in `cadence_unit`, doubled to steps per minute for foot sports like the
+summary), `temperature_c` and `elevation_gain_m` — plus `moving_seconds` (summed active
 time) and a derived `avg_pace_min_km`. These let the model triage a list (spot the hot runs, the
 hard efforts, the climbs) without a second call per row. The scalars come from **precomputed
 rollup columns on the `Operation`** (`models.ComputeStreamRollup`, written on Strava sync and
@@ -184,7 +185,14 @@ tool processes them into:
    stats `heartrate_bpm`/`cadence_rpm`/`temperature_c` (avg/min/max), `speed` (avg &
    max km/h + avg pace min/km), `elevation` (gain / **loss** / min / max m, plus
    `biggest_climb`: the largest sustained ascent with its gain, distance and average
-   grade), `power` (avg/max W + integrated work kJ), plus `available` and `has_gps`;
+   grade), `power` (avg/max W, integrated work kJ, and `normalized_w` — the fourth-power
+   mean of the 30-second rolling average), plus `available` and `has_gps`. **Cadence is
+   presented per sport** (`cadence_unit`): Strava records foot-sport cadence per leg, so for
+   runs, walks and hikes (`Action.StravaName` `Run`/`TrailRun`/`VirtualRun`/`Walk`/`Hike`) the
+   header stat, the per-split averages and the raw `series` are doubled into steps per minute
+   (`spm`); everything else stays `rpm`. The field names keep `_rpm` for compatibility. The
+   conversion is a read-time step (`applyCadenceUnit`, `controllers/cadence.go`) — stored
+   streams and the `Operation.AvgCadence` rollup stay as recorded;
    **`segments`** (one per km or mile — distance, elapsed time, pace/speed, avg HR,
    elevation gain, avg cadence/power, and the raw-sample index range); a **`route`**
    overview (point count, GPS distance, start/end, bounding box, a down-sampled overview
@@ -198,7 +206,8 @@ tool processes them into:
    block of second-order coach metrics: `decoupling_pct` (aerobic decoupling — the drop in
    pace-to-HR efficiency from the first half to the second), `split_halves` (first vs second
    half time/distance/HR/pace), `pace_std_dev_seconds` (pacing consistency across the full
-   splits), `breaks` (stops and walk breaks from sustained near-zero speed), and
+   splits, seconds per km) with `pace_variation_pct` (the same as a share of the mean pace, so
+   it compares across easy and fast efforts), `breaks` (stops and walk breaks from sustained near-zero speed), and
    `hr_by_gradient` (time and avg HR bucketed by terrain grade). Each analysis field needs
    specific channels and is omitted when its inputs are absent. The summary always describes
    the entire workout.
