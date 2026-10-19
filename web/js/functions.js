@@ -64,6 +64,28 @@ if('serviceWorker' in navigator) {
     }
 )};
 
+// closeNotifications closes this device's open push notifications of one category once the
+// user has reached what they point at (e.g. "achievement" on /achievements). Pass
+// additionalData to close only those about one item (a debt's id for "debt"). Works in the
+// installed PWA as well as the browser; does nothing where notifications aren't listable.
+// Notifications shown before the service worker stored their category can't be matched.
+function closeNotifications(category, additionalData) {
+    if(!('serviceWorker' in navigator)) return;
+    navigator.serviceWorker.getRegistration().then(function(registration) {
+        if(!registration || !registration.getNotifications) return;
+        return registration.getNotifications().then(function(notifications) {
+            notifications.forEach(function(notification) {
+                var data = notification.data || {};
+                if(data.category !== category) return;
+                if(additionalData != null && String(data.additionalData) !== String(additionalData)) return;
+                notification.close();
+            });
+        });
+    }).catch(function(e) {
+        console.log("Could not close notifications. Error: " + e);
+    });
+}
+
 window.addEventListener('offline', () => {
     window.location.href = '/offline';
 });

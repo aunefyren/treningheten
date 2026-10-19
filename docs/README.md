@@ -41,6 +41,10 @@ architecture overview.
   (users in seasons / with notifications / with Strava, achievement completion).
 - [admin-users.md](admin-users.md) — disabling and re-enabling users from the admin
   panel: access cut-off, leaving unfinished seasons, and keeping history readable.
+- [invites.md](invites.md) — invite codes and `/register?invite=` links (admin "Copy link",
+  the startup `--generateinvite` link).
+- [push-notifications.md](push-notifications.md) — web push categories, what each opens, and
+  how pages close the notifications they answer.
 - [image-serving.md](image-serving.md) — how profile/achievement images are served (raw
   bytes via `<img src>`, cookie-or-header auth, HTTP + server-side resize caching).
 - [gear.md](gear.md) — gear tracking (shoes/bikes): manual + Strava-imported equipment,

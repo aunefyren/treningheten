@@ -50,6 +50,20 @@ function load_page(result) {
     document.getElementById('card-header').innerHTML = 'Tell me more about yourself.';
     clearResponse();
     showLoggedOutMenu();
+    applyInviteFromURL();
+}
+
+// applyInviteFromURL fills in the invitation code from an invite link
+// (/register?invite=CODE, copied from /admin) so the new user only types their own details.
+// The field stays editable in case the link was mangled.
+function applyInviteFromURL() {
+    var code = new URLSearchParams(window.location.search).get("invite");
+    if(!code || code.trim() === "") {
+        return;
+    }
+    document.getElementById("invitation_code").value = code.trim();
+    document.querySelector("#forside .text-body").textContent = "You've been invited. Fill in your details to join.";
+    document.getElementById("email").focus();
 }
 
 function send_registration(){

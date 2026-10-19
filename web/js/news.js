@@ -73,6 +73,7 @@ function load_page(result) {
     if(result !== false) {
 
         showLoggedInMenu();
+        closeNotifications("news");
 
         if(admin) {
             document.getElementById('new-news').style.display = "flex";

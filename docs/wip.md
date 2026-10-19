@@ -68,9 +68,9 @@ could land independently.
 ## Plans & ideas
 
 ### Onboarding flow
-- Small: an invite link that autofills the invite code.
-- Bigger: the invite link starts an onboarding flow, no navbar:
-  - user registration with the invite code from the URL
+- The invite link (`/register?invite=`, see [invites.md](invites.md)) starts an onboarding
+  flow, no navbar:
+  - user registration with the invite code from the URL (already filled in today)
   - season registration, if the invite carries a season context
   - optional: choose which activities count as exercise (many don't count walks)
   - optional: connect Strava or Hevy
@@ -186,10 +186,6 @@ Built for all five integrations; see [integration-health.md](integration-health.
   before cleanup. Seen 2026-10-03 in the controller fault sweep:
   `TestFaultInjectionSweep/admin_stats/fault-5` got a 401 from `POST /api/auth/gear`
   during setup (1 run in 3), plausibly a stray goroutine consuming the injected fault.
-
-## Remove notifications sometimes
-- If I visit /achievements on the device with a achievements notification open, should those disappear from the notification feed?
-- Possible on PWA?
 
 ## Skip Strava activities in Hevy
 - This option should also be within Hevy

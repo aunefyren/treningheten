@@ -156,6 +156,9 @@ func startup() error {
 			return errors.New("failed to generate random invitation code: " + err.Error())
 		}
 		logger.Log.Info("generated new invite code. code: " + invite)
+		if link := utilities.InviteLink(files.ConfigFile.TreninghetenExternalURL, invite); link != "" {
+			logger.Log.Info("invite link: " + link)
+		}
 	}
 
 	return nil

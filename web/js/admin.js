@@ -615,6 +615,7 @@ function placeInvites(invitesArray) {
                     <div class="leaderboard-object-user">
                         Not used
                     </div>
+                    <button type="button" class="btn btn--ghost btn--sm" data-invite-code="` + escapeHTML(invitesArray[i].code) + `" onclick="copyInviteLink(this)">Copy link</button>
                     <img class="btn btn--icon clickable" onclick="deleteInvite('` + invitesArray[i].id + `')" src="/assets/trash-2.svg"></img>
                 `;
         }
@@ -623,6 +624,26 @@ function placeInvites(invitesArray) {
     }
 
     document.getElementById("invite-list").innerHTML = html;
+}
+
+// inviteLink is the register link that fills in an invite code for the recipient.
+function inviteLink(code) {
+    return window.location.origin + "/register?invite=" + encodeURIComponent(code);
+}
+
+// copyInviteLink copies an unused invite's register link. The clipboard needs a secure
+// context, so where it is unavailable the link is shown to copy by hand instead.
+function copyInviteLink(button) {
+    var link = inviteLink(button.getAttribute("data-invite-code"));
+    if(!navigator.clipboard) {
+        window.prompt("Copy this invite link:", link);
+        return;
+    }
+    navigator.clipboard.writeText(link).then(function() {
+        success("Invite link copied.");
+    }, function() {
+        window.prompt("Copy this invite link:", link);
+    });
 }
 
 function generateInvite() {

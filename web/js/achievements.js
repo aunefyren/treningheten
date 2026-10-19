@@ -59,6 +59,7 @@ function load_page(result) {
 
         showLoggedInMenu();
         GetAllAchievements(user_id);
+        closeNotifications("achievement");
 
     } else {
         showLoggedOutMenu();

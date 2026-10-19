@@ -98,6 +98,9 @@ function load_page(result) {
         showLoggedInMenu();
         // Usual pointer drawing code.
         get_debt(debt_id);
+        if(debt_id) {
+            closeNotifications("debt", debt_id);
+        }
     } else {
         showLoggedOutMenu();
         invalid_session();

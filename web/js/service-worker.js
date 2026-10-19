@@ -207,10 +207,14 @@ self.addEventListener('push', function(event) {
             icon: '/assets/logos/logo-384x384.png',
             badge: '/assets/logos/logo-mono-96x96.png',
             vibrate: [100, 50, 100],
+            // category / additionalData let a page close the notifications it has just
+            // answered (closeNotifications in functions.js) — e.g. opening /achievements.
             data: {
                 dateOfArrival: Date.now(),
                 primaryKey: 1,
-                url: url
+                url: url,
+                category: jsonData.category,
+                additionalData: jsonData.additional_data
             },
             actions: [
                 {action: 'explore', title: action,
