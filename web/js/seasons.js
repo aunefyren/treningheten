@@ -287,15 +287,7 @@ function place_leaderboard(weeks_array, season_id) {
             weeks_array[i].users = weeks_array[i].users.sort((a,b) => b.user_id.localeCompare(a.user_id));
 
             for(var j = 0; j < weeks_array[i].users.length; j++) {
-                var completion = "❌"
-
-                if(!weeks_array[i].users[j].full_week_participation && weeks_array[i].users[j].week_completion < 1) {
-                    completion = "🕙"
-                } else if(weeks_array[i].users[j].sick_leave) {
-                    completion = "🤢"
-                } else if(weeks_array[i].users[j].week_completion >= 1) {
-                    completion = "✅"
-                }
+                var completion = weekStatusIcon(weeks_array[i].users[j])
 
                 var onclick_command_str = "return;"
                 var clickable_str = ""

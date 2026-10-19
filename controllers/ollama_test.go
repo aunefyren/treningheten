@@ -1,6 +1,8 @@
 package controllers
 
 import (
+	"encoding/json"
+	"strings"
 	"testing"
 	"time"
 
@@ -104,5 +106,92 @@ func TestBuildLatestWorkoutIgnoresDaysWithoutActiveExercise(t *testing.T) {
 
 	if got := buildLatestWorkout([]models.ExerciseDayObject{off}, now); got != nil {
 		t.Errorf("expected nil when no active exercise, got %+v", got)
+	}
+}
+
+func TestOllamaSeasonPayloadForWeek(t *testing.T) {
+	boolOf := func(p *bool) any {
+		if p == nil {
+			return nil
+		}
+		return *p
+	}
+	intOf := func(p *int) any {
+		if p == nil {
+			return nil
+		}
+		return *p
+	}
+
+	tests := []struct {
+		name          string
+		workouts      int
+		result        models.UserWeekResults
+		wantMet       any
+		wantRemaining any
+		wantEntries   int
+		wantSick      bool
+	}{
+		{
+			name:          "competing, behind on the goal",
+			workouts:      1,
+			result:        models.UserWeekResults{WeekCompletion: 1.0 / 3, CurrentStreak: 4, Competing: true},
+			wantMet:       false,
+			wantRemaining: 2,
+			wantEntries:   5,
+		},
+		{
+			name:          "goal met, remaining floors at zero",
+			workouts:      5,
+			result:        models.UserWeekResults{WeekCompletion: 1.5, CurrentStreak: 2},
+			wantMet:       true,
+			wantRemaining: 0,
+		},
+		{
+			// The week is paused: no goal figures and no prize entries for the model to push.
+			name:     "sick leave drops goal figures and prize entries",
+			workouts: 1,
+			result:   models.UserWeekResults{WeekCompletion: 1.0 / 3, CurrentStreak: 4, Competing: true, SickLeave: true},
+			wantSick: true,
+		},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			got := ollamaSeasonPayloadForWeek("Autumn", 3, 2, tc.workouts, tc.result)
+			if got.Name != "Autumn" || got.WeeklyGoalWorkouts != 3 || got.SickLeaveWeeksLeft != 2 {
+				t.Fatalf("identity fields not carried: %+v", got)
+			}
+			if got.CurrentStreakWeeks != tc.result.CurrentStreak || got.Competing != tc.result.Competing {
+				t.Fatalf("streak/competing = %d/%v, want %d/%v", got.CurrentStreakWeeks, got.Competing, tc.result.CurrentStreak, tc.result.Competing)
+			}
+			if got.OnSickLeaveThisWeek != tc.wantSick {
+				t.Fatalf("on sick leave = %v, want %v", got.OnSickLeaveThisWeek, tc.wantSick)
+			}
+			if boolOf(got.WeeklyGoalMet) != tc.wantMet || intOf(got.WorkoutsRemaining) != tc.wantRemaining {
+				t.Fatalf("met/remaining = %v/%v, want %v/%v", boolOf(got.WeeklyGoalMet), intOf(got.WorkoutsRemaining), tc.wantMet, tc.wantRemaining)
+			}
+			if got.PrizeEntriesIfYouMeetGoal != tc.wantEntries {
+				t.Fatalf("prize entries = %d, want %d", got.PrizeEntriesIfYouMeetGoal, tc.wantEntries)
+			}
+		})
+	}
+}
+
+// TestOllamaSeasonPayloadSickLeaveJSON checks what the model actually reads: a sick-leave
+// season has no goal, remaining or prize keys at all, while a normal week keeps a false/zero.
+func TestOllamaSeasonPayloadSickLeaveJSON(t *testing.T) {
+	sick, _ := json.Marshal(ollamaSeasonPayloadForWeek("Autumn", 3, 0, 0, models.UserWeekResults{SickLeave: true, Competing: true}))
+	for _, key := range []string{"weekly_goal_met", "workouts_remaining_to_meet_goal", "prize_entries_to_win_if_a_rival_fails"} {
+		if strings.Contains(string(sick), key) {
+			t.Fatalf("sick-leave payload should omit %q: %s", key, sick)
+		}
+	}
+	if !strings.Contains(string(sick), `"on_sick_leave_this_week":true`) || !strings.Contains(string(sick), `"sick_leave_weeks_left":0`) {
+		t.Fatalf("sick-leave payload missing its flags: %s", sick)
+	}
+
+	normal, _ := json.Marshal(ollamaSeasonPayloadForWeek("Autumn", 3, 1, 3, models.UserWeekResults{WeekCompletion: 1}))
+	if !strings.Contains(string(normal), `"weekly_goal_met":true`) || !strings.Contains(string(normal), `"workouts_remaining_to_meet_goal":0`) {
+		t.Fatalf("normal payload should keep goal figures even at zero: %s", normal)
 	}
 }

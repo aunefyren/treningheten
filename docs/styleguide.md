@@ -340,6 +340,11 @@ page's signature element — keep the rest of the page quiet so it stays the one
 The **debt-spin** state ("you must spin the wheel") reuses `.hero` so it reads as a panel, not
 bare text.
 
+**Sick-leave week** (`.hero-ring.is-resting`): when the viewed season is on sick leave this week
+the ring drops its arc and shows *Sick leave* / *Streak kept* in place of the count (body font —
+it's text, not a numeral), with a one-line `.hero-rest-note` under it naming the season. Calm
+neutrals only: resting is a state, not a warning, so no signal hue and no celebration pulse.
+
 ### Auth panel
 
 `.auth-panel` — the centred white card that holds the **login / register / password-reset /
@@ -571,6 +576,14 @@ not theme — left inline on purpose. Dynamic (`${…}`) values stay inline too.
    conventions — don't extend the legacy pattern.
 
 ## Decisions log
+
+- **Front page reflects sick leave.** A sick-leave week used to show as a normal, behind-on-goal
+  ring, while the calendar was greyed out with `.transparent`/`.noninteractive` from inside the
+  leaderboard builder — a one-way lock that survived switching to another season. Sick leave is
+  per season but workouts are shared, so the lock is gone (the API never blocked logging, and
+  Strava imports land anyway). Instead the ring gets a **resting state** (see Hero) and a note,
+  set and cleared on every season placement (`placeSickLeaveState`). "Use sick leave" became a
+  `.btn--ghost.btn--sm`, shown only while it can be used. No new tokens.
 
 - **Workout read view: richer tiles, one over-time chart, map paired with splits.** (1) Metric
   tiles gained a quiet **detail line** (`.wv-stat-detail`, sentence case, `--text-dim`) for the

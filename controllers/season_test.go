@@ -339,3 +339,73 @@ func TestRetrieveWeekResultsFullWeekParticipation(t *testing.T) {
 		}
 	}
 }
+
+func TestNextSeasonStreak(t *testing.T) {
+	tests := []struct {
+		name       string
+		streak     int
+		completion float64
+		sickLeave  bool
+		want       int
+	}{
+		{"goal met grows the streak", 2, 1.0, false, 3},
+		{"overachieving grows it by one", 2, 2.5, false, 3},
+		{"goal missed resets", 4, 0.67, false, 0},
+		{"sick leave freezes a missed week", 4, 0, true, 4},
+		{"sick leave freezes even a met goal", 4, 1.0, true, 4},
+		{"sick leave keeps a zero streak at zero", 0, 1.0, true, 0},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			if got := nextSeasonStreak(tc.streak, tc.completion, tc.sickLeave); got != tc.want {
+				t.Fatalf("nextSeasonStreak(%d, %v, %v) = %d, want %d", tc.streak, tc.completion, tc.sickLeave, got, tc.want)
+			}
+		})
+	}
+}
+
+// TestRetrieveWeekResultsSickLeaveWithGoalMetFreezesStreak covers a sick-leave week where the
+// goal was met anyway (workouts logged, or a Strava import): the streak must not grow, and the
+// following week continues from the frozen value.
+func TestRetrieveWeekResultsSickLeaveWithGoalMetFreezesStreak(t *testing.T) {
+	newControllerTestDB(t)
+
+	seasonStart := time.Date(2024, 1, 1, 0, 0, 0, 0, time.UTC)
+	seasonEnd := time.Date(2024, 1, 21, 0, 0, 0, 0, time.UTC) // Sunday ending the 3rd week
+
+	userID := uuid.New()
+	goal := makeGoalObject(userID, uuid.New(), 3, time.Date(2023, 12, 1, 0, 0, 0, 0, time.UTC))
+	season := models.SeasonObject{Start: seasonStart, End: seasonEnd, Goals: []models.GoalObject{goal}}
+
+	for week := 0; week < 3; week++ {
+		seedExerciseDayWithExercises(t, userID, wednesdayOfWeek(seasonStart, week), 3) // goal met every week
+	}
+	seedSickleave(t, goal.ID, wednesdayOfWeek(seasonStart, 1), true) // ...but week 2 is sick leave
+
+	results, err := RetrieveWeekResultsFromSeasonWithinTimeframe(seasonStart, seasonEnd, season)
+	if err != nil {
+		t.Fatalf("RetrieveWeekResultsFromSeasonWithinTimeframe returned error: %v", err)
+	}
+	if len(results) != 3 {
+		t.Fatalf("expected 3 weeks, got %d", len(results))
+	}
+
+	// Newest first; CurrentStreak is the streak entering each week.
+	tests := []struct {
+		name       string
+		result     models.UserWeekResults
+		wantSick   bool
+		wantStreak int
+	}{
+		{"week 1 starts at zero", results[2].UserWeekResults[0], false, 0},
+		{"week 2 enters on one", results[1].UserWeekResults[0], true, 1},
+		{"week 3 enters on one: the sick week did not add", results[0].UserWeekResults[0], false, 1},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			if tc.result.SickLeave != tc.wantSick || tc.result.CurrentStreak != tc.wantStreak {
+				t.Fatalf("sick/streak = %v/%d, want %v/%d", tc.result.SickLeave, tc.result.CurrentStreak, tc.wantSick, tc.wantStreak)
+			}
+		})
+	}
+}

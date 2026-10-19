@@ -85,7 +85,23 @@ func TestWeeklyResultsDebtAndWheel(t *testing.T) {
 	// Bob must spin before logging a new week.
 	h.expect(http.StatusBadRequest, "POST", "/api/auth/exercises/week", bobToken, models.WeekCreationRequest{Days: currentWeekDays(0), TimeZone: "UTC"})
 
-	h.ok("GET", debtPath, bobToken, nil)
+	// The wheel holds the two week winners, each with one ticket plus one per week of the
+	// streak they carried in (two goal weeks before last week → three tickets). Bob, who owes
+	// the spin, is not on it.
+	spin := h.ok("GET", debtPath, bobToken, nil)
+	contestants, _ := spin["winners"].([]any)
+	if len(contestants) != 2 {
+		t.Fatalf("wheel contestants = %v, want alice and dave", spin["winners"])
+	}
+	for _, contestant := range contestants {
+		entry, _ := contestant.(map[string]any)
+		if id := idOf(t, entry, "user"); id == bob.ID.String() {
+			t.Errorf("the member who owes the spin is on the wheel")
+		}
+		if tickets, _ := entry["tickets"].(float64); tickets != 3 {
+			t.Errorf("contestant %v has %v tickets, want 3", idOf(t, entry, "user"), entry["tickets"])
+		}
+	}
 	h.expect(http.StatusBadRequest, "GET", "/api/auth/debts/nope", bobToken, nil)
 	h.expect(http.StatusUnauthorized, "POST", debtPath+"/choose", aliceToken, nil)
 	h.expect(http.StatusBadRequest, "POST", "/api/auth/debts/nope/choose", bobToken, nil)

@@ -109,3 +109,76 @@ func mustToken(t *testing.T, user models.User) string {
 	}
 	return token
 }
+
+// Two members train every day of a three-week season, beating a three-a-week goal each week.
+// One takes sick leave in week three anyway: that week freezes their streak at two, so only
+// the other reaches — and is awarded — the three-week streak.
+func TestSickLeaveWeekDoesNotAwardStreakAchievement(t *testing.T) {
+	h := newAPIHarness(t)
+	withControllerSMTP(t)
+	steady, _ := h.user("steady@rules.test", false)
+	resting, _ := h.user("resting@rules.test", false)
+
+	zone := time.Local
+	start := time.Date(2025, 9, 1, 0, 0, 0, 0, zone) // a Monday
+	end := time.Date(2025, 9, 21, 23, 59, 59, 0, zone)
+	season := seedSeason(t, "Autumn season", start, end, false)
+	seedGoal(t, steady.ID, season, 3)
+	restingGoal := seedGoal(t, resting.ID, season, 3)
+
+	for day := start; day.Before(end); day = day.AddDate(0, 0, 1) {
+		seedExerciseDayWithExercises(t, steady.ID, day, 1)
+		seedExerciseDayWithExercises(t, resting.ID, day, 1)
+	}
+	seedSickleave(t, restingGoal.ID, start.AddDate(0, 0, 16), true) // Wednesday of week three
+
+	processSeasonWeeks(t, season)
+
+	const threeWeekStreak = "8875597e-d8f5-4514-b96f-c51ecce4eb1f"
+	if !hasAchievement(t, steady.ID, threeWeekStreak) {
+		t.Error("the member without sick leave was not awarded the three-week streak")
+	}
+	if hasAchievement(t, resting.ID, threeWeekStreak) {
+		t.Error("a sick-leave week grew the streak into the three-week achievement")
+	}
+}
+
+// The "only one to hit the goal" achievement needs a competing member who missed: someone in
+// the season who isn't competing doesn't make the lone achiever a sole winner.
+func TestSoleWinnerAchievementCountsOnlyCompetingMembers(t *testing.T) {
+	const soleWinner = "6cc0f1b0-c894-4b12-a9ed-569cdfde3b16"
+	tests := []struct {
+		name          string
+		idleCompeting bool
+		want          bool
+	}{
+		{"a competing member missed", true, true},
+		{"only a non-competing member missed", false, false},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			h := newAPIHarness(t)
+			withControllerSMTP(t)
+			achiever, _ := h.user("achiever@rules.test", false)
+			idle, _ := h.user("idle@rules.test", false)
+
+			zone := time.Local
+			start := time.Date(2025, 9, 1, 0, 0, 0, 0, zone) // a Monday
+			season := seedSeason(t, "One-week season", start, time.Date(2025, 9, 7, 23, 59, 59, 0, zone), false)
+			seedGoal(t, achiever.ID, season, 1)
+			idleGoal := seedGoal(t, idle.ID, season, 1)
+			if !tc.idleCompeting {
+				if err := database.Instance.Model(&models.Goal{}).Where("id = ?", idleGoal.ID).Update("competing", false).Error; err != nil {
+					t.Fatal(err)
+				}
+			}
+			seedExerciseDayWithExercises(t, achiever.ID, start.AddDate(0, 0, 2), 1)
+
+			processSeasonWeeks(t, season)
+
+			if got := hasAchievement(t, achiever.ID, soleWinner); got != tc.want {
+				t.Fatalf("sole-winner achievement awarded = %v, want %v", got, tc.want)
+			}
+		})
+	}
+}

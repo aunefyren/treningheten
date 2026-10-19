@@ -720,22 +720,20 @@ func GenerateAchievementsForWeek(weekResults models.WeekResults, targetUser *uui
 			return errors.New("Failed to get user object.")
 		}
 
-		// If a winner for the week
-		if user.WeekCompletion >= 1.0 && !user.SickLeave {
+		// Winners and losers among the competing members, for the "only one to hit the goal"
+		// achievement. Non-competing members are in neither list. Unlike OwesSpin, a member who
+		// joined mid-week and missed still counts as a loser here.
+		if user.WonWeek() {
 			winnerUserIDs = append(winnerUserIDs, user.UserID)
-		} else if user.WeekCompletion < 1.0 && !user.SickLeave {
+		} else if user.Competing && !user.GoalMet() && !user.SickLeave {
 			loserUserIDs = append(loserUserIDs, user.UserID)
 		}
 
-		// calculate new streak
-		userStreak := user.CurrentStreak
-		if user.FullWeekParticipation && user.WeekCompletion < 1 && !user.SickLeave {
-			userStreak = 0
-		} else if user.WeekCompletion >= 1 {
-			userStreak++
-		} else {
-			userStreak = 0
-		}
+		// The streak after this week, by the same rule as the week results. Streak achievements
+		// need the streak to have grown this week, so a sick-leave week (frozen, even with the
+		// goal met) never awards one.
+		userStreak := nextSeasonStreak(user.CurrentStreak, user.WeekCompletion, user.SickLeave)
+		streakGrew := userStreak > user.CurrentStreak
 
 		// skip the rest if applicable
 		if targetUser != nil && user.UserID != *targetUser {
@@ -752,7 +750,7 @@ func GenerateAchievementsForWeek(weekResults models.WeekResults, targetUser *uui
 
 		}
 
-		if userStreak == 3 && user.WeekCompletion >= 1 && (targetUser == nil || *targetUser == user.UserID) {
+		if userStreak == 3 && streakGrew && (targetUser == nil || *targetUser == user.UserID) {
 
 			// Give achievement to user for three weeks
 			err := GiveUserAnAchievement(user.UserID, uuid.MustParse("8875597e-d8f5-4514-b96f-c51ecce4eb1f"), sundayDate, 0)
@@ -762,7 +760,7 @@ func GenerateAchievementsForWeek(weekResults models.WeekResults, targetUser *uui
 
 		}
 
-		if userStreak == 10 && user.WeekCompletion >= 1 && (targetUser == nil || *targetUser == user.UserID) {
+		if userStreak == 10 && streakGrew && (targetUser == nil || *targetUser == user.UserID) {
 
 			// Give achievement to user for ten weeks
 			err := GiveUserAnAchievement(user.UserID, uuid.MustParse("ca6a4692-153b-47a7-8444-457b906d0666"), sundayDate, 0)
@@ -772,7 +770,7 @@ func GenerateAchievementsForWeek(weekResults models.WeekResults, targetUser *uui
 
 		}
 
-		if userStreak == 15 && user.WeekCompletion >= 1 && (targetUser == nil || *targetUser == user.UserID) {
+		if userStreak == 15 && streakGrew && (targetUser == nil || *targetUser == user.UserID) {
 
 			// Give achievement to user for 15 weeks
 			err := GiveUserAnAchievement(user.UserID, uuid.MustParse("2a84df89-9976-443b-a093-19f8d73b5eff"), sundayDate, 0)
@@ -782,7 +780,7 @@ func GenerateAchievementsForWeek(weekResults models.WeekResults, targetUser *uui
 
 		}
 
-		if userStreak == 20 && user.WeekCompletion >= 1 && (targetUser == nil || *targetUser == user.UserID) {
+		if userStreak == 20 && streakGrew && (targetUser == nil || *targetUser == user.UserID) {
 
 			// Give achievement to user for 20 weeks
 			err := GiveUserAnAchievement(user.UserID, uuid.MustParse("09da2ab1-393d-4c43-a1d0-daa45520b49f"), sundayDate, 0)
@@ -1079,7 +1077,7 @@ func GenerateAchievementsForSeason(seasonResults []models.WeekResults, targetUse
 					userTally[foundIndex].SickAmount += 1
 				}
 
-			} else if weekResult.WeekCompletion >= 1.0 {
+			} else if weekResult.GoalMet() {
 
 				found := false
 				foundIndex := 0

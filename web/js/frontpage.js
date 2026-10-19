@@ -32,14 +32,19 @@ function load_page(result) {
                     <div class="module hero" id="top-module">
 
                         <!-- Weekly-goal ring: the app's core loop as the hero. The ring fills
-                             blue with this week's completion %, snaps green at 100%. Hidden until
-                             a season/week populates it (placeWeekProgress). -->
+                             blue with this week's completion %, snaps green at 100%, and rests
+                             (no arc, "Sick leave") when the viewed season is on sick leave this
+                             week. Hidden until a season/week populates it (placeWeekProgress). -->
                         <div class="hero-ring" id="hero-ring" style="display: none;">
                             <div class="hero-ring-figures">
-                                <span class="hero-ring-count"><a id="workout_this_week">0</a> / <a id="goal_this_week">0</a></span>
-                                <span class="hero-ring-caption">this week</span>
+                                <span class="hero-ring-count hero-ring-week"><a id="workout_this_week">0</a> / <a id="goal_this_week">0</a></span>
+                                <span class="hero-ring-caption hero-ring-week">this week</span>
+                                <span class="hero-ring-rest hero-ring-resting">Sick leave</span>
+                                <span class="hero-ring-caption hero-ring-resting">Streak kept</span>
                             </div>
                         </div>
+
+                        <p class="hero-rest-note" id="hero-rest-note" style="display: none;"></p>
 
                         <!-- The nav already shows the app name; the ring + CTA carry the hero, so no
                              redundant title/subtitle here. #front-page-text is used for the logged-out
@@ -230,7 +235,7 @@ function load_page(result) {
 
                                     <button type="submit" onclick="update_exercises(false, 0);" id="goal_amount_button" class="btn btn--block" style="margin-bottom: 0em; transition: 1s;"><img src="assets/done.svg" class="color-invert">Save</button>
 
-                                    <a class="u-m-2 u-fs-sm u-pointer" onclick="use_sickleave();">Use sick leave</i></a>
+                                    <button type="button" class="btn btn--ghost btn--sm sickleave-button" id="sickleave-button" onclick="useSickLeave();" style="display: none;">Use sick leave</button>
 
                                 </div>
 
@@ -1030,6 +1035,7 @@ function get_leaderboard(season, goal, refresh, fireworks){
                 }
 
                 place_current_week(this_week);
+                placeSickLeaveState(isOnSickLeave(this_week), goal.sickleave_left, season.name);
 
                 if(refresh) {
                     place_season_details(goal, season);
@@ -1091,15 +1097,7 @@ function place_leaderboard(weeks_array) {
         weeks_array[i].users = weeks_array[i].users.sort((a,b) => b.week_completion - a.week_completion);
 
         for(var j = 0; j < weeks_array[i].users.length; j++) {
-            var completion = "❌"
-
-            if(!weeks_array[i].users[j].full_week_participation && weeks_array[i].users[j].week_completion < 1.0) {
-                completion = "🕙"
-            } else if(weeks_array[i].users[j].sick_leave) {
-                completion = "🤢"
-            } else if(weeks_array[i].users[j].week_completion >= 1.0) {
-                completion = "✅"
-            }
+            var completion = weekStatusIcon(weeks_array[i].users[j])
 
             var onclick_command_str = "return;"
             var clickable_str = ""
@@ -1155,33 +1153,15 @@ function place_current_week(week_array) {
     for(var i = 0; i < week_array.users.length; i++) {
 
         var completion = Math.trunc((week_array.users[i].week_completion * 100))
-        var transparent = ""
-
-        if(!week_array.users[i].full_week_participation && completion < 100) {
-            var current_streak = week_array.users[i].current_streak + "🕙"
-        } else if(week_array.users[i].sick_leave) {
-            var current_streak = week_array.users[i].current_streak + "🤢"
-            transparent = "transparent"
-
-            if(week_array.users[i].user_id == user_id){
-                document.getElementById("calendar").classList.add("transparent")
-                document.getElementById("calendar").classList.add("unselectable")
-                document.getElementById("calendar").classList.add("noninteractive")
-                document.getElementById("add-exercise-button").style.display = 'none';
-            }
-
-        } else if(week_array.users[i].current_streak > 0) {
-            var current_streak = week_array.users[i].current_streak + "🔥"
-        } else {
-            var current_streak = week_array.users[i].current_streak + "💀"
-        }
+        var transparent = week_array.users[i].sick_leave ? "transparent" : ""
+        var current_streak = week_array.users[i].current_streak + streakStatusIcon(week_array.users[i])
 
         if(completion >= 100) {
             transparent += " bold-font "
         }
 
         if(week_array.users[i].user_id == user_id) {
-            placeWeekProgress(completion)
+            placeWeekProgress(completion, week_array.users[i].sick_leave)
         }
 
         var user = userDisplayName(week_array.users[i].user_id);
@@ -1221,18 +1201,55 @@ function place_current_week(week_array) {
     return
 }
 
-function use_sickleave() {
+// isOnSickLeave reports whether the signed-in user has used sick leave for this week in the
+// season the week results belong to.
+function isOnSickLeave(weekResults) {
+    var users = (weekResults && weekResults.users) || [];
+    for(var i = 0; i < users.length; i++) {
+        if(users[i].user_id == user_id) {
+            return users[i].sick_leave === true;
+        }
+    }
+    return false;
+}
 
-    if(!confirm("Are you sure you want to use sick leave? The week will be marked as sick leave, no workouts can be logged, the current streak will be preserved.")) {
+// placeSickLeaveState reflects the viewed season's sick-leave week on the page: the note under
+// the ring, and whether sick leave can still be used. Sick leave belongs to one season's goal,
+// so this is set *and* cleared every time a season is placed — switching to a season without
+// sick leave lifts it again. Logging stays open on purpose: workouts are shared across seasons
+// and still count in any season that isn't on sick leave (Strava imports land regardless).
+function placeSickLeaveState(isSick, sickleaveLeft, seasonName) {
+    var note = document.getElementById("hero-rest-note");
+    if(note) {
+        note.textContent = isSick
+            ? `This week is sick leave in ${seasonName}. Your streak is kept and the week can't count against you.`
+            : "";
+        note.style.display = isSick ? "block" : "none";
+    }
+
+    var button = document.getElementById("sickleave-button");
+    if(button) {
+        button.dataset.seasonName = seasonName || "";
+        button.dataset.left = sickleaveLeft || 0;
+        button.style.display = !isSick && sickleaveLeft > 0 ? "inline-flex" : "none";
+    }
+}
+
+function useSickLeave() {
+    var button = document.getElementById("sickleave-button");
+    var seasonName = button ? button.dataset.seasonName : "";
+    var left = button ? button.dataset.left : "";
+
+    if(!confirm(`Use sick leave for this week in ${seasonName}? Your streak is kept and the week can't count against you. You have ${left} left, and this uses one.`)) {
         return
     }
 
-    seasonID = document.getElementById("calendar_season_id").value;
+    var seasonID = document.getElementById("calendar_season_id").value;
 
     var xhttp = new XMLHttpRequest();
     xhttp.onreadystatechange = function() {
         if (this.readyState == 4) {
-            
+
             try {
                 result = JSON.parse(this.responseText);
             } catch(e) {
@@ -1240,19 +1257,13 @@ function use_sickleave() {
                 error("Could not reach API.");
                 return;
             }
-            
+
             if(result.error) {
-
                 error(result.error);
-
             } else {
-
                 location.reload();
-                
             }
 
-        } else {
-            // info("Loading week...");
         }
     };
     xhttp.withCredentials = true;
@@ -1441,7 +1452,7 @@ function placeSeasonProgress(seasonStartObject, seasonEndObject) {
     }
 }
 
-function placeWeekProgress(percentage) {
+function placeWeekProgress(percentage, sickLeave) {
 
     console.log("This weeks progress: " + percentage)
 
@@ -1454,8 +1465,18 @@ function placeWeekProgress(percentage) {
         return;
     }
 
-    // Reveal the ring (hidden until a season populates it) and fill its arc to the completion %.
+    // Reveal the ring (hidden until a season populates it).
     ring.style.display = "flex";
+
+    // A sick-leave week is paused: no arc, no celebration — the ring says so instead.
+    ring.classList.toggle("is-resting", sickLeave === true);
+    if(sickLeave === true) {
+        ring.classList.remove("complete");
+        ring.style.setProperty("--pct", 0);
+        return;
+    }
+
+    // Fill the arc to the completion %.
     ring.style.setProperty("--pct", percentage);
 
     if(percentage > 99) {

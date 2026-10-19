@@ -26,7 +26,13 @@ reliable and avoids them getting the wheel mechanics backwards.
   (3) so the message never congratulates a stale session. See below.
 - `in_any_season` + `seasons[]` — per-season flattened progress and stakes
   (`weekly_goal_met`, `workouts_remaining_to_meet_goal`, `current_streak_weeks`,
-  `competing`, `prize_entries_to_win_if_a_rival_fails`, sick-leave fields).
+  `competing`, `prize_entries_to_win_if_a_rival_fails`, `on_sick_leave_this_week`,
+  `sick_leave_weeks_left`), built per season by `ollamaSeasonPayloadForWeek`. Sick leave is
+  per season, so a **sick-leave season omits** `weekly_goal_met`,
+  `workouts_remaining_to_meet_goal` and the prize entries — the week is paused and can't count
+  against the user, so there is nothing to push towards. The system prompt's *Sick leave*
+  rules tell the model to acknowledge the rest week, say the streak is safe, never encourage
+  training for that season, and keep any other (normal) season's progress gentle.
 
 ### `latest_workout`
 

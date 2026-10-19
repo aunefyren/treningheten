@@ -68,6 +68,26 @@ window.addEventListener('offline', () => {
     window.location.href = '/offline';
 });
 
+// Leaderboard week icons, checked in the same order the server judges a week
+// (models/week_result.go, nextSeasonStreak): sick leave first, then the goal, then a
+// mid-week join. Shared by the front page and /seasons so the boards can't disagree.
+
+// weekStatusIcon marks how a week went for one member.
+function weekStatusIcon(result) {
+    if(result.sick_leave) return "🤢";
+    if(result.week_completion >= 1) return "✅";
+    if(!result.full_week_participation) return "🕙";
+    return "❌";
+}
+
+// streakStatusIcon marks the streak a member carries in the current week.
+function streakStatusIcon(result) {
+    if(result.sick_leave) return "🤢";
+    if(!result.full_week_participation && result.week_completion < 1) return "🕙";
+    if(result.current_streak > 0) return "🔥";
+    return "💀";
+}
+
 // profileImageURL returns the URL of a user's profile image for direct use in an <img src>.
 // The image endpoint accepts the session cookie, so no Authorization header is needed and
 // the browser caches/dedupes these automatically. Pass thumbnail=true for the small size.

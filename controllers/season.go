@@ -713,26 +713,33 @@ func GetWeekResultForGoal(goal models.GoalObject, currentTime time.Time, userStr
 	}
 
 	sickLeave := data.sickleaveForWeek(goal.ID, key)
+	newResult.SickLeave = sickLeave != nil && sickLeave.Used
 
-	// Found in streak, retrieve current streak
-	if newResult.FullWeekParticipation && newResult.WeekCompletion < 1 && (sickLeave == nil || !sickLeave.Used) {
-		newResult.CurrentStreak = userStreaks[userIndex].Streak
-		userStreaks[userIndex].Streak = 0
-	} else if sickLeave != nil && sickLeave.Used {
-		newResult.CurrentStreak = userStreaks[userIndex].Streak
-		newResult.SickLeave = true
-	} else if newResult.WeekCompletion >= 1 {
-		newResult.CurrentStreak = userStreaks[userIndex].Streak
-		userStreaks[userIndex].Streak = userStreaks[userIndex].Streak + 1
-	} else {
-		newResult.CurrentStreak = userStreaks[userIndex].Streak
-		userStreaks[userIndex].Streak = 0
-	}
+	// The week reports the streak as it stood entering the week; the running streak then
+	// advances by the shared rule.
+	newResult.CurrentStreak = userStreaks[userIndex].Streak
+	userStreaks[userIndex].Streak = nextSeasonStreak(userStreaks[userIndex].Streak, newResult.WeekCompletion, newResult.SickLeave)
 
 	logger.Log.Trace("streak is now: " + strconv.Itoa(userStreaks[userIndex].Streak))
 	logger.Log.Trace("streak is now on week results: " + strconv.Itoa(newResult.CurrentStreak))
 
 	return newResult, userStreaks, nil
+}
+
+// nextSeasonStreak is the season-streak rule for one week, given the streak entering it. Sick
+// leave comes first: a sick-leave week freezes the streak — kept, but never grown, even when
+// the goal was met that week. Otherwise a met goal adds one and anything else resets it
+// (a missed full week, or joining mid-week without meeting the goal). Shared by the week
+// results and the achievement pass so the two can't drift.
+func nextSeasonStreak(streak int, weekCompletion float64, sickLeave bool) int {
+	switch {
+	case sickLeave:
+		return streak
+	case weekCompletion >= 1:
+		return streak + 1
+	default:
+		return 0
+	}
 }
 
 func ReverseWeeksArray(input []models.WeekResults) []models.WeekResults {

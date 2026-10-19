@@ -54,14 +54,22 @@ weekly goal, not mere activity. Computed in `GetWeekResultForGoal`
 (`controllers/season.go`), which is called week-by-week with the user's running streak
 threaded through (see [the weekly loop](seasons-and-goals.md#the-weekly-processing-loop)).
 
-Per evaluated week, given `WeekCompletion = exercises_done / ExerciseInterval`:
+Per evaluated week, given `WeekCompletion = exercises_done / ExerciseInterval`, checked
+**in this order** (`nextSeasonStreak`):
 
 | Situation | Effect on the streak |
 |---|---|
+| Week covered by **used sick leave** | **frozen** — kept, never grown, **even if the goal was met** that week (week result flagged `SickLeave`) |
 | `WeekCompletion ≥ 1` (goal met) | **+1** |
-| Goal missed, full week, **no** sick leave used | **reset to 0** |
-| Week covered by **used sick leave** | **frozen** (kept; week result flagged `SickLeave`) |
-| Joined mid-week (`FullWeekParticipation = false`) and goal not met | **reset to 0** |
+| Anything else (goal missed on a full week, or joined mid-week without meeting it) | **reset to 0** |
+
+`nextSeasonStreak` is shared by the week results and the achievement pass
+(`GenerateAchievementsForWeek`), so the 3/10/15/20-week streak achievements follow the same
+rule: they need the streak to have *grown* that week, so a sick-leave week never awards one.
+(Before this was shared, the achievement pass grew its own copy on a goal-met sick-leave week
+and could award a streak achievement the real streak never reached. Awards made that way were
+left in place.) Other achievements — e.g. beating the weekly goal — can still be earned in a
+sick-leave week.
 
 The streak value reported for a week (`UserWeekResults.CurrentStreak`) is the running
 streak as it stood entering that week's update.
@@ -87,8 +95,9 @@ Weekly target `ExerciseInterval = 3`, one sick-leave week available:
 ## Where consequences flow
 
 Season streaks feed the leaderboard and the wheel-of-fortune: ticket count is
-`CurrentStreak + 1` (`controllers/debt.go`). Personal streaks are display-only
-(profile/statistics).
+`CurrentStreak + 1` (`UserWeekResults.WheelTickets`, see
+[seasons-and-goals.md](seasons-and-goals.md#the-weekly-outcome-rules)). Personal streaks are
+display-only (profile/statistics).
 
 ## Related
 

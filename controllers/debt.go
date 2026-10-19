@@ -200,9 +200,9 @@ func GenerateDebtForWeek(givenTime time.Time, season models.Season, targetUser *
 		logger.Log.Info("Potential winner/loser: ")
 		logger.Log.Info(user)
 
-		if user.Competing && user.WeekCompletion < 1 && !user.SickLeave && user.FullWeekParticipation {
+		if user.OwesSpin() {
 			losers = append(losers, user.UserID)
-		} else if user.Competing && user.WeekCompletion >= 1 && !user.SickLeave {
+		} else if user.WonWeek() {
 			winners = append(winners, user.UserID)
 		}
 	}
@@ -558,7 +558,7 @@ func APIGetDebt(context *gin.Context) {
 
 	for _, user := range lastWeek.UserWeekResults {
 
-		if user.Competing && user.WeekCompletion >= 1.0 && !user.SickLeave {
+		if user.WonWeek() {
 			// Censored: this array is serialized into the response body.
 			userObject, err := database.GetUserInformation(user.UserID)
 			if err != nil {
@@ -570,7 +570,7 @@ func APIGetDebt(context *gin.Context) {
 
 			userWithTickets := models.UserWithTickets{
 				User:    userObject,
-				Tickets: user.CurrentStreak + 1,
+				Tickets: user.WheelTickets(),
 			}
 
 			winners = append(winners, userWithTickets)
@@ -707,7 +707,7 @@ func APIChooseWinnerForDebt(context *gin.Context) {
 	// Find weeks winners
 	for _, user := range lastWeek.UserWeekResults {
 
-		if user.Competing && user.WeekCompletion >= 1 && !user.SickLeave {
+		if user.WonWeek() {
 			// Censored: only the ID and name are needed here; the mailer below re-reads
 			// the uncensored row when it actually needs an address.
 			userObject, err := database.GetUserInformation(user.UserID)
@@ -720,10 +720,10 @@ func APIChooseWinnerForDebt(context *gin.Context) {
 
 			userWithTickets := models.UserWithTickets{
 				User:    userObject,
-				Tickets: user.CurrentStreak + 1,
+				Tickets: user.WheelTickets(),
 			}
 			winners = append(winners, userWithTickets)
-			logger.Log.Info("Contestant '" + userObject.FirstName + " " + userObject.LastName + "' with '" + strconv.Itoa(user.CurrentStreak+1) + "' tickets added.")
+			logger.Log.Info("Contestant '" + userObject.FirstName + " " + userObject.LastName + "' with '" + strconv.Itoa(user.WheelTickets()) + "' tickets added.")
 		}
 
 	}

@@ -2150,6 +2150,32 @@ label {
   color: var(--lightblue);
 }
 
+/* Sick-leave week: the viewed season is paused, so the ring drops its arc (--pct 0, set from
+   JS) and names the state in place of the count. Calm neutrals — resting is a state, not an
+   error, so no signal hue. Text, not a numeral, so body font rather than the display face. */
+.hero-ring-resting { display: none; }
+.hero-ring.is-resting .hero-ring-week { display: none; }
+.hero-ring.is-resting .hero-ring-resting { display: block; }
+.hero-ring-rest {
+  font-family: var(--font-body);
+  font-size: 1.15rem;
+  font-weight: 600;
+  line-height: 1.1;
+  color: var(--darkblue);
+}
+/* One plain line under the ring saying which season is paused and what that means. */
+.hero-rest-note {
+  max-width: 18rem;
+  margin: 0;                    /* the hero's own gap spaces it */
+  text-align: center;
+  font-family: var(--font-body);
+  font-size: 0.9rem;
+  line-height: 1.45;
+  color: var(--darkblue);
+}
+/* "Use sick leave" sits quietly under the calendar's Save. */
+.sickleave-button { margin-top: var(--space-3); }
+
 /* Module panel — ONE shared style for every content block on the light card:
    white surface, hairline border, a single calm green left accent bar, soft shadow,
    rounded and `overflow: hidden` so inner headers / progress bars clip to the corners

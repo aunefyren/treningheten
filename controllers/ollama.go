@@ -93,16 +93,19 @@ const latestWorkoutMaxAgeDays = 3
 // ollamaSeasonPayload is one season the user is currently in. Every field is
 // pre-computed so the model never has to derive goal progress, streaks or stakes.
 // All values are derived from the single shared weekly workout count.
+// A season on sick leave this week carries no goal progress, remaining count or prize entries:
+// the week is paused and can't count against the user, so there is nothing for the model to
+// push towards (see ollamaSeasonPayloadForWeek).
 type ollamaSeasonPayload struct {
 	Name                      string `json:"name"`
 	WeeklyGoalWorkouts        int    `json:"weekly_goal_workouts"`
-	WeeklyGoalMet             bool   `json:"weekly_goal_met"`
-	WorkoutsRemaining         int    `json:"workouts_remaining_to_meet_goal"`
+	WeeklyGoalMet             *bool  `json:"weekly_goal_met,omitempty"`
+	WorkoutsRemaining         *int   `json:"workouts_remaining_to_meet_goal,omitempty"`
 	CurrentStreakWeeks        int    `json:"current_streak_weeks"`
 	Competing                 bool   `json:"competing"`
 	PrizeEntriesIfYouMeetGoal int    `json:"prize_entries_to_win_if_a_rival_fails,omitempty"`
-	SickleaveUsedThisWeek     bool   `json:"sickleave_used_this_week"`
-	SickleaveDaysLeft         int    `json:"sickleave_days_left"`
+	OnSickLeaveThisWeek       bool   `json:"on_sick_leave_this_week"`
+	SickLeaveWeeksLeft        int    `json:"sick_leave_weeks_left"`
 }
 
 type ollamaPromptPayload struct {
@@ -355,32 +358,43 @@ func buildSeasonPayloads(userID uuid.UUID, seasonObjects []models.SeasonObject, 
 			continue
 		}
 
-		remaining := goalInterval - workoutsThisWeek
-		if remaining < 0 {
-			remaining = 0
-		}
-
-		seasonPayload := ollamaSeasonPayload{
-			Name:                  season.Name,
-			WeeklyGoalWorkouts:    goalInterval,
-			WeeklyGoalMet:         result.WeekCompletion >= 1.0,
-			WorkoutsRemaining:     remaining,
-			CurrentStreakWeeks:    result.CurrentStreak,
-			Competing:             result.Competing,
-			SickleaveUsedThisWeek: result.SickLeave,
-			SickleaveDaysLeft:     sickleaveLeft,
-		}
-
-		// Meeting the goal while competing earns streak+1 entries on the wheel.
-		// These only pay off if a rival fails and has to spin.
-		if result.Competing {
-			seasonPayload.PrizeEntriesIfYouMeetGoal = result.CurrentStreak + 1
-		}
-
+		seasonPayload := ollamaSeasonPayloadForWeek(season.Name, goalInterval, sickleaveLeft, workoutsThisWeek, *result)
 		seasonPayloads = append(seasonPayloads, seasonPayload)
 	}
 
 	return seasonPayloads
+}
+
+// ollamaSeasonPayloadForWeek flattens one season's current week for the model. A sick-leave
+// week keeps the streak and the sick-leave balance but drops the goal figures and prize
+// entries, since the week is paused and none of them apply.
+func ollamaSeasonPayloadForWeek(name string, goalInterval int, sickleaveLeft int, workoutsThisWeek int, result models.UserWeekResults) ollamaSeasonPayload {
+	payload := ollamaSeasonPayload{
+		Name:                name,
+		WeeklyGoalWorkouts:  goalInterval,
+		CurrentStreakWeeks:  result.CurrentStreak,
+		Competing:           result.Competing,
+		OnSickLeaveThisWeek: result.SickLeave,
+		SickLeaveWeeksLeft:  sickleaveLeft,
+	}
+	if result.SickLeave {
+		return payload
+	}
+
+	met := result.GoalMet()
+	remaining := goalInterval - workoutsThisWeek
+	if remaining < 0 {
+		remaining = 0
+	}
+	payload.WeeklyGoalMet = &met
+	payload.WorkoutsRemaining = &remaining
+
+	// Meeting the goal while competing earns streak+1 entries on the wheel.
+	// These only pay off if a rival fails and has to spin.
+	if result.Competing {
+		payload.PrizeEntriesIfYouMeetGoal = result.WheelTickets()
+	}
+	return payload
 }
 
 func OllamaGenerateFrontPageMessage(ctx context.Context, userID uuid.UUID, pointInTime time.Time) (string, error) {
@@ -433,6 +447,13 @@ PER-SEASON RULES (read carefully — the wheel is easy to get backwards):
 - When the user meets their goal, they instead receive "prize_entries_to_win_if_a_rival_fails" entries on the wheel. These pay off only if a DIFFERENT competitor fails their own goal and is forced to spin; that spin might land on the user and win them the prize. It is conditional and not guaranteed — it depends on someone else failing.
 - A higher "current_streak_weeks" means more entries and better odds of winning the prize when a rival fails.
 - If "competing" is false, the user never spins and is simply participating.
+
+SICK LEAVE:
+- When a season has "on_sick_leave_this_week": true, the user is ill or resting and has paused that season for this week. Their streak there is kept and the week cannot count against them, so that season has no goal progress, no remaining workouts and no wheel this week.
+- For that season, never encourage training or mention its weekly goal. Acknowledge the rest week kindly, say their streak is safe, and wish them a good recovery.
+- Other seasons without sick leave still have a normal week. You may state their progress, but say it gently and never pressure someone who is unwell to train.
+- If every season is on sick leave, the whole greeting is about resting and recovering; do not mention workouts remaining or the wheel at all.
+- "sick_leave_weeks_left" is how many more sick-leave weeks they have in that season. Mention it only when it is useful, for example when it is 0.
 
 OUTPUT: Write a short front-page greeting, 2 sentences normally, 4 maximum. Reference today's weekday and the user's progress this week, plus season standing when relevant. Friendly tone, light humor welcome. Plain text only: no markdown, no headings, no bullet points, no emojis. Reply in English.`,
 		},

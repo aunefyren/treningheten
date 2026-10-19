@@ -191,10 +191,6 @@ Built for all five integrations; see [integration-health.md](integration-health.
 - If I visit /achievements on the device with a achievements notification open, should those disappear from the notification feed?
 - Possible on PWA?
 
-## Sick day page
-- Page does not respect the sick day properly, the page should reflect the sick leave
-- AI should either know about it, or not be shown
-
 ## Skip Strava activities in Hevy
 - This option should also be within Hevy
 - Maybe a separate setting/priority setting? That way it apples to all external connections

@@ -85,6 +85,13 @@ Sick leave lets a participant **miss a week without breaking their season streak
   (preserved, not incremented and not reset) and the week result's `SickLeave` flag is
   set.
 
+Sick leave does **not** block logging: workouts are shared across seasons, so a workout
+logged (or imported from Strava) during a sick-leave week still counts in any other season
+the user is in. On the front page a sick-leave week in the viewed season shows as a resting
+hero ring and a one-line note; "Use sick leave" only appears while it can be used (not
+already used this week, at least one left). The AI greeting is told about it too (see
+[ollama.md](ollama.md)).
+
 Registered via `POST /api/auth/sickleave/:season_id`. Code: `models/sickleave.go`,
 `database/sickleave.go` (`GetUsedSickleaveForGoalWithinWeek`,
 `GetUnusedSickleaveForGoalWithinWeek`).
@@ -116,9 +123,29 @@ streaks are therefore recomputed, not stored** — see
 
 Missing a week while `Competing` can create a **debt**; the season leaderboard ranks
 participants; the season `Prize` is awarded through the wheel-of-fortune, whose ticket
-count is tied to the season streak (`debt.go` uses `CurrentStreak + 1`). These
-mechanics are adjacent to this document; the key cross-cutting concept is the season
-streak, documented next.
+count is tied to the season streak. These mechanics are adjacent to this document; the key
+cross-cutting concept is the season streak, documented next.
+
+### The weekly outcome rules
+
+How a finished week turns out for one participant is decided by methods on
+`models.UserWeekResults` (`models/week_result.go`), so debt generation, the wheel, the
+achievements and the AI greeting can't judge the same week differently:
+
+| Method | True when |
+|---|---|
+| `GoalMet()` | `WeekCompletion ≥ 1` — on its own, says nothing about sick leave or competing |
+| `WonWeek()` | competing, goal met, **not** on sick leave — earns a place on the wheel |
+| `OwesSpin()` | competing, goal missed, **not** on sick leave, in the season the whole week — owes a spin (a debt) |
+| `WheelTickets()` | `CurrentStreak + 1`: one entry plus one per streak week carried into the week (meaningful when `WonWeek`) |
+
+The streak itself advances by `nextSeasonStreak` ([streaks.md](streaks.md#season-streaks)).
+The "only one to hit the goal" achievement counts **competing** members only: its winners are
+`WonWeek`, its losers competing members who missed without sick leave (a mid-week joiner who
+missed still counts there, though they owe no spin). The leaderboards on the front page and
+`/seasons` draw their icons from the same order through `weekStatusIcon` /
+`streakStatusIcon` (`web/js/functions.js`): sick leave first, then the goal, then a mid-week
+join.
 
 **Who can see a debt.** A wheel spin is a season-social event, not a private one: the week
 table on the front page and `/seasons` links every participant's debt, so
