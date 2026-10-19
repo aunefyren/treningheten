@@ -14,11 +14,12 @@ import (
 
 func withHevy(t *testing.T) {
 	t.Helper()
+	quiesceBackgroundWork(t)
 	previous := files.ConfigFile
 	files.ConfigFile.HevyEnabled = true
 	key, _ := files.GenerateSecureKey(32)
 	files.ConfigFile.HevyTokenKey = key
-	t.Cleanup(func() {
+	restoreAfterBackgroundWork(t, func() {
 		files.ConfigFile.HevyEnabled = previous.HevyEnabled
 		files.ConfigFile.HevyTokenKey = previous.HevyTokenKey
 	})

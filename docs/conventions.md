@@ -301,7 +301,18 @@ sweeps below. Total statement coverage is about 90%.
   `stubSpotify`, a fake plex.tv + Plex Media Server pair, `withOllama`, and MCP through
   the official go-sdk client (`mcpSession`/`callTool`). Background work an endpoint
   starts with `goSafely` races with assertions — test the connect endpoint against an
-  empty account and drive the sync function synchronously.
+  empty account and drive the sync function synchronously, or `quiesceBackgroundWork(t)`
+  before asserting on what it wrote.
+- **Background work never outlives its test.** `goSafely` counts its tasks in flight, and
+  `waitForBackgroundWork` waits for them. Every cleanup that restores package state
+  (`database.Instance`, `files.ConfigFile`, a stubbed URL or client) goes through
+  `restoreAfterBackgroundWork(t, restore)` rather than `t.Cleanup`, and a helper that
+  changes that state calls `quiesceBackgroundWork(t)` first. Otherwise a leftover task
+  reads the next test's database or half-restored config ("relation does not exist"
+  errors in the sweeps). All background work goes through
+  `goSafely`, never a bare `go`; a task still running after 60s fails the test, naming
+  it. Pauses in background work are vars the tests zero (`achievementPushDelayUnit`), so
+  waiting stays cheap.
 - **Robustness sweep** (`controllers/robustness_test.go`): every routed handler is called
   with random ids, then again with the database closed, and must not panic. It found the
   missing `return` in `APIRegisterSickleave`; keep new routes in the harness so they're
@@ -313,7 +324,10 @@ sweeps below. Total statement coverage is about 90%.
   panic fails the test; a 2xx answer despite the failure is *reported* (logged at the
   end), not failed, because many reads deliberately degrade — see docs/wip.md for the
   ones that probably shouldn't. Scenarios are either HTTP requests or direct `call`s
-  for background entry points (syncs, cron jobs). The sweep is skipped under `-short`.
+  for background entry points (syncs, cron jobs). Each run drains the background work it
+  started before the injector is disarmed, so the operation count includes it and faults
+  land there too; a fault in background work (after the answer was given) is only
+  checked for panics. The sweep is skipped under `-short`.
 - **Upstream fault sweep** (`controllers/upstream_fault_test.go`): every fake provider
   handler calls `injectUpstreamFault` first, which fails exactly the Nth upstream request
   as a 500, a non-JSON 200, or a dropped connection. `TestUpstreamFaultSweep` replays each

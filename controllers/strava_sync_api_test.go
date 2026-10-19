@@ -111,11 +111,12 @@ func withStrava(t *testing.T) *fakeStrava {
 	stravaRateMu.Lock()
 	stravaRateTimes = nil
 	stravaRateMu.Unlock()
+	quiesceBackgroundWork(t)
 	previous := files.ConfigFile
 	files.ConfigFile.StravaEnabled = true
 	key, _ := files.GenerateSecureKey(32)
 	files.ConfigFile.StravaTokenKey = key
-	t.Cleanup(func() {
+	restoreAfterBackgroundWork(t, func() {
 		files.ConfigFile.StravaEnabled = previous.StravaEnabled
 		files.ConfigFile.StravaTokenKey = previous.StravaTokenKey
 	})

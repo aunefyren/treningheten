@@ -18,6 +18,7 @@ func stubStrava(t *testing.T, handler http.HandlerFunc) *httptest.Server {
 
 	server := httptest.NewServer(handler)
 
+	quiesceBackgroundWork(t)
 	previousAPI, previousOAuth := stravaAPIBaseURL, stravaOAuthTokenURL
 	previousID, previousSecret := files.ConfigFile.StravaClientID, files.ConfigFile.StravaClientSecret
 	stravaAPIBaseURL = server.URL + "/api/v3"
@@ -25,7 +26,7 @@ func stubStrava(t *testing.T, handler http.HandlerFunc) *httptest.Server {
 	files.ConfigFile.StravaClientID = "the-client-id"
 	files.ConfigFile.StravaClientSecret = "the-client-secret"
 
-	t.Cleanup(func() {
+	restoreAfterBackgroundWork(t, func() {
 		stravaAPIBaseURL, stravaOAuthTokenURL = previousAPI, previousOAuth
 		files.ConfigFile.StravaClientID, files.ConfigFile.StravaClientSecret = previousID, previousSecret
 		server.Close()

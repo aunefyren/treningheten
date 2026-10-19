@@ -38,7 +38,9 @@ RFC 6749 §5.2 (`{"error": "...", "error_description": "..."}`) with
 - **Access token** — HS256 JWT signed with `ConfigFile.PrivateKey`. Claims:
   `id` (user UUID), `admin`, `scope`, `client_id`, plus `iss`/`aud` (both the
   resource = external URL, when configured), `exp`/`nbf`/`iat`. TTL = 60 min
-  (`auth.AccessTokenTTL`).
+  (`auth.AccessTokenTTL`). Expiry is checked strictly; `nbf` (the minting second) is
+  accepted up to a minute in the future (`notBeforeLeeway`), because a wall clock that
+  steps back (VM time sync, NTP) would otherwise reject a token minted a moment ago.
 - **Refresh token** — opaque random string; only its SHA-256 hash is stored
   (`OAuthRefreshToken`). TTL = 30 days (`auth.RefreshTokenTTL`). Rotated on every
   use; the old token is revoked and linked to its replacement via `rotated_to`.

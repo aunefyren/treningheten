@@ -17,7 +17,7 @@ func withMediaPrivateTargets(t *testing.T, allow bool) {
 
 	previous := files.ConfigFile.Media
 	files.ConfigFile.Media = models.MediaSettings{AllowPrivateTargets: &allow}
-	t.Cleanup(func() { files.ConfigFile.Media = previous })
+	restoreAfterBackgroundWork(t, func() { files.ConfigFile.Media = previous })
 }
 
 func TestMediaTargetIPPolicy(t *testing.T) {
@@ -86,7 +86,7 @@ func TestMediaTargetIPUnmapsV4MappedAddresses(t *testing.T) {
 func TestMediaAllowsPrivateTargetsDefaultsOn(t *testing.T) {
 	previous := files.ConfigFile.Media
 	files.ConfigFile.Media = models.MediaSettings{AllowPrivateTargets: nil}
-	t.Cleanup(func() { files.ConfigFile.Media = previous })
+	restoreAfterBackgroundWork(t, func() { files.ConfigFile.Media = previous })
 
 	if !mediaAllowsPrivateTargets() {
 		t.Error("a config missing the field must default to allowing private targets, or LAN servers break on upgrade")

@@ -455,9 +455,11 @@ func APIUpdateUser(context *gin.Context) {
 			return
 		}
 
-		// Give achievement to user for changing profile photo, ignore outcome
+		// Give achievement to user for changing profile photo, ignore outcome. The id is
+		// copied: user is reassigned below while the grant may still be running.
+		userID := user.ID
 		goSafely("achievement grant", func() {
-			GiveUserAnAchievement(user.ID, uuid.MustParse("05a3579f-aa8d-4814-b28f-5824a2d904ec"), time.Now(), 5)
+			GiveUserAnAchievement(userID, uuid.MustParse("05a3579f-aa8d-4814-b28f-5824a2d904ec"), time.Now(), 5)
 		})
 	}
 

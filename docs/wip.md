@@ -170,11 +170,3 @@ Is a small model's feedback decent?
 - **Seed ABS listening history** for zero-click soundtrack testing: generate a silent track
   with the ABS image's `ffmpeg`, create a library + scan via the ABS API, post sessions with
   chosen timestamps through ABS's local-session sync, and create a matching manual workout.
-- **Background goroutines outlive their test.** `goSafely` work (achievement grants and
-  their push notifications) can still be querying after the test that started it has
-  swapped `database.Instance` back or dropped its schema — visible as
-  `relation "subscriptions" does not exist` in the Postgres log. Harmless today, but a
-  likely source of rare flakes; the harness could wait for in-flight `goSafely` work
-  before cleanup. Seen 2026-10-03 in the controller fault sweep:
-  `TestFaultInjectionSweep/admin_stats/fault-5` got a 401 from `POST /api/auth/gear`
-  during setup (1 run in 3), plausibly a stray goroutine consuming the injected fault.

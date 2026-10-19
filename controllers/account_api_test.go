@@ -18,6 +18,7 @@ func withControllerSMTP(t *testing.T) *smtptest.Server {
 	t.Helper()
 
 	server := smtptest.Start(t)
+	quiesceBackgroundWork(t)
 	previous := files.ConfigFile
 	files.ConfigFile.SMTPEnabled = true
 	files.ConfigFile.SMTPHost = server.Host
@@ -26,7 +27,7 @@ func withControllerSMTP(t *testing.T) *smtptest.Server {
 	files.ConfigFile.SMTPFrom = "noreply@test.local"
 	files.ConfigFile.TreninghetenExternalURL = ""
 	files.ConfigFile.TreninghetenEnvironment = "production"
-	t.Cleanup(func() { files.ConfigFile = previous })
+	restoreAfterBackgroundWork(t, func() { files.ConfigFile = previous })
 	return server
 }
 

@@ -29,7 +29,7 @@ func TestServerInfoMedia(t *testing.T) {
 			_, adminToken := h.user("admin@server.test", true)
 
 			previous := files.ConfigFile.Media
-			t.Cleanup(func() { files.ConfigFile.Media = previous })
+			restoreAfterBackgroundWork(t, func() { files.ConfigFile.Media = previous })
 			files.ConfigFile.Media = models.MediaSettings{Enabled: testCase.media}
 			files.ConfigFile.Media.Plex.Enabled = testCase.plex
 			files.ConfigFile.Media.Spotify.Enabled = testCase.spotify

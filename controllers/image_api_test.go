@@ -52,9 +52,10 @@ func withImageDirs(t *testing.T) (profiles string, achievements string) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	quiesceBackgroundWork(t)
 	previous := []string{profile_image_path, achievements_image_path, default_profile_image_path}
 	profile_image_path, achievements_image_path, default_profile_image_path = profiles, achievements, placeholder
-	t.Cleanup(func() {
+	restoreAfterBackgroundWork(t, func() {
 		profile_image_path, achievements_image_path, default_profile_image_path = previous[0], previous[1], previous[2]
 	})
 	return profiles, achievements

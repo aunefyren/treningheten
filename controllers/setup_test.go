@@ -30,6 +30,9 @@ func TestMain(m *testing.M) {
 	// Real bcrypt cost is ~1s per hash or compare; the flows and the fault sweep hash
 	// hundreds of times. The cost value itself is not what these tests check.
 	models.PasswordHashCost = bcrypt.MinCost
+	// Tests wait for background work before restoring state; the seconds-long pause before
+	// an achievement's push would make every one of those waits that long.
+	achievementPushDelayUnit = 0
 	os.Exit(m.Run())
 }
 
@@ -45,11 +48,39 @@ func newControllerTestDB(t *testing.T) {
 	// every one of them, burying real failures in the CI log.
 	gormDB := testdb.Open(t, &gorm.Config{Logger: gormlogger.Default.LogMode(gormlogger.Silent)})
 
+	quiesceBackgroundWork(t)
 	prev := database.Instance
 	database.Instance = gormDB
 	database.Migrate()
 
-	t.Cleanup(func() { database.Instance = prev })
+	restoreAfterBackgroundWork(t, func() { database.Instance = prev })
+}
+
+// backgroundWorkTimeout bounds how long a test waits for goSafely tasks to finish. They
+// talk to in-process stubs, so anything near this is a hang, not slowness.
+const backgroundWorkTimeout = 60 * time.Second
+
+// quiesceBackgroundWork waits until no goSafely task is in flight. Call it before
+// changing package state (database.Instance, files.ConfigFile, a stubbed URL): a task
+// still running from an earlier request would otherwise read the state half-changed.
+func quiesceBackgroundWork(t testing.TB) {
+	t.Helper()
+	if err := waitForBackgroundWork(backgroundWorkTimeout); err != nil {
+		t.Errorf("%v", err)
+	}
+}
+
+// restoreAfterBackgroundWork registers a cleanup that waits for in-flight goSafely tasks
+// before restoring package state, so no task outlives the database, config or stub it was
+// started against. Use it instead of t.Cleanup for any restore of package state: cleanups
+// run last-registered first, so every restore has to wait, not just one of them. The wait
+// is cheap once the background is quiet.
+func restoreAfterBackgroundWork(t testing.TB, restore func()) {
+	t.Helper()
+	t.Cleanup(func() {
+		quiesceBackgroundWork(t)
+		restore()
+	})
 }
 
 // seedExerciseDayWithExercises inserts one exercise day for a user on the given date,

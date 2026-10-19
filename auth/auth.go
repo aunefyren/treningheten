@@ -24,6 +24,11 @@ const (
 	AccessTokenTTL = 60 * time.Minute
 	// RefreshTokenTTL is the lifetime of an opaque refresh token.
 	RefreshTokenTTL = 30 * 24 * time.Hour
+	// notBeforeLeeway is how far a token's not-before may lie in the future and still be
+	// accepted. A token's nbf is its minting second, so a wall clock that steps back (VM
+	// time sync, NTP) would otherwise reject a token minted a moment ago as "not valid
+	// yet". Expiry gets no leeway.
+	notBeforeLeeway = time.Minute
 )
 
 type JWTClaim struct {
@@ -85,7 +90,8 @@ func GenerateJWTFromClaims(claims *JWTClaim) (tokenString string, err error) {
 	return
 }
 
-// ParseToken validates the signature and temporal claims and returns the claims.
+// ParseToken validates the signature and temporal claims and returns the claims. Expiry is
+// strict; not-before allows notBeforeLeeway of clock skew.
 func ParseToken(signedToken string) (*JWTClaim, error) {
 	jwtKey := files.GetPrivateKey(1)
 	token, err := jwt.ParseWithClaims(
@@ -97,6 +103,9 @@ func ParseToken(signedToken string) (*JWTClaim, error) {
 			}
 			return jwtKey, nil
 		},
+		// The library applies the leeway to expiry too; the strict expiry check below
+		// takes it back out.
+		jwt.WithLeeway(notBeforeLeeway),
 	)
 	if err != nil {
 		return nil, err
@@ -111,7 +120,7 @@ func ParseToken(signedToken string) (*JWTClaim, error) {
 	if claims.ExpiresAt.Time.Before(now) {
 		return nil, errors.New("token has expired")
 	}
-	if claims.NotBefore.Time.After(now) {
+	if claims.NotBefore.Time.After(now.Add(notBeforeLeeway)) {
 		return nil, errors.New("token has not begun")
 	}
 

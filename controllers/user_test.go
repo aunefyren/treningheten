@@ -79,7 +79,7 @@ func TestUpdateUserEmailChange(t *testing.T) {
 			if !tt.smtp {
 				previous := files.ConfigFile
 				files.ConfigFile.SMTPEnabled = false
-				t.Cleanup(func() { files.ConfigFile = previous })
+				restoreAfterBackgroundWork(t, func() { files.ConfigFile = previous })
 			}
 			var mailCount func() int
 			if tt.smtp {

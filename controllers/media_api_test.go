@@ -21,6 +21,7 @@ import (
 func withMedia(t *testing.T) {
 	t.Helper()
 
+	quiesceBackgroundWork(t)
 	previous := files.ConfigFile.Media
 	key, _ := files.GenerateSecureKey(32)
 	allow := true
@@ -32,7 +33,7 @@ func withMedia(t *testing.T) {
 	files.ConfigFile.Media.Spotify.Enabled = true
 	files.ConfigFile.Media.Spotify.RedirectURI = "http://localhost/oauth"
 	files.ConfigFile.Media.Audiobookshelf.Enabled = true
-	t.Cleanup(func() { files.ConfigFile.Media = previous })
+	restoreAfterBackgroundWork(t, func() { files.ConfigFile.Media = previous })
 }
 
 // timedSession creates today's session with a start time and a 40-minute duration, the
@@ -284,9 +285,10 @@ func TestPlexPinFlowServerAndSync(t *testing.T) {
 	}))
 	t.Cleanup(plexTV.Close)
 
+	quiesceBackgroundWork(t)
 	previousPins, previousUser, previousResources := plexPinsURL, plexUserURL, plexResourcesURL
 	plexPinsURL, plexUserURL, plexResourcesURL = plexTV.URL+"/api/v2/pins", plexTV.URL+"/api/v2/user", plexTV.URL+"/api/v2/resources"
-	t.Cleanup(func() { plexPinsURL, plexUserURL, plexResourcesURL = previousPins, previousUser, previousResources })
+	restoreAfterBackgroundWork(t, func() { plexPinsURL, plexUserURL, plexResourcesURL = previousPins, previousUser, previousResources })
 
 	pin := h.ok("POST", "/api/auth/media/plex/pin", token, nil)
 	if url, _ := field(t, pin, "pin", "auth_url").(string); !strings.Contains(url, "ABCD") {

@@ -153,6 +153,37 @@ func TestParseTokenRejections(t *testing.T) {
 	}
 }
 
+// TestParseTokenClockSkew covers the not-before leeway: a wall clock that steps back a
+// little (VM time sync) must not reject a token minted a moment ago, while expiry stays
+// strict and a not-before well in the future is still refused.
+func TestParseTokenClockSkew(t *testing.T) {
+	withSigningKey(t, "")
+	userID := uuid.New()
+
+	cases := []struct {
+		name      string
+		notBefore time.Duration
+		expiresIn time.Duration
+		accepted  bool
+	}{
+		{"clock stepped back 2s", 2 * time.Second, AccessTokenTTL, true},
+		{"just inside the leeway", notBeforeLeeway - 5*time.Second, AccessTokenTTL, true},
+		{"beyond the leeway", notBeforeLeeway + 5*time.Second, AccessTokenTTL, false},
+		{"expired 5s ago", -AccessTokenTTL, -5 * time.Second, false},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			claims := baseClaims(userID)
+			claims.NotBefore = jwt.NewNumericDate(time.Now().Add(c.notBefore))
+			claims.ExpiresAt = jwt.NewNumericDate(time.Now().Add(c.expiresIn))
+			_, err := ParseToken(signClaims(t, claims))
+			if (err == nil) != c.accepted {
+				t.Errorf("ParseToken error = %v, want accepted = %v", err, c.accepted)
+			}
+		})
+	}
+}
+
 // TestParseTokenRejectsForeignSignature covers that a token signed with a different key is
 // refused — the check that stops anyone who can craft claims from minting sessions.
 func TestParseTokenRejectsForeignSignature(t *testing.T) {

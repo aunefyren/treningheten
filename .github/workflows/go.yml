@@ -28,6 +28,19 @@ jobs:
       - name: Vet
         run: go vet ./...
 
+  # The race detector over the fast suite (-short skips the fault sweeps, which take ~20
+  # minutes under -race). Catches background work racing the code that started it.
+  race:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.26.x'
+      - name: Test with the race detector
+        run: go test -race -short ./... -count=1
+
   # The suite again on the server backends. internal/testdb gives each test its own
   # Postgres schema / MySQL database when these DSNs are set (SQLite otherwise).
   test-server-databases:

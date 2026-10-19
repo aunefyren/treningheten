@@ -290,6 +290,7 @@ func stubSpotify(t *testing.T, handler http.HandlerFunc) *httptest.Server {
 
 	server := httptest.NewServer(handler)
 
+	quiesceBackgroundWork(t)
 	previousToken, previousHistory := spotifyTokenURL, spotifyRecentlyPlayedURL
 	previousConfig := files.ConfigFile.Media.Spotify
 	spotifyTokenURL = server.URL + "/api/token"
@@ -297,7 +298,7 @@ func stubSpotify(t *testing.T, handler http.HandlerFunc) *httptest.Server {
 	files.ConfigFile.Media.Spotify.ClientID = "the-client-id"
 	files.ConfigFile.Media.Spotify.ClientSecret = "the-client-secret"
 
-	t.Cleanup(func() {
+	restoreAfterBackgroundWork(t, func() {
 		spotifyTokenURL, spotifyRecentlyPlayedURL = previousToken, previousHistory
 		files.ConfigFile.Media.Spotify = previousConfig
 		server.Close()

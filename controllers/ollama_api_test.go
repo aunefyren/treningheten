@@ -56,9 +56,10 @@ func withOllama(t *testing.T) *fakeOllama {
 	}))
 	t.Cleanup(server.Close)
 
+	quiesceBackgroundWork(t)
 	previous := files.ConfigFile.Ollama
 	files.ConfigFile.Ollama = models.OllamaSettings{Enabled: true, URL: server.URL, Model: "tiny", APIKey: "secret"}
-	t.Cleanup(func() { files.ConfigFile.Ollama = previous })
+	restoreAfterBackgroundWork(t, func() { files.ConfigFile.Ollama = previous })
 
 	ollamaCacheMu.Lock()
 	ollamaCache = map[string]ollamaCacheEntry{}

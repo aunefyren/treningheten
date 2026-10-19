@@ -48,7 +48,7 @@ func TestAssembleWorkoutSoundtrackAcceptsWorkoutID(t *testing.T) {
 
 	prevMedia := files.ConfigFile.Media.Enabled
 	files.ConfigFile.Media.Enabled = true
-	t.Cleanup(func() { files.ConfigFile.Media.Enabled = prevMedia })
+	restoreAfterBackgroundWork(t, func() { files.ConfigFile.Media.Enabled = prevMedia })
 
 	user := createTestUser(t, "workout-soundtrack@example.com", "Sound")
 	base := time.Date(2026, 7, 5, 10, 0, 0, 0, time.UTC)
@@ -74,7 +74,7 @@ func TestAssembleWorkoutSoundtrackRejectsOtherUsersWorkout(t *testing.T) {
 
 	prevMedia := files.ConfigFile.Media.Enabled
 	files.ConfigFile.Media.Enabled = true
-	t.Cleanup(func() { files.ConfigFile.Media.Enabled = prevMedia })
+	restoreAfterBackgroundWork(t, func() { files.ConfigFile.Media.Enabled = prevMedia })
 
 	owner := createTestUser(t, "owner-soundtrack@example.com", "Owner")
 	other := createTestUser(t, "other-soundtrack@example.com", "Other")

@@ -28,9 +28,10 @@ func statusRow(t *testing.T, userID uuid.UUID, provider string) *models.Integrat
 // finds nothing.
 func withDeadPlexResources(t *testing.T) {
 	t.Helper()
+	quiesceBackgroundWork(t)
 	previous := plexResourcesURL
 	plexResourcesURL = "http://127.0.0.1:1/api/v2/resources"
-	t.Cleanup(func() { plexResourcesURL = previous })
+	restoreAfterBackgroundWork(t, func() { plexResourcesURL = previous })
 }
 
 func TestPlexRediscoversAMovedServer(t *testing.T) {
@@ -419,8 +420,9 @@ func TestStravaBackfillReSyncsMissedWeeks(t *testing.T) {
 func withPlexTVUserStatus(t *testing.T, status int) {
 	t.Helper()
 	withDeadPlexResources(t)
+	quiesceBackgroundWork(t)
 	previous := plexUserURL
-	t.Cleanup(func() { plexUserURL = previous })
+	restoreAfterBackgroundWork(t, func() { plexUserURL = previous })
 	if status == 0 {
 		plexUserURL = "http://127.0.0.1:1/api/v2/user"
 		return
@@ -511,9 +513,10 @@ func TestPlexFetchAccountAndServerClassification(t *testing.T) {
 		_, _ = writer.Write([]byte("not json"))
 	}))
 	t.Cleanup(plexTV.Close)
+	quiesceBackgroundWork(t)
 	previous := plexUserURL
 	plexUserURL = plexTV.URL
-	t.Cleanup(func() { plexUserURL = previous })
+	restoreAfterBackgroundWork(t, func() { plexUserURL = previous })
 	if _, _, err := plexFetchAccountAndServer("plex-token"); integrationErrorStatus(err) != models.IntegrationStatusUnavailable {
 		t.Errorf("unparseable account = %v, want an outage", err)
 	}

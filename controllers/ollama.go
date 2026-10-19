@@ -526,7 +526,10 @@ func APIGetOllamaFrontPageMessageForUser(context *gin.Context) {
 		return
 	}
 
-	ollamaMessage, err := OllamaGenerateFrontPageMessage(context, userID, time.Now())
+	// The request's own context, not the *gin.Context: gin recycles that for the next
+	// request once this handler returns, while the HTTP transport may still touch the
+	// context of the model call it carried.
+	ollamaMessage, err := OllamaGenerateFrontPageMessage(context.Request.Context(), userID, time.Now())
 	if err != nil {
 		logger.Log.Info("Failed to get Ollama message. Error: " + err.Error())
 		context.JSON(http.StatusBadRequest, gin.H{"error": "Failed to get Ollama message."})

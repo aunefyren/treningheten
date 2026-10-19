@@ -662,6 +662,12 @@ func ConvertAchievementsToAchievementUserObjects(achievements []models.Achieveme
 	return achievementObjects, nil
 }
 
+// achievementPushDelayUnit scales GiveUserAnAchievement's optionalDelaySeconds, the pause
+// between granting an achievement and pushing its notification. It is a var solely so the
+// tests (which wait for background work to finish) can skip the pause; nothing in the app
+// reassigns it.
+var achievementPushDelayUnit = time.Second
+
 func GiveUserAnAchievement(userID uuid.UUID, achievementID uuid.UUID, achievementTime time.Time, optionalDelaySeconds int) error {
 	achievement, err := database.GetAchievementByID(achievementID)
 	if err != nil {
@@ -691,7 +697,7 @@ func GiveUserAnAchievement(userID uuid.UUID, achievementID uuid.UUID, achievemen
 		return errors.New("Failed to give achievement.")
 	}
 
-	time.Sleep(time.Second * time.Duration(optionalDelaySeconds))
+	time.Sleep(achievementPushDelayUnit * time.Duration(optionalDelaySeconds))
 
 	err = PushNotificationsForAchievements(userID)
 	if err != nil {

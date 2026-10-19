@@ -22,9 +22,10 @@ import (
 // test can assert on their result and none outlives the test's database.
 func withInlineIntegrationRecovery(t *testing.T) {
 	t.Helper()
+	quiesceBackgroundWork(t)
 	previous := startIntegrationRecovery
 	startIntegrationRecovery = func(_ string, fn func()) { fn() }
-	t.Cleanup(func() { startIntegrationRecovery = previous })
+	restoreAfterBackgroundWork(t, func() { startIntegrationRecovery = previous })
 }
 
 // storePlexConnection writes a usable Plex connection with the given token, the way a
@@ -438,9 +439,10 @@ func TestBrokenIntegrationsForUser(t *testing.T) {
 	h := newAPIHarness(t)
 	withMedia(t)
 	withHevy(t)
+	quiesceBackgroundWork(t)
 	previousStrava := files.ConfigFile.StravaEnabled
 	files.ConfigFile.StravaEnabled = true
-	t.Cleanup(func() { files.ConfigFile.StravaEnabled = previousStrava })
+	restoreAfterBackgroundWork(t, func() { files.ConfigFile.StravaEnabled = previousStrava })
 
 	user, token := h.user("banner@health.test", false)
 	connectStravaAndHevy(t, user.ID)

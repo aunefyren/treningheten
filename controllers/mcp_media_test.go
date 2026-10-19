@@ -52,7 +52,7 @@ func TestAssembleWorkoutSoundtrack(t *testing.T) {
 
 	prevMedia := files.ConfigFile.Media.Enabled
 	files.ConfigFile.Media.Enabled = true
-	t.Cleanup(func() { files.ConfigFile.Media.Enabled = prevMedia })
+	restoreAfterBackgroundWork(t, func() { files.ConfigFile.Media.Enabled = prevMedia })
 
 	user := createTestUser(t, "soundtrack@example.com", "Sound")
 
@@ -96,7 +96,7 @@ func TestAssembleWorkoutSoundtrackEmptyAndDisabled(t *testing.T) {
 	newControllerTestDB(t)
 
 	prevMedia := files.ConfigFile.Media.Enabled
-	t.Cleanup(func() { files.ConfigFile.Media.Enabled = prevMedia })
+	restoreAfterBackgroundWork(t, func() { files.ConfigFile.Media.Enabled = prevMedia })
 
 	user := createTestUser(t, "empty@example.com", "Empty")
 

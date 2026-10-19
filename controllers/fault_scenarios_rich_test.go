@@ -68,9 +68,10 @@ func fakePlex(t *testing.T, start time.Time) string {
 	}))
 	t.Cleanup(plexTV.Close)
 
+	quiesceBackgroundWork(t)
 	previousPins, previousUser, previousResources := plexPinsURL, plexUserURL, plexResourcesURL
 	plexPinsURL, plexUserURL, plexResourcesURL = plexTV.URL+"/api/v2/pins", plexTV.URL+"/api/v2/user", plexTV.URL+"/api/v2/resources"
-	t.Cleanup(func() { plexPinsURL, plexUserURL, plexResourcesURL = previousPins, previousUser, previousResources })
+	restoreAfterBackgroundWork(t, func() { plexPinsURL, plexUserURL, plexResourcesURL = previousPins, previousUser, previousResources })
 	return pms.URL
 }
 

@@ -24,12 +24,13 @@ func withVAPIDKeys(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to generate VAPID keys: %v", err)
 	}
+	quiesceBackgroundWork(t)
 	previous := files.ConfigFile
 	files.ConfigFile.VAPIDPublicKey = public
 	files.ConfigFile.VAPIDSecretKey = private
 	files.ConfigFile.VAPIDContact = "mailto:admin@test.local"
 	files.ConfigFile.TreninghetenEnvironment = "production"
-	t.Cleanup(func() { files.ConfigFile = previous })
+	restoreAfterBackgroundWork(t, func() { files.ConfigFile = previous })
 }
 
 // pushEndpoint is a fake push service that answers every delivery with status.

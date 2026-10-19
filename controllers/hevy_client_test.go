@@ -19,9 +19,10 @@ func stubHevyAPI(t *testing.T, handler http.HandlerFunc) *[]*http.Request {
 		handler(writer, request)
 	}))
 
+	quiesceBackgroundWork(t)
 	previous := hevyAPIBaseURL
 	hevyAPIBaseURL = server.URL
-	t.Cleanup(func() {
+	restoreAfterBackgroundWork(t, func() {
 		hevyAPIBaseURL = previous
 		server.Close()
 	})

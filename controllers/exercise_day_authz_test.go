@@ -22,13 +22,14 @@ import (
 func withTestSigningKey(t *testing.T) {
 	t.Helper()
 
+	quiesceBackgroundWork(t)
 	previous := files.ConfigFile
 	files.ConfigFile.PrivateKey = base64.StdEncoding.EncodeToString(bytes.Repeat([]byte("k"), 64))
 	// No external URL → tokens carry no audience claim, so ParseToken skips the check.
 	files.ConfigFile.TreninghetenExternalURL = ""
 	files.ConfigFile.SMTPEnabled = false
 
-	t.Cleanup(func() { files.ConfigFile = previous })
+	restoreAfterBackgroundWork(t, func() { files.ConfigFile = previous })
 }
 
 func makeControllerTestUser(t *testing.T, email string) models.User {
