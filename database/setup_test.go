@@ -37,9 +37,10 @@ func newTestDB(t *testing.T) {
 	t.Cleanup(func() { Instance = prev })
 }
 
-// boolPtr / strPtr are small helpers for the many *bool / *string model fields.
+// boolPtr / strPtr / intPtr are small helpers for the many *bool / *string / *int model fields.
 func boolPtr(b bool) *bool    { return &b }
 func strPtr(s string) *string { return &s }
+func intPtr(i int) *int       { return &i }
 
 // makeTestUser inserts a minimal enabled user and returns it. Fields can be tweaked
 // via the mutate callback before the row is written.

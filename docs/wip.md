@@ -65,11 +65,6 @@ class, but inline `onclick=` handlers are used throughout (`web/js/account.js`,
 task rather than bolting on a weak policy. The cheap headers (`nosniff`, frame-ancestors)
 could land independently.
 
-## Decisions taken — no action
-
-- **Goals stored as competing before the fix** stay as they are; nothing records what the
-  member chose. Fix by hand if a member raises it.
-
 ## Plans & ideas
 
 ### Onboarding flow
@@ -130,13 +125,14 @@ E.g. Easy, Splits. Must respect Strava sync.
 - Soundtrack is session-scoped, so builder changes to session time affect the media match
   window (see [media.md](media.md#open-questions)).
 
-### Heart-rate zones per sport
-Max HR differs by sport (cycling typically sits 5–10 bpm under running), and Olympiatoppen
-publishes sport-specific models. Today one max anchors every activity. The seam is
-`resolveUserHR` → `hrAnchor` (`controllers/hr_zones.go`): pass the activity's action in
-(both callers — `attachStreamSummaries` and `loadActivityStreamContext` — have it to hand),
-resolve a per-sport max (stored per user + action, falling back to the global one) into
-`hrAnchor.MaxBpm`, and the zone maths stays untouched. The observed max would need to be tracked per sport as well.
+### Per-sport zone systems
+Olympiatoppen publishes sport-specific intensity models (different % edges per sport), and
+other systems may differ too. Today the zone *system* is global; only the max is per sport
+(see [exercises.md](exercises.md#per-sport-max-heart-rate)). The seam would be the same:
+`resolveUserHR` already gets the activity's sport, so a per-sport system (stored next to
+`UserSportMaxHeartrate`, or as sport-specific entries in `hrZoneSystems`) would set
+`hrAnchor.System` there. Open: user-chosen per sport, or one system with built-in per-sport
+edges? And the `/account` preview would need a sport picker.
 
 ### Gear follow-ups
 - **Auto-assign primary:** the selector suggests the primary gear but doesn't persist it
@@ -191,7 +187,23 @@ Built for all five integrations; see [integration-health.md](integration-health.
   `TestFaultInjectionSweep/admin_stats/fault-5` got a 401 from `POST /api/auth/gear`
   during setup (1 run in 3), plausibly a stray goroutine consuming the injected fault.
 
-## Unclear
+## Remove notifications sometimes
+- If I visit /achievements on the device with a achievements notification open, should those disappear from the notification feed?
+- Possible on PWA?
 
-### Site loads — but sometimes not?
-Server asleep? Needs a reproduction or more detail.
+## Sick day page
+- Page does not respect the sick day properly, the page should reflect the sick leave
+- AI should either know about it, or not be shown
+
+## Skip Strava activities in Hevy
+- This option should also be within Hevy
+- Maybe a separate setting/priority setting? That way it apples to all external connections
+
+## Activity card improvements
+- No showing if the activity count towards goal
+- Top summary numbers are good, but sometimes you could want more. Top heart rate for examples. Maybe more HR data by the graph? Needs to be dynamic based on the data provided of course.
+- Could/should Pace consistency info button say something about what is good or bad consistency?
+- Cadence graph section?
+- Power information/info button?
+- Highlight on split toward map is great, but it only works on hover, and there could be a scrolling distance in between
+- Could the split highlight feature work along a color-based on speed system?

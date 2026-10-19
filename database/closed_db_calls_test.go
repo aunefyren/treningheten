@@ -156,6 +156,7 @@ var closedDBCalls = []struct {
 	{"GetNewsPostByNewsID", true, func() error { _, err := GetNewsPostByNewsID(uuid.UUID{}); return err }},
 	{"GetNewsPosts", true, func() error { _, err := GetNewsPosts(); return err }},
 	{"GetOAuthClientByClientID", true, func() error { _, err := GetOAuthClientByClientID(""); return err }},
+	{"GetObservedMaxHeartratesByActionForUserID", true, func() error { _, err := GetObservedMaxHeartratesByActionForUserID(uuid.UUID{}); return err }},
 	{"GetOperationByIDAndUserID", true, func() error { _, err := GetOperationByIDAndUserID(uuid.UUID{}, uuid.UUID{}); return err }},
 	{"GetOperationByStravaIDAndUserIDAndExerciseID", true, func() error {
 		_, err := GetOperationByStravaIDAndUserIDAndExerciseID(uuid.UUID{}, 0, uuid.UUID{})
@@ -182,6 +183,7 @@ var closedDBCalls = []struct {
 	{"GetSeasonPeerUserIDsForUser", true, func() error { _, err := GetSeasonPeerUserIDsForUser(uuid.UUID{}); return err }},
 	{"GetSessionFeedForUser", true, func() error { _, _, err := GetSessionFeedForUser(uuid.UUID{}, models.ActivityFeedFilter{}); return err }},
 	{"GetSickleavesForGoalIDsBetweenDates", true, func() error { _, err := GetSickleavesForGoalIDsBetweenDates(nil, time.Time{}, time.Time{}); return err }},
+	{"GetSportMaxHeartratesForUserID", true, func() error { _, err := GetSportMaxHeartratesForUserID(uuid.UUID{}); return err }},
 	{"GetStravaExerciseForUserNearTime", true, func() error { _, err := GetStravaExerciseForUserNearTime(uuid.UUID{}, time.Time{}, 0); return err }},
 	{"GetStravaExercisesByUserID", true, func() error { _, err := GetStravaExercisesByUserID(uuid.UUID{}); return err }},
 	{"GetStravaOperationSetsByUserID", true, func() error { _, err := GetStravaOperationSetsByUserID(uuid.UUID{}); return err }},
@@ -224,6 +226,7 @@ var closedDBCalls = []struct {
 	{"RotateRefreshToken", true, func() error { err := RotateRefreshToken(uuid.UUID{}, &models.OAuthRefreshToken{}); return err }},
 	{"SaveAchievementInDB", true, func() error { _, err := SaveAchievementInDB(models.Achievement{}); return err }},
 	{"SaveIntegrationStatus", true, func() error { _, err := SaveIntegrationStatus(models.IntegrationStatus{}); return err }},
+	{"SaveTrainingProfileInDB", true, func() error { err := SaveTrainingProfileInDB(models.User{}, nil); return err }},
 	{"SeedActions", false, func() error { SeedActions(); return nil }},
 	{"SeedHevyActions", false, func() error { SeedHevyActions(); return nil }},
 	{"SeedOAuthClients", false, func() error { SeedOAuthClients(); return nil }},

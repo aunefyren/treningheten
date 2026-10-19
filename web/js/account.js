@@ -123,6 +123,7 @@ function load_page(result) {
         CheckForSubscription();
         renderPATSection(admin);
         loadHRZoneSystems();
+        loadSportHeartrates();
         if(listeningConnectionsEnabled) {
             renderMediaSection();
         }
@@ -302,6 +303,15 @@ function trainingBodyHTML(goalCountingEnabled) {
             </div>
 
             <div class="field">
+                <label for="sport-max-hr-add" class="field-label">Max heart rate per sport</label>
+                <span class="field-hint">Optional. Max heart rate differs between sports — cycling often sits a few beats under running. Sports without one use the max above.</span>
+                <div class="sport-max-hr-list" id="sport-max-hr-list"></div>
+                <select id="sport-max-hr-add" onchange="addSportMaxHR(this.value)">
+                    <option value="">Loading sports…</option>
+                </select>
+            </div>
+
+            <div class="field">
                 <label for="hr_zone_system" class="field-label">Zone system</label>
                 <select name="hr_zone_system" id="hr_zone_system" onchange="updateHRZonePreview()"></select>
                 <span class="field-hint" id="hr_zone_system_description"></span>
@@ -410,8 +420,9 @@ function submitAccountUpdate(formData, userID) {
     return false;
 }
 
-// saveTrainingProfile replaces the birth date and heart-rate anchors. A blank field is sent as
-// null, which clears it (back to automatic).
+// saveTrainingProfile replaces the birth date, heart-rate anchors and per-sport maxes. A blank
+// field is sent as null, which clears it (back to automatic); the per-sport list is sent whole,
+// so a removed sport is cleared too.
 function saveTrainingProfile() {
     var birthDate = document.getElementById('birth_date').value;
     var maxHeartrate = document.getElementById('max_heartrate').value;
@@ -422,7 +433,8 @@ function saveTrainingProfile() {
         "birth_date": birthDate === "" ? null : new Date(birthDate).toISOString(),
         "max_heartrate": maxHeartrate === "" ? null : parseInt(maxHeartrate, 10),
         "resting_heartrate": restingHeartrate === "" ? null : parseInt(restingHeartrate, 10),
-        "hr_zone_system": zoneSystem === "" ? null : zoneSystem
+        "hr_zone_system": zoneSystem === "" ? null : zoneSystem,
+        "sport_max_heartrates": collectSportMaxHR()
     };
 
     var xhttp = new XMLHttpRequest();
@@ -447,6 +459,7 @@ function saveTrainingProfile() {
             hrZoneSystemStored = formObject.hr_zone_system;
             updateMaxHRHint();
             updateHRZonePreview();
+            loadSportHeartrates();
         } else {
             info("Saving training profile...");
         }
@@ -648,6 +661,124 @@ function updateHRZonePreview() {
         var upper = i < edges.length ? edges[i] : 0;
         return `<span class="hr-zone-preview-row"><i class="wv-zone-dot wv-zone-${i + 1}"></i>${escapeHTML(code)} ${escapeHTML(system.names[i])}<span class="hr-zone-preview-range">${formatZoneRange(min, upper, unit)}</span></span>`;
     }).join("");
+}
+
+// Per-sport heart rate from the API ({action_id, action_name, max_heartrate,
+// observed_max_heartrate}, one per activity type) and the sports currently listed in the form,
+// as action id → the bpm text in its input. A sport is listed once it has a max or is added.
+var sportHeartrates = [];
+var sportMaxDraft = {};
+
+function loadSportHeartrates() {
+    var xhttp = new XMLHttpRequest();
+    xhttp.onreadystatechange = function() {
+        if (this.readyState == 4) {
+            var result;
+            try {
+                result = JSON.parse(this.responseText);
+            } catch(e) {
+                console.log(e + ' - Response: ' + this.responseText);
+                return;
+            }
+            if(result.error) {
+                error(result.error);
+                return;
+            }
+            sportHeartrates = result.sport_heartrates || [];
+            sportMaxDraft = {};
+            sportHeartrates.forEach(function(sport) {
+                if (sport.max_heartrate != null) sportMaxDraft[sport.action_id] = String(sport.max_heartrate);
+            });
+            renderSportMaxHR();
+        }
+    };
+    xhttp.withCredentials = true;
+    xhttp.open("get", api_url + "auth/sport-heartrates");
+    xhttp.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
+    xhttp.setRequestHeader("Authorization", jwt);
+    xhttp.send();
+}
+
+// syncSportMaxDraft copies what's typed in the per-sport inputs back into the draft, so a
+// re-render (adding or removing a sport) keeps unsaved values.
+function syncSportMaxDraft() {
+    Object.keys(sportMaxDraft).forEach(function(actionID) {
+        var input = document.getElementById("sport_max_hr_" + actionID);
+        if (input) sportMaxDraft[actionID] = input.value.trim();
+    });
+}
+
+// renderSportMaxHR lists the sports with a max — each with the highest heart rate seen in it
+// and a one-click pin — and offers the remaining sports in the add select, those with heart-rate
+// data first.
+function renderSportMaxHR() {
+    var list = document.getElementById("sport-max-hr-list");
+    var select = document.getElementById("sport-max-hr-add");
+    if (!list || !select) return;
+
+    var listed = sportHeartrates.filter(function(sport) { return sport.action_id in sportMaxDraft; });
+    list.innerHTML = listed.map(function(sport) {
+        var id = escapeHTML(sport.action_id);
+        var hint = sport.observed_max_heartrate
+            ? "Highest seen: " + sport.observed_max_heartrate + ' bpm. <a href="#" class="user-link" onclick="pinSportObservedMax(\'' + id + '\'); return false;">Pin it</a>.'
+            : "No heart rate recorded for this sport yet.";
+        return `
+            <div class="sport-max-hr-item">
+                <div class="sport-max-hr-row">
+                    <label for="sport_max_hr_${id}" class="sport-max-hr-name">${escapeHTML(sport.action_name)}</label>
+                    <input type="number" id="sport_max_hr_${id}" min="100" max="240" placeholder="bpm" value="${escapeHTML(sportMaxDraft[sport.action_id])}" />
+                    <button type="button" class="btn btn--ghost btn--sm" onclick="removeSportMaxHR('${id}')">Remove</button>
+                </div>
+                <span class="field-hint">${hint}</span>
+            </div>
+        `;
+    }).join("");
+
+    var unlisted = sportHeartrates.filter(function(sport) { return !(sport.action_id in sportMaxDraft); });
+    unlisted.sort(function(a, b) { return (b.observed_max_heartrate ? 1 : 0) - (a.observed_max_heartrate ? 1 : 0); });
+    select.innerHTML = '<option value="">' + (listed.length === 0 ? "Add a sport…" : "Add another sport…") + "</option>" +
+        unlisted.map(function(sport) {
+            var seen = sport.observed_max_heartrate ? " (highest seen " + sport.observed_max_heartrate + " bpm)" : "";
+            return `<option value="${escapeHTML(sport.action_id)}">${escapeHTML(sport.action_name + seen)}</option>`;
+        }).join("");
+    select.value = "";
+    select.style.display = unlisted.length === 0 ? "none" : "";
+}
+
+// addSportMaxHR lists a sport, prefilled with its highest observed heart rate when known.
+// Like every change here it needs a Save to persist.
+function addSportMaxHR(actionID) {
+    if (!actionID) return;
+    syncSportMaxDraft();
+    var sport = sportHeartrates.find(function(candidate) { return candidate.action_id === actionID; });
+    sportMaxDraft[actionID] = sport && sport.observed_max_heartrate ? String(sport.observed_max_heartrate) : "";
+    renderSportMaxHR();
+    var input = document.getElementById("sport_max_hr_" + actionID);
+    if (input) input.focus();
+}
+
+function removeSportMaxHR(actionID) {
+    syncSportMaxDraft();
+    delete sportMaxDraft[actionID];
+    renderSportMaxHR();
+}
+
+function pinSportObservedMax(actionID) {
+    var sport = sportHeartrates.find(function(candidate) { return candidate.action_id === actionID; });
+    var input = document.getElementById("sport_max_hr_" + actionID);
+    if (sport && input) input.value = sport.observed_max_heartrate;
+}
+
+// collectSportMaxHR builds the request's sport_max_heartrates; a sport left blank is dropped,
+// the same as removing it.
+function collectSportMaxHR() {
+    syncSportMaxDraft();
+    var entries = [];
+    Object.keys(sportMaxDraft).forEach(function(actionID) {
+        var value = parseInt(sportMaxDraft[actionID], 10);
+        if (value > 0) entries.push({ "action_id": actionID, "max_heartrate": value });
+    });
+    return entries;
 }
 
 function placeUserData(userObject, stravaOauth, stravaEnabled, hevyEnabled) {

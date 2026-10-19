@@ -150,12 +150,14 @@ type UserUpdateRequest struct {
 
 // UserTrainingProfileRequest replaces the settings that shape how a user's workouts are
 // read (age, heart-rate zone anchors and zone system). Every field is written as sent, so a null
-// clears it. Not password-gated: none of it is a credential.
+// clears it — SportMaxHeartrates included: the stored per-sport maxes become exactly this list.
+// Not password-gated: none of it is a credential.
 type UserTrainingProfileRequest struct {
-	BirthDate        *time.Time `json:"birth_date"`
-	MaxHeartrate     *int       `json:"max_heartrate"`
-	RestingHeartrate *int       `json:"resting_heartrate"`
-	HRZoneSystem     *string    `json:"hr_zone_system"`
+	BirthDate          *time.Time          `json:"birth_date"`
+	MaxHeartrate       *int                `json:"max_heartrate"`
+	RestingHeartrate   *int                `json:"resting_heartrate"`
+	HRZoneSystem       *string             `json:"hr_zone_system"`
+	SportMaxHeartrates []SportMaxHeartrate `json:"sport_max_heartrates"`
 }
 
 type UserPartialUpdateRequest struct {

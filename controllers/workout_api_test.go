@@ -169,7 +169,7 @@ func TestWorkoutLoggingFlow(t *testing.T) {
 
 	day := h.ok("GET", "/api/auth/exercise-days/week?today=true", token, nil)
 	dayID := idOf(t, day, "exercise")
-	h.expect(http.StatusCreated, "GET", "/api/auth/exercise-days/"+dayID, token, nil)
+	h.ok("GET", "/api/auth/exercise-days/"+dayID, token, nil)
 	h.expect(http.StatusCreated, "POST", "/api/auth/exercise-days/"+dayID, token, models.ExerciseDayUpdateRequest{Note: "good day"})
 
 	// Tear down: a set, then the operation.

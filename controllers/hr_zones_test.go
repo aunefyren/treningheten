@@ -6,6 +6,8 @@ import (
 	"time"
 
 	"github.com/aunefyren/treningheten/models"
+
+	"github.com/google/uuid"
 )
 
 func systemPtr(key string) *string { return &key }
@@ -279,23 +281,28 @@ func TestResolveUserHR(t *testing.T) {
 	tests := []struct {
 		name              string
 		user              models.User
+		sportMax          int
 		wantMax, wantRest int
 		wantBasis         string
 		wantSystem        string
 	}{
-		{"nothing set", models.User{}, 0, 0, "", models.HRZoneSystemPercentMax},
-		{"age only", models.User{BirthDate: birth}, 190, 0, "age", models.HRZoneSystemPercentMax},
-		{"observed only", models.User{ObservedMaxHeartrate: intPtr(185)}, 185, 0, "observed_max", models.HRZoneSystemPercentMax},
-		{"observed beats age", models.User{BirthDate: birth, ObservedMaxHeartrate: intPtr(196)}, 196, 0, "observed_max", models.HRZoneSystemPercentMax},
-		{"explicit beats observed", models.User{MaxHeartrate: intPtr(198), ObservedMaxHeartrate: intPtr(196)}, 198, 0, "max", models.HRZoneSystemPercentMax},
-		{"explicit max wins", models.User{BirthDate: birth, MaxHeartrate: intPtr(198)}, 198, 0, "max", models.HRZoneSystemPercentMax},
-		{"reserve inputs", models.User{MaxHeartrate: intPtr(198), RestingHeartrate: intPtr(48)}, 198, 48, "max", models.HRZoneSystemReserve},
-		{"observed zero ignored", models.User{BirthDate: birth, ObservedMaxHeartrate: intPtr(0)}, 190, 0, "age", models.HRZoneSystemPercentMax},
-		{"chosen system carried", models.User{MaxHeartrate: intPtr(198), HRZoneSystem: systemPtr(models.HRZoneSystemOlympiatoppen)}, 198, 0, "max", models.HRZoneSystemOlympiatoppen},
+		{"nothing set", models.User{}, 0, 0, 0, "", models.HRZoneSystemPercentMax},
+		{"age only", models.User{BirthDate: birth}, 0, 190, 0, "age", models.HRZoneSystemPercentMax},
+		{"observed only", models.User{ObservedMaxHeartrate: intPtr(185)}, 0, 185, 0, "observed_max", models.HRZoneSystemPercentMax},
+		{"observed beats age", models.User{BirthDate: birth, ObservedMaxHeartrate: intPtr(196)}, 0, 196, 0, "observed_max", models.HRZoneSystemPercentMax},
+		{"explicit beats observed", models.User{MaxHeartrate: intPtr(198), ObservedMaxHeartrate: intPtr(196)}, 0, 198, 0, "max", models.HRZoneSystemPercentMax},
+		{"explicit max wins", models.User{BirthDate: birth, MaxHeartrate: intPtr(198)}, 0, 198, 0, "max", models.HRZoneSystemPercentMax},
+		{"reserve inputs", models.User{MaxHeartrate: intPtr(198), RestingHeartrate: intPtr(48)}, 0, 198, 48, "max", models.HRZoneSystemReserve},
+		{"observed zero ignored", models.User{BirthDate: birth, ObservedMaxHeartrate: intPtr(0)}, 0, 190, 0, "age", models.HRZoneSystemPercentMax},
+		{"chosen system carried", models.User{MaxHeartrate: intPtr(198), HRZoneSystem: systemPtr(models.HRZoneSystemOlympiatoppen)}, 0, 198, 0, "max", models.HRZoneSystemOlympiatoppen},
+		{"sport max beats global max", models.User{MaxHeartrate: intPtr(198), ObservedMaxHeartrate: intPtr(201)}, 188, 188, 0, "sport_max", models.HRZoneSystemPercentMax},
+		{"sport max beats observed and age", models.User{BirthDate: birth, ObservedMaxHeartrate: intPtr(196)}, 185, 185, 0, "sport_max", models.HRZoneSystemPercentMax},
+		{"sport max keeps resting and system", models.User{RestingHeartrate: intPtr(48)}, 186, 186, 48, "sport_max", models.HRZoneSystemReserve},
+		{"zero sport max ignored", models.User{MaxHeartrate: intPtr(198)}, 0, 198, 0, "max", models.HRZoneSystemPercentMax},
 	}
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			got := resolveUserHR(tc.user, now)
+			got := resolveUserHR(tc.user, tc.sportMax, now)
 			if got.MaxBpm != tc.wantMax || got.RestBpm != tc.wantRest || got.Basis != tc.wantBasis || got.System.Key != tc.wantSystem {
 				t.Fatalf("got %d/%d/%q/%q, want %d/%d/%q/%q", got.MaxBpm, got.RestBpm, got.Basis, got.System.Key, tc.wantMax, tc.wantRest, tc.wantBasis, tc.wantSystem)
 			}
@@ -307,10 +314,10 @@ func TestResolveUserHR_AgeUsesActivityDate(t *testing.T) {
 	// Same birth date, two different activity dates → the age-based max reflects the age
 	// *at the activity*, so an old activity's zones don't drift as the athlete ages.
 	user := models.User{BirthDate: timePtr(time.Date(1990, 1, 1, 0, 0, 0, 0, time.UTC))}
-	if got := resolveUserHR(user, time.Date(2010, 6, 1, 0, 0, 0, 0, time.UTC)); got.MaxBpm != 200 || got.Basis != "age" {
+	if got := resolveUserHR(user, 0, time.Date(2010, 6, 1, 0, 0, 0, 0, time.UTC)); got.MaxBpm != 200 || got.Basis != "age" {
 		t.Fatalf("age 20 activity: max=%d basis=%q, want 200/age", got.MaxBpm, got.Basis)
 	}
-	if got := resolveUserHR(user, time.Date(2024, 6, 1, 0, 0, 0, 0, time.UTC)); got.MaxBpm != 186 || got.Basis != "age" {
+	if got := resolveUserHR(user, 0, time.Date(2024, 6, 1, 0, 0, 0, 0, time.UTC)); got.MaxBpm != 186 || got.Basis != "age" {
 		t.Fatalf("age 34 activity: max=%d basis=%q, want 186/age", got.MaxBpm, got.Basis)
 	}
 }
@@ -366,5 +373,96 @@ func TestSummarizeStreams_HRZoneFields(t *testing.T) {
 	noHR.Heartrate = nil
 	if s := SummarizeStreams(noHR, "km", hrAnchor{MaxBpm: 190, System: olt}); s.HRZones != nil || s.HRZoneSystem != "" || s.HRMaxBpm != 0 {
 		t.Fatalf("summary without HR carries zone fields: %+v", s)
+	}
+}
+
+func TestSportMaxHeartrate(t *testing.T) {
+	run, ride := uuid.New(), uuid.New()
+	sportMax := map[uuid.UUID]int{run: 195}
+	tests := []struct {
+		name     string
+		sportMax map[uuid.UUID]int
+		actionID *uuid.UUID
+		want     int
+	}{
+		{"sport with a max", sportMax, &run, 195},
+		{"sport without a max", sportMax, &ride, 0},
+		{"activity without an action", sportMax, nil, 0},
+		{"no maxes loaded", nil, &run, 0},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			if got := sportMaxHeartrate(tc.sportMax, tc.actionID); got != tc.want {
+				t.Fatalf("sportMaxHeartrate = %d, want %d", got, tc.want)
+			}
+		})
+	}
+}
+
+func TestValidateSportMaxHeartrates(t *testing.T) {
+	run, ride, unknown := uuid.New(), uuid.New(), uuid.New()
+	sports := []models.Action{{Name: "Run"}, {Name: "Bicycling"}}
+	sports[0].ID, sports[1].ID = run, ride
+	tests := []struct {
+		name    string
+		entries []models.SportMaxHeartrate
+		resting *int
+		want    string
+	}{
+		{"none", nil, nil, ""},
+		{"two sports", []models.SportMaxHeartrate{{ActionID: run, MaxHeartrate: 195}, {ActionID: ride, MaxHeartrate: 186}}, intPtr(50), ""},
+		{"range bounds", []models.SportMaxHeartrate{{ActionID: run, MaxHeartrate: 100}, {ActionID: ride, MaxHeartrate: 240}}, nil, ""},
+		{"unknown sport", []models.SportMaxHeartrate{{ActionID: unknown, MaxHeartrate: 190}}, nil, "Unknown sport for a sport-specific maximum heart rate."},
+		{"duplicate sport", []models.SportMaxHeartrate{{ActionID: run, MaxHeartrate: 190}, {ActionID: run, MaxHeartrate: 191}}, nil, "Each sport can only have one maximum heart rate."},
+		{"too low", []models.SportMaxHeartrate{{ActionID: run, MaxHeartrate: 99}}, nil, "Sport-specific maximum heart rates must be between 100 and 240 bpm."},
+		{"too high", []models.SportMaxHeartrate{{ActionID: run, MaxHeartrate: 241}}, nil, "Sport-specific maximum heart rates must be between 100 and 240 bpm."},
+		{"not above resting", []models.SportMaxHeartrate{{ActionID: run, MaxHeartrate: 110}}, intPtr(110), "Your resting heart rate must be below every sport-specific maximum."},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			if got := validateSportMaxHeartrates(tc.entries, tc.resting, sports); got != tc.want {
+				t.Fatalf("validateSportMaxHeartrates = %q, want %q", got, tc.want)
+			}
+		})
+	}
+}
+
+func TestMergeSportHeartrates(t *testing.T) {
+	run, ride, swim := uuid.New(), uuid.New(), uuid.New()
+	sports := []models.Action{{Name: "Run"}, {Name: "Bicycling"}, {Name: "Swim"}}
+	sports[0].ID, sports[1].ID, sports[2].ID = run, ride, swim
+	rows := []models.UserSportMaxHeartrate{{ActionID: run, MaxHeartrate: 195}}
+	observed := map[uuid.UUID]int{run: 197, ride: 182}
+
+	got := mergeSportHeartrates(sports, rows, observed)
+	if len(got) != 3 {
+		t.Fatalf("got %d sports, want 3", len(got))
+	}
+	tests := []struct {
+		name              string
+		object            models.SportHeartrateObject
+		wantName          string
+		wantMax, wantSeen int // 0 = nil
+	}{
+		{"set and observed", got[0], "Run", 195, 197},
+		{"observed only", got[1], "Bicycling", 0, 182},
+		{"neither", got[2], "Swim", 0, 0},
+	}
+	value := func(p *int) int {
+		if p == nil {
+			return 0
+		}
+		return *p
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			if tc.object.ActionName != tc.wantName || value(tc.object.MaxHeartrate) != tc.wantMax || value(tc.object.ObservedMaxHeartrate) != tc.wantSeen {
+				t.Fatalf("got %s %d/%d, want %s %d/%d", tc.object.ActionName, value(tc.object.MaxHeartrate), value(tc.object.ObservedMaxHeartrate), tc.wantName, tc.wantMax, tc.wantSeen)
+			}
+		})
+	}
+
+	if empty := mergeSportHeartrates(nil, nil, nil); empty == nil || len(empty) != 0 {
+		t.Fatalf("no sports should serialise as an empty list, got %#v", empty)
 	}
 }

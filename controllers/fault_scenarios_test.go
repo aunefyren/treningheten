@@ -145,7 +145,7 @@ func faultScenarios() []faultScenario {
 		scenario("exercise day today", 200, get("/api/auth/exercise-days/week?today=true", true)),
 		scenario("exercise days", 200, get("/api/auth/exercise-days", true)),
 		scenario("exercise days by goal", 200, get("/api/auth/exercise-days?goal={memberGoal}", true)),
-		scenario("exercise day", 201, get("/api/auth/exercise-days/{day}", true)),
+		scenario("exercise day", 200, get("/api/auth/exercise-days/{day}", true)),
 		scenario("update exercise day", 201, send("POST", "/api/auth/exercise-days/{day}", true, models.ExerciseDayUpdateRequest{Note: "updated"})),
 		scenario("admin exercise days", 200, get("/api/admin/exercise-days", false)),
 		scenario("get week", 200, get("/api/auth/exercises/week", true)),
@@ -178,6 +178,7 @@ func faultScenarios() []faultScenario {
 			return faultRequest{"GET", "/api/auth/actions/" + w.actionID.String() + "/statistics?start=" + now.AddDate(0, -1, 0).Format("2006-01-02T15:04:05Z") + "&end=" + now.AddDate(0, 0, 1).Format("2006-01-02T15:04:05Z"), w.memberToken, nil, nil}
 		}),
 		scenario("activity goal settings", 200, get("/api/auth/activity-goal-settings", true)),
+		scenario("sport heart rates", 200, get("/api/auth/sport-heartrates", true)),
 		scenario("set activity goal setting", 200, func(t *testing.T, h *apiHarness, w faultWorld) faultRequest {
 			return faultRequest{"PUT", "/api/auth/activity-goal-settings", w.memberToken, models.ActivityGoalSettingUpdateRequest{ActionID: w.actionID, CountsTowardGoal: false}, nil}
 		}),

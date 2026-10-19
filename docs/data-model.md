@@ -180,6 +180,11 @@ Strava and media features read.
   Both importers persist the snapshot through `database.SetExerciseCountsTowardGoal`, because a
   `false` set on the struct is dropped by the insert — see
   [data-conventions.md](data-conventions.md#gorm-drops-a-false-on-insert-when-the-field-has-default-true).
+- **UserSportMaxHeartrate** (`models/user_sport_max_heartrate.go`) — a per-user, per-`Action`
+  explicit **max heart rate** for one sport, anchoring that sport's HR zones ahead of
+  `User.MaxHeartrate`. Absence of a row = the sport follows the global anchors. Replaced as a
+  set with the training profile (hard delete + insert, one transaction). See
+  [exercises.md](exercises.md#per-sport-max-heart-rate).
 - **Tags** (`models/tag.go`) — not a table: a controlled vocabulary (`ValidTags`) stored
   as a JSON `TagList` on `Operation`. `StravaManagedTags` are owned by Strava on sync;
   the rest are user-controlled and preserved across syncs.

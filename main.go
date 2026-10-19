@@ -341,6 +341,7 @@ func initRouter(configFile models.ConfigStruct) *gin.Engine {
 			auth.PATCH("/users/:user_id", controllers.APIPartialUpdateUser)
 			auth.PUT("/users/:user_id/training-profile", controllers.APIUpdateTrainingProfile)
 			auth.GET("/hr-zone-systems", controllers.APIGetHRZoneSystems)
+			auth.GET("/sport-heartrates", controllers.APIGetSportHeartrates)
 			auth.GET("/users/:user_id/activities", controllers.APIGetUserActivities)
 			auth.GET("/users/:user_id/statistics", controllers.APIGetUserStatistics)
 

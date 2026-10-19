@@ -570,9 +570,9 @@ func validateTrainingProfile(request models.UserTrainingProfileRequest, now time
 	return ""
 }
 
-// APIUpdateTrainingProfile replaces the caller's birth date, heart-rate anchors and zone
-// system. Like
-// the PATCH, the path id is ignored: it always updates the authenticated user.
+// APIUpdateTrainingProfile replaces the caller's birth date, heart-rate anchors, zone system
+// and per-sport max heart rates. Like the PATCH, the path id is ignored: it always updates the
+// authenticated user.
 func APIUpdateTrainingProfile(context *gin.Context) {
 	var request models.UserTrainingProfileRequest
 	err := context.ShouldBindJSON(&request)
@@ -597,6 +597,21 @@ func APIUpdateTrainingProfile(context *gin.Context) {
 		return
 	}
 
+	if len(request.SportMaxHeartrates) > 0 {
+		sports, err := database.GetActivityTypeActions()
+		if err != nil {
+			logger.Log.Info("Failed to get activity types. Error: " + err.Error())
+			context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get activity types."})
+			context.Abort()
+			return
+		}
+		if message := validateSportMaxHeartrates(request.SportMaxHeartrates, request.RestingHeartrate, sports); message != "" {
+			context.JSON(http.StatusBadRequest, gin.H{"error": message})
+			context.Abort()
+			return
+		}
+	}
+
 	user, err := database.GetAllUserInformation(userID)
 	if err != nil {
 		logger.Log.Info("Failed to get user information. Error: " + err.Error())
@@ -610,7 +625,7 @@ func APIUpdateTrainingProfile(context *gin.Context) {
 	user.RestingHeartrate = request.RestingHeartrate
 	user.HRZoneSystem = request.HRZoneSystem
 
-	_, err = database.UpdateUser(user)
+	err = database.SaveTrainingProfileInDB(user, request.SportMaxHeartrates)
 	if err != nil {
 		logger.Log.Info("Failed to update user in the database. Error: " + err.Error())
 		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update user in the database."})

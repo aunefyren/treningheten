@@ -121,9 +121,10 @@ func moreFaultScenarios() []faultScenario {
 			token := login["access_token"].(string)
 			birth := time.Now().AddDate(-30, 0, 0)
 			maxHR, restHR := 190, 50
+			sportMax := []models.SportMaxHeartrate{{ActionID: sportActionID(t, "Bicycling"), MaxHeartrate: 184}}
 			return func() error {
 				return statusError(h.do("PUT", "/api/auth/users/"+userID.String()+"/training-profile", token, models.UserTrainingProfileRequest{
-					BirthDate: &birth, MaxHeartrate: &maxHR, RestingHeartrate: &restHR,
+					BirthDate: &birth, MaxHeartrate: &maxHR, RestingHeartrate: &restHR, SportMaxHeartrates: sportMax,
 				}), http.StatusOK)
 			}
 		}),

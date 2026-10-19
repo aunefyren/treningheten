@@ -5,7 +5,10 @@ import (
 	"testing"
 	"time"
 
+	"github.com/aunefyren/treningheten/database"
 	"github.com/aunefyren/treningheten/models"
+
+	"github.com/google/uuid"
 )
 
 func TestValidateTrainingProfile(t *testing.T) {
@@ -118,4 +121,159 @@ func TestHRZoneSystemsAPI(t *testing.T) {
 	}
 
 	h.expect(http.StatusUnauthorized, "GET", "/api/auth/hr-zone-systems", "", nil)
+}
+
+// sportActionID returns the seeded activity-type action with the given name.
+func sportActionID(t *testing.T, name string) uuid.UUID {
+	t.Helper()
+	sports, err := database.GetActivityTypeActions()
+	if err != nil {
+		t.Fatalf("activity types: %v", err)
+	}
+	for _, sport := range sports {
+		if sport.Name == name {
+			return sport.ID
+		}
+	}
+	t.Fatalf("no seeded activity type %q", name)
+	return uuid.Nil
+}
+
+// seedHRActivity seeds a day → session → operation of the given sport carrying a steady
+// 150 bpm Strava stream and the stored max_heartrate rollup. A disabled operation is seeded
+// only when enabled is false. Returns the day and operation ids.
+func seedHRActivity(t *testing.T, userID uuid.UUID, actionID uuid.UUID, maxHeartrate int, enabled bool) (uuid.UUID, uuid.UUID) {
+	t.Helper()
+	day := models.ExerciseDay{Date: time.Now(), Enabled: true, UserID: &userID}
+	day.ID = uuid.New()
+	if err := database.Instance.Omit("User", "Goal").Create(&day).Error; err != nil {
+		t.Fatalf("seed day: %v", err)
+	}
+	exercise := models.Exercise{Enabled: true, IsOn: true, ExerciseDayID: day.ID}
+	exercise.ID = uuid.New()
+	if err := database.Instance.Omit("ExerciseDay").Create(&exercise).Error; err != nil {
+		t.Fatalf("seed exercise: %v", err)
+	}
+	operation := models.Operation{Enabled: true, ExerciseID: exercise.ID, ActionID: &actionID, Type: "moving", DistanceUnit: "km", WeightUnit: "kg", MaxHeartrate: &maxHeartrate}
+	operation.ID = uuid.New()
+	if err := database.Instance.Omit("Exercise", "Action", "Gear").Create(&operation).Error; err != nil {
+		t.Fatalf("seed operation: %v", err)
+	}
+	if !enabled {
+		if err := database.Instance.Model(&models.Operation{}).Where("id = ?", operation.ID).Update("enabled", false).Error; err != nil {
+			t.Fatalf("disable operation: %v", err)
+		}
+	}
+	set := models.OperationSet{Enabled: true, OperationID: operation.ID, StravaID: sp("4242"), StravaStreams: &models.StravaStreamsJSON{StravaActivityStreams: *steadyRun(100, 3.0, 150)}}
+	set.ID = uuid.New()
+	if err := database.Instance.Omit("Operation").Create(&set).Error; err != nil {
+		t.Fatalf("seed set: %v", err)
+	}
+	return day.ID, operation.ID
+}
+
+func TestSportMaxHeartratesAPI(t *testing.T) {
+	h := newAPIHarness(t)
+	me, token := h.user("sport@training.test", false)
+	other, _ := h.user("other-sport@training.test", false)
+	profilePath := "/api/auth/users/" + me.ID.String() + "/training-profile"
+	run, ride := sportActionID(t, "Run"), sportActionID(t, "Bicycling")
+
+	runDay, runOperation := seedHRActivity(t, me.ID, run, 182, true)
+	seedHRActivity(t, me.ID, run, 210, false)    // deleted activity: not observed
+	seedHRActivity(t, other.ID, ride, 199, true) // someone else's ride: not observed
+
+	// sportEntry finds one sport in GET /sport-heartrates.
+	sportEntry := func(t *testing.T, actionID uuid.UUID) map[string]any {
+		t.Helper()
+		for _, raw := range field(t, h.ok("GET", "/api/auth/sport-heartrates", token, nil), "sport_heartrates").([]any) {
+			if entry := raw.(map[string]any); entry["action_id"] == actionID.String() {
+				return entry
+			}
+		}
+		t.Fatalf("sport %s missing from sport-heartrates", actionID)
+		return nil
+	}
+	// runZones reads the HR anchor of the run on the exercise-day endpoint (web card) and
+	// through the MCP summary path.
+	runZones := func(t *testing.T) (float64, any) {
+		t.Helper()
+		day := field(t, h.ok("GET", "/api/auth/exercise-days/"+runDay.String(), token, nil), "exercise_day").(map[string]any)
+		summary := field(t, day, "exercises").([]any)[0].(map[string]any)["operations"].([]any)[0].(map[string]any)["stream_summary"].(map[string]any)
+		mcp, err := assembleActivityStreamSummary(me.ID, runOperation)
+		if err != nil || mcp == nil {
+			t.Fatalf("MCP summary: %v %v", mcp, err)
+		}
+		if float64(mcp.HRMaxBpm) != summary["hr_max_bpm"] || mcp.HRMaxBasis != summary["hr_max_basis"] {
+			t.Fatalf("MCP anchor %d/%q disagrees with web anchor %v/%v", mcp.HRMaxBpm, mcp.HRMaxBasis, summary["hr_max_bpm"], summary["hr_max_basis"])
+		}
+		return summary["hr_max_bpm"].(float64), summary["hr_max_basis"]
+	}
+
+	t.Run("lists observed max per sport before anything is set", func(t *testing.T) {
+		if entry := sportEntry(t, run); entry["max_heartrate"] != nil || entry["observed_max_heartrate"] != float64(182) {
+			t.Errorf("run = %v, want no max and observed 182", entry)
+		}
+		if entry := sportEntry(t, ride); entry["max_heartrate"] != nil || entry["observed_max_heartrate"] != nil {
+			t.Errorf("ride = %v, want neither set", entry)
+		}
+	})
+
+	t.Run("saves sport maxes and anchors that sport's zones", func(t *testing.T) {
+		h.ok("PUT", profilePath, token, models.UserTrainingProfileRequest{
+			MaxHeartrate:       intPtr(198),
+			SportMaxHeartrates: []models.SportMaxHeartrate{{ActionID: run, MaxHeartrate: 190}, {ActionID: ride, MaxHeartrate: 184}},
+		})
+		if entry := sportEntry(t, run); entry["max_heartrate"] != float64(190) {
+			t.Errorf("run max = %v, want 190", entry["max_heartrate"])
+		}
+		if entry := sportEntry(t, ride); entry["max_heartrate"] != float64(184) {
+			t.Errorf("ride max = %v, want 184", entry["max_heartrate"])
+		}
+		if max, basis := runZones(t); max != 190 || basis != "sport_max" {
+			t.Errorf("run zones anchored to %v/%v, want 190/sport_max", max, basis)
+		}
+	})
+
+	t.Run("replaces the set as sent", func(t *testing.T) {
+		h.ok("PUT", profilePath, token, models.UserTrainingProfileRequest{
+			MaxHeartrate:       intPtr(198),
+			SportMaxHeartrates: []models.SportMaxHeartrate{{ActionID: ride, MaxHeartrate: 186}},
+		})
+		if entry := sportEntry(t, run); entry["max_heartrate"] != nil {
+			t.Errorf("run max = %v after it was left out, want cleared", entry["max_heartrate"])
+		}
+		if entry := sportEntry(t, ride); entry["max_heartrate"] != float64(186) {
+			t.Errorf("ride max = %v, want 186", entry["max_heartrate"])
+		}
+		if max, basis := runZones(t); max != 198 || basis != "max" {
+			t.Errorf("run zones anchored to %v/%v, want the global 198/max", max, basis)
+		}
+	})
+
+	t.Run("rejects invalid sport maxes and keeps the old ones", func(t *testing.T) {
+		invalid := [][]models.SportMaxHeartrate{
+			{{ActionID: uuid.New(), MaxHeartrate: 190}},
+			{{ActionID: run, MaxHeartrate: 190}, {ActionID: run, MaxHeartrate: 191}},
+			{{ActionID: run, MaxHeartrate: 90}},
+		}
+		for _, entries := range invalid {
+			h.expect(http.StatusBadRequest, "PUT", profilePath, token, models.UserTrainingProfileRequest{SportMaxHeartrates: entries})
+		}
+		h.expect(http.StatusBadRequest, "PUT", profilePath, token, models.UserTrainingProfileRequest{
+			RestingHeartrate: intPtr(120), SportMaxHeartrates: []models.SportMaxHeartrate{{ActionID: run, MaxHeartrate: 115}},
+		})
+		if entry := sportEntry(t, ride); entry["max_heartrate"] != float64(186) {
+			t.Errorf("ride max = %v after rejected saves, want 186", entry["max_heartrate"])
+		}
+	})
+
+	t.Run("null clears", func(t *testing.T) {
+		h.ok("PUT", profilePath, token, models.UserTrainingProfileRequest{})
+		if entry := sportEntry(t, ride); entry["max_heartrate"] != nil {
+			t.Errorf("ride max = %v after clearing, want nil", entry["max_heartrate"])
+		}
+	})
+
+	h.expect(http.StatusUnauthorized, "GET", "/api/auth/sport-heartrates", "", nil)
 }

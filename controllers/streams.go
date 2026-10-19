@@ -4,6 +4,8 @@ import (
 	"math"
 
 	"github.com/aunefyren/treningheten/models"
+
+	"github.com/google/uuid"
 )
 
 // Segment/route/zone tuning constants.
@@ -481,17 +483,18 @@ func computeBiggestClimb(streams *models.StravaActivityStreams, cumMeters []floa
 // attachStreamSummaries walks an exercise day and populates OperationObject.StreamSummary
 // for every moving activity that carries Strava streams, so the /exercises detail page
 // renders the same processed summary the MCP tool exposes instead of re-deriving stats in
-// JS. HR zones follow the day owner's settings (anchors and zone system); the age-based estimate uses the
-// activity's own date (not today), so an old activity's zones stay historically accurate
-// and don't drift as the user ages.
+// JS. HR zones follow the day owner's settings (anchors and zone system), resolved per
+// activity so a day mixing sports anchors each to its own sport max (sportMax, keyed by
+// action — see loadSportMaxHeartrates); the age-based estimate uses the activity's own date
+// (not today), so an old activity's zones stay historically accurate and don't drift as the
+// user ages.
 // The day owner is passed in rather than read off day.User: that field is the public view
 // (models.PublicUser), which deliberately carries no heart-rate settings, and this file is
 // pure logic with no data-access layer of its own.
-func attachStreamSummaries(day *models.ExerciseDayObject, owner models.User) {
+func attachStreamSummaries(day *models.ExerciseDayObject, owner models.User, sportMax map[uuid.UUID]int) {
 	if day == nil {
 		return
 	}
-	hr := resolveUserHR(owner, day.Date)
 	for ei := range day.Exercises {
 		ops := day.Exercises[ei].Operations
 		for oi := range ops {
@@ -505,6 +508,11 @@ func attachStreamSummaries(day *models.ExerciseDayObject, owner models.User) {
 			if streams == nil {
 				continue
 			}
+			var actionID *uuid.UUID
+			if ops[oi].Action != nil {
+				actionID = &ops[oi].Action.ID
+			}
+			hr := resolveUserHR(owner, sportMaxHeartrate(sportMax, actionID), day.Date)
 			ops[oi].StreamSummary = SummarizeStreams(streams, ops[oi].DistanceUnit, hr)
 		}
 	}

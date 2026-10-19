@@ -128,8 +128,8 @@ All of it consumes one server-computed `models.StreamSummary` attached to each `
 (`stream_summary` — the same shape the MCP `get_activity_streams` tool returns), rather than
 re-deriving stats in JS. The summary math (segments, route, elevation, HR zones), the HR-zone
 anchoring precedence, and the stability-over-time guarantees live in [mcp.md](mcp.md). HR-zone
-anchoring is driven by optional **max / resting heart rate** settings on `/account` plus an
-auto-maintained **observed max HR**.
+anchoring is driven by optional **max / resting heart rate** settings on `/account` (including a
+max **per sport**) plus an auto-maintained **observed max HR**.
 
 ### Heart-rate zones
 
@@ -152,6 +152,45 @@ and served to `/account` by `GET /api/auth/hr-zone-systems` for its live preview
 - Adding a system is one entry in `hrZoneSystems` plus a key constant in `models/hr_zone.go`.
   The UI reads codes/names/bounds from the server; the colour ramp (`.wv-zone-1…5`,
   `components.css`) covers five zones, so a system with a different count needs more steps.
+
+### Per-sport max heart rate
+
+Max HR differs by sport — cycling typically sits 5–10 bpm under running — so a user can set an
+explicit max per sport (`models.UserSportMaxHeartrate`, one row per user + `Action`). It is the
+**first** step of the anchoring precedence in `resolveUserHR`, reported as
+`hr_max_basis: "sport_max"`:
+
+1. the sport's own max (`sport_max`)
+2. the global max (`max`)
+3. the global all-time observed max (`observed_max`)
+4. the age-based estimate (`age`)
+5. the activity's own peak (`observed`)
+
+- **Explicit always beats inferred.** A sport max only wins over the global max because the
+  user typed it; nothing is ever inferred per sport.
+- **The observed max per sport is shown, never applied.** `/account` lists the highest heart
+  rate seen in each sport as a hint with a one-click pin, but it does not anchor zones on its
+  own: a sport with a handful of easy sessions would get an observed max far below the real
+  one, and every later activity in it would show inflated zones. It is read at request time
+  from the per-operation `max_heartrate` rollup (`GetObservedMaxHeartratesByActionForUserID`
+  — already spike-capped, follows deletes, no backfill or sync hook).
+- **Resting HR and the zone system stay global.** Resting HR doesn't depend on the sport; a
+  sport max must still sit above it (validated on save).
+- **Sports** are the curated activity-type actions (`GetActivityTypeActions` — those with a
+  Strava sport name), the same list as goal counting. Only those are accepted.
+- **Resolved per activity.** `attachStreamSummaries` resolves the anchor per operation (a day
+  can mix a run and a ride); `loadActivityStreamContext` (MCP) uses the operation's action.
+  Both take the user's maxes from `loadSportMaxHeartrates`. The zone maths
+  (`computeHRZones`) is untouched — the sport max only changes `hrAnchor.MaxBpm`.
+- **API.** Saved with the training profile: `PUT …/training-profile` takes
+  `sport_max_heartrates: [{action_id, max_heartrate}]` and **replaces the whole set** (omitted
+  or null clears every sport; 100–240 bpm, one per sport). `GET /api/auth/sport-heartrates`
+  (`APIGetSportHeartrates`) lists every sport with `max_heartrate` and
+  `observed_max_heartrate` (each null when absent) for `/account`.
+- **UI.** Under "Max heart rate per sport" in the Training section: sports with a max are
+  listed (input, observed hint + pin, remove); the add select offers the rest, sports with
+  heart-rate data first, prefilling the observed max. Saved by the same button as the rest of
+  the profile. The zone preview stays on the global anchor.
 
 ## Ownership
 

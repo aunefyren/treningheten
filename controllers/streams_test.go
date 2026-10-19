@@ -6,6 +6,8 @@ import (
 	"time"
 
 	"github.com/aunefyren/treningheten/models"
+
+	"github.com/google/uuid"
 )
 
 func f64Stream(d []float64) *models.StravaStream[float64] {
@@ -281,7 +283,7 @@ func TestAttachStreamSummaries(t *testing.T) {
 	// The owner is passed separately: day.User is the public view and carries no heart-rate
 	// settings, so the age-based HR basis has to come from the real row.
 	owner := models.User{BirthDate: timePtr(time.Date(1990, 1, 1, 0, 0, 0, 0, time.UTC))}
-	attachStreamSummaries(day, owner)
+	attachStreamSummaries(day, owner, nil)
 
 	withStreams := day.Exercises[0].Operations[0]
 	if withStreams.StreamSummary == nil {
@@ -299,3 +301,53 @@ func TestAttachStreamSummaries(t *testing.T) {
 }
 
 func timePtr(t time.Time) *time.Time { return &t }
+
+// TestAttachStreamSummaries_PerSportMax covers a day mixing sports: each activity anchors to
+// its own sport's max, and a sport without one (or an activity without an action) falls back
+// to the global max.
+func TestAttachStreamSummaries_PerSportMax(t *testing.T) {
+	streams := steadyRun(100, 3.0, 150)
+	withStreams := func(action *models.Action) models.OperationObject {
+		return models.OperationObject{
+			Action:       action,
+			DistanceUnit: "km",
+			OperationSets: []models.OperationSetObject{
+				{StravaStreams: &models.StravaStreamsJSON{StravaActivityStreams: *streams}},
+			},
+		}
+	}
+	run, ride, swim := &models.Action{Name: "Run"}, &models.Action{Name: "Bicycling"}, &models.Action{Name: "Swim"}
+	run.ID, ride.ID, swim.ID = uuid.New(), uuid.New(), uuid.New()
+
+	day := &models.ExerciseDayObject{
+		Date: time.Date(2026, 6, 1, 0, 0, 0, 0, time.UTC),
+		Exercises: []models.ExerciseObject{
+			{Operations: []models.OperationObject{withStreams(run), withStreams(ride)}},
+			{Operations: []models.OperationObject{withStreams(swim), withStreams(nil)}},
+		},
+	}
+	owner := models.User{MaxHeartrate: intPtr(198)}
+	attachStreamSummaries(day, owner, map[uuid.UUID]int{run.ID: 195, ride.ID: 186})
+
+	tests := []struct {
+		name      string
+		summary   *models.StreamSummary
+		wantMax   int
+		wantBasis string
+	}{
+		{"run uses its sport max", day.Exercises[0].Operations[0].StreamSummary, 195, "sport_max"},
+		{"ride uses its sport max", day.Exercises[0].Operations[1].StreamSummary, 186, "sport_max"},
+		{"swim falls back to global", day.Exercises[1].Operations[0].StreamSummary, 198, "max"},
+		{"no action falls back to global", day.Exercises[1].Operations[1].StreamSummary, 198, "max"},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			if tc.summary == nil {
+				t.Fatal("missing stream summary")
+			}
+			if tc.summary.HRMaxBpm != tc.wantMax || tc.summary.HRMaxBasis != tc.wantBasis {
+				t.Fatalf("got %d/%q, want %d/%q", tc.summary.HRMaxBpm, tc.summary.HRMaxBasis, tc.wantMax, tc.wantBasis)
+			}
+		})
+	}
+}

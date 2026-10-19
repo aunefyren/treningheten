@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/aunefyren/treningheten/database"
+	"github.com/aunefyren/treningheten/logger"
 	"github.com/aunefyren/treningheten/models"
 
 	"github.com/google/uuid"
@@ -158,7 +159,9 @@ func loadActivityStreamContext(userID uuid.UUID, activityID uuid.UUID) (streams 
 
 	distanceUnit = "km"
 	activityDate := time.Now()
+	var actionID *uuid.UUID
 	if operation, err := database.GetOperationByIDAndUserID(activityID, userID); err == nil {
+		actionID = operation.ActionID
 		if operation.DistanceUnit != "" {
 			distanceUnit = operation.DistanceUnit
 		}
@@ -168,9 +171,15 @@ func loadActivityStreamContext(userID uuid.UUID, activityID uuid.UUID) (streams 
 			}
 		}
 	}
-	// Needs the user's own heart-rate settings, which are not part of the public view.
+	// Needs the user's own heart-rate settings, which are not part of the public view. Like
+	// the user lookup, a failed sport-max lookup degrades the zones (to the global anchors)
+	// rather than failing the whole read.
 	if user, err := database.GetAllUserInformation(userID); err == nil {
-		hr = resolveUserHR(user, activityDate)
+		sportMax, err := loadSportMaxHeartrates(userID)
+		if err != nil {
+			logger.Log.Warn("Failed to get sport max heart rates for user " + userID.String() + ". Error: " + err.Error())
+		}
+		hr = resolveUserHR(user, sportMaxHeartrate(sportMax, actionID), activityDate)
 	}
 	return streams, distanceUnit, hr, nil
 }

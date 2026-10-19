@@ -888,10 +888,18 @@ func APIGetExerciseDay(context *gin.Context) {
 		return
 	}
 
-	attachStreamSummaries(&exerciseDayObject, owner)
+	sportMax, err := loadSportMaxHeartrates(userID)
+	if err != nil {
+		logger.Log.Info("Failed to get sport max heart rates for stream summaries. Error: " + err.Error())
+		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get sport max heart rates."})
+		context.Abort()
+		return
+	}
 
-	// Return a response with all news posts
-	context.JSON(http.StatusCreated, gin.H{"message": "Exercise day retrieved.", "exercise_day": exerciseDayObject})
+	attachStreamSummaries(&exerciseDayObject, owner, sportMax)
+
+	// Return the enriched day
+	context.JSON(http.StatusOK, gin.H{"message": "Exercise day retrieved.", "exercise_day": exerciseDayObject})
 }
 
 func APIUpdateExerciseDay(context *gin.Context) {
