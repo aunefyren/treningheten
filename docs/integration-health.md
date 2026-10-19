@@ -12,7 +12,7 @@ Integration health does three things, for every integration:
 1. **Notice** that a connection is failing, and tell a rejected credential apart from an
    outage.
 2. **Tell the user once**: a push notification when the connection breaks, and a notice
-   on the account page while it stays broken.
+   on the front page and the account page while it stays broken.
 3. **Catch up**: when the connection works again, re-pull everything missed since it started
    failing.
 
@@ -20,7 +20,7 @@ Integration health does three things, for every integration:
 
 | Provider | Rejected credential (`auth_failed`) | Detected by | Recovery |
 |---|---|---|---|
-| Plex | PMS 401/403; or no server / account id resolved (reason `setup_incomplete`) | each pull + daily check | re-pull sessions since the gap; a moved server is found again automatically |
+| Plex | PMS 401/403; plex.tv 401/403 while the server is unreachable or the setup unfinished; or no server / account id resolved (reason `setup_incomplete`) | each pull + daily check | re-pull sessions since the gap; a moved server is found again automatically |
 | Spotify | token endpoint 401 or 400 `invalid_grant`; history 401; history 403 (reason `not_allowlisted`) | each pull + daily check | re-pull sessions since the gap, capped at Spotify's ~24h history |
 | Audiobookshelf | 401/403 | each pull + daily check | re-pull sessions since the gap |
 | Strava | token exchange 400/401 (`ErrStravaSessionInvalid`) | hourly sync | re-sync every week since the gap |
@@ -129,6 +129,12 @@ Recovery starts from:
   If that still finds nothing, it is `auth_failed` with reason `setup_incomplete`. The pull
   (`PlexSyncExerciseForUser`) used to skip such a connection without telling anyone; it now
   records the same status.
+- **Revoked token behind a dead server.** The lookup's first call is plex.tv's account
+  endpoint, which `plexFetchAccountAndServer` classifies like a PMS reply (401/403 →
+  rejected, anything else → outage). When plex.tv rejects the token, `plexCheckConnection`
+  reports that (`auth_failed`, no reason) instead of the server outage or the unfinished
+  setup: once the server is back it would refuse the token anyway, so the user has to
+  reconnect, not wait or enter a URL. A plex.tv outage changes nothing.
 
 ## Daily health check
 
@@ -146,8 +152,9 @@ connected user.
 
 ## Notifications
 
-`PushNotificationsForAccountAlert` sends with category `account`. The service worker opens
-`/account` on click. The text comes from `integrationAlertBody` (provider, status, reason).
+`PushNotificationsForAccountAlert` sends with category `account` and the provider as
+`additional_data`. The service worker opens `/account#<provider>` on click, which expands
+and scrolls to that provider's section (`openSectionFromHash` in `web/js/account.js`). The text comes from `integrationAlertBody` (provider, status, reason).
 
 It goes to subscriptions with **`Subscription.AccountAlert`**, a general "account updates"
 opt-in for anything the user has to act on about their own account. It **defaults to on**:
@@ -166,10 +173,27 @@ The update endpoint treats a missing `account_alert` as "leave unchanged".
   connected and enabled ones only (`userIntegrationHealth`). It is a `gorm:"-"` field on
   `models.User` and is not on `PublicUser`.
 
-A failure still inside the grace period reads as `ok`. The account page renders a notice
-above each provider's controls (`integrationAlertHTML` in `web/js/account.js`, styled with
-`.integration-alert`): red for `auth_failed`, amber for `unavailable`, with reason-specific
-wording. A broken Strava connection also gets a **Reconnect Strava** button.
+- Front page: `GET /api/auth/integrations/health` lists only the user's **broken**
+  connections, `{"integrations": [{provider, name, status, status_reason, failing_since}]}`
+  (`brokenIntegrationsForUser`): connected, enabled integrations whose health isn't `ok`, in
+  a fixed order (Strava, Hevy, Plex, Spotify, Audiobookshelf). An empty list means all is
+  well. One request, rather than the user and media-connection reads, which 404 when media
+  is off.
+
+A failure still inside the grace period reads as `ok` everywhere. The wording lives in one
+place, `integrationNoticeText` in `web/js/functions.js` (reason-specific, with the place's
+own fix hint), rendered by `integrationNoticeHTML` as an `.integration-notice` (see
+[styleguide.md](styleguide.md#integration-notice)): a red left bar for anything the user
+has to act on, amber for an outage.
+
+- **Account page:** a notice above each provider's controls (`integrationAlertHTML`). A
+  broken Strava connection also gets a **Reconnect Strava** button.
+- **Front page:** a banner in the hero, above the push prompt (`loadIntegrationBanner` in
+  `web/js/frontpage.js`), one notice per broken connection. A rejected credential or an
+  unfinished setup gets **Fix in settings** (`/account#<provider>`) and can't be hidden — it
+  goes away once fixed. An outage can be hidden (**Hide**); that is remembered per device
+  as provider → `failing_since` in `localStorage`, so the next breakage shows again. Spotify's
+  `not_allowlisted` has neither: only the admin can fix it.
 
 ## Adding a provider
 
@@ -182,7 +206,9 @@ wording. A broken Strava connection also gets a **Reconnect Strava** button.
 3. Add its recovery to `recoverIntegration` and a display name to `integrationDisplayName`.
 4. Call `resumeIntegrationAfterReconnect` from its connect handler and
    `clearIntegrationStatus` from its disconnect handler.
-5. Expose its health to its account-page section and call `integrationAlertHTML`.
+5. Expose its health to its account-page section and call `integrationAlertHTML`, and add
+   it to `brokenIntegrationsForUser` for the front-page banner. Its account section key
+   must equal the provider id so `/account#<provider>` resolves.
 
 ## Tests
 
@@ -190,10 +216,13 @@ wording. A broken Strava connection also gets a **Reconnect Strava** button.
   original Plex incident end to end (revoked token → one push → account page → reconnect →
   gap re-pulled, even after another provider stamped the session as pulled), plus reconnect
   paths and a backfill that fails part-way.
+- `controllers/integration_health_test.go` also covers `brokenIntegrationsForUser` and its
+  endpoint (grace period, disconnected and disabled providers, order).
 - `controllers/integration_providers_test.go`: Plex finding a moved server and finishing an
-  incomplete setup; Spotify classification, the allowlist case and the 24h backfill cap;
+  incomplete setup, and a token revoked at plex.tv escalating a dead server or unfinished
+  setup to `auth_failed`; Spotify classification, the allowlist case and the 24h backfill cap;
   Audiobookshelf; Hevy; Strava's week backfill.
 - Existing Strava tests now assert "kept and marked broken" instead of "cleared".
-- The fault sweeps have `integration health check`, `media health check`,
+- The fault sweeps have `integration health`, `integration health check`, `media health check`,
   `plex broken connection`, `plex moved server`, `plex recovery` and `strava recovery`
   scenarios.

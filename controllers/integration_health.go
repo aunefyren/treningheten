@@ -2,13 +2,16 @@ package controllers
 
 import (
 	"errors"
+	"net/http"
 	"time"
 
 	"github.com/aunefyren/treningheten/database"
 	"github.com/aunefyren/treningheten/files"
 	"github.com/aunefyren/treningheten/logger"
+	"github.com/aunefyren/treningheten/middlewares"
 	"github.com/aunefyren/treningheten/models"
 
+	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 )
 
@@ -201,7 +204,7 @@ func recordIntegrationFailureSince(userID uuid.UUID, provider string, failure er
 	}
 
 	if notify {
-		if err := PushNotificationsForAccountAlert(userID, integrationAlertBody(provider, status.Status, status.Reason)); err != nil {
+		if err := PushNotificationsForAccountAlert(userID, integrationAlertBody(provider, status.Status, status.Reason), provider); err != nil {
 			logger.Log.Warn("Failed to notify user about integration status. Error: " + err.Error())
 		}
 	}
@@ -330,4 +333,69 @@ func userIntegrationHealth(user models.User) map[string]models.IntegrationHealth
 		health[models.IntegrationProviderHevy] = integrationHealthForUser(user.ID, models.IntegrationProviderHevy)
 	}
 	return health
+}
+
+// brokenIntegrationsForUser lists the user's connections that need attention, for the
+// front-page banner: connected, enabled integrations whose health isn't ok. A failure
+// still inside its grace period reads as ok and is left out, as on the account page.
+// The order is fixed (Strava, Hevy, then the media providers) so the banner doesn't
+// shuffle between visits.
+func brokenIntegrationsForUser(user models.User) []models.IntegrationAlertObject {
+	health := userIntegrationHealth(user)
+	providers := []string{models.IntegrationProviderStrava, models.IntegrationProviderHevy}
+
+	if mediaEnabled() {
+		connections, err := database.GetMediaConnectionsForUser(user.ID)
+		if err != nil {
+			logger.Log.Warn("Failed to get media connections. Error: " + err.Error())
+		}
+		connected := map[string]bool{}
+		for _, connection := range connections {
+			connected[connection.Provider] = connection.AccessToken != nil && *connection.AccessToken != ""
+		}
+		for _, provider := range []string{models.MediaProviderPlex, models.MediaProviderSpotify, models.MediaProviderAudiobookshelf} {
+			if connected[provider] && mediaProviderEnabled(provider) {
+				health[provider] = integrationHealthForUser(user.ID, provider)
+				providers = append(providers, provider)
+			}
+		}
+	}
+
+	broken := []models.IntegrationAlertObject{}
+	for _, provider := range providers {
+		providerHealth, ok := health[provider]
+		if !ok || providerHealth.Status == models.IntegrationStatusOK {
+			continue
+		}
+		broken = append(broken, models.IntegrationAlertObject{
+			Provider:     provider,
+			Name:         integrationDisplayName(provider),
+			Status:       providerHealth.Status,
+			StatusReason: providerHealth.StatusReason,
+			FailingSince: providerHealth.FailingSince,
+		})
+	}
+	return broken
+}
+
+// APIGetIntegrationHealth lists the requesting user's broken connections, for the
+// front-page banner. An empty list means everything connected is working.
+func APIGetIntegrationHealth(context *gin.Context) {
+	userID, err := middlewares.GetAuthUsername(context.GetHeader("Authorization"))
+	if err != nil {
+		logger.Log.Info("Failed to get user ID. Error: " + err.Error())
+		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get user ID."})
+		context.Abort()
+		return
+	}
+
+	user, err := database.GetAllUserInformation(userID)
+	if err != nil {
+		logger.Log.Info("Failed to get user details. Error: " + err.Error())
+		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get user details."})
+		context.Abort()
+		return
+	}
+
+	context.JSON(http.StatusOK, gin.H{"message": "Integration health retrieved.", "integrations": brokenIntegrationsForUser(user)})
 }

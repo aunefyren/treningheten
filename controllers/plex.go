@@ -323,21 +323,27 @@ func resolvePlexServerAccountID(serverURL, token string, candidates ...string) s
 // plexFetchAccountAndServer resolves the authorized token into the server-local
 // account id (for scoping history to this user) and a reachable server URL. A
 // missing server is not fatal here — the connection is still stored so the user can
-// retry discovery / pull later; the history pull surfaces it.
+// retry discovery / pull later; the history pull surfaces it. A failed account lookup is
+// tagged for integration health: plex.tv rejecting the token is a rejected credential,
+// anything else an outage.
 func plexFetchAccountAndServer(token string) (accountID string, serverURL *string, err error) {
 	body, status, err := plexRequest("GET", plexUserURL, token)
 	if err != nil {
-		return "", nil, err
+		return "", nil, integrationUnavailableError(err.Error())
 	}
-	if status != http.StatusOK {
+	switch {
+	case status == http.StatusUnauthorized || status == http.StatusForbidden:
+		logger.Log.Error("plex.tv rejected the Plex token. Status: " + strconv.Itoa(status))
+		return "", nil, integrationAuthError("Plex user lookup failed.")
+	case status != http.StatusOK:
 		logger.Log.Error("Plex user lookup returned non-200. Status: " + strconv.Itoa(status))
-		return "", nil, errors.New("Plex user lookup failed.")
+		return "", nil, integrationUnavailableError("Plex user lookup failed.")
 	}
 
 	account := models.PlexAccount{}
 	if err := json.Unmarshal(body, &account); err != nil {
 		logger.Log.Error("Failed to parse Plex account. Error: " + err.Error())
-		return "", nil, errors.New("Failed to parse Plex account.")
+		return "", nil, integrationUnavailableError("Failed to parse Plex account.")
 	}
 
 	resBody, resStatus, err := plexRequest("GET", plexResourcesURL+"?includeHttps=1", token)

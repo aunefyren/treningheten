@@ -66,6 +66,8 @@ function load_page(result) {
                             <button type="submit" onclick="" id="add-exercise-button" class="btn btn--primary" style="display: none;"><img src="assets/plus.svg" class="color-invert">Start new workout</button>
                         </div>
 
+                        <div id="integration-banner" class="integration-banner" style="display: none;"></div>
+
                         <div id="push-prompt" class="push-prompt" style="display: none;"></div>
 
                     </div>
@@ -400,11 +402,90 @@ function load_page(result) {
         if ("{{.ollamaEnabled}}" == "true") {
             load_ai_message();
         }
+        loadIntegrationBanner();
         maybeShowPushPrompt();
     } else {
         showLoggedOutMenu();
         document.getElementById('front-page-text').innerHTML = 'Log in to use the platform.';
         document.getElementById('log-in-button').style.display = 'inline-block';
+    }
+}
+
+// Key used to remember which integration outages the user hid from the front-page banner:
+// an object of provider → failing_since. A new breakage has a new failing_since, so it shows
+// again. Per device, like the push prompt.
+const INTEGRATION_BANNER_HIDDEN_KEY = 'trh_integration_banner_hidden';
+
+// loadIntegrationBanner shows a notice for each of the user's connected services that has
+// stopped working (docs/integration-health.md). A rejected credential stays until the user
+// reconnects; an outage of the provider can be hidden, since it clears on its own.
+function loadIntegrationBanner() {
+    var banner = document.getElementById('integration-banner');
+    if (!banner) return;
+
+    var xhttp = new XMLHttpRequest();
+    xhttp.onreadystatechange = function() {
+        if (this.readyState != 4) return;
+        try {
+            var result = JSON.parse(this.responseText);
+            if (this.status === 200 && result.integrations) {
+                placeIntegrationBanner(result.integrations);
+            }
+        } catch(e) {
+            console.log('Failed to load integration health. Error: ' + e);
+        }
+    };
+    xhttp.open("GET", api_url + "auth/integrations/health", true);
+    xhttp.setRequestHeader("Authorization", jwt);
+    xhttp.send();
+}
+
+function placeIntegrationBanner(integrations) {
+    var banner = document.getElementById('integration-banner');
+    var hidden = hiddenIntegrationOutages();
+
+    var html = "";
+    integrations.forEach(function(integration) {
+        if (!/^[a-z]+$/.test(integration.provider)) return;
+        var text = integrationNoticeText(integration.name, integration, null, null);
+        if (!text) return;
+
+        var actions = "";
+        if (text.fixable) {
+            actions = `<a class="btn btn--sm" href="/account#${integration.provider}">Fix in settings</a>`;
+        } else if (text.severity == "warning") {
+            if (hidden[integration.provider] === integration.failing_since) return;
+            actions = `<button type="button" class="btn btn--ghost btn--sm" onclick="hideIntegrationOutage('${integration.provider}', '${integration.failing_since}');">Hide</button>`;
+        }
+        html += `<div id="integration-notice-${integration.provider}">${integrationNoticeHTML(text, actions)}</div>`;
+    });
+
+    banner.innerHTML = html;
+    banner.style.display = html ? 'flex' : 'none';
+}
+
+// hideIntegrationOutage hides one provider's outage notice until it breaks again.
+function hideIntegrationOutage(provider, failingSince) {
+    var notice = document.getElementById('integration-notice-' + provider);
+    if (notice) notice.remove();
+
+    var banner = document.getElementById('integration-banner');
+    if (banner && !banner.children.length) banner.style.display = 'none';
+
+    var hidden = hiddenIntegrationOutages();
+    hidden[provider] = failingSince;
+    try {
+        localStorage.setItem(INTEGRATION_BANNER_HIDDEN_KEY, JSON.stringify(hidden));
+    } catch (e) {
+        // localStorage unavailable; the notice simply returns next visit.
+    }
+}
+
+function hiddenIntegrationOutages() {
+    try {
+        return JSON.parse(localStorage.getItem(INTEGRATION_BANNER_HIDDEN_KEY)) || {};
+    } catch (e) {
+        return {};
     }
 }
 

@@ -75,3 +75,14 @@ type IntegrationHealthObject struct {
 	StatusReason string     `json:"status_reason"`
 	FailingSince *time.Time `json:"failing_since"`
 }
+
+// IntegrationAlertObject is one broken connection in the user's front-page list of
+// integrations that need attention (GET /api/auth/integrations/health). Name is the
+// provider as the user knows it.
+type IntegrationAlertObject struct {
+	Provider     string     `json:"provider"`
+	Name         string     `json:"name"`
+	Status       string     `json:"status"`
+	StatusReason string     `json:"status_reason"`
+	FailingSince *time.Time `json:"failing_since"`
+}

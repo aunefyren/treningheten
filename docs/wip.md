@@ -158,14 +158,6 @@ increment is **"fastest songs"**: avg speed over `[StartedAt, EndedAt]` from the
 Feedback in its own space (not the front-page greeting). How to avoid spamming the model?
 Is a small model's feedback decent?
 
-### Integration health follow-ups
-Built for all five integrations; see [integration-health.md](integration-health.md). Left:
-- **Front-page banner** for a broken connection. Push plus the account-page notice for
-  now; revisit if people miss the notification.
-- **Plex: server up, token revoked at plex.tv.** If the stored server is unreachable *and*
-  plex.tv rejects the token, the check reports `unavailable` (the server outage) rather
-  than `auth_failed`. The rediscovery's plex.tv call could escalate it.
-
 ### Integrations
 - **Garmin Connect**
 - **Apple Health**

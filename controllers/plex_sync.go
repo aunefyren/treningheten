@@ -569,7 +569,9 @@ func errPlexSetupIncomplete() error {
 // plexCheckConnection is Plex's health check. It first tries to repair the connection:
 // a missing server or account id is looked up again, and a server that stopped answering
 // is replaced by another advertised address that does answer (a moved or re-addressed
-// Plex).
+// Plex). When that lookup shows plex.tv rejecting the token, the token is the problem —
+// not the server outage or the unfinished setup — so the check reports a rejected
+// credential.
 func plexCheckConnection(connection *models.MediaConnection) error {
 	token, err := utilities.DecryptString(*connection.AccessToken, files.ConfigFile.Media.TokenKey)
 	if err != nil {
@@ -580,30 +582,41 @@ func plexCheckConnection(connection *models.MediaConnection) error {
 		return connection.ServerURL == nil || *connection.ServerURL == "" || connection.AccountID == nil || *connection.AccountID == ""
 	}
 	if incomplete() {
-		plexRediscoverServer(connection, token)
+		if _, err := plexRediscoverServer(connection, token); errors.Is(err, ErrIntegrationAuth) {
+			return err
+		}
 	}
 	if incomplete() {
 		return errPlexSetupIncomplete()
 	}
 
 	err = plexCheckServer(*connection.ServerURL, token)
-	if integrationErrorStatus(err) == models.IntegrationStatusUnavailable && plexRediscoverServer(connection, token) {
-		err = plexCheckServer(*connection.ServerURL, token)
+	if integrationErrorStatus(err) != models.IntegrationStatusUnavailable {
+		return err
 	}
-	return err
+	changed, lookupErr := plexRediscoverServer(connection, token)
+	switch {
+	case errors.Is(lookupErr, ErrIntegrationAuth):
+		return lookupErr
+	case changed:
+		return plexCheckServer(*connection.ServerURL, token)
+	default:
+		return err
+	}
 }
 
 // plexRediscoverServer asks plex.tv for the user's servers again, probes them, and stores
 // the first one that answers (with its server-local account id) when it differs from what
-// is stored. It reports whether anything changed.
+// is stored. It reports whether anything changed, and the plex.tv lookup's error (tagged
+// for integration health), so a caller can tell a revoked token from a quiet server.
 //
 // A URL the user set by hand is replaced too, but only by one that answers — a working
 // address always beats a dead one, and a reverse-proxy setup whose advertised addresses
 // are unreachable never finds a candidate, so it is left alone.
-func plexRediscoverServer(connection *models.MediaConnection, token string) bool {
+func plexRediscoverServer(connection *models.MediaConnection, token string) (bool, error) {
 	accountID, serverURL, err := plexFetchAccountAndServer(token)
 	if err != nil || serverURL == nil {
-		return false
+		return false, err
 	}
 
 	changed := false
@@ -617,12 +630,12 @@ func plexRediscoverServer(connection *models.MediaConnection, token string) bool
 		changed = true
 	}
 	if !changed {
-		return false
+		return false, nil
 	}
 
 	if _, err := database.UpdateMediaConnectionInDB(*connection); err != nil {
 		logger.Log.Warn("Failed to store rediscovered Plex server. Error: " + err.Error())
-		return false
+		return false, nil
 	}
-	return true
+	return true, nil
 }

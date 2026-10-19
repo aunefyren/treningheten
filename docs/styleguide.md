@@ -303,7 +303,8 @@ or the bluish `--trans-lightblue` borders.
 progress-bar track, debt notices, joinable/countdown-season rows, the push prompt, the `/exercises`
 session card — shares **one** convention: `--inset-bg` (palest sky) fill, `--inset-border` hairline,
 `--radius-sm`. Don't give a nested box its own fill or border. The only exceptions are *signals* —
-the progress **fill** uses `--module-accent`, and the debt notice keeps a red left bar (`--error`).
+the progress **fill** uses `--module-accent`, and the debt notice and the integration notice carry a
+signal left bar (`--error` / `--warning`).
 
 **Nesting inside an inset block** (`.feed-session` → `.feed-activities`): the inset tile is already
 the frame, so its children get **no fill and no border of their own** — separate them with a single
@@ -530,6 +531,22 @@ modal **more**:
   page full of inline forms each reporting up to the shared top banner.
 - Keep the alert bar for genuinely **page-level, persistent** notices (e.g. a global state banner) —
   not per-action feedback.
+
+### Integration notice
+
+`.integration-notice` (`components.css`, rendered by `integrationNoticeHTML` in `functions.js`) —
+a connected service that has stopped working, on the front page and in the `/account` sections.
+An **inset block** (`--inset-bg`, `--inset-border`, `--radius-sm`) whose **3px left bar** is the
+signal, like the debt notice: `--error` (the default) when the user has to act, `--warning`
+(`.integration-notice--warning`) for an outage that clears on its own.
+A bold summary line (what broke, since when), a normal-weight line under it (what to do), and
+optional `.btn--sm` actions on the right that wrap below the text on a phone. Left-aligned even
+inside the centred hero.
+
+On the front page the notices stack in `.integration-banner`, in the hero above the push prompt
+and as wide as it. It is in place of the top alert bar, which is the wrong tool here (see
+Alerts): the notice is about the user's own account, persists until fixed, and has to be seen on
+arrival. Copy comes from `integrationNoticeText` only — don't write a second wording.
 
 ### Utilities — `.u-*`
 

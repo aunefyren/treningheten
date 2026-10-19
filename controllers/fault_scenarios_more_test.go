@@ -256,6 +256,17 @@ func moreFaultScenarios() []faultScenario {
 			h.ok("POST", "/api/auth/media/audiobookshelf/connect", w.memberToken, models.AudiobookshelfConnectRequest{ServerURL: abs.URL, Token: "abs-token"})
 			return faultRequest{"GET", "/api/auth/media/connections", w.memberToken, nil, nil}
 		}),
+		scenario("integration health", http.StatusOK, func(t *testing.T, h *apiHarness, w faultWorld) faultRequest {
+			withMedia(t)
+			abs := fakeAudiobookshelf(t, todayAt(10))
+			h.ok("POST", "/api/auth/media/audiobookshelf/connect", w.memberToken, models.AudiobookshelfConnectRequest{ServerURL: abs.URL, Token: "abs-token"})
+			since := time.Now().Add(-48 * time.Hour)
+			row := models.IntegrationStatus{UserID: w.member.ID, Provider: models.IntegrationProviderAudiobookshelf, Status: models.IntegrationStatusAuthFailed, FailingSince: &since}
+			if _, err := database.SaveIntegrationStatus(row); err != nil {
+				t.Fatal(err)
+			}
+			return faultRequest{"GET", "/api/auth/integrations/health", w.memberToken, nil, nil}
+		}),
 		scenario("media disconnect", http.StatusOK, func(t *testing.T, h *apiHarness, w faultWorld) faultRequest {
 			withMedia(t)
 			abs := fakeAudiobookshelf(t, todayAt(10))

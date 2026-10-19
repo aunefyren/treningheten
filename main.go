@@ -330,6 +330,8 @@ func initRouter(configFile models.ConfigStruct) *gin.Engine {
 			auth.POST("/users/:user_id/hevy", controllers.APISetHevyAPIKey)
 			auth.DELETE("/users/:user_id/hevy", controllers.APIDeleteHevyAPIKey)
 
+			auth.GET("/integrations/health", controllers.APIGetIntegrationHealth)
+
 			auth.GET("/media/connections", controllers.APIGetMediaConnections)
 			auth.DELETE("/media/:provider", controllers.APIDeleteMediaConnection)
 			auth.POST("/media/plex/pin", controllers.APICreatePlexPin)

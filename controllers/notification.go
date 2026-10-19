@@ -506,8 +506,9 @@ func PushNotificationsForWheelSpinWin(userId uuid.UUID, debt models.Debt) (err e
 }
 
 // PushNotificationsForAccountAlert sends an account notice (e.g. a broken integration
-// connection) to the user's devices that accept them. It opens /account on click.
-func PushNotificationsForAccountAlert(userID uuid.UUID, body string) error {
+// connection) to the user's devices that accept them. It opens /account on click, at the
+// given section of the page (its accordion key, e.g. "plex") when one is set.
+func PushNotificationsForAccountAlert(userID uuid.UUID, body string, section string) error {
 	// Return if in test environment
 	if strings.ToLower(files.ConfigFile.TreninghetenEnvironment) == "test" {
 		return nil
@@ -522,7 +523,12 @@ func PushNotificationsForAccountAlert(userID uuid.UUID, body string) error {
 		return nil
 	}
 
-	if _, err := PushNotificationToSubscriptions("account", body, "Treningheten", subscriptions, nil); err != nil {
+	var additionalData *string
+	if section != "" {
+		additionalData = &section
+	}
+
+	if _, err := PushNotificationToSubscriptions("account", body, "Treningheten", subscriptions, additionalData); err != nil {
 		logger.Log.Info("Failed to push notification(s). Error: " + err.Error())
 		return errors.New("Failed to push notification(s).")
 	}

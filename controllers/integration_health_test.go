@@ -4,14 +4,17 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"net/http/httptest"
 	"strings"
 	"testing"
 	"time"
 
+	"github.com/aunefyren/treningheten/auth"
 	"github.com/aunefyren/treningheten/database"
 	"github.com/aunefyren/treningheten/files"
 	"github.com/aunefyren/treningheten/models"
 
+	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 )
 
@@ -410,4 +413,123 @@ func TestPlexHealthCheckEdges(t *testing.T) {
 	}
 	recoverIntegration(user.ID, "unknown", time.Now().Add(-365*24*time.Hour))
 	mediaBackfillSince(user, "unknown", time.Now())
+}
+
+// connectStravaAndHevy marks the user as connected to both, the way their connect
+// handlers leave the row; only "is a credential stored" matters to health reporting.
+func connectStravaAndHevy(t *testing.T, userID uuid.UUID) {
+	t.Helper()
+	if err := database.Instance.Model(&models.User{}).Where("id = ?", userID).
+		Updates(map[string]any{"strava_code": "strava-code", "hevy_api_key": "hevy-key"}).Error; err != nil {
+		t.Fatal(err)
+	}
+}
+
+func saveStatusRow(t *testing.T, userID uuid.UUID, provider string, status string, reason string) {
+	t.Helper()
+	since := time.Now().Add(-48 * time.Hour)
+	row := models.IntegrationStatus{UserID: userID, Provider: provider, Status: status, Reason: reason, FailingSince: &since}
+	if _, err := database.SaveIntegrationStatus(row); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestBrokenIntegrationsForUser(t *testing.T) {
+	h := newAPIHarness(t)
+	withMedia(t)
+	withHevy(t)
+	previousStrava := files.ConfigFile.StravaEnabled
+	files.ConfigFile.StravaEnabled = true
+	t.Cleanup(func() { files.ConfigFile.StravaEnabled = previousStrava })
+
+	user, token := h.user("banner@health.test", false)
+	connectStravaAndHevy(t, user.ID)
+	storePlexConnection(t, user.ID, "plex-token", "http://127.0.0.1:1")
+	if _, err := upsertMediaConnection(user.ID, models.MediaProviderAudiobookshelf, "abs-token", stringPtr("http://127.0.0.1:1"), nil); err != nil {
+		t.Fatal(err)
+	}
+
+	providersOf := func() []string {
+		t.Helper()
+		reply := h.ok("GET", "/api/auth/integrations/health", token, nil)
+		list, isList := reply["integrations"].([]any)
+		if !isList {
+			t.Fatalf("integrations = %v, want a list", reply["integrations"])
+		}
+		providers := []string{}
+		for _, entry := range list {
+			providers = append(providers, field(t, entry, "provider").(string))
+		}
+		return providers
+	}
+
+	// Everything works: an empty list, not null, so the page can just loop.
+	if got := providersOf(); len(got) != 0 {
+		t.Fatalf("healthy user = %v, want none", got)
+	}
+
+	saveStatusRow(t, user.ID, models.IntegrationProviderAudiobookshelf, models.IntegrationStatusUnavailable, "")
+	saveStatusRow(t, user.ID, models.IntegrationProviderPlex, models.IntegrationStatusAuthFailed, "")
+	saveStatusRow(t, user.ID, models.IntegrationProviderStrava, models.IntegrationStatusAuthFailed, "")
+	// A Hevy outage still inside its grace period reads as ok.
+	saveStatusRow(t, user.ID, models.IntegrationProviderHevy, models.IntegrationStatusOK, "")
+	// A row for a provider the user isn't connected to (left over, or never connected).
+	saveStatusRow(t, user.ID, models.IntegrationProviderSpotify, models.IntegrationStatusAuthFailed, models.IntegrationReasonNotAllowlisted)
+
+	reply := h.ok("GET", "/api/auth/integrations/health", token, nil)
+	list := reply["integrations"].([]any)
+	if len(list) != 3 {
+		t.Fatalf("integrations = %v, want Strava, Plex and Audiobookshelf", list)
+	}
+	first := list[0]
+	if field(t, first, "provider") != models.IntegrationProviderStrava || field(t, first, "name") != "Strava" ||
+		field(t, first, "status") != models.IntegrationStatusAuthFailed || field(t, first, "failing_since") == nil {
+		t.Errorf("first entry = %v", first)
+	}
+	if field(t, list[1], "provider") != models.IntegrationProviderPlex || field(t, list[2], "status") != models.IntegrationStatusUnavailable {
+		t.Errorf("entries = %v, want Plex then the Audiobookshelf outage", list)
+	}
+
+	cases := []struct {
+		name    string
+		disable func()
+		want    []string
+	}{
+		{"strava off", func() { files.ConfigFile.StravaEnabled = false }, []string{"plex", "audiobookshelf"}},
+		{"plex off", func() { files.ConfigFile.Media.Plex.Enabled = false }, []string{"audiobookshelf"}},
+		{"media off", func() { files.ConfigFile.Media.Enabled = false }, []string{}},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			c.disable()
+			got := providersOf()
+			if strings.Join(got, ",") != strings.Join(c.want, ",") {
+				t.Errorf("providers = %v, want %v", got, c.want)
+			}
+		})
+	}
+}
+
+func TestAPIGetIntegrationHealthNeedsAUser(t *testing.T) {
+	h := newAPIHarness(t)
+	h.expect(http.StatusUnauthorized, "GET", "/api/auth/integrations/health", "", nil)
+
+	// Called without the auth middleware in front: a missing token, and a token for an
+	// account that no longer exists, both fail cleanly.
+	unknownUser, _, err := auth.GenerateAccessToken(uuid.New(), false, models.ScopeAPI, "test-client")
+	if err != nil {
+		t.Fatal(err)
+	}
+	for name, header := range map[string]string{"no token": "", "unknown user": "Bearer " + unknownUser} {
+		t.Run(name, func(t *testing.T) {
+			recorder := httptest.NewRecorder()
+			context, _ := gin.CreateTestContext(recorder)
+			context.Request = httptest.NewRequest("GET", "/", nil)
+			context.Request.Header.Set("Authorization", header)
+			APIGetIntegrationHealth(context)
+			if recorder.Code != http.StatusInternalServerError {
+				t.Errorf("status = %d, want 500", recorder.Code)
+			}
+		})
+	}
 }

@@ -121,6 +121,7 @@ func newAPIHarness(t *testing.T) *apiHarness {
 	a.POST("/users/:user_id/strava-sync", APISyncStravaForUser)
 	a.POST("/users/:user_id/hevy", APISetHevyAPIKey)
 	a.DELETE("/users/:user_id/hevy", APIDeleteHevyAPIKey)
+	a.GET("/integrations/health", APIGetIntegrationHealth)
 	a.GET("/media/connections", APIGetMediaConnections)
 	a.DELETE("/media/:provider", APIDeleteMediaConnection)
 	a.POST("/media/plex/pin", APICreatePlexPin)

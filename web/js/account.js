@@ -131,6 +131,8 @@ function load_page(result) {
         if(exerciseConnectionsEnabled) {
             renderGoalCountingSection();
         }
+        openSectionFromHash();
+        window.addEventListener("hashchange", openSectionFromHash);
     } else {
         showLoggedOutMenu();
         invalid_session();
@@ -1079,7 +1081,7 @@ function setSectionStatus(key, connected, health) {
     slot.innerHTML = connectionStatusTagHTML(connected, health);
 }
 
-// connectionStatusTagHTML maps a connection's health (see integrationAlertHTML) onto a tag.
+// connectionStatusTagHTML maps a connection's health (see integrationNoticeText) onto a tag.
 function connectionStatusTagHTML(connected, health) {
     if(!connected) {
         return "";
@@ -1369,39 +1371,12 @@ function renderPlexSection(connection) {
     setSectionStatus("plex", connection && connection.connected, connection);
 }
 
-// integrationAlertHTML renders a notice for a connected service that has stopped
-// working, or nothing when it is fine. health carries status / status_reason /
-// failing_since — a media connection object, or an entry of the user's
-// integration_health (see docs/integration-health.md). fixHint says how to fix a
-// rejected credential in this section.
+// integrationAlertHTML renders the notice for a connected service that has stopped
+// working (see integrationNoticeText in functions.js), or nothing when it is fine.
+// fixHint says how to fix a rejected credential in this section.
 function integrationAlertHTML(providerName, health, fixHint) {
-    if(!health || !health.status || health.status == "ok") {
-        return "";
-    }
-
-    var since = "";
-    if(health.failing_since) {
-        since = " since " + GetDateString(new Date(health.failing_since), false);
-    }
-
-    var message = "";
-    var modifier = "";
-    if(health.status_reason == "not_allowlisted") {
-        message = `${providerName} doesn't allow this account yet${since}. Ask the admin to add it to the ${providerName} app — reconnecting won't help.`;
-    } else if(health.status_reason == "setup_incomplete") {
-        message = `${providerName} isn't fully set up${since}: no server or account was found. Enter the server URL below, or reconnect.`;
-    } else if(health.status == "auth_failed") {
-        message = `${providerName} stopped accepting the connection${since}. ${fixHint || "Reconnect below"}; history missed in the meantime is fetched automatically.`;
-    } else {
-        message = `${providerName} hasn't responded${since}. History will catch up once it's reachable again.`;
-        modifier = " integration-alert--unavailable";
-    }
-
-    return `
-        <p class="integration-alert${modifier}">
-            ${message}
-        </p>
-    `;
+    var text = integrationNoticeText(providerName, health, fixHint || "Reconnect below", "Enter the server URL below, or reconnect.");
+    return text ? integrationNoticeHTML(text) : "";
 }
 
 // integrationHealthFor returns the user's own health entry for a provider, if any.
@@ -1961,6 +1936,20 @@ function syncHevy(user_id) {
 
 // toggleSection expands or collapses one accordion body and keeps its header's chevron and
 // aria-expanded in step.
+// openSectionFromHash expands and scrolls to the section the URL fragment names
+// (/account#plex), so a link from the front-page banner or a push lands on the fix.
+function openSectionFromHash() {
+    var key = window.location.hash.slice(1);
+    if(!/^[a-z]+$/.test(key)) return;
+
+    var wrapper = document.getElementById(key + "-wrapper");
+    if(!wrapper) return;
+    if(wrapper.classList.contains("minimized")) {
+        toggleSection(key + "-wrapper", "section-button-" + key);
+    }
+    document.getElementById(key + "-section").scrollIntoView({ block: "start" });
+}
+
 function toggleSection(divID, buttonID) {
     var section = document.getElementById(divID);
     var chevron = document.getElementById(buttonID);

@@ -1768,6 +1768,7 @@ label {
   padding: 0 1rem;
   border-bottom: 0.15rem solid var(--trans-lightblue);
   box-sizing: inherit;
+  scroll-margin-top: calc(var(--nav-height) + var(--space-4));  /* /account#key lands below the sticky bar */
 }
 
 /* The section header is a real <button> (keyboard + aria-expanded), reset to read as a row. */
@@ -2062,11 +2063,6 @@ label {
    Recurring widgets that were repeated as inline style="" strings. Values
    preserved verbatim from the originals. */
 .integration-btn { width: 12em; }   /* account: connect/disconnect service buttons (on .btn) */
-.integration-alert {                 /* account: a connected service that has stopped working */
-  font-weight: 600;
-  color: var(--error);
-}
-.integration-alert--unavailable { color: var(--warning); }
 .panel-card {                        /* centred white content card wrapper */
   max-width: 40em;
   margin: 1em auto;
@@ -2654,3 +2650,43 @@ label {
 .wv-zone-3 { background: var(--flame-1); }
 .wv-zone-4 { background: var(--flame-2); }
 .wv-zone-5 { background: var(--flame-3); }
+
+/* ── Integration notice ────────────────────────────────────────────────────
+   A connected service that has stopped working (integrationNoticeHTML in functions.js):
+   the account sections and the front-page banner. An inset block whose left bar carries
+   the signal — red when the user has to act, amber for an outage that clears on its own —
+   like the debt notice. Summary on top, what to do under it, actions to the right
+   (wrapping below on a phone). */
+.integration-notice {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2) var(--space-4);
+  width: 100%;
+  box-sizing: border-box;
+  margin: var(--space-2) 0;
+  padding: var(--space-3) var(--space-4);
+  background-color: var(--inset-bg);
+  border: 1px solid var(--inset-border);
+  border-left: 3px solid var(--error);
+  border-radius: var(--radius-sm);
+  color: var(--darkblue);
+  text-align: left;
+}
+.integration-notice--warning { border-left-color: var(--warning); }
+.integration-notice-text { flex: 1 1 16em; min-width: 0; }
+.integration-notice-summary { margin: 0; font-weight: 600; }
+.integration-notice-detail { margin: var(--space-1) 0 0; font-size: 0.9em; }
+.integration-notice-actions { display: flex; flex-wrap: wrap; gap: var(--space-2); }
+
+/* The front-page banner: the hero's stack of notices, as wide as the push prompt. */
+.integration-banner {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  max-width: 28em;
+  margin: var(--space-5) auto 0;
+}
+.integration-banner .integration-notice { margin: 0 0 var(--space-2); }
+.integration-banner .integration-notice:last-child { margin-bottom: 0; }

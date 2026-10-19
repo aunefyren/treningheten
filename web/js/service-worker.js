@@ -192,7 +192,12 @@ self.addEventListener('push', function(event) {
             url = "/news"
             action = "Read"
         } else if(jsonData.category == "account") {
+            // additional_data names the account section to open (e.g. "plex"); only a
+            // plain section key is used as the fragment.
             url = "/account"
+            if(/^[a-z]+$/.test(jsonData.additional_data || "")) {
+                url += "#" + jsonData.additional_data
+            }
             action = "Fix"
         } else if(jsonData.category == "debt") {
             url = "/wheel?debt_id=" + jsonData.additional_data

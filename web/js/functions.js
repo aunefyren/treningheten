@@ -971,3 +971,69 @@ function formatZoneRange(min, max, unit) {
     if (!min) return `under ${max}${suffix}`;
     return `${min}–${max}${suffix}`;
 }
+
+// Integration health notices: one wording for a connected service that has stopped
+// working, shared by the /account sections and the front-page banner so the two can't
+// drift. health carries status / status_reason / failing_since — a media connection, an
+// entry of the user's integration_health, or one of /auth/integrations/health (see
+// docs/integration-health.md).
+
+// integrationNoticeText returns { severity, summary, detail, fixable } for a broken
+// connection, or null when it is fine. fixHint is how to fix a rejected credential where
+// the notice is shown ("Reconnect below"); setupHint how to finish an incomplete setup.
+// fixable is false when nothing the user does in settings will help.
+function integrationNoticeText(providerName, health, fixHint, setupHint) {
+    if(!health || !health.status || health.status == "ok") {
+        return null;
+    }
+
+    var since = "";
+    if(health.failing_since) {
+        since = " since " + GetDateString(new Date(health.failing_since), false);
+    }
+
+    if(health.status_reason == "not_allowlisted") {
+        return {
+            severity: "error",
+            summary: `${providerName} doesn't allow this account yet${since}.`,
+            detail: `Ask the admin to add it to the ${providerName} app. Reconnecting won't help.`,
+            fixable: false
+        };
+    }
+    if(health.status_reason == "setup_incomplete") {
+        return {
+            severity: "error",
+            summary: `${providerName} isn't fully set up${since}: no server or account was found.`,
+            detail: setupHint || "Finish setting it up to start syncing.",
+            fixable: true
+        };
+    }
+    if(health.status == "auth_failed") {
+        return {
+            severity: "error",
+            summary: `${providerName} stopped accepting the connection${since}.`,
+            detail: `${fixHint || "Reconnect it"}, and the history missed in the meantime is fetched automatically.`,
+            fixable: true
+        };
+    }
+    return {
+        severity: "warning",
+        summary: `${providerName} hasn't responded${since}.`,
+        detail: "History will catch up once it's reachable again.",
+        fixable: false
+    };
+}
+
+// integrationNoticeHTML renders a notice from integrationNoticeText, with optional
+// action buttons beside it.
+function integrationNoticeHTML(text, actionsHTML) {
+    return `
+        <div class="integration-notice integration-notice--${text.severity}" role="status">
+            <div class="integration-notice-text">
+                <p class="integration-notice-summary">${text.summary}</p>
+                <p class="integration-notice-detail">${text.detail}</p>
+            </div>
+            ${actionsHTML ? `<div class="integration-notice-actions">${actionsHTML}</div>` : ""}
+        </div>
+    `;
+}

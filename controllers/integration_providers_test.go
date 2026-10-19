@@ -3,6 +3,7 @@ package controllers
 import (
 	"errors"
 	"net/http"
+	"net/http/httptest"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -62,7 +63,7 @@ func TestPlexRediscoversAMovedServer(t *testing.T) {
 	}
 
 	// Nothing better to find: a working server is left alone.
-	if plexRediscoverServer(connection, "plex-token") {
+	if changed, _ := plexRediscoverServer(connection, "plex-token"); changed {
 		t.Errorf("rediscovery reported a change for a server that is already current")
 	}
 }
@@ -410,5 +411,110 @@ func TestStravaBackfillReSyncsMissedWeeks(t *testing.T) {
 	row := statusRow(t, user.ID, models.IntegrationProviderStrava)
 	if row == nil || row.Status != models.IntegrationStatusAuthFailed || row.FailingSince == nil || row.FailingSince.Sub(since).Abs() > time.Second {
 		t.Errorf("status after a failed backfill = %+v, want auth_failed from %v", row, since)
+	}
+}
+
+// withPlexTVUserStatus points plex.tv's account lookup at a stub that answers with
+// status (0: unreachable), and its server list at a closed port.
+func withPlexTVUserStatus(t *testing.T, status int) {
+	t.Helper()
+	withDeadPlexResources(t)
+	previous := plexUserURL
+	t.Cleanup(func() { plexUserURL = previous })
+	if status == 0 {
+		plexUserURL = "http://127.0.0.1:1/api/v2/user"
+		return
+	}
+	plexTV := httptest.NewServer(http.HandlerFunc(func(writer http.ResponseWriter, _ *http.Request) {
+		writer.WriteHeader(status)
+		if status == http.StatusOK {
+			_, _ = writer.Write([]byte(`{"id":9,"username":"plexuser","email":"p@x"}`))
+		}
+	}))
+	t.Cleanup(plexTV.Close)
+	plexUserURL = plexTV.URL + "/api/v2/user"
+}
+
+// A Plex whose server has gone quiet can also have had its token revoked at plex.tv. The
+// rediscovery's plex.tv lookup tells the two apart, so the user is told to reconnect
+// rather than to wait for a server that, once back, would still refuse the token.
+func TestPlexCheckEscalatesARevokedToken(t *testing.T) {
+	cases := []struct {
+		name       string
+		incomplete bool
+		plexTV     int
+		wantStatus string
+		wantReason string
+	}{
+		{"server down, token revoked", false, http.StatusUnauthorized, models.IntegrationStatusAuthFailed, ""},
+		{"server down, token forbidden", false, http.StatusForbidden, models.IntegrationStatusAuthFailed, ""},
+		{"server down, plex.tv down too", false, http.StatusInternalServerError, models.IntegrationStatusUnavailable, ""},
+		{"server down, plex.tv unreachable", false, 0, models.IntegrationStatusUnavailable, ""},
+		{"server down, token fine", false, http.StatusOK, models.IntegrationStatusUnavailable, ""},
+		{"setup unfinished, token revoked", true, http.StatusUnauthorized, models.IntegrationStatusAuthFailed, ""},
+		{"setup unfinished, plex.tv down", true, http.StatusBadGateway, models.IntegrationStatusAuthFailed, models.IntegrationReasonSetupIncomplete},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			newControllerTestDB(t)
+			withMedia(t)
+			withPlexTVUserStatus(t, c.plexTV)
+			user := createTestUser(t, "revoked@plex.test", "Revoked")
+
+			if c.incomplete {
+				if _, err := upsertMediaConnection(user.ID, models.MediaProviderPlex, "plex-token", nil, nil); err != nil {
+					t.Fatal(err)
+				}
+			} else {
+				storePlexConnection(t, user.ID, "plex-token", "http://127.0.0.1:1")
+			}
+			connection, err := database.GetMediaConnectionForUserProvider(user.ID, models.MediaProviderPlex)
+			if err != nil || connection == nil {
+				t.Fatalf("load connection: %v", err)
+			}
+
+			err = plexCheckConnection(connection)
+			if got := integrationErrorStatus(err); got != c.wantStatus {
+				t.Errorf("status = %q (%v), want %q", got, err, c.wantStatus)
+			}
+			if got := integrationErrorReason(err); got != c.wantReason {
+				t.Errorf("reason = %q, want %q", got, c.wantReason)
+			}
+		})
+	}
+}
+
+func TestPlexFetchAccountAndServerClassification(t *testing.T) {
+	cases := map[int]string{
+		http.StatusUnauthorized:        models.IntegrationStatusAuthFailed,
+		http.StatusForbidden:           models.IntegrationStatusAuthFailed,
+		http.StatusInternalServerError: models.IntegrationStatusUnavailable,
+		http.StatusNotFound:            models.IntegrationStatusUnavailable,
+	}
+	withMedia(t)
+	for status, want := range cases {
+		t.Run(http.StatusText(status), func(t *testing.T) {
+			withPlexTVUserStatus(t, status)
+			_, _, err := plexFetchAccountAndServer("plex-token")
+			if got := integrationErrorStatus(err); got != want {
+				t.Errorf("status = %q (%v), want %q", got, err, want)
+			}
+			// The PIN flow's message is unchanged by the tagging.
+			if err == nil || err.Error() != "Plex user lookup failed." {
+				t.Errorf("message = %v", err)
+			}
+		})
+	}
+
+	// A reply that isn't an account is the provider misbehaving: an outage.
+	plexTV := httptest.NewServer(http.HandlerFunc(func(writer http.ResponseWriter, _ *http.Request) {
+		_, _ = writer.Write([]byte("not json"))
+	}))
+	t.Cleanup(plexTV.Close)
+	previous := plexUserURL
+	plexUserURL = plexTV.URL
+	t.Cleanup(func() { plexUserURL = previous })
+	if _, _, err := plexFetchAccountAndServer("plex-token"); integrationErrorStatus(err) != models.IntegrationStatusUnavailable {
+		t.Errorf("unparseable account = %v, want an outage", err)
 	}
 }
