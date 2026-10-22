@@ -485,7 +485,8 @@ func computeBiggestClimb(streams *models.StravaActivityStreams, cumMeters []floa
 }
 
 // attachStreamSummaries walks an exercise day and populates OperationObject.StreamSummary
-// for every moving activity that carries Strava streams, so the /exercises detail page
+// for every activity that carries Strava streams (scoped to its type — see
+// scopeSummaryToActivityType), so the /exercises detail page
 // renders the same processed summary the MCP tool exposes instead of re-deriving stats in
 // JS. HR zones follow the day owner's settings (anchors and zone system), resolved per
 // activity so a day mixing sports anchors each to its own sport max (sportMax, keyed by
@@ -519,6 +520,7 @@ func attachStreamSummaries(day *models.ExerciseDayObject, owner models.User, spo
 			hr := resolveUserHR(owner, sportMaxHeartrate(sportMax, actionID), day.Date)
 			summary := SummarizeStreams(streams, ops[oi].DistanceUnit, hr)
 			applyCadenceUnit(summary, cadenceUnitForAction(ops[oi].Action))
+			scopeSummaryToActivityType(summary, ops[oi].Type)
 			ops[oi].StreamSummary = summary
 		}
 	}

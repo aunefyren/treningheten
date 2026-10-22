@@ -135,6 +135,13 @@ For **cardio** (GPS/sensor) activities it surfaces the processed stream summary,
   chip), **pace consistency** (seconds per km, plus the share of average pace) and **stops**, and
   an **Effort by gradient** widget (per-terrain-band share bar + avg HR on the calm→hot zone ramp).
 
+**Time-based** (`timing`) activities imported from Strava with sensor data — padel, yoga and
+the like — get the same sections minus the distance views: duration plus the sensor tiles, the
+route/elevation only when GPS was recorded, the over-time chart and the HR zones. Their trace
+plots the recorded clock rather than moving samples only, since standing still is part of the
+session. The server leaves speed, splits and the pace-based analysis out of their summary (see
+[mcp.md](mcp.md)); the shared sections live in `renderStreamSectionsHTML`.
+
 All of it consumes one server-computed `models.StreamSummary` attached to each `OperationObject`
 (`stream_summary` — the same shape the MCP `get_activity_streams` tool returns), rather than
 re-deriving stats in JS. The summary math (segments, route, elevation, HR zones), the HR-zone

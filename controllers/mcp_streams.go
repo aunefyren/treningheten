@@ -140,19 +140,23 @@ func selectStreamIndices(times []int, from int, to int, resolution int, maxPoint
 
 // activityStreamContext is everything SummarizeStreams and the presentation step need for one
 // activity: the raw streams (nil when the activity has none), the distance unit (km vs mile
-// splits), the resolved HR-zone anchors and zone system, and the unit cadence is presented in.
+// splits), the resolved HR-zone anchors and zone system, the unit cadence is presented in, and
+// the operation type (which decides whether the distance-derived views apply).
 type activityStreamContext struct {
-	streams      *models.StravaActivityStreams
-	distanceUnit string
-	hr           hrAnchor
-	cadenceUnit  string
+	streams       *models.StravaActivityStreams
+	distanceUnit  string
+	hr            hrAnchor
+	cadenceUnit   string
+	operationType string
 }
 
-// summarize runs SummarizeStreams for the context and presents cadence in the sport's unit.
-// Returns nil when the activity has no streams.
+// summarize runs SummarizeStreams for the context, presents cadence in the sport's unit and
+// drops the distance-derived views for non-distance activities. Returns nil when the activity
+// has no streams.
 func (c activityStreamContext) summarize() *models.StreamSummary {
 	summary := SummarizeStreams(c.streams, c.distanceUnit, c.hr)
 	applyCadenceUnit(summary, c.cadenceUnit)
+	scopeSummaryToActivityType(summary, c.operationType)
 	return summary
 }
 
@@ -180,6 +184,7 @@ func loadActivityStreamContext(userID uuid.UUID, activityID uuid.UUID) (activity
 	var actionID *uuid.UUID
 	if operation, err := database.GetOperationByIDAndUserID(activityID, userID); err == nil {
 		actionID = operation.ActionID
+		streamContext.operationType = operation.Type
 		if operation.DistanceUnit != "" {
 			streamContext.distanceUnit = operation.DistanceUnit
 		}

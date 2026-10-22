@@ -679,29 +679,6 @@ function renderCardioSubCard(operation, exercise) {
     const summary = operation.stream_summary || null;
     const streams = streamSet ? streamSet.strava_streams : null;
     const setForStreams = streamSet || sets[0] || {};
-    const latlngData = streams && (streams.latlng || streams.lat_lng);
-    const hasRoute = latlngData && latlngData.data && latlngData.data.length > 0;
-
-    const setKey = setForStreams.id || operation.id;
-    const traceID = `trace-${setKey}`;
-    const elevCanvasID = `elev-chart-${setKey}`;
-    const mapDivID = `route-map-${setKey}`;
-    const splitsID = `splits-${setKey}`;
-
-    const elevation = summary && summary.elevation;
-    const elevProfile = (summary && summary.elevation_profile) || null;
-    const hasElevChart = elevProfile && elevProfile.length > 1;
-    const elevHTML = hasElevChart ? `${climbCaptionHTML(elevation)}<div class="wv-hr-wrapper"><canvas id="${elevCanvasID}" class="wv-elev-chart"></canvas></div>` : "";
-    const splitsHTML = renderSplitsHTML(summary, operation, splitsID, hasRoute);
-    const routeHTML = renderRouteHTML(hasRoute ? mapDivID : null, summary, splitsHTML);
-    const trace = buildTrace(traceID, summary, streams, setForStreams);
-    const zonesHTML = renderHRZonesHTML(summary);
-    const analysisHTML = renderAnalysisHTML(summary);
-
-    const segments = (summary && summary.segments) || [];
-    if (trace || hasRoute || hasElevChart) {
-        scheduleCardioStreamRender(trace ? traceID : null, mapDivID, hasRoute, latlngData, segments, splitsID, hasElevChart ? elevCanvasID : null, elevProfile);
-    }
 
     // Surface the gear used (moving activities only) so it reads without editing.
     var gearHTML = "";
@@ -725,12 +702,49 @@ function renderCardioSubCard(operation, exercise) {
                 ${speedTileHTML(operation, summary, hasDistance ? distance : 0, movingSecs || totalSecs)}
                 ${cardioStatTiles(summary, streams)}
             </div>
-            ${routeHTML}
-            ${elevHTML}
-            ${trace ? trace.html : ""}
-            ${zonesHTML}
-            ${analysisHTML}
+            ${renderStreamSectionsHTML(operation, summary, setForStreams, true)}
         </div>
+    `;
+}
+
+// renderStreamSectionsHTML renders the sensor sections below an activity's stat tiles —
+// route and splits, elevation, the heart-rate/cadence/power trace, HR zones and effort
+// analysis — and schedules the chart/map draws. Shared by the cardio and time cards; each
+// section appears only when the server summary (already scoped to the activity type, so a
+// padel session carries no splits or pace analysis) or the raw stream carries it.
+// movingTimeline plots the trace over moving samples only, which suits distance sports;
+// court and gym sports pass false and plot the recorded clock, since standing still is part
+// of the session rather than a pause.
+function renderStreamSectionsHTML(operation, summary, set, movingTimeline) {
+    const streams = set.strava_streams || null;
+    const latlngData = streams && (streams.latlng || streams.lat_lng);
+    const hasRoute = latlngData && latlngData.data && latlngData.data.length > 0;
+
+    const setKey = set.id || operation.id;
+    const traceID = `trace-${setKey}`;
+    const elevCanvasID = `elev-chart-${setKey}`;
+    const mapDivID = `route-map-${setKey}`;
+    const splitsID = `splits-${setKey}`;
+
+    const elevation = summary && summary.elevation;
+    const elevProfile = (summary && summary.elevation_profile) || null;
+    const hasElevChart = elevProfile && elevProfile.length > 1;
+    const elevHTML = hasElevChart ? `${climbCaptionHTML(elevation)}<div class="wv-hr-wrapper"><canvas id="${elevCanvasID}" class="wv-elev-chart"></canvas></div>` : "";
+    const splitsHTML = renderSplitsHTML(summary, operation, splitsID, hasRoute);
+    const routeHTML = renderRouteHTML(hasRoute ? mapDivID : null, summary, splitsHTML);
+    const trace = buildTrace(traceID, summary, streams, set, movingTimeline);
+
+    const segments = (summary && summary.segments) || [];
+    if (trace || hasRoute || hasElevChart) {
+        scheduleCardioStreamRender(trace ? traceID : null, mapDivID, hasRoute, latlngData, segments, splitsID, hasElevChart ? elevCanvasID : null, elevProfile);
+    }
+
+    return `
+        ${routeHTML}
+        ${elevHTML}
+        ${trace ? trace.html : ""}
+        ${renderHRZonesHTML(summary)}
+        ${renderAnalysisHTML(summary)}
     `;
 }
 
@@ -842,9 +856,10 @@ var wvTraces = {};
 
 // buildTrace prepares the over-time section for one activity, or returns null when no
 // time-based channel was recorded. The chart itself is drawn once the canvas exists.
-function buildTrace(traceID, summary, streams, set) {
+// movingTimeline is passed through to traceTimeline.
+function buildTrace(traceID, summary, streams, set, movingTimeline) {
     if (!streams) return null;
-    const timeline = traceTimeline(streams, set);
+    const timeline = traceTimeline(streams, set, movingTimeline);
     const s = summary || {};
     const candidates = [
         {
@@ -890,15 +905,16 @@ function buildTrace(traceID, summary, streams, set) {
     };
 }
 
-// traceTimeline maps stream samples onto the chart's x-axis. Streams are distance-sampled,
-// not time-sampled, so it keeps only the moving samples (velocity > 0.5 m/s) and spaces them
-// evenly across moving_time so the axis matches the activity duration; without a usable
-// velocity channel it falls back to the recorded clock.
-function traceTimeline(streams, set) {
+// traceTimeline maps stream samples onto the chart's x-axis. For distance sports
+// (movingTimeline) streams are distance-sampled, not time-sampled, so it keeps only the
+// moving samples (velocity > 0.5 m/s) and spaces them evenly across moving_time so the axis
+// matches the activity duration. Otherwise — or without a usable velocity channel — it
+// plots the recorded clock.
+function traceTimeline(streams, set, movingTimeline) {
     const n = streams.time && streams.time.data ? streams.time.data.length : 0;
     const velocity = streams.velocity_smooth && streams.velocity_smooth.data;
     const movingTimeSecs = set.moving_time || set.time;
-    if (velocity && velocity.length === n && movingTimeSecs) {
+    if (movingTimeline && velocity && velocity.length === n && movingTimeSecs) {
         const indices = [];
         for (let i = 0; i < n; i++) {
             if (velocity[i] > 0.5) indices.push(i);
@@ -1414,16 +1430,24 @@ function renderStrengthSubCard(operation, exercise) {
     `;
 }
 
+// renderTimeSubCard renders a time-based activity (padel, yoga, …). A Strava import with
+// sensor data also gets the sensor tiles and sections; the server has already left the
+// distance-derived views (speed, splits, pace analysis) out of its summary.
 function renderTimeSubCard(operation, exercise) {
     const sets = operation.operation_sets || [];
-    var secs = 0, stravaID = null, stravaSetID = null;
+    var secs = 0, stravaID = null, stravaSetID = null, streamSet = null;
     sets.forEach(s => {
         if (s.time) secs += s.time;
         else if (s.moving_time) secs += s.moving_time;
         if (!stravaID && s.strava_id) { stravaID = s.strava_id; stravaSetID = s.id; }
+        if (!streamSet && s.strava_streams) streamSet = s;
     });
     if (!secs && operation.duration) secs = operation.duration;
     const durationHTML = secs ? secondsToDurationString(secs) : "—";
+
+    const summary = operation.stream_summary || null;
+    const sensorTilesHTML = streamSet ? cardioStatTiles(summary, streamSet.strava_streams) : "";
+    const sectionsHTML = streamSet ? renderStreamSectionsHTML(operation, summary, streamSet, false) : "";
 
     return `
         <div class="wv-activity wv-activity-time">
@@ -1434,8 +1458,10 @@ function renderTimeSubCard(operation, exercise) {
             ${generateTagChipsHTML(operation.tags)}
             ${activityDescriptionHTML(operation)}
             <div class="wv-stats">
-                <div class="wv-stat"><span class="wv-stat-value">${durationHTML}</span><span class="wv-stat-label">Duration</span></div>
+                ${statTileHTML(durationHTML, "", "Duration")}
+                ${sensorTilesHTML}
             </div>
+            ${sectionsHTML}
         </div>
     `;
 }

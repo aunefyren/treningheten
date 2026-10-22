@@ -219,9 +219,14 @@ tool processes them into:
 **Shared summary (`StreamSummary`).** The processed summary (everything except the
 `series`) is computed by one pure function, `controllers.SummarizeStreams`
 (`controllers/streams.go`), and reused verbatim by the `/exercises` detail page — the
-`APIGetExerciseDay` handler attaches it to each moving activity's `OperationObject`
+`APIGetExerciseDay` handler attaches it to each Strava activity's `OperationObject`
 (`stream_summary`), so the web card renders the same segments/route/elevation/HR-zones
 without re-deriving stats in JS. Splits use the activity's `distance_unit` (km vs mile).
+For non-distance activities (`timing`, `lifting`) both paths then apply
+`scopeSummaryToActivityType` (`controllers/stream_scope.go`), which drops `speed`, `segments`
+and the pace-based `analysis` fields (decoupling, split halves, pace variation, breaks) — on a
+padel court those read as 36 min/km and "stops" covering the whole session. It only shapes the
+computed summary; the stored raw streams and the `series` are untouched.
 HR-zone anchoring is resolved from the user's settings by `resolveUserHR`, per activity, in
 precedence order: the explicit **max heart rate for the activity's sport** (see
 [exercises.md](exercises.md#per-sport-max-heart-rate)), then the explicit global **max heart

@@ -74,7 +74,7 @@ type OperationObject struct {
 	Tags          []string             `json:"tags"`
 	Duration      *int64               `json:"duration"`
 	// StreamSummary is the processed sensor summary (segments, route, HR zones, header
-	// stats) for a moving activity, populated only where the operation carries Strava
+	// stats) for any activity, populated only where the operation carries Strava
 	// streams. Same shape the MCP get_activity_streams tool returns; the detail page
 	// renders it instead of re-deriving stats from the raw stream in JS.
 	StreamSummary *StreamSummary `json:"stream_summary,omitempty"`
