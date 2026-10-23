@@ -170,7 +170,7 @@ func buildActionStatistics(action models.Action, activities []models.StatisticsA
 		}
 
 		if set.Repetitions > 0 && (stats.Bests.MostReps == nil || set.Repetitions > stats.Bests.MostReps.Value) {
-			stats.Bests.MostReps = &models.StatisticsBest{Value: set.Repetitions, Unit: "reps", Date: models.RecordedAt(set.Time, set.Date), ExerciseDayID: set.ExerciseDayID}
+			stats.Bests.MostReps = &models.StatisticsBest{Value: set.Repetitions, Unit: "reps", Date: models.RecordedAt(set.Time, set.Date), ExerciseDayID: set.ExerciseDayID, OperationID: set.OperationID}
 		}
 		if set.Weight > 0 {
 			better := stats.Bests.HeaviestSet == nil
@@ -181,7 +181,7 @@ func buildActionStatistics(action models.Action, activities []models.StatisticsA
 			}
 			if better {
 				reps := set.Repetitions
-				stats.Bests.HeaviestSet = &models.StatisticsBest{Value: set.Weight, Unit: set.WeightUnit, Reps: &reps, Date: models.RecordedAt(set.Time, set.Date), ExerciseDayID: set.ExerciseDayID}
+				stats.Bests.HeaviestSet = &models.StatisticsBest{Value: set.Weight, Unit: set.WeightUnit, Reps: &reps, Date: models.RecordedAt(set.Time, set.Date), ExerciseDayID: set.ExerciseDayID, OperationID: set.OperationID}
 			}
 		}
 	}
@@ -196,7 +196,7 @@ func buildActionStatistics(action models.Action, activities []models.StatisticsA
 			stats.Totals.Distances = addUnitAmount(stats.Totals.Distances, row.DistanceUnit, row.Distance)
 			distanceCounts[row.DistanceUnit]++
 			if stats.Bests.LongestDistance == nil || distanceMeters(row.Distance, row.DistanceUnit) > distanceMeters(stats.Bests.LongestDistance.Value, stats.Bests.LongestDistance.Unit) {
-				stats.Bests.LongestDistance = &models.StatisticsBest{Value: round2(row.Distance), Unit: row.DistanceUnit, Date: date, ExerciseDayID: row.ExerciseDayID}
+				stats.Bests.LongestDistance = &models.StatisticsBest{Value: round2(row.Distance), Unit: row.DistanceUnit, Date: date, ExerciseDayID: row.ExerciseDayID, OperationID: row.OperationID}
 			}
 		}
 		if seconds > 0 {
@@ -204,7 +204,7 @@ func buildActionStatistics(action models.Action, activities []models.StatisticsA
 			durationSum += seconds
 			durationCount++
 			if stats.Bests.LongestDuration == nil || float64(seconds) > stats.Bests.LongestDuration.Value {
-				stats.Bests.LongestDuration = &models.StatisticsBest{Value: float64(seconds), Unit: "s", Date: date, ExerciseDayID: row.ExerciseDayID}
+				stats.Bests.LongestDuration = &models.StatisticsBest{Value: float64(seconds), Unit: "s", Date: date, ExerciseDayID: row.ExerciseDayID, OperationID: row.OperationID}
 			}
 		}
 		stats.Totals.MovingSeconds += row.MovingSeconds
@@ -233,6 +233,7 @@ func buildActionStatistics(action models.Action, activities []models.StatisticsA
 		point := models.ActionTrendPoint{
 			Date:            date,
 			ExerciseDayID:   row.ExerciseDayID,
+			OperationID:     row.OperationID,
 			Distance:        round2(row.Distance),
 			DistanceUnit:    row.DistanceUnit,
 			DurationSeconds: seconds,

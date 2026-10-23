@@ -91,6 +91,7 @@ type PersonalRecordEntry struct {
 	Reps          *float64  `json:"reps,omitempty"`
 	SetAt         time.Time `json:"set_at"`
 	ExerciseDayID uuid.UUID `json:"exercise_day_id"`
+	OperationID   uuid.UUID `json:"operation_id"`
 }
 
 // PersonalRecord is the current best for one record key, with the best it beat.
@@ -176,6 +177,7 @@ type StatisticsBest struct {
 	Reps          *float64  `json:"reps,omitempty"`
 	Date          time.Time `json:"date"`
 	ExerciseDayID uuid.UUID `json:"exercise_day_id"`
+	OperationID   uuid.UUID `json:"operation_id"`
 }
 
 type ActionStatisticsTotals struct {
@@ -217,6 +219,7 @@ type ActionStatisticsSensors struct {
 type ActionTrendPoint struct {
 	Date               time.Time `json:"date"`
 	ExerciseDayID      uuid.UUID `json:"exercise_day_id"`
+	OperationID        uuid.UUID `json:"operation_id"`
 	Distance           float64   `json:"distance"`
 	DistanceUnit       string    `json:"distance_unit"`
 	DurationSeconds    int64     `json:"duration_seconds"`

@@ -94,6 +94,19 @@ type MCPActivity struct {
 	// parameter. It is present only for stream-backed activities when include is non-empty,
 	// and holds just the requested blocks (the raw time-series stays in get_activity_streams).
 	StreamSummary *StreamSummary `json:"stream_summary,omitempty"`
+	// BestEfforts is attached when include holds "efforts": the activity's fastest stretch over
+	// each tracked distance, and whether it is the user's current record for that distance.
+	BestEfforts []MCPBestEffort `json:"best_efforts,omitempty" jsonschema:"present when include has 'efforts': this activity's fastest time over each tracked distance it covered (runs, walks and hikes: 1 km, 1 mile, 5 km, 10 km, half marathon, marathon; rides: 10, 20, 40 and 100 km)"`
+}
+
+// MCPBestEffort is an activity's fastest time over one tracked distance.
+type MCPBestEffort struct {
+	Label            string  `json:"label" jsonschema:"the distance's name, e.g. 5 km or Half marathon"`
+	DistanceM        int     `json:"distance_m" jsonschema:"the distance in metres"`
+	ElapsedSeconds   int     `json:"elapsed_seconds" jsonschema:"the fastest time over the distance in seconds, pauses inside the stretch included (stopwatch time)"`
+	PaceMinKm        float64 `json:"pace_min_km,omitempty" jsonschema:"that time as minutes per kilometre; for foot sports"`
+	SpeedKmh         float64 `json:"speed_kmh,omitempty" jsonschema:"that time as km/h; for rides"`
+	IsPersonalRecord bool    `json:"is_personal_record" jsonschema:"true when this is the user's fastest ever time over the distance for this activity type"`
 }
 
 // MCPActivitySummary is the slim, aggregated view of one activity (operation), nested inside
@@ -119,6 +132,7 @@ type MCPActivitySummary struct {
 	CadenceUnit          string     `json:"cadence_unit,omitempty" jsonschema:"unit of avg_cadence_rpm: 'spm' (steps per minute, both legs) for runs, walks and hikes; 'rpm' otherwise"`
 	TemperatureC         *int       `json:"temperature_c,omitempty" jsonschema:"average recorded temperature in Celsius, from its Strava stream"`
 	ElevationGainM       *float64   `json:"elevation_gain_m,omitempty" jsonschema:"total elevation gained in metres, from its Strava stream"`
+	AvgWatts             *int       `json:"avg_watts,omitempty" jsonschema:"average power in watts over the activity, zero samples (coasting) included, from its Strava stream; absent without a power meter"`
 	Repetitions          float64    `json:"repetitions" jsonschema:"total repetitions summed across the activity's sets"`
 	TopWeight            float64    `json:"top_weight" jsonschema:"heaviest weight recorded on any of the activity's sets, in weight_unit"`
 	WeightUnit           string     `json:"weight_unit,omitempty"`
@@ -234,6 +248,7 @@ type MCPWorkoutStreams struct {
 // time is in seconds and counts each activity once (activity duration when present,
 // else the sum of its set times).
 type MCPStatWindow struct {
+	Workouts    int     `json:"workouts" jsonschema:"number of logged workouts in this window — the unit the app counts toward goals and shows on /statistics. A workout holds zero or more activities"`
 	Activities  int     `json:"activities" jsonschema:"number of logged activities of ANY type (runs, rides, strength, etc.) in this window"`
 	DistanceKm  float64 `json:"distance_km" jsonschema:"total logged distance in this window, normalized to kilometres; only activities that record distance contribute, so strength sessions add to activities but not distance_km"`
 	TimeSeconds int64   `json:"time_seconds" jsonschema:"total logged activity time in this window, in seconds; only activities that record a duration contribute, so this may cover fewer activities than the activities count"`
@@ -246,6 +261,9 @@ type MCPStatistics struct {
 	PastYear  MCPStatWindow `json:"past_year" jsonschema:"trailing 12 months up to now"`
 	AllTime   MCPStatWindow `json:"all_time" jsonschema:"all recorded activity, no time limit"`
 	Streaks   MCPStreaks    `json:"streaks"`
+	// Overview is the /statistics Overview tab for one calendar period, present only when the
+	// caller passed period.
+	Overview *MCPOverview `json:"overview,omitempty" jsonschema:"present only when period was passed: the same overview the app's /statistics page shows — totals for the period and the previous one of equal length (workouts, active seconds, active days, distance per unit), one bucket per week (per month for all), the activity mix by time, personal streaks and records set in the period"`
 }
 
 // MCPStreaks groups the user's streaks. Only personal (season-independent) streaks
@@ -259,4 +277,120 @@ type MCPPersonalStreaks struct {
 	WeekBest    int `json:"week_best" jsonschema:"longest run of consecutive weeks with activity, ever"`
 	DayCurrent  int `json:"day_current" jsonschema:"current run of consecutive days each with at least one logged activity; 0 if nothing was logged today or yesterday"`
 	DayBest     int `json:"day_best" jsonschema:"longest run of consecutive days with activity, ever"`
+}
+
+// MCPOverview is the /statistics Overview for one period, with string ids (uuid.UUID would be
+// described as a byte array in the tool's output schema).
+type MCPOverview struct {
+	Period        string             `json:"period"`
+	Start         time.Time          `json:"start"`
+	End           time.Time          `json:"end"`
+	Bucket        string             `json:"bucket" jsonschema:"week or month: the size of each entry in buckets"`
+	Totals        StatisticsTotals   `json:"totals" jsonschema:"workouts, active seconds, active days and distance per unit (never mixed) in the period"`
+	Previous      *StatisticsTotals  `json:"previous,omitempty" jsonschema:"the same totals for the previous period of equal length; absent for all"`
+	Buckets       []StatisticsBucket `json:"buckets" jsonschema:"one entry per week (Monday start) or month of the period, empty ones included"`
+	Mix           []MCPMixItem       `json:"mix" jsonschema:"activity types in the period, most time first"`
+	Streaks       StatisticsStreaks  `json:"streaks"`
+	RecentRecords []MCPRecentRecord  `json:"recent_records" jsonschema:"personal records set in the period, newest first, at most six"`
+}
+
+// MCPMixItem is one activity type's share of a period.
+type MCPMixItem struct {
+	ActionID        string `json:"action_id"`
+	Action          string `json:"action"`
+	Activities      int    `json:"activities"`
+	DurationSeconds int64  `json:"duration_seconds"`
+}
+
+// MCPRecentRecord is a record set inside an overview period.
+type MCPRecentRecord struct {
+	ActionID string            `json:"action_id"`
+	Action   string            `json:"action"`
+	Record   MCPPersonalRecord `json:"record"`
+}
+
+// ── Personal records ─────────────────────────────────────────────────────────
+
+// MCPPersonalRecords is every personal record, grouped by activity type, most logged first.
+type MCPPersonalRecords struct {
+	ActivityTypes []MCPRecordGroup `json:"activity_types"`
+}
+
+// MCPRecordGroup is one activity type's records.
+type MCPRecordGroup struct {
+	ActionID   string              `json:"action_id" jsonschema:"the activity type's id; pass as action to get_personal_records or get_activity_type_statistics"`
+	Action     string              `json:"action" jsonschema:"the activity type, e.g. Run or Bench Press (Barbell)"`
+	Activities int                 `json:"activities" jsonschema:"how many activities of this type the user has logged, ever"`
+	Records    []MCPPersonalRecord `json:"records"`
+}
+
+// MCPPersonalRecord is the best the user has done for one measure, and what it beat.
+type MCPPersonalRecord struct {
+	Key          string           `json:"key" jsonschema:"stable record id within the activity type; pass as key to get_personal_records for its history. effort_<metres> (fastest time over a distance), longest_distance, longest_duration, most_elevation, heaviest_set, estimated_one_rep_max, most_reps, most_volume"`
+	Label        string           `json:"label" jsonschema:"human name, e.g. 5 km, Longest distance, Heaviest set"`
+	Kind         string           `json:"kind" jsonschema:"what value measures: time (seconds, LOWER is better), distance (in unit), duration (seconds), elevation (metres), weight (in unit) or reps"`
+	Value        float64          `json:"value"`
+	Unit         string           `json:"unit" jsonschema:"s for times and durations, m for elevation, km or miles for distance, kg or lb for weight, reps for reps"`
+	Reps         *float64         `json:"reps,omitempty" jsonschema:"for heaviest_set and estimated_one_rep_max: the reps of the set behind it"`
+	PaceMinKm    float64          `json:"pace_min_km,omitempty" jsonschema:"for a foot-sport effort_ record: the time as minutes per kilometre"`
+	SpeedKmh     float64          `json:"speed_kmh,omitempty" jsonschema:"for a ride effort_ record: the time as km/h"`
+	SetAt        time.Time        `json:"set_at" jsonschema:"when the record was set"`
+	ActivityID   string           `json:"activity_id" jsonschema:"the activity it was set in; pass to get_activity"`
+	Fresh        bool             `json:"fresh" jsonschema:"true when set in the last 30 days"`
+	Improvements int              `json:"improvements" jsonschema:"how many times this record has been beaten since it was first set"`
+	Previous     *MCPRecordEntry  `json:"previous,omitempty" jsonschema:"the best it beat; absent when the record has never been improved"`
+	History      []MCPRecordEntry `json:"history,omitempty" jsonschema:"present only when key was passed: every value that beat the ones before it, oldest first; the last entry is the record"`
+}
+
+// MCPRecordEntry is one value in a record's history.
+type MCPRecordEntry struct {
+	Value      float64   `json:"value"`
+	Unit       string    `json:"unit"`
+	Reps       *float64  `json:"reps,omitempty"`
+	SetAt      time.Time `json:"set_at"`
+	ActivityID string    `json:"activity_id" jsonschema:"pass to get_activity"`
+}
+
+// ── Activity type statistics ─────────────────────────────────────────────────
+
+// MCPActivityTypeStatistics is one activity type over a date range: what the app's
+// /statistics Activity types tab shows, plus one trend point per activity.
+type MCPActivityTypeStatistics struct {
+	ActionID       string                   `json:"action_id"`
+	Action         string                   `json:"action"`
+	From           string                   `json:"from" jsonschema:"first day of the range, YYYY-MM-DD"`
+	To             string                   `json:"to" jsonschema:"last day of the range, YYYY-MM-DD"`
+	Activities     int                      `json:"activities"`
+	Workouts       int                      `json:"workouts" jsonschema:"how many distinct workouts those activities belong to"`
+	Totals         ActionStatisticsTotals   `json:"totals" jsonschema:"distances and weight volume are per unit and never mixed"`
+	Averages       ActionStatisticsAverages `json:"averages" jsonschema:"per-activity means; a field is null when no activity has that measure"`
+	Bests          MCPActivityTypeBests     `json:"bests" jsonschema:"the best single activity or set in the range (for all-time bests use get_personal_records)"`
+	Sensors        ActionStatisticsSensors  `json:"sensors" jsonschema:"from each activity's sensor stream: heart rate, cadence (cadence_unit: spm or rpm) and power averaged weighted by moving time, the highest heart rate, elevation gain summed"`
+	Trend          []MCPTrendPoint          `json:"trend" jsonschema:"one point per activity, oldest first — use it to judge whether the user is getting faster, stronger or fitter"`
+	TrendTruncated bool                     `json:"trend_truncated,omitempty" jsonschema:"true when the range held more activities than the trend returns; only the most recent are included"`
+}
+
+// MCPActivityTypeBests are the range's bests, each with the activity it came from.
+type MCPActivityTypeBests struct {
+	LongestDistance *MCPRecordEntry `json:"longest_distance,omitempty"`
+	LongestDuration *MCPRecordEntry `json:"longest_duration,omitempty" jsonschema:"value in seconds"`
+	MostReps        *MCPRecordEntry `json:"most_reps,omitempty" jsonschema:"reps in a single set"`
+	HeaviestSet     *MCPRecordEntry `json:"heaviest_set,omitempty"`
+}
+
+// MCPTrendPoint is one activity in an activity type's trend.
+type MCPTrendPoint struct {
+	ActivityID         string    `json:"activity_id" jsonschema:"pass to get_activity"`
+	Date               time.Time `json:"date"`
+	Distance           float64   `json:"distance,omitempty"`
+	DistanceUnit       string    `json:"distance_unit,omitempty"`
+	DurationSeconds    int64     `json:"duration_seconds,omitempty"`
+	MovingSeconds      int64     `json:"moving_seconds,omitempty"`
+	PaceMinKm          float64   `json:"pace_min_km,omitempty" jsonschema:"minutes per kilometre from moving time (else duration); for distance activities"`
+	SpeedKmh           float64   `json:"speed_kmh,omitempty" jsonschema:"km/h from moving time (else duration); for distance activities"`
+	AvgHeartrateBpm    *int      `json:"avg_heartrate_bpm,omitempty"`
+	Repetitions        float64   `json:"repetitions,omitempty"`
+	TopWeight          float64   `json:"top_weight,omitempty" jsonschema:"heaviest set weight, in weight_unit"`
+	WeightUnit         string    `json:"weight_unit,omitempty"`
+	EstimatedOneRepMax float64   `json:"estimated_one_rep_max,omitempty" jsonschema:"best Epley estimate (weight × (1 + reps/30)) over the activity's sets of 1–10 reps, in weight_unit"`
 }

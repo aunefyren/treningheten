@@ -37,10 +37,12 @@ for example, give feedback on their latest run. This is Phase 3 of the auth work
 | `list_weights` | `limit?` | Body-weight entries, newest first |
 | `get_latest_weight` | — | Most recent weight entry |
 | `list_workouts` | `action?`, `query?`, `from?`, `to?`, `has_distance?`, `sort?`, `order?`, `limit?`, `offset?` | **Search** the user's workouts → a slim, ranked list of **sessions**. Each result carries id, date, `source`, `note`, metrics summed across the session (distance, duration, `moving_seconds`, reps, `top_weight`, `set_count`), `has_streams`, `counts_toward_goal`, `activity_count`, and the `activities` it was made of (each with its own id and the per-activity metrics + stream scalars). Response includes `total` and `has_more`, both counted in workouts. See below |
-| `get_activity` | `activity_id`, `include?` | The **rich** flat detail of one activity by id (per-set distance/time/moving-time/reps/weight, `tags`, `description`, `has_soundtrack`, `counts_toward_goal`) — drill in with an id from a workout's `activities`. Pass `include` (any of `segments`, `zones`, `elevation`, `route`, `profile`, `analysis`) to attach the processed stream blocks under `stream_summary` without pulling the raw series. See below |
+| `get_activity` | `activity_id`, `include?` | The **rich** flat detail of one activity by id (per-set distance/time/moving-time/reps/weight, `tags`, `description`, `has_soundtrack`, `counts_toward_goal`) — drill in with an id from a workout's `activities`. Pass `include` (any of `segments`, `zones`, `elevation`, `route`, `profile`, `analysis`) to attach the processed stream blocks under `stream_summary` without pulling the raw series, and `efforts` for the activity's `best_efforts` (fastest 1 km, 5 km, … inside it, each flagged `is_personal_record`). See below |
 | `get_activity_streams` | `activity_id`, `from_seconds?`, `to_seconds?`, `resolution?`, `max_points?` | Processed Strava sensor data for one activity: a summary header, per-distance **segments**, a GPS **route** overview, **HR zones**, an **analysis** block (decoupling, split-halves, pace consistency, breaks, HR-by-gradient), and a downsampled time-series. See below |
 | `get_activity_soundtrack` | `activity_id` | Listening history (music/podcast/audiobook) matched to one workout, fetched on demand. Takes **either** a workout id or any of its activity ids. See below |
-| `get_statistics` | — | Per-window totals (activity count, km distance, seconds time) over three **rolling** windows: trailing ~1 month, trailing 12 months, all-time. Counts span **all** exercise types; distance/time only count activities that record them. Plus **personal** day/week activity streaks (current + best) |
+| `get_statistics` | `period?` | Per-window totals (`workouts`, `activities`, km distance, seconds time) over three **rolling** windows: trailing ~1 month, trailing 12 months, all-time. Plus **personal** day/week streaks (current + best). With `period` (`4w`, `12w`, `year`, `all`) also the `/statistics` **overview**: totals against the previous period, weekly (monthly for `all`) buckets, the activity mix and records set in the period. See below |
+| `get_personal_records` | `action?`, `key?` | Personal records per activity type: best efforts (fastest 1 km … marathon on foot, 10–100 km on a bike), longest distance/duration, most climbing, and for strength heaviest set, estimated one-rep max, most reps, most volume. Each with `set_at`, `activity_id`, what it beat and how often it improved; `key` (with `action`) adds the full `history`. See below |
+| `get_activity_type_statistics` | `action`, `from?`, `to?` | One activity type over a range (default the last 365 days): totals per unit, averages, the range's bests, sensor averages and a **trend** with one point per activity (pace/speed, heart rate, top set, one-rep max). See below |
 | `list_seasons` | `active_only?` | The seasons the user has joined, newest first, with the user's weekly goal / competing / sickleave-left; `active_only` limits to ongoing seasons |
 | `get_season` | `season_id` | One season + the user's personal goal data (`joined=false` with no goal fields if not joined) |
 | `list_achievements` | — | The achievement catalog with the user's earned state (earned, times, last); hidden achievements read `"Hidden"` until earned |
@@ -123,7 +125,8 @@ detail, `tags`, `description` and soundtrack are fetched by drilling into one re
 
 Each row also carries **stream scalars** — `avg_heartrate_bpm`, `max_heartrate_bpm`,
 `avg_cadence_rpm` (in `cadence_unit`, doubled to steps per minute for foot sports like the
-summary), `temperature_c` and `elevation_gain_m` — plus `moving_seconds` (summed active
+summary), `temperature_c`, `elevation_gain_m` and `avg_watts` (zero samples included, as on
+the read view) — plus `moving_seconds` (summed active
 time) and a derived `avg_pace_min_km`. These let the model triage a list (spot the hot runs, the
 hard efforts, the climbs) without a second call per row. The scalars come from **precomputed
 rollup columns on the `Operation`** (`models.ComputeStreamRollup`, written on Strava sync and
@@ -163,12 +166,38 @@ divide by 1e9 and wrongly yield `0`.
 
 ### Data assembly
 
-`mcp_data.go` flattens the **enriched `*Object` layer** (via
-`ConvertExerciseDaysToExerciseDayObjects`), not raw GORM models. This reuses the
-canonical action resolution, exercise-time fallback and Strava roll-up the rest of
-the app relies on, rather than re-walking and re-joining the tree by hand. Distance
-totals in `get_statistics` are normalized to kilometres per the operation's
-`distance_unit` (unknown units are treated as km, the model default).
+`get_activity` converts through the **enriched `*Object` layer**, not raw GORM models,
+reusing the canonical action resolution, exercise-time fallback and Strava roll-up the rest
+of the app relies on. `list_workouts` reads the `/exercises` session feed. The statistics tools
+read the same flat rows `/statistics` uses (see below).
+
+### Statistics and records (`get_statistics`, `get_personal_records`, `get_activity_type_statistics`)
+
+All three are thin views over the `/statistics` computations (`controllers/mcp_statistics.go`
+calling `statistics.go` and `records.go`; see [statistics.md](statistics.md)), so an MCP answer
+and the page can't disagree:
+
+- **What counts** is the page's rule: every logged workout, including ones excluded from the
+  goal; hidden duplicates and deleted workouts are left out. `get_statistics` used to walk the
+  whole enriched day tree; it now reads `GetStatisticsSessionRows` / `GetStatisticsActivityRows`,
+  which is also far cheaper.
+- **Workouts vs activities.** Each window reports both: `workouts` is the unit the app counts
+  (a "+" workout with no activities included), `activities` the older count of activity rows.
+  Distance stays normalised to km in the windows (`distanceToKm`); the overview and the type
+  statistics keep distances **per unit**.
+- **`period`** adds the Overview tab (`buildStatisticsOverview`) as `MCPOverview`.
+- **Activity types are named in plain text.** `action` takes a name in any case, a fragment
+  matching exactly one type, or an id, among the types the user has logged
+  (`resolveMCPActivityType`); an ambiguous or unknown name errors with the candidates, so the
+  model can retry.
+- **Every record, best and trend point carries an `activity_id`** for `get_activity`.
+- **Pace and speed are computed server-side** (`pace_min_km`, `speed_kmh`) on best efforts and
+  trend points; models are unreliable at that arithmetic. Best efforts read as pace for foot
+  sports and speed for rides.
+- **The trend** holds at most `mcpTrendLimit` (400) points, the newest, with `trend_truncated`.
+- **Ids are strings** in every MCP DTO: `uuid.UUID` is a byte array to the output-schema
+  generator, which is why the overview has its own `MCPOverview` rather than reusing
+  `models.StatisticsOverview`.
 
 ### Activity streams (`get_activity_streams`)
 
@@ -366,6 +395,7 @@ Point an MCP client at `https://<your-host>/mcp`. Either:
 - `controllers/hr_zones.go` — the selectable zone systems (`hrZoneSystems`), `resolveUserHR` / `effectiveHRZoneSystem` / `sportMaxHeartrate` (the athlete's `hrAnchor`), `computeHRZones`, `GET /api/auth/hr-zone-systems` and `GET /api/auth/sport-heartrates`.
 - `controllers/mcp_streams.go` — the MCP streams tool: `loadActivityStreamContext` gathers the streams + HR anchors (shared with `get_activity`), `assembleActivityStreamSummary` builds the summary, `filterStreamSummary` keeps only the `include`d blocks, and the streams tool adds the downsampled `series`.
 - `controllers/mcp_engagement.go` — assembly of seasons, achievements and achievement delegations (all user-scoped).
+- `controllers/mcp_statistics.go` — `get_statistics`, `get_personal_records`, `get_activity_type_statistics` and the `efforts` include, over the `/statistics` computations.
 - `models/mcp.go` — MCP DTOs (`MCPProfile`, `MCPWeight`, `MCPActivity`, `MCPActivitySummary`, `MCPStatistics`, `MCPWorkoutStreams`, `MCPSeason`, `MCPAchievement`, `MCPAchievementDelegation`). `MCPActivity` optionally carries a filtered `StreamSummary`; `MCPWorkoutStreams` embeds the full shared `models.StreamSummary`.
 - `models/stream_summary.go` — the shared `StreamSummary` (header stats, `StreamSegment`, `StreamRoute`, `StreamHRZone`, `StreamAnalysis`) used by both the MCP tool and `OperationObject`; plus `ComputeStreamRollup` (the `Operation` list scalars) alongside `ObservedMaxHeartrate`.
 - `middlewares/auth.go` — `Authenticate` (shared token/PAT validation) + `BearerChallenge`.
@@ -375,16 +405,13 @@ Point an MCP client at `https://<your-host>/mcp`. Either:
 
 - Read-only only; write tools (`log_exercise`, `add_weight`) are a follow-up and
   would require the `api:write` scope and per-tool write checks.
-- `get_statistics` distance is normalized to a single km total. If users start
-  logging in mixed units in earnest, a per-unit breakdown may read better than a
-  lossy normalization.
-- `get_statistics` reports counts, distance/time totals and **personal** day/week
-  streaks. It deliberately does **not** include *season* (within-season, weekly-goal)
-  streaks, nor the per-action tops/averages from the web statistics endpoint
-  (`APIGetUserStatistics`). The personal-streak logic is shared: both this tool and
-  the web endpoint call `computePersonalStreaks` (`controllers/streaks.go`), so they
-  cannot drift. Season streaks (computed in `season.go` via `GetWeekResultForGoal`)
-  are a natural follow-up if/when a seasons tool lands.
+- `get_statistics`' rolling windows normalise distance to one km total (kept for
+  compatibility); the `period` overview and `get_activity_type_statistics` report it per unit.
+- `get_statistics` reports **personal** streaks only, not *season* (weekly-goal) streaks. The
+  personal-streak rule is shared with the web endpoints (`computePersonalStreaksFromDates` in
+  `controllers/streaks.go`), so they cannot drift. This week's progress against each season's
+  goal (the day page's week endpoint, `buildExerciseDayWeek`) would be the natural `get_week`
+  tool.
 - Seasons, achievements and achievement-delegation tools are read-only and personal.
   Within-season **standing/streak** and the **leaderboard** are not exposed yet (they
   need `season.go`'s week-result computation); season write/join actions are out of

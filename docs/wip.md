@@ -108,7 +108,6 @@ records per activity type including strength, with their history, on `/statistic
 [statistics.md](statistics.md)). Still open:
 - Time-boxed records: best this season, this year.
 - Notifying a user when they set a record.
-- A `get_personal_records` MCP tool on the same `computePersonalRecords`.
 - Grade-adjusted pace (GAP) and VAM; best efforts for swimming and skiing.
 
 ### Front page activities: tag a partner

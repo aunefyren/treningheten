@@ -40,6 +40,7 @@ const activityFeedSelectColumns = "o.id AS operation_id, " +
 	"MAX(o.avg_cadence) AS avg_cadence, " +
 	"MAX(o.temp_c) AS temp_c, " +
 	"MAX(o.elevation_gain_m) AS elevation_gain_m, " +
+	"MAX(o.avg_watts) AS avg_watts, " +
 	"e.hevy_workout_id AS hevy_workout_id, " +
 	"e.counts_toward_goal AS counts_toward_goal, " +
 	"e.private AS private"

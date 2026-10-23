@@ -236,6 +236,9 @@ const (
 	includeRoute     = "route"
 	includeProfile   = "profile"
 	includeAnalysis  = "analysis"
+	// includeEfforts isn't a stream block: it attaches the stored best efforts (see
+	// assembleActivityEfforts), so filterStreamSummary ignores it.
+	includeEfforts = "efforts"
 )
 
 // filterStreamSummary returns a copy of full carrying only the blocks named in include (plus

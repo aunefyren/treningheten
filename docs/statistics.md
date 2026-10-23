@@ -153,9 +153,13 @@ goal as a dashed line and sick-leave weeks as grey points.
 weight logged at least that long before), the chart, and the same log modal behind
 "Log weight".
 
+## MCP
+
+`get_personal_records`, `get_activity_type_statistics` and `get_statistics` with `period` expose
+the same computations to LLM clients, and `get_activity` takes `include: ["efforts"]`; see
+[mcp.md](mcp.md#statistics-and-records-get_statistics-get_personal_records-get_activity_type_statistics).
+
 ## Not yet done
 
-- A `get_personal_records` MCP tool, so the MCP server answers "what's my 5 km PR?" from the
-  same `computePersonalRecords`.
 - Notifying a user when they set a record.
 - Grade-adjusted pace and best efforts for other sports (swim, ski).

@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 	"strings"
+	"time"
 
 	"github.com/aunefyren/treningheten/auth"
 	"github.com/aunefyren/treningheten/database"
@@ -43,7 +44,22 @@ type mcpListExercisesArgs struct {
 
 type mcpWorkoutArgs struct {
 	ActivityID string   `json:"activity_id" jsonschema:"the id of an activity, taken from a workout's activities array in list_workouts (not the workout id)"`
-	Include    []string `json:"include,omitempty" jsonschema:"processed sensor blocks to attach for a stream-backed (has_streams=true) activity, without pulling the raw time-series. For a full analysis pass request [\"segments\",\"zones\",\"analysis\"]. Blocks: 'segments' (per-km/mile splits with pace, HR, cadence and elevation gain — the single highest-value block for run/ride analysis), 'zones' (heart-rate zone breakdown), 'analysis' (aerobic decoupling, first/second-half splits, pace consistency, walk/stop breaks with count and timing, HR-by-gradient), 'elevation' (gain/loss/min/max and biggest climb), 'route' (GPS path summary), 'profile' (altitude-over-distance). Ignored for activities without streams"`
+	Include    []string `json:"include,omitempty" jsonschema:"processed sensor blocks to attach for a stream-backed (has_streams=true) activity, without pulling the raw time-series. For a full analysis pass request [\"segments\",\"zones\",\"analysis\"]. Blocks: 'segments' (per-km/mile splits with pace, HR, cadence and elevation gain — the single highest-value block for run/ride analysis), 'zones' (heart-rate zone breakdown), 'analysis' (aerobic decoupling, first/second-half splits, pace consistency, walk/stop breaks with count and timing, HR-by-gradient), 'elevation' (gain/loss/min/max and biggest climb), 'route' (GPS path summary), 'profile' (altitude-over-distance). Ignored for activities without streams. Also 'efforts': this activity's best efforts (fastest 1 km, 1 mile, 5 km, … inside it) and whether each is the user's record"`
+}
+
+type mcpStatisticsArgs struct {
+	Period string `json:"period,omitempty" jsonschema:"optional calendar period for an overview like the app's /statistics page: 4w (this week and the 3 before), 12w, year (since 1 January) or all. Omit for just the rolling windows and streaks"`
+}
+
+type mcpPersonalRecordsArgs struct {
+	Action string `json:"action,omitempty" jsonschema:"limit to one activity type: its name (e.g. Run, Bench Press), a name fragment that matches one type, or its action_id. Omit for every type"`
+	Key    string `json:"key,omitempty" jsonschema:"with action: one record's key (e.g. effort_5000, heaviest_set) to also return its full history of improvements"`
+}
+
+type mcpActivityTypeStatisticsArgs struct {
+	Action string `json:"action" jsonschema:"the activity type: its name (e.g. Run, Bench Press), a name fragment that matches one type, or its action_id"`
+	From   string `json:"from,omitempty" jsonschema:"first day, YYYY-MM-DD (default 365 days before to)"`
+	To     string `json:"to,omitempty" jsonschema:"last day, YYYY-MM-DD (default today)"`
 }
 
 type mcpListSeasonsArgs struct {
@@ -212,12 +228,38 @@ func buildMCPServer(userID uuid.UUID) *mcp.Server {
 	})
 
 	mcp.AddTool(server, &mcp.Tool{
-		Name:        "get_statistics",
-		Description: "Get a summary of the user's training over three rolling windows (trailing ~1 month, trailing 12 months, and all time, relative to now). Each window reports activity count, total distance (km) and total time (seconds). Counts include ALL exercise types (runs, rides, strength, etc.); distance and time totals only include activities that record them, so they may cover fewer activities than the count. Also returns personal day and ISO-week activity streaks (current + best); these are independent of seasons and goals.",
-	}, func(ctx context.Context, req *mcp.CallToolRequest, args mcpEmptyArgs) (*mcp.CallToolResult, models.MCPStatistics, error) {
-		stats, err := assembleUserStatistics(userID)
+		Name: "get_statistics",
+		Description: "Get a summary of the user's training over three rolling windows (trailing ~1 month, trailing 12 months, and all time, relative to now). Each window reports workouts (the unit the app counts), activities of ALL types, total distance (km) and total time (seconds); distance and time only include activities that record them. Also returns personal day and ISO-week streaks (current + best), independent of seasons and goals. " +
+			"Pass period (4w, 12w, year or all) to also get the overview the app's /statistics page shows: the period's totals against the previous period of the same length, a bucket per week (per month for all) for trends, the activity mix by time, and records set in the period.",
+	}, func(ctx context.Context, req *mcp.CallToolRequest, args mcpStatisticsArgs) (*mcp.CallToolResult, models.MCPStatistics, error) {
+		stats, err := assembleUserStatistics(userID, args.Period, time.Now())
 		if err != nil {
 			return nil, models.MCPStatistics{}, err
+		}
+		return nil, stats, nil
+	})
+
+	mcp.AddTool(server, &mcp.Tool{
+		Name: "get_personal_records",
+		Description: "Get the user's personal records: the best they have ever done per activity type, with the date, the activity it was set in, what it beat and how often it has improved. " +
+			"Distance sports: fastest 1 km, 1 mile, 5 km, 10 km, half marathon and marathon on foot, fastest 10/20/40/100 km on a bike (from the GPS stream, stopwatch time), plus longest distance, longest duration and most climbing. Strength: heaviest set, estimated one-rep max (Epley, sets of 1–10 reps), most reps in a set, most volume (weight × reps) in one workout. " +
+			"Pass action to narrow to one type, and key with it (e.g. effort_5000) for the record's full history. Records count every logged workout, including ones excluded from the weekly goal; hidden duplicates and deleted workouts are left out.",
+	}, func(ctx context.Context, req *mcp.CallToolRequest, args mcpPersonalRecordsArgs) (*mcp.CallToolResult, models.MCPPersonalRecords, error) {
+		records, err := assemblePersonalRecords(userID, args.Action, args.Key, time.Now())
+		if err != nil {
+			return nil, models.MCPPersonalRecords{}, err
+		}
+		return nil, records, nil
+	})
+
+	mcp.AddTool(server, &mcp.Tool{
+		Name: "get_activity_type_statistics",
+		Description: "Get one activity type's statistics over a date range (default the last 365 days): totals per unit, per-activity averages, the range's bests, sensor averages (heart rate, cadence, power, elevation gain) and a trend with one point per activity (distance, pace and speed, average heart rate, top set, estimated one-rep max). " +
+			"Use the trend to answer whether the user is getting faster, stronger or fitter without fetching workouts one by one. For all-time bests use get_personal_records.",
+	}, func(ctx context.Context, req *mcp.CallToolRequest, args mcpActivityTypeStatisticsArgs) (*mcp.CallToolResult, models.MCPActivityTypeStatistics, error) {
+		stats, err := assembleActivityTypeStatistics(userID, args.Action, args.From, args.To, time.Now())
+		if err != nil {
+			return nil, models.MCPActivityTypeStatistics{}, err
 		}
 		return nil, stats, nil
 	})

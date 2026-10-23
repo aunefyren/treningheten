@@ -148,6 +148,7 @@ func feedItemToSummary(item models.ActivityFeedItem) models.MCPActivitySummary {
 		AvgCadenceRpm:        scaleCadence(item.AvgCadence, cadenceUnitForSport(item.ActionStravaName)),
 		TemperatureC:         item.TempC,
 		ElevationGainM:       item.ElevationGainM,
+		AvgWatts:             item.AvgWatts,
 	}
 	if item.AvgCadence != nil {
 		summary.CadenceUnit = cadenceUnitForSport(item.ActionStravaName)
@@ -170,17 +171,6 @@ func feedItemToSummary(item models.ActivityFeedItem) models.MCPActivitySummary {
 		}
 	}
 	return summary
-}
-
-// loadUserExerciseDayObjects loads and enriches the user's exercise days. Callers
-// that need both the flat activities and the day grouping (e.g. streaks) load once
-// and reuse, since the conversion is the expensive part.
-func loadUserExerciseDayObjects(userID uuid.UUID) ([]models.ExerciseDayObject, error) {
-	days, err := database.GetExerciseDaysForUserUsingUserID(userID)
-	if err != nil {
-		return nil, err
-	}
-	return ConvertExerciseDaysToExerciseDayObjects(days)
 }
 
 // flattenActivities walks the enriched day tree into a date-sorted activity list.
@@ -292,6 +282,14 @@ func assembleSingleActivity(userID uuid.UUID, activityID uuid.UUID, include []st
 	hasSoundtrack := exerciseHasSoundtrack(operation.ExerciseID)
 	activity := operationObjectToActivity(opObject, date, hevyWorkoutID, hasSoundtrack, countsTowardGoal)
 
+	if includes(include, includeEfforts) {
+		efforts, err := assembleActivityEfforts(userID, activityID, opObject.Action, time.Now())
+		if err != nil {
+			return models.MCPActivity{}, err
+		}
+		activity.BestEfforts = efforts
+	}
+
 	if activity.HasStreams {
 		if len(include) > 0 {
 			summary, err := assembleActivityStreamSummary(userID, activityID)
@@ -331,75 +329,6 @@ func resolveExerciseDate(userID uuid.UUID, exerciseID uuid.UUID) (time.Time, *st
 		date = day.Date
 	}
 	return date, exercise.HevyWorkoutID, exercise.CountsTowardGoal
-}
-
-// assembleUserStatistics derives a focused set of counts, totals and streaks from
-// the user's full activity history. It loads the enriched day tree once and uses it
-// for both the windowed totals and the streak computation.
-func assembleUserStatistics(userID uuid.UUID) (models.MCPStatistics, error) {
-	dayObjects, err := loadUserExerciseDayObjects(userID)
-	if err != nil {
-		return models.MCPStatistics{}, err
-	}
-
-	activities := flattenActivities(dayObjects, "", 0)
-
-	now := time.Now()
-	monthAgo := now.AddDate(0, -1, 0)
-	yearAgo := now.AddDate(-1, 0, 0)
-
-	add := func(w *models.MCPStatWindow, distanceKm float64, timeSeconds int64) {
-		w.Activities++
-		w.DistanceKm += distanceKm
-		w.TimeSeconds += timeSeconds
-	}
-
-	stats := models.MCPStatistics{}
-	for _, a := range activities {
-		distanceKm := 0.0
-		for _, s := range a.Sets {
-			if s.Distance != nil {
-				distanceKm += distanceToKm(*s.Distance, s.DistanceUnit)
-			}
-		}
-
-		// Count time once per activity: the activity duration when present, otherwise
-		// the sum of set times. (Strava sets both to the same value, so adding both
-		// would double-count.)
-		var timeSeconds int64
-		if a.DurationSeconds != nil {
-			timeSeconds = *a.DurationSeconds
-		} else {
-			for _, s := range a.Sets {
-				if s.TimeSeconds != nil {
-					timeSeconds += *s.TimeSeconds
-				}
-			}
-		}
-
-		add(&stats.AllTime, distanceKm, timeSeconds)
-		if a.Date.After(yearAgo) {
-			add(&stats.PastYear, distanceKm, timeSeconds)
-		}
-		if a.Date.After(monthAgo) {
-			add(&stats.PastMonth, distanceKm, timeSeconds)
-		}
-	}
-
-	// Tidy float accumulation noise from the km conversions.
-	stats.AllTime.DistanceKm = round2(stats.AllTime.DistanceKm)
-	stats.PastYear.DistanceKm = round2(stats.PastYear.DistanceKm)
-	stats.PastMonth.DistanceKm = round2(stats.PastMonth.DistanceKm)
-
-	streaks := computePersonalStreaks(dayObjects)
-	stats.Streaks.Personal = models.MCPPersonalStreaks{
-		WeekCurrent: streaks.WeekCurrent,
-		WeekBest:    streaks.WeekBest,
-		DayCurrent:  streaks.DayCurrent,
-		DayBest:     streaks.DayBest,
-	}
-
-	return stats, nil
 }
 
 func mapSets(sets []models.OperationSetObject, weightUnit string, distanceUnit string) []models.MCPActivitySet {
@@ -450,6 +379,16 @@ func distanceToKm(value float64, unit string) float64 {
 	default:
 		return value
 	}
+}
+
+// includes reports whether an include list names a token (any case, surrounding spaces ignored).
+func includes(include []string, token string) bool {
+	for _, item := range include {
+		if strings.EqualFold(strings.TrimSpace(item), token) {
+			return true
+		}
+	}
+	return false
 }
 
 func derefString(s *string) string {

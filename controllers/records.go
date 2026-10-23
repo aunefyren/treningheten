@@ -129,6 +129,7 @@ func collectRecordSeries(activities []models.StatisticsActivityRow, sets []model
 		if series[actionID][key] == nil {
 			series[actionID][key] = &recordSeries{actionID: actionID, key: key, label: label, kind: kind}
 		}
+		candidate.entry.OperationID = candidate.operationID
 		series[actionID][key].candidates = append(series[actionID][key].candidates, candidate)
 	}
 	addKey := func(actionID uuid.UUID, key string, candidate recordCandidate) {

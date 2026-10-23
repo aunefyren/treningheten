@@ -77,3 +77,15 @@ func GetOperationStreamsForUser(operationID uuid.UUID, userID uuid.UUID) (*model
 	}
 	return &row.Streams.StravaActivityStreams, row.StravaName, nil
 }
+
+// GetBestEffortsForOperation returns one of the user's activities' stored best efforts,
+// shortest distance first.
+func GetBestEffortsForOperation(operationID uuid.UUID, userID uuid.UUID) ([]models.BestEffort, error) {
+	efforts := []models.BestEffort{}
+	record := Instance.
+		Where("operation_id = ?", operationID).
+		Where("user_id = ?", userID).
+		Order("distance_m ASC").
+		Find(&efforts)
+	return efforts, record.Error
+}
