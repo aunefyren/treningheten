@@ -127,7 +127,7 @@ func TestAssemblePersonalRecordsMCP(t *testing.T) {
 	w := newMCPStatsWorld(t)
 	now := time.Now()
 
-	all, err := assemblePersonalRecords(w.user.ID, "", "", now)
+	all, err := assemblePersonalRecords(w.user.ID, "", "", "", "", now)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -135,7 +135,7 @@ func TestAssemblePersonalRecordsMCP(t *testing.T) {
 		t.Fatalf("activity types = %d, want 3", len(all.ActivityTypes))
 	}
 
-	runs, err := assemblePersonalRecords(w.user.ID, "run", "effort_1000", now)
+	runs, err := assemblePersonalRecords(w.user.ID, "run", "effort_1000", "", "", now)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -164,11 +164,30 @@ func TestAssemblePersonalRecordsMCP(t *testing.T) {
 		t.Errorf("longest = %v, want 10 (the hidden marathon is out)", longest.Value)
 	}
 
-	rides, _ := assemblePersonalRecords(w.user.ID, "bicycling", "", now)
+	rides, _ := assemblePersonalRecords(w.user.ID, "bicycling", "", "", "", now)
 	for _, record := range rides.ActivityTypes[0].Records {
 		if record.Key == "effort_10000" && (record.SpeedKmh != 30 || record.PaceMinKm != 0) {
 			t.Errorf("ride 10 km = %+v, want 30 km/h", record)
 		}
+	}
+
+	// Bests inside a period: this month's 5 km is slower than the old record.
+	month, err := assemblePersonalRecords(w.user.ID, "run", "effort_5000", daysAgo(30).Format("2006-01-02"), "", now)
+	if err != nil {
+		t.Fatal(err)
+	}
+	five := month.ActivityTypes[0].Records[1]
+	if five.Key != "effort_5000" || five.Value != 1520 || five.AllTimeRecord || five.AllTimeBest == nil || five.AllTimeBest.Value != 1500 {
+		t.Errorf("this month's 5 km = %+v, want 1520 s against the 1500 s record", five)
+	}
+	if len(five.History) != 1 {
+		t.Errorf("history in the period = %v, want just this month's", five.History)
+	}
+	if _, err := assemblePersonalRecords(w.user.ID, "run", "", "soon", "", now); err == nil {
+		t.Errorf("a bad from was accepted")
+	}
+	if _, err := assemblePersonalRecords(w.user.ID, "run", "", "", "later", now); err == nil {
+		t.Errorf("a bad to was accepted")
 	}
 
 	for name, args := range map[string][2]string{
@@ -176,7 +195,7 @@ func TestAssemblePersonalRecordsMCP(t *testing.T) {
 		"unknown key":        {"run", "heaviest_set"},
 		"unknown type":       {"Yoga", ""},
 	} {
-		if _, err := assemblePersonalRecords(w.user.ID, args[0], args[1], now); err == nil {
+		if _, err := assemblePersonalRecords(w.user.ID, args[0], args[1], "", "", now); err == nil {
 			t.Errorf("%s: no error", name)
 		}
 	}

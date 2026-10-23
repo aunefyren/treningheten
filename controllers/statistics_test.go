@@ -416,6 +416,47 @@ func TestPersonalRecordsAPI(t *testing.T) {
 		t.Errorf("stranger's longest = %v, want their own 42 km", longest)
 	}
 
+	// The bests inside a period, against the all-time records.
+	period := h.ok("GET", "/api/auth/records?start="+daysAgo(30).Format("2006-01-02")+"&end="+time.Now().Format("2006-01-02"), token, nil)
+	periodRuns := recordsByKey(t, period, run)
+	periodTests := []struct {
+		key         string
+		value       float64
+		allTime     bool
+		allTimeBest float64 // 0 means none
+	}{
+		{"effort_1000", 280, true, 0},
+		{recordLongestDistance, 6, false, 8},
+		{recordLongestDuration, 1700, false, 2400},
+	}
+	for _, test := range periodTests {
+		t.Run("period "+test.key, func(t *testing.T) {
+			record := periodRuns[test.key]
+			if record == nil {
+				t.Fatalf("missing %s in the period", test.key)
+			}
+			if got := asFloat(asMap(record["current"])["value"]); got != test.value {
+				t.Errorf("value = %v, want %v", got, test.value)
+			}
+			if record["all_time_record"] != test.allTime {
+				t.Errorf("all_time_record = %v, want %v", record["all_time_record"], test.allTime)
+			}
+			best := asMap(record["all_time_best"])
+			if (test.allTimeBest == 0) != (best == nil) || (best != nil && asFloat(best["value"]) != test.allTimeBest) {
+				t.Errorf("all_time_best = %v, want %v", best, test.allTimeBest)
+			}
+		})
+	}
+	if lifts := recordsByKey(t, period, bench); lifts[recordHeaviestSet]["all_time_record"] != true {
+		t.Errorf("the 200 lb set is in the period and the all-time record")
+	}
+	quiet := h.ok("GET", "/api/auth/records?start="+daysAgo(4).Format("2006-01-02"), token, nil)
+	if recordsByKey(t, quiet, run) != nil {
+		t.Errorf("runs have nothing in the last four days and should be left out")
+	}
+	h.expect(http.StatusBadRequest, "GET", "/api/auth/records?start=soon", token, nil)
+	h.expect(http.StatusBadRequest, "GET", "/api/auth/records?end=later", token, nil)
+
 	// History.
 	history := h.ok("GET", "/api/auth/records/history?action_id="+run.String()+"&key=effort_1000", token, nil)
 	if entries := asList(history["history"]); len(entries) != 2 || asFloat(asMap(entries[1])["value"]) != 280 {

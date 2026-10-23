@@ -136,7 +136,7 @@ func assembleUserStatistics(userID uuid.UUID, period string, now time.Time) (mod
 	}
 
 	if period != "" {
-		groups, err := computePersonalRecords(userID, nil, now)
+		groups, err := computePersonalRecords(userID, nil, recordRange{}, now)
 		if err != nil {
 			return models.MCPStatistics{}, err
 		}
@@ -191,6 +191,11 @@ func mcpPersonalRecord(record models.PersonalRecord) models.MCPPersonalRecord {
 		previous := mcpRecordEntry(*record.Previous)
 		item.Previous = &previous
 	}
+	item.AllTimeRecord = record.AllTimeRecord
+	if record.AllTimeBest != nil {
+		best := mcpRecordEntry(*record.AllTimeBest)
+		item.AllTimeBest = &best
+	}
 	return item
 }
 
@@ -217,10 +222,26 @@ func effortKeyDistance(key string) int {
 	return meters
 }
 
-// assemblePersonalRecords returns the user's records, optionally for one activity type; with a
-// key (which needs a type) that record also carries its full history.
-func assemblePersonalRecords(userID uuid.UUID, actionText string, key string, now time.Time) (models.MCPPersonalRecords, error) {
+// assemblePersonalRecords returns the user's records, optionally for one activity type and for
+// the bests inside a date range; with a key (which needs a type) that record also carries its
+// full all-time history.
+func assemblePersonalRecords(userID uuid.UUID, actionText string, key string, from string, to string, now time.Time) (models.MCPPersonalRecords, error) {
 	key = strings.TrimSpace(key)
+	period := recordRange{}
+	if strings.TrimSpace(from) != "" {
+		start, err := parseStatisticsDate(from)
+		if err != nil {
+			return models.MCPPersonalRecords{}, fmt.Errorf("invalid from %q: use YYYY-MM-DD", from)
+		}
+		period.start = &start
+	}
+	if strings.TrimSpace(to) != "" {
+		end, err := parseStatisticsDate(to)
+		if err != nil {
+			return models.MCPPersonalRecords{}, fmt.Errorf("invalid to %q: use YYYY-MM-DD", to)
+		}
+		period.end = &end
+	}
 	var actionID *uuid.UUID
 	if strings.TrimSpace(actionText) != "" {
 		action, err := resolveMCPActivityType(userID, actionText)
@@ -232,7 +253,7 @@ func assemblePersonalRecords(userID uuid.UUID, actionText string, key string, no
 		return models.MCPPersonalRecords{}, fmt.Errorf("key needs an action: records are per activity type")
 	}
 
-	groups, err := computePersonalRecords(userID, actionID, now)
+	groups, err := computePersonalRecords(userID, actionID, period, now)
 	if err != nil {
 		return models.MCPPersonalRecords{}, err
 	}
@@ -254,7 +275,13 @@ func assemblePersonalRecords(userID uuid.UUID, actionText string, key string, no
 			item := mcpPersonalRecord(record)
 			if key != "" && record.Key == key {
 				item.History = []models.MCPRecordEntry{}
-				for _, candidate := range recordProgression(series[group.Action.ID][key].candidates) {
+				inRange := []recordCandidate{}
+				for _, candidate := range series[group.Action.ID][key].candidates {
+					if period.contains(candidate.entry.SetAt) {
+						inRange = append(inRange, candidate)
+					}
+				}
+				for _, candidate := range recordProgression(inRange) {
 					item.History = append(item.History, mcpRecordEntry(candidate.entry))
 				}
 			}
@@ -382,7 +409,7 @@ func assembleActivityEfforts(userID uuid.UUID, operationID uuid.UUID, action *mo
 
 	recordHolders := map[string]uuid.UUID{}
 	if len(efforts) > 0 {
-		groups, err := computePersonalRecords(userID, &action.ID, now)
+		groups, err := computePersonalRecords(userID, &action.ID, recordRange{}, now)
 		if err != nil {
 			return nil, err
 		}

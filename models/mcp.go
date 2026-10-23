@@ -326,20 +326,22 @@ type MCPRecordGroup struct {
 
 // MCPPersonalRecord is the best the user has done for one measure, and what it beat.
 type MCPPersonalRecord struct {
-	Key          string           `json:"key" jsonschema:"stable record id within the activity type; pass as key to get_personal_records for its history. effort_<metres> (fastest time over a distance), longest_distance, longest_duration, most_elevation, heaviest_set, estimated_one_rep_max, most_reps, most_volume"`
-	Label        string           `json:"label" jsonschema:"human name, e.g. 5 km, Longest distance, Heaviest set"`
-	Kind         string           `json:"kind" jsonschema:"what value measures: time (seconds, LOWER is better), distance (in unit), duration (seconds), elevation (metres), weight (in unit) or reps"`
-	Value        float64          `json:"value"`
-	Unit         string           `json:"unit" jsonschema:"s for times and durations, m for elevation, km or miles for distance, kg or lb for weight, reps for reps"`
-	Reps         *float64         `json:"reps,omitempty" jsonschema:"for heaviest_set and estimated_one_rep_max: the reps of the set behind it"`
-	PaceMinKm    float64          `json:"pace_min_km,omitempty" jsonschema:"for a foot-sport effort_ record: the time as minutes per kilometre"`
-	SpeedKmh     float64          `json:"speed_kmh,omitempty" jsonschema:"for a ride effort_ record: the time as km/h"`
-	SetAt        time.Time        `json:"set_at" jsonschema:"when the record was set"`
-	ActivityID   string           `json:"activity_id" jsonschema:"the activity it was set in; pass to get_activity"`
-	Fresh        bool             `json:"fresh" jsonschema:"true when set in the last 30 days"`
-	Improvements int              `json:"improvements" jsonschema:"how many times this record has been beaten since it was first set"`
-	Previous     *MCPRecordEntry  `json:"previous,omitempty" jsonschema:"the best it beat; absent when the record has never been improved"`
-	History      []MCPRecordEntry `json:"history,omitempty" jsonschema:"present only when key was passed: every value that beat the ones before it, oldest first; the last entry is the record"`
+	Key           string           `json:"key" jsonschema:"stable record id within the activity type; pass as key to get_personal_records for its history. effort_<metres> (fastest time over a distance), longest_distance, longest_duration, most_elevation, heaviest_set, estimated_one_rep_max, most_reps, most_volume"`
+	Label         string           `json:"label" jsonschema:"human name, e.g. 5 km, Longest distance, Heaviest set"`
+	Kind          string           `json:"kind" jsonschema:"what value measures: time (seconds, LOWER is better), distance (in unit), duration (seconds), elevation (metres), weight (in unit) or reps"`
+	Value         float64          `json:"value"`
+	Unit          string           `json:"unit" jsonschema:"s for times and durations, m for elevation, km or miles for distance, kg or lb for weight, reps for reps"`
+	Reps          *float64         `json:"reps,omitempty" jsonschema:"for heaviest_set and estimated_one_rep_max: the reps of the set behind it"`
+	PaceMinKm     float64          `json:"pace_min_km,omitempty" jsonschema:"for a foot-sport effort_ record: the time as minutes per kilometre"`
+	SpeedKmh      float64          `json:"speed_kmh,omitempty" jsonschema:"for a ride effort_ record: the time as km/h"`
+	SetAt         time.Time        `json:"set_at" jsonschema:"when the record was set"`
+	ActivityID    string           `json:"activity_id" jsonschema:"the activity it was set in; pass to get_activity"`
+	Fresh         bool             `json:"fresh" jsonschema:"true when set in the last 30 days"`
+	Improvements  int              `json:"improvements" jsonschema:"how many times this record has been beaten since it was first set"`
+	Previous      *MCPRecordEntry  `json:"previous,omitempty" jsonschema:"the best it beat; absent when the record has never been improved (with from/to: within the range)"`
+	AllTimeRecord bool             `json:"all_time_record" jsonschema:"true when this is the user's best ever; always true without from/to"`
+	AllTimeBest   *MCPRecordEntry  `json:"all_time_best,omitempty" jsonschema:"with from/to, when the range's best is not the all-time record: that record, to compare with"`
+	History       []MCPRecordEntry `json:"history,omitempty" jsonschema:"present only when key was passed: every value that beat the ones before it, oldest first (within the range when from/to are passed)"`
 }
 
 // MCPRecordEntry is one value in a record's history.

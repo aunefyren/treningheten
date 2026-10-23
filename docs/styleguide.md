@@ -411,6 +411,8 @@ column (`.stats-page`, capped at `62em` like `.stat-panel`). See
   set behind a weight), the date and "Beat 23:10 from 12 Aug". A record under 30 days old adds a
   `.meta-tag--success` "New" (a new record is a success signal). The tile opens the record's
   history in a `.trm` modal: a stepped chart and a list of the days it was beaten, each a link.
+  In Activity types the same tile shows a **period's best**: tagged "All-time record" when it is
+  one, otherwise a quiet "Record 22:10 from 12 Aug" line in place of what it beat.
 - Empty tabs use `.user-stats-empty` with a reason and what to do.
 
 ### Auth panel

@@ -306,9 +306,26 @@ func loadRecordSeries(userID uuid.UUID, actionID *uuid.UUID) (map[uuid.UUID]map[
 	return collectRecordSeries(activities, sets, efforts), activities, nil
 }
 
+// recordRange is an optional inclusive range of calendar days; a nil side is open.
+type recordRange struct {
+	start *time.Time
+	end   *time.Time
+}
+
+func (r recordRange) set() bool {
+	return r.start != nil || r.end != nil
+}
+
+func (r recordRange) contains(date time.Time) bool {
+	day := localDay(date)
+	return (r.start == nil || !day.Before(localDay(*r.start))) && (r.end == nil || !day.After(localDay(*r.end)))
+}
+
 // computePersonalRecords returns the user's records grouped by activity type, the most used
-// types first.
-func computePersonalRecords(userID uuid.UUID, actionID *uuid.UUID, now time.Time) ([]models.PersonalRecordGroup, error) {
+// types first. With a range, each record is the best inside it (its history and previous best
+// too), flagged when it is also the all-time record and otherwise carrying that record in
+// AllTimeBest; types with nothing in the range are left out.
+func computePersonalRecords(userID uuid.UUID, actionID *uuid.UUID, period recordRange, now time.Time) ([]models.PersonalRecordGroup, error) {
 	series, activities, err := loadRecordSeries(userID, actionID)
 	if err != nil {
 		return nil, err
@@ -316,7 +333,7 @@ func computePersonalRecords(userID uuid.UUID, actionID *uuid.UUID, now time.Time
 
 	activityCounts := map[uuid.UUID]int{}
 	for _, row := range activities {
-		if row.ActionID != nil {
+		if row.ActionID != nil && period.contains(models.RecordedAt(row.Time, row.Date)) {
 			activityCounts[*row.ActionID]++
 		}
 	}
@@ -330,10 +347,33 @@ func computePersonalRecords(userID uuid.UUID, actionID *uuid.UUID, now time.Time
 		}
 		group := models.PersonalRecordGroup{Action: action, Activities: activityCounts[id], Records: []models.PersonalRecord{}}
 		for _, s := range byKey {
-			if record, ok := buildRecord(s, now); ok {
-				record.Sport = action.StravaName
-				group.Records = append(group.Records, record)
+			allTime, ok := buildRecord(s, now)
+			if !ok {
+				continue
 			}
+			record := allTime
+			record.AllTimeRecord = true
+			if period.set() {
+				inRange := &recordSeries{actionID: s.actionID, key: s.key, label: s.label, kind: s.kind}
+				for _, candidate := range s.candidates {
+					if period.contains(candidate.entry.SetAt) {
+						inRange.candidates = append(inRange.candidates, candidate)
+					}
+				}
+				if record, ok = buildRecord(inRange, now); !ok {
+					continue
+				}
+				record.AllTimeRecord = record.Current.OperationID == allTime.Current.OperationID && record.Current.Value == allTime.Current.Value
+				if !record.AllTimeRecord {
+					best := allTime.Current
+					record.AllTimeBest = &best
+				}
+			}
+			record.Sport = action.StravaName
+			group.Records = append(group.Records, record)
+		}
+		if len(group.Records) == 0 {
+			continue
 		}
 		sort.Slice(group.Records, func(i, j int) bool {
 			return recordKeyRank(group.Records[i].Key) < recordKeyRank(group.Records[j].Key)
@@ -351,7 +391,7 @@ func computePersonalRecords(userID uuid.UUID, actionID *uuid.UUID, now time.Time
 }
 
 // APIGetPersonalRecords returns the caller's personal records; ?action_id= narrows them to
-// one activity type.
+// one activity type, and ?start= / ?end= (days, inclusive) to the bests inside a period.
 func APIGetPersonalRecords(context *gin.Context) {
 	userID, err := middlewares.GetAuthUsername(context.GetHeader("Authorization"))
 	if err != nil {
@@ -372,7 +412,20 @@ func APIGetPersonalRecords(context *gin.Context) {
 		actionID = &parsed
 	}
 
-	groups, err := computePersonalRecords(userID, actionID, time.Now())
+	period := recordRange{}
+	for name, target := range map[string]**time.Time{"start": &period.start, "end": &period.end} {
+		if raw, ok := context.GetQuery(name); ok && raw != "" {
+			parsed, err := parseStatisticsDate(raw)
+			if err != nil {
+				context.JSON(http.StatusBadRequest, gin.H{"error": "Failed to parse " + name + " date."})
+				context.Abort()
+				return
+			}
+			*target = &parsed
+		}
+	}
+
+	groups, err := computePersonalRecords(userID, actionID, period, time.Now())
 	if err != nil {
 		logger.Log.Info("Failed to compute personal records. Error: " + err.Error())
 		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get personal records."})

@@ -104,6 +104,10 @@ type PersonalRecord struct {
 	Previous     *PersonalRecordEntry `json:"previous"`
 	Fresh        bool                 `json:"fresh"`
 	Improvements int                  `json:"improvements"`
+	// AllTimeRecord is true when this is the best ever; always so without a date range. With
+	// one, Current is the best inside the range and AllTimeBest the record to compare it with.
+	AllTimeRecord bool                 `json:"all_time_record"`
+	AllTimeBest   *PersonalRecordEntry `json:"all_time_best,omitempty"`
 }
 
 // PersonalRecordGroup is every record for one activity type.

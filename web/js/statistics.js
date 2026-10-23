@@ -142,13 +142,13 @@ function statisticsPageHTML() {
                 </div>
                 <div class="user-stats-empty" id="types-empty">
                     <div class="user-stats-empty-title">Choose an activity type</div>
-                    <div class="user-stats-empty-hint">Pick one of the types you have logged to see its totals, bests, trend and records.</div>
+                    <div class="user-stats-empty-hint">Pick one of the types you have logged to see its totals, trend and bests over a period.</div>
                 </div>
                 <div id="types-content" hidden>
                     <div class="stat-panel" id="types-records-panel" hidden>
                         <div class="stats-panel-head">
-                            <h2 class="stats-heading">Records</h2>
-                            <button type="button" class="btn btn--ghost btn--sm" onclick="selectStatisticsTab('records')">All records</button>
+                            <h2 class="stats-heading">Bests in this period</h2>
+                            <button type="button" class="btn btn--ghost btn--sm" onclick="selectStatisticsTab('records')">All-time records</button>
                         </div>
                         <div class="records-grid" id="types-records"></div>
                     </div>
@@ -608,14 +608,24 @@ function recordValueText(record, entry) {
 }
 
 // recordTileHTML is one record: the label, the value, when it was set and what it beat. The
-// whole tile opens the record's history. actionName is shown when tiles of several types mix.
-function recordTileHTML(record, actionID, actionName) {
+// whole tile opens the record's (all-time) history. actionName is shown when tiles of several
+// types mix. inPeriod renders a period's best instead: tagged when it is also the all-time
+// record, otherwise showing that record to compare with.
+function recordTileHTML(record, actionID, actionName, inPeriod) {
     recordCache[actionID + ":" + record.key] = record;
     var parts = recordValueParts(record, record.current);
-    var fresh = record.fresh ? `<span class="meta-tag meta-tag--success">New</span>` : "";
-    var previous = record.previous
-        ? "Beat " + escapeStat(recordValueText(record, record.previous)) + " from " + formatDay(record.previous.set_at)
-        : "First time logged";
+    var fresh, previous;
+    if (inPeriod) {
+        fresh = record.all_time_record ? `<span class="meta-tag meta-tag--success">All-time record</span>` : "";
+        previous = record.all_time_best
+            ? "Record " + escapeStat(recordValueText(record, record.all_time_best)) + " from " + formatDay(record.all_time_best.set_at)
+            : "";
+    } else {
+        fresh = record.fresh ? `<span class="meta-tag meta-tag--success">New</span>` : "";
+        previous = record.previous
+            ? "Beat " + escapeStat(recordValueText(record, record.previous)) + " from " + formatDay(record.previous.set_at)
+            : "First time logged";
+    }
     var type = actionName ? `<span class="record-type">${escapeStat(actionName)}</span>` : "";
     var label = (actionName ? actionName + ", " : "") + record.label + ": " + recordValueText(record, record.current);
 
@@ -626,7 +636,7 @@ function recordTileHTML(record, actionID, actionName) {
             <span class="record-value">${escapeStat(parts.value)}${parts.unit ? `<span class="record-unit">${escapeStat(parts.unit)}</span>` : ""}</span>
             ${parts.detail ? `<span class="record-detail">${escapeStat(parts.detail)}</span>` : ""}
             <span class="record-when">${formatDay(record.current.set_at)}</span>
-            <span class="record-previous">${previous}</span>
+            ${previous ? `<span class="record-previous">${previous}</span>` : ""}
         </button>`;
 }
 
@@ -813,26 +823,20 @@ function loadTypeStatistics() {
             });
         }
     });
-    statsGet("auth/records?action_id=" + actionID, function(result) {
+    // The period's bests: the same records, limited to the chosen days.
+    statsGet("auth/records?action_id=" + actionID + "&start=" + range.start + "&end=" + range.end, function(result) {
         var group = result.records[0];
         var panel = document.getElementById("types-records-panel");
         panel.hidden = !group || !group.records.length;
         if (group) {
-            document.getElementById("types-records").innerHTML = group.records.map(function(record) { return recordTileHTML(record, actionID); }).join("");
+            document.getElementById("types-records").innerHTML = group.records.map(function(record) { return recordTileHTML(record, actionID, null, true); }).join("");
         }
     });
 }
 
-function bestCard(label, best, value, unit, family, extra) {
-    if (!best) {
-        return null;
-    }
-    var detail = dayLink(best.exercise_day_id, formatDay(best.date)) + (extra ? ", " + escapeStat(extra) : "");
-    return statCard(label, value, unit, family, detail);
-}
-
-// placeTypeStatistics renders one activity type and period: Totals, Averages, Bests and
-// Sensors (only the measures this type has), the trend chart and the soundtrack.
+// placeTypeStatistics renders one activity type and period: Totals, Averages and Sensors (only
+// the measures this type has), the trend chart and the soundtrack. The period's bests are the
+// record tiles above (loadTypeStatistics).
 function placeTypeStatistics(stats) {
     var wrapper = document.getElementById("types-stats");
     if (stats.activities === 0) {
@@ -867,15 +871,6 @@ function placeTypeStatistics(stats) {
     if (avg.repetitions) { averages.push(statCard("Reps", formatNumber(avg.repetitions, 0), "", "strength")); }
     if (avg.volume) { averages.push(statCard("Volume", formatNumber(avg.volume.amount, 0), avg.volume.unit, "strength")); }
 
-    var bests = [];
-    var b = stats.bests;
-    bests.push(bestCard("Furthest", b.longest_distance, b.longest_distance && formatNumber(b.longest_distance.value, 2), b.longest_distance && unitLabel(b.longest_distance.unit), "movement"));
-    bests.push(bestCard("Longest", b.longest_duration, b.longest_duration && formatClock(b.longest_duration.value), "", "time"));
-    bests.push(bestCard("Heaviest set", b.heaviest_set, b.heaviest_set && formatNumber(b.heaviest_set.value, b.heaviest_set.value % 1 === 0 ? 0 : 1), b.heaviest_set && b.heaviest_set.unit, "strength",
-        b.heaviest_set && b.heaviest_set.reps ? formatNumber(b.heaviest_set.reps, 0) + " " + plural(b.heaviest_set.reps, "rep", "reps") : ""));
-    bests.push(bestCard("Most reps in a set", b.most_reps, b.most_reps && formatNumber(b.most_reps.value, 0), "", "strength"));
-    bests = bests.filter(Boolean);
-
     var sensors = [];
     var s = stats.sensors;
     if (s.avg_heartrate) { sensors.push(statCard("Avg heart rate", s.avg_heartrate, "bpm", "effort", s.max_heartrate ? "Max " + s.max_heartrate + " bpm" : "")); }
@@ -886,7 +881,6 @@ function placeTypeStatistics(stats) {
     wrapper.innerHTML = `<div class="stat-panel">`
         + statSection("Totals", totals)
         + statSection("Averages per activity", averages)
-        + statSection("Bests", bests)
         + statSection("Sensors", sensors)
         + `</div>`;
 

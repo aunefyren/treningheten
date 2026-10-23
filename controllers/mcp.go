@@ -54,6 +54,8 @@ type mcpStatisticsArgs struct {
 type mcpPersonalRecordsArgs struct {
 	Action string `json:"action,omitempty" jsonschema:"limit to one activity type: its name (e.g. Run, Bench Press), a name fragment that matches one type, or its action_id. Omit for every type"`
 	Key    string `json:"key,omitempty" jsonschema:"with action: one record's key (e.g. effort_5000, heaviest_set) to also return its full history of improvements"`
+	From   string `json:"from,omitempty" jsonschema:"only the bests set on or after this day, YYYY-MM-DD — e.g. this year's fastest 5 km. Each then says whether it is also the all-time record"`
+	To     string `json:"to,omitempty" jsonschema:"only the bests set on or before this day, YYYY-MM-DD"`
 }
 
 type mcpActivityTypeStatisticsArgs struct {
@@ -243,9 +245,9 @@ func buildMCPServer(userID uuid.UUID) *mcp.Server {
 		Name: "get_personal_records",
 		Description: "Get the user's personal records: the best they have ever done per activity type, with the date, the activity it was set in, what it beat and how often it has improved. " +
 			"Distance sports: fastest 1 km, 1 mile, 5 km, 10 km, half marathon and marathon on foot, fastest 10/20/40/100 km on a bike (from the GPS stream, stopwatch time), plus longest distance, longest duration and most climbing. Strength: heaviest set, estimated one-rep max (Epley, sets of 1–10 reps), most reps in a set, most volume (weight × reps) in one workout. " +
-			"Pass action to narrow to one type, and key with it (e.g. effort_5000) for the record's full history. Records count every logged workout, including ones excluded from the weekly goal; hidden duplicates and deleted workouts are left out.",
+			"Pass action to narrow to one type, and key with it (e.g. effort_5000) for the record's full history. Pass from/to for the bests inside a period instead (this season, this year), each flagged all_time_record or carrying the all_time_best to compare with. Records count every logged workout, including ones excluded from the weekly goal; hidden duplicates and deleted workouts are left out.",
 	}, func(ctx context.Context, req *mcp.CallToolRequest, args mcpPersonalRecordsArgs) (*mcp.CallToolResult, models.MCPPersonalRecords, error) {
-		records, err := assemblePersonalRecords(userID, args.Action, args.Key, time.Now())
+		records, err := assemblePersonalRecords(userID, args.Action, args.Key, args.From, args.To, time.Now())
 		if err != nil {
 			return nil, models.MCPPersonalRecords{}, err
 		}

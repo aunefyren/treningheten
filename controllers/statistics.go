@@ -624,7 +624,7 @@ func APIGetStatisticsOverview(context *gin.Context) {
 		context.Abort()
 		return
 	}
-	groups, err := computePersonalRecords(userID, nil, now)
+	groups, err := computePersonalRecords(userID, nil, recordRange{}, now)
 	if err != nil {
 		logger.Log.Info("Failed to get records for overview. Error: " + err.Error())
 		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get personal records."})

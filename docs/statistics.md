@@ -47,7 +47,7 @@ set in the period**. A workout with no activities (the front page's "+") counts 
 
 ## Personal records
 
-`GET /api/auth/records[?action_id=]` → `APIGetPersonalRecords`, and
+`GET /api/auth/records[?action_id=][&start=][&end=]` → `APIGetPersonalRecords`, and
 `GET /api/auth/records/history?action_id=&key=` → `APIGetPersonalRecordHistory`
 (`controllers/records.go`).
 
@@ -56,6 +56,14 @@ Records are computed on read. Each one is a series of candidates (one per activi
 last entry is the record, the one before it is what it beat (`previous`), and the length is how
 often it improved. A record set in the last 30 days is `fresh`. A tie doesn't count as an
 improvement. Groups are ordered by how often the type was logged.
+
+**Bests in a period.** With `start` and/or `end` (inclusive days), each record is the best
+*inside* the period, from the same candidates filtered by date (so its `previous` and
+improvements are within the period too). `all_time_record` says whether it is also the best
+ever; when it isn't, `all_time_best` carries that record to compare with. Types with nothing in
+the period are left out. Without a range every record is the all-time one
+(`all_time_record: true`). This is how "my fastest 5 km this year" works without changing what
+a record means; the history endpoint stays all-time.
 
 | Key | Applies to | Value | Compared as |
 |---|---|---|---|
@@ -129,7 +137,9 @@ days (`YYYY-MM-DD`; an RFC 3339 timestamp is still accepted from older clients).
 - **Totals**: activities, workouts, distance per unit, time and moving time, reps, and volume
   (weight × reps) per weight unit.
 - **Averages per activity**, in the period's main unit.
-- **Bests**: furthest, longest, heaviest set and most reps in a set, each with its day.
+- **Bests** (`bests`): furthest, longest, heaviest set and most reps in a set, each with its
+  day. The page no longer shows these as tiles: its "Bests in this period" panel (below) covers
+  them and more. MCP's `get_activity_type_statistics` still returns them.
 - **Sensors** from the rollup columns: heart rate, cadence and power are averaged weighted by
   each activity's moving time (else its duration), max heart rate is the highest, elevation gain
   is summed. Cadence is in the sport's unit (steps per minute for foot sports, see
@@ -139,7 +149,10 @@ days (`YYYY-MM-DD`; an RFC 3339 timestamp is still accepted from older clients).
   set, duration or heart rate, with a rolling average over five activities.
 - **Soundtrack** (`media`), aggregated over the distinct workouts, unchanged.
 
-The page also shows that type's records and links to `/exercises?action=<id>`. The heatmap
+Above the statistics the page shows **Bests in this period**: the type's records for the chosen
+period (`/records?action_id=&start=&end=`), every key including best efforts and the one-rep
+max. A tile that is also the all-time record says so; otherwise it shows the record to compare
+with. A tile opens the record's all-time history. The page links to `/exercises?action=<id>`. The heatmap
 endpoint returns only GPS tracks, so the statistics response never carries raw streams; see
 [heatmap.md](heatmap.md).
 

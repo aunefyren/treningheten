@@ -106,7 +106,8 @@ zone — see `seasons-and-goals.md`.
 Shipped: stored best efforts (computed at sync, backfilled by version), all-time personal
 records per activity type including strength, with their history, on `/statistics` (see
 [statistics.md](statistics.md)). Still open:
-- Time-boxed records: best this season, this year.
+- Season-aware records: picking a season instead of dates (any date range already works:
+  `/records?start=&end=`, MCP `from`/`to`, the Activity types period).
 - Notifying a user when they set a record.
 - Grade-adjusted pace (GAP) and VAM; best efforts for swimming and skiing.
 
