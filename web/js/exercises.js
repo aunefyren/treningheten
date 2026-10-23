@@ -125,7 +125,9 @@ function escapeHTML(value) {
         .replace(/'/g, "&#39;");
 }
 
-// loadActions fills the type filter with the user's activity types.
+// loadActions fills the type filter with the activity types the user has actually done
+// (experienced=true, like /statistics), sorted by name. The full catalogue holds hundreds of
+// Hevy exercises the user has never logged, and filtering by one could only find nothing.
 function loadActions() {
     var xhttp = new XMLHttpRequest();
     xhttp.onreadystatechange = function() {
@@ -143,6 +145,7 @@ function loadActions() {
             if (!select) {
                 return;
             }
+            result.actions.sort(function(a, b) { return a.name.localeCompare(b.name); });
             result.actions.forEach(function(action) {
                 var option = document.createElement("option");
                 option.value = action.id;
@@ -152,7 +155,7 @@ function loadActions() {
         }
     };
     xhttp.withCredentials = true;
-    xhttp.open("get", api_url + "auth/actions");
+    xhttp.open("get", api_url + "auth/actions?experienced=true");
     xhttp.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
     xhttp.setRequestHeader("Authorization", jwt);
     xhttp.send();

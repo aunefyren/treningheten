@@ -42,6 +42,11 @@ The client picks the mode; the endpoint is the same:
 - **Find** — a metric sort or an activity-type filter is active. The list goes flat and
   ranked, with the sorted metric shown prominently.
 
+The activity-type filter lists only the types the user has actually logged
+(`GET /api/auth/actions?experienced=true`, the same source as `/statistics`), sorted by name.
+The full catalogue holds hundreds of Hevy exercises the user has never done, and choosing one of
+those could only return nothing.
+
 Both modes rank and page **sessions**. A metric sort therefore reads as "my longest workout"
 rather than "my longest single activity" — for `weight` the two are identical (a session's max
 set *is* its heaviest activity), and for distance/duration/reps the session total is the more
