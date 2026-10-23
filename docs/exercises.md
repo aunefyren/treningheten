@@ -129,6 +129,17 @@ For **cardio** (GPS/sensor) activities it surfaces the processed stream summary,
 - An **over-time chart** for heart rate, cadence and power: one chart, a segmented switch
   between the recorded channels, a readout of avg/max(/min, normalised) and a dashed average
   line.
+  - **Every channel shares one time frame.** The x-axis is pinned to `0 … maxSecs` from the
+    activity's timeline (`traceTimeline`), never to where a channel's readings start or stop,
+    and the average line spans the full axis — so switching tabs never rescales time. A channel
+    with no readings at the start or end (cadence before the first step) shows empty edges.
+  - **Missing data is a break, not a line.** Zero HR/cadence readings are dropped
+    (`skipZero`), and any gap longer than `traceGapSeconds` (30 s) between kept readings
+    becomes a `null` point with `spanGaps: false`, so the line breaks instead of drawing a
+    ramp across time that had no readings (a padel player standing between points). Strava's
+    smart recording spaces samples up to ~20 s, which stays bridged.
+  - Distance sports plot **moving time** (stopped samples are dropped and the rest spread over
+    `moving_time`); time-based activities plot the recorded clock.
 - A **heart-rate zone** bar.
 - When the summary carries an `analysis` block, an **Effort analysis** section
   (`.wv-analysis`): insight tiles for **aerobic decoupling** (with a signal-coloured verdict

@@ -927,18 +927,31 @@ function traceTimeline(streams, set, movingTimeline) {
     return { indices: indices, times: n ? streams.time.data.slice() : [], maxSecs: movingTimeSecs || (n ? streams.time.data[n - 1] : 0) };
 }
 
+// traceGapSeconds is the longest stretch without a reading the trace line still bridges.
+// Past it the line breaks (a null point; Chart.js leaves gaps with spanGaps off), so a padel
+// player standing between points shows as missing cadence, not a ramp across two minutes.
+// Strava's smart recording spaces samples up to ~20 s apart, which stays bridged.
+const traceGapSeconds = 30;
+
 // tracePoints turns one channel into chart points along the timeline: scaled into the
 // presented unit, optionally smoothed, and without the zero readings heart rate and cadence
-// record while paused.
+// record while paused. A gap longer than traceGapSeconds between kept readings becomes a
+// null point, so the line breaks there instead of interpolating.
 function tracePoints(channel, timeline) {
     const data = channel.stream && channel.stream.data;
     if (!data || data.length === 0) return [];
     const values = timeline.indices.map(i => (data[i] || 0) * channel.factor);
     const smoothed = channel.smooth > 1 ? rollingMean(values, channel.smooth) : values;
     const points = [];
+    var lastX = null;
     for (let j = 0; j < smoothed.length; j++) {
         if (channel.skipZero && !(values[j] > 0)) continue;
-        points.push({ x: timeline.times[j], y: Math.round(smoothed[j]) });
+        const x = timeline.times[j];
+        if (lastX != null && x - lastX > traceGapSeconds) {
+            points.push({ x: Math.round((lastX + x) / 2), y: null });
+        }
+        points.push({ x: x, y: Math.round(smoothed[j]) });
+        lastX = x;
     }
     return points.some(p => p.y > 0) ? points : [];
 }
@@ -1579,13 +1592,15 @@ function renderTraceChart(canvasID, channel, maxSecs, average) {
         backgroundColor: hexToRGBA(lineColor, 0.2),
         tension: 0.3,
         pointRadius: 0,
-        borderWidth: 2
+        borderWidth: 2,
+        spanGaps: false // tracePoints marks missing data with null points; keep those as breaks
     }];
     if (average != null) {
-        var first = channel.points[0].x, last = channel.points[channel.points.length - 1].x;
+        // Span the whole axis, not just this channel's readings, so every tab's frame matches.
+        var last = maxSecs || channel.points[channel.points.length - 1].x;
         datasets.push({
             label: "Average",
-            data: [{ x: first, y: average }, { x: last, y: average }],
+            data: [{ x: 0, y: average }, { x: last, y: average }],
             fill: false,
             borderColor: tickColor,
             borderDash: [5, 4],
