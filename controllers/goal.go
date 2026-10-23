@@ -36,7 +36,7 @@ func APIRegisterGoalToSeason(context *gin.Context) {
 
 	// Verify exercise interval
 	if goal.ExerciseInterval == 0 || goal.ExerciseInterval > 21 {
-		context.JSON(http.StatusBadRequest, gin.H{"error": "Your exercise goal must be between 1 and 21."})
+		context.JSON(http.StatusBadRequest, gin.H{"error": "Your weekly goal must be between 1 and 21 workouts."})
 		context.Abort()
 		return
 	}

@@ -47,9 +47,9 @@ func analysisStreams(times []int, vel []float64, hr []int, alt []float64) *model
 }
 
 func cumFor(s *models.StravaActivityStreams) ([]int, []float64) {
-	n := streamLength(s)
-	times := streamTimes(s, n)
-	return times, cumulativeDistanceMeters(s, times, n)
+	n := models.StreamLength(s)
+	times := models.StreamTimes(s, n)
+	return times, models.CumulativeDistanceMeters(s, times, n)
 }
 
 func TestMidpointIndex(t *testing.T) {

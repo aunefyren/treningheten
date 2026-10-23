@@ -32,13 +32,15 @@ type OperationStreamRollup struct {
 	AvgCadence     *int
 	TempC          *int
 	ElevationGainM *float64
+	AvgWatts       *int
 }
 
 // ComputeStreamRollup derives the stored list scalars from a stream. Heart rate and cadence
 // average only positive samples (both read 0 while paused); the max heart rate reuses the
 // plausible cap so a dropout can't inflate it; temperature averages all samples (it can be
-// negative); elevation gain sums the positive altitude changes. Shared by the Strava sync and
-// the one-time backfill so the two stay identical.
+// negative); elevation gain sums the positive altitude changes; average power includes the
+// zero samples (coasting is part of a ride), like the read view's power tile. Shared by the
+// Strava sync and the stream backfill so the two stay identical.
 func ComputeStreamRollup(s *StravaActivityStreams) OperationStreamRollup {
 	rollup := OperationStreamRollup{}
 	if s == nil {
@@ -79,6 +81,14 @@ func ComputeStreamRollup(s *StravaActivityStreams) OperationStreamRollup {
 		}
 		gain = roundHalf(gain*10) / 10
 		rollup.ElevationGainM = &gain
+	}
+	if s.Watts != nil && len(s.Watts.Data) > 0 {
+		sum := 0
+		for _, v := range s.Watts.Data {
+			sum += v
+		}
+		avg := int(roundHalf(float64(sum) / float64(len(s.Watts.Data))))
+		rollup.AvgWatts = &avg
 	}
 	return rollup
 }

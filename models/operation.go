@@ -32,6 +32,11 @@ type Operation struct {
 	AvgCadence     *int     `json:"avg_cadence" gorm:"default: null"`
 	TempC          *int     `json:"temp_c" gorm:"default: null"`
 	ElevationGainM *float64 `json:"elevation_gain_m" gorm:"default: null"`
+	AvgWatts       *int     `json:"avg_watts" gorm:"default: null"`
+	// StreamDerivedVersion is the models.StreamDerivedVersion the rollups and best efforts
+	// above were computed with; 0 means never. The stream backfill reprocesses rows below
+	// the current version.
+	StreamDerivedVersion int `json:"-" gorm:"not null; default: 0"`
 }
 
 type OperationCreationRequest struct {
@@ -158,13 +163,6 @@ type ActionCreationRequest struct {
 	Equipment string `json:"equipment"`
 }
 
-type ActionStatistics struct {
-	Action     Action                 `json:"action"`
-	Statistics StatisticsCompilation  `json:"statistics"`
-	Operations []OperationObject      `json:"operations"`
-	Media      *ActionMediaStatistics `json:"media"`
-}
-
 // ActionMediaStatistics is the aggregated soundtrack overlay for an action's
 // statistics period. It is nil unless media is enabled and at least one matched
 // session had playback rows, so the frontend renders the block only when relevant.
@@ -202,32 +200,4 @@ type MediaCountItem struct {
 	Artist  string `json:"artist"`
 	Count   int    `json:"count"`
 	Artwork string `json:"artwork,omitempty"`
-}
-
-type StatisticsCompilation struct {
-	Sums     StatisticsSumCompilation     `json:"sums"`
-	Averages StatisticsAverageCompilation `json:"averages"`
-	Tops     StatisticsTopCompilation     `json:"tops"`
-}
-
-type StatisticsSumCompilation struct {
-	Distance   float64 `json:"distance"`
-	Time       int64   `json:"time"`
-	Repetition float64 `json:"repetition"`
-	Weight     float64 `json:"weight"`
-	Operations int64   `json:"operations"`
-}
-
-type StatisticsAverageCompilation struct {
-	Distance   float64 `json:"distance"`
-	Time       int64   `json:"time"`
-	Repetition float64 `json:"repetition"`
-	Weight     float64 `json:"weight"`
-}
-
-type StatisticsTopCompilation struct {
-	Distance   *OperationObject `json:"distance"`
-	Time       *OperationObject `json:"time"`
-	Repetition *OperationObject `json:"repetition"`
-	Weight     *OperationObject `json:"weight"`
 }

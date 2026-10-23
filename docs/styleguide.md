@@ -66,6 +66,14 @@ of decorative per-module colours is clutter — don't.
 edge, no ad-hoc heavy borders or divider lines under titles. Let the panel frame do the
 separating; don't add a second border system inside it.
 
+## Writing
+
+Copy is part of the design: sentence case, active voice, plain verbs, and the same word through
+a flow (a "Publish" button leads to a "Published" note). The **domain words** are fixed in
+[`vocabulary.md`](vocabulary.md): the UI says *workout* (never "session"), *activity* for a part
+of a workout, *activity type* for the catalogue entry, and never uses "exercise" as a unit.
+Check new copy, tooltips, confirms and API error messages against it.
+
 ## Tokens
 
 **Every colour in the app comes from a token here — never a hardcoded hex/rgb.** This is the
@@ -292,11 +300,10 @@ or the bluish `--trans-lightblue` borders.
 
 | Class | Use | Status |
 |---|---|---|
-| `.stat-card` | metric tile (statistics); `data-family="movement\|effort\|strength\|audio\|time\|neutral"` sets a per-family accent stripe (`--stat-accent`, tokenised). Sub-elements `.stat-card-label` / `.stat-card-value` / `.stat-card-unit`. | **light** |
+| `.stat-card` | metric tile (statistics); `data-family="movement\|effort\|strength\|audio\|time\|neutral"` sets a per-family accent stripe (`--stat-accent`, tokenised). Sub-elements `.stat-card-label` / `.stat-card-value` / `.stat-card-unit` and an optional quiet `.stat-card-detail` line (a comparison, a date link). | **light** |
 | `.user-stat-card`, `.user-streak-card` | profile stat / streak tiles — light **metric tiles**: `--inset-bg` fill + `--inset-border` hairline, value in `--font-display` navy, muted `--lightblue` label. | light |
 | `.user-stats-empty` | insufficient-data note standing where a row of profile tiles would be (used both for a whole missing breakdown and inside a single withheld period tab) — inset block (`--inset-bg` + `--inset-border` hairline, `--radius-sm`), a `…-title` line and a muted `--lightblue` `…-hint`. Use it when a data section has a *reason* to be absent; a section with nothing to say should say so, not leave a hole. | light |
 | `.ai-message-card` | the AI greeting widget | light |
-| `.panel-card` | centred white content-card wrapper (extracted Phase 4) | transitional |
 | `.card` / `.card-header` / `.card-body` | the shared page-shell wrapper (all pages) — **light** eggshell surface, navy text (`base.css`) | **light (base)** |
 
 **Inset blocks** (inside a module panel): every small box nested in a panel — the number box,
@@ -345,6 +352,66 @@ bare text.
 the ring drops its arc and shows *Sick leave* / *Streak kept* in place of the count (body font —
 it's text, not a numeral), with a one-line `.hero-rest-note` under it naming the season. Calm
 neutrals only: resting is a state, not a warning, so no signal hue and no celebration pulse.
+
+### Day header
+
+`.day-head` (`workout.css`) — the panel at the top of the day page (`/exercises/:id`), a module
+panel like `.wv-session` below it (white, hairline, blue left bar) and the same `46rem` column
+(`.day-page`), so header and workouts line up. Left-aligned. Its one memorable element is the
+**week strip** (`.day-week`): seven `.day-week-tile`s, each a weekday name over that day's
+counted workouts in the **display font**, on the inset convention. The tile is self-contained
+(rendered as `<a>`, `<button>` or `<span>` depending on whether the day can be opened) and
+carries the one `--focus-ring`.
+
+- **The day on screen** (`.is-viewing`) gets the `--blue` outline — the accent marks "you are
+  here", as in the nav. **Today** (`.is-today`) underlines its weekday name in `--blue`. Days that
+  can't be opened (`.is-unavailable`) dim to 0.55; days with no workouts mute their figure to
+  `--lightblue`.
+- **Week count** (`.day-week-count`) — the only large display-font numeral, right-aligned beside
+  the date: the week's counted workouts.
+- **Season rows** (`.day-season`) — one per season: name, a thin inset progress bar
+  (`--module-accent` fill, `--success` at 100% with a check, the ring's rule) and `n / goal` in
+  the display font. A sick-leave week (`.is-resting`) shows the hero's calm resting wording in
+  place of the bar. On `≤480px` the bar drops under the name.
+- **Notes** in the panel (`.day-settled`) and under it (`.day-add-note`, `.day-empty`) are muted
+  `--mediumblue` text; the settled note is an inset block because it explains a whole-week state.
+- **Day note** is a standard `.field` with a quiet `.day-note-status` ("Saved") beside the label —
+  feedback in place, not in the top alert bar.
+- **Gear line** (`.day-gear`): icon, the gear used, and a `.btn--ghost.btn--sm` "Manage gear".
+- Below the workouts: the add row reuses the builder's `.we-add-exercise` (wrapped in
+  `.workout-view` so its tokens resolve), a deleted workout is one inset `.day-deleted` row with
+  Restore, Combine is a `.btn--ghost` shown only once two workouts are ticked, and `.day-links`
+  are plain `--mediumblue` links. The page hides things with the `hidden` attribute;
+  `.day-page [hidden]` makes it win over components that set their own `display`.
+
+### Statistics
+
+`/statistics` (`instrument.css`, the `.stats-*` and `.record-*` rules) is five tabs over one
+column (`.stats-page`, capped at `62em` like `.stat-panel`). See
+[`statistics.md`](statistics.md) for what each tab shows.
+
+- **Tabs** (`.stats-tabs`) are the segmented `.user-stat-tab`s with `role="tablist"`,
+  `aria-selected` and arrow-key movement. On a phone the bar **scrolls sideways** rather than
+  squeezing five labels. **Segments** (`.stats-segments`, `--small`) are the same control for
+  periods and chart metrics, with `aria-pressed`.
+- **Headline tiles** (`.stats-headline`) are `.stat-card`s straight on the page, filling the
+  row, each with a `.stat-card-detail` comparing with the previous period in words ("3 more than
+  the previous 4 weeks"), not arrows or colour.
+- **Panels** are `.stat-panel`s with an `h2.stats-heading` (body font, sentence case) and an
+  optional `.stats-panel-head` holding a segment or a ghost button on the right.
+  `.stat-section-title` is now a sentence-case `h3`; the tracked-out uppercase eyebrow is gone.
+- **Charts** (`.stats-chart`, fixed height) read their colours from tokens at draw time:
+  `--module-accent` bars and points, `--mediumblue` lines and ticks, `--grey` gridlines.
+  Sick-leave weeks are grey points, never a signal hue. A trend that improves downwards (pace,
+  best-effort times) is drawn on a reversed axis, so better always reads as up.
+- **Activity mix** (`.stats-mix`) reuses the day header's season-row shape: name (a button into
+  the Activity types tab), a thin inset share bar, the time in the display font.
+- **Record tiles** (`.record-tile`) are the page's signature: a self-contained `<button>` on
+  the inset convention — label, the value large in the display font, a quiet detail (pace, the
+  set behind a weight), the date and "Beat 23:10 from 12 Aug". A record under 30 days old adds a
+  `.meta-tag--success` "New" (a new record is a success signal). The tile opens the record's
+  history in a `.trm` modal: a stepped chart and a list of the days it was beaten, each a link.
+- Empty tabs use `.user-stats-empty` with a reason and what to do.
 
 ### Auth panel
 
@@ -597,8 +664,7 @@ is a later pass. Compose them: `class="u-w-full u-text-center"`.
 | sizing | `.u-w-full` `.u-fill` (w+h 100%) `.u-w-{5,8,10,12,16,18,20}` (em) |
 
 Component classes extracted from repeated inline styles (in `components.css`):
-`.integration-btn` (12em connect/disconnect buttons), `.panel-card` (centred white card
-wrapper), `.panel-wide` (1000px panel).
+`.integration-btn` (12em connect/disconnect buttons).
 
 **Scope note:** visibility toggling (`display:none` + `.style.display` in JS) is *state*,
 not theme — left inline on purpose. Dynamic (`${…}`) values stay inline too.
@@ -614,7 +680,7 @@ not theme — left inline on purpose. Dynamic (`${…}`) values stay inline too.
    utility over an inline `style="…"`. If you need a value the utilities don't have, add the
    utility (keep the set small and predictable) rather than an inline style.
 4. **A recurring widget → a semantic component class** (in `components.css` or
-   `instrument.css`), not a pile of utilities. `.integration-btn` / `.panel-card` are examples.
+   `instrument.css`), not a pile of utilities. `.integration-btn` / `.record-tile` are examples.
 5. **Put the rule in the right layer** (see *Where things live*): global element/base →
    `base.css`; shared component → `components.css`; the new dark design system →
    `instrument.css`; atomic helper → `utilities.css`. Tokens only in `tokens.css`.
@@ -624,6 +690,34 @@ not theme — left inline on purpose. Dynamic (`${…}`) values stay inline too.
    conventions — don't extend the legacy pattern.
 
 ## Decisions log
+
+- **`/statistics` rebuilt as five tabs; records added.** The page was three stacked sections
+  with their own pickers: season figures as emoji pill lines on legacy slate `rgba` colours,
+  activity statistics behind two raw date inputs defaulting to a week, and a weight chart
+  behind a database icon. It is now Overview / Records / Activity types / Seasons / Body (see
+  *Statistics* above), every chart on token colours, every figure a `.stat-card`. Nothing was
+  dropped: season figures and both charts, totals/averages/bests/sensors, the soundtrack, the
+  heatmap and the weight log are all still there. Fixed on the way: "Heaviest" summed every set
+  of an activity, distances were summed across units, sensor figures were recomputed in the
+  browser from every raw stream in the period (now the server's rollups, which also gives
+  runners cadence in steps per minute), and the activity chart canvas was never drawn. Retired
+  `.season-statistics-element*`, `.panel-card`, `.panel-wide` and the uppercase
+  `.stat-section-title`. No new tokens.
+
+- **Day page header + one vocabulary.** The area around the builder on `/exercises/:id` was a
+  centred "Date: …" line, a bare "Notes" textarea that saved silently, a stray `<hr>`, an
+  unlabelled 6rem dashed "+" square and an always-visible Combine button; "Manage gear" was
+  hidden in an editor field most workouts never show. It became the **Day header** (see above):
+  date, week count, a week strip, one row per season (a user can hold several goals at once, so
+  the count is shown once and each season shows its own goal, completion and sick leave from the
+  leaderboard's rule), the day note with in-place "Saved", and a gear line with "Manage gear".
+  The add row says "Add workout", and the page now shows *why* it is absent (future day, settled
+  week, three counted workouts) instead of offering an action the API refuses. The shell card
+  header keeps its tagline like every other page. Retired `.addExerciseWrapper`,
+  `.exercisesWrapper`, `.exerciseWrapper`, `.exerciseSubWrapper`. Same change fixed the UI's
+  domain words in [`vocabulary.md`](vocabulary.md) (see Writing) and swept the copy on this page,
+  the builder, `/account`, `/statistics`, `/users`, the front page, goal registration, the gear
+  delete confirm and the matching API errors. No new tokens.
 
 - **App icon on a navy tile; favicon follows the colour scheme.** The installed PWA's first
   manifest icon was a black glyph on transparent, invisible on dark launchers, and the tab

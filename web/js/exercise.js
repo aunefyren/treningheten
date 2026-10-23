@@ -87,40 +87,7 @@ function load_page(result) {
         exerciseDayID = 0;
     }
 
-    var html = `
-        <div class="" id="front-page">
-
-            <div class="module">
-            
-                <div class="text-body u-text-center">
-                    <div class="exerciseDayWrapper" id="exerciseDayWrapper">
-                        <p id="exercise-day-date" class="u-text-center">...</p>
-                        <p id="exercise-day-exercise-goal" class="u-text-center">...</p>
-
-                        <textarea onchange="updateExerciseDay('${exerciseDayID}')" class="day-note-area u-mt-1" id="exercise-day-note" name="exercise-day-exercise-note" rows="3" cols="33" placeholder="Notes"></textarea>
-                    </div>
-                </div>
-
-                <hr class="u-my-1">
-
-                <div class="exercisesWrapper" id="exercisesWrapper"></div>
-
-                <div class="addExerciseWrapper clickable hover" id="addExerciseWrapper" title="Add session" onclick="addExercise('${exerciseDayID}');">
-                    <img src="/assets/plus.svg" class="button-icon">
-                </div>
-
-                <div class="u-mt-3" style="display: none;" id="stravaCombineButtonWrapper">
-                    <button type="submit" class="btn" id="" onclick="combineStravaExercises(); return false;">
-                        Combine Strava exercises
-                    </button>
-                </div>
-
-            </div>
-
-        </div>
-    `;
-
-    document.getElementById('content').innerHTML = html;
+    document.getElementById('content').innerHTML = dayPageHTML(exerciseDayID);
     document.getElementById('card-header').innerHTML = 'Write every detail.';
     clearResponse();
 
@@ -129,10 +96,298 @@ function load_page(result) {
         loadExerciseList()
         loadGearList()
         getExerciseDay(exerciseDayID);
+        getExerciseDayWeek(exerciseDayID);
     } else {
         showLoggedOutMenu();
         invalid_session();
     }
+}
+
+// ── Day page shell ───────────────────────────────────────────────────────────
+// Everything around the workouts: the day header (date, week strip, per-season results,
+// day note, gear), the add row, Combine and the related links. The header reads the day
+// from GET /exercise-days/:id and the week from GET /exercise-days/:id/week; see
+// docs/exercises.md, "Day header".
+
+var exerciseDayWeek = null;
+
+function dayPageHTML(exerciseDayID) {
+    return `
+        <div class="day-page">
+            <section class="day-head" aria-labelledby="day-title">
+                <div class="day-head-top">
+                    <div class="day-title-block">
+                        <h1 class="day-title" id="day-title">…</h1>
+                        <p class="day-date" id="day-date"></p>
+                    </div>
+                    <div class="day-week-count" id="day-week-count"></div>
+                </div>
+                <ol class="day-week" id="day-week" aria-label="Days of the week"></ol>
+                <div class="day-seasons" id="day-seasons"></div>
+                <p class="day-settled" id="day-settled" hidden>This week is settled. You can still edit workouts, but not add or delete them, or change what counts.</p>
+                <div class="field day-note-field">
+                    <div class="day-note-label-row">
+                        <label for="exercise-day-note" class="field-label">Day note</label>
+                        <span class="day-note-status" id="day-note-status" role="status"></span>
+                    </div>
+                    <textarea id="exercise-day-note" rows="3" oninput="clearDayNoteStatus()" onchange="updateExerciseDay('${exerciseDayID}')"></textarea>
+                </div>
+                <div class="day-gear" id="day-gear"></div>
+            </section>
+
+            <div class="day-workouts" id="exercisesWrapper"></div>
+            <p class="day-empty" id="day-empty" hidden>Nothing logged on this day yet.</p>
+            <div class="day-add" id="day-add"></div>
+
+            <div class="btn-group day-combine" id="stravaCombineButtonWrapper" hidden>
+                <button type="button" class="btn btn--ghost" id="day-combine-button" onclick="combineStravaExercises()">Combine workouts</button>
+            </div>
+
+            <nav class="day-links" id="day-links" aria-label="Related pages">
+                <a href="/exercises">All exercises</a>
+                <a href="/gear">Gear</a>
+            </nav>
+        </div>
+    `;
+}
+
+function getExerciseDayWeek(exerciseDayID) {
+    var xhttp = new XMLHttpRequest();
+    xhttp.onreadystatechange = function() {
+        if (this.readyState == 4) {
+            try {
+                result = JSON.parse(this.responseText);
+            } catch(e) {
+                console.log(e + ' - Response: ' + this.responseText);
+                error("Could not reach API.");
+                return;
+            }
+            if (result.error) {
+                error(result.error);
+            } else {
+                exerciseDayWeek = result.week;
+                placeDayWeek();
+            }
+        }
+    };
+    xhttp.withCredentials = true;
+    xhttp.open("get", api_url + "auth/exercise-days/" + exerciseDayID + "/week");
+    xhttp.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
+    xhttp.setRequestHeader("Authorization", jwt);
+    xhttp.send();
+    return false;
+}
+
+// sameCalendarDay compares two dates by local calendar day.
+function sameCalendarDay(a, b) {
+    return a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
+}
+
+// isFutureDay reports whether a date falls after today, by local calendar day.
+function isFutureDay(date) {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const day = new Date(date);
+    day.setHours(0, 0, 0, 0);
+    return day.getTime() > today.getTime();
+}
+
+function workoutCountLabel(count) {
+    return count === 1 ? "workout" : "workouts";
+}
+
+// placeDayWeek renders everything that depends on the week: the count, the strip, the
+// per-season rows, the settled note and the add row. Called on load and after any change
+// that can move a count (add, delete, restore, counting toggle).
+function placeDayWeek() {
+    const week = exerciseDayWeek;
+    if (!week) return;
+
+    const thisWeek = week.days.some(day => sameCalendarDay(new Date(day.date), new Date()));
+    document.getElementById('day-week-count').innerHTML = `
+        <span class="day-week-count-value">${week.workouts}</span>
+        <span class="day-week-count-label">${workoutCountLabel(week.workouts)} ${thisWeek ? "this" : "that"} week</span>
+    `;
+
+    document.getElementById('day-week').innerHTML = week.days.map(weekDayHTML).join("");
+    document.getElementById('day-seasons').innerHTML = week.seasons.map(daySeasonHTML).join("");
+
+    const viewedDay = week.days.find(day => day.id === exerciseDayID);
+    const future = viewedDay ? isFutureDay(viewedDay.date) : false;
+    document.getElementById('day-settled').hidden = week.loggable || future;
+
+    const links = document.getElementById('day-links');
+    if (thisWeek && !links.querySelector('.day-links-front')) {
+        links.insertAdjacentHTML('beforeend', `<a class="day-links-front" href="/">This week on the front page</a>`);
+    }
+
+    placeDayAdd(viewedDay, future);
+}
+
+// weekDayHTML renders one tile of the week strip. A day with a row links straight to it;
+// a loggable day without one goes through the get-or-create lookup, like the front page's
+// edit button; anything else (a future day, or a past day nobody logged) can't be opened.
+function weekDayHTML(day, index) {
+    const date = new Date(day.date);
+    const weekdayName = date.toLocaleDateString('en-GB', { weekday: 'short' });
+    const fullName = GetDateString(date, true);
+    const viewing = day.id && day.id === exerciseDayID;
+    const today = sameCalendarDay(date, new Date());
+
+    var classes = "day-week-tile";
+    if (viewing) classes += " is-viewing";
+    if (today) classes += " is-today";
+    if (day.workouts > 0) classes += " has-workouts";
+
+    const inner = `
+        <span class="day-week-name">${weekdayName}</span>
+        <span class="day-week-figure">${day.workouts}</span>
+    `;
+    const label = `${fullName}, ${day.workouts} ${workoutCountLabel(day.workouts)}${today ? ", today" : ""}`;
+
+    var tile;
+    if (viewing) {
+        tile = `<span class="${classes}" aria-current="date" aria-label="${label}">${inner}</span>`;
+    } else if (day.id) {
+        tile = `<a class="${classes}" href="/exercises/${day.id}" aria-label="${label}">${inner}</a>`;
+    } else if (day.loggable) {
+        // The API numbers weekdays as Go's time.Weekday (Sunday=0); the strip starts on Monday.
+        tile = `<button type="button" class="${classes}" onclick="openWeekDay(${(index + 1) % 7})" aria-label="${label}">${inner}</button>`;
+    } else {
+        const reason = isFutureDay(day.date) ? "You can't log workouts on future days" : "Nothing logged";
+        tile = `<span class="${classes} is-unavailable" title="${reason}" aria-label="${label}. ${reason}">${inner}</span>`;
+    }
+
+    return `<li>${tile}</li>`;
+}
+
+// openWeekDay opens a weekday of the current week that has no day row yet; the lookup
+// creates it (see APIGetExerciseDayInWeek).
+function openWeekDay(weekDay) {
+    var xhttp = new XMLHttpRequest();
+    xhttp.onreadystatechange = function() {
+        if (this.readyState == 4) {
+            try {
+                result = JSON.parse(this.responseText);
+            } catch(e) {
+                console.log(e + ' - Response: ' + this.responseText);
+                error("Could not reach API.");
+                return;
+            }
+            if (result.error) {
+                error(result.error);
+            } else {
+                window.location = '/exercises/' + result.exercise.id;
+            }
+        }
+    };
+    xhttp.withCredentials = true;
+    xhttp.open("get", api_url + "auth/exercise-days/week?weekDay=" + weekDay);
+    xhttp.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
+    xhttp.setRequestHeader("Authorization", jwt);
+    xhttp.send();
+}
+
+// daySeasonHTML renders the week's result in one season, from the leaderboard's numbers.
+// A sick-leave week shows the hero's resting wording instead of a bar.
+function daySeasonHTML(season) {
+    const name = `<span class="day-season-name">${escapeHTML(season.name)}</span>`;
+    if (season.sick_leave) {
+        return `<div class="day-season is-resting">${name}<span class="day-season-rest">Sick leave, streak kept</span></div>`;
+    }
+
+    const pct = Math.min(100, Math.round(season.completion * 100));
+    const complete = season.completion >= 1;
+    return `
+        <div class="day-season${complete ? " is-complete" : ""}">
+            ${name}
+            <span class="day-season-bar" role="progressbar" aria-valuemin="0" aria-valuemax="${season.goal}" aria-valuenow="${Math.min(season.workouts, season.goal)}" aria-label="${escapeHTML(season.name)}, weekly goal">
+                <span class="day-season-fill" style="width: ${pct}%"></span>
+            </span>
+            <span class="day-season-figure">${season.workouts} / ${season.goal}${complete ? `<img src="/assets/check.svg" class="day-season-check" alt="Weekly goal met">` : ""}</span>
+        </div>
+    `;
+}
+
+// placeDayAdd renders the add row, or the reason there is none. The rules mirror
+// APICreateExercise: current week only, not in the future, and at most workout_limit
+// counted workouts per day.
+function placeDayAdd(viewedDay, future) {
+    const add = document.getElementById('day-add');
+    if (!viewedDay) {
+        add.innerHTML = "";
+        return;
+    }
+
+    if (future) {
+        add.innerHTML = `<p class="day-add-note">You can log workouts on this day once it arrives.</p>`;
+    } else if (!viewedDay.loggable) {
+        add.innerHTML = "";
+    } else if (viewedDay.workouts >= exerciseDayWeek.workout_limit) {
+        add.innerHTML = `<p class="day-add-note">A day can hold ${exerciseDayWeek.workout_limit} workouts that count. Mark one as not counting to add another.</p>`;
+    } else {
+        add.innerHTML = `
+            <div class="workout-view">
+                <button type="button" class="we-add-exercise" onclick="addExercise('${exerciseDayID}')">
+                    <img src="/assets/plus.svg" alt="">Add workout
+                </button>
+            </div>
+        `;
+    }
+}
+
+// placeDayGear lists the gear on this day's workouts (from the cached day) beside the
+// always-available Manage gear button.
+function placeDayGear() {
+    const names = [];
+    Object.values(exerciseCache).forEach(exercise => {
+        if (!exercise.is_on) return;
+        (exercise.operations || []).forEach(operation => {
+            if (!operation || !operation.gear) return;
+            // Prefer the live gear list, so a rename in the Manage gear modal shows at once.
+            const gear = gearList.find(g => g.id === operation.gear.id) || operation.gear;
+            const nick = gear.nickname ? " (" + gear.nickname + ")" : "";
+            const name = gear.name + nick;
+            if (!names.includes(name)) names.push(name);
+        });
+    });
+
+    const summary = names.length > 0
+        ? `<span class="day-gear-label">Gear used</span> <span class="day-gear-names">${escapeHTML(names.join(", "))}</span>`
+        : `<span class="day-gear-label">No gear on this day</span>`;
+
+    document.getElementById('day-gear').innerHTML = `
+        <img src="/assets/sliders.svg" class="day-gear-icon" alt="">
+        <span class="day-gear-text">${summary}</span>
+        <button type="button" class="btn btn--ghost btn--sm" onclick="openGearModal()">Manage gear</button>
+    `;
+}
+
+// placeDayEmpty shows the empty state when the day holds no visible workouts. A deleted
+// workout with no activities renders nothing, so an empty wrapper doesn't count.
+function placeDayEmpty() {
+    const workouts = Array.from(document.getElementById('exercisesWrapper').children);
+    document.getElementById('day-empty').hidden = workouts.some(el => el.innerHTML.trim() !== "");
+}
+
+// placeCombineButton shows Combine once two or more Strava workouts are ticked, and says
+// how many it will merge.
+function placeCombineButton() {
+    const checked = document.querySelectorAll('.stravaCombineCheck:checked').length;
+    const wrapper = document.getElementById('stravaCombineButtonWrapper');
+    if (!wrapper) return;
+    wrapper.hidden = checked < 2;
+    document.getElementById('day-combine-button').textContent = `Combine ${checked} workouts`;
+}
+
+document.addEventListener('change', function(event) {
+    if (event.target.classList && event.target.classList.contains('stravaCombineCheck')) {
+        placeCombineButton();
+    }
+});
+
+function clearDayNoteStatus() {
+    document.getElementById('day-note-status').textContent = "";
 }
 
 function getExerciseDay(exerciseDayID) {
@@ -159,7 +414,7 @@ function getExerciseDay(exerciseDayID) {
             }
 
         } else {
-            info("Loading exercise day...");
+            info("Loading day...");
         }
     };
     xhttp.withCredentials = true;
@@ -171,17 +426,10 @@ function getExerciseDay(exerciseDayID) {
 }
 
 function placeExerciseDay(exerciseDay) {
-    var dateString = "Error"
-    try {
-        var resultDate = new Date(Date.parse(exerciseDay.date));
-        dateString = date_start_string = GetDateString(resultDate, true)
-    } catch(e) {
-        console.log("Error: " + e)
-    }
-
-    document.getElementById('exercise-day-date').innerHTML = "<b>Date: " + dateString + "</b>";
-    //document.getElementById('exercise-day-exercise-goal').innerHTML = "Exercise goal for week: " + exerciseDay.goal.exercise_interval;
-    document.getElementById('exercise-day-note').innerHTML = escapeHTML(exerciseDay.note || '');
+    const date = new Date(Date.parse(exerciseDay.date));
+    document.getElementById('day-title').textContent = date.toLocaleDateString('en-GB', { weekday: 'long' });
+    document.getElementById('day-date').textContent = date.toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
+    document.getElementById('exercise-day-note').value = HTMLDecode(exerciseDay.note || '');
 
     placeExercises(exerciseDay.exercises);
 }
@@ -193,19 +441,13 @@ function placeExercises(exercises) {
     counter = 1;
     exerciseCache = {};
 
-    try {
-        document.getElementById('stravaCombineButtonWrapper').style.display = "none";
-    } catch(e) {
-        console.log("Failed to remove Strava button. Error: " + e)
-    }
-
     exercises.forEach(exercise => {
         exercise._count = counter;
         exerciseCache[exercise.id] = exercise;
 
         var exerciseGenerated = generateExerciseHTML(exercise, counter)
         var exerciseHTML = `
-            <div class="exerciseWrapper" id="exercise-${exercise.id}">
+            <div class="day-workout" id="exercise-${exercise.id}">
                 ${exerciseGenerated}
             </div>
         `;
@@ -217,6 +459,9 @@ function placeExercises(exercises) {
     });
 
     document.getElementById('exercisesWrapper').innerHTML = exercisesHTML;
+    placeDayEmpty();
+    placeDayGear();
+    placeCombineButton();
 }
 
 // startOfWeek returns local midnight on the Monday of the given date's week. Used to decide
@@ -242,9 +487,9 @@ function isExerciseWeekEditable(exercise) {
 // rule. Shared by the summary card and the editor so they can't drift.
 function sessionDeleteButton(exercise, count) {
     if (!isExerciseWeekEditable(exercise)) {
-        return `<img src="/assets/trash-2.svg" class="btn_logo wv-action-icon is-frozen" title="Can't delete a session after its week has ended">`;
+        return `<img src="/assets/trash-2.svg" class="btn_logo wv-action-icon is-frozen" title="Can't delete a workout after its week has ended">`;
     }
-    return `<img src="/assets/trash-2.svg" class="btn_logo clickable wv-action-icon" title="Delete session" onclick="updateExercise('${exercise.id}', false, ${count}, '${exercise.time}', true)">`;
+    return `<img src="/assets/trash-2.svg" class="btn_logo clickable wv-action-icon" title="Delete workout" onclick="updateExercise('${exercise.id}', false, ${count}, '${exercise.time}', true)">`;
 }
 
 // sessionRestoreButton renders the "Restore" action for a deleted (is_on=false) session,
@@ -252,9 +497,9 @@ function sessionDeleteButton(exercise, count) {
 // restore after the week" rule.
 function sessionRestoreButton(exercise, count) {
     if (!isExerciseWeekEditable(exercise)) {
-        return `<button type="button" disabled title="Can't restore a session after its week has ended" class="btn u-w-8 is-frozen"><img src="/assets/refresh-cw.svg" class="color-invert">Restore</button>`;
+        return `<button type="button" disabled title="Can't restore a workout after its week has ended" class="btn btn--sm is-frozen"><img src="/assets/refresh-cw.svg" class="color-invert">Restore</button>`;
     }
-    return `<button type="submit" onclick="updateExercise('${exercise.id}', true, ${count}, '${exercise.time}', true)" id="restore-exercise-button-${exercise.id}" class="btn u-w-8"><img src="/assets/refresh-cw.svg" class="color-invert">Restore</button>`;
+    return `<button type="submit" onclick="updateExercise('${exercise.id}', true, ${count}, '${exercise.time}', true)" id="restore-exercise-button-${exercise.id}" class="btn btn--sm"><img src="/assets/refresh-cw.svg" class="color-invert">Restore</button>`;
 }
 
 // generateExerciseHTML returns the session's markup, or "" for a switched-off session with
@@ -270,20 +515,11 @@ function generateExerciseHTML(exercise, count, forceFullEditor = false) {
 
         exerciseHTML = renderWorkoutEditor(exercise, count);
     } else if (exercise.operations.length > 0){
+        const activityCount = exercise.operations.length;
         exerciseHTML = `
-            <div class="exerciseSubWrapper" id="exercise-sub-${exercise.id}">
-                <h2>Deleted session</h2>
-                
-                <p>
-                    Contains ${exercise.operations.length} exercise(s).
-                </p>
-
-                <input type="hidden" id="exercise-time-input-${exercise.id}" name="exercise-time-input" pattern="[0-9:]{0,}" placeholder="hh:mm:ss" value="${secondsToDurationString(exercise.duration)}">
-                <textarea class="day-note-area u-mt-1" id="exercise-note-${exercise.id}" name="exercise-exercise-note" rows="3" cols="33" placeholder="Notes" style="display: none;">${escapeHTML(exercise.note || '')}</textarea>
-
+            <div class="day-deleted" id="exercise-sub-${exercise.id}">
+                <span class="day-deleted-text">Deleted workout, ${activityCount} ${activityCount === 1 ? "activity" : "activities"}</span>
                 ${sessionRestoreButton(exercise, count)}
-
-                <hr class="u-my-1">
             </div>
         `;
     }
@@ -312,12 +548,12 @@ function renderWorkoutSummary(exercise, count) {
     // The server's headline names the session (the source's own title, else one generated from
     // the activity categories); the joined activity titles are only a fallback.
     const summaryLine = (exercise.headline && exercise.headline.title)
-        || operations.map(activityTitle).join("  +  ") || "Empty session";
+        || operations.map(activityTitle).join("  +  ") || "Empty workout";
     const subCards = operations.map(op => renderActivitySubCard(op, exercise)).join("");
     const noCountBadge = exercise.counts_toward_goal ? ""
-        : `<span class="wv-nocount-badge" title="This session is logged but doesn't count toward your weekly goal">Doesn't count</span>`;
+        : `<span class="wv-nocount-badge" title="This workout is logged but doesn't count toward your weekly goal">Doesn't count</span>`;
     const privateBadge = exercise.private
-        ? `<span class="wv-nocount-badge" title="Only you can see this session. It still counts toward your weekly goal">Hidden</span>`
+        ? `<span class="wv-nocount-badge" title="Only you can see this workout. It still counts toward your weekly goal">Hidden</span>`
         : "";
 
     return `
@@ -348,17 +584,16 @@ function renderSessionActionRow(exercise, count) {
     var divideHTML = "";
     if (exercise.strava_id && exercise.strava_id.length > 0) {
         const ids = exercise.strava_id.join(";");
-        combineHTML = `<input class="clickable stravaCombineCheck wv-combine" type="checkbox" id="${ids}" title="Select to combine with another session">`;
+        combineHTML = `<input class="clickable stravaCombineCheck wv-combine" type="checkbox" id="${ids}" title="Select to combine with another workout">`;
         if (exercise.strava_id.length > 1) {
-            divideHTML = `<img src="/assets/scissors.svg" class="btn_logo clickable wv-action-icon" title="Split combined activities" onclick="divideStravaExercises('${exercise.id}')">`;
+            divideHTML = `<img src="/assets/scissors.svg" class="btn_logo clickable wv-action-icon" title="Split into separate workouts" onclick="divideStravaExercises('${exercise.id}')">`;
         }
-        try { document.getElementById('stravaCombineButtonWrapper').style.display = "flex"; } catch(e) {}
     }
     return `
         <div class="wv-actions">
             ${combineHTML}
             ${divideHTML}
-            <img src="/assets/edit.svg" class="btn_logo clickable wv-action-icon" title="Edit session" onclick="switchToFullEditor('${exercise.id}')">
+            <img src="/assets/edit.svg" class="btn_logo clickable wv-action-icon" title="Edit workout" onclick="switchToFullEditor('${exercise.id}')">
             ${sessionDeleteButton(exercise, count)}
         </div>
     `;
@@ -509,7 +744,7 @@ function mediaTimelineHTML(exercise) {
         const stat = t.spoken ? mediaSpanStatHTML(it) : trackStatHTML(t.stat, isPeak);
         return `<li class="wv-track${isPeak ? ' is-peak' : ''}">
             ${mediaNodeHTML(it.media_type)}
-            <span class="wv-track-time${t.carried ? ' wv-track-time--carried' : ''}"${t.carried ? ' title="Already playing when the session started"' : ''}>${escapeHTML(t.stamp)}</span>
+            <span class="wv-track-time${t.carried ? ' wv-track-time--carried' : ''}"${t.carried ? ' title="Already playing when the workout started"' : ''}>${escapeHTML(t.stamp)}</span>
             <span class="wv-track-main">
                 <span class="wv-track-title">${escapeHTML(it.title)}</span>
                 ${artist}
@@ -1850,18 +2085,17 @@ function renderWorkoutEditor(exercise, count) {
             `<a class="we-strava-link" href="https://www.strava.com/activities/${id}" target="_blank">Strava activity ${id}<img src="/assets/external-link.svg" alt=""></a>`
         ).join("") + `</div>`;
         const ids = exercise.strava_id.join(";");
-        combineHTML = `<input class="clickable stravaCombineCheck wv-combine" type="checkbox" id="${ids}" title="Select to combine with another session">`;
+        combineHTML = `<input class="clickable stravaCombineCheck wv-combine" type="checkbox" id="${ids}" title="Select to combine with another workout">`;
         if (exercise.strava_id.length > 1) {
-            divideHTML = `<img src="/assets/scissors.svg" class="btn_logo clickable wv-action-icon" title="Split combined activities" onclick="divideStravaExercises('${exercise.id}')">`;
+            divideHTML = `<img src="/assets/scissors.svg" class="btn_logo clickable wv-action-icon" title="Split into separate workouts" onclick="divideStravaExercises('${exercise.id}')">`;
         }
-        try { document.getElementById('stravaCombineButtonWrapper').style.display = "flex"; } catch(e) {}
     }
 
     return `
         <div class="workout-view">
             <div class="we-session" id="exercise-sub-${exercise.id}">
                 <div class="we-session-head">
-                    <span class="we-eyebrow">Editing session</span>
+                    <span class="we-eyebrow">Editing workout</span>
                     <div class="we-session-actions">
                         ${combineHTML}
                         ${divideHTML}
@@ -1887,7 +2121,7 @@ function renderWorkoutEditor(exercise, count) {
                         <input class="clickable" type="checkbox" id="exercise-private-input-${exercise.id}" ${exercise.private ? 'checked' : ''} ${privateAttrs}>
                     </label>
                 </div>
-                <textarea class="we-note" id="exercise-note-${exercise.id}" rows="2" placeholder="Session note" onchange="${onChange}">${escapeHTML(exercise.note || '')}</textarea>
+                <textarea class="we-note" id="exercise-note-${exercise.id}" rows="2" placeholder="Workout note" onchange="${onChange}">${escapeHTML(exercise.note || '')}</textarea>
                 ${stravaLinks}
                 <div class="we-exercises" id="operationsWrapper-${exercise.id}">
                     ${generateOperationsHTML(exercise.operations, exercise.id)}
@@ -1910,7 +2144,7 @@ function generateOperationsHTML(operations, exerciseID) {
 function generateOperationAddButtonHTML(operations, exerciseID) {
     return `
         <button class="we-add-exercise clickable" onclick="addOperation('${exerciseID}')">
-            <img src="/assets/plus.svg" alt=""><span>Add exercise</span>
+            <img src="/assets/plus.svg" alt=""><span>Add activity</span>
         </button>
     `;
 }
@@ -1944,13 +2178,13 @@ function generateOperationHTML(operation) {
                 <option value="timing" ${timingSel}>⏱️</option>
             </select>
             <div class="we-action" id="operation-action-${operation.id}">
-                <input class="we-input we-action-input" type="text" autocomplete="off" id="operation-action-text-${operation.id}" name="operation-action-text" placeholder="Exercise name" value="${escapeHTML(actionName)}" onkeyup="filterFunction('${operation.id}')" onfocus="showSelectDropdown('${operation.id}', true)">
+                <input class="we-input we-action-input" type="text" autocomplete="off" id="operation-action-text-${operation.id}" name="operation-action-text" placeholder="Activity type" value="${escapeHTML(actionName)}" onkeyup="filterFunction('${operation.id}')" onfocus="showSelectDropdown('${operation.id}', true)">
                 <div id="operation-action-text-list-${operation.id}" class="dropdown-actions-wrapper" style="display: none;">
                     ${processExerciseList(operation.id)}
                 </div>
             </div>
-            <img src="/assets/plus.svg" class="btn_logo clickable wv-action-icon" id="addActionWrapper-${operation.id}" title="Create new exercise type" onclick="addAction('${operation.id}')">
-            <img src="/assets/trash-2.svg" class="btn_logo clickable wv-action-icon" title="Remove exercise" onclick="deleteOperation('${operation.id}')">
+            <img src="/assets/plus.svg" class="btn_logo clickable wv-action-icon" id="addActionWrapper-${operation.id}" title="Create new activity type" onclick="addAction('${operation.id}')">
+            <img src="/assets/trash-2.svg" class="btn_logo clickable wv-action-icon" title="Remove activity" onclick="deleteOperation('${operation.id}')">
         </div>
 
         ${gearRowHTML}
@@ -2043,7 +2277,7 @@ function updateExerciseDay(exerciseDayID) {
             if(result.error) {
                 error(result.error);
             } else {
-                document.getElementById('exercise-day-note').innerHTML = escapeHTML(result.exercise_day.note || '');
+                document.getElementById('day-note-status').textContent = "Saved";
             }
 
         }
@@ -2168,6 +2402,7 @@ function rerenderExerciseEditor(exerciseID) {
     if (!exercise) return;
     document.getElementById('exercise-' + exerciseID).innerHTML = generateExerciseHTML(exercise, exercise._count, true);
     injectBackButton(exerciseID);
+    placeDayGear();
 }
 
 // Remove an operation from whichever cached exercise holds it; returns that id.
@@ -2303,6 +2538,7 @@ function syncOperationToCache(operation) {
     if (idx !== -1) {
         exercise.operations[idx] = operation;
     }
+    placeDayGear();
 }
 
 function updateOperationSet(operationSetID, setCount) {
@@ -2359,7 +2595,7 @@ function placeOperationSet(operationSet, operation, setCount) {
 }
 
 function updateExercise(exerciseID, on, count, originalTimeString, fromEditor = false) {
-    if(!on && !confirm("Are you sure you want to delete this session?")) {
+    if(!on && !confirm("Delete this workout?")) {
         return;
     }
 
@@ -2434,6 +2670,9 @@ function updateExercise(exerciseID, on, count, originalTimeString, fromEditor = 
                 } else {
                     placeExercise(result.exercise, count);
                 }
+                // Deleting, restoring or changing what counts moves the week's numbers.
+                getExerciseDayWeek(exerciseDayID);
+                placeDayGear();
             }
 
         }
@@ -2457,6 +2696,8 @@ function placeExercise(exercise, count, forceFullEditor = false) {
     if (forceFullEditor) {
         injectBackButton(exercise.id);
     }
+    placeDayEmpty();
+    placeCombineButton();
 }
 
 function loadExerciseList() {
@@ -2557,12 +2798,14 @@ function placeNewExercise(exercise) {
     exercise._count = count + 1;
     exerciseCache[exercise.id] = exercise;
     var exerciseHTML = `
-        <div class="exerciseWrapper" id="exercise-${exercise.id}">
+        <div class="day-workout" id="exercise-${exercise.id}">
             ${generateExerciseHTML(exercise, count + 1, true)}
         </div>
     `;
     element.insertAdjacentHTML("beforeend", exerciseHTML)
     injectBackButton(exercise.id);
+    placeDayEmpty();
+    getExerciseDayWeek(exerciseDayID);
 }
 
 function deleteExercise() {
@@ -2570,7 +2813,7 @@ function deleteExercise() {
 }
 
 function deleteOperation(operationID) {
-    if(!confirm("Are you sure you want to delete this exercise?")) {
+    if(!confirm("Remove this activity from the workout?")) {
         return;
     }
 
@@ -2710,7 +2953,7 @@ function addAction(operationID) {
         </div>
     `;
 
-    TRModal.open({ eyebrow: "New exercise type", title: "Add exercise", body: body });
+    TRModal.open({ eyebrow: "New activity type", title: "Add activity type", body: body });
 }
 
 // ── Gear ──────────────────────────────────────────────────────────────────────
@@ -2864,7 +3107,7 @@ function setExerciseGear(exerciseID, gearID) {
 function openGearModal() {
     closeAllLists();
     // While the modal is open, any gear change re-renders its body and refreshes the on-page selectors.
-    onGearChanged = function() { renderGearModalBody(); refreshGearSelectors(); };
+    onGearChanged = function() { renderGearModalBody(); refreshGearSelectors(); placeDayGear(); };
     TRModal.open({ eyebrow: "Gear", title: "Manage gear", body: `<div class="gear-empty">Loading gear…</div>` });
     getGear();
 }
@@ -2963,11 +3206,11 @@ function combineStravaExercises() {
     }
 
     if(stravaIDArray.length < 2) {
-        alert("Choose two or more exercises to combine.");
+        alert("Choose two or more workouts to combine.");
         return;
     }
 
-    if(!confirm("Are you sure you want to combine these Strava exercises?")) {
+    if(!confirm("Combine these Strava workouts into one?")) {
         return;
     }
 
@@ -3007,7 +3250,7 @@ function combineStravaExercisesAPI(stravaIDArray) {
 }
 
 function divideStravaExercises(exerciseID) {
-    if(!confirm("Are you sure you want to divide all these Strava exercises?")) {
+    if(!confirm("Split this workout back into its Strava activities?")) {
         return;
     }
 

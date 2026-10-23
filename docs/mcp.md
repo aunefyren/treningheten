@@ -127,7 +127,7 @@ summary), `temperature_c` and `elevation_gain_m` — plus `moving_seconds` (summ
 time) and a derived `avg_pace_min_km`. These let the model triage a list (spot the hot runs, the
 hard efforts, the climbs) without a second call per row. The scalars come from **precomputed
 rollup columns on the `Operation`** (`models.ComputeStreamRollup`, written on Strava sync and
-backfilled once by `backfillOperationStreamRollups`), so the list still never loads or parses a
+by the versioned stream backfill `backfillStreamDerivedData`), so the list still never loads or parses a
 stream blob — it only reads columns. They are absent for activities without a stream (strength,
 manual). `avg_pace_min_km` is computed from `moving_seconds` when present (else elapsed duration)
 and only for distance activities.

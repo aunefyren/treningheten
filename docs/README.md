@@ -11,6 +11,8 @@ architecture overview.
 - [styleguide.md](styleguide.md) — the frontend **visual system**: the CSS layer/file
   layout, design tokens, and the shared components (`.btn`, cards, chips, the `.trm`
   modal, `.u-*` utilities). Read before building or restyling UI.
+- [vocabulary.md](vocabulary.md) — the words the UI uses (workout, activity, activity type,
+  day, weekly goal, …), what each maps to in the code, and the rules for new copy.
 - [data-model.md](data-model.md) — what the core entities are and how they relate: the
   three struct flavors (model / `Object` / DTO), the domain-spine ER diagram, and a
   per-entity reference. Read this before touching the data layer.
@@ -28,13 +30,17 @@ architecture overview.
 - [streaks.md](streaks.md) — the **two** streak systems (personal activity streaks vs
   within-season goal streaks) and how each is computed.
 - [exercises.md](exercises.md) — the `/exercises` workout timeline: the searchable/sortable
-  session feed (`GET /auth/activities`), its browse vs find modes, and the query-time aggregation.
-- [activity-feed.md](activity-feed.md) — the front-page **Activities** module: who you see
+  session feed (`GET /auth/activities`), its browse vs find modes, and the query-time aggregation;
+  the day page (`/exercises/:id`) with its week header; the workout read view.
+- [activity-feed.md](activity-feed.md) — the front-page **Activity feed** module: who you see
   (everyone you have ever shared a season with — co-membership instead of friend requests),
   the `ShareActivities` consent, and the peer query.
 - [wheel-customization.md](wheel-customization.md) — per-user wheel appearance (color,
   border, emoji): storage, account-page picker, validation, and the
   distinct/stable color assignment.
+- [statistics.md](statistics.md) — the `/statistics` tabs: the period overview, personal
+  records and best efforts (stored, with the versioned stream backfill), per-type statistics
+  from rollups, seasons and body weight; what counts and how units are kept apart.
 - [heatmap.md](heatmap.md) — private per-user GPS activity heatmap on `/statistics`
   (Leaflet + Leaflet.heat over stored Strava `latlng` streams).
 - [admin-stats.md](admin-stats.md) — aggregate usage statistics on the admin panel

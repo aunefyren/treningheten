@@ -324,10 +324,10 @@ function load_page(result) {
 
                                 <div id="activities" class="activities">
 
-                                    <h3 class="u-m-2">Activities</h3>
+                                    <h3 class="u-m-2">Activity feed</h3>
 
                                     <div id="activities-week" class="activities-week">
-                                        <p class="u-mb-2 u-text-center">No public activities yet this week...</p>
+                                        <p class="u-mb-2 u-text-center">No shared workouts yet this week.</p>
                                     </div>
 
                                 </div>

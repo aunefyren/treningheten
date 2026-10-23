@@ -1,6 +1,6 @@
 # Front-page activity feed
 
-The **Activities** module on the front page shows this week's sessions from the people
+The **Activity feed** module on the front page shows this week's workouts from the people
 you train alongside. It is a glanceable weekly digest — the searchable archive of your
 *own* activities is [`/exercises`](exercises.md), which is a different feature backed by
 a different endpoint.

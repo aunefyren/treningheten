@@ -44,8 +44,8 @@ func assembleWorkoutStreams(userID uuid.UUID, activityID uuid.UUID, fromSeconds 
 	}
 
 	// time stream gives seconds-from-start per index; synthesize 1 Hz if absent.
-	n := streamLength(streams)
-	times := streamTimes(streams, n)
+	n := models.StreamLength(streams)
+	times := models.StreamTimes(streams, n)
 
 	// --- windowed, downsampled series ---
 	from := fromSeconds

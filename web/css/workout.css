@@ -1243,3 +1243,319 @@ button.wv-split:focus-visible { outline: none; box-shadow: 0 0 0 3px var(--focus
 .we-gear-row { display: flex; align-items: center; gap: 0.4rem; }
 .we-gear-row .we-gear-select { flex: 1; }
 .we-gear-row .wv-action-icon { padding: 0.5rem; flex: 0 0 auto; }
+
+/* ============================================================================
+   Day page (/exercises/:id) — everything around the workouts: the day header
+   (date, week strip, per-season results, day note, gear), the add row, Combine
+   and the related links. See styleguide.md, "Day header".
+   ============================================================================ */
+
+.day-page {
+  width: 100%;
+  max-width: 46rem;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  text-align: left;
+  font-family: var(--font-body);
+  color: var(--darkblue);
+}
+
+/* The page toggles its notes and Combine with the hidden attribute; components such as
+   .btn-group set their own display, which would otherwise win over it. */
+.day-page [hidden] { display: none; }
+
+/* ── Header panel ────────────────────────────────────────────────────────── */
+.day-head {
+  padding: var(--space-5) clamp(var(--space-4), 4vw, var(--space-6));
+  background: var(--white);
+  border: 1px solid var(--grey);
+  border-left: 4px solid var(--module-accent);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-sm);
+  box-sizing: border-box;
+}
+
+.day-head-top {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: var(--space-4);
+  flex-wrap: wrap;
+}
+
+.day-title {
+  margin: 0;
+  font-family: var(--font-body);
+  font-size: 1.6rem;
+  font-weight: 700;
+  line-height: 1.15;
+  color: var(--darkblue);
+}
+
+.day-date {
+  margin: var(--space-1) 0 0;
+  font-weight: 500;
+  color: var(--mediumblue);
+}
+
+.day-week-count {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  text-align: right;
+}
+
+.day-week-count-value {
+  font-family: var(--font-display);
+  font-size: 2.25rem;
+  font-weight: 600;
+  line-height: 1;
+  color: var(--darkblue);
+}
+
+.day-week-count-label {
+  font-size: 0.8rem;
+  color: var(--mediumblue);
+}
+
+/* ── Week strip: one tile per weekday ───────────────────────────────────── */
+.day-week {
+  list-style: none;
+  margin: var(--space-5) 0 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: var(--space-2);
+}
+
+/* Self-contained tile: rendered as <a>, <button> or <span>, so it sets its own box. */
+.day-week-tile {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-1);
+  width: 100%;
+  box-sizing: border-box;
+  padding: var(--space-2) 0;
+  margin: 0;
+  font: inherit;
+  color: var(--darkblue);
+  text-decoration: none;
+  background: var(--inset-bg);
+  border: 1px solid var(--inset-border);
+  border-radius: var(--radius-sm);
+}
+
+a.day-week-tile,
+button.day-week-tile { cursor: pointer; }
+
+a.day-week-tile:hover,
+button.day-week-tile:hover { background: var(--white); border-color: var(--module-accent); }
+
+.day-week-tile:focus-visible { outline: none; box-shadow: 0 0 0 3px var(--focus-ring); }
+
+.day-week-name {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--mediumblue);
+}
+
+.day-week-figure {
+  font-family: var(--font-display);
+  font-size: 1.25rem;
+  font-weight: 600;
+  line-height: 1;
+}
+
+.day-week-tile:not(.has-workouts) .day-week-figure { color: var(--lightblue); }
+
+/* The day on screen: the accent outline, like the nav's "you are here". */
+.day-week-tile.is-viewing {
+  background: var(--white);
+  border-color: var(--blue);
+  box-shadow: inset 0 0 0 1px var(--blue);
+}
+
+/* Today: the weekday name is underlined in the accent. */
+.day-week-tile.is-today .day-week-name {
+  text-decoration: underline;
+  text-decoration-color: var(--blue);
+  text-decoration-thickness: 2px;
+  text-underline-offset: 0.2em;
+}
+
+.day-week-tile.is-unavailable { opacity: 0.55; cursor: default; }
+
+/* ── Per-season results ──────────────────────────────────────────────────── */
+.day-seasons {
+  display: grid;
+  gap: var(--space-2);
+  margin-top: var(--space-4);
+}
+
+.day-seasons:empty { display: none; }
+
+.day-season {
+  display: grid;
+  grid-template-columns: minmax(6rem, 11rem) minmax(0, 1fr) auto;
+  grid-template-areas: "name bar figure";
+  align-items: center;
+  gap: var(--space-3);
+  font-size: 0.9rem;
+}
+
+.day-season-name {
+  grid-area: name;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.day-season-bar {
+  grid-area: bar;
+  height: 0.5rem;
+  background: var(--inset-bg);
+  border: 1px solid var(--inset-border);
+  border-radius: var(--radius-pill);
+  overflow: hidden;
+}
+
+.day-season-fill {
+  display: block;
+  height: 100%;
+  background: var(--module-accent);
+}
+
+.day-season.is-complete .day-season-fill { background: var(--success); }
+
+.day-season-figure {
+  grid-area: figure;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 1rem;
+}
+
+.day-season-check { height: 0.9rem; }
+
+.day-season-rest {
+  grid-column: bar-start / figure-end;
+  grid-row: 1;
+  color: var(--mediumblue);
+}
+
+.day-settled {
+  margin: var(--space-4) 0 0;
+  padding: var(--space-2) var(--space-3);
+  font-size: 0.85rem;
+  color: var(--mediumblue);
+  background: var(--inset-bg);
+  border: 1px solid var(--inset-border);
+  border-radius: var(--radius-sm);
+}
+
+/* ── Day note ────────────────────────────────────────────────────────────── */
+.day-note-field { margin: var(--space-5) 0 0; }
+
+.day-note-label-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-2);
+}
+
+.day-note-status {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--mediumblue);
+}
+
+/* ── Gear line ───────────────────────────────────────────────────────────── */
+.day-gear {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--space-2) var(--space-3);
+  margin-top: var(--space-4);
+  font-size: 0.9rem;
+}
+
+.day-gear-icon { height: 1rem; opacity: 0.7; }
+
+.day-gear-text { flex: 1 1 12rem; min-width: 0; }
+
+.day-gear-label { font-weight: 600; }
+
+/* ── Below the header ────────────────────────────────────────────────────── */
+.day-workouts,
+.day-workout { width: 100%; }
+
+.day-empty,
+.day-add-note {
+  margin: var(--space-5) 0 var(--space-2);
+  text-align: center;
+  color: var(--mediumblue);
+}
+
+.day-add { margin-top: var(--space-4); }
+
+.day-add .we-add-exercise {
+  margin-top: 0;
+  padding: var(--space-3) var(--space-4);
+  font-size: 0.9rem;
+}
+
+.day-add .we-add-exercise:focus-visible { outline: none; box-shadow: 0 0 0 3px var(--focus-ring); }
+
+/* A deleted workout that still holds activities: one inset row with Restore. */
+.day-deleted {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  margin: var(--space-4) 0 0;
+  padding: var(--space-3) var(--space-4);
+  box-sizing: border-box;
+  color: var(--mediumblue);
+  background: var(--inset-bg);
+  border: 1px solid var(--inset-border);
+  border-radius: var(--radius-sm);
+}
+
+.day-combine { justify-content: center; margin-top: var(--space-4); }
+
+.day-links {
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: var(--space-2) var(--space-5);
+  margin: var(--space-6) 0 var(--space-2);
+  font-size: 0.9rem;
+}
+
+.day-links a {
+  color: var(--mediumblue);
+  text-decoration: none;
+  border-radius: var(--radius-xs);
+}
+
+.day-links a:hover { text-decoration: underline; }
+.day-links a:focus-visible { outline: none; box-shadow: 0 0 0 3px var(--focus-ring); }
+
+@media (max-width: 480px) {
+  .day-title { font-size: 1.35rem; }
+  .day-week-count-value { font-size: 1.9rem; }
+  .day-week { gap: var(--space-1); }
+  .day-week-name { font-size: 0.7rem; }
+  .day-season {
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas: "name figure" "bar bar";
+    row-gap: var(--space-1);
+  }
+  .day-season-rest { grid-column: 1 / -1; grid-row: 2; }
+}

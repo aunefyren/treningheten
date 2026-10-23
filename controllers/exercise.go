@@ -100,8 +100,8 @@ func APIRegisterWeek(context *gin.Context) {
 		}
 
 		// Validate exercise interval
-		if day.ExerciseInterval > 3 {
-			context.JSON(http.StatusBadRequest, gin.H{"error": "You can only exercise three times a day."})
+		if day.ExerciseInterval > maxWorkoutsPerDay {
+			context.JSON(http.StatusBadRequest, gin.H{"error": dayWorkoutLimitMessage})
 			context.Abort()
 			return
 		}
@@ -113,7 +113,7 @@ func APIRegisterWeek(context *gin.Context) {
 		}
 
 		if day.Date.After(now) && day.ExerciseInterval > 0 {
-			context.JSON(http.StatusBadRequest, gin.H{"error": "You can't register exercises on days in the future."})
+			context.JSON(http.StatusBadRequest, gin.H{"error": "You can't log workouts on days in the future."})
 			context.Abort()
 			return
 		}
@@ -1049,8 +1049,8 @@ func APIUpdateExercise(context *gin.Context) {
 		return
 	}
 
-	if turnedOn && exerciseDayObject.ExerciseInterval >= 3 {
-		context.JSON(http.StatusBadRequest, gin.H{"error": "You can only exercise three times in a day."})
+	if turnedOn && exerciseDayObject.ExerciseInterval >= maxWorkoutsPerDay {
+		context.JSON(http.StatusBadRequest, gin.H{"error": dayWorkoutLimitMessage})
 		context.Abort()
 		return
 	}
@@ -1059,7 +1059,7 @@ func APIUpdateExercise(context *gin.Context) {
 	nowYear, nowWeek := time.Now().ISOWeek()
 	weekIsCurrent := nowYear == exerciseYear && exerciseWeek == nowWeek
 	if turnedOff && !weekIsCurrent {
-		context.JSON(http.StatusBadRequest, gin.H{"error": "You can't remove exercise sessions after the week has ended."})
+		context.JSON(http.StatusBadRequest, gin.H{"error": "You can't delete a workout after its week has ended."})
 		context.Abort()
 		return
 	}
@@ -1067,7 +1067,7 @@ func APIUpdateExercise(context *gin.Context) {
 	// Restoring (turning back on) a deleted session is frozen once its week has ended too —
 	// like delete, it would rewrite a settled week's completion.
 	if turnedOn && !weekIsCurrent {
-		context.JSON(http.StatusBadRequest, gin.H{"error": "You can't restore exercise sessions after the week has ended."})
+		context.JSON(http.StatusBadRequest, gin.H{"error": "You can't restore a workout after its week has ended."})
 		context.Abort()
 		return
 	}
@@ -1075,7 +1075,7 @@ func APIUpdateExercise(context *gin.Context) {
 	// Whether a past session counts is frozen once its week has ended — the same reasoning
 	// as the delete freeze above: it would rewrite a settled week's completion.
 	if countsTowardGoalChangeBlocked(exercise.CountsTowardGoal, exerciseUpdateRequest.CountsTowardGoal, weekIsCurrent) {
-		context.JSON(http.StatusBadRequest, gin.H{"error": "You can't change whether a session counts after the week has ended."})
+		context.JSON(http.StatusBadRequest, gin.H{"error": "You can't change whether a workout counts after its week has ended."})
 		context.Abort()
 		return
 	}
@@ -1184,23 +1184,15 @@ func APICreateExercise(context *gin.Context) {
 		return
 	}
 
-	if exerciseDayObject.ExerciseInterval >= 3 {
-		context.JSON(http.StatusBadRequest, gin.H{"error": "You can only exercise three times in a day."})
-		context.Abort()
-		return
-	}
-
-	exerciseYear, exerciseWeek := exerciseDayObject.Date.ISOWeek()
-	nowYear, nowWeek := time.Now().ISOWeek()
-	if nowYear != exerciseYear || exerciseWeek != nowWeek {
-		context.JSON(http.StatusBadRequest, gin.H{"error": "You can't add exercise sessions outside the week the day happened."})
+	if exerciseDayObject.ExerciseInterval >= maxWorkoutsPerDay {
+		context.JSON(http.StatusBadRequest, gin.H{"error": dayWorkoutLimitMessage})
 		context.Abort()
 		return
 	}
 
 	now := time.Now()
-	if utilities.SetClockToMinimum(exerciseDayObject.Date).After(utilities.SetClockToMinimum(now)) {
-		context.JSON(http.StatusBadRequest, gin.H{"error": "You can't create exercises on days in the future."})
+	if err := dayLoggableError(exerciseDayObject.Date, now); err != nil {
+		context.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		context.Abort()
 		return
 	}
@@ -1357,7 +1349,7 @@ func APIStravaCombine(context *gin.Context) {
 	exerciseDayYear, exerciseDayWeek := exerciseDay.Date.ISOWeek()
 
 	if (nowYear != exerciseDayYear) || (nowWeek != exerciseDayWeek) {
-		context.JSON(http.StatusBadRequest, gin.H{"error": "You can no longer combine exercises for this day."})
+		context.JSON(http.StatusBadRequest, gin.H{"error": "You can no longer combine workouts on this day."})
 		context.Abort()
 		return
 	}
@@ -1513,7 +1505,7 @@ func APIStravaDivide(context *gin.Context) {
 	exerciseDayYear, exerciseDayWeek := exerciseDay.Date.ISOWeek()
 
 	if (nowYear != exerciseDayYear) || (nowWeek != exerciseDayWeek) {
-		context.JSON(http.StatusBadRequest, gin.H{"error": "You can no longer divide exercises for this day."})
+		context.JSON(http.StatusBadRequest, gin.H{"error": "You can no longer split workouts on this day."})
 		context.Abort()
 		return
 	}

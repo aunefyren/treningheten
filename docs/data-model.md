@@ -165,6 +165,13 @@ Strava and media features read.
   a lift). Points at an `Action` and optionally a `Gear`. Carries per-operation
   `WeightUnit`/`DistanceUnit` (free-form — never blindly sum across them), `Tags`
   (`TagList`, JSON column), and `Duration` (seconds).
+  Also carries the **stream rollups** (average/max heart rate, cadence, temperature,
+  elevation gain, average power) and `StreamDerivedVersion`, the version they were computed
+  with; see [statistics.md](statistics.md#stream-derived-data-and-its-version).
+- **BestEffort** (`models/best_effort.go`) — an activity's fastest time over one target
+  distance (its 5 km inside a 12 km run). Derived from the stream, one row per (operation,
+  distance), replaced as a set; read through the usual enabled/on joins. See
+  [statistics.md](statistics.md#best-efforts).
 - **OperationSet** (`models/operation.go`) — a **set / lap** of an operation:
   `Repetitions`, `Weight`, `Distance`, `Time`/`MovingTime` (both seconds), plus the
   Strava per-set data (`StravaStreams` JSON blob, retrieval guards). This is the leaf

@@ -909,6 +909,8 @@ func StravaSyncOperationForActivity(activity models.StravaGetActivitiesRequestRe
 		operation.AvgCadence = rollup.AvgCadence
 		operation.TempC = rollup.TempC
 		operation.ElevationGainM = rollup.ElevationGainM
+		operation.AvgWatts = rollup.AvgWatts
+		operation.StreamDerivedVersion = models.StreamDerivedVersion
 	}
 
 	newOperation, err := database.UpdateOperationInDB(operation)
@@ -974,6 +976,13 @@ func StravaSyncOperationForActivity(activity models.StravaGetActivitiesRequestRe
 	}
 
 	logger.Log.Info("Updated operation set.")
+
+	// Best efforts come from the same stream, so they are rewritten whenever it is.
+	if streams != nil {
+		if err := database.ReplaceBestEffortsForOperation(operation.ID, user.ID, models.ComputeBestEfforts(streams, action.StravaName)); err != nil {
+			logger.Log.Warn("Failed to store best efforts for operation " + operation.ID.String() + ". Error: " + err.Error())
+		}
+	}
 
 	// Sync duration of operations to exercise
 	err = SyncStravaOperationsToExerciseSession(exercise.ID, user.ID)

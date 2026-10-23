@@ -698,28 +698,6 @@ input[type=checkbox]
   align-items: center;
 }
 
-.season-statistics-element-wrapper-div {
-  display: flex;
-  flex-direction: row;
-  flex-wrap: wrap;
-  align-content: center;
-  justify-content: center;
-  align-items: center;
-  margin: 1rem 0;
-}
-
-.season-statistics-element {
-  border-radius: 10rem;
-  margin: 0.5rem;
-  background-color: rgba(119, 141, 169, 0.5);
-  padding: 0.5rem 1rem;
-}
-
-.season-statistics-element:hover {
-  background-color: rgba(119, 141, 169, 0.25);
-  transition: 1s;
-}
-
 .goal-leaderboard {
   display: flex;
   flex-direction: row;
@@ -1170,60 +1148,6 @@ input[type=checkbox]
   justify-content: center;
   align-items: center;
   position: relative;
-}
-
-.addExerciseWrapper {
-  width: 6rem;
-  height: 6rem;
-  background-color: var(--inset-bg);
-  border: 1px dashed var(--grey);
-  border-radius: var(--radius-sm);
-  cursor: pointer;
-  box-sizing: border-box;
-  display: flex;
-  flex-direction: column;
-  flex-wrap: wrap;
-  align-content: center;
-  justify-content: center;
-  align-items: center;
-}
-.addExerciseWrapper .button-icon { height: 100%; margin: 1em; }
-.addExerciseWrapper:hover { border-color: var(--module-accent); }
-
-.exercisesWrapper {
-  width: 100%;
-  width: -webkit-fill-available;
-  width: -moz-available;
-  display: flex;
-  flex-direction: column;
-  flex-wrap: wrap;
-  align-content: center;
-  justify-content: center;
-  align-items: center;
-}
-
-.exerciseWrapper {
-  width: 100%;
-  width: -webkit-fill-available;
-  width: -moz-available;
-  display: flex;
-  flex-direction: column;
-  flex-wrap: wrap;
-  align-content: center;
-  justify-content: center;
-  align-items: center;
-}
-
-.exerciseSubWrapper {
-  width: 100%;
-  width: -webkit-fill-available;
-  width: -moz-available;
-  display: flex;
-  flex-direction: column;
-  flex-wrap: wrap;
-  align-content: center;
-  justify-content: center;
-  align-items: center;
 }
 
 .operationsWrapper {
@@ -2063,14 +1987,6 @@ label {
    Recurring widgets that were repeated as inline style="" strings. Values
    preserved verbatim from the originals. */
 .integration-btn { width: 12em; }   /* account: connect/disconnect service buttons (on .btn) */
-.panel-card {                        /* centred white content card wrapper */
-  max-width: 40em;
-  margin: 1em auto;
-  padding: 0 0.5em;
-  background-color: var(--white);
-  border-radius: 1em;
-}
-.panel-wide { max-width: 100%; width: 1000px; }  /* wide panel; hidden-by-default keeps display:none inline */
 
 /* ── Light card (light/simple-first) ───────────────────────────────────────
    The `.card` shell + `.card-header`/`.card-body` are now light by default (see base.css) — the

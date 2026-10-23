@@ -88,7 +88,7 @@ function load_page(result) {
             ${exerciseConnectionsEnabled ? settingsGroupHTML("Exercise connections",
                 (strava_enabled ? accountSectionHTML("strava", "Strava", "", "settings-body") : "") +
                 (hevy_enabled ? accountSectionHTML("hevy", "Hevy", "", "settings-body") : "") +
-                (availableActivitySources(strava_enabled, hevy_enabled).length > 1 ? accountSectionHTML("duplicates", "Duplicate activities", "", "settings-body") : "")
+                (availableActivitySources(strava_enabled, hevy_enabled).length > 1 ? accountSectionHTML("duplicates", "Duplicate workouts", "", "settings-body") : "")
             ) : ""}
 
             ${listeningConnectionsEnabled ? settingsGroupHTML("Listening connections",
@@ -206,7 +206,7 @@ function accountSettingsBodyHTML() {
 
             <div class="field-check">
                 <input type="checkbox" id="share_activities" name="share_activities" value="share_activities">
-                <label for="share_activities">Share my activities on the activity feed. Visible to everyone you have shared a season with, including past seasons.</label>
+                <label for="share_activities">Share my workouts on the activity feed. Visible to everyone you have shared a season with, including past seasons.</label>
             </div>
 
             <div class="field-check">
@@ -998,13 +998,13 @@ function placeDuplicateActivities(userObject, sources) {
 
         <div class="field-check">
             <input type="checkbox" id="duplicate_detection" onchange="toggleDuplicateDetection(this.checked);" ${duplicateDetectionOn ? "checked" : ""}>
-            <label for="duplicate_detection">Hide duplicate activities</label>
+            <label for="duplicate_detection">Hide duplicate workouts</label>
         </div>
 
         <div class="field" id="activity-source-field">
             <span class="field-label">Keep the copy from</span>
             <ol class="source-priority-list" id="source-priority-list"></ol>
-            <span class="field-hint">Changes apply to your past activities too, but results of weeks already processed are not recalculated.</span>
+            <span class="field-hint">Changes apply to your past workouts too, but results of weeks already processed are not recalculated.</span>
         </div>
     `;
     renderActivitySourceOrder();
@@ -1136,7 +1136,7 @@ function renderGoalCountingSection() {
 function placeGoalCountingSection() {
     var html = `
         <p class="settings-text">
-            Everything you import counts toward your weekly goal by default. Add any activity types below that should <strong>not</strong> count — they still show up in your history, they just don't move the needle. This only affects future Strava/Hevy imports; edit an existing session in the workout builder to change it there.
+            Everything you import counts toward your weekly goal by default. Add any activity types below that should <strong>not</strong> count — they still show up in your history, they just don't move the needle. This only affects future Strava/Hevy imports; change an existing workout on its day page.
         </p>
         <div class="goal-exclude">
             <div class="goal-exclude-input-wrap">
@@ -1347,7 +1347,7 @@ function renderPlexSection(connection) {
             ${integrationAlertHTML("Plex", connection)}
 
             <p class="settings-text">
-                Plex is connected. Your listening history is matched onto activities by time.
+                Plex is connected. Your listening history is matched onto workouts by time.
             </p>
 
             <div class="field">
@@ -1573,7 +1573,7 @@ function renderSpotifySection(connection) {
             ${integrationAlertHTML("Spotify", connection)}
 
             <p class="settings-text">
-                Spotify is connected. Recent listening is matched onto activities by time. Because Spotify only exposes the last ~24 hours, older workouts can't be back-filled.
+                Spotify is connected. Recent listening is matched onto workouts by time. Because Spotify only exposes the last ~24 hours, older workouts can't be back-filled.
             </p>
 
             <div class="btn-group">
@@ -1635,7 +1635,7 @@ function renderAudiobookshelfSection(connection) {
 
     var introHTML = connected
         ? `${integrationAlertHTML("Audiobookshelf", connection, "Paste a fresh API token below")}
-           <p class="settings-text">Audiobookshelf is connected. Your listening history is matched onto activities by time.</p>`
+           <p class="settings-text">Audiobookshelf is connected. Your listening history is matched onto workouts by time.</p>`
         : `<p class="settings-text">Connect Audiobookshelf to overlay the audiobooks and podcasts you listened to onto your workouts. Enter your server URL and an API token from your Audiobookshelf account settings.</p>`;
 
     var disconnectHTML = connected

@@ -50,7 +50,7 @@ function load_page(result) {
 
                     <hr class="u-my-1">
 
-                    <label for="commitment" class="field-label u-text-center" title="How many days a week are you going to work out?">Weekly exercise goal</label>
+                    <label for="commitment" class="field-label u-text-center" title="How many days a week are you going to work out?">Weekly goal</label>
                     <div class="number-box" id="commitment">
                         0
                     </div>

@@ -107,6 +107,7 @@ function load_page(result) {
 
     if (result !== false) {
         showLoggedInMenu();
+        readFeedURL();
         loadActions();
         loadFeed(true);
     } else {
@@ -123,6 +124,25 @@ function escapeHTML(value) {
         .replace(/>/g, "&gt;")
         .replace(/"/g, "&quot;")
         .replace(/'/g, "&#39;");
+}
+
+// readFeedURL takes the activity type filter from ?action=<id>, so other pages (the
+// /statistics records and activity mix) can link straight to "all your runs".
+function readFeedURL() {
+    var action = new URLSearchParams(window.location.search).get("action");
+    feedState.actionID = action || "";
+}
+
+// writeFeedURL keeps ?action= in step with the type filter, so the filtered list can be
+// reloaded, bookmarked or shared.
+function writeFeedURL() {
+    var url = new URL(window.location.href);
+    if (feedState.actionID) {
+        url.searchParams.set("action", feedState.actionID);
+    } else {
+        url.searchParams.delete("action");
+    }
+    window.history.replaceState({}, "", url);
 }
 
 // loadActions fills the type filter with the activity types the user has actually done
@@ -152,6 +172,7 @@ function loadActions() {
                 option.text = action.name;
                 select.add(option);
             });
+            select.value = feedState.actionID;
         }
     };
     xhttp.withCredentials = true;
@@ -174,6 +195,7 @@ function feedApplyControls() {
     feedState.end = document.getElementById("feed-end").value || "";
     feedState.hasDistance = document.getElementById("feed-hasdist").checked;
 
+    writeFeedURL();
     loadFeed(true);
 }
 

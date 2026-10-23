@@ -222,7 +222,7 @@ function updateGearField(gearID, field, value) {
 }
 
 function deleteGear(gearID) {
-    if (!confirm("Delete this gear? Its logged distance history stays on the sessions it was assigned to.")) {
+    if (!confirm("Delete this gear? Its logged distance history stays on the workouts it was assigned to.")) {
         return;
     }
 

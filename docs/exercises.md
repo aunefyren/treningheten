@@ -42,7 +42,9 @@ The client picks the mode; the endpoint is the same:
 - **Find** — a metric sort or an activity-type filter is active. The list goes flat and
   ranked, with the sorted metric shown prominently.
 
-The activity-type filter lists only the types the user has actually logged
+The activity-type filter can be set from the URL (`/exercises?action=<id>`) and is written
+back to it, so `/statistics` can link straight to "all your runs" and a filtered list survives
+a reload. The activity-type filter lists only the types the user has actually logged
 (`GET /api/auth/actions?experienced=true`, the same source as `/statistics`), sorted by name.
 The full catalogue holds hundreds of Hevy exercises the user has never done, and choosing one of
 those could only return nothing.
@@ -90,8 +92,8 @@ matched on its run would report only the run's distance and list only the run. M
 Each session is a `models.SessionFeedItem` holding a slim `models.ActivityFeedItem` per
 activity — **no `strava_streams`** (too heavy for a list). The activity does carry a handful of **precomputed stream scalars** (`avg_heartrate`, `max_heartrate`,
 `avg_cadence`, `temp_c`, `elevation_gain_m`) read directly from rollup columns on the `Operation`
-(`models.ComputeStreamRollup`, written on Strava sync and backfilled once by
-`backfillOperationStreamRollups`) plus summed `moving_seconds` — so the list can show those
+(`models.ComputeStreamRollup`, written on Strava sync and by the versioned stream backfill
+`backfillStreamDerivedData`, see [statistics.md](statistics.md#stream-derived-data-and-its-version)) plus summed `moving_seconds` — so the list can show those
 numbers without ever loading or parsing a stream blob. The full per-second HR/GPS detail is still
 deferred to the builder/detail view. This is the "precomputed rollup columns without changing the
 JSON" the shape was designed for; the MCP `list_workouts` search consumes the same fields.
@@ -160,10 +162,71 @@ The old per-activity `Operation.Equipment` field is **legacy**: the builder no l
 sends it, and the update endpoint leaves it untouched when omitted (it used to blank it), so data
 from older sessions is kept and still reaches MCP.
 
-The URL, the nav item and the page's own language stay **"exercises"** — only the API payload
-and the internals talk about sessions. Styling follows the shared light module/inset system
+The URL and the nav item stay **"Exercises"**; the page calls its items **workouts**, and only
+the API payload and the internals talk about sessions (see [vocabulary.md](vocabulary.md)). Styling follows the shared light module/inset system
 (see [styleguide.md](styleguide.md)): the **session card** is the panel's inset tile and the
 activities inside it are unboxed, so the panel keeps one border system.
+
+## Day page (`/exercises/:id`)
+
+The page for one calendar day (`ExerciseDay`). Below the header sit the day's workouts, each
+a read view with an editor behind it (see *Activity detail*), then the add row, Combine and
+links to `/exercises`, `/gear` and, in the current week, the front page.
+
+### Day header
+
+One panel above the workouts, built in `web/js/exercise.js` (`dayPageHTML`, `placeDayWeek`):
+
+- **Date**: weekday as the heading, the full date under it.
+- **Week count**: the week's counted workouts, the same number as the front-page ring.
+- **Week strip**: one tile per weekday with that day's counted workouts. The day on screen is
+  outlined, today's weekday name is underlined. The strip never leaves the week.
+- **Season rows**: one per season the user had a goal in that week (see below).
+- **Day note**, saved on change with a quiet "Saved" beside the label instead of an alert.
+- **Gear line**: the gear on the day's workouts and a **Manage gear** button that opens the
+  shared gear modal. It used to be reachable only from the editor's "Set gear for all", which
+  only exists for workouts with two or more gear-carrying activities.
+
+The header reads `GET /api/auth/exercise-days/:exercise_day_id/week`
+(`APIGetExerciseDayWeek`, `controllers/exercise_day_week.go`), scoped to the caller like every
+read here (a miss is a 404):
+
+```json
+{ "week": {
+    "workouts": 3, "workout_limit": 3, "loggable": true,
+    "days": [{ "id": "…", "date": "…", "workouts": 1, "loggable": true }],
+    "seasons": [{ "id": "…", "name": "Spring league", "goal": 4, "workouts": 3,
+                  "completion": 0.75, "sick_leave": false }] },
+  "message": "Week retrieved." }
+```
+
+**Several seasons.** A user can hold goals in more than one season at once. The workout count
+is the same in all of them (it follows the user's counting settings, not the season); the goal,
+completion and sick leave belong to each season. So the count is shown once and each season
+gets its own row: a progress bar against its goal (green at 100%, like the ring), or the
+resting wording on a sick-leave week. The numbers come from `GetWeekResultForGoal`, the
+function the leaderboard and weekly processing use, so the page can't disagree with them. A
+season is listed when it overlaps the week and the user's goal existed by the week's end; past
+weeks show that week's result.
+
+**Which days can be logged.** `dayLoggableError` (shared with `APICreateExercise`) is the one
+rule: only days in the current ISO week, never a day after today. On top of that a day holds at
+most `maxWorkoutsPerDay` (3) workouts that count. The strip and the add row follow it:
+
+| Day | Strip tile | Below the workouts |
+|---|---|---|
+| Current week, up to today | opens the day | "Add workout", or the limit note at three counted workouts |
+| Current week, future | dimmed, can't be opened | "You can log workouts on this day once it arrives." (the note still saves) |
+| Past week | opens a day that has a row; others dimmed ("Nothing logged") | no add row; a note says the week is settled |
+
+**Day rows are created on demand.** A day without an `ExerciseDay` row has `id: null`. In the
+current week its tile goes through `GET /exercise-days/week?weekDay=n`, which gets or creates
+the row (the front page's edit button does the same); merely viewing the week creates nothing.
+Past weeks only have rows for days that were saved, and nothing can be added there, so a
+missing row there means nothing was logged.
+
+The week is re-read after anything that can move a count: adding, deleting or restoring a
+workout, and changing whether it counts.
 
 ## Activity detail (`/exercises/:id`)
 
@@ -298,7 +361,7 @@ note. Regression tests: `controllers/exercise_day_authz_test.go`.
 
 ## Related, not yet done
 
-- **Builder rework (`/exercises/:id`)** — the session builder still exposes gear at the session
-  level only and doesn't cleanly organise a multi-activity-type session. The session aggregate
-  shape built here is exactly what a better session-summary header should consume.
-  Tracked in [wip.md](wip.md).
+- **Builder rework (`/exercises/:id`)** — the day header around the builder is done (see *Day
+  page*); the builder itself still doesn't cleanly organise a multi-activity-type workout.
+  The session aggregate shape built here is exactly what a better session-summary header
+  should consume. Tracked in [wip.md](wip.md).

@@ -103,11 +103,13 @@ Default Monday. Big changes to the week logic, which (like seasons) works in the
 zone — see `seasons-and-goals.md`.
 
 ### Best-effort system
-- "Fastest 5K" etc. — per-activity programming? Computed at save or at runtime?
-- Time-boxed: this season, this year? PR notifications? Rep/weight PRs for strength?
-- First increment: **best split** (fastest 1 km/mile) — the per-distance segments and
-  processed stream summary already exist (see [mcp.md](mcp.md)).
-- Later: grade-adjusted pace (GAP) and VAM.
+Shipped: stored best efforts (computed at sync, backfilled by version), all-time personal
+records per activity type including strength, with their history, on `/statistics` (see
+[statistics.md](statistics.md)). Still open:
+- Time-boxed records: best this season, this year.
+- Notifying a user when they set a record.
+- A `get_personal_records` MCP tool on the same `computePersonalRecords`.
+- Grade-adjusted pace (GAP) and VAM; best efforts for swimming and skiing.
 
 ### Front page activities: tag a partner
 - Tag a partner/group on a session in the builder.
@@ -120,8 +122,10 @@ E.g. Easy, Splits. Must respect Strava sync.
 ### Session builder (`/exercises/:id`) fast-follow
 - A **session summary header** — consume `models.SessionFeedItem` (returned by
   `/auth/activities`) rather than re-deriving totals.
-- A fuller per-`Operation` card layout (own metrics/sets), and clearer affordances for adding
-  a *second activity type* to a session vs a *second session* to the day.
+- A fuller per-`Operation` card layout (own metrics/sets). The day header around the builder
+  shipped (see [exercises.md](exercises.md#day-page-exercisesid)), and the labels now separate
+  "Add activity" (inside a workout) from "Add workout" (to the day); the editor layout itself
+  still doesn't make that distinction obvious.
 - Soundtrack is session-scoped, so builder changes to session time affect the media match
   window (see [media.md](media.md#open-questions)).
 

@@ -146,6 +146,7 @@ func faultScenarios() []faultScenario {
 		scenario("exercise days", 200, get("/api/auth/exercise-days", true)),
 		scenario("exercise days by goal", 200, get("/api/auth/exercise-days?goal={memberGoal}", true)),
 		scenario("exercise day", 200, get("/api/auth/exercise-days/{day}", true)),
+		scenario("exercise day week", 200, get("/api/auth/exercise-days/{day}/week", true)),
 		scenario("update exercise day", 201, send("POST", "/api/auth/exercise-days/{day}", true, models.ExerciseDayUpdateRequest{Note: "updated"})),
 		scenario("admin exercise days", 200, get("/api/admin/exercise-days", false)),
 		scenario("get week", 200, get("/api/auth/exercises/week", true)),
@@ -189,6 +190,15 @@ func faultScenarios() []faultScenario {
 		scenario("user activities", 200, get("/api/auth/users/{member}/activities", false)),
 		scenario("user statistics", 200, get("/api/auth/users/{member}/statistics", true)),
 		scenario("other user statistics", 200, get("/api/auth/users/{member}/statistics", false)),
+		scenario("statistics overview", 200, get("/api/auth/statistics/overview?period=12w", true)),
+		scenario("personal records", 200, get("/api/auth/records", true)),
+		scenario("record history", 200, func(t *testing.T, h *apiHarness, w faultWorld) faultRequest {
+			return faultRequest{"GET", "/api/auth/records/history?action_id=" + w.actionID.String() + "&key=longest_duration", w.memberToken, nil, nil}
+		}),
+		scenario("action heatmap", 200, func(t *testing.T, h *apiHarness, w faultWorld) faultRequest {
+			now := time.Now()
+			return faultRequest{"GET", "/api/auth/actions/" + w.actionID.String() + "/heatmap?start=" + now.AddDate(0, -1, 0).Format("2006-01-02") + "&end=" + now.Format("2006-01-02"), w.memberToken, nil, nil}
+		}),
 
 		// Gear, weights
 		scenario("gear", 200, get("/api/auth/gear", true)),

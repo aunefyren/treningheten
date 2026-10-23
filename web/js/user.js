@@ -445,7 +445,7 @@ function PlaceUserStats(data) {
     // ── exercise count section ───────────────────────────────────────────────
     var countsHTML = `
         <div class="user-stats-section">
-            <div class="user-stats-section-title">Sessions</div>
+            <div class="user-stats-section-title">Workouts</div>
             <div class="user-stats-row">
                 ${statCard("This month", data.exercises_past_month)}
                 ${statCard("This year",  data.exercises_past_year)}
@@ -505,7 +505,7 @@ function PlaceUserStats(data) {
                 rows += statCard("Total time",   fmtDuration(period.sums.time));
                 rows += optionalStatCard("Avg time", period.averages.time, fmtDuration);
             }
-            rows += statCard("Sessions", period.sums.operations);
+            rows += statCard("Activities", period.sums.operations);
             return rows;
         }
 

@@ -1,9 +1,9 @@
 # Activity heatmap
 
 A private, per-user heatmap of where the user's GPS activities have taken them, shown
-inside the **Activity statistics** section of the `/statistics` page. Because it lives in
-that section, it inherits the existing **activity-type** and **date-range** filters for
-free — the heatmap reflects whatever activity and period the user selects.
+in the **Activity types** tab of the `/statistics` page (see [statistics.md](statistics.md)).
+It takes that tab's **activity type** and **period**, so it reflects whatever the user
+selects.
 
 It is drawn as **route polylines tinted by visit frequency** (Strava personal-heatmap
 style), not a point-density blob — see [Rendering](#rendering-frequency-tinted-route-lines).
@@ -18,20 +18,19 @@ from the hourly Strava sync (`OperationSet.StravaStreams`, see [strava.md](strav
 so the entire data-ingestion half of that project is unnecessary — only the
 visualization is reimplemented, deliberately kept simple.
 
-## Data flow (no dedicated endpoint)
+## Data flow
 
-There is **no separate heatmap API**. The Activity-statistics endpoint
-(`GET /api/auth/actions/:action_id/statistics?start=&end=`, `APIGetActionStatistics`)
-already returns the matching `OperationObject`s, and `ConvertOperationSetToOperationSetObject`
-copies `StravaStreams` onto each set — so the `latlng` data is already on the wire,
-filtered to the chosen activity and period. Adding a second request would just re-fetch
-the same data, so the client renders straight from the statistics response.
+`GET /api/auth/actions/:action_id/heatmap?start=&end=` (`APIGetActionHeatmap`) returns
+`tracks`: one `[lat, lng]` series per activity of that type in the period, from its first
+stored stream (`database.GetActionTracksForUser`). It used to ride along on the statistics
+response, which shipped every stream of the period to the browser; the statistics now come
+from rollup columns, and only this endpoint reads streams. The page only asks for it when the
+period has any distance.
 
 Client side (`web/js/statistics.js`):
 
-- `renderActivityHeatmap(operations)` is called at the end of `placeActivityStatistics`.
-- `buildHeatmapModel` flattens `operations[].operation_sets[].strava_streams.latlng.data`
-  into per-activity **tracks** (`[lat, lng]` arrays), thinned by an *adaptive* stride
+- `renderActivityHeatmap(tracks)` is called with the heatmap response.
+- `buildHeatmapModel` takes the tracks, thinned by an *adaptive* stride
   chosen from the total sample count so the whole map stays under a fixed cap. In the same
   pass it builds a **frequency grid**: `counts[cell]` is how many **distinct activities**
   pass through each ~67 m cell (`HEATMAP_GRID`) — an activity that loops through a cell many
@@ -62,12 +61,11 @@ usage); the `leaflet.heat` plugin is no longer needed. The map container is
 shown. `resetActivityHeatmap` clears the layer group whenever the filter changes.
 
 Only activities with GPS movement carry `latlng` streams; for any other activity type (or
-a period with no GPS data) the section shows a "no GPS data" note. A caption states that
-only activities with GPS data appear on the map.
+a period with no GPS data) the section stays hidden.
 
 ## Privacy
 
-GPS tracks reveal where a user lives, so this is strictly private. `APIGetActionStatistics`
+GPS tracks reveal where a user lives, so this is strictly private. `APIGetActionHeatmap`
 is scoped to the **token's user** (it reads only that user's exercise days), and the
 heatmap is only rendered on the owner's own `/statistics` view — it is **not** part of
 public profiles. If this is ever extended to public/shared heatmaps, start/end points

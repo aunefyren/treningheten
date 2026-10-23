@@ -368,14 +368,10 @@
 
 .stat-section-title {
     font-family: var(--font-body);
-    font-size: 0.7rem;
+    font-size: 0.9rem;
     font-weight: 600;
-    letter-spacing: 0.18em;
-    text-transform: uppercase;
-    color: var(--lightblue);
-    margin-bottom: 0.75rem;
-    padding-bottom: 0.4rem;
-    border-bottom: 1px solid var(--grey);
+    color: var(--darkblue);
+    margin: 0 0 0.75rem;
 }
 
 .stat-grid {
@@ -442,12 +438,226 @@
     letter-spacing: 0.02em;
 }
 
-.stat-empty {
-    text-align: center;
-    color: var(--lightblue);
+.stat-card-detail {
+    margin-top: 0.3rem;
     font-family: var(--font-body);
-    padding: 1.5rem;
+    font-size: 0.75rem;
+    line-height: 1.35;
+    color: var(--mediumblue);
+}
+
+.stat-card-detail a { color: inherit; }
+
+/* ===== /statistics page — tabs, segments, panels, records (see styleguide "Statistics") ===== */
+.stats-page {
     width: 100%;
+    max-width: 62em;
+    margin: 0 auto;
+    text-align: left;
+    font-family: var(--font-body);
+    color: var(--darkblue);
+}
+
+/* Components that set their own display would otherwise beat the hidden attribute. */
+.stats-page [hidden] { display: none; }
+
+/* The tab bar scrolls sideways on a narrow screen instead of squeezing five labels. */
+.stats-tabs {
+    overflow-x: auto;
+    scrollbar-width: none;
+    margin-bottom: var(--space-4);
+    gap: var(--space-1);
+}
+.stats-tabs::-webkit-scrollbar { display: none; }
+.stats-tabs .user-stat-tab {
+    flex: 1 0 auto;
+    padding: var(--space-2) var(--space-3);
+    font-size: 0.9rem;
+    font-family: var(--font-body);
+    white-space: nowrap;
+}
+
+.stats-segments { width: auto; flex-wrap: wrap; margin: 0 0 var(--space-4); }
+.stats-segments .user-stat-tab { flex: 0 0 auto; padding: var(--space-1) var(--space-3); font-size: 0.85rem; font-family: var(--font-body); }
+.stats-segments--small { margin: 0; }
+.stats-segments--small .user-stat-tab { font-size: 0.78rem; }
+
+.user-stat-tab:focus-visible,
+.stats-mix-name:focus-visible,
+.record-tile:focus-visible,
+.stats-links a:focus-visible { outline: none; box-shadow: 0 0 0 3px var(--focus-ring); }
+
+.stats-controls {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    gap: var(--space-2) var(--space-4);
+    margin-bottom: var(--space-4);
+}
+.stats-controls .stats-segments { margin: 0; }
+.stats-type-field { width: auto; min-width: 14rem; flex: 0 1 20rem; margin: 0; }
+.stats-custom { flex: 1 1 100%; }
+
+/* Headline tiles sit straight on the page, left-aligned and filling the row. */
+.stats-headline {
+    grid-template-columns: repeat(auto-fit, minmax(9.5rem, 1fr));
+    justify-content: stretch;
+    margin-bottom: var(--space-4);
+}
+.stats-grid-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); justify-content: stretch; }
+
+.stats-page .stat-panel { margin: 0 0 var(--space-4); }
+
+.stats-panel-head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-2) var(--space-3);
+    margin-bottom: var(--space-3);
+}
+.stats-panel-head .stats-heading { margin: 0; }
+
+.stats-heading {
+    margin: 0 0 var(--space-3);
+    font-family: var(--font-body);
+    font-size: 1.05rem;
+    font-weight: 700;
+    color: var(--darkblue);
+}
+.stats-heading-note {
+    margin-left: var(--space-2);
+    font-size: 0.8rem;
+    font-weight: 500;
+    color: var(--mediumblue);
+}
+
+.stats-chart { position: relative; height: 16rem; }
+.stats-chart--modal { height: 13rem; margin-bottom: var(--space-4); }
+
+.stats-caption,
+.stats-note {
+    margin: var(--space-3) 0 0;
+    font-size: 0.8rem;
+    color: var(--mediumblue);
+}
+.stats-note { margin: 0; font-size: 0.9rem; }
+
+.stats-columns {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(18rem, 1fr));
+    gap: 0 var(--space-4);
+}
+
+.stats-links { margin: var(--space-2) 0 var(--space-4); text-align: center; font-size: 0.9rem; }
+.stats-links a { color: var(--mediumblue); border-radius: var(--radius-xs); }
+
+/* Activity mix: name, a share bar against the biggest type, and the time. */
+.stats-mix { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--space-2); }
+.stats-mix-row {
+    display: grid;
+    grid-template-columns: minmax(6rem, 9rem) minmax(0, 1fr) auto;
+    align-items: center;
+    gap: var(--space-3);
+    font-size: 0.9rem;
+}
+.stats-mix-name {
+    margin: 0;
+    padding: 0;
+    font: inherit;
+    font-weight: 600;
+    text-align: left;
+    color: var(--darkblue);
+    background: none;
+    border: 0;
+    border-radius: var(--radius-xs);
+    cursor: pointer;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.stats-mix-name:hover { text-decoration: underline; }
+.stats-mix-bar {
+    height: 0.5rem;
+    background: var(--inset-bg);
+    border: 1px solid var(--inset-border);
+    border-radius: var(--radius-pill);
+    overflow: hidden;
+}
+.stats-mix-fill { display: block; height: 100%; background: var(--module-accent); }
+.stats-mix-figure { font-family: var(--font-display); font-weight: 600; text-align: right; white-space: nowrap; }
+.stats-mix-count { display: block; font-family: var(--font-body); font-weight: 400; font-size: 0.72rem; color: var(--mediumblue); }
+
+/* Records: the page's signature. Each record is a tile button that opens its history. */
+.records-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(11rem, 1fr));
+    gap: var(--space-2);
+}
+.record-tile {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--space-1);
+    margin: 0;
+    padding: var(--space-3) var(--space-3) var(--space-3) var(--space-4);
+    font: inherit;
+    text-align: left;
+    color: var(--darkblue);
+    background: var(--inset-bg);
+    border: 1px solid var(--inset-border);
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+}
+.record-tile:hover { background: var(--white); border-color: var(--module-accent); }
+.record-type { font-size: 0.72rem; font-weight: 600; color: var(--mediumblue); }
+.record-label {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    font-size: 0.82rem;
+    font-weight: 600;
+}
+.record-label .meta-tag { margin: 0; }
+.record-value {
+    display: flex;
+    align-items: baseline;
+    gap: 0.25em;
+    font-family: var(--font-display);
+    font-size: 1.75rem;
+    font-weight: 600;
+    line-height: 1.05;
+}
+.record-unit { font-size: 0.85rem; font-weight: 500; color: var(--mediumblue); }
+.record-detail { font-size: 0.78rem; color: var(--mediumblue); }
+.record-when { font-size: 0.75rem; color: var(--darkblue); }
+.record-previous { font-size: 0.72rem; color: var(--mediumblue); }
+
+.records-group .btn-group { margin: 0; }
+
+/* Record history (in the modal): newest first. */
+.record-history { list-style: none; margin: 0; padding: 0; }
+.record-history-row {
+    display: grid;
+    grid-template-columns: minmax(5rem, auto) 1fr auto;
+    align-items: baseline;
+    gap: var(--space-3);
+    padding: var(--space-2) 0;
+    border-top: 1px solid var(--grey);
+    font-size: 0.9rem;
+}
+.record-history-row:first-child { border-top: 0; }
+.record-history-value { font-family: var(--font-display); font-weight: 600; font-size: 1.05rem; }
+.record-history-note { font-size: 0.75rem; color: var(--success); font-weight: 600; }
+
+@media (max-width: 480px) {
+    .stats-mix-row { grid-template-columns: minmax(0, 1fr) auto; grid-template-areas: "name figure" "bar bar"; row-gap: var(--space-1); }
+    .stats-mix-name { grid-area: name; }
+    .stats-mix-bar { grid-area: bar; }
+    .stats-mix-figure { grid-area: figure; }
+    .stats-chart { height: 13rem; }
+    .stats-type-field { flex: 1 1 100%; }
+    .record-value { font-size: 1.5rem; }
 }
 
 /* ===== Soundtrack panel — the signature: Music vs Spoken, amber territory ===== */

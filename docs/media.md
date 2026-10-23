@@ -680,13 +680,13 @@ only on genuine heterogeneity:
 
 ## Activity-statistics soundtrack block
 
-The `/statistics` "Activity statistics" section (filter by action + date range,
-`APIGetActionStatistics` in `controllers/operation.go`) overlays an aggregated
-**Soundtrack** block below the distance/time pills. Because the soundtrack is a
-**session-level** fact but that endpoint is operation-centric, the handler collects the
-**distinct parent sessions** of the matched operations (`matchedSessionIDs`, keyed on
-`OperationObject.Exercise`) and aggregates each session's `MediaPlayback` **once** —
-never per matching operation.
+The `/statistics` **Activity types** tab (filter by activity type + period,
+`APIGetActionStatistics` in `controllers/statistics.go`, see [statistics.md](statistics.md))
+overlays an aggregated **Soundtrack** block below the statistics. Because the soundtrack is a
+**session-level** fact but that endpoint is activity-centric, the handler collects the
+**distinct parent workouts** of the matched activities (keyed on the activity row's
+`ExerciseID`) and aggregates each workout's `MediaPlayback` **once** — never per matching
+activity.
 
 `computeActionMediaStatistics` (pure, unit-tested) produces `ActionStatistics.Media`
 (`*models.ActionMediaStatistics`):

@@ -24,28 +24,33 @@ type personalStreakResult struct {
 // This is the single source of truth shared by the MCP get_statistics tool and the
 // HTTP /users/:user_id/statistics endpoint, so the two cannot drift.
 func computePersonalStreaks(dayObjects []models.ExerciseDayObject) personalStreakResult {
+	activeDates := []time.Time{}
+	for _, day := range dayObjects {
+		for _, exercise := range day.Exercises {
+			if exerciseCountsTowardGoal(exercise) {
+				activeDates = append(activeDates, day.Date)
+				break
+			}
+		}
+	}
+	return computePersonalStreaksFromDates(activeDates)
+}
+
+// computePersonalStreaksFromDates is the streak rule over the dates of active days (days with
+// a goal-counting workout; duplicates are fine). The /statistics overview feeds it straight
+// from its session rows.
+func computePersonalStreaksFromDates(activeDates []time.Time) personalStreakResult {
 	daySeen := map[string]bool{}
 	weekSeen := map[string]bool{}
 	var dayStarts, weekStarts []time.Time
 
-	for _, day := range dayObjects {
-		active := false
-		for _, exercise := range day.Exercises {
-			if exerciseCountsTowardGoal(exercise) {
-				active = true
-				break
-			}
-		}
-		if !active {
-			continue
-		}
-
-		ds := dayStart(day.Date)
+	for _, date := range activeDates {
+		ds := dayStart(date)
 		if key := ds.Format("2006-01-02"); !daySeen[key] {
 			daySeen[key] = true
 			dayStarts = append(dayStarts, ds)
 		}
-		ws := isoWeekStart(day.Date)
+		ws := isoWeekStart(date)
 		if key := ws.Format("2006-01-02"); !weekSeen[key] {
 			weekSeen[key] = true
 			weekStarts = append(weekStarts, ws)

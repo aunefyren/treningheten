@@ -32,6 +32,36 @@ type ExerciseDayObject struct {
 	Exercises        []ExerciseObject `json:"exercises"`
 }
 
+// ExerciseDayWeek is the week around one day, for the day page's header: the counted
+// workouts, which days can still be logged, and the result in every season the user had a
+// goal in that week. See docs/exercises.md, "Day header".
+type ExerciseDayWeek struct {
+	Workouts     int                     `json:"workouts"`
+	WorkoutLimit int                     `json:"workout_limit"`
+	Loggable     bool                    `json:"loggable"`
+	Days         []ExerciseDayWeekDay    `json:"days"`
+	Seasons      []ExerciseDayWeekSeason `json:"seasons"`
+}
+
+// ExerciseDayWeekDay is one weekday. ID is nil where no day row exists yet; rows for the
+// current week are created on demand by GET /exercise-days/week?weekDay=n.
+type ExerciseDayWeekDay struct {
+	ID       *uuid.UUID `json:"id"`
+	Date     time.Time  `json:"date"`
+	Workouts int        `json:"workouts"`
+	Loggable bool       `json:"loggable"`
+}
+
+// ExerciseDayWeekSeason is the week's result in one season, as the leaderboard computes it.
+type ExerciseDayWeekSeason struct {
+	ID         uuid.UUID `json:"id"`
+	Name       string    `json:"name"`
+	Goal       int       `json:"goal"`
+	Workouts   int       `json:"workouts"`
+	Completion float64   `json:"completion"`
+	SickLeave  bool      `json:"sick_leave"`
+}
+
 type ExerciseDayUpdateRequest struct {
 	Note string `json:"note"`
 }

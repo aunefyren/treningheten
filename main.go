@@ -276,6 +276,7 @@ func initRouter(configFile models.ConfigStruct) *gin.Engine {
 			auth.GET("/exercise-days", controllers.APIGetExerciseDays)
 			auth.GET("/exercise-days/:exercise_day_id", controllers.APIGetExerciseDay)
 			auth.POST("/exercise-days/:exercise_day_id", controllers.APIUpdateExerciseDay)
+			auth.GET("/exercise-days/:exercise_day_id/week", controllers.APIGetExerciseDayWeek)
 			auth.GET("/exercise-days/week", controllers.APIGetExerciseDayInWeek)
 
 			auth.POST("/exercises/week", controllers.APIRegisterWeek)
@@ -297,6 +298,10 @@ func initRouter(configFile models.ConfigStruct) *gin.Engine {
 			auth.GET("/actions", controllers.APIGetActions)
 			auth.POST("/actions", controllers.APICreateAction)
 			auth.GET("/actions/:action_id/statistics", controllers.APIGetActionStatistics)
+			auth.GET("/actions/:action_id/heatmap", controllers.APIGetActionHeatmap)
+			auth.GET("/statistics/overview", controllers.APIGetStatisticsOverview)
+			auth.GET("/records", controllers.APIGetPersonalRecords)
+			auth.GET("/records/history", controllers.APIGetPersonalRecordHistory)
 
 			auth.GET("/activity-goal-settings", controllers.APIGetActivityGoalSettings)
 			auth.PUT("/activity-goal-settings", controllers.APISetActivityGoalSetting)
