@@ -230,6 +230,8 @@ func Migrate() {
 	backfillOperationStreamRollups()
 	mergeDuplicateExerciseDays()
 	capListenedTimeToPlaySpan()
+	backfillActionCategories()
+	backfillHevyOperationNotes()
 
 	logger.Log.Info("Database migration completed.")
 }

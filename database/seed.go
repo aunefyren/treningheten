@@ -25,6 +25,7 @@ var defaultActions = []models.Action{
 		BodyPart:      "general",
 		StravaName:    "Workout",
 		PastTenseVerb: ptr("worked out"),
+		Category:      models.ActionCategoryGeneral,
 		HasLogo:       false,
 	},
 	{
@@ -37,6 +38,7 @@ var defaultActions = []models.Action{
 		BodyPart:      "cardio",
 		StravaName:    "Run",
 		PastTenseVerb: ptr("went for a run"),
+		Category:      models.ActionCategoryCardio,
 		HasLogo:       true,
 	},
 	{
@@ -49,6 +51,7 @@ var defaultActions = []models.Action{
 		BodyPart:      "cardio",
 		StravaName:    "Ride",
 		PastTenseVerb: ptr("went for a bike ride"),
+		Category:      models.ActionCategoryCardio,
 		HasLogo:       true,
 	},
 	{
@@ -61,6 +64,7 @@ var defaultActions = []models.Action{
 		BodyPart:      "cardio",
 		StravaName:    "Hike",
 		PastTenseVerb: ptr("went for a hike"),
+		Category:      models.ActionCategoryCardio,
 		HasLogo:       true,
 	},
 	{
@@ -73,6 +77,7 @@ var defaultActions = []models.Action{
 		BodyPart:      "cardio",
 		StravaName:    "Walk",
 		PastTenseVerb: ptr("went for a walk"),
+		Category:      models.ActionCategoryCardio,
 		HasLogo:       true,
 	},
 	{
@@ -85,6 +90,7 @@ var defaultActions = []models.Action{
 		BodyPart:      "cardio",
 		StravaName:    "Swim",
 		PastTenseVerb: ptr("went for a swim"),
+		Category:      models.ActionCategoryCardio,
 		HasLogo:       true,
 	},
 	{
@@ -97,6 +103,7 @@ var defaultActions = []models.Action{
 		BodyPart:      "cardio",
 		StravaName:    "NordicSki",
 		PastTenseVerb: ptr("went cross-country skiing"),
+		Category:      models.ActionCategoryCardio,
 		HasLogo:       true,
 	},
 	{
@@ -109,6 +116,7 @@ var defaultActions = []models.Action{
 		BodyPart:      "cardio",
 		StravaName:    "AlpineSki",
 		PastTenseVerb: ptr("went alpine skiing"),
+		Category:      models.ActionCategorySport,
 		HasLogo:       true,
 	},
 	{
@@ -121,6 +129,7 @@ var defaultActions = []models.Action{
 		BodyPart:      "cardio",
 		StravaName:    "Snowboard",
 		PastTenseVerb: ptr("went snowboarding"),
+		Category:      models.ActionCategorySport,
 		HasLogo:       true,
 	},
 	{
@@ -133,6 +142,7 @@ var defaultActions = []models.Action{
 		BodyPart:      "cardio",
 		StravaName:    "Elliptical",
 		PastTenseVerb: ptr("used the elliptical"),
+		Category:      models.ActionCategoryCardio,
 		HasLogo:       false,
 	},
 	{
@@ -145,6 +155,7 @@ var defaultActions = []models.Action{
 		BodyPart:      "back",
 		StravaName:    "Rowing",
 		PastTenseVerb: ptr("went rowing"),
+		Category:      models.ActionCategoryCardio,
 		HasLogo:       true,
 	},
 	{
@@ -157,6 +168,7 @@ var defaultActions = []models.Action{
 		BodyPart:      "cardio",
 		StravaName:    "Skateboard",
 		PastTenseVerb: ptr("went skateboarding"),
+		Category:      models.ActionCategorySport,
 		HasLogo:       true,
 	},
 
@@ -171,6 +183,7 @@ var defaultActions = []models.Action{
 		BodyPart:      "cardio",
 		StravaName:    "Padel",
 		PastTenseVerb: ptr("played some padel"),
+		Category:      models.ActionCategorySport,
 		HasLogo:       true,
 	},
 	{
@@ -183,6 +196,7 @@ var defaultActions = []models.Action{
 		BodyPart:      "cardio",
 		StravaName:    "",
 		PastTenseVerb: ptr("played some tennis"),
+		Category:      models.ActionCategorySport,
 		HasLogo:       true,
 	},
 	{
@@ -195,6 +209,7 @@ var defaultActions = []models.Action{
 		BodyPart:      "cardio",
 		StravaName:    "Soccer",
 		PastTenseVerb: ptr("played some football"),
+		Category:      models.ActionCategorySport,
 		HasLogo:       true,
 	},
 	{
@@ -207,6 +222,7 @@ var defaultActions = []models.Action{
 		BodyPart:      "cardio",
 		StravaName:    "Golf",
 		PastTenseVerb: ptr("played some golf"),
+		Category:      models.ActionCategorySport,
 		HasLogo:       true,
 	},
 	{
@@ -219,6 +235,7 @@ var defaultActions = []models.Action{
 		BodyPart:      "cardio",
 		StravaName:    "Crossfit",
 		PastTenseVerb: ptr("did some crossfit"),
+		Category:      models.ActionCategoryStrength,
 		HasLogo:       true,
 	},
 	{
@@ -231,6 +248,7 @@ var defaultActions = []models.Action{
 		BodyPart:      "full body",
 		StravaName:    "WeightTraining",
 		PastTenseVerb: ptr("did some weight training"),
+		Category:      models.ActionCategoryStrength,
 		HasLogo:       true,
 	},
 	{
@@ -243,6 +261,7 @@ var defaultActions = []models.Action{
 		BodyPart:      "core",
 		StravaName:    "Yoga",
 		PastTenseVerb: ptr("did some yoga"),
+		Category:      models.ActionCategoryMobility,
 		HasLogo:       true,
 	},
 
@@ -257,6 +276,7 @@ var defaultActions = []models.Action{
 		BodyPart:      "arms",
 		StravaName:    "",
 		PastTenseVerb: nil,
+		Category:      models.ActionCategoryStrength,
 		HasLogo:       false,
 	},
 	{
@@ -269,6 +289,8 @@ var defaultActions = []models.Action{
 		BodyPart:      "back",
 		StravaName:    "",
 		PastTenseVerb: nil,
+		Category:      models.ActionCategoryStrength,
+		Equipment:     models.ActionEquipmentCable,
 		HasLogo:       false,
 	},
 	{
@@ -281,6 +303,8 @@ var defaultActions = []models.Action{
 		BodyPart:      "back",
 		StravaName:    "",
 		PastTenseVerb: nil,
+		Category:      models.ActionCategoryStrength,
+		Equipment:     models.ActionEquipmentCable,
 		HasLogo:       false,
 	},
 	{
@@ -293,6 +317,8 @@ var defaultActions = []models.Action{
 		BodyPart:      "back",
 		StravaName:    "",
 		PastTenseVerb: nil,
+		Category:      models.ActionCategoryStrength,
+		Equipment:     models.ActionEquipmentCable,
 		HasLogo:       false,
 	},
 	{
@@ -305,6 +331,8 @@ var defaultActions = []models.Action{
 		BodyPart:      "core",
 		StravaName:    "",
 		PastTenseVerb: ptr("did the plank"),
+		Category:      models.ActionCategoryStrength,
+		Equipment:     models.ActionEquipmentBodyweight,
 		HasLogo:       false,
 	},
 	{
@@ -317,6 +345,7 @@ var defaultActions = []models.Action{
 		BodyPart:      "core",
 		StravaName:    "Pilates",
 		PastTenseVerb: ptr("did some pilates"),
+		Category:      models.ActionCategoryMobility,
 		HasLogo:       false,
 	},
 }

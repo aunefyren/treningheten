@@ -146,6 +146,9 @@ func APIGetActivityFeed(context *gin.Context) {
 	if sessions == nil {
 		sessions = []models.SessionFeedItem{}
 	}
+	for i := range sessions {
+		sessions[i].Headline = sessionHeadlineForFeedItem(sessions[i])
+	}
 	hasMore := int64(filter.Offset+len(sessions)) < total
 
 	context.JSON(http.StatusOK, gin.H{
@@ -204,6 +207,7 @@ func buildActivitiesFromExerciseDays(exerciseDays []models.ExerciseDay) ([]model
 			}
 
 			activity.HevyWorkoutID = exercise.HevyWorkoutID
+			activity.Headline = exercise.Headline
 
 			if len(exercise.Operations) > 0 {
 				for _, operation := range exercise.Operations {

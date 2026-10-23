@@ -21,6 +21,8 @@ const activityFeedSelectColumns = "o.id AS operation_id, " +
 	"COALESCE(a.type, '') AS action_type, " +
 	"COALESCE(a.has_logo, false) AS action_has_logo, " +
 	"COALESCE(a.strava_name, '') AS action_strava_name, " +
+	"COALESCE(a.category, '') AS action_category, " +
+	"COALESCE(a.past_tense_verb, '') AS action_past_tense_verb, " +
 	"o.note AS note, " +
 	"o.distance_unit AS distance_unit, " +
 	"o.weight_unit AS weight_unit, " +
@@ -56,7 +58,7 @@ func activityRowsBase(userID uuid.UUID) *gorm.DB {
 		Where("o.enabled = true").
 		Where("e.is_on = true").
 		Where("d.user_id = ?", userID).
-		Group("o.id, o.exercise_id, e.exercise_day_id, d.date, e.time, o.action_id, a.name, a.type, a.has_logo, a.strava_name, o.note, o.distance_unit, o.weight_unit, e.hevy_workout_id, e.counts_toward_goal, e.private")
+		Group("o.id, o.exercise_id, e.exercise_day_id, d.date, e.time, o.action_id, a.name, a.type, a.has_logo, a.strava_name, a.category, a.past_tense_verb, o.note, o.distance_unit, o.weight_unit, e.hevy_workout_id, e.counts_toward_goal, e.private")
 }
 
 // sessionFeedBase builds the filtered, grouped query for the session feed. The root table is

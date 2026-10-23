@@ -48,10 +48,12 @@ type OperationUpdateRequest struct {
 	Type         string `json:"type"`
 	WeightUnit   string `json:"weight_unit"`
 	DistanceUnit string `json:"distance_unit"`
-	Equipment    string `json:"equipment"`
-	// Tags, Description and GearID are pointers so an omitted field (e.g. a
+	// Equipment, Tags, Description and GearID are pointers so an omitted field (e.g. a
 	// non-moving op card never sends gear) leaves the stored value untouched,
 	// while an explicit value replaces it (an empty GearID string clears gear).
+	// Equipment is legacy: the builder no longer sends it (equipment now lives on the
+	// Action), so omitting it must not wipe what older sessions stored.
+	Equipment   *string   `json:"equipment"`
 	Tags        *[]string `json:"tags"`
 	Description *string   `json:"description"`
 	GearID      *string   `json:"gear_id"`
@@ -139,6 +141,10 @@ type Action struct {
 	HevyTemplateID *string `json:"hevy_template_id" gorm:"default: null"`
 	PastTenseVerb  *string `json:"past_tense_verb"`
 	HasLogo        bool    `json:"has_logo" gorm:"not null; default: false;"`
+	// Category is what kind of training this is (strength/cardio/sport/mobility/general —
+	// see action_category.go); Equipment is what it is performed with ("" when unknown).
+	Category  string `json:"category"`
+	Equipment string `json:"equipment"`
 }
 
 type ActionCreationRequest struct {
@@ -147,6 +153,9 @@ type ActionCreationRequest struct {
 	Description   string `json:"description"`
 	Type          string `json:"type"`
 	BodyPart      string `json:"body_part"`
+	// Category defaults from Type when empty; Equipment is optional.
+	Category  string `json:"category"`
+	Equipment string `json:"equipment"`
 }
 
 type ActionStatistics struct {

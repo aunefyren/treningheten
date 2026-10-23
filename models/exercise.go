@@ -110,6 +110,8 @@ type ExerciseObject struct {
 	// only when the media feature is enabled (see docs/media.md).
 	MediaPlayback    []MediaPlaybackObject `json:"media_playback"`
 	MediaRetrievedAt *time.Time            `json:"media_retrieved_at"`
+	// Headline names the session (title, feed phrase, category, logos); see SessionHeadline.
+	Headline SessionHeadline `json:"headline"`
 }
 
 type ExerciseDayCreationRequest struct {
@@ -157,4 +159,6 @@ type Activity struct {
 	StravaIDs     []string   `json:"strava_ids"`
 	HevyWorkoutID *string    `json:"hevy_workout_id"`
 	Actions       []Action   `json:"actions"`
+	// Headline is the session's description, shared with the session view (see SessionHeadline).
+	Headline SessionHeadline `json:"headline"`
 }

@@ -57,9 +57,21 @@ func TestCustomActionsAndPrizes(t *testing.T) {
 	if field(t, created, "action", "name") != "Underwater Juggling" {
 		t.Errorf("created action = %v", created)
 	}
+	// No category given: it defaults from the type; equipment stays empty.
+	if category, equipment := field(t, created, "action", "category"), field(t, created, "action", "equipment"); category != models.ActionCategoryGeneral || equipment != "" {
+		t.Errorf("default category/equipment = %v/%v, want general/empty", category, equipment)
+	}
+	chosen := h.expect(http.StatusCreated, "POST", "/api/auth/actions", token, models.ActionCreationRequest{
+		Name: "Garage Press", Type: "lifting", Category: models.ActionCategoryStrength, Equipment: models.ActionEquipmentKettlebell,
+	})
+	if category, equipment := field(t, chosen, "action", "category"), field(t, chosen, "action", "equipment"); category != models.ActionCategoryStrength || equipment != models.ActionEquipmentKettlebell {
+		t.Errorf("chosen category/equipment = %v/%v, want strength/kettlebell", category, equipment)
+	}
 	for name, request := range map[string]models.ActionCreationRequest{
-		"no names": {Type: "lifting"},
-		"bad type": {Name: "Thing", Type: "flying"},
+		"no names":      {Type: "lifting"},
+		"bad type":      {Name: "Thing", Type: "flying"},
+		"bad category":  {Name: "Thing", Type: "lifting", Category: "vibes"},
+		"bad equipment": {Name: "Thing", Type: "lifting", Equipment: "anvil"},
 	} {
 		if code := h.do("POST", "/api/auth/actions", token, request).Code; code != http.StatusBadRequest {
 			t.Errorf("%s: status = %d, want 400", name, code)

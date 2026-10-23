@@ -1916,28 +1916,22 @@ function placeActivities(activitiesArray) {
     }
 }
 
+// generateActivityHTML renders one front-page feed entry. The phrase ("did some strength
+// training") and the logos come from the server's session headline, which weighs the
+// session's activity categories, so a Hevy push day reads as strength training with one logo
+// instead of "a range of workouts".
 function generateActivityHTML(activity) {
-    var activitySentence = "worked out";
-    if(activity.actions && activity.actions.length == 1) {
-        if(activity.actions[0].past_tense_verb && activity.actions[0].past_tense_verb != "") {
-            activitySentence = activity.actions[0].past_tense_verb;
-        }
-    } else if(activity.actions && activity.actions.length > 1) {
-        activitySentence = "did a range of workouts"
-    }
+    const headline = activity.headline || {};
+    const activitySentence = headline.past_tense_verb || "worked out";
 
     var activityLogoBarHTML = "";
-    if(activity.actions) {
-        activity.actions.forEach(action => {
-            if(action.has_logo) {
-                activityLogoBarHTML += `
-                    <div class="activity-logo">
-                        <img class="u-w-full" src="assets/actions/${action.name}.svg" title="${action.name}"></img>
-                    </div>
-                `;
-            }
-        });
-    }
+    (headline.logos || []).forEach(logo => {
+        activityLogoBarHTML += `
+            <div class="activity-logo">
+                <img class="u-w-full" src="assets/actions/${logo}.svg" title="${logo}"></img>
+            </div>
+        `;
+    });
 
     var activityStravaHTML = "";
     if(activity.strava_ids && activity.strava_ids.length > 0) {

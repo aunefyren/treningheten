@@ -175,6 +175,56 @@ func TestHevyBackfillAndEventsSync(t *testing.T) {
 		t.Error("the custom Hevy exercise name was lost")
 	}
 
+	// A catalog exercise's per-exercise note is a description, not the activity title.
+	sawSquatNote := false
+	for _, raw := range field(t, operations, "operations").([]any) {
+		operation := raw.(map[string]any)
+		if description, _ := operation["description"].(string); description == "deep" {
+			sawSquatNote = true
+			if note, _ := operation["note"].(string); note != "" {
+				t.Errorf("squat note = %q, want empty (the note is the title slot)", note)
+			}
+		}
+	}
+	if !sawSquatNote {
+		t.Error("the squat's per-exercise note did not land in its description")
+	}
+
+	// The session headline keeps Hevy's workout title on both the feed and the session view.
+	// The workout is a squat (strength) plus a custom duration move (general), so neither
+	// category dominates and the phrase is the mixed one.
+	feedSessions := field(t, h.ok("GET", "/api/auth/activities", token, nil), "sessions").([]any)
+	if len(feedSessions) == 0 {
+		t.Fatal("feed returned no sessions")
+	}
+	for _, raw := range feedSessions {
+		session := raw.(map[string]any)
+		headline := session["headline"].(map[string]any)
+		if headline["title"] != session["note"] {
+			t.Errorf("feed headline title = %v, want the Hevy title %v", headline["title"], session["note"])
+		}
+		if headline["past_tense_verb"] != "did a range of workouts" {
+			t.Errorf("feed headline phrase = %v, want did a range of workouts", headline["past_tense_verb"])
+		}
+	}
+	dayID := feedSessions[0].(map[string]any)["exercise_day_id"].(string)
+	day := field(t, h.ok("GET", "/api/auth/exercise-days/"+dayID, token, nil), "exercise_day").(map[string]any)
+	for _, raw := range day["exercises"].([]any) {
+		exercise := raw.(map[string]any)
+		if title := exercise["headline"].(map[string]any)["title"]; title != exercise["note"] {
+			t.Errorf("session headline title = %v, want the Hevy title %v", title, exercise["note"])
+		}
+	}
+
+	// The auto-created catalog action carries its category and the equipment from its title.
+	squat, err := database.GetActionByHevyTemplateID("tmpl-squat")
+	if err != nil || squat == nil {
+		t.Fatalf("squat action: %v %v", squat, err)
+	}
+	if squat.Category != models.ActionCategoryStrength || squat.Equipment != models.ActionEquipmentBarbell {
+		t.Errorf("squat category/equipment = %q/%q, want strength/barbell", squat.Category, squat.Equipment)
+	}
+
 	// Events: the first workout is edited down to one exercise, the second is deleted.
 	edited := first
 	edited.Title = "Legs (edited)"

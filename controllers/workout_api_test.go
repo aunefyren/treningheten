@@ -125,17 +125,32 @@ func TestWorkoutLoggingFlow(t *testing.T) {
 
 	// Operation update: tags and description.
 	updated := h.ok("PUT", "/api/auth/operations/"+operationID, token, models.OperationUpdateRequest{
-		Action: actionName, Type: "lifting", WeightUnit: "lb", DistanceUnit: "miles", Equipment: "barbells",
+		Action: actionName, Type: "lifting", WeightUnit: "lb", DistanceUnit: "miles", Equipment: stringPtr("barbells"),
 		Tags: &[]string{"race"}, Description: stringPtr("heavy day"),
 	})
 	if unit := field(t, updated, "operation", "weight_unit"); unit != "lb" {
 		t.Errorf("weight_unit = %v, want lb", unit)
 	}
+
+	// Legacy equipment: the builder no longer sends it, so omitting it keeps the stored
+	// value, and an explicit empty string clears it.
+	kept := h.ok("PUT", "/api/auth/operations/"+operationID, token, models.OperationUpdateRequest{
+		Action: actionName, Type: "lifting", WeightUnit: "lb", DistanceUnit: "miles",
+	})
+	if equipment := field(t, kept, "operation", "equipment"); equipment != "barbells" {
+		t.Errorf("equipment after omitted update = %v, want barbells", equipment)
+	}
+	cleared := h.ok("PUT", "/api/auth/operations/"+operationID, token, models.OperationUpdateRequest{
+		Action: actionName, Type: "lifting", WeightUnit: "lb", DistanceUnit: "miles", Equipment: stringPtr(""),
+	})
+	if equipment := field(t, cleared, "operation", "equipment"); equipment != "" {
+		t.Errorf("equipment after empty update = %v, want empty", equipment)
+	}
 	for name, request := range map[string]models.OperationUpdateRequest{
 		"unknown tag":       {Type: "lifting", WeightUnit: "kg", DistanceUnit: "km", Tags: &[]string{"not-a-tag"}},
 		"unknown action":    {Action: "No such exercise", Type: "lifting", WeightUnit: "kg", DistanceUnit: "km"},
 		"unknown type":      {Type: "flying", WeightUnit: "kg", DistanceUnit: "km"},
-		"unknown equipment": {Type: "lifting", WeightUnit: "kg", DistanceUnit: "km", Equipment: "anvil"},
+		"unknown equipment": {Type: "lifting", WeightUnit: "kg", DistanceUnit: "km", Equipment: stringPtr("anvil")},
 		"unknown unit":      {Type: "lifting", WeightUnit: "stone", DistanceUnit: "km"},
 	} {
 		if code := h.do("PUT", "/api/auth/operations/"+operationID, token, request).Code; code != http.StatusBadRequest {

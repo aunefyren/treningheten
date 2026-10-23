@@ -801,6 +801,7 @@ func ConvertExerciseToExerciseObject(exercise models.Exercise) (exerciseObject m
 	exerciseObject.UpdatedAt = exercise.UpdatedAt
 	exerciseObject.Duration = exercise.Duration
 	exerciseObject.HevyWorkoutID = exercise.HevyWorkoutID
+	exerciseObject.Headline = sessionHeadlineForExercise(exerciseObject)
 
 	exerciseObject.MediaRetrievedAt = exercise.MediaRetrievedAt
 	exerciseObject.MediaPlayback = []models.MediaPlaybackObject{}

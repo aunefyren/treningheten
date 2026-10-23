@@ -320,12 +320,13 @@ func HevySyncWorkoutForUser(user models.User, workout models.HevyWorkout, templa
 
 		notes := strings.TrimSpace(hevyExercise.Notes)
 		if action != nil {
-			// Official catalog: the Action carries the exercise name; only attach the
-			// user's per-exercise note when present.
+			// Official catalog: the Action carries the exercise name. The user's
+			// per-exercise note is a description, not a title — Note is what the card
+			// shows as the activity title, so it stays empty here.
 			operation.ActionID = &action.ID
 			operation.Type = action.Type
 			if notes != "" {
-				operation.Note = &notes
+				operation.Description = &notes
 			}
 		} else {
 			// Custom (or unknown) exercise: no global Action, so preserve the title on

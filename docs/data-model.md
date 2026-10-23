@@ -171,7 +171,9 @@ Strava and media features read.
   where the raw numbers live.
 - **Action** (`models/operation.go`) — the **catalog** of activity types (run, bench
   press, …): names (incl. `NorwegianName`, `StravaName`, `HevyTemplateID` for import
-  mapping), `Type`, `BodyPart`, `HasLogo`. Shared reference data, not per-user.
+  mapping), `Type` (how it is measured), `Category` (what kind of training — drives the
+  session headline), `Equipment`, `BodyPart`, `HasLogo`. Shared reference data, not per-user.
+  See [exercises.md](exercises.md#session-headline-title-feed-phrase-logos).
 - **Gear** (`models/gear.go`) — a piece of equipment (shoe/bike) a user logs against,
   linked per-operation via `Operation.GearID`. Total distance is **computed** from
   linked operations, not stored (`GearObject.Distance`). See [gear.md](gear.md).

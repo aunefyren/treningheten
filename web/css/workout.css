@@ -1011,7 +1011,6 @@ button.wv-split:focus-visible { outline: none; box-shadow: 0 0 0 3px var(--focus
 .we-input,
 .we-set-input,
 .we-type-select,
-.we-equipment-select,
 .we-note {
   font-family: var(--font-body);
   font-size: 1rem;
@@ -1026,7 +1025,6 @@ button.wv-split:focus-visible { outline: none; box-shadow: 0 0 0 3px var(--focus
 .we-input:focus,
 .we-set-input:focus,
 .we-type-select:focus,
-.we-equipment-select:focus,
 .we-note:focus {
   outline: none;
   border-color: var(--accent);
@@ -1083,8 +1081,6 @@ button.wv-split:focus-visible { outline: none; box-shadow: 0 0 0 3px var(--focus
 .we-action { position: relative; flex: 1; min-width: 0; }
 .we-action-input { width: 100%; }
 .we-exercise-head .wv-action-icon { padding: 0.5rem; }
-
-.we-equipment-select { margin-top: 0.6rem; color: var(--text-dim); }
 
 .we-op-note { margin-top: 0.6rem; }
 
@@ -1176,7 +1172,6 @@ button.wv-split:focus-visible { outline: none; box-shadow: 0 0 0 3px var(--focus
 .workout-view .we-input,
 .workout-view .we-set-input,
 .workout-view .we-type-select,
-.workout-view .we-equipment-select,
 .workout-view .we-note {
   background: var(--white);
   color: var(--text);
@@ -1199,7 +1194,6 @@ button.wv-split:focus-visible { outline: none; box-shadow: 0 0 0 3px var(--focus
 .workout-view .we-set-input,
 .workout-view .we-note { padding: 0.55rem 0.65rem; width: 100%; }
 
-.workout-view .we-equipment-select { padding: 0.55rem 0.65rem; width: 100%; }
 .workout-view .we-type-select { padding: 0.55rem 0.4rem; width: auto; flex: 0 0 auto; text-align: center; }
 .workout-view .we-set-input { padding: 0.5rem 0.3rem; text-align: center; }
 /* The `margin: 0` above (needed to undo main.css's form margins) also wipes the
@@ -1211,7 +1205,6 @@ button.wv-split:focus-visible { outline: none; box-shadow: 0 0 0 3px var(--focus
 .workout-view .we-input:focus,
 .workout-view .we-set-input:focus,
 .workout-view .we-type-select:focus,
-.workout-view .we-equipment-select:focus,
 .workout-view .we-note:focus {
   outline: none;
   border-color: var(--accent);
@@ -1221,18 +1214,9 @@ button.wv-split:focus-visible { outline: none; box-shadow: 0 0 0 3px var(--focus
 
 /* The native options popup inherits the select's translucent background and
    renders as low-contrast grey; give the options a solid dark fill instead. */
-.workout-view .we-type-select option,
-.workout-view .we-equipment-select option {
+.workout-view .we-type-select option {
   background: var(--white);
   color: var(--text);
-}
-
-/* Custom caret for the selects (native arrow is gone with appearance:none). */
-.workout-view .we-equipment-select {
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%230d1b2a'/%3E%3C/svg%3E");
-  background-repeat: no-repeat;
-  background-position: right 0.7rem center;
-  padding-right: 1.8rem;
 }
 
 /* The action autocomplete popover: restyle as a dark panel so it matches the

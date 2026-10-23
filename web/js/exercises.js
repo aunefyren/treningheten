@@ -315,12 +315,15 @@ function feedSessionCard(session, opts) {
     var activities = session.activities || [];
     var collapsed = activities.length === 1;
 
-    // Mixed or empty work has no one type, so it keeps the generic glyph rather than
-    // picking a winner from its parts.
-    var icon = collapsed ? feedActionIcon(activities[0]) : feedActionGlyph("");
+    // Several activities take the glyph of the session's dominant category (the server's
+    // headline); a genuinely mixed or empty session keeps the generic one.
+    var title = feedSessionTitle(session);
+    var icon = collapsed ? feedActionIcon(activities[0]) : feedActionGlyph(session.headline ? session.headline.category : "");
     var chips = feedSessionChips(session, collapsed ? activities[0] : null).join(" · ");
 
-    var note = (session.note && session.note.trim())
+    // An imported session's note is its title, so the note marker only shows for a real note.
+    var noteText = (session.note || "").trim();
+    var note = noteText && noteText !== title
         ? `<span class="feed-note" title="${escapeHTML(session.note)}">📝</span>`
         : "";
     var count = activities.length > 1
@@ -346,7 +349,7 @@ function feedSessionCard(session, opts) {
                 ${rank}
                 <div class="feed-row-icon">${icon}</div>
                 <div class="feed-row-body">
-                    <div class="feed-row-title"><span class="feed-title-name">${escapeHTML(feedSessionTitle(session))}</span>${note}${count}${noCount}${hidden}</div>
+                    <div class="feed-row-title"><span class="feed-title-name">${escapeHTML(title)}</span>${note}${count}${noCount}${hidden}</div>
                     <div class="feed-row-metrics">${chips || "&nbsp;"}</div>
                 </div>
                 ${when ? `<div class="feed-row-when">${when}</div>` : ""}
@@ -355,10 +358,14 @@ function feedSessionCard(session, opts) {
     `;
 }
 
-// feedSessionTitle names the workout by what is in it: the single activity when collapsed,
-// otherwise the distinct activity types (two, then "+N more"). A session logged without any
-// activity is simply a workout, which is exactly what the user said it was.
+// feedSessionTitle names the workout. The server's headline is authoritative (the source's own
+// title, else one generated from the activity categories — see docs/exercises.md); the local
+// fallback only covers a response without one: the distinct activity types (two, then
+// "+N more"), or "Workout" for a session without activities.
 function feedSessionTitle(session) {
+    if (session.headline && session.headline.title) {
+        return session.headline.title;
+    }
     var activities = session.activities || [];
     if (activities.length === 0) {
         return "Workout";

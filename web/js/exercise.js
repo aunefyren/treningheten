@@ -309,7 +309,10 @@ function renderWorkoutSummary(exercise, count) {
     }
 
     const totalDuration = exercise.duration ? secondsToDurationString(exercise.duration) : "—";
-    const summaryLine = operations.map(activityTitle).join("  +  ") || "Empty session";
+    // The server's headline names the session (the source's own title, else one generated from
+    // the activity categories); the joined activity titles are only a fallback.
+    const summaryLine = (exercise.headline && exercise.headline.title)
+        || operations.map(activityTitle).join("  +  ") || "Empty session";
     const subCards = operations.map(op => renderActivitySubCard(op, exercise)).join("");
     const noCountBadge = exercise.counts_toward_goal ? ""
         : `<span class="wv-nocount-badge" title="This session is logged but doesn't count toward your weekly goal">Doesn't count</span>`;
@@ -1408,6 +1411,17 @@ function hrZoneRange(z) {
     return " " + formatZoneRange(z.min_bpm, z.max_bpm, "bpm");
 }
 
+// Display labels for the server's action vocabularies (models/action_category.go). Keys are
+// the stored values; the empty key is the "not set" option of the create-action form.
+const actionCategoryLabels = {
+    strength: "💪 Strength", cardio: "🏃 Cardio", sport: "🎾 Sport", mobility: "🧘 Mobility", general: "🏅 General"
+};
+const actionEquipmentLabels = {
+    "": "None / not sure", barbell: "Barbell", dumbbell: "Dumbbell", machine: "Machine", cable: "Cable",
+    smith_machine: "Smith machine", kettlebell: "Kettlebell", band: "Band", suspension: "Suspension",
+    bodyweight: "Bodyweight", trap_bar: "Trap bar", sandbag: "Sandbag"
+};
+
 function renderStrengthSubCard(operation, exercise) {
     const sets = operation.operation_sets || [];
     var totalReps = 0, volume = 0, hasVolume = false, stravaID = null, stravaSetID = null;
@@ -1425,7 +1439,9 @@ function renderStrengthSubCard(operation, exercise) {
         return `<span class="wv-set">${label}</span>`;
     }).join("");
 
-    var rollup = `${sets.length} ${sets.length === 1 ? 'set' : 'sets'}`;
+    // The equipment belongs to the exercise (its action), so it leads the summary line.
+    const equipment = operation.action && operation.action.equipment ? actionEquipmentLabels[operation.action.equipment] : null;
+    var rollup = `${equipment ? escapeHTML(equipment) + " · " : ""}${sets.length} ${sets.length === 1 ? 'set' : 'sets'}`;
     if (totalReps > 0) rollup += ` · ${wvNum(totalReps)} reps`;
     if (hasVolume) rollup += ` · ${wvNum(Math.round(volume))} ${operation.weight_unit} vol`;
 
@@ -1901,16 +1917,6 @@ function generateOperationHTML(operation) {
     const timingSel  = operation.type == 'timing'  ? 'selected' : '';
     const actionName = operation.action ? operation.action.name : "";
 
-    const equip = operation.equipment || "";
-    const equipOptions = [
-        ["", "Equipment"], ["barbells", "Barbells"], ["dumbbells", "Dumbbells"],
-        ["bands", "Bands"], ["rope", "Rope"], ["bench", "Bench"],
-        ["treadmill", "Treadmill"], ["machine", "Machine"]
-    ];
-    const equipHTML = equipOptions.map(([v, label]) =>
-        `<option value="${v}" ${equip === v ? 'selected' : ''}>${label}</option>`
-    ).join("");
-
     // Gear is edited per operation, but only makes sense for moving activities
     // (shoes / bike), mirroring Strava. Non-moving cards omit the selector so
     // updateOperation never touches their gear.
@@ -1942,10 +1948,6 @@ function generateOperationHTML(operation) {
             <img src="/assets/plus.svg" class="btn_logo clickable wv-action-icon" id="addActionWrapper-${operation.id}" title="Create new exercise type" onclick="addAction('${operation.id}')">
             <img src="/assets/trash-2.svg" class="btn_logo clickable wv-action-icon" title="Remove exercise" onclick="deleteOperation('${operation.id}')">
         </div>
-
-        <select class="we-equipment-select" id="operation-equipment-text-${operation.id}" name="operation-equipment-text" onchange="updateOperation('${operation.id}')">
-            ${equipHTML}
-        </select>
 
         ${gearRowHTML}
 
@@ -2228,7 +2230,6 @@ function updateOperation(operationID) {
     var action = document.getElementById('operation-action-text-' + operationID).value
     var weight_unit = document.getElementById('operation-weight-unit-' + operationID).value
     var distance_unit = document.getElementById('operation-distance-unit-' + operationID).value
-    var equipment = document.getElementById('operation-equipment-text-' + operationID).value
 
     var tagEls = document.querySelectorAll('#tag-selector-' + operationID + ' .tag-chip-selected');
     var tags = Array.from(tagEls).map(e => e.getAttribute('data-tag'));
@@ -2241,7 +2242,6 @@ function updateOperation(operationID) {
         "action": action,
         "weight_unit": weight_unit,
         "distance_unit": distance_unit,
-        "equipment": equipment,
         "tags": tags,
         "description": description,
     };
@@ -2685,8 +2685,21 @@ function addAction(operationID) {
                 <textarea class="trm-textarea" id="new-action-description-input-${operationID}" name="new-action-description-input" rows="3" placeholder="Fast paced moving which can be..."></textarea>
             </div>
             <div class="trm-field">
-                <span class="trm-label">Body part / category</span>
-                <input class="trm-input" type="text" id="new-action-bodypart-input-${operationID}" name="new-action-bodypart-input" placeholder="Cardio" value="">
+                <span class="trm-label">Kind of training</span>
+                <select class="trm-select" id="new-action-category-input-${operationID}" name="new-action-category-input">
+                    <option value="">Pick from the type above</option>
+                    ${Object.entries(actionCategoryLabels).map(([value, label]) => `<option value="${value}">${label}</option>`).join("")}
+                </select>
+            </div>
+            <div class="trm-field">
+                <span class="trm-label">Equipment</span>
+                <select class="trm-select" id="new-action-equipment-input-${operationID}" name="new-action-equipment-input">
+                    ${Object.entries(actionEquipmentLabels).map(([value, label]) => `<option value="${value}">${label}</option>`).join("")}
+                </select>
+            </div>
+            <div class="trm-field">
+                <span class="trm-label">Body part</span>
+                <input class="trm-input" type="text" id="new-action-bodypart-input-${operationID}" name="new-action-bodypart-input" placeholder="Legs" value="">
             </div>
 
             <button type="submit" class="btn btn--primary" onclick="createAction('${operationID}');"><img src="/assets/done.svg">Add and use</button>
@@ -2837,7 +2850,7 @@ function openGearModal() {
     closeAllLists();
     // While the modal is open, any gear change re-renders its body and refreshes the on-page selectors.
     onGearChanged = function() { renderGearModalBody(); refreshGearSelectors(); };
-    TRModal.open({ eyebrow: "Equipment", title: "Manage gear", body: `<div class="gear-empty">Loading gear…</div>` });
+    TRModal.open({ eyebrow: "Gear", title: "Manage gear", body: `<div class="gear-empty">Loading gear…</div>` });
     getGear();
 }
 
@@ -2859,13 +2872,17 @@ function createAction(operationID) {
     var description = document.getElementById('new-action-description-input-' + operationID).value
     var type = document.getElementById('new-action-type-input-' + operationID).value
     var body_part = document.getElementById('new-action-bodypart-input-' + operationID).value
+    const category = document.getElementById('new-action-category-input-' + operationID).value;
+    const equipment = document.getElementById('new-action-equipment-input-' + operationID).value;
 
     var form_obj = {
         "name": name,
         "norwegian_name" : norwegian_name,
         "description": description,
         "type": type,
-        "body_part": body_part
+        "body_part": body_part,
+        "category": category,
+        "equipment": equipment
     };
 
     var form_data = JSON.stringify(form_obj);

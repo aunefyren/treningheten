@@ -34,6 +34,8 @@ func (t HevyExerciseTemplate) ToAction() Action {
 		BodyPart:       strings.TrimSpace(t.PrimaryMuscleGroup),
 		HevyTemplateID: &templateID,
 		HasLogo:        false,
+		Category:       HevyActionCategory(t.PrimaryMuscleGroup),
+		Equipment:      HevyTitleEquipment(t.Title),
 	}
 }
 

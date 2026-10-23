@@ -103,9 +103,50 @@ when `private` is true, and lists the session's metrics — distance, duration, 
 activity's icon and name and draws no breakdown, so the common case — one imported run — reads
 as a single line rather than as a box wrapped around one row. It also borrows that activity's
 **avg HR** and **elevation gain** scalars, which are per-activity readings with no meaningful
-session-wide sum. Two or more activities get the breakdown underneath and a title naming what
-is in the workout ("Cycling + Bench press", then "+N more" past two); a session with none is
-titled "Workout".
+session-wide sum. Two or more activities get the breakdown underneath, and the icon of the
+session's dominant category (🏋 strength, 🏃 cardio, 🎾 sport; the generic 🏅 when mixed).
+
+### Session headline (title, feed phrase, logos)
+
+Every surface that names a session — the session header on `/exercises/:id`, the `/exercises`
+cards and the front-page feed — reads the server's **`headline`** (`models.SessionHeadline`,
+built by `controllers/session_headline.go`) instead of deriving its own. It is attached to
+`ExerciseObject`, `SessionFeedItem` and the front-page `Activity`. Rules, in order:
+
+1. **Title.** A session imported from **Strava or Hevy keeps the source's own title** (its
+   `Exercise.Note`: "Afternoon Run", "Push day") — the maintainer's choice, as it is more
+   personal. A manual session's note is a free-text note, not a title, so its title is
+   generated: the single activity's name when there is one kind; **"Strength training"** when
+   strength covers two thirds or more of the activities; the dominant category's activity
+   names otherwise ("Run + Bicycling", then "+ N more"); and for a genuinely mixed session up to
+   two category runs ("Run + strength training"). An empty session is "Workout".
+2. **Feed phrase** (`past_tense_verb`). The single action's own phrase ("played some padel"),
+   else the dominant category's ("did some strength training"), else "did a range of
+   workouts" — now only for genuinely mixed sessions.
+3. **Logos.** Each activity's logo, de-duplicated; strength activities without a logo of their
+   own (every Hevy lift) borrow the Weight Training logo, so a lifting session shows it once.
+
+The rules hang off **`Action.Category`** — strength / cardio / sport / mobility / general
+(`models/action_category.go`) — which says what kind of training an action is, independent of
+how it is measured (`Action.Type`: Weight Training and Yoga are both `timing`, Plank is
+`lifting`). Curated actions set it by hand in `database/seed.go`; Hevy catalog actions get it
+from the template's muscle group (cardio → cardio, "other" → mobility, everything else →
+strength); user-created actions pick it in the "Add exercise" form or default from their type
+(lifting → strength, moving → cardio, timing → general). `backfillActionCategories` filled
+existing rows once.
+
+### Equipment
+
+Equipment belongs to the **exercise**, so it lives on **`Action.Equipment`** (barbell, dumbbell,
+machine, cable, smith_machine, kettlebell, band, suspension, bodyweight, trap_bar, sandbag; empty
+when unknown), not on each logged activity. Hevy catalog actions take it from the bracket in
+their title ("Bench Press (Dumbbell)" → dumbbell, `models.HevyTitleEquipment`; qualifiers such as
+"Weighted" are not equipment). The strength card leads its summary line with it ("Dumbbell · 3
+sets · …"), and the "Add exercise" form offers it.
+
+The old per-activity `Operation.Equipment` field is **legacy**: the builder no longer shows or
+sends it, and the update endpoint leaves it untouched when omitted (it used to blank it), so data
+from older sessions is kept and still reaches MCP.
 
 The URL, the nav item and the page's own language stay **"exercises"** — only the API payload
 and the internals talk about sessions. Styling follows the shared light module/inset system

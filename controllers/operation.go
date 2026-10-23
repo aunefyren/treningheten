@@ -548,19 +548,17 @@ func APIUpdateOperation(context *gin.Context) {
 	operation.DistanceUnit = strings.TrimSpace(operationUpdateRequest.DistanceUnit)
 	operation.WeightUnit = strings.TrimSpace(operationUpdateRequest.WeightUnit)
 
-	if operationUpdateRequest.Equipment != "" {
-		trimmedEquipment := strings.TrimSpace(operationUpdateRequest.Equipment)
+	// Legacy per-operation equipment: omitted leaves it untouched, empty clears it.
+	if operationUpdateRequest.Equipment != nil {
+		trimmedEquipment := strings.TrimSpace(*operationUpdateRequest.Equipment)
 
-		if !validEquipment(trimmedEquipment) {
+		if trimmedEquipment != "" && !validEquipment(trimmedEquipment) {
 			context.JSON(http.StatusBadRequest, gin.H{"error": "Invalid equipment type."})
 			context.Abort()
 			return
 		}
 
 		operation.Equipment = &trimmedEquipment
-	} else {
-		emptyString := ""
-		operation.Equipment = &emptyString
 	}
 
 	if operation.Type != "lifting" && operation.Type != "moving" && operation.Type != "timing" {
@@ -909,6 +907,22 @@ func APICreateAction(context *gin.Context) {
 
 	if action.Type != "lifting" && action.Type != "moving" && action.Type != "timing" {
 		context.JSON(http.StatusBadRequest, gin.H{"error": "Invalid exercise type."})
+		context.Abort()
+		return
+	}
+
+	action.Category = strings.TrimSpace(actionCreationRequest.Category)
+	if action.Category == "" {
+		action.Category = models.DefaultActionCategory(action.Type)
+	} else if !models.ValidActionCategory(action.Category) {
+		context.JSON(http.StatusBadRequest, gin.H{"error": "Invalid exercise category."})
+		context.Abort()
+		return
+	}
+
+	action.Equipment = strings.TrimSpace(actionCreationRequest.Equipment)
+	if !models.ValidActionEquipment(action.Equipment) {
+		context.JSON(http.StatusBadRequest, gin.H{"error": "Invalid equipment type."})
 		context.Abort()
 		return
 	}

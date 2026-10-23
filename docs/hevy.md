@@ -76,7 +76,10 @@ own template. The mapping layer lives in `controllers/hevy.go`:
   wrapper in `controllers/hevy.go` is unit-tested in `controllers/hevy_test.go`.
 - `models.HevyExerciseTemplate.ToAction()` — the single template→`Action` builder
   (Name/NorwegianName = title, Type from the mapping, BodyPart = primary muscle group,
-  `HevyTemplateID` set, `HasLogo=false`). Used by both the seeder and the live path.
+  `Category` from the muscle group via `models.HevyActionCategory`, `Equipment` from the
+  title's bracket via `models.HevyTitleEquipment`, `HevyTemplateID` set, `HasLogo=false`).
+  Used by both the seeder and the live path. Actions seeded before those two fields existed
+  were filled once by `backfillActionCategories`.
 - `getOrCreateHevyAction(template)` — for `is_custom=false`, resolves a global `Action` by
   `Action.HevyTemplateID` (`database.GetActionByHevyTemplateID`) and **auto-creates** one
   via `ToAction()` (random UUID) on miss. For `is_custom=true` it returns `nil` — custom
@@ -122,7 +125,9 @@ tree, idempotent by `Exercise.HevyWorkoutID`:
   Strava). `Note` = workout title; `Duration` = end−start (seconds count). `IsOn=true` so
   it counts toward season goals.
 - Each Hevy exercise → `Operation`. Official catalog → `ActionID` set + `Type` from the
-  Action; the user's per-exercise note goes in `Operation.Note`. Custom exercise →
+  Action; the user's per-exercise note goes in `Operation.Description` (`Operation.Note` is
+  the activity's title slot, so a note there would rename the card; older imports were moved
+  over once by `backfillHevyOperationNotes`). Custom exercise →
   `ActionID=nil`, title in `Operation.Note` (the frontend uses note as the title fallback
   and an emoji icon when there's no Action), note in `Description`.
 - Each set → `OperationSet`: `Weight`=`weight_kg`, `Repetitions`=`reps`,
