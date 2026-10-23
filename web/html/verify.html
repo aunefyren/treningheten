@@ -36,15 +36,10 @@
         <link rel="apple-touch-icon" sizes="144x144" href="/assets/favicons/apple-touch-icon-144x144.png" />
         <link rel="apple-touch-icon" sizes="152x152" href="/assets/favicons/apple-touch-icon-152x152.png" />
 
-        <!-- All favicon sizes - for all devices and browsers -->
-        <link rel="icon" type="image/png" href="/assets/favicons/favicon-196x196.png" sizes="196x196" />
-        <link rel="icon" type="image/png" href="/assets/favicons/favicon-96x96.png" sizes="96x96" />
-        <link rel="icon" type="image/png" href="/assets/favicons/favicon-32x32.png" sizes="32x32" />
-        <link rel="icon" type="image/png" href="/assets/favicons/favicon-16x16.png" sizes="16x16" />
-        <link rel="icon" type="image/png" href="/assets/favicons/favicon-128x128.png" sizes="128x128" />
-
-        <!-- A favicon with four different sizes -->
-        <link rel="shortcut icon" type="image/x-icon" href="/assets/favicons/favicon.ico" />
+        <!-- Favicon: an SVG that follows the light/dark colour scheme; the .ico is the fallback
+             for browsers without SVG favicons (Safari). sizes="32x32" keeps Chrome on the SVG. -->
+        <link rel="icon" type="image/svg+xml" href="/assets/favicons/favicon.svg" />
+        <link rel="icon" type="image/x-icon" href="/assets/favicons/favicon.ico" sizes="32x32" />
 
         <!-- Application color for Microsoft Windows app tile and Android status bar -->
         <meta name="theme-color" content="#0d1b2a" />
@@ -54,14 +49,11 @@
         <meta name="{{.appName}}" content="{{.appDescription}}" />
 
         <!-- Application icons for Microsoft Windows app tile -->
-        <meta name="msapplication-TileImage" content="assets/favicons/ms-tile-144x144.png" />
-        <meta name="msapplication-square70x70logo" content="assets/favicons/ms-tile-70x70.png" />
-        <meta name="msapplication-square150x150logo" content="assets/favicons/ms-tile-150x150.png" />
-        <meta name="msapplication-wide310x150logo" content="assets/favicons/ms-tile-310x150.png" />
-        <meta name="msapplication-square310x310logo" content="assets/favicons/ms-tile-310x310.png" />
-
-        <!-- Application config file for Microsoft browsers -->
-        <meta name="msapplication-config" content="config.xml" />
+        <meta name="msapplication-TileImage" content="/assets/favicons/ms-tile-144x144.png" />
+        <meta name="msapplication-square70x70logo" content="/assets/favicons/ms-tile-70x70.png" />
+        <meta name="msapplication-square150x150logo" content="/assets/favicons/ms-tile-150x150.png" />
+        <meta name="msapplication-wide310x150logo" content="/assets/favicons/ms-tile-310x150.png" />
+        <meta name="msapplication-square310x310logo" content="/assets/favicons/ms-tile-310x310.png" />
 
         <meta name="apple-mobile-web-app-capable" content="yes" /> <meta name="mobile-web-app-capable" content="yes" />
 

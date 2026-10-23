@@ -65,7 +65,7 @@ func ConvertOperationToOperationObject(operation models.Operation) (operationObj
 			logger.Log.Info("Failed to get gear in database. Error: " + err.Error())
 			return operationObject, errors.New("Failed to get gear in database.")
 		} else if gear != nil {
-			gearObject := ConvertGearToGearObject(*gear, 0)
+			gearObject := ConvertGearToGearObject(*gear, models.GearUsage{})
 			operationObject.Gear = &gearObject
 		}
 	}

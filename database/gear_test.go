@@ -35,14 +35,26 @@ func seedOperationWithGear(t *testing.T, exerciseID uuid.UUID, gearID *uuid.UUID
 func seedOperationSetWithDistance(t *testing.T, operationID uuid.UUID, distance float64) {
 	t.Helper()
 	d := distance
-	set := models.OperationSet{Enabled: true, OperationID: operationID, Distance: &d}
+	seedOperationSet(t, models.OperationSet{Enabled: true, OperationID: operationID, Distance: &d})
+}
+
+// seedOperationSetWithTime inserts an operation set carrying only a time (seconds), like a
+// padel session: hours of use and no distance.
+func seedOperationSetWithTime(t *testing.T, operationID uuid.UUID, seconds int64) {
+	t.Helper()
+	s := seconds
+	seedOperationSet(t, models.OperationSet{Enabled: true, OperationID: operationID, Time: &s})
+}
+
+func seedOperationSet(t *testing.T, set models.OperationSet) {
+	t.Helper()
 	set.ID = uuid.New()
 	if err := Instance.Omit("Operation").Create(&set).Error; err != nil {
 		t.Fatalf("failed to seed operation set: %v", err)
 	}
 }
 
-func TestGetGearDistanceTotalsForUser(t *testing.T) {
+func TestGetGearUsageTotalsForUser(t *testing.T) {
 	newTestDB(t)
 	user := makeTestUser(t, "gear@example.com", nil)
 
@@ -77,16 +89,22 @@ func TestGetGearDistanceTotalsForUser(t *testing.T) {
 	op4 := seedOperationWithGear(t, exerciseID, nil)
 	seedOperationSetWithDistance(t, op4, 4.0)
 
-	totals, err := GetGearDistanceTotalsForUser(user.ID)
+	// Time: the shoe also played padel for 90 minutes (no distance), on top of a set that
+	// has both; the bike has no time recorded.
+	op5 := seedOperationWithGear(t, exerciseID, &shoe.ID)
+	seedOperationSetWithTime(t, op5, 5400)
+	seedOperationSetWithTime(t, op1, 1800)
+
+	totals, err := GetGearUsageTotalsForUser(user.ID)
 	if err != nil {
-		t.Fatalf("GetGearDistanceTotalsForUser returned error: %v", err)
+		t.Fatalf("GetGearUsageTotalsForUser returned error: %v", err)
 	}
 
-	if got := totals[shoe.ID]; got != 8.0 {
-		t.Errorf("shoe distance: got %v, want 8.0", got)
+	if got := totals[shoe.ID]; got.Distance != 8.0 || got.DurationSeconds != 7200 {
+		t.Errorf("shoe usage: got %+v, want 8.0 km / 7200 s", got)
 	}
-	if got := totals[bike.ID]; got != 12.5 {
-		t.Errorf("bike distance: got %v, want 12.5", got)
+	if got := totals[bike.ID]; got.Distance != 12.5 || got.DurationSeconds != 0 {
+		t.Errorf("bike usage: got %+v, want 12.5 km / 0 s", got)
 	}
 	if _, ok := totals[unused.ID]; ok {
 		t.Errorf("unused gear should not appear in totals, got %v", totals[unused.ID])

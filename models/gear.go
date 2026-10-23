@@ -32,21 +32,30 @@ func (Gear) TableName() string {
 	return "gear"
 }
 
-// GearObject is the enriched read shape: identity plus the computed total
-// distance (km) summed from the operations linked to the gear.
+// GearUsage is how much a gear has been used, summed from the operations linked to it:
+// Distance in km and DurationSeconds as a seconds count (repo convention). Time is what
+// wears court and gym shoes, which log hours but next to no distance.
+type GearUsage struct {
+	Distance        float64
+	DurationSeconds int64
+}
+
+// GearObject is the enriched read shape: identity plus the computed usage (total
+// distance in km and total time in seconds) summed from the operations linked to the gear.
 type GearObject struct {
 	GormModel
-	Enabled      bool      `json:"enabled"`
-	User         uuid.UUID `json:"user"`
-	Name         string    `json:"name"`
-	Type         string    `json:"type"`
-	Brand        *string   `json:"brand"`
-	Model        *string   `json:"model"`
-	Nickname     *string   `json:"nickname"`
-	Retired      bool      `json:"retired"`
-	IsPrimary    bool      `json:"is_primary"`
-	StravaGearID *string   `json:"strava_gear_id"`
-	Distance     float64   `json:"distance"`
+	Enabled         bool      `json:"enabled"`
+	User            uuid.UUID `json:"user"`
+	Name            string    `json:"name"`
+	Type            string    `json:"type"`
+	Brand           *string   `json:"brand"`
+	Model           *string   `json:"model"`
+	Nickname        *string   `json:"nickname"`
+	Retired         bool      `json:"retired"`
+	IsPrimary       bool      `json:"is_primary"`
+	StravaGearID    *string   `json:"strava_gear_id"`
+	Distance        float64   `json:"distance"`
+	DurationSeconds int64     `json:"duration_seconds"`
 }
 
 type GearCreationRequest struct {

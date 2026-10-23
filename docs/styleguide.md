@@ -548,6 +548,37 @@ and as wide as it. It is in place of the top alert bar, which is the wrong tool 
 Alerts): the notice is about the user's own account, persists until fixed, and has to be seen on
 arrival. Copy comes from `integrationNoticeText` only — don't write a second wording.
 
+### App icons
+
+The logo glyph (the stacked check boxes, vector source `web/assets/logo_trans.svg`) appears in
+four forms. The **sources are the SVGs**, and every PNG is rendered from them:
+
+| Where | File(s) | Form |
+|---|---|---|
+| Installed app ("any") | `assets/app-icon.svg` → `logos/logo-{48…1024}.png` | white glyph on a **rounded navy tile** (`#0d1b2a`, the `--darkblue` value), transparent corners |
+| Installed app ("maskable"), iOS home screen | `assets/app-icon-maskable.svg` → `logos/logo-maskable-{192,512}.png`, `favicons/apple-touch-icon-*.png` | **full-bleed** navy square (the platform applies its own shape); the glyph stays inside the 80 % safe zone |
+| Browser tab | `favicons/favicon.svg` (+ `favicon.ico` fallback) | glyph only: navy on light tab bars, white under `prefers-color-scheme: dark` |
+| Windows tiles | `favicons/ms-tile-*.png` | white glyph on transparent; Windows fills `msapplication-TileColor` (navy) behind it |
+
+The icons sit on a navy tile because an installed app's icon **can't switch with the colour
+scheme**: the manifest offers no light/dark variants that browsers honour. So the icon has to
+read on any launcher, dock or taskbar. A bare black glyph on transparent (the old `logo.svg`
+icon) disappears in dark mode. The monochrome entries (`logo_trans.svg`, `logos/logo-mono-*`)
+are masks the system colours itself and stay as they are. The nav bar keeps `logo.svg`, since it
+sits on a light surface.
+
+Rendering, with ImageMagick (`-density` high for crisp edges, `!` for exact sizes):
+
+```bash
+convert -background none -density 1200 web/assets/app-icon.svg -resize 512x512! -strip web/assets/logos/logo-512x512.png
+convert -background none -density 1200 web/assets/app-icon-maskable.svg -resize 152x152! -strip web/assets/favicons/apple-touch-icon-152x152.png
+```
+
+The Windows tiles are rendered from the same glyph without a tile (scale 0.55 square, 0.6 on
+the 310×150 wide tile). ImageMagick ignores `<style>` in SVG, so `favicon.svg` can't be
+previewed that way. Check it in a browser. When icons change, bump `OFFLINE_VERSION` in
+`service-worker.js`: it precaches `/manifest.json` and `favicon.ico`.
+
 ### Utilities — `.u-*`
 
 Atomic helpers in `utilities.css`, loaded last so a single utility class wins over the
@@ -593,6 +624,17 @@ not theme — left inline on purpose. Dynamic (`${…}`) values stay inline too.
    conventions — don't extend the legacy pattern.
 
 ## Decisions log
+
+- **App icon on a navy tile; favicon follows the colour scheme.** The installed PWA's first
+  manifest icon was a black glyph on transparent, invisible on dark launchers, and the tab
+  favicons had the same problem. The installed-app icons are now a white glyph on a rounded navy
+  tile, with separate full-bleed "maskable" and Apple touch icons, and the manifest no longer
+  marks icons as both "maskable" and "any". Navy rather than white so it matches the theme
+  colour and doesn't glare as a bright square on a dark home screen. The tab favicon is an SVG
+  that turns white in dark mode, with `favicon.ico` as Safari's fallback; the five PNG favicon
+  links went, so Chrome picks the SVG. The Windows tile PNGs the pages referenced never existed,
+  and their relative paths broke on nested pages; they now exist and use absolute paths. The
+  `msapplication-config` tag pointed at a missing `config.xml` and was removed. See *App icons*.
 
 - **Long sessions fold in the `/exercises` feed; the card title is the link.** A strength
   session lists every lift, so a session card with five or more activities shows three and folds

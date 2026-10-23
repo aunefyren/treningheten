@@ -780,6 +780,14 @@
     margin-top: 0.1rem;
 }
 
+/* The secondary usage figure (time under a distance, or distance under hours). */
+.gear-usage-detail {
+    font-family: var(--font-body);
+    font-size: 0.72rem;
+    color: var(--lightblue);
+    margin-top: 0.35rem;
+}
+
 .gear-add {
     margin-top: 1.35rem;
     padding-top: 1.1rem;
@@ -824,6 +832,9 @@
         align-items: baseline;
         gap: 0.3rem;
         margin-left: auto;
+    }
+    .gear-usage-detail {
+        margin: 0 0 0 0.3rem;
     }
 }
 

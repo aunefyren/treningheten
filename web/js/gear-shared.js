@@ -24,6 +24,46 @@ function gearTypeOptions(selected) {
     }).join("");
 }
 
+// gearTimeParts splits a gear's logged time (seconds) into a display value and unit:
+// minutes under an hour, one decimal under ten hours, whole hours beyond.
+function gearTimeParts(seconds) {
+    var hours = seconds / 3600;
+    if (hours < 1) return { value: String(Math.round(seconds / 60)), unit: "min" };
+    if (hours < 10) return { value: (Math.round(hours * 10) / 10).toString(), unit: "h" };
+    return { value: String(Math.round(hours)), unit: "h" };
+}
+
+function gearTimeLabel(seconds) {
+    var parts = gearTimeParts(seconds);
+    return parts.value + " " + parts.unit;
+}
+
+// gearUsageHTML is a gear card's usage readout. Distance leads for gear that has covered
+// ground; gear used for time alone (court shoes for padel) leads with its hours instead of
+// a meaningless "0.0 km". The other figure, when there is one, sits underneath.
+function gearUsageHTML(gear) {
+    var distance = gear.distance || 0;
+    var seconds = gear.duration_seconds || 0;
+    var leadsWithTime = distance < 1 && seconds > 0;
+    var value, unit, detail = "";
+    if (leadsWithTime) {
+        var time = gearTimeParts(seconds);
+        value = time.value;
+        unit = time.unit;
+        if (distance > 0) detail = distance.toFixed(1) + " km";
+    } else {
+        value = distance.toFixed(1);
+        unit = "km";
+        if (seconds > 0) detail = gearTimeLabel(seconds);
+    }
+    return `
+            <div class="gear-distance" title="Total logged distance and time">
+                <span class="gear-distance-value">${value}</span>
+                <span class="gear-distance-unit">${unit}</span>
+                ${detail ? `<span class="gear-usage-detail">${detail}</span>` : ""}
+            </div>`;
+}
+
 // gearItemHTML renders one gear card — identical on the page and in the modal. Strava-synced
 // gear owns its identity (name/type/brand), so those fields are disabled; only primary/retired/
 // delete stay editable.
@@ -31,7 +71,6 @@ function gearItemHTML(gear) {
     var isStrava = !!gear.strava_gear_id;
     var readonly = isStrava ? "disabled" : "";
     var stravaTag = isStrava ? `<span class="gear-badge">Strava</span>` : "";
-    var dist = gear.distance ? gear.distance.toFixed(1) : "0.0";
     var brand = gear.brand || "";
     var retiredClass = gear.retired ? " gear-item-retired" : "";
 
@@ -53,10 +92,7 @@ function gearItemHTML(gear) {
                     <img src="/assets/trash-2.svg" class="gear-del clickable" title="Delete gear" onclick="deleteGear('${gear.id}')">
                 </div>
             </div>
-            <div class="gear-distance" title="Total logged distance">
-                <span class="gear-distance-value">${dist}</span>
-                <span class="gear-distance-unit">km</span>
-            </div>
+            ${gearUsageHTML(gear)}
         </div>
     `;
 }

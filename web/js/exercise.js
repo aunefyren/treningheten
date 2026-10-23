@@ -683,12 +683,7 @@ function renderCardioSubCard(operation, exercise) {
     const streams = streamSet ? streamSet.strava_streams : null;
     const setForStreams = streamSet || sets[0] || {};
 
-    // Surface the gear used (moving activities only) so it reads without editing.
-    var gearHTML = "";
-    if (operation.gear) {
-        const nick = operation.gear.nickname ? " (" + operation.gear.nickname + ")" : "";
-        gearHTML = `<div class="wv-gear"><img src="/assets/sliders.svg" class="wv-gear-icon" alt="">${escapeHTML(operation.gear.name + nick)}</div>`;
-    }
+    const gearHTML = gearLineHTML(operation);
 
     return `
         <div class="wv-activity wv-activity-cardio">
@@ -749,6 +744,14 @@ function renderStreamSectionsHTML(operation, summary, set, movingTimeline) {
         ${renderHRZonesHTML(summary)}
         ${renderAnalysisHTML(summary)}
     `;
+}
+
+// gearLineHTML surfaces an activity's gear in the read view so it reads without editing
+// (cardio and time cards — the activities that carry gear).
+function gearLineHTML(operation) {
+    if (!operation.gear) return "";
+    const nick = operation.gear.nickname ? " (" + operation.gear.nickname + ")" : "";
+    return `<div class="wv-gear"><img src="/assets/sliders.svg" class="wv-gear-icon" alt="">${escapeHTML(operation.gear.name + nick)}</div>`;
 }
 
 // statTileHTML renders one headline tile: the value, its label, and an optional quiet
@@ -1485,6 +1488,7 @@ function renderTimeSubCard(operation, exercise) {
                 <div class="wv-activity-head-actions">${stravaSyncButtonHTML(stravaSetID, stravaID)}${sourceBadge(operation, stravaID, exercise)}</div>
             </div>
             ${generateTagChipsHTML(operation.tags)}
+            ${gearLineHTML(operation)}
             ${activityDescriptionHTML(operation)}
             <div class="wv-stats">
                 ${statTileHTML(durationHTML, "", "Duration")}
@@ -1917,11 +1921,11 @@ function generateOperationHTML(operation) {
     const timingSel  = operation.type == 'timing'  ? 'selected' : '';
     const actionName = operation.action ? operation.action.name : "";
 
-    // Gear is edited per operation, but only makes sense for moving activities
-    // (shoes / bike), mirroring Strava. Non-moving cards omit the selector so
+    // Gear is edited per operation, on activities that wear it: distance (shoes, a bike)
+    // and time-based ones (court shoes for padel). Strength cards omit the selector so
     // updateOperation never touches their gear.
     var gearRowHTML = "";
-    if (operation.type === 'moving') {
+    if (operationTakesGear(operation)) {
         gearRowHTML = `
             <div class="we-gear-row">
                 <select class="we-input we-op-gear-select" id="operation-gear-${operation.id}" onchange="updateOperation('${operation.id}')">
@@ -2740,7 +2744,7 @@ function loadGearList() {
 // operations disagree (a combined session with mixed gear) nothing is shown; for
 // a session with no gear yet, the user's primary gear is suggested as the default.
 function currentSessionGearID(exercise) {
-    const ops = exercise.operations || [];
+    const ops = (exercise.operations || []).filter(operationTakesGear);
     if (ops.length > 0) {
         const ids = ops.map(o => (o.gear ? o.gear.id : ""));
         const first = ids[0];
@@ -2754,9 +2758,12 @@ function currentSessionGearID(exercise) {
 }
 
 // Gear for a single operation: its stored gear, else (for a moving op with none)
-// suggest the user's primary — matching the session default, unpersisted until changed.
+// suggest the user's primary — matching the session default. The suggestion is saved by the
+// next updateOperation, so time-based activities get none: the primary is usually running
+// shoes, and editing a padel card must not quietly assign them.
 function currentOperationGearID(operation) {
     if (operation.gear) return operation.gear.id;
+    if (operation.type !== 'moving') return "";
     const primary = gearList.find(g => g.is_primary && !g.retired);
     return primary ? primary.id : "";
 }
@@ -2764,8 +2771,15 @@ function currentOperationGearID(operation) {
 function gearOptionLabel(gear) {
     const nick = gear.nickname ? " (" + gear.nickname + ")" : "";
     const dist = gear.distance ? " · " + gear.distance.toFixed(1) + " km" : "";
+    const time = gear.duration_seconds ? " · " + gearTimeLabel(gear.duration_seconds) : "";
     const retired = gear.retired ? " · retired" : "";
-    return gear.name + nick + dist + retired;
+    return gear.name + nick + dist + time + retired;
+}
+
+// operationTakesGear mirrors the server's rule (controllers/gear.go): distance and
+// time-based activities carry gear, strength work does not.
+function operationTakesGear(operation) {
+    return !!operation && (operation.type === 'moving' || operation.type === 'timing');
 }
 
 function gearOptionsHTML(currentID) {
@@ -2782,11 +2796,12 @@ function gearOptionsHTML(currentID) {
 }
 
 // Gear is edited per operation (see generateOperationHTML). This session-level
-// control is only a convenience to set every moving activity at once, so it is
-// shown only when a session actually mixes 2+ moving activities.
+// control is only a convenience to set every gear-carrying activity at once (distance
+// and time-based; the server skips strength work too), so it is shown only when a
+// session holds 2+ of them.
 function generateGearFieldHTML(exercise) {
-    const movingOps = (exercise.operations || []).filter(o => o && o.type === 'moving');
-    if (movingOps.length < 2) {
+    const gearOps = (exercise.operations || []).filter(operationTakesGear);
+    if (gearOps.length < 2) {
         return "";
     }
     const currentID = currentSessionGearID(exercise);

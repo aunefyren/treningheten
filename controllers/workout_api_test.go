@@ -233,6 +233,25 @@ func TestMovingActivityAndGear(t *testing.T) {
 	if distance := field(t, gearList[0], "distance"); distance != 10.5 {
 		t.Errorf("gear distance = %v, want 10.5 summed from the linked set", distance)
 	}
+	if seconds := field(t, gearList[0], "duration_seconds"); seconds != float64(3000) {
+		t.Errorf("gear time = %v, want 3000 summed from the linked set", seconds)
+	}
+
+	// "Set gear for all" reaches time-based activities (court shoes for padel) but leaves
+	// strength work alone, which shows no gear selector in the builder.
+	padel := idOf(t, h.expect(http.StatusCreated, "POST", "/api/auth/operations", token, models.OperationCreationRequest{
+		ExerciseID: uuid.MustParse(sessionID), Type: "timing", WeightUnit: "kg", DistanceUnit: "km",
+	}), "operation")
+	lift := idOf(t, h.expect(http.StatusCreated, "POST", "/api/auth/operations", token, models.OperationCreationRequest{
+		ExerciseID: uuid.MustParse(sessionID), Type: "lifting", WeightUnit: "kg", DistanceUnit: "km",
+	}), "operation")
+	h.ok("PUT", "/api/auth/exercises/"+sessionID+"/gear", token, map[string]any{"gear_id": shoeID})
+	if gear, _ := field(t, h.ok("GET", "/api/auth/operations/"+padel, token, nil), "operation").(map[string]any)["gear"].(map[string]any); gear == nil || gear["id"] != shoeID {
+		t.Errorf("padel gear = %v, want the shoe", gear)
+	}
+	if gear := field(t, h.ok("GET", "/api/auth/operations/"+lift, token, nil), "operation").(map[string]any)["gear"]; gear != nil {
+		t.Errorf("lifting gear = %v, want none", gear)
+	}
 
 	h.ok("PUT", "/api/auth/gear/"+shoeID, token, models.GearUpdateRequest{Name: stringPtr("Racer 2"), Retired: boolPtr(true), IsPrimary: boolPtr(true)})
 	h.expect(http.StatusBadRequest, "PUT", "/api/auth/gear/"+shoeID, token, models.GearUpdateRequest{Type: stringPtr("boat")})

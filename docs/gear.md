@@ -2,8 +2,8 @@
 
 Treningheten lets a user track **gear** — shoes, a bike, or other equipment — and
 which workouts used it. Gear can be created manually or imported automatically from
-Strava, and each gear item shows a total distance computed from the workouts it is
-linked to.
+Strava, and each gear item shows the total distance and time computed from the workouts
+it is linked to.
 
 Code: `models/gear.go`, `database/gear.go`, `controllers/gear.go`; Strava import lives
 in `controllers/strava.go`.
@@ -23,36 +23,51 @@ A `Gear` row (`models/gear.go`, table `gear`) is per-user equipment:
 Gear links to workouts through **`Operation.GearID`** (`*uuid.UUID`). One gear per
 operation, mirroring Strava's per-activity `gear_id`.
 
-> **Distance is not stored.** A gear's total distance is always computed by summing the
-> `OperationSet.Distance` (km) of the operations linked to it
-> (`GetGearDistanceTotalsForUser`) — one source of truth that works for manual gear too.
-> It deliberately does **not** mirror Strava's lifetime total, so pre-Treningheten
+> **Usage is not stored.** A gear's total distance and time are always computed by summing
+> the `OperationSet.Distance` (km) and `OperationSet.Time` (seconds, the same source as the
+> `/exercises` feed's duration) of the operations linked to it (`GetGearUsageTotalsForUser`,
+> returning a `models.GearUsage` per gear) — one source of truth that works for manual gear
+> too. It deliberately does **not** mirror Strava's lifetime total, so pre-Treningheten
 > mileage is not included.
+>
+> Time matters for gear that wears without covering ground: court shoes for padel log hours
+> and next to no distance. The gear card leads with **distance** once a gear has at least 1 km,
+> and with **time** below that, showing the other figure underneath (`gearUsageHTML` in
+> `web/js/gear-shared.js`). The builder's gear dropdown lists both.
 
 ## Read shape
 
 `GearObject` (`ConvertGearToGearObject`) is the enriched read form: the gear identity
-plus the computed `Distance`. `BuildGearObjectsForUser` assembles a user's full gear
-list in two queries (the gear rows + one grouped distance roll-up). Operations also
-flatten their gear into `OperationObject.Gear` — but **identity only** (`Distance` left
-at zero), to avoid a roll-up query per operation in list views.
+plus the computed `Distance` and `DurationSeconds`. `BuildGearObjectsForUser` assembles a
+user's full gear list in two queries (the gear rows + one grouped usage roll-up). Operations
+also flatten their gear into `OperationObject.Gear` — but **identity only** (usage left at
+zero), to avoid a roll-up query per operation in list views.
 
 ## Selection — per operation, with a session-level convenience
 
 Gear is **stored on the operation** (so a combined session that mixes activities can
 hold different gear per activity, matching Strava). The builder edits it **per
-operation**: each **moving** activity card carries its own gear selector, which writes
+operation**: each **gear-carrying** activity card has its own gear selector, which writes
 through the normal operation update — `PUT /api/auth/operations/:operation_id` with
 `{ "gear_id": "<uuid>" | "" }` (empty clears it, `APIUpdateOperation` →
-`resolveGearIDForUser`). Only moving activities show the selector, mirroring Strava's
-shoe/bike model; a moving activity with no gear yet suggests the user's primary
-(unpersisted until changed).
+`resolveGearIDForUser`).
 
-For a combined session that mixes **2+ moving activities**, a session-level "Set gear
-for all" control assigns one gear to every operation at once:
-`PUT /api/auth/exercises/:exercise_id/gear` with `{ "gear_id": "<uuid>" | null }`
-(`APISetGearForExercise`). It is a convenience over the per-operation path, not the only
-way in.
+**Which activities carry gear:** distance (`moving`: shoes, a bike) and time-based (`timing`:
+court shoes for padel, tennis) — `operationTakesGear` in `controllers/gear.go`, mirrored in
+`web/js/exercise.js`. Strength work (`lifting`) shows no selector. The read view shows the gear
+on both the cardio and the time card. Time-based activities were added because the Strava
+import attaches whatever gear an activity carries regardless of type, so a padel session's
+shoes used to be stored but invisible and uneditable.
+
+**Primary-gear suggestion:** a `moving` activity with no gear pre-selects the user's primary,
+and that choice is **saved by the next update of that card**, not only when the dropdown is
+changed. `timing` activities get no suggestion and start at "No gear": the primary is usually
+running shoes, and editing a padel card must not quietly assign them.
+
+For a session with **2+ gear-carrying activities**, a session-level "Set gear for all" control
+assigns one gear to all of them at once: `PUT /api/auth/exercises/:exercise_id/gear` with
+`{ "gear_id": "<uuid>" | null }` (`APISetGearForExercise`, which skips strength operations).
+It is a convenience over the per-operation path, not the only way in.
 
 ## Endpoints
 
@@ -60,11 +75,11 @@ All under `/api/auth` (`middlewares.Auth(false)`):
 
 | Method | Path | Handler | Use |
 |---|---|---|---|
-| GET | `/gear` | `APIGetGearForUser` | List the user's gear with computed distance. |
+| GET | `/gear` | `APIGetGearForUser` | List the user's gear with computed distance and time. |
 | POST | `/gear` | `APICreateGear` | Create manual gear (name required; type defaults to `shoe`). |
 | PUT | `/gear/:gear_id` | `APIUpdateGear` | Update gear. Partial — omitted fields are untouched. |
 | DELETE | `/gear/:gear_id` | `APIDeleteGear` | Soft-delete gear (`Enabled = false`). |
-| PUT | `/exercises/:exercise_id/gear` | `APISetGearForExercise` | Assign/clear gear on all of a session's operations. |
+| PUT | `/exercises/:exercise_id/gear` | `APISetGearForExercise` | Assign/clear gear on all of a session's gear-carrying operations (strength work is skipped). |
 
 **Strava-sourced gear is identity-read-only:** `APIUpdateGear` rejects edits to
 `Name`/`Type`/`Brand`/`Model` when `StravaGearID` is set (Strava owns those), but still

@@ -105,18 +105,21 @@ func UnsetPrimaryGearForUser(userID uuid.UUID, exceptID uuid.UUID) error {
 	return record.Error
 }
 
-// GetGearDistanceTotalsForUser returns each gear's total logged distance (km),
-// summed from the operation sets of the operations linked to it. Distance is not
-// stored on the gear — this is the single source of truth (see docs/gear.md).
-func GetGearDistanceTotalsForUser(userID uuid.UUID) (map[uuid.UUID]float64, error) {
-	type gearDistanceRow struct {
-		GearID   uuid.UUID
-		Distance float64
+// GetGearUsageTotalsForUser returns each gear's total logged distance (km) and time
+// (seconds), summed from the operation sets of the operations linked to it. Usage is not
+// stored on the gear — this is the single source of truth (see docs/gear.md). Time sums
+// the sets' recorded time, the same source as the /exercises feed's duration.
+func GetGearUsageTotalsForUser(userID uuid.UUID) (map[uuid.UUID]models.GearUsage, error) {
+	type gearUsageRow struct {
+		GearID          uuid.UUID
+		Distance        float64
+		DurationSeconds int64
 	}
 
-	rows := []gearDistanceRow{}
+	rows := []gearUsageRow{}
 	record := Instance.Model(&models.OperationSet{}).
-		Select("operations.gear_id as gear_id, COALESCE(SUM(operation_sets.distance), 0) as distance").
+		Select("operations.gear_id as gear_id, COALESCE(SUM(operation_sets.distance), 0) as distance, "+
+			"COALESCE(SUM(operation_sets.time), 0) as duration_seconds").
 		Joins("JOIN operations on operation_sets.operation_id = operations.id").
 		Joins("JOIN exercises on operations.exercise_id = exercises.id").
 		Joins("JOIN exercise_days on exercises.exercise_day_id = exercise_days.id").
@@ -133,9 +136,9 @@ func GetGearDistanceTotalsForUser(userID uuid.UUID) (map[uuid.UUID]float64, erro
 		return nil, record.Error
 	}
 
-	totals := map[uuid.UUID]float64{}
+	totals := map[uuid.UUID]models.GearUsage{}
 	for _, row := range rows {
-		totals[row.GearID] = row.Distance
+		totals[row.GearID] = models.GearUsage{Distance: row.Distance, DurationSeconds: row.DurationSeconds}
 	}
 
 	return totals, nil

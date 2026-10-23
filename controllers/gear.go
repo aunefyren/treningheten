@@ -20,10 +20,10 @@ func validGearType(gearType string) bool {
 	return gearTypes[strings.ToLower(strings.TrimSpace(gearType))]
 }
 
-// ConvertGearToGearObject flattens a Gear into its read shape. Distance (km) is
-// the caller's responsibility — it is the roll-up from GetGearDistanceTotalsForUser,
+// ConvertGearToGearObject flattens a Gear into its read shape. Usage (distance and
+// time) is the caller's responsibility — it is the roll-up from GetGearUsageTotalsForUser,
 // or zero when an operation embeds its gear's identity only.
-func ConvertGearToGearObject(gear models.Gear, distance float64) models.GearObject {
+func ConvertGearToGearObject(gear models.Gear, usage models.GearUsage) models.GearObject {
 	gearObject := models.GearObject{}
 	gearObject.ID = gear.ID
 	gearObject.CreatedAt = gear.CreatedAt
@@ -39,12 +39,13 @@ func ConvertGearToGearObject(gear models.Gear, distance float64) models.GearObje
 	gearObject.Retired = gear.Retired
 	gearObject.IsPrimary = gear.IsPrimary
 	gearObject.StravaGearID = gear.StravaGearID
-	gearObject.Distance = distance
+	gearObject.Distance = usage.Distance
+	gearObject.DurationSeconds = usage.DurationSeconds
 	return gearObject
 }
 
-// BuildGearObjectsForUser returns a user's gear enriched with the computed
-// distance total (km) for each item.
+// BuildGearObjectsForUser returns a user's gear enriched with the computed usage
+// (distance in km, time in seconds) for each item.
 func BuildGearObjectsForUser(userID uuid.UUID) (gearObjects []models.GearObject, err error) {
 	gearObjects = []models.GearObject{}
 
@@ -53,7 +54,7 @@ func BuildGearObjectsForUser(userID uuid.UUID) (gearObjects []models.GearObject,
 		return gearObjects, err
 	}
 
-	totals, err := database.GetGearDistanceTotalsForUser(userID)
+	totals, err := database.GetGearUsageTotalsForUser(userID)
 	if err != nil {
 		return gearObjects, err
 	}
@@ -137,7 +138,7 @@ func APICreateGear(context *gin.Context) {
 		return
 	}
 
-	context.JSON(http.StatusCreated, gin.H{"message": "Gear created.", "gear": ConvertGearToGearObject(gear, 0)})
+	context.JSON(http.StatusCreated, gin.H{"message": "Gear created.", "gear": ConvertGearToGearObject(gear, models.GearUsage{})})
 }
 
 func APIUpdateGear(context *gin.Context) {
@@ -239,7 +240,7 @@ func APIUpdateGear(context *gin.Context) {
 		}
 	}
 
-	context.JSON(http.StatusOK, gin.H{"message": "Gear updated.", "gear": ConvertGearToGearObject(updatedGear, 0)})
+	context.JSON(http.StatusOK, gin.H{"message": "Gear updated.", "gear": ConvertGearToGearObject(updatedGear, models.GearUsage{})})
 }
 
 func APIDeleteGear(context *gin.Context) {
@@ -285,8 +286,16 @@ func APIDeleteGear(context *gin.Context) {
 	context.JSON(http.StatusOK, gin.H{"message": "Gear deleted."})
 }
 
+// operationTakesGear reports whether an activity of this type carries gear: distance
+// activities (shoes, a bike) and time-based ones (court shoes for padel). Strength work does
+// not — the builder shows no gear selector on it.
+func operationTakesGear(operationType string) bool {
+	return operationType == "moving" || operationType == "timing"
+}
+
 // APISetGearForExercise assigns (or clears, when gear_id is null) gear on every
-// operation of a session — the exercise-level selector in the builder.
+// gear-carrying operation of a session (see operationTakesGear) — the exercise-level
+// selector in the builder. Strength operations are left untouched.
 func APISetGearForExercise(context *gin.Context) {
 	var request struct {
 		GearID *uuid.UUID `json:"gear_id"`
@@ -354,6 +363,9 @@ func APISetGearForExercise(context *gin.Context) {
 	}
 
 	for _, operation := range operations {
+		if !operationTakesGear(operation.Type) {
+			continue
+		}
 		operation.GearID = request.GearID
 		_, err = database.UpdateOperationInDB(operation)
 		if err != nil {
