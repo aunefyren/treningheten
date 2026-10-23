@@ -36,6 +36,9 @@ func SummarizeStreams(streams *models.StravaActivityStreams, distanceUnit string
 	if n > 0 {
 		out.DurationSeconds = int64(times[n-1])
 	}
+	// Everything below summarizes terrain only from an altitude channel that actually varies
+	// (see withoutFlatAltitude); Available above still reports the channel as recorded.
+	streams = withoutFlatAltitude(streams)
 
 	// --- whole-workout header ---
 	if streams.Heartrate != nil {
@@ -77,6 +80,28 @@ func SummarizeStreams(streams *models.StravaActivityStreams, distanceUnit string
 	out.Analysis = computeAnalysis(streams, times, cumMeters, out.Segments)
 
 	return out
+}
+
+// withoutFlatAltitude returns streams without its altitude channel when every altitude sample
+// is the same value, and streams itself otherwise. Strava sends an all-zero altitude stream for
+// indoor activities without GPS (a treadmill run, a padel court), and a barometer that never
+// moved is no better: neither says anything about terrain. Dropping it here leaves out the
+// elevation block, profile, biggest climb, HR-by-gradient view and per-split gain together,
+// instead of a flat "0 m" chart. Only the summary's working copy changes — the stored stream and
+// the MCP raw series keep the channel.
+func withoutFlatAltitude(streams *models.StravaActivityStreams) *models.StravaActivityStreams {
+	if streams.Altitude == nil || len(streams.Altitude.Data) == 0 {
+		return streams
+	}
+	first := streams.Altitude.Data[0]
+	for _, value := range streams.Altitude.Data[1:] {
+		if value != first {
+			return streams
+		}
+	}
+	withoutAltitude := *streams
+	withoutAltitude.Altitude = nil
+	return &withoutAltitude
 }
 
 // Analysis tuning constants.

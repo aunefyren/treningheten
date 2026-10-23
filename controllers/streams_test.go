@@ -397,3 +397,57 @@ func TestNormalizedPower(t *testing.T) {
 		})
 	}
 }
+
+// TestSummarizeStreams_FlatAltitude covers indoor activities: Strava sends an all-zero altitude
+// stream for a treadmill run or a padel court, and a stuck barometer reports one constant value.
+// Neither describes terrain, so the summary carries no elevation views — while the channel is
+// still listed as recorded and the caller's streams keep it.
+func TestSummarizeStreams_FlatAltitude(t *testing.T) {
+	altitudeOf := func(n int, value func(i int) float64) []float64 {
+		data := make([]float64, n)
+		for i := range data {
+			data[i] = value(i)
+		}
+		return data
+	}
+	tests := []struct {
+		name          string
+		altitude      []float64
+		wantElevation bool
+	}{
+		{"all zero (indoor)", altitudeOf(101, func(int) float64 { return 0 }), false},
+		{"constant non-zero", altitudeOf(101, func(int) float64 { return 120 }), false},
+		{"varying", altitudeOf(101, func(i int) float64 { return 100 + float64(i)/10 }), true},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			streams := steadyRun(100, 3.0, 150)
+			streams.Altitude = f64Stream(tc.altitude)
+
+			summary := SummarizeStreams(streams, "km", hrAnchor{})
+			hasElevation := summary.Elevation != nil && len(summary.ElevationProfile) > 0
+			if hasElevation != tc.wantElevation {
+				t.Fatalf("elevation present = %v (block %v, profile %d points), want %v",
+					hasElevation, summary.Elevation, len(summary.ElevationProfile), tc.wantElevation)
+			}
+			if !tc.wantElevation && summary.Analysis != nil && len(summary.Analysis.HRByGradient) > 0 {
+				t.Errorf("flat altitude still produced an HR-by-gradient view: %+v", summary.Analysis.HRByGradient)
+			}
+			if !containsStreamName(summary.Available, "altitude") {
+				t.Errorf("available = %v, want the recorded altitude channel listed", summary.Available)
+			}
+			if streams.Altitude == nil || len(streams.Altitude.Data) != len(tc.altitude) {
+				t.Error("the caller's altitude stream was modified")
+			}
+		})
+	}
+}
+
+func containsStreamName(names []string, want string) bool {
+	for _, name := range names {
+		if name == want {
+			return true
+		}
+	}
+	return false
+}

@@ -227,6 +227,11 @@ For non-distance activities (`timing`, `lifting`) both paths then apply
 and the pace-based `analysis` fields (decoupling, split halves, pace variation, breaks) — on a
 padel court those read as 36 min/km and "stops" covering the whole session. It only shapes the
 computed summary; the stored raw streams and the `series` are untouched.
+A **flat altitude channel** (every sample the same value) is likewise ignored by the summary
+(`withoutFlatAltitude` in `controllers/streams.go`). Strava sends an all-zero altitude stream for
+indoor activities without GPS (treadmill runs, padel), so there is no `elevation` block,
+`elevation_profile`, biggest climb, HR-by-gradient view or per-split gain, and the detail page
+draws no flat "0 m" chart. `available` still lists `altitude`, and the raw `series` keeps it.
 HR-zone anchoring is resolved from the user's settings by `resolveUserHR`, per activity, in
 precedence order: the explicit **max heart rate for the activity's sport** (see
 [exercises.md](exercises.md#per-sport-max-heart-rate)), then the explicit global **max heart
