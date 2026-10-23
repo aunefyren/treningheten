@@ -338,18 +338,17 @@ function feedSessionCard(session, opts) {
     var when = opts.showDate ? feedWhenLabel(session) : feedTimeOnly(session.time);
     var rank = opts.rank ? `<div class="feed-rank">${opts.rank}</div>` : "";
 
-    var breakdown = collapsed || activities.length === 0 ? "" : `
-            <div class="feed-activities">
-                ${activities.map(feedActivityRow).join("")}
-            </div>`;
+    var breakdown = collapsed || activities.length === 0 ? "" : feedActivitiesHTML(session);
 
+    // The title is the real link (keyboard focus, middle-click, a new tab); a click anywhere
+    // else on the card is a shortcut to the same place (feedSessionClick).
     return `
-        <div class="feed-session clickable" onclick="exerciseRedirect('${session.exercise_day_id}')">
+        <div class="feed-session clickable" onclick="feedSessionClick(event, '${session.exercise_day_id}')">
             <div class="feed-session-head">
                 ${rank}
                 <div class="feed-row-icon">${icon}</div>
                 <div class="feed-row-body">
-                    <div class="feed-row-title"><span class="feed-title-name">${escapeHTML(title)}</span>${note}${count}${noCount}${hidden}</div>
+                    <div class="feed-row-title"><a class="feed-title-name feed-session-link" href="/exercises/${session.exercise_day_id}">${escapeHTML(title)}</a>${note}${count}${noCount}${hidden}</div>
                     <div class="feed-row-metrics">${chips || "&nbsp;"}</div>
                 </div>
                 ${when ? `<div class="feed-row-when">${when}</div>` : ""}
@@ -383,6 +382,86 @@ function feedSessionTitle(session) {
         return names.join(" + ");
     }
     return names.slice(0, 2).join(" + ") + " + " + (names.length - 2) + " more";
+}
+
+// A long session (a Hevy push day lists every lift) shows its first feedVisibleActivities rows
+// and folds the rest behind a "Show N more" row. Folding starts at feedCollapseFrom, so the
+// toggle always hides at least two rows — a "Show 1 more" row would take the space it saves.
+const feedCollapseFrom = 5;
+const feedVisibleActivities = 3;
+
+// feedActivitiesHTML renders a session's breakdown, folded when it is long. Rows matching the
+// current exercise filter or search are never folded away (they are what the user looked
+// for), and both parts keep the workout's own order.
+function feedActivitiesHTML(session) {
+    var activities = session.activities || [];
+    if (activities.length < feedCollapseFrom) {
+        return `<div class="feed-activities">${activities.map(feedActivityRow).join("")}</div>`;
+    }
+
+    var shown = [];
+    activities.forEach(function(item, index) {
+        if (feedActivityMatchesFilter(item)) { shown.push(index); }
+    });
+    for (var i = 0; i < activities.length && shown.length < feedVisibleActivities; i++) {
+        if (shown.indexOf(i) === -1) { shown.push(i); }
+    }
+    var visibleRows = "", foldedRows = "", foldedCount = 0;
+    activities.forEach(function(item, index) {
+        if (shown.indexOf(index) !== -1) {
+            visibleRows += feedActivityRow(item);
+        } else {
+            foldedRows += feedActivityRow(item);
+            foldedCount++;
+        }
+    });
+
+    var foldID = "feed-more-" + session.exercise_id;
+    return `
+        <div class="feed-activities">
+            ${visibleRows}
+            <div class="feed-activities-folded" id="${foldID}" hidden>${foldedRows}</div>
+            <button type="button" class="feed-activity feed-activities-toggle" aria-expanded="false" aria-controls="${foldID}"
+                data-folded-count="${foldedCount}" onclick="toggleFeedActivities(this)">
+                <span class="feed-activity-icon"><img src="/assets/chevron-down.svg" alt=""></span>
+                <span class="feed-activities-toggle-label">Show ${foldedCount} more</span>
+            </button>
+        </div>`;
+}
+
+// feedActivityMatchesFilter reports whether an activity is what the current exercise filter or
+// search asked for, mirroring the server's match (action, or the action name / activity note
+// containing the search text).
+function feedActivityMatchesFilter(item) {
+    if (feedState.actionID && item.action_id === feedState.actionID) {
+        return true;
+    }
+    var q = (feedState.q || "").toLowerCase();
+    if (!q) {
+        return false;
+    }
+    return (item.action_name || "").toLowerCase().indexOf(q) !== -1
+        || (item.note || "").toLowerCase().indexOf(q) !== -1;
+}
+
+// toggleFeedActivities folds or unfolds a long session's remaining rows in place.
+function toggleFeedActivities(button) {
+    var folded = document.getElementById(button.getAttribute("aria-controls"));
+    var expand = button.getAttribute("aria-expanded") !== "true";
+    folded.hidden = !expand;
+    button.setAttribute("aria-expanded", expand ? "true" : "false");
+    button.querySelector(".feed-activities-toggle-label").textContent = expand
+        ? "Show fewer"
+        : "Show " + button.getAttribute("data-folded-count") + " more";
+}
+
+// feedSessionClick opens the session from a click anywhere on its card, except on the title
+// link (which navigates itself) and on buttons inside the card (the fold toggle).
+function feedSessionClick(event, exerciseDayID) {
+    if (event.target.closest("a, button")) {
+        return;
+    }
+    exerciseRedirect(exerciseDayID);
 }
 
 // feedActivityRow renders one activity inside a session's breakdown. It is deliberately

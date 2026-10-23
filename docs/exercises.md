@@ -106,6 +106,13 @@ as a single line rather than as a box wrapped around one row. It also borrows th
 session-wide sum. Two or more activities get the breakdown underneath, and the icon of the
 session's dominant category (🏋 strength, 🏃 cardio, 🎾 sport; the generic 🏅 when mixed).
 
+**Long sessions fold.** From five activities up (`feedCollapseFrom`), a card shows the first three
+(`feedVisibleActivities`) and folds the rest behind a "Show N more" row that unfolds in place.
+Rows matching the active exercise filter or search text are always among the visible ones, and
+both parts keep the workout's order. The card's title is a real link to `/exercises/:dayID`, so
+the feed works from the keyboard. A click elsewhere on the card opens it too, except on the fold
+toggle.
+
 ### Session headline (title, feed phrase, logos)
 
 Every surface that names a session — the session header on `/exercises/:id`, the `/exercises`

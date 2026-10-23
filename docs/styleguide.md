@@ -594,6 +594,18 @@ not theme — left inline on purpose. Dynamic (`${…}`) values stay inline too.
 
 ## Decisions log
 
+- **Long sessions fold in the `/exercises` feed; the card title is the link.** A strength
+  session lists every lift, so a session card with five or more activities shows three and folds
+  the rest behind a **"Show N more"** row (`.feed-activities-toggle`). The row is part of the
+  list, not a control on top of it: unboxed, the chevron in the icon column, the label in the
+  names column, `--mediumblue` text. It's a real `<button>` reset like `.account-section-tab`,
+  with `aria-expanded` and the one `--focus-ring`. It folds from five rather than four so it
+  always hides at least two rows, and rows matching the active filter or search are never folded
+  away. In place, no animation, no memory between visits. The card's title became a real `<a>`
+  (`.feed-session-link`, title look kept, focus ring added), which makes the card reachable by
+  keyboard and openable in a new tab. A click elsewhere on the card still opens the session, but
+  never from a link or button inside it. No new tokens.
+
 - **Duplicate-activity ranking on `/account`.** Replaces the Strava section's Hevy-only
   "skip duplicates" checkbox with a *Duplicate activities* section under *Exercise
   connections*, shown when at least two import sources are enabled: a `.field-check` toggle over
