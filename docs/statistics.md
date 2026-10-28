@@ -174,5 +174,5 @@ the same computations to LLM clients, and `get_activity` takes `include: ["effor
 
 ## Not yet done
 
-- Notifying a user when they set a record.
-- Grade-adjusted pace and best efforts for other sports (swim, ski).
+Record notifications, season-aware records, grade-adjusted pace and VAM, and best efforts for
+swimming and skiing are tracked in [#26](https://github.com/aunefyren/treningheten/issues/26).

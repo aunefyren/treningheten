@@ -364,4 +364,4 @@ note. Regression tests: `controllers/exercise_day_authz_test.go`.
 - **Builder rework (`/exercises/:id`)** — the day header around the builder is done (see *Day
   page*); the builder itself still doesn't cleanly organise a multi-activity-type workout.
   The session aggregate shape built here is exactly what a better session-summary header
-  should consume. Tracked in [wip.md](wip.md).
+  should consume. Tracked in [#29](https://github.com/aunefyren/treningheten/issues/29).

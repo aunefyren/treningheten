@@ -197,7 +197,7 @@ func GetUser(context *gin.Context) {
 	// else may see); reading anyone else's returns models.PublicUser, whose field set is the
 	// allowlist of what one user may learn about another. The two branches deliberately
 	// respond separately rather than sharing a variable — that is what keeps the private
-	// fields out of the cross-user path by type rather than by memory. See docs/wip.md, S15.
+	// fields out of the cross-user path by type rather than by memory. See docs/security.md, S15.
 	if requesterUserID == user_id_int {
 		userObject, err := database.GetAllUserInformation(requesterUserID)
 		if err != nil {
@@ -1195,7 +1195,7 @@ func APIGetUserActivities(context *gin.Context) {
 	// activities and excluded the profile's own. It went unnoticed because the gate above
 	// read a censored user whose ShareActivities was nil-ed, so the handler returned 403 to
 	// everyone and the filter never ran. Fixing either half alone would have turned a dead
-	// endpoint into a leaking one, so both moved together. See docs/wip.md, S11.
+	// endpoint into a leaking one, so both moved together. See docs/security.md, S11.
 	exerciseDays, err := database.GetExerciseDaysForSharingUsersInListUsingDates([]uuid.UUID{userID}, mondayStart, sundayEnd)
 	if err != nil {
 		logger.Log.Info("Failed to get exercise days from time frame. Error: " + err.Error())
@@ -1383,7 +1383,7 @@ func APIGetUserStatistics(context *gin.Context) {
 						if !exercise.Private {
 							// A top is one nameable session with a date, so private sessions are
 							// withheld here — unlike the sums and streaks above, which keep them so
-							// the profile agrees with the season leaderboard. See docs/wip.md, S14.
+							// the profile agrees with the season leaderboard. See docs/security.md, S14.
 							if actionDistance > pastMonth.Tops.Distance {
 								pastMonth.Tops.Distance = actionDistance
 							}
@@ -1405,7 +1405,7 @@ func APIGetUserStatistics(context *gin.Context) {
 						if !exercise.Private {
 							// A top is one nameable session with a date, so private sessions are
 							// withheld here — unlike the sums and streaks above, which keep them so
-							// the profile agrees with the season leaderboard. See docs/wip.md, S14.
+							// the profile agrees with the season leaderboard. See docs/security.md, S14.
 							if actionDistance > pastYear.Tops.Distance {
 								pastYear.Tops.Distance = actionDistance
 							}
@@ -1427,7 +1427,7 @@ func APIGetUserStatistics(context *gin.Context) {
 					if !exercise.Private {
 						// A top is one nameable session with a date, so private sessions are
 						// withheld here — unlike the sums and streaks above, which keep them so
-						// the profile agrees with the season leaderboard. See docs/wip.md, S14.
+						// the profile agrees with the season leaderboard. See docs/security.md, S14.
 						if actionDistance > allTime.Tops.Distance {
 							allTime.Tops.Distance = actionDistance
 						}
@@ -1464,7 +1464,7 @@ func APIGetUserStatistics(context *gin.Context) {
 // operation makes avg distance an exact republication of that workout — which matters on a
 // profile any authenticated user can read. The sums and counts stay regardless: they are
 // already implied by the season leaderboard, so hiding them would only make the profile
-// disagree with it. See docs/wip.md, S14.
+// disagree with it. See docs/security.md, S14.
 const userStatisticsMinSampleSize = 3
 
 // publishWindow decides whether a window may be reported at all, and fills in its averages

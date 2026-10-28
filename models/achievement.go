@@ -24,7 +24,7 @@ type AchievementDelegation struct {
 	UserID  uuid.UUID `json:"user_id" gorm:"type: varchar(100);"`
 	// Never serialized: this GORM row is embedded directly in AchievementUserObject, which
 	// is served cross-user, and no client reads it — the delegation already carries UserID.
-	// Leaving it marshalled would put a full User inside a response. See docs/wip.md, S15.
+	// Leaving it marshalled would put a full User inside a response. See docs/security.md, S15.
 	User          User        `json:"-" gorm:"not null; foreignkey: UserID;"`
 	AchievementID uuid.UUID   `json:"" gorm:"type: varchar(100);"`
 	Achievement   Achievement `json:"achievement" gorm:"not null; foreignkey: AchievementID;"`

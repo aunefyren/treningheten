@@ -19,4 +19,4 @@ field. The code stays editable in case a link was mangled.
   (`utilities.InviteLink`).
 
 The bigger onboarding flow (season sign-up, connections and notifications after registering)
-is still open in [wip.md](wip.md#onboarding-flow).
+is still open in [#20](https://github.com/aunefyren/treningheten/issues/20).

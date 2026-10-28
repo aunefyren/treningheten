@@ -17,7 +17,7 @@ type ExerciseDay struct {
 	// Never serialized: this is the GORM association, and rows like this one reach response
 	// bodies embedded in other structures (models.Week carries []Goal, for one). It marshals
 	// as an empty object today only because nothing preloads it — accidental safety. The
-	// read path hands out models.PublicUser instead. See docs/wip.md, S15.
+	// read path hands out models.PublicUser instead. See docs/security.md, S15.
 	User *User `json:"-" gorm:"not null"`
 }
 

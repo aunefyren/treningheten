@@ -1,9 +1,9 @@
 # Hevy integration
 
 Imports workouts from [Hevy](https://www.hevyapp.com/) (strength-training tracker).
-Gated by the `HevyEnabled` config flag. **Status: in progress** — account connect &
-validation and the exercise-mapping building blocks are implemented; the actual workout
-import/sync is not yet wired (see `docs/wip.md`).
+Gated by the `HevyEnabled` config flag. Account connect and validation, the
+exercise catalog and mapping, the initial backfill and the hourly incremental sync are
+implemented (sections below).
 
 ## Authentication — per-user API key (no OAuth)
 
