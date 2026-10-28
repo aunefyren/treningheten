@@ -1475,10 +1475,25 @@ function savedChipText(view) {
     return "";
 }
 
-// savedOfferText says what "Use saved workouts" will do before it is chosen.
+// yourSavedWorkouts: "your saved workout", "your 2 saved workouts".
+function yourSavedWorkouts(count) {
+    return count == 1 ? "your saved workout" : "your " + count + " saved workouts";
+}
+
+// savedOfferText says what "Use saved workouts" will do before it is chosen:
+// "Uses 1 of your 2 saved workouts if you end the week at 2/3."
 function savedOfferText(view) {
-    return "Uses " + view.shortfall + " of your " + countLabel(view.held, "saved workout", "saved workouts") +
-        " if you end the week at " + view.workouts + "/" + view.goal + ".";
+    var uses;
+    if(view.shortfall < view.held) {
+        uses = view.shortfall + " of " + yourSavedWorkouts(view.held);
+    } else if(view.held == 1) {
+        uses = "your saved workout";
+    } else if(view.held == 2) {
+        uses = "both your saved workouts";
+    } else {
+        uses = "all " + view.held + " of your saved workouts";
+    }
+    return "Uses " + uses + " if you end the week at " + view.workouts + "/" + view.goal + ".";
 }
 
 // savedOnText says what saved workouts are doing this week once they are on.
@@ -1547,7 +1562,8 @@ function showSavedWorkoutsState(view, chip, note, button, hint) {
         hint.style.display = "block";
     } else if(view.shortfall > 0 && view.held > 0) {
         // Explain the missing button: what you hold can't cover the gap yet.
-        hint.textContent = "Your " + countLabel(view.held, "saved workout", "saved workouts") +
+        var yours = yourSavedWorkouts(view.held);
+        hint.textContent = yours.charAt(0).toUpperCase() + yours.slice(1) +
             " can make up the week once you're at " + (view.goal - view.held) + "/" + view.goal + ".";
         hint.style.display = "block";
     }

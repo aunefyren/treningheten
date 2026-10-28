@@ -113,3 +113,22 @@ services:
       - ./data/treningheten/config:/tt-config:ro
     entrypoint: ["sh", "-c", "apk add --no-cache -q curl jq >/dev/null && sh /seed.sh --in-container"]
     restart: "no"
+
+  # One-shot: ./seed-saved-workouts.sh, after ./seed.sh. Seeds two running seasons (saved
+  # workouts on and off) with three weeks of past workouts, so the saved-workouts UI can be
+  # seen at once. Writes the SQLite database directly to move dates into the past, so it
+  # needs the config directory writable and the server's zone (TZ) for "this Monday".
+  seed-saved-workouts:
+    image: alpine:3.20
+    profiles: ["seed"]
+    environment:
+      TZ: Europe/Oslo
+      PUBLIC_HOST: ${PUBLIC_HOST:-localhost}
+      TT_PORT: ${TT_PORT:-8080}
+      TT_EMAIL: ${TT_EMAIL:-admin@test.local}
+      TT_PASSWORD: ${TT_PASSWORD:-Password123}
+    volumes:
+      - ./seed-saved-workouts.sh:/seed-saved-workouts.sh:ro
+      - ./data/treningheten/config:/tt-config
+    entrypoint: ["sh", "-c", "apk add --no-cache -q curl jq sqlite tzdata >/dev/null && sh /seed-saved-workouts.sh --in-container"]
+    restart: "no"

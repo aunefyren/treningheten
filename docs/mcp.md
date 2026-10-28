@@ -43,7 +43,7 @@ for example, give feedback on their latest run. This is Phase 3 of the auth work
 | `get_statistics` | `period?` | Per-window totals (`workouts`, `activities`, km distance, seconds time) over three **rolling** windows: trailing ~1 month, trailing 12 months, all-time. Plus **personal** day/week streaks (current + best). With `period` (`4w`, `12w`, `year`, `all`) also the `/statistics` **overview**: totals against the previous period, weekly (monthly for `all`) buckets, the activity mix and records set in the period. See below |
 | `get_personal_records` | `action?`, `key?`, `from?`, `to?` | Personal records per activity type: best efforts (fastest 1 km … marathon on foot, 10–100 km on a bike), longest distance/duration, most climbing, and for strength heaviest set, estimated one-rep max, most reps, most volume. Each with `set_at`, `activity_id`, what it beat and how often it improved; `key` (with `action`) adds the `history`. `from`/`to` give the **bests inside a period** instead (this year's fastest 5 km), each flagged `all_time_record` or carrying the `all_time_best` to compare with. See below |
 | `get_activity_type_statistics` | `action`, `from?`, `to?` | One activity type over a range (default the last 365 days): totals per unit, averages, the range's bests, sensor averages and a **trend** with one point per activity (pace/speed, heart rate, top set, one-rep max). See below |
-| `list_seasons` | `active_only?` | The seasons the user has joined, newest first, with the user's weekly goal / competing / sickleave-left; `active_only` limits to ongoing seasons |
+| `list_seasons` | `active_only?` | The seasons the user has joined, newest first, with the user's weekly goal / competing / sickleave-left and, in a season with saved workouts, the saved-workouts fields; `active_only` limits to ongoing seasons |
 | `get_season` | `season_id` | One season + the user's personal goal data (`joined=false` with no goal fields if not joined) |
 | `list_achievements` | — | The achievement catalog with the user's earned state (earned, times, last); hidden achievements read `"Hidden"` until earned |
 | `get_achievement` | `achievement_id` | One achievement with the user's earned state |
@@ -369,6 +369,13 @@ All of these are scoped to the authenticated user:
   season id but only fills the goal fields when the user has joined it (`joined`
   reflects this). v1 is deliberately lean — no within-season streak/standing (that
   needs the week-result computation in `season.go` and is a follow-up).
+- **Saved workouts** ([flexible-workouts.md](flexible-workouts.md)): every season that has them
+  carries `saved_workouts_rule` (one plain sentence). For a joined, ongoing one,
+  `addSavedWorkoutsToMCPSeason` walks the season like the leaderboard and adds
+  `saved_workouts` (held this week), `saved_workouts_use_by`, `using_saved_workouts_this_week`,
+  `saved_workouts_used_this_week` (above 0 = this week counts as met) and
+  `weeks_made_up_by_saved_workouts` (finished weeks met thanks to them), so a client never reads
+  a made-up week as missed. This is the one place the season tools run the week walk.
 - **Achievements** combine the catalog with the user's earned state. Hidden
   achievements keep their description as `"Hidden"` until the user earns them (mirrors
   the web's `ConvertAchievement…UserObject` behaviour). See

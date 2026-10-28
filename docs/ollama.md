@@ -33,6 +33,14 @@ reliable and avoids them getting the wheel mechanics backwards.
   against the user, so there is nothing to push towards. The system prompt's *Sick leave*
   rules tell the model to acknowledge the rest week, say the streak is safe, never encourage
   training for that season, and keep any other (normal) season's progress gentle.
+- **Saved workouts** ([flexible-workouts.md](flexible-workouts.md)), only in a season that has
+  them (`addSavedWorkoutsToPayload`): `saved_workouts_rule`, `saved_workouts` (held now),
+  `saved_workouts_use_by`, `using_saved_workouts_this_week`,
+  `saved_workouts_filling_this_weeks_gap` and `extra_workouts_saved_this_week`. A week made up
+  with saved workouts already has `weekly_goal_met: true` and nothing remaining. The system
+  prompt's *Saved workouts* rules say never to call such a week missed, that the extras are a
+  small bonus worth mentioning, that a short user holding enough may be pointed at "Use saved
+  workouts", and to call them "saved workouts" and nothing else.
 
 ### `latest_workout`
 

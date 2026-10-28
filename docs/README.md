@@ -29,6 +29,9 @@ the rules every change follows; plans and open work live in GitHub issues, not h
 - [seasons-and-goals.md](seasons-and-goals.md) — seasons (time-boxed competitions),
   goals (how a user participates), weekly completion, sick leave, and the weekly
   processing loop.
+- [flexible-workouts.md](flexible-workouts.md) — **saved workouts**: a season can let
+  participants save workouts beyond their goal and use them to make up a short week; the
+  rule (`nextCarryBank`), the per-week opt-in, and where it shows in the UI.
 - [streaks.md](streaks.md) — the **two** streak systems (personal activity streaks vs
   within-season goal streaks) and how each is computed.
 - [exercises.md](exercises.md) — the `/exercises` workout timeline: the searchable/sortable

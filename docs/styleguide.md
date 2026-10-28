@@ -145,6 +145,7 @@ used by legacy components until they're migrated.
 | `--audio` | soundtrack / listening layer amber |
 | `--module-accent` | the single blue theme accent for module panels (left bar + progress). One knob recolours the whole set. |
 | `--inset-bg` / `--inset-border` | the one convention for small boxes nested inside a module panel (number box, debt notices, joinable-season rows, progress track, push prompt): palest-sky fill + hairline grey edge. |
+| `--saved` | saved workouts making up a week ([flexible-workouts.md](flexible-workouts.md)): the paler second tone of a progress fill (`--lightblue`), used for the hero ring's second segment, the day header's bar and the dot on the saved-workouts chip that ties them together. On the blue hue, so it reads as part of the same progress, not as a signal. |
 
 ### 3. Scales
 
@@ -347,6 +348,13 @@ page's signature element — keep the rest of the page quiet so it stays the one
 The **debt-spin** state ("you must spin the wheel") reuses `.hero` so it reads as a panel, not
 bare text.
 
+**Saved workouts** (`--saved-pct`, set from JS next to `--pct`): when saved workouts make up the
+week, they are a second ring segment in the paler `--saved` tone right after the workouts arc, and
+the caption under `2 / 3` reads `+ 1 saved workout`. The ring turns green once the two together
+reach the goal; the saved segment keeps its tone so the week still reads as "made up". Under the
+ring sit the **saved-workouts chip** and, once they are on for the week, a `.hero-saved-note`
+(the rest note's type) with a `.btn--ghost.btn--sm` **Undo** beside it.
+
 **Sick-leave week** (`.hero-ring.is-resting`): when the viewed season is on sick leave this week
 the ring drops its arc and shows *Sick leave* / *Streak kept* in place of the count (body font —
 it's text, not a numeral), with a one-line `.hero-rest-note` under it naming the season. Calm
@@ -458,6 +466,24 @@ kept in step, the one `--focus-ring` on `:focus-visible`), reset to read as a ro
   disconnected. Set it with `setSectionStatus(key, connected, health)`.
 - Each section's own submit is a `.btn` (its primary action may be `.btn--primary`); destructive
   actions (`Disconnect …`, `Leave season`, `Delete account`) are `.btn--danger`.
+
+### Saved-workouts chip
+
+`.saved-chip` (`components.css`) — the front page's one-line status of a season's saved workouts,
+under the ring: a `--saved` dot (`.saved-chip-dot`), then `1 saved workout · use by Sun 9 Nov`. A
+self-contained `<button>` on the inset convention (`--inset-bg`, `--inset-border`), pill-shaped,
+body font, `0.85rem`; hover darkens the edge to `--lightblue`, focus is the one `--focus-ring`. It
+opens a `.trm` modal explaining saved workouts. The dot is the legend for the ring's saved segment,
+so the same dot also leads the rule wherever it is spelled out: `.saved-rule-preview` (an inset
+block with the rule in a sentence — the admin season form's live preview, which reads muted and
+dot-less while the feature is off, and the join-season screen) and `/seasons`'
+`.season-saved-line`. Not a `.tag-chip` (those are selectable tags) and not a `.meta-tag` (too
+small for the page's main status line).
+
+**Week actions** (`.week-actions`, under the calendar's Save): "Use sick leave" and "Use saved
+workouts" as `.btn--ghost.btn--sm` in a `.btn-group`, and a `.week-actions-hint` line (muted
+`--mediumblue`, `0.85rem`) saying what using saved workouts would do. The block hides when none
+of it shows.
 
 ### Chips & tags
 
@@ -692,6 +718,17 @@ not theme — left inline on purpose. Dynamic (`${…}`) values stay inline too.
    conventions — don't extend the legacy pattern.
 
 ## Decisions log
+
+- **Saved workouts.** A season can let participants save extra workouts to make up a short week
+  ([flexible-workouts.md](flexible-workouts.md)). One new token, `--saved` (`--lightblue`), for
+  the paler second tone of progress: the hero ring got a second conic segment after the arc
+  (`--saved-pct`, animated like `--pct`) and the day header's bar a second fill, so a made-up
+  week reads as full without pretending the workouts happened. New: the saved-workouts chip
+  (`.saved-chip`, a self-contained inset pill button whose dot doubles as the segment's legend),
+  `.hero-saved-note`, `.week-actions` (the sick-leave button's old `.sickleave-button` margin
+  moved onto it), `.saved-rule-preview`, `.season-saved-line`, and `.status-icon`: every
+  leaderboard emoji now has a title, and a made-up week has its own, 💾. The front page loads
+  `modal.css`/`modal.js` for the chip's explanation.
 
 - **`/statistics` rebuilt as five tabs; records added.** The page was three stacked sections
   with their own pickers: season figures as emoji pill lines on legacy slate `rgba` colours,

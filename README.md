@@ -37,6 +37,7 @@ Treningheten is a web-based platform for tracking workouts. A workout season is 
 - Compete to uphold streaks and win prices from other users by spinning a wheel of fortune
 - Admin interface for management (in progress)
 - Sick leave for when unable to work out
+- Saved workouts: a season can let extra workouts make up a later short week — see [docs/flexible-workouts.md](docs/flexible-workouts.md)
 - Achievements given when certain actions are done
 - OAuth 2.0 authorization server for API access (authorization-code + PKCE, dynamic client registration, refresh tokens) — see [docs/oauth.md](docs/oauth.md)
 - Personal Access Tokens for scripts and integrations, managed from your account page — see [docs/pat.md](docs/pat.md)

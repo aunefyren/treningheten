@@ -11,6 +11,7 @@ document is the map.
 | **Counts a period when…** | the day/week has any goal-counting session | the week's `WeekCompletion ≥ 1` (goal met) |
 | **Granularity** | day **and** ISO-week | week |
 | **Sick leave aware?** | No | Yes (freezes the streak) |
+| **Saved workouts aware?** | No | Yes (a week they make up counts as met) |
 | **Stored?** | No (computed on read) | No (recomputed each time) |
 | **Drives** | personal stats display | leaderboard, debts, wheel tickets |
 | **Code** | `controllers/streaks.go` | `controllers/season.go` (`GetWeekResultForGoal`) |
@@ -55,12 +56,12 @@ weekly goal, not mere activity. Computed in `GetWeekResultForGoal`
 threaded through (see [the weekly loop](seasons-and-goals.md#the-weekly-processing-loop)).
 
 Per evaluated week, given `WeekCompletion = exercises_done / ExerciseInterval`, checked
-**in this order** (`nextSeasonStreak`):
+**in this order** (`nextSeasonStreak`, which takes `UserWeekResults.GoalMet()`):
 
 | Situation | Effect on the streak |
 |---|---|
 | Week covered by **used sick leave** | **frozen** — kept, never grown, **even if the goal was met** that week (week result flagged `SickLeave`) |
-| `WeekCompletion ≥ 1` (goal met) | **+1** |
+| Goal met: `WeekCompletion ≥ 1`, or **saved workouts** made up the rest ([flexible-workouts.md](flexible-workouts.md)) | **+1** |
 | Anything else (goal missed on a full week, or joined mid-week without meeting it) | **reset to 0** |
 
 `nextSeasonStreak` is shared by the week results and the achievement pass
@@ -102,4 +103,5 @@ display-only (profile/statistics).
 ## Related
 
 - [seasons-and-goals.md](seasons-and-goals.md) — goals, weekly completion, sick leave, the weekly loop
+- [flexible-workouts.md](flexible-workouts.md) — saved workouts, which can make up a week
 - [mcp.md](mcp.md) — `get_statistics` exposes personal streaks; season streaks are deferred
