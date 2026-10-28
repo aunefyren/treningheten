@@ -19,6 +19,12 @@ var statsPeriods = [
     { key: "all", label: "All time", previous: "" }
 ];
 
+// isAllTimePeriod is the one check for "no narrowing": the period key is "all" on both the
+// Overview and Activity types tabs (the UI state, not the response). Custom is never all time.
+function isAllTimePeriod(key) {
+    return key === "all";
+}
+
 var statsTypePeriods = statsPeriods.concat([{ key: "custom", label: "Custom" }]);
 
 var overviewMetrics = [
@@ -110,7 +116,7 @@ function statisticsPageHTML() {
                 <div class="stat-panel">
                     <div class="stats-panel-head">
                         <h2 class="stats-heading">Records set in this period</h2>
-                        <button type="button" class="btn btn--ghost btn--sm" onclick="selectStatisticsTab('records')">All records</button>
+                        <button type="button" class="btn btn--ghost btn--sm" id="overview-records-link" onclick="selectStatisticsTab('records')">All records</button>
                     </div>
                     <div id="overview-records"></div>
                 </div>
@@ -148,7 +154,7 @@ function statisticsPageHTML() {
                     <div class="stat-panel" id="types-records-panel" hidden>
                         <div class="stats-panel-head">
                             <h2 class="stats-heading">Bests in this period</h2>
-                            <button type="button" class="btn btn--ghost btn--sm" onclick="selectStatisticsTab('records')">All-time records</button>
+                            <button type="button" class="btn btn--ghost btn--sm" id="types-records-link" onclick="selectStatisticsTab('records')">All-time records</button>
                         </div>
                         <div class="records-grid" id="types-records"></div>
                     </div>
@@ -445,6 +451,7 @@ function chooseOverviewMetric(key) {
 }
 
 function loadOverview() {
+    document.getElementById("overview-records-link").hidden = isAllTimePeriod(statsState.overviewPeriod);
     statsGet("auth/statistics/overview?period=" + statsState.overviewPeriod, function(result) {
         statsState.overview = result.overview;
         placeOverview();
@@ -610,14 +617,15 @@ function recordValueText(record, entry) {
 // recordTileHTML is one record: the label, the value, when it was set and what it beat. The
 // whole tile opens the record's (all-time) history. actionName is shown when tiles of several
 // types mix. inPeriod renders a period's best instead: tagged when it is also the all-time
-// record, otherwise showing that record to compare with.
-function recordTileHTML(record, actionID, actionName, inPeriod) {
+// record, otherwise showing that record to compare with. With allTime every tile is the
+// all-time record, so the badge and the comparison line are left out.
+function recordTileHTML(record, actionID, actionName, inPeriod, allTime) {
     recordCache[actionID + ":" + record.key] = record;
     var parts = recordValueParts(record, record.current);
     var fresh, previous;
     if (inPeriod) {
-        fresh = record.all_time_record ? `<span class="meta-tag meta-tag--success">All-time record</span>` : "";
-        previous = record.all_time_best
+        fresh = record.all_time_record && !allTime ? `<span class="meta-tag meta-tag--success">All-time record</span>` : "";
+        previous = record.all_time_best && !allTime
             ? "Record " + escapeStat(recordValueText(record, record.all_time_best)) + " from " + formatDay(record.all_time_best.set_at)
             : "";
     } else {
@@ -801,6 +809,8 @@ function typePeriodRange() {
 
 function loadTypeStatistics() {
     var actionID = statsState.typesActionID;
+    var allTime = isAllTimePeriod(statsState.typesPeriod);
+    document.getElementById("types-records-link").hidden = allTime;
     document.getElementById("types-empty").hidden = !!actionID;
     document.getElementById("types-content").hidden = !actionID;
     resetActivityHeatmap();
@@ -829,7 +839,7 @@ function loadTypeStatistics() {
         var panel = document.getElementById("types-records-panel");
         panel.hidden = !group || !group.records.length;
         if (group) {
-            document.getElementById("types-records").innerHTML = group.records.map(function(record) { return recordTileHTML(record, actionID, null, true); }).join("");
+            document.getElementById("types-records").innerHTML = group.records.map(function(record) { return recordTileHTML(record, actionID, null, true, allTime); }).join("");
         }
     });
 }

@@ -43,7 +43,8 @@ Weeks run Monday–Sunday in the server zone. The response holds the period's **
 (workouts, active time, active days, distance per unit) and the previous period's, a bucket per
 week or month (empty ones included, so the chart has no gaps), the **activity mix** (activities
 and time per type, most time first), the all-time **personal streaks** and up to six **records
-set in the period**. A workout with no activities (the front page's "+") counts as a workout.
+set in the period** (the page's **All records** button next to them opens the Records tab, and
+is hidden for `all`, where they are the same records). A workout with no activities (the front page's "+") counts as a workout.
 
 ## Personal records
 
@@ -152,7 +153,9 @@ days (`YYYY-MM-DD`; an RFC 3339 timestamp is still accepted from older clients).
 Above the statistics the page shows **Bests in this period**: the type's records for the chosen
 period (`/records?action_id=&start=&end=`), every key including best efforts and the one-rep
 max. A tile that is also the all-time record says so; otherwise it shows the record to compare
-with. A tile opens the record's all-time history. The page links to `/exercises?action=<id>`. The heatmap
+with. With **All time** selected every tile is the all-time record, so the badges and the
+comparison line are left out, and so is the **All-time records** header button (it would lead
+to the same numbers); every other period, Custom included, keeps both. A tile opens the record's all-time history. The page links to `/exercises?action=<id>`. The heatmap
 endpoint returns only GPS tracks, so the statistics response never carries raw streams; see
 [heatmap.md](heatmap.md).
 
