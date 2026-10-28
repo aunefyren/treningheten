@@ -136,6 +136,8 @@ func ConvertSeasonToSeasonObject(season models.Season) (models.SeasonObject, err
 	seasonObject.UpdatedAt = season.UpdatedAt
 	seasonObject.Sickleave = season.Sickleave
 	seasonObject.JoinAnytime = season.JoinAnytime
+	seasonObject.CarryOverMax = season.CarryOverMax
+	seasonObject.CarryOverWeeks = season.CarryOverWeeks
 
 	return seasonObject, nil
 }
@@ -277,6 +279,21 @@ func APIRegisterSeason(context *gin.Context) {
 		return
 	}
 
+	// Verify the saved-workouts rule. Off (0) needs no lifetime, so it is stored as 0 / 0
+	// whatever was sent; on needs a lifetime of at least one week.
+	if season.CarryOverMax < 0 || season.CarryOverMax > maxCarryOverMax {
+		context.JSON(http.StatusBadRequest, gin.H{"error": "Saved workouts per person must be between 0 and " + strconv.Itoa(maxCarryOverMax) + "."})
+		context.Abort()
+		return
+	}
+	if season.CarryOverMax == 0 {
+		season.CarryOverWeeks = 0
+	} else if season.CarryOverWeeks < 1 || season.CarryOverWeeks > maxCarryOverWeeks {
+		context.JSON(http.StatusBadRequest, gin.H{"error": "A saved workout must last between 1 and " + strconv.Itoa(maxCarryOverWeeks) + " weeks."})
+		context.Abort()
+		return
+	}
+
 	// Verify unique season name
 	uniqueSeasonName, err := database.VerifyUniqueSeasonName(season.Name)
 	if err != nil {
@@ -311,6 +328,8 @@ func APIRegisterSeason(context *gin.Context) {
 	seasonDB.JoinAnytime = &season.JoinAnytime
 	seasonDB.PrizeID = season.Prize
 	seasonDB.Sickleave = season.Sickleave
+	seasonDB.CarryOverMax = season.CarryOverMax
+	seasonDB.CarryOverWeeks = season.CarryOverWeeks
 	seasonDB.ID = uuid.New()
 
 	// Register season in DB
@@ -439,6 +458,7 @@ type seasonWeekData struct {
 	exerciseCounts map[uuid.UUID]map[weekKey]int                // userID  -> week -> valid exercise count
 	debts          map[uuid.UUID]map[weekKey][]models.Debt      // loserID -> week -> debts
 	sickleave      map[uuid.UUID]map[weekKey][]models.Sickleave // goalID  -> week -> sick leave
+	carryOptIns    map[uuid.UUID]map[weekKey]bool               // goalID  -> week -> "Use saved workouts" chosen
 }
 
 // buildSeasonWeekData fetches and buckets a season's week inputs once. The fetch window
@@ -450,6 +470,7 @@ func buildSeasonWeekData(season models.SeasonObject, lastPointInTime time.Time) 
 		exerciseCounts: map[uuid.UUID]map[weekKey]int{},
 		debts:          map[uuid.UUID]map[weekKey][]models.Debt{},
 		sickleave:      map[uuid.UUID]map[weekKey][]models.Sickleave{},
+		carryOptIns:    map[uuid.UUID]map[weekKey]bool{},
 	}
 
 	userIDs := make([]uuid.UUID, 0, len(season.Goals))
@@ -521,7 +542,30 @@ func buildSeasonWeekData(season models.SeasonObject, lastPointInTime time.Time) 
 		data.sickleave[sickleave.GoalID][key] = append(data.sickleave[sickleave.GoalID][key], sickleave)
 	}
 
+	// "Use saved workouts" opt-ins -> per-goal week flag. Only seasons with the feature on
+	// can have any, so the others skip the query.
+	if season.CarryOverMax > 0 {
+		uses, err := database.GetCarryOverUsesForGoalIDsBetweenDates(goalIDs, rangeStart, rangeEnd)
+		if err != nil {
+			return nil, err
+		}
+		for _, use := range uses {
+			if data.carryOptIns[use.GoalID] == nil {
+				data.carryOptIns[use.GoalID] = map[weekKey]bool{}
+			}
+			data.carryOptIns[use.GoalID][isoWeekKey(use.Date)] = true
+		}
+	}
+
 	return data, nil
+}
+
+// carryOptIn reports whether the goal chose "Use saved workouts" for the given week.
+func (data *seasonWeekData) carryOptIn(goalID uuid.UUID, key weekKey) bool {
+	if weeks, ok := data.carryOptIns[goalID]; ok {
+		return weeks[key]
+	}
+	return false
 }
 
 // exerciseCount returns the number of valid exercises a user logged in the given week.
@@ -576,8 +620,8 @@ func RetrieveWeekResultsFromSeasonWithinTimeframe(firstPointInTime time.Time, la
 
 	currentTime := season.Start
 	finished := false
-	userStreaks := []models.UserStreak{}
-	for !finished {
+	walk := newSeasonWalk(season)
+	for weekIndex := 0; !finished; weekIndex++ {
 		// New week
 		weekResult := models.WeekResults{
 			UserWeekResults: []models.UserWeekResults{},
@@ -594,14 +638,8 @@ func RetrieveWeekResultsFromSeasonWithinTimeframe(firstPointInTime time.Time, la
 		for _, goal := range season.Goals {
 			logger.Log.Debug("Processing new goal '" + goal.ID.String() + "' for user '" + goal.User.FirstName + " " + goal.User.LastName + "'")
 
-			// Get Week result for goal
-			weekResultForGoal, newUserStreaks, err := GetWeekResultForGoal(goal, currentTime, userStreaks, data)
-			if err != nil {
-				logger.Log.Warn("Failed to get week results for user. Goal: " + goal.ID.String() + ". Error: " + err.Error() + ". Creating blank user.")
-				continue
-			}
-
-			userStreaks = newUserStreaks
+			// Get Week result for goal, advancing its running streak and saved workouts.
+			weekResultForGoal := GetWeekResultForGoal(goal, currentTime, weekIndex, walk, data)
 
 			// Append to array
 			weekResult.UserWeekResults = append(weekResult.UserWeekResults, weekResultForGoal)
@@ -636,10 +674,48 @@ func RetrieveWeekResultsFromSeasonWithinTimeframe(firstPointInTime time.Time, la
 	return newWeeksResults, nil
 }
 
-func GetWeekResultForGoal(goal models.GoalObject, currentTime time.Time, userStreaksInput []models.UserStreak, data *seasonWeekData) (newResult models.UserWeekResults, userStreaks []models.UserStreak, err error) {
-	userStreaks = userStreaksInput
-	newResult = models.UserWeekResults{}
-	err = nil
+// seasonWalk is what the week-by-week season walk carries from one week to the next for
+// every goal: the running season streak and the saved workouts. Neither is stored; both are
+// rebuilt from the first week every time (docs/streaks.md, docs/flexible-workouts.md).
+type seasonWalk struct {
+	seasonStart time.Time
+	carryOver   carryOverSettings
+	goals       map[uuid.UUID]*goalWalkState
+}
+
+type goalWalkState struct {
+	streak int
+	bank   carryBank
+}
+
+func newSeasonWalk(season models.SeasonObject) *seasonWalk {
+	return &seasonWalk{
+		seasonStart: season.Start,
+		carryOver:   carryOverSettingsForSeason(season),
+		goals:       map[uuid.UUID]*goalWalkState{},
+	}
+}
+
+func (walk *seasonWalk) stateFor(goalID uuid.UUID) *goalWalkState {
+	state, found := walk.goals[goalID]
+	if !found {
+		state = &goalWalkState{}
+		walk.goals[goalID] = state
+	}
+	return state
+}
+
+// weekEndDate is the Sunday of the season's week with the given index, the day a saved
+// workout expiring that week must be used by.
+func (walk *seasonWalk) weekEndDate(weekIndex int) time.Time {
+	return walk.seasonStart.AddDate(0, 0, 7*weekIndex+6)
+}
+
+// GetWeekResultForGoal judges one goal's week (the season's week weekIndex, starting at
+// currentTime) and advances the goal's running streak and saved workouts in walk. Weeks must
+// be fed in order from the season's first; RetrieveWeekResultsFromSeasonWithinTimeframe does.
+func GetWeekResultForGoal(goal models.GoalObject, currentTime time.Time, weekIndex int, walk *seasonWalk, data *seasonWeekData) models.UserWeekResults {
+	newResult := models.UserWeekResults{}
 
 	// Identify the week and read its completion / debt / sick-leave from the pre-bucketed
 	// season data instead of querying per week.
@@ -657,6 +733,7 @@ func GetWeekResultForGoal(goal models.GoalObject, currentTime time.Time, userStr
 	newResult.Competing = goal.Competing
 	newResult.GoalID = goal.ID
 	newResult.FullWeekParticipation = true
+	newResult.CarryExpiries = []time.Time{}
 
 	logger.Log.Trace("week completion: " + strconv.FormatFloat(newResult.WeekCompletion, 'f', -1, 64))
 
@@ -677,65 +754,44 @@ func GetWeekResultForGoal(goal models.GoalObject, currentTime time.Time, userStr
 		}
 	}
 
-	// Find user in streak dict
-	userFound := false
-	userIndex := 0
-	for index, userStreak := range userStreaks {
-		if userStreak.UserID == goal.User.ID {
-			userFound = true
-			userIndex = index
-			break
-		}
-	}
-
-	if !userFound {
-		// Not found in dict, current streak is 0
-		newResult.CurrentStreak = 0
-		userStreak := models.UserStreak{
-			UserID: goal.User.ID,
-			Streak: 0,
-		}
-		userStreaks = append(userStreaks, userStreak)
-		// Find new index
-		userFound = false
-		userIndex = 0
-		for index, userStreak := range userStreaks {
-			if userStreak.UserID == goal.User.ID {
-				userFound = true
-				userIndex = index
-				break
-			}
-		}
-	}
-
-	if !userFound {
-		return models.UserWeekResults{}, userStreaks, errors.New("Failed to process streak.")
-	}
-
 	sickLeave := data.sickleaveForWeek(goal.ID, key)
 	newResult.SickLeave = sickLeave != nil && sickLeave.Used
 
+	state := walk.stateFor(goal.ID)
+
+	// Saved workouts first, so GoalMet below already counts any the week spends.
+	if walk.carryOver.enabled() {
+		live := state.bank.live(weekIndex)
+		newResult.CarriedIn = len(live)
+		for _, expiresInWeek := range live {
+			newResult.CarryExpiries = append(newResult.CarryExpiries, walk.weekEndDate(expiresInWeek))
+		}
+		newResult.CarryOptIn = data.carryOptIn(goal.ID, key)
+		newResult.CarryUsed, newResult.CarryEarned, state.bank = nextCarryBank(live, exerciseSum, goal.ExerciseInterval, newResult.CarryOptIn, newResult.SickLeave, weekIndex, walk.carryOver)
+	}
+
 	// The week reports the streak as it stood entering the week; the running streak then
 	// advances by the shared rule.
-	newResult.CurrentStreak = userStreaks[userIndex].Streak
-	userStreaks[userIndex].Streak = nextSeasonStreak(userStreaks[userIndex].Streak, newResult.WeekCompletion, newResult.SickLeave)
+	newResult.CurrentStreak = state.streak
+	state.streak = nextSeasonStreak(state.streak, newResult.GoalMet(), newResult.SickLeave)
 
-	logger.Log.Trace("streak is now: " + strconv.Itoa(userStreaks[userIndex].Streak))
+	logger.Log.Trace("streak is now: " + strconv.Itoa(state.streak))
 	logger.Log.Trace("streak is now on week results: " + strconv.Itoa(newResult.CurrentStreak))
 
-	return newResult, userStreaks, nil
+	return newResult
 }
 
 // nextSeasonStreak is the season-streak rule for one week, given the streak entering it. Sick
 // leave comes first: a sick-leave week freezes the streak — kept, but never grown, even when
 // the goal was met that week. Otherwise a met goal adds one and anything else resets it
-// (a missed full week, or joining mid-week without meeting the goal). Shared by the week
-// results and the achievement pass so the two can't drift.
-func nextSeasonStreak(streak int, weekCompletion float64, sickLeave bool) int {
+// (a missed full week, or joining mid-week without meeting the goal). goalMet is
+// UserWeekResults.GoalMet, so a week made up with saved workouts grows the streak. Shared by
+// the week results and the achievement pass so the two can't drift.
+func nextSeasonStreak(streak int, goalMet bool, sickLeave bool) int {
 	switch {
 	case sickLeave:
 		return streak
-	case weekCompletion >= 1:
+	case goalMet:
 		return streak + 1
 	default:
 		return 0
@@ -1052,6 +1108,8 @@ func APIGetSeasonWeeksPersonal(context *gin.Context) {
 					Competing:     result.Competing,
 					Debt:          result.Debt,
 					ExerciseGoal:  goal.ExerciseInterval,
+					CarryUsed:     result.CarryUsed,
+					GoalMet:       result.GoalMet(),
 				}
 
 				userWeekResultPersonal.WeekCompletionInterval = int(float64(result.WeekCompletion) * float64(goal.ExerciseInterval))

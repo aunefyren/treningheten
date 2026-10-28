@@ -82,7 +82,51 @@ func seasonToMCP(season models.Season, goal *models.GoalObject) models.MCPSeason
 		s.Competing = &competing
 		s.SickleaveLeft = &sickleaveLeft
 	}
+	s.SavedWorkoutsRule = savedWorkoutsRule(season.CarryOverMax, season.CarryOverWeeks)
+	if goal != nil && s.SavedWorkoutsRule != "" && s.Status == "ongoing" {
+		addSavedWorkoutsToMCPSeason(&s, season, goal.ID, time.Now())
+	}
 	return s
+}
+
+// addSavedWorkoutsToMCPSeason walks the season (as the leaderboard does) to report the
+// user's saved workouts this week and the weeks they made up, so an LLM never reads a
+// made-up week as missed. Best effort: on failure the fields are simply left out.
+func addSavedWorkoutsToMCPSeason(s *models.MCPSeason, season models.Season, goalID uuid.UUID, now time.Time) {
+	seasonObject, err := ConvertSeasonToSeasonObject(season)
+	if err != nil {
+		return
+	}
+	weeks, err := RetrieveWeekResultsFromSeasonWithinTimeframe(seasonObject.Start, now, seasonObject)
+	if err != nil || len(weeks) == 0 {
+		return
+	}
+
+	// Newest first: the running week, then the finished ones.
+	madeUp := 0
+	for i, week := range weeks {
+		result := userWeekResult(week, goalID)
+		if result == nil {
+			continue
+		}
+		if i == 0 {
+			saved := result.CarriedIn
+			usingThem := result.CarryOptIn && !result.SickLeave
+			usedNow := result.CarryUsed
+			s.SavedWorkouts = &saved
+			s.UsingSavedWorkoutsThisWeek = &usingThem
+			s.ThisWeekMadeUpBySaved = &usedNow
+			if len(result.CarryExpiries) > 0 {
+				useBy := result.CarryExpiries[0]
+				s.SavedWorkoutsUseBy = &useBy
+			}
+			continue
+		}
+		if result.SavedByCarryOver() {
+			madeUp++
+		}
+	}
+	s.WeeksMadeUpBySaved = &madeUp
 }
 
 func seasonStatus(season models.Season, now time.Time) string {

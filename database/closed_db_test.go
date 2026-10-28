@@ -10,6 +10,7 @@ import "testing"
 var shortCircuitOnEmptyInput = map[string]bool{
 	"BumpObservedMaxHeartrate":                       true,
 	"CountStravaActivitiesForExercises":              true,
+	"GetCarryOverUsesForGoalIDsBetweenDates":         true,
 	"GetDebtsForUserIDsBetweenDates":                 true,
 	"GetExerciseDaysForSharingUsersInListUsingDates": true,
 	"GetSickleavesForGoalIDsBetweenDates":            true,

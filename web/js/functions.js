@@ -91,23 +91,69 @@ window.addEventListener('offline', () => {
 });
 
 // Leaderboard week icons, checked in the same order the server judges a week
-// (models/week_result.go, nextSeasonStreak): sick leave first, then the goal, then a
-// mid-week join. Shared by the front page and /seasons so the boards can't disagree.
+// (models/week_result.go, nextSeasonStreak): sick leave first, then the goal (met by
+// workouts, or made up with saved workouts), then a mid-week join. Shared by the front page
+// and /seasons so the boards can't disagree. Each icon carries a title saying what it means.
+
+// statusIcon wraps a leaderboard emoji in a span whose title explains it.
+function statusIcon(emoji, title) {
+    return `<span class="status-icon" title="${title}" aria-label="${title}">${emoji}</span>`;
+}
+
+// weekGoalMet mirrors UserWeekResults.GoalMet: the workouts reached the goal, or saved
+// workouts made up the rest (the server only spends them when they cover all of it).
+function weekGoalMet(result) {
+    return result.week_completion >= 1 || result.carry_used > 0;
+}
 
 // weekStatusIcon marks how a week went for one member.
 function weekStatusIcon(result) {
-    if(result.sick_leave) return "🤢";
-    if(result.week_completion >= 1) return "✅";
-    if(!result.full_week_participation) return "🕙";
-    return "❌";
+    if(result.sick_leave) return statusIcon("🤢", "Sick leave");
+    if(result.week_completion >= 1) return statusIcon("✅", "Goal met");
+    if(result.carry_used > 0) return statusIcon("💾", "Goal met with " + countLabel(result.carry_used, "saved workout", "saved workouts"));
+    if(!result.full_week_participation) return statusIcon("🕙", "Joined during the week");
+    return statusIcon("❌", "Goal missed");
 }
 
 // streakStatusIcon marks the streak a member carries in the current week.
 function streakStatusIcon(result) {
-    if(result.sick_leave) return "🤢";
-    if(!result.full_week_participation && result.week_completion < 1) return "🕙";
-    if(result.current_streak > 0) return "🔥";
-    return "💀";
+    if(result.sick_leave) return statusIcon("🤢", "Sick leave, streak kept");
+    if(!result.full_week_participation && !weekGoalMet(result)) return statusIcon("🕙", "Joined during the week");
+    if(result.current_streak > 0) return statusIcon("🔥", "On a streak");
+    return statusIcon("💀", "No streak yet");
+}
+
+// countLabel writes a count with the right form of its noun: "1 saved workout", "2 saved workouts".
+function countLabel(count, singular, plural) {
+    return count + " " + (count == 1 ? singular : plural);
+}
+
+// savedWorkoutsRule is a season's saved-workouts rule as one plain sentence, or "" when the
+// season doesn't save workouts. Worded like savedWorkoutsRule in controllers/carryover.go.
+function savedWorkoutsRule(max, weeks) {
+    if(!(max > 0) || !(weeks > 0)) {
+        return "";
+    }
+    var lasts = countLabel(weeks, "week", "weeks");
+    if(max == 1) {
+        return "1 extra workout can be saved, for " + lasts + ".";
+    }
+    return "Up to " + max + " extra workouts can be saved, each for " + lasts + ".";
+}
+
+// calendarDate reads the calendar day out of an API timestamp ("2026-11-08T00:00:00+01:00")
+// as a local date, so a day stamped at the server's midnight doesn't slide to the day
+// before in a browser further west.
+function calendarDate(timestamp) {
+    var parts = String(timestamp).substring(0, 10).split("-");
+    return new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2]));
+}
+
+// shortDateString formats a date as "Sun 9 Nov", for saved workouts' use-by days.
+function shortDateString(dateTime) {
+    var weekDays = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+    var months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+    return weekDays[dateTime.getDay()] + " " + dateTime.getDate() + " " + months[dateTime.getMonth()];
 }
 
 // profileImageURL returns the URL of a user's profile image for direct use in an <img src>.

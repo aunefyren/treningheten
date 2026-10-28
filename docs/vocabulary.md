@@ -15,6 +15,7 @@ this page is the bridge between the two.
 | **Weekly goal** | How many workouts per week a user commits to in a season. | `Goal.ExerciseInterval` | "exercise interval" |
 | **Season** | A time-boxed competition. | `Season` | — |
 | **Sick leave** | A season week excused from the goal; the streak is kept. | `Sickleave` | — |
+| **Saved workout** | A workout beyond the weekly goal, kept to make up a later short week ("Use saved workouts"). Never "carry-over", "bank" or "credit" in the UI. See [flexible-workouts.md](flexible-workouts.md). | computed; opt-in `CarryOverUse` | "carry-over" (`CarryOverMax`, `carry_used`, `/carryover`) |
 | **Streak** | Weeks in a row at 100% of the weekly goal (see [streaks.md](streaks.md)). | — | — |
 | **Gear** | Shoes, bikes and the like, tracked by distance or time. | `Gear` | — |
 | **Record** | The best you have done for one measure of one activity type: longest run, heaviest bench press set. "Personal record" in full; never "PR" or "PB" in the UI. | computed (`PersonalRecord`) | "record" |

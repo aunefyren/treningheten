@@ -34,6 +34,14 @@ type MCPSeason struct {
 	Competing      *bool     `json:"competing,omitempty" jsonschema:"whether the user competes for the prize (vs participating casually)"`
 	SickleaveTotal int       `json:"sickleave_total" jsonschema:"sick-leave weeks the season allows"`
 	SickleaveLeft  *int      `json:"sickleave_left,omitempty" jsonschema:"sick-leave weeks the user has remaining"`
+	// Saved workouts (docs/flexible-workouts.md). The rule is set for any season that saves
+	// workouts; the rest only for a joined, ongoing one.
+	SavedWorkoutsRule          string     `json:"saved_workouts_rule,omitempty" jsonschema:"the season's saved-workouts rule in one sentence; absent when the season doesn't save extra workouts"`
+	SavedWorkouts              *int       `json:"saved_workouts,omitempty" jsonschema:"saved workouts the user holds this week: workouts beyond the weekly goal, which can make up a later short week"`
+	SavedWorkoutsUseBy         *time.Time `json:"saved_workouts_use_by,omitempty" jsonschema:"the day the user's first saved workout runs out"`
+	UsingSavedWorkoutsThisWeek *bool      `json:"using_saved_workouts_this_week,omitempty" jsonschema:"whether the user chose to let saved workouts make up this week if it falls short (they are used only if they cover the whole gap)"`
+	ThisWeekMadeUpBySaved      *int       `json:"saved_workouts_used_this_week,omitempty" jsonschema:"how many saved workouts make up this week so far; above 0 means this week's goal counts as met"`
+	WeeksMadeUpBySaved         *int       `json:"weeks_made_up_by_saved_workouts,omitempty" jsonschema:"finished weeks of this season whose goal was met with saved workouts; they count as met, not missed"`
 }
 
 // MCPAchievement is the catalog achievement plus the authenticated user's earned

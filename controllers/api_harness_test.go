@@ -118,6 +118,8 @@ func newAPIHarness(t *testing.T) *apiHarness {
 	a.POST("/weights", APICreateWeightForUser)
 	a.DELETE("/weights/:weight_id", APIDeleteWeightForUser)
 	a.POST("/sickleave/:season_id", APIRegisterSickleave)
+	a.POST("/carryover/:season_id", APIRegisterCarryOverUse)
+	a.DELETE("/carryover/:season_id", APIDeleteCarryOverUse)
 	a.GET("/news", GetNews)
 	a.GET("/news/:news_id", GetNewsPost)
 	a.GET("/users/:user_id", GetUser)

@@ -153,6 +153,21 @@ function load_page(result) {
                                     <input type="number" id="season-sickleave" name="season-sickleave" value="0" min="0" max="99" required>
                                 </div>
 
+                                <!-- Saved workouts (docs/flexible-workouts.md): off at 0. The line under
+                                     the fields says the rule the two numbers make, as people will read it. -->
+                                <div class="field-row">
+                                    <div class="field">
+                                        <label for="season-saved-max" class="field-label">Saved workouts per person</label>
+                                        <input type="number" id="season-saved-max" name="season-saved-max" value="0" min="0" max="10" required oninput="placeSavedWorkoutsRule();">
+                                        <span class="field-hint">0 turns it off.</span>
+                                    </div>
+                                    <div class="field">
+                                        <label for="season-saved-weeks" class="field-label">Weeks each one lasts</label>
+                                        <input type="number" id="season-saved-weeks" name="season-saved-weeks" value="1" min="1" max="12" required oninput="placeSavedWorkoutsRule();">
+                                    </div>
+                                </div>
+                                <p class="saved-rule-preview" id="season-saved-rule" aria-live="polite"></p>
+
                                 <div class="field">
                                     <label for="season-prize" class="field-label">Season prize</label>
                                     <select id="season-prize" name="season-prize" required></select>
@@ -269,6 +284,7 @@ function load_page(result) {
     document.getElementById('content').innerHTML = html;
     document.getElementById('card-header').innerHTML = 'Ultimate power.';
     clearResponse();
+    placeSavedWorkoutsRule();
 
     if(result !== false) {
         showLoggedInMenu();
@@ -730,6 +746,8 @@ function addSeason() {
     var seasonName = document.getElementById("season-name").value;
     var seasonDescription = document.getElementById("season-desc").value;
     var seasonSickleave = parseInt(document.getElementById("season-sickleave").value);
+    var savedMax = parseInt(document.getElementById("season-saved-max").value) || 0;
+    var savedWeeks = savedMax > 0 ? (parseInt(document.getElementById("season-saved-weeks").value) || 0) : 0;
 
     var seasonPrize;
     try {
@@ -768,6 +786,16 @@ function addSeason() {
         return false;
     }
 
+    if(savedMax < 0 || savedMax > 10) {
+        error("Saved workouts per person must be between 0 and 10.");
+        return false;
+    }
+
+    if(savedMax > 0 && (savedWeeks < 1 || savedWeeks > 12)) {
+        error("A saved workout must last between 1 and 12 weeks.");
+        return false;
+    }
+
     var form = {
         "start": seasonStartValue + "T00:00:00Z",
         "end": seasonEndValue + "T00:00:00Z",
@@ -775,7 +803,9 @@ function addSeason() {
         "description": seasonDescription,
         "prize_id": seasonPrize,
         "sickleave": seasonSickleave,
-        "join_anytime": seasonJoinAnytime
+        "join_anytime": seasonJoinAnytime,
+        "carry_over_max": savedMax,
+        "carry_over_weeks": savedWeeks
     };
 
     return adminRequest("post", "admin/seasons", form, function(result) {
@@ -783,7 +813,34 @@ function addSeason() {
         document.getElementById("season-name").value = "";
         document.getElementById("season-desc").value = "";
         document.getElementById("season-sickleave").value = 0;
+        document.getElementById("season-saved-max").value = 0;
+        document.getElementById("season-saved-weeks").value = 1;
+        placeSavedWorkoutsRule();
     });
+}
+
+// placeSavedWorkoutsRule says, as one sentence, the saved-workouts rule the two fields make —
+// the same sentence people see when they join — and greys out the lifetime while it is off.
+function placeSavedWorkoutsRule() {
+    var maxInput = document.getElementById("season-saved-max");
+    var weeksInput = document.getElementById("season-saved-weeks");
+    var preview = document.getElementById("season-saved-rule");
+    if(!maxInput || !weeksInput || !preview) {
+        return;
+    }
+
+    var max = parseInt(maxInput.value) || 0;
+    weeksInput.disabled = max <= 0;
+    var rule = savedWorkoutsRule(max, parseInt(weeksInput.value) || 0);
+
+    preview.classList.toggle("is-off", !rule);
+    if(rule) {
+        preview.innerHTML = `<span class="saved-chip-dot" aria-hidden="true"></span><span>${rule} Workouts beyond someone's weekly goal are saved, and they can choose to use them to make up a short week.</span>`;
+    } else if(max > 0) {
+        preview.textContent = "Choose how many weeks a saved workout lasts (1 or more).";
+    } else {
+        preview.textContent = "Off. Extra workouts aren't saved in this season.";
+    }
 }
 
 function addPrize() {
