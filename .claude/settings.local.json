@@ -1,13 +1,13 @@
 {
   "permissions": {
     "allow": [
-      "Bash(go tool *)",
-      "Bash(awk '$3==\"0.0%\"')",
-      "Bash(go test *)",
-      "Bash(gofmt -w controllers/oauth_authorize_test.go)",
-      "Bash(gofmt -w models/hevy_test.go)",
-      "Bash(go build *)",
-      "Bash(go vet *)"
-    ]
+      "Bash(go build *)", "Bash(go vet *)", "Bash(go test *)", "Bash(go tool *)",
+      "Bash(go generate *)", "Bash(gofmt *)",
+      "Bash(git status *)", "Bash(git diff *)", "Bash(git log *)", "Bash(git show *)",
+      "Bash(git add *)", "Bash(git commit *)", "Bash(git switch *)", "Bash(git fetch *)",
+      "Bash(gh issue list *)", "Bash(gh issue view *)",
+      "Bash(gh pr view *)", "Bash(gh pr diff *)", "Bash(gh pr checks *)"
+    ],
+    "deny": ["Bash(git push * main)", "Bash(git push --force *)", "Bash(gh pr merge *)"]
   }
 }
