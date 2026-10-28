@@ -1,14 +1,14 @@
 # Live test harness: Treningheten built from this checkout, plus the self-hostable
 # services it integrates with, on one Docker network. See README.md in this directory.
+# Project name and host ports come from .env (written by setup.sh), so each git
+# worktree runs its own isolated copy; no container_name or fixed image tag for that reason.
 services:
   treningheten:
     build:
       context: ..
       dockerfile: Dockerfile
-    image: treningheten:test
-    container_name: tt-treningheten
     environment:
-      externalurl: http://localhost:8080
+      externalurl: http://${PUBLIC_HOST:-localhost}:${TT_PORT:-8080}
       timezone: Europe/Oslo
       # Prints a fresh invite code on every start; seed.sh uses it for the first user.
       generateinvite: "true"
@@ -21,21 +21,19 @@ services:
       - ./data/treningheten/config:/app/config
       - ./data/treningheten/images:/app/images
     ports:
-      - "8080:8080"
+      - "${TT_PORT:-8080}:8080"
     depends_on:
       - mailpit
     restart: unless-stopped
 
   mailpit:
     image: axllent/mailpit:latest
-    container_name: tt-mailpit
     ports:
-      - "8025:8025" # web UI + API; SMTP (1025) is only needed inside the network
+      - "${MAILPIT_PORT:-8025}:8025" # web UI + API; SMTP (1025) is only needed inside the network
     restart: unless-stopped
 
   audiobookshelf:
     image: ghcr.io/advplyr/audiobookshelf:latest
-    container_name: tt-abs
     environment:
       TZ: Europe/Oslo
     volumes:
@@ -43,7 +41,7 @@ services:
       - ./data/abs/metadata:/metadata
       - ./data/abs/audiobooks:/audiobooks
     ports:
-      - "13378:80"
+      - "${ABS_PORT:-13378}:80"
     restart: unless-stopped
 
   # Optional: `docker compose --profile mysql up -d --build`, after `./setup.sh mysql`.
@@ -51,7 +49,6 @@ services:
   # show up there — the SQLite test suite can't catch them.
   mariadb:
     image: mariadb:11
-    container_name: tt-mariadb
     profiles: ["mysql"]
     environment:
       MARIADB_ROOT_PASSWORD: treningheten
@@ -65,7 +62,6 @@ services:
   # Optional: `docker compose --profile postgres up -d --build`, after `./setup.sh postgres`.
   postgres:
     image: postgres:16-alpine
-    container_name: tt-postgres
     profiles: ["postgres"]
     environment:
       POSTGRES_USER: treningheten
@@ -79,7 +75,6 @@ services:
   # model once; flip `ollama.enabled` in data/treningheten/config/config.json after.
   ollama:
     image: ollama/ollama:latest
-    container_name: tt-ollama
     profiles: ["ollama"]
     volumes:
       - ./data/ollama:/root/.ollama
@@ -100,6 +95,15 @@ services:
   seed:
     image: alpine:3.20
     profiles: ["seed"]
+    environment:
+      PUBLIC_HOST: ${PUBLIC_HOST:-localhost}
+      TT_PORT: ${TT_PORT:-8080}
+      MAILPIT_PORT: ${MAILPIT_PORT:-8025}
+      ABS_PORT: ${ABS_PORT:-13378}
+      TT_EMAIL: ${TT_EMAIL:-admin@test.local}
+      TT_PASSWORD: ${TT_PASSWORD:-Password123}
+      ABS_USER: ${ABS_USER:-root}
+      ABS_PASSWORD: ${ABS_PASSWORD:-root}
     volumes:
       - ./seed.sh:/seed.sh:ro
       - ./data/treningheten/config:/tt-config:ro

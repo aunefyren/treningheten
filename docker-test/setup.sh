@@ -3,8 +3,48 @@
 # from config.template.json on first run only, so a later run never overwrites
 # settings changed since. `./setup.sh mysql` or `./setup.sh postgres` seeds it for
 # the MariaDB or Postgres profile instead of SQLite. See README.md.
+#
+# It also writes .env (gitignored) the first time: a Compose project name and a port
+# block unique to this checkout, so harnesses in several git worktrees can run side by
+# side on one Docker daemon.
 set -eu
 cd "$(dirname "$0")"
+
+if [ ! -f .env ]; then
+    # Slot 0 (the default ports) goes to the first checkout to claim it; every other
+    # worktree takes the lowest slot no sibling worktree's .env has claimed.
+    used=$(git worktree list --porcelain | sed -n 's/^worktree //p' | while read -r wt; do
+        sed -n 's/^TT_SLOT=//p' "$wt/docker-test/.env" 2>/dev/null || true
+    done)
+    slot=0
+    while echo "$used" | grep -qx "$slot"; do slot=$((slot + 1)); done
+
+    if [ "$slot" -eq 0 ]; then
+        tt_port=8080 mailpit_port=8025 abs_port=13378
+    else
+        base=$((18000 + slot * 10))
+        tt_port=$base mailpit_port=$((base + 1)) abs_port=$((base + 2))
+    fi
+
+    name=$(basename "$(git rev-parse --show-toplevel)" | tr 'A-Z' 'a-z' | tr -c 'a-z0-9\n' '-')
+
+    # Published ports live on the Docker host: localhost for a local daemon, the
+    # daemon's host name for a remote one (e.g. DOCKER_HOST=tcp://dind:2375).
+    public_host=localhost
+    case "${DOCKER_HOST:-}" in
+        tcp://*) public_host=$(echo "$DOCKER_HOST" | sed -e 's|^tcp://||' -e 's|:.*$||') ;;
+    esac
+
+    cat > .env <<EOF
+COMPOSE_PROJECT_NAME=tt-$name
+TT_SLOT=$slot
+TT_PORT=$tt_port
+MAILPIT_PORT=$mailpit_port
+ABS_PORT=$abs_port
+PUBLIC_HOST=$public_host
+EOF
+    echo "Wrote .env: project tt-$name, Treningheten on http://$public_host:$tt_port"
+fi
 
 mkdir -p data/treningheten/config data/treningheten/images \
     data/abs/config data/abs/metadata data/abs/audiobooks
