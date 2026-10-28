@@ -1,0 +1,13 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(go build *)", "Bash(go vet *)", "Bash(go test *)", "Bash(go tool *)",
+      "Bash(go generate *)", "Bash(gofmt *)",
+      "Bash(git status *)", "Bash(git diff *)", "Bash(git log *)", "Bash(git show *)",
+      "Bash(git add *)", "Bash(git commit *)", "Bash(git switch *)", "Bash(git fetch *)",
+      "Bash(gh issue list *)", "Bash(gh issue view *)",
+      "Bash(gh pr view *)", "Bash(gh pr diff *)", "Bash(gh pr checks *)"
+    ],
+    "deny": ["Bash(git push * main)", "Bash(git push --force *)", "Bash(gh pr merge *)"]
+  }
+}

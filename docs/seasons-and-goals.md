@@ -57,6 +57,12 @@ goal in"** (`database.GetGoalsForUserUsingUserID`). Joining is
 > See [data-conventions.md](data-conventions.md) for the `Convert*Object` read-layer
 > pattern these types follow.
 
+**Workouts are independent of seasons.** A user's workouts form one weekly stream, and a
+user can be in zero, one or several ongoing seasons at once. Each season applies its *own*
+goal to that same count, so one week's workouts can meet one season's goal and miss
+another's. Anything that summarises progress (the AI greeting's `seasons[]`, MCP) must
+therefore judge the week **per goal**, not once globally.
+
 ## Weekly completion
 
 Each week, a goal is evaluated against its target:
@@ -138,6 +144,13 @@ achievements and the AI greeting can't judge the same week differently:
 | `WonWeek()` | competing, goal met, **not** on sick leave — earns a place on the wheel |
 | `OwesSpin()` | competing, goal missed, **not** on sick leave, in the season the whole week — owes a spin (a debt) |
 | `WheelTickets()` | `CurrentStreak + 1`: one entry plus one per streak week carried into the week (meaningful when `WonWeek`) |
+
+**Who spins, and who wins.** Spinning is only ever a penalty: the competitor who *missed*
+spins. The wheel is filled with that week's `WonWeek` members, each holding `WheelTickets()`
+entries, and whoever it lands on wins the prize. So tickets are earned by *hitting* the goal —
+a long streak makes you more likely to win when a rival fails. (The AI payload field is named
+`prize_entries_to_win_if_a_rival_fails` for this reason: an earlier
+`wheel_tickets_if_you_hit_goal` made the model think hitting the goal meant spinning.)
 
 The streak itself advances by `nextSeasonStreak` ([streaks.md](streaks.md#season-streaks)).
 The "only one to hit the goal" achievement counts **competing** members only: its winners are

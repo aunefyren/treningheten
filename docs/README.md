@@ -1,10 +1,12 @@
 # Treningheten docs
 
-Feature and decision documentation. See the repo root `CLAUDE.md` for the
-architecture overview.
+Feature and decision documentation. The repo root `CLAUDE.md` holds the agent workflow and
+the rules every change follows; plans and open work live in GitHub issues, not here.
 
-## Conventions
+## Architecture & conventions
 
+- [architecture.md](architecture.md) — packages, routing and auth groups, how the frontend
+  is served through Go templates, persistence, scheduled jobs, configuration, versioning.
 - [conventions.md](conventions.md) — code conventions: naming (camelCase, `ID`
   uppercase), Go error handling, API response shapes, frontend JS patterns, tests, and
   migrations.
