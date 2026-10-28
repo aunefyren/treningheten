@@ -135,14 +135,11 @@ func TestBuildAudiobookshelfPlaybackFromRealSessions(t *testing.T) {
 }
 
 // TestAudiobookshelfPausedInsideSession covers #41: the ABS iOS app kept a pause inside
-// one session (15:44-16:39, 26.5 min listened, the 16:00-17:00 run inside it). The even
-// spread starts the row before the run, so it shows as "already playing" at 00:00 with
-// 19 min. Only updatedAt (16:39:36) is certain: the listening is at the end of the span,
-// so the row must start inside the run, near the resume, and not be marked as already
-// playing.
+// one session (15:44:41-16:39:36, 26:30 listened) around a 15:59-16:37:54 run. The pause
+// can't be located from the session, so the run's other listening decides: the synthetic
+// Plex row stands in for the tracks the maintainer saw from 01:12 into the run (they could
+// not be pulled with mediaprobe, which only reads ABS) and ends at 16:20:30.
 func TestAudiobookshelfPausedInsideSession(t *testing.T) {
-	t.Skip("pending #41 fix")
-
 	raw, err := os.ReadFile("testdata/abs_listening_sessions.json")
 	if err != nil {
 		t.Fatal(err)
@@ -152,16 +149,78 @@ func TestAudiobookshelfPausedInsideSession(t *testing.T) {
 		t.Fatal(err)
 	}
 	fixture := fixtures["absios-paused-inside-session"]
-
-	got := buildAudiobookshelfPlaybackForWindow(fixture.Sessions, fixture.From, fixture.To)
-	if len(got) != 1 {
-		t.Fatalf("got %d rows, want 1", len(got))
+	at := func(clock string) time.Time {
+		parsed, err := time.Parse("2006-01-02 15:04:05 -07:00", "2026-10-27 "+clock+" +01:00")
+		if err != nil {
+			t.Fatal(err)
+		}
+		return parsed
 	}
-	row := got[0]
-	at := row.StartedAt.Sub(fixture.From)
-	// At least 11:11 and at most 26:30 of the listening fell inside the run, so the resume
-	// was between 13:06 and 28:25 (min. mark) into it when the session ended at 39:37.
-	if row.StartedBefore || at < 13*time.Minute || at > 29*time.Minute {
-		t.Errorf("row starts at %s (before %t); want inside the run, 13m-29m, not already playing", at, row.StartedBefore)
+
+	tests := []struct {
+		name        string
+		otherEnds   []time.Time
+		wantAt      time.Duration
+		wantBefore  bool
+		wantMinutes int64
+	}{
+		{
+			// Resumes when the last Plex track ended, 21:30 into the run.
+			name:        "resumes where the last other listen ended",
+			otherEnds:   []time.Time{at("16:05:00"), at("16:20:30")},
+			wantAt:      21*time.Minute + 30*time.Second,
+			wantMinutes: 17,
+		},
+		{
+			// Nothing else to narrow the pause: today's even spread, "already playing".
+			name:        "no other listening keeps the even spread",
+			wantAt:      0,
+			wantBefore:  true,
+			wantMinutes: 19,
+		},
+		{
+			// An other listen that ended before the session even started says nothing.
+			name:        "other listening before the session is ignored",
+			otherEnds:   []time.Time{at("15:30:00")},
+			wantAt:      0,
+			wantBefore:  true,
+			wantMinutes: 19,
+		},
+		{
+			// Resuming at 15:50 would make 49 minutes of playing out of 26:30 listened.
+			name:        "a stretch longer than the listened time falls back",
+			otherEnds:   []time.Time{at("15:50:00")},
+			wantAt:      0,
+			wantBefore:  true,
+			wantMinutes: 19,
+		},
+		{
+			// Resuming at 16:39:00 leaves under a minute, but the session must have
+			// played at least 10 minutes inside the run.
+			name:        "a stretch too short for the listening falls back",
+			otherEnds:   []time.Time{at("16:39:00")},
+			wantAt:      0,
+			wantBefore:  true,
+			wantMinutes: 19,
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			got := buildAudiobookshelfPlaybackWithOthers(fixture.Sessions, fixture.From, fixture.To, test.otherEnds)
+			if len(got) != 1 {
+				t.Fatalf("got %d rows, want 1", len(got))
+			}
+			row := got[0]
+			start := row.StartedAt.Sub(fixture.From).Truncate(time.Second)
+			minutes := int64(-1)
+			if row.TrackLength != nil {
+				minutes = int64(math.Round(float64(*row.TrackLength) / 60))
+			}
+			if start != test.wantAt || row.StartedBefore != test.wantBefore || minutes != test.wantMinutes {
+				t.Errorf("row at %s (before %t) %d min; want at %s (before %t) %d min",
+					start, row.StartedBefore, minutes, test.wantAt, test.wantBefore, test.wantMinutes)
+			}
+		})
 	}
 }
