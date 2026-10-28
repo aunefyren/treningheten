@@ -7,7 +7,7 @@ existing code — follow them in new code. Some older code predates them; see
 
 For *data-model* conventions (the `Convert*Object` read layer, durations-as-seconds,
 units, soft deletes) see [data-conventions.md](data-conventions.md). For architecture
-and package layout see the root `CLAUDE.md`.
+and package layout see [architecture.md](architecture.md).
 
 ## Naming
 
@@ -214,7 +214,7 @@ put the public data on the DTO. Regression tests live in `database/user_censor_t
 ## Frontend (vanilla JS) conventions
 
 There is no build step or framework — `web/js/*.js` is served through Go templates
-(so `{{ .appVersion }}`-style variables work). See `CLAUDE.md` → "Frontend serving".
+(so `{{ .appVersion }}`-style variables work). See [architecture.md](architecture.md#frontend-serving).
 
 - **API calls** use `XMLHttpRequest` against `api_url` (`window.location.origin +
   "/api/"`, defined in `functions.js`), with `Authorization: jwt` and
