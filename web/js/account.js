@@ -819,6 +819,10 @@ function placeUserData(userObject, stravaOauth, stravaEnabled, hevyEnabled) {
     document.getElementById("share_activities").checked = !!userObject.share_activities;
     document.getElementById("share_statistics").checked = !!userObject.share_statistics;
 
+    // Promote to globals so the duplicates section can be re-rendered after a connection changes.
+    stravaServerEnabled = stravaEnabled;
+    hevyServerEnabled = hevyEnabled;
+
     if(stravaEnabled) {
         // Promote to globals so the section can be re-rendered after disconnect
         // without re-fetching server config.
@@ -904,6 +908,7 @@ function refreshStravaSection(user_id) {
             }
             if(!result.error && result.user) {
                 renderStravaSection(result.user);
+                refreshDuplicateActivities(result.user);
             }
         }
     };
@@ -972,6 +977,10 @@ var activitySourceNames = { hevy: "Hevy", strava: "Strava" };
 var activitySourceOrder = [];
 var duplicateDetectionOn = false;
 
+// Which integrations this server has enabled, set when the page first renders.
+var stravaServerEnabled = false;
+var hevyServerEnabled = false;
+
 // availableActivitySources lists the import sources this server has enabled, in the default
 // ranking order (Hevy first, matching the server's default).
 function availableActivitySources(stravaEnabled, hevyEnabled) {
@@ -979,6 +988,19 @@ function availableActivitySources(stravaEnabled, hevyEnabled) {
     if(hevyEnabled) sources.push("hevy");
     if(stravaEnabled) sources.push("strava");
     return sources;
+}
+
+// Re-render the duplicates section from a freshly fetched user, so the stored source
+// priority is not stale after a connection change. The section only exists when more
+// than one source is enabled on the server.
+function refreshDuplicateActivities(userObject) {
+    if(!document.getElementById("duplicates-wrapper")) {
+        return;
+    }
+    var activitySources = availableActivitySources(stravaServerEnabled, hevyServerEnabled);
+    if(activitySources.length > 1) {
+        placeDuplicateActivities(userObject, activitySources);
+    }
 }
 
 function placeDuplicateActivities(userObject, sources) {
@@ -1752,6 +1774,7 @@ function refreshHevySection(user_id) {
             }
             if(!result.error && result.user) {
                 renderHevySection(result.user);
+                refreshDuplicateActivities(result.user);
             }
         }
     };
