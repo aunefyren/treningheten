@@ -109,7 +109,7 @@ the week is judged (rule step 3). So it is safe to turn on early.
 
 - **The ring** (`placeWeekProgress`): saved workouts making up the week are a second segment
   in the paler `--saved` tone right after the workouts arc, and the caption under `2 / 3` reads
-  `+ 1 saved workout`. The ring turns green when the two together reach the goal.
+  `+ 1 saved`. The ring turns green when the two together reach the goal.
 - **The chip** under the ring (`.saved-chip`): `1 saved workout · use by Sun 9 Nov`; when they
   run out on different days, `2 saved workouts · 1 to use by Sun 9 Nov`; with none held but
   some being earned, `1 extra workout will be saved this week`. Hidden when there is nothing to

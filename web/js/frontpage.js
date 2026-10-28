@@ -1867,7 +1867,7 @@ function placeWeekProgress(percentage, sickLeave, savedPercentage, savedCount) {
 
     var caption = document.getElementById("hero-ring-caption");
     if(caption) {
-        caption.textContent = saved > 0 && sickLeave !== true ? "+ " + countLabel(savedCount, "saved workout", "saved workouts") : "this week";
+        caption.textContent = saved > 0 && sickLeave !== true ? "+ " + savedCount + " saved" : "this week";
     }
     ring.classList.toggle("has-saved", saved > 0 && sickLeave !== true);
 

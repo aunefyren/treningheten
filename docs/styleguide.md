@@ -350,7 +350,7 @@ bare text.
 
 **Saved workouts** (`--saved-pct`, set from JS next to `--pct`): when saved workouts make up the
 week, they are a second ring segment in the paler `--saved` tone right after the workouts arc, and
-the caption under `2 / 3` reads `+ 1 saved workout`. The ring turns green once the two together
+the caption under `2 / 3` reads `+ 1 saved`. The ring turns green once the two together
 reach the goal; the saved segment keeps its tone so the week still reads as "made up". Under the
 ring sit the **saved-workouts chip** and, once they are on for the week, a `.hero-saved-note`
 (the rest note's type) with a `.btn--ghost.btn--sm` **Undo** beside it.
