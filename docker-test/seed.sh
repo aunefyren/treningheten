@@ -113,7 +113,7 @@ fi
 cat <<EOF
 
 Ready.
-  Treningheten    http://localhost:8080   $TT_EMAIL / $TT_PASSWORD (admin)
-  Mailpit         http://localhost:8025
-  Audiobookshelf  http://localhost:13378  $ABS_USER / $ABS_PASSWORD
+  Treningheten    http://${PUBLIC_HOST:-localhost}:${TT_PORT:-8080}   $TT_EMAIL / $TT_PASSWORD (admin)
+  Mailpit         http://${PUBLIC_HOST:-localhost}:${MAILPIT_PORT:-8025}
+  Audiobookshelf  http://${PUBLIC_HOST:-localhost}:${ABS_PORT:-13378}  $ABS_USER / $ABS_PASSWORD
 EOF

@@ -8,18 +8,22 @@ optionally a real MySQL-family schema migration.
 
 Everything under `data/` is gitignored: Treningheten's config directory (config,
 SQLite database, log), uploaded profile images, and each companion's state. What a
-specific test run found belongs in `docs/wip.md` or the relevant `docs/*.md`, not here.
+specific test run found belongs in a GitHub issue or the relevant `docs/*.md`, not here.
 
 ## What's in it
 
 | Service | URL | Why |
 | --- | --- | --- |
-| `treningheten` | http://localhost:8080 | the app, `generateinvite` on, SMTP pointed at Mailpit |
-| `mailpit` | http://localhost:8025 | catches every mail (verification, password reset, Sunday reminders) |
-| `audiobookshelf` | http://localhost:13378 | the one media provider that runs fully offline (URL + token, no OAuth app) |
+| `treningheten` | http://localhost:8080 \* | the app, `generateinvite` on, SMTP pointed at Mailpit |
+| `mailpit` | http://localhost:8025 \* | catches every mail (verification, password reset, Sunday reminders) |
+| `audiobookshelf` | http://localhost:13378 \* | the one media provider that runs fully offline (URL + token, no OAuth app) |
 | `mariadb` *(profile `mysql`)* | — | production runs MySQL; collation / FK (errno 150) problems only show up there |
 | `postgres` *(profile `postgres`)* | — | the third supported backend |
 | `ollama` *(profile `ollama`)* | — | front-page AI messages; `ollama-pull` fetches `llama3.2:1b` once |
+
+\* The default host and ports, used by the first checkout that runs `setup.sh`. Other
+worktrees get their own — see [Several worktrees at once](#several-worktrees-at-once);
+`seed.sh` prints the real URLs.
 
 Not included, because they can't be set up without a human: **Strava** and **Spotify**
 (need a registered app and a reachable redirect URI), **Plex** (needs a plex.tv claim
@@ -31,7 +35,7 @@ token), **Hevy** (needs a Pro API key). They can still be switched on by hand in
 Needs Docker with Compose v2.
 
 ```
-./setup.sh                    # first time only: creates ./data, seeds config.json (SQLite)
+./setup.sh                    # first time only: writes .env, creates ./data, seeds config.json (SQLite)
 docker compose up -d --build
 ./seed.sh                     # registers the admin user, verifies it, connects Audiobookshelf
 ```
@@ -59,7 +63,29 @@ Tear down, keeping `./data` so the next run picks up where this one left off:
 docker compose down
 ```
 
-`rm -rf data` to start completely clean.
+`./clean.sh` stops everything and deletes `./data` to start completely clean. Use it
+rather than `rm -rf data`: the containers write some of `data/` as root.
+
+## Several worktrees at once
+
+Agents each work in their own git worktree, and all of them share one Docker daemon. So
+`setup.sh` writes a gitignored `.env` the first time it runs, which `docker compose` picks
+up from this directory:
+
+| Variable | Value |
+| --- | --- |
+| `COMPOSE_PROJECT_NAME` | `tt-<worktree directory>` — its own containers, network and image |
+| `TT_SLOT` | the lowest slot no other worktree of this repo has claimed in its `.env` |
+| `TT_PORT`, `MAILPIT_PORT`, `ABS_PORT` | slot 0: 8080 / 8025 / 13378; slot *n*: `18000 + 10n`, +1, +2 |
+| `PUBLIC_HOST` | where published ports are reachable: `localhost`, or the daemon's host when `DOCKER_HOST=tcp://<host>:…` (e.g. `dind`) |
+| `TT_CONTAINER_USER` | empty (the image's `appuser`), or `0:0` on a rootless daemon — there container root is your own unprivileged user, and `appuser` maps to a sub-uid that can't write `data/` |
+
+Inside the harness network nothing changes — services still reach each other as
+`treningheten:8080`, `mailpit:8025`, `audiobookshelf:80`. Only the host-side URLs differ,
+and `seed.sh` prints them. Edit `.env` to pick other ports; it survives `clean.sh`.
+
+A harness started before this existed ran as Compose project `docker-test` with fixed
+`tt-*` container names; stop it once with `docker compose -p docker-test down`.
 
 ### Against MariaDB instead of SQLite
 
