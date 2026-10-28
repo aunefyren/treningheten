@@ -356,7 +356,8 @@ neutrals only: resting is a state, not a warning, so no signal hue and no celebr
 
 `.day-head` (`workout.css`) — the panel at the top of the day page (`/exercises/:id`), a module
 panel like `.wv-session` below it (white, hairline, blue left bar) and the same `46rem` column
-(`.day-page`), so header and workouts line up. Left-aligned. Its one memorable element is the
+(`.day-page`), so header and workouts line up. Both are `box-sizing: border-box` — the page default is content-box, so a
+`width: 100%` panel without it overflows its column by its padding and border. Left-aligned. Its one memorable element is the
 **week strip** (`.day-week`): seven `.day-week-tile`s, each a weekday name over that day's
 counted workouts in the **display font**, on the inset convention. The tile is self-contained
 (rendered as `<a>`, `<button>` or `<span>` depending on whether the day can be opened) and

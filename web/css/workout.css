@@ -36,6 +36,10 @@
   border-radius: var(--radius-md);
   border: 1px solid var(--grey);
   border-left: 4px solid var(--module-accent);
+  /* The page is content-box (base.css body); with width:100% the padding + border would
+     push the card past its column, and the centred .workout-view splits that overflow
+     onto both sides (cards ~4px from the card edge on phones). */
+  box-sizing: border-box;
   position: relative;
   /* clip, not hidden: hidden makes the session a scroll container, which would pin the
      sticky route map (.wv-route) to the session instead of the viewport. */
