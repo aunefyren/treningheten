@@ -133,3 +133,35 @@ func TestBuildAudiobookshelfPlaybackFromRealSessions(t *testing.T) {
 		})
 	}
 }
+
+// TestAudiobookshelfPausedInsideSession covers #41: the ABS iOS app kept a pause inside
+// one session (15:44-16:39, 26.5 min listened, the 16:00-17:00 run inside it). The even
+// spread starts the row before the run, so it shows as "already playing" at 00:00 with
+// 19 min. Only updatedAt (16:39:36) is certain: the listening is at the end of the span,
+// so the row must start inside the run, near the resume, and not be marked as already
+// playing.
+func TestAudiobookshelfPausedInsideSession(t *testing.T) {
+	t.Skip("pending #41 fix")
+
+	raw, err := os.ReadFile("testdata/abs_listening_sessions.json")
+	if err != nil {
+		t.Fatal(err)
+	}
+	fixtures := map[string]absFixtureCase{}
+	if err := json.Unmarshal(raw, &fixtures); err != nil {
+		t.Fatal(err)
+	}
+	fixture := fixtures["absios-paused-inside-session"]
+
+	got := buildAudiobookshelfPlaybackForWindow(fixture.Sessions, fixture.From, fixture.To)
+	if len(got) != 1 {
+		t.Fatalf("got %d rows, want 1", len(got))
+	}
+	row := got[0]
+	at := row.StartedAt.Sub(fixture.From)
+	// At least 11:11 and at most 26:30 of the listening fell inside the run, so the resume
+	// was between 13:06 and 28:25 (min. mark) into it when the session ended at 39:37.
+	if row.StartedBefore || at < 13*time.Minute || at > 29*time.Minute {
+		t.Errorf("row starts at %s (before %t); want inside the run, 13m-29m, not already playing", at, row.StartedBefore)
+	}
+}
