@@ -370,5 +370,53 @@
         "updatedAt": 1790704707621
       }
     ]
+  },
+  "absios-paused-inside-session": {
+    "from": "2026-10-27T15:59:00+01:00",
+    "to": "2026-10-27T16:37:54+01:00",
+    "sessions": [
+      {
+        "id": "0541b340-f2eb-4e7e-bca1-1acf275bf4fe",
+        "libraryItemId": "62aff0a5-d87e-4934-892b-3eafc7d6dde8",
+        "episodeId": "8a0b0444-fd6a-4bdb-adbf-94cca2438896",
+        "displayTitle": "Pappa gjør seg klar for apokalypsen",
+        "displayAuthor": "NRK",
+        "mediaType": "podcast",
+        "duration": 4198.092,
+        "timeListening": 619.1897082328796,
+        "startTime": 1886.134081958,
+        "currentTime": 2511.333027689,
+        "startedAt": 1793096405347,
+        "updatedAt": 1793097031969
+      },
+      {
+        "id": "249fe50b-2677-418a-a3ca-697969d102f0",
+        "libraryItemId": "62aff0a5-d87e-4934-892b-3eafc7d6dde8",
+        "episodeId": "8a0b0444-fd6a-4bdb-adbf-94cca2438896",
+        "displayTitle": "Pappa gjør seg klar for apokalypsen",
+        "displayAuthor": "NRK",
+        "mediaType": "podcast",
+        "duration": 4198.092,
+        "timeListening": 1589.6123311519623,
+        "startTime": 2511.333027689,
+        "currentTime": 4081.414832417,
+        "startedAt": 1793112281675,
+        "updatedAt": 1793115576676
+      },
+      {
+        "id": "cba01d11-0f7b-4b03-9b61-009d941ab7b7",
+        "libraryItemId": "62aff0a5-d87e-4934-892b-3eafc7d6dde8",
+        "episodeId": "8a0b0444-fd6a-4bdb-adbf-94cca2438896",
+        "displayTitle": "Pappa gjør seg klar for apokalypsen",
+        "displayAuthor": "NRK",
+        "mediaType": "podcast",
+        "duration": 4198.092,
+        "timeListening": 116,
+        "startTime": 4081.414832417,
+        "currentTime": 4198.080979,
+        "startedAt": 1793119778289,
+        "updatedAt": 1793119895164
+      }
+    ]
   }
 }
