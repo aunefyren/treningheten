@@ -7,7 +7,8 @@
 #     3 weeks ago 3/3 · 2 weeks ago 5/3 (saves 2) · last week 2/3 + 1 saved (opted in)
 #     this week 2/3 so far, holding 1 saved workout that runs out on Sunday
 #   Kari Nordmann (kari@test.local, same password), weekly goal 2
-#     3 weeks ago 2/2 · 2 weeks ago 1/2 · last week 3/2 (saves 1) · this week 1/2
+#     3 weeks ago 3/2 (saves 1) · 2 weeks ago 1/2 (didn't use it) · last week 3/2 (saves 1,
+#     the first one runs out) · this week 1/2, holding 1
 #
 # So the front page shows the chip, "Use saved workouts" with its preview, and a 💾 week on the
 # leaderboard straight away; "Classic demo" shows the same workouts without the feature.
@@ -149,9 +150,9 @@ log "$admin_token" 2 "$(tuesday_of 2)"
 log "$admin_token" 2 "$(monday_of 1)"   # last week: 2/3, made up with 1 saved
 log "$admin_token" 2 0                  # this week: 2/3 so far
 
-log "$kari_token" 2 "$(monday_of 3)"    # 3 weeks ago: 2/2
-log "$kari_token" 1 "$(monday_of 2)"    # 2 weeks ago: 1/2, missed
-log "$kari_token" 3 "$(monday_of 1)"    # last week: 3/2, saves 1
+log "$kari_token" 3 "$(monday_of 3)"    # 3 weeks ago: 3/2, saves 1 (usable until last Sunday)
+log "$kari_token" 1 "$(monday_of 2)"    # 2 weeks ago: 1/2, missed: didn't choose to use it
+log "$kari_token" 3 "$(monday_of 1)"    # last week: 3/2, saves 1; the first one runs out
 log "$kari_token" 1 0                   # this week: 1/2 so far
 
 # The admin chose "Use saved workouts" last week.

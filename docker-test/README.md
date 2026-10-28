@@ -138,9 +138,9 @@ workouts, each for 2 weeks) and *Classic demo* (feature off) — and a second me
 
 | Week | Test Admin (goal 3) | Kari (goal 2) |
 | --- | --- | --- |
-| 3 weeks ago | 3 ✅ | 2 ✅ |
-| 2 weeks ago | 5 ✅, saves 2 | 1 ❌ |
-| last week | 2 + 1 saved 💾 (chose "Use saved workouts") | 3 ✅, saves 1 |
+| 3 weeks ago | 3 ✅ | 3 ✅, saves 1 |
+| 2 weeks ago | 5 ✅, saves 2 | 1 ❌ (held 1 but didn't choose to use it) |
+| last week | 2 + 1 saved 💾 (chose "Use saved workouts") | 3 ✅, saves 1; the first one runs out |
 | this week | 2 so far, holds 1 saved workout that runs out on Sunday | 1 so far, holds 1 |
 
 So logging in as the admin shows the chip, the "Use saved workouts" offer and a 💾 week at once,
