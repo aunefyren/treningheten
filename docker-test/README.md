@@ -78,6 +78,7 @@ up from this directory:
 | `TT_SLOT` | the lowest slot no other worktree of this repo has claimed in its `.env` |
 | `TT_PORT`, `MAILPIT_PORT`, `ABS_PORT` | slot 0: 8080 / 8025 / 13378; slot *n*: `18000 + 10n`, +1, +2 |
 | `PUBLIC_HOST` | where published ports are reachable: `localhost`, or the daemon's host when `DOCKER_HOST=tcp://<host>:…` (e.g. `dind`) |
+| `TT_CONTAINER_USER` | empty (the image's `appuser`), or `0:0` on a rootless daemon — there container root is your own unprivileged user, and `appuser` maps to a sub-uid that can't write `data/` |
 
 Inside the harness network nothing changes — services still reach each other as
 `treningheten:8080`, `mailpit:8025`, `audiobookshelf:80`. Only the host-side URLs differ,

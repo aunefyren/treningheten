@@ -46,6 +46,17 @@ EOF
     echo "Wrote .env: project tt-$name, Treningheten on http://$public_host:$tt_port"
 fi
 
+# On a rootless daemon the invoking user is root inside containers and the image's
+# appuser maps to an unprivileged sub-uid that can't write the bind-mounted data/, so
+# the app runs as container root instead (still the unprivileged user on the host).
+if ! grep -q '^TT_CONTAINER_USER=' .env; then
+    container_user=
+    case "$(docker info --format '{{.SecurityOptions}}' 2>/dev/null)" in
+        *name=rootless*) container_user=0:0 ;;
+    esac
+    echo "TT_CONTAINER_USER=$container_user" >> .env
+fi
+
 mkdir -p data/treningheten/config data/treningheten/images \
     data/abs/config data/abs/metadata data/abs/audiobooks
 

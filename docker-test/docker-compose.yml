@@ -7,6 +7,10 @@ services:
     build:
       context: ..
       dockerfile: Dockerfile
+    # Empty = the image's appuser. setup.sh sets 0:0 on a rootless daemon, where
+    # container root is the invoking (unprivileged) user and appuser could not write
+    # the bind-mounted data/.
+    user: "${TT_CONTAINER_USER:-}"
     environment:
       externalurl: http://${PUBLIC_HOST:-localhost}:${TT_PORT:-8080}
       timezone: Europe/Oslo
