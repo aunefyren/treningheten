@@ -4,10 +4,17 @@ package models
 // achievements and the AI greeting all judge a week the same way. See docs/streaks.md and
 // docs/seasons-and-goals.md.
 
-// GoalMet reports whether the week's workouts reached the weekly goal. On its own it says
-// nothing about sick leave or competing; WonWeek and OwesSpin add those.
+// GoalMet reports whether the week reached the weekly goal: on its workouts alone, or made
+// up with saved workouts (docs/flexible-workouts.md). The season walk only ever spends saved
+// workouts when they cover the whole shortfall, so any CarryUsed means the goal was met. On
+// its own it says nothing about sick leave or competing; WonWeek and OwesSpin add those.
 func (r UserWeekResults) GoalMet() bool {
-	return r.WeekCompletion >= 1
+	return r.WeekCompletion >= 1 || r.CarryUsed > 0
+}
+
+// SavedByCarryOver reports whether the week only met its goal thanks to saved workouts.
+func (r UserWeekResults) SavedByCarryOver() bool {
+	return r.WeekCompletion < 1 && r.CarryUsed > 0
 }
 
 // WonWeek reports whether the participant earns a place on the wheel this week: competing,

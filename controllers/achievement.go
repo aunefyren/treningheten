@@ -737,8 +737,8 @@ func GenerateAchievementsForWeek(weekResults models.WeekResults, targetUser *uui
 
 		// The streak after this week, by the same rule as the week results. Streak achievements
 		// need the streak to have grown this week, so a sick-leave week (frozen, even with the
-		// goal met) never awards one.
-		userStreak := nextSeasonStreak(user.CurrentStreak, user.WeekCompletion, user.SickLeave)
+		// goal met) never awards one, while a week made up with saved workouts does.
+		userStreak := nextSeasonStreak(user.CurrentStreak, user.GoalMet(), user.SickLeave)
 		streakGrew := userStreak > user.CurrentStreak
 
 		// skip the rest if applicable

@@ -1,6 +1,7 @@
 package utilities
 
 import (
+	"html"
 	"strconv"
 	"strings"
 	"time"
@@ -65,7 +66,11 @@ func SendSMTPResetEmail(user models.User) error {
 
 }
 
-func SendSMTPSundayReminderEmail(user models.User, season models.Season, timeStamp time.Time) error {
+// SendSMTPSundayReminderEmail sends the Sunday reminder for one season. savedWorkoutsNote is
+// an optional plain-text line about the user's saved workouts (see
+// controllers.sundayReminderSavedWorkoutsNote); it links to the season on the front page,
+// where "Use saved workouts" is.
+func SendSMTPSundayReminderEmail(user models.User, season models.Season, timeStamp time.Time, savedWorkoutsNote string) error {
 	if strings.ToLower(files.ConfigFile.TreninghetenEnvironment) == "test" {
 		user.Email = files.ConfigFile.TreninghetenTestEmail
 	}
@@ -79,7 +84,12 @@ func SendSMTPSundayReminderEmail(user models.User, season models.Season, timeSta
 	m.SetAddressHeader("From", files.ConfigFile.SMTPFrom, files.ConfigFile.TreninghetenName)
 	m.SetHeader("To", user.Email)
 	m.SetHeader("Subject", "Sunday reminder")
-	m.SetBody("text/html", "Hello <b>"+user.FirstName+"</b>!<br><br>It's Sunday and week "+strconv.Itoa(weekNumber)+" within '"+season.Name+"' is almost over.<br><br>If you haven't already, head to Treningheten using <a href='"+link+"' target='_blank'>this link</a> and log your workouts.<br><br>You can disable this alert in your settings.")
+	savedWorkoutsHTML := ""
+	if savedWorkoutsNote != "" {
+		seasonLink := strings.TrimRight(link, "/") + "/?season=" + season.ID.String()
+		savedWorkoutsHTML = html.EscapeString(savedWorkoutsNote) + " <a href='" + seasonLink + "' target='_blank'>Open " + html.EscapeString(season.Name) + "</a>.<br><br>"
+	}
+	m.SetBody("text/html", "Hello <b>"+user.FirstName+"</b>!<br><br>It's Sunday and week "+strconv.Itoa(weekNumber)+" within '"+season.Name+"' is almost over.<br><br>"+savedWorkoutsHTML+"If you haven't already, head to Treningheten using <a href='"+link+"' target='_blank'>this link</a> and log your workouts.<br><br>You can disable this alert in your settings.")
 
 	d := mail.NewDialer(files.ConfigFile.SMTPHost, files.ConfigFile.SMTPPort, files.ConfigFile.SMTPUsername, files.ConfigFile.SMTPPassword)
 

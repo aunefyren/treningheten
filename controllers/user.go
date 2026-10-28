@@ -898,8 +898,26 @@ func SendSundayReminders() {
 
 		}
 
+		// In a season that saves workouts, judge the running week once so each reminder can
+		// mention saved workouts that would make it up. Best effort: without it the reminder
+		// is simply the plain one.
+		savedWorkoutsNotes := map[uuid.UUID]string{}
+		if season.CarryOverMax > 0 && len(usersToAlert) > 0 {
+			if seasonObject, err := ConvertSeasonToSeasonObject(season); err != nil {
+				logger.Log.Info("Failed to convert season for the Sunday reminder. Error: " + err.Error())
+			} else if week, err := currentWeekResultsForSeason(seasonObject, now); err != nil {
+				logger.Log.Info("Failed to judge the week for the Sunday reminder. Error: " + err.Error())
+			} else {
+				for _, goal := range seasonObject.Goals {
+					if result := userWeekResult(week, goal.ID); result != nil {
+						savedWorkoutsNotes[goal.User.ID] = sundayReminderSavedWorkoutsNote(*result, goal.ExerciseInterval)
+					}
+				}
+			}
+		}
+
 		for _, user := range usersToAlert {
-			utilities.SendSMTPSundayReminderEmail(user, season, time.Now())
+			utilities.SendSMTPSundayReminderEmail(user, season, time.Now(), savedWorkoutsNotes[user.ID])
 		}
 
 		// Send push notifications

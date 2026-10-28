@@ -324,6 +324,8 @@ func initRouter(configFile models.ConfigStruct) *gin.Engine {
 			auth.DELETE("/weights/:weight_id", controllers.APIDeleteWeightForUser)
 
 			auth.POST("/sickleave/:season_id", controllers.APIRegisterSickleave)
+			auth.POST("/carryover/:season_id", controllers.APIRegisterCarryOverUse)
+			auth.DELETE("/carryover/:season_id", controllers.APIDeleteCarryOverUse)
 
 			auth.GET("/news", controllers.GetNews)
 			auth.GET("/news/:news_id", controllers.GetNewsPost)

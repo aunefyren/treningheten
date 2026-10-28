@@ -106,6 +106,13 @@ type ollamaSeasonPayload struct {
 	PrizeEntriesIfYouMeetGoal int    `json:"prize_entries_to_win_if_a_rival_fails,omitempty"`
 	OnSickLeaveThisWeek       bool   `json:"on_sick_leave_this_week"`
 	SickLeaveWeeksLeft        int    `json:"sick_leave_weeks_left"`
+	// Saved workouts (docs/flexible-workouts.md), only in a season that saves them.
+	SavedWorkoutsRule          string `json:"saved_workouts_rule,omitempty"`
+	SavedWorkouts              *int   `json:"saved_workouts,omitempty"`
+	SavedWorkoutsUseBy         string `json:"saved_workouts_use_by,omitempty"`
+	UsingSavedWorkoutsThisWeek *bool  `json:"using_saved_workouts_this_week,omitempty"`
+	SavedWorkoutsFillingTheGap int    `json:"saved_workouts_filling_this_weeks_gap,omitempty"`
+	ExtraWorkoutsSavedThisWeek int    `json:"extra_workouts_saved_this_week,omitempty"`
 }
 
 type ollamaPromptPayload struct {
@@ -327,11 +334,13 @@ func buildSeasonPayloads(userID uuid.UUID, seasonObjects []models.SeasonObject, 
 		goalFound := false
 		goalInterval := 0
 		sickleaveLeft := 0
+		var goalID uuid.UUID
 		for _, goal := range season.Goals {
 			if goal.User.ID == userID {
 				goalFound = true
 				goalInterval = goal.ExerciseInterval
 				sickleaveLeft = goal.SickleaveLeft
+				goalID = goal.ID
 				break
 			}
 		}
@@ -347,18 +356,13 @@ func buildSeasonPayloads(userID uuid.UUID, seasonObjects []models.SeasonObject, 
 			continue
 		}
 
-		var result *models.UserWeekResults
-		for i := range weeks[0].UserWeekResults {
-			if weeks[0].UserWeekResults[i].UserID == userID {
-				result = &weeks[0].UserWeekResults[i]
-				break
-			}
-		}
+		result := userWeekResult(weeks[0], goalID)
 		if result == nil {
 			continue
 		}
 
 		seasonPayload := ollamaSeasonPayloadForWeek(season.Name, goalInterval, sickleaveLeft, workoutsThisWeek, *result)
+		addSavedWorkoutsToPayload(&seasonPayload, season, *result)
 		seasonPayloads = append(seasonPayloads, seasonPayload)
 	}
 
@@ -381,8 +385,9 @@ func ollamaSeasonPayloadForWeek(name string, goalInterval int, sickleaveLeft int
 		return payload
 	}
 
+	// A week made up with saved workouts counts as met, with nothing left to do.
 	met := result.GoalMet()
-	remaining := goalInterval - workoutsThisWeek
+	remaining := goalInterval - workoutsThisWeek - result.CarryUsed
 	if remaining < 0 {
 		remaining = 0
 	}
@@ -395,6 +400,31 @@ func ollamaSeasonPayloadForWeek(name string, goalInterval int, sickleaveLeft int
 		payload.PrizeEntriesIfYouMeetGoal = result.WheelTickets()
 	}
 	return payload
+}
+
+// addSavedWorkoutsToPayload tells the model about the season's saved workouts, so a week
+// made up with them is never described as missed. Nothing is added in a season that doesn't
+// save workouts, and a sick-leave week only keeps the count (it can't use or earn any).
+func addSavedWorkoutsToPayload(payload *ollamaSeasonPayload, season models.SeasonObject, result models.UserWeekResults) {
+	rule := savedWorkoutsRule(season.CarryOverMax, season.CarryOverWeeks)
+	if rule == "" {
+		return
+	}
+
+	payload.SavedWorkoutsRule = rule
+	saved := result.CarriedIn
+	payload.SavedWorkouts = &saved
+	if len(result.CarryExpiries) > 0 {
+		payload.SavedWorkoutsUseBy = result.CarryExpiries[0].Format("Monday 2 January")
+	}
+	if result.SickLeave {
+		return
+	}
+
+	usingThem := result.CarryOptIn
+	payload.UsingSavedWorkoutsThisWeek = &usingThem
+	payload.SavedWorkoutsFillingTheGap = result.CarryUsed
+	payload.ExtraWorkoutsSavedThisWeek = result.CarryEarned
 }
 
 func OllamaGenerateFrontPageMessage(ctx context.Context, userID uuid.UUID, pointInTime time.Time) (string, error) {
@@ -454,6 +484,12 @@ SICK LEAVE:
 - Other seasons without sick leave still have a normal week. You may state their progress, but say it gently and never pressure someone who is unwell to train.
 - If every season is on sick leave, the whole greeting is about resting and recovering; do not mention workouts remaining or the wheel at all.
 - "sick_leave_weeks_left" is how many more sick-leave weeks they have in that season. Mention it only when it is useful, for example when it is 0.
+
+SAVED WORKOUTS (only in seasons that have "saved_workouts_rule"):
+- Workouts beyond the weekly goal are saved, and saved workouts can make up a later week that falls short, but only if they cover everything that is missing. "saved_workouts" is how many the user has now and "saved_workouts_use_by" when the first one runs out.
+- "using_saved_workouts_this_week": true means the user chose to let saved workouts make up this week. "saved_workouts_filling_this_weeks_gap" above 0 means saved workouts already make up the rest of this week: the goal counts as met, so never call the week missed or tell the user they still need workouts there.
+- "extra_workouts_saved_this_week" above 0 means the user is beyond their goal and that many extra workouts will be saved. You may mention it as a small bonus.
+- If the user is short and has enough saved workouts to cover the gap but "using_saved_workouts_this_week" is false, you may mention that they can use their saved workouts on the front page. Never invent saved workouts that are not in the data. Call them "saved workouts", nothing else.
 
 OUTPUT: Write a short front-page greeting, 2 sentences normally, 4 maximum. Reference today's weekday and the user's progress this week, plus season standing when relevant. Friendly tone, light humor welcome. Plain text only: no markdown, no headings, no bullet points, no emojis. Reply in English.`,
 		},
