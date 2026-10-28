@@ -322,8 +322,8 @@ sweeps below. Total statement coverage is about 90%.
   exactly the Nth database operation. Each scenario runs once cleanly to count its
   operations, then once per operation with that one failing, on a fresh harness. A
   panic fails the test; a 2xx answer despite the failure is *reported* (logged at the
-  end), not failed, because many reads deliberately degrade — see docs/wip.md for the
-  ones that probably shouldn't. Scenarios are either HTTP requests or direct `call`s
+  end), not failed, because many reads deliberately degrade; one that probably shouldn't
+  deserves an issue. Scenarios are either HTTP requests or direct `call`s
   for background entry points (syncs, cron jobs). Each run drains the background work it
   started before the injector is disarmed, so the operation count includes it and faults
   land there too; a fault in background work (after the answer was given) is only

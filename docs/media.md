@@ -119,8 +119,8 @@ Treningheten — is the normal self-hosted case, and defaulting to `false` would
 upgrade. An instance with users who shouldn't be able to reach its network should set the
 flag to `false`. Carrier-grade NAT (`100.64.0.0/10`) counts as private, since that is where
 a Tailscale-reachable server sits. Residual risk with the flag on: an authenticated user can
-still probe the host's own network. That is recorded as an open item in
-[wip.md](wip.md).
+still probe the host's own network. That is recorded as an accepted risk in
+[security.md](security.md#accepted-risks).
 
 **TLS is verified except where it cannot be.** `plexServerClient`
 (`controllers/plex.go`) skips verification only for a bare IP, a loopback/mDNS name, or a

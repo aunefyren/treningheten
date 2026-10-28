@@ -175,10 +175,46 @@ doesn't re-derive them:
 - **Ollama greeting** — generated and cached per user, served only to its subject, so the
   private-session data in its prompt never reaches anyone else.
 
+## Shipped audit fixes
+
+Audit findings keep their `S<n>` numbers so commit messages and code comments keep
+resolving. Fixed in the 2026-09-03 privacy pass:
+
+- **S15 — the user censor is an allowlist type.** `CensorUserObject` used to return a
+  redacted `models.User`, a blocklist: every field added to `User` later reached every caller
+  until someone remembered to censor it, and `BirthDate`, `MaxHeartrate`, `RestingHeartrate`
+  and `ObservedMaxHeartrate` had leaked that way. It now returns `models.PublicUser`, an
+  explicit allowlist of the fields the frontend reads off another user. The read DTOs
+  (`GoalObject`, `ExerciseDayObject`, `Activity`, `DebtObject`, `WheelviewObject`,
+  `UserWithTickets`, `InviteObject`) carry `PublicUser`; the raw GORM rows keep `models.User`
+  with their `User` association marked `json:"-"`. Server-side code that genuinely needs the
+  full row uses `GetAllUserInformation`. `assertOnlyPublicFields`
+  (`database/user_censor_test.go`) pins the key set. Rules in
+  [conventions.md](conventions.md#never-serialize-a-credential).
+- **S14 — private sessions don't surface as itemised profile statistics.** Counts, sums and
+  streaks still include them (so the profile agrees with the season leaderboard), but the
+  **Tops**, which name one session and its date, exclude them. A window with fewer than
+  `userStatisticsMinSampleSize` (3) sessions of the headline activity is withheld whole
+  (`publishWindow` returns nil), since one session's distance, longest and total time are
+  that workout said three ways. The headline pick falls back from the past month to all-time
+  when the month is too thin (`chooseHeadlineAction`), and the client shows an explicit empty
+  state. Tests in `controllers/user_statistics_privacy_test.go`; behaviour in
+  [data-model.md](data-model.md).
+- **S16 — the Plex artwork proxy rejects dot-segments.** `plexArtworkPathAllowed` matches
+  `^/library/[A-Za-z0-9/._-]+$` and rejects any `..` outright, since Go's HTTP client doesn't
+  clean request paths.
+- **S11 — `GET /api/auth/users/:user_id/activities` fixed in both halves at once.** The gate
+  read a censored user with `ShareActivities` nil-ed (so it 403'd everyone), and the filter
+  behind it kept *other* users' days. Fixing either half alone would have turned a dead
+  endpoint into a leaking one. It now uses the SQL-scoped
+  `GetExerciseDaysForSharingUsersInListUsingDates` for the requested user, with the explicit
+  gate kept as defence in depth.
+
 ## Still open
 
-Tracked in [wip.md](wip.md#security--open): the wildcard CORS configuration (currently
-inert by registration order), the JS-readable 30-day refresh cookie, whether the `admin`
-scope should be grantable to dynamically registered clients, the absence of security
-response headers (notably a CSP), secrets passed as argv by `entrypoint.sh`, and toolchain
-patch drift.
+Tracked as GitHub issues with the
+[`security` label](https://github.com/aunefyren/treningheten/issues?q=is%3Aissue+label%3Asecurity):
+secrets passed as argv by `entrypoint.sh` (S10, #14), toolchain patch drift (S12, #15), the
+wildcard CORS configuration (#16), the JS-readable 30-day refresh cookie (#17), whether the
+`admin` scope should be grantable to dynamically registered clients (#18), and the absence
+of security response headers, notably a CSP (#19).

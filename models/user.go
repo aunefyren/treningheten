@@ -89,7 +89,7 @@ type User struct {
 // enriched read model (ConvertExerciseToExerciseObject resolves relations and does real
 // work). This is the opposite — a reduction — and should not borrow that word.
 //
-// See docs/wip.md (S15) and docs/conventions.md.
+// See docs/security.md (S15) and docs/conventions.md.
 type PublicUser struct {
 	ID        uuid.UUID `json:"id"`
 	CreatedAt time.Time `json:"created_at"`
@@ -255,7 +255,7 @@ type UserStatisticsCompilation struct {
 // date, on a profile any authenticated user can read — which is precisely what the Private
 // flag withholds from the feeds. Nothing consumed them either (the web client never rendered
 // a link, and MCP get_statistics has its own DTO), and the id only ever resolved for the
-// owner, so they are gone rather than gated. See docs/wip.md, S14.
+// owner, so they are gone rather than gated. See docs/security.md, S14.
 type UserStatisticsTopCompilation struct {
 	Distance float64 `json:"distance"`
 	Time     int64   `json:"time"`

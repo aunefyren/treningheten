@@ -11,7 +11,7 @@ type Subscription struct {
 	Enabled bool      `json:"enabled" gorm:"not null; default: true"`
 	UserID  uuid.UUID `json:"" gorm:"type:varchar(100);"`
 	// Never serialized: the GORM association, not part of any response shape. The read path
-	// hands out models.PublicUser. See docs/wip.md, S15.
+	// hands out models.PublicUser. See docs/security.md, S15.
 	User             User       `json:"-" gorm:"not null"`
 	Endpoint         string     `json:"endpoint" gorm:"not null"`
 	ExpirationTime   *time.Time `json:"expiration_time"`

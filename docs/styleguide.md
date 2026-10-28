@@ -2,8 +2,7 @@
 
 The visual system for Treningheten's server-rendered frontend. This doc is
 **authoritative** — when building or restyling UI, consume these tokens and components
-rather than hardcoding values or writing inline `style="…"`. It is a living reference;
-the phased rollout that produced it is tracked in the Style guide entry of [`wip.md`](wip.md).
+rather than hardcoding values or writing inline `style="…"`. It is a living reference.
 
 **The short version:** load values from `--…` tokens (never hardcode a hex/px); reach for
 an existing component (`.btn`, `.stat-card`, `.tag-chip`, the `.trm` modal) before inventing
@@ -1050,7 +1049,7 @@ not theme — left inline on purpose. Dynamic (`${…}`) values stay inline too.
   CSS, and the two had drifted (`10em` vs `--radius-circle`).
 - **Profile statistics gained an empty state (`.user-stats-empty`).** The activity breakdown on
   `/users/:id` is omitted when the API has too few logged activities to name a headline activity
-  honestly (see [wip.md](wip.md), S14). It used to just vanish, leaving a gap under the sessions
+  honestly (see [security.md](security.md#shipped-audit-fixes), S14). It used to just vanish, leaving a gap under the sessions
   counts that read as a broken panel. It now renders a light **inset block** in the section's place
   — same eggshell-fill + hairline convention as every other block nested in a module panel, no new
   colour or border system — with the threshold interpolated from the response
@@ -1137,7 +1136,7 @@ not theme — left inline on purpose. Dynamic (`${…}`) values stay inline too.
 
 ## Known gaps
 
-Small residuals (safe to use as-is; migrate on touch). Phase status lives in [`wip.md`](wip.md).
+Small residuals (safe to use as-is; migrate on touch).
 
 - **The whole app is light** — every page + the shared modal were swept and the base `.card` was
   flipped light (the `.card--light` modifier is gone). No dark instrument surfaces remain.

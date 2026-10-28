@@ -20,9 +20,11 @@ together with the maintainer; **coding agents** (Sonnet) implement an agreed pla
   (`gh issue list`, `gh issue view <n>`), not in Markdown files. Don't create WIP/TODO/plan
   files in the repo.
 - **Planning (Opus):** talk features, architecture and design through with the maintainer
-  *before* code is written — propose, then confirm direction. Record the outcome in the issue:
-  goal, decided approach, files involved, docs to update, test expectations. Anything still
-  open stays marked as open (`needs-decision` label), separate from what is decided.
+  *before* code is written — propose, then confirm direction. Record the outcome in the issue in
+  the shape of the "Planned work" template (`.github/ISSUE_TEMPLATE/planned-work.md`): goal,
+  decided approach, files involved, docs to update, tests, open questions. Labels: `idea`
+  (not planned yet), `needs-decision` (open questions block the work), `security`, `bug`,
+  `enhancement`.
 - **Implementing (Sonnet):** work from an issue whose plan is decided. If the plan turns out
   to be wrong or incomplete, stop and say so in the issue/PR instead of improvising a
   different design.

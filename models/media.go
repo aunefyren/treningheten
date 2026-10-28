@@ -35,7 +35,7 @@ type MediaConnection struct {
 	Enabled bool      `json:"enabled" gorm:"not null; default: true"`
 	UserID  uuid.UUID `json:"" gorm:"type:varchar(100); not null; index"`
 	// Never serialized: the GORM association, not part of any response shape. The read path
-	// hands out models.PublicUser. See docs/wip.md, S15.
+	// hands out models.PublicUser. See docs/security.md, S15.
 	User           User       `json:"-" gorm:"foreignKey:UserID; references:ID"`
 	Provider       string     `json:"provider" gorm:"type:varchar(50); not null; index"`
 	ServerURL      *string    `json:"server_url" gorm:"type:varchar(255); default: null"`
