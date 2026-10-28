@@ -88,6 +88,12 @@
   --inset-bg: var(--blue-050);
   --inset-border: var(--grey);
 
+  /* Saved workouts (docs/flexible-workouts.md): the paler, second tone of a progress fill,
+     for saved workouts making up a week — the hero ring's second segment, the day header's
+     bar, and the dot on the saved-workouts chip that ties them together. On the blue hue, so
+     it reads as part of the same progress rather than as a signal. */
+  --saved: var(--lightblue);
+
   /* Signal colours — tuned to sit with --blue (similar saturation/brightness) so the palette
      reads as ONE set rather than the hot legacy hues. Use these to communicate state. The
      vivid legacy --red/--yellow/--green stay for un-migrated legacy code. */

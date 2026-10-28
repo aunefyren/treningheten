@@ -289,7 +289,8 @@ function openWeekDay(weekDay) {
 }
 
 // daySeasonHTML renders the week's result in one season, from the leaderboard's numbers.
-// A sick-leave week shows the hero's resting wording instead of a bar.
+// A sick-leave week shows the hero's resting wording instead of a bar. Saved workouts that
+// make up the week are a paler segment after the fill, as on the front-page ring.
 function daySeasonHTML(season) {
     const name = `<span class="day-season-name">${escapeHTML(season.name)}</span>`;
     if (season.sick_leave) {
@@ -297,14 +298,17 @@ function daySeasonHTML(season) {
     }
 
     const pct = Math.min(100, Math.round(season.completion * 100));
-    const complete = season.completion >= 1;
+    const saved = season.carry_used > 0 && season.goal > 0 ? Math.max(0, 100 - pct) : 0;
+    const complete = season.goal_met === true || season.completion >= 1;
+    const savedLabel = season.carry_used > 0
+        ? ` <span class="day-season-saved">+ ${season.carry_used} saved</span>` : "";
     return `
         <div class="day-season${complete ? " is-complete" : ""}">
             ${name}
-            <span class="day-season-bar" role="progressbar" aria-valuemin="0" aria-valuemax="${season.goal}" aria-valuenow="${Math.min(season.workouts, season.goal)}" aria-label="${escapeHTML(season.name)}, weekly goal">
-                <span class="day-season-fill" style="width: ${pct}%"></span>
+            <span class="day-season-bar" role="progressbar" aria-valuemin="0" aria-valuemax="${season.goal}" aria-valuenow="${Math.min(season.workouts + (season.carry_used || 0), season.goal)}" aria-label="${escapeHTML(season.name)}, weekly goal">
+                <span class="day-season-fill" style="width: ${pct}%"></span>${saved > 0 ? `<span class="day-season-fill day-season-fill--saved" style="width: ${saved}%" title="Made up with saved workouts"></span>` : ""}
             </span>
-            <span class="day-season-figure">${season.workouts} / ${season.goal}${complete ? `<img src="/assets/check.svg" class="day-season-check" alt="Weekly goal met">` : ""}</span>
+            <span class="day-season-figure">${season.workouts}${savedLabel} / ${season.goal}${complete ? `<img src="/assets/check.svg" class="day-season-check" alt="Weekly goal met">` : ""}</span>
         </div>
     `;
 }

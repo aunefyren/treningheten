@@ -2024,19 +2024,31 @@ label {
   inherits: false;
   initial-value: 0;
 }
+@property --saved-pct {
+  syntax: '<number>';
+  inherits: false;
+  initial-value: 0;
+}
 /* Conic-gradient donut: the blue arc fills to --pct over the palest-sky track; the inner white
-   disc turns it into a ring. Snaps to green when the week is complete. */
+   disc turns it into a ring. Saved workouts making up the week (--saved-pct, set from JS) are a
+   second segment in the paler --saved tone right after the arc. Snaps to green when the week is
+   complete; the saved segment keeps its tone so it still reads as "made up". */
 .hero-ring {
   --pct: 0;
+  --saved-pct: 0;
   --ring-fill: var(--blue);
   width: 9rem;
   height: 9rem;
   box-sizing: border-box;
   padding: 0.7rem;                 /* ring thickness */
   border-radius: var(--radius-circle);
-  background: conic-gradient(var(--ring-fill) calc(var(--pct) * 1%), var(--inset-bg) 0);
+  background: conic-gradient(
+    var(--ring-fill) calc(var(--pct) * 1%),
+    var(--saved) 0 calc((var(--pct) + var(--saved-pct)) * 1%),
+    var(--inset-bg) 0
+  );
   display: flex;
-  transition: --pct 1.2s ease, background 0.4s ease;
+  transition: --pct 1.2s ease, --saved-pct 1.2s ease, background 0.4s ease;
 }
 .hero-ring.complete { --ring-fill: var(--success); }
 .hero-ring-figures {
@@ -2085,8 +2097,115 @@ label {
   line-height: 1.45;
   color: var(--darkblue);
 }
-/* "Use sick leave" sits quietly under the calendar's Save. */
-.sickleave-button { margin-top: var(--space-3); }
+/* Saved-workouts chip (docs/flexible-workouts.md): what you hold and when it runs out, under the
+   ring. A self-contained button on the inset convention, pill-shaped like a chip; it opens the
+   plain-words explanation. The dot is the --saved tone, the same as the ring's saved segment, so
+   it doubles as that segment's legend. */
+.saved-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  max-width: 100%;
+  padding: var(--space-1) var(--space-3);
+  border: 1px solid var(--inset-border);
+  border-radius: var(--radius-pill);
+  background: var(--inset-bg);
+  color: var(--darkblue);
+  font-family: var(--font-body);
+  font-size: 0.85rem;
+  line-height: 1.3;
+  text-align: left;
+  cursor: pointer;
+}
+.saved-chip:hover { border-color: var(--lightblue); }
+.saved-chip:focus-visible { outline: none; box-shadow: 0 0 0 3px var(--focus-ring); }
+.saved-chip-dot {
+  flex: none;
+  width: 0.6rem;
+  height: 0.6rem;
+  border-radius: var(--radius-circle);
+  background: var(--saved);
+}
+
+/* What this week does with saved workouts, with Undo beside it; wraps under the text on a phone. */
+.hero-saved-note {
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  max-width: 18rem;
+  font-family: var(--font-body);
+  font-size: 0.9rem;
+  line-height: 1.45;
+  color: var(--darkblue);
+}
+
+/* The week's actions under the calendar's Save: "Use sick leave" and "Use saved workouts" as
+   quiet ghost buttons, and one line saying what using saved workouts would do. */
+.week-actions {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-2);
+  margin-top: var(--space-3);
+}
+.week-actions .btn-group:empty { display: none; }
+.week-actions-hint {
+  margin: 0;
+  text-align: center;
+  font-size: 0.85rem;
+  line-height: 1.4;
+  color: var(--mediumblue);
+}
+
+/* The season panel's "Saved workouts: N" and the season's rule under it. */
+.season-saved { margin: 0; }
+.season-saved-rule {
+  margin: var(--space-1) 0 0;
+  font-size: 0.85rem;
+  line-height: 1.4;
+  color: var(--mediumblue);
+}
+
+/* The saved-workouts explanation in the modal: one row per saved workout, its use-by day on the
+   right. */
+.saved-explainer p { text-align: left; }
+.saved-list { list-style: none; margin: 0 0 var(--space-3); padding: 0; }
+.saved-list-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) 0;
+  border-bottom: 1px solid var(--inset-border);
+}
+.saved-list-row:last-child { border-bottom: none; }
+.saved-list-date { margin-left: auto; color: var(--mediumblue); }
+
+/* A season's saved-workouts rule spelled out (admin season form, joining a season): an inset
+   block led by the --saved dot. In the admin form it is the live preview, and reads as plainly
+   off (no dot, muted) while the feature is off. */
+.saved-rule-preview {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-2);
+  margin: 0 0 var(--space-4);
+  padding: var(--space-2) var(--space-3);
+  background: var(--inset-bg);
+  border: 1px solid var(--inset-border);
+  border-radius: var(--radius-sm);
+  font-size: 0.9rem;
+  line-height: 1.45;
+  color: var(--darkblue);
+  text-align: left;
+}
+.saved-rule-preview .saved-chip-dot { margin-top: 0.4rem; }
+.saved-rule-preview.is-off { color: var(--mediumblue); }
+
+/* /seasons: the season's saved-workouts rule under its dates, led by the --saved dot. */
+.season-saved-line { gap: var(--space-2); font-size: 0.9em; }
+
+/* Leaderboard icons carry a title saying what they mean. */
+.status-icon { cursor: help; }
 
 /* Module panel — ONE shared style for every content block on the light card:
    white surface, hairline border, a single calm green left accent bar, soft shadow,
