@@ -20,6 +20,7 @@ func pkcePair() (verifier string, challenge string) {
 
 func TestOAuthAuthorizationCodeFlow(t *testing.T) {
 	h := newAPIHarness(t)
+	setMCPEnabled(t, true)
 	_, token := h.user("owner@oauth.test", false)
 	redirect := "http://127.0.0.1:9999/callback"
 
@@ -160,6 +161,7 @@ func TestOAuthAuthorizationCodeFlow(t *testing.T) {
 
 func TestOAuthConfidentialClientRegistration(t *testing.T) {
 	h := newAPIHarness(t)
+	setMCPEnabled(t, true)
 
 	registered := h.expect(http.StatusCreated, "POST", "/api/oauth/register", "", OAuthClientRegistrationRequest{
 		RedirectURIs: []string{"https://app.test/cb"}, TokenEndpointAuthMethod: "client_secret_basic",

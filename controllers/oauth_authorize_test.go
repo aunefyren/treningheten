@@ -106,7 +106,8 @@ func TestNarrowScopeToSupported(t *testing.T) {
 		{"empty falls back", "", models.ScopeAPI},
 		{"unknown scopes fall back", "openid profile email", models.ScopeAPI},
 		{"supported scope is kept", models.ScopeAPIRead, models.ScopeAPIRead},
-		{"admin is supported and kept", models.ScopeAdmin, models.ScopeAdmin},
+		{"admin is reserved and dropped", models.ScopeAdmin, models.ScopeAPI},
+		{"admin is dropped from a mixed request", models.ScopeAdmin + " " + models.ScopeAPIRead, models.ScopeAPIRead},
 		{"mixed request keeps only the supported half", models.ScopeAPIWrite + " openid", models.ScopeAPIWrite},
 		{"order is preserved", models.ScopeAPIWrite + " " + models.ScopeAPIRead, models.ScopeAPIWrite + " " + models.ScopeAPIRead},
 	}
@@ -121,7 +122,7 @@ func TestNarrowScopeToSupported(t *testing.T) {
 
 	// Every advertised scope must survive the filter, or discovery would advertise a scope
 	// no client can actually register for.
-	for _, scope := range models.SupportedScopes {
+	for _, scope := range models.AdvertisedScopes {
 		if got := narrowScopeToSupported(scope); got != scope {
 			t.Errorf("narrowScopeToSupported(%q) = %q, but it is advertised as supported", scope, got)
 		}
@@ -225,7 +226,7 @@ func TestGenerateOpaqueAuthCode(t *testing.T) {
 // list must contain exactly the four defined scopes, with no duplicates.
 func TestSupportedScopesAreDistinct(t *testing.T) {
 	unique := map[string]bool{}
-	for _, scope := range models.SupportedScopes {
+	for _, scope := range models.AdvertisedScopes {
 		if unique[scope] {
 			t.Errorf("scope %q is advertised twice", scope)
 		}

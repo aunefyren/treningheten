@@ -63,7 +63,8 @@ skipped and discovery documents fall back to the request's scheme + host.
 - `api` — full read+write API access (the scope carried by OAuth access tokens).
 - `api:read` — read-only access (`GET`/`HEAD` only). Used by read-only PATs.
 - `api:write` — explicit read+write access.
-- `admin` — admin endpoints; implies write.
+- `admin` — admin endpoints; implies write. **Reserved** for the first-party client and
+  Personal Access Tokens: dynamically registered clients can never hold it (see below).
 
 Enforcement (in `middlewares.Auth`, helpers in `auth/scope.go`):
 - a valid token is always required;
@@ -118,7 +119,26 @@ POST /api/oauth/register
 `token_endpoint_auth_method: "none"` (default) creates a public client (PKCE, no
 secret). Any other method creates a confidential client and returns a one-time
 `client_secret` (stored bcrypt-hashed). Requested scope is narrowed to
-`SupportedScopes`.
+`models.AdvertisedScopes` (`api`, `api:read`, `api:write`; never `admin`).
+
+Registration is only available while MCP is enabled (`mcp_enabled`): otherwise
+`POST /api/oauth/register` returns `404` and the authorization-server metadata omits
+`registration_endpoint`.
+
+### The reserved admin scope
+
+`admin` is only ever carried by tokens of the first-party client (`FirstParty`) and by
+PATs. Enforced in four places: DCR (`narrowScopeToSupported`), the authorize/consent
+path (`narrowScope` drops it for non-first-party clients, even if the stored client scope
+has it), the refresh grant (`auth.RefreshTokenSet` strips it from the rotated set for
+non-first-party clients, so an older chain loses it at its next refresh; access tokens
+already issued expire on their own), and discovery (`models.AdvertisedScopes`).
+
+### Pruning
+
+A daily job (`controllers.PruneUnusedOAuthClients`, 03:30) deletes non-first-party
+clients created more than 7 days ago that have no live (unrevoked, unexpired) refresh
+token, together with their authorization codes and refresh-token rows.
 
 ## Key code locations
 

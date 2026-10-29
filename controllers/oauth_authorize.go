@@ -32,14 +32,25 @@ func validateRedirectURI(client models.OAuthClient, redirectURI string) bool {
 }
 
 // narrowScope returns the requested scope limited to what the client is allowed,
-// defaulting to the client's full scope when none is requested.
+// defaulting to the client's full scope when none is requested. The admin scope is
+// reserved for the first-party client, so it is dropped for every other client even if
+// its stored scope contains it.
 func narrowScope(client models.OAuthClient, requested string) string {
 	allowed := map[string]bool{}
 	for _, s := range strings.Fields(client.Scope) {
 		allowed[s] = true
 	}
+	if !client.FirstParty {
+		delete(allowed, models.ScopeAdmin)
+	}
 	if strings.TrimSpace(requested) == "" {
-		return client.Scope
+		var granted []string
+		for _, s := range strings.Fields(client.Scope) {
+			if allowed[s] {
+				granted = append(granted, s)
+			}
+		}
+		return strings.Join(granted, " ")
 	}
 	var granted []string
 	for _, s := range strings.Fields(requested) {
