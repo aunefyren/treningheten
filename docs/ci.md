@@ -16,6 +16,15 @@ changes they can't push themselves.
 
 The version placeholder is explained in [architecture.md](architecture.md).
 
+### Multi-arch image builds
+
+The `Dockerfile` builder stage is `FROM --platform=$BUILDPLATFORM`: it runs natively on the
+runner, and Go cross-compiles for each target from `TARGETOS`/`TARGETARCH` (`GOARM` from
+`TARGETVARIANT`, so `linux/arm/v7` builds with `GOARM=7`). Only the small Alpine runtime
+stage (`apk add`, `adduser`) runs under QEMU, so the workflows still set up QEMU. Building
+the image needs BuildKit (`docker buildx`, or `docker compose build` as in `docker-test/`).
+The legacy `docker build` leaves `$BUILDPLATFORM` empty and fails.
+
 ### Toolchain pins
 
 - The `Dockerfile` builder image and the CI jobs (`1.26.x`) follow the latest Go patch on
@@ -26,8 +35,8 @@ The version placeholder is explained in [architecture.md](architecture.md).
 
 ## Beta images
 
-`docker-image-beta.yml` does not run on every merge (a build takes 20-27 minutes under QEMU
-and overlapping runs raced each other). It runs every hour at :17 and on manual dispatch,
+`docker-image-beta.yml` does not run on every merge (builds used to take 20-27 minutes and
+overlapping runs raced each other). It runs every hour at :17 and on manual dispatch,
 never two at once (`concurrency: beta-image`, no cancelling).
 
 A cheap **gate** job compares `main`'s HEAD with the `org.opencontainers.image.revision`
