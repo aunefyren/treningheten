@@ -254,7 +254,8 @@ resolving. Fixed in the 2026-09-03 privacy pass:
 Tracked as GitHub issues with the
 [`security` label](https://github.com/aunefyren/treningheten/issues?q=is%3Aissue+label%3Asecurity):
 toolchain patch drift (S12, #15), the
-JS-readable 30-day refresh cookie (#17), whether the
+JS-readable 30-day refresh cookie (the `Secure` flag is set on HTTPS; the `HttpOnly`
+follow-up is #55), whether the
 `admin` scope should be grantable to dynamically registered clients (#18), and the
 absence of a script-restricting Content-Security-Policy (#52, which first needs the inline
 handlers and scripts removed from `web/`).
