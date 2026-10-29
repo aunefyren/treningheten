@@ -21,7 +21,7 @@ together with the maintainer; **coding agents** (Sonnet) implement an agreed pla
   files in the repo.
 - **Planning (Opus):** talk features, architecture and design through with the maintainer
   *before* code is written — propose, then confirm direction. Record the outcome in the issue in
-  the shape of the "Planned work" template (`.github/ISSUE_TEMPLATE/planned-work.md`): goal,
+  the shape of the "Planned work" template (`.github/ISSUE_TEMPLATE/planned-work.yml`): goal,
   decided approach, files involved, docs to update, tests, open questions. Labels: `idea`
   (not planned yet), `needs-decision` (open questions block the work), `security`, `bug`,
   `enhancement`.

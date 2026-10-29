@@ -1,0 +1,38 @@
+name: Planned work
+description: A decided plan, ready for someone to implement
+labels: [enhancement]
+body:
+  - type: textarea
+    id: goal
+    attributes:
+      label: Goal
+      description: What should be true when this is done, in user terms.
+    validations:
+      required: true
+  - type: textarea
+    id: approach
+    attributes:
+      label: Decided approach
+      description: The design agreed on. Keep anything still undecided out of here; put it under "Open questions".
+    validations:
+      required: true
+  - type: textarea
+    id: files
+    attributes:
+      label: Files involved
+      description: The packages, files and routes expected to change.
+  - type: textarea
+    id: docs
+    attributes:
+      label: Docs to update
+      description: docs/*.md files (new or existing), README.md, CLAUDE.md.
+  - type: textarea
+    id: tests
+    attributes:
+      label: Tests
+      description: What should be covered, and with which harness (newTestDB, newAPIHarness, ...).
+  - type: textarea
+    id: questions
+    attributes:
+      label: Open questions
+      description: Anything not yet decided. If this isn't empty, add the needs-decision label.
