@@ -226,6 +226,14 @@ resolving. Fixed in the 2026-09-03 privacy pass:
 - **S16 — the Plex artwork proxy rejects dot-segments.** `plexArtworkPathAllowed` matches
   `^/library/[A-Za-z0-9/._-]+$` and rejects any `..` outright, since Go's HTTP client doesn't
   clean request paths.
+- **S10 — DB and SMTP passwords no longer travel as argv.** `parseFlags` reads the
+  `dbpassword` / `smtppassword` environment variables (`resolveSecret`; precedence: explicit
+  flag > env var > config file). `entrypoint.sh` builds its arguments with `set --` and
+  `exec "$@"` (every value quoted, so a value with spaces or `--flag` text cannot split or
+  inject arguments) and no longer passes the two passwords; the inherited environment
+  carries them, readable only by the same user or root, unlike `/proc/<pid>/cmdline`. The
+  `--dbpassword` / `--smtppassword` flags remain for non-Docker use but are visible in the
+  process list. Test: `TestResolveSecret` in `main_test.go`.
 - **S11 — `GET /api/auth/users/:user_id/activities` fixed in both halves at once.** The gate
   read a censored user with `ShareActivities` nil-ed (so it 403'd everyone), and the filter
   behind it kept *other* users' days. Fixing either half alone would have turned a dead
@@ -237,7 +245,7 @@ resolving. Fixed in the 2026-09-03 privacy pass:
 
 Tracked as GitHub issues with the
 [`security` label](https://github.com/aunefyren/treningheten/issues?q=is%3Aissue+label%3Asecurity):
-secrets passed as argv by `entrypoint.sh` (S10, #14), toolchain patch drift (S12, #15), the
+toolchain patch drift (S12, #15), the
 wildcard CORS configuration (#16), the JS-readable 30-day refresh cookie (the `Secure` flag is
 set on HTTPS; the `HttpOnly` follow-up is #55), whether the
 `admin` scope should be grantable to dynamically registered clients (#18), and the
