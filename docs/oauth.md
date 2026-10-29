@@ -63,7 +63,8 @@ skipped and discovery documents fall back to the request's scheme + host.
 - `api` — full read+write API access (the scope carried by OAuth access tokens).
 - `api:read` — read-only access (`GET`/`HEAD` only). Used by read-only PATs.
 - `api:write` — explicit read+write access.
-- `admin` — admin endpoints; implies write.
+- `admin` — admin endpoints; implies write. **Reserved** for the first-party client and
+  Personal Access Tokens: dynamically registered clients can never hold it (see below).
 
 Enforcement (in `middlewares.Auth`, helpers in `auth/scope.go`):
 - a valid token is always required;
@@ -90,6 +91,12 @@ POST /api/oauth/token
 The web frontend stores the access token in the `treningheten` cookie and the
 refresh token in `treningheten_refresh`. On a rejected access token it silently
 calls the refresh grant once (see `web/js/functions.js`), then retries.
+
+Both cookies are set by `set_cookie` with `path=/; samesite=strict`, plus `secure` when the
+page is served over HTTPS (plain-HTTP installs would otherwise lose the cookie). `clear_tokens`
+uses the same function, so the attributes match when the cookies are deleted. The cookies are
+JS-readable (no `HttpOnly`); moving the refresh token to a server-set `HttpOnly` cookie is
+tracked in #55.
 
 ### Authorization code + PKCE (third-party / MCP)
 
@@ -118,7 +125,26 @@ POST /api/oauth/register
 `token_endpoint_auth_method: "none"` (default) creates a public client (PKCE, no
 secret). Any other method creates a confidential client and returns a one-time
 `client_secret` (stored bcrypt-hashed). Requested scope is narrowed to
-`SupportedScopes`.
+`models.AdvertisedScopes` (`api`, `api:read`, `api:write`; never `admin`).
+
+Registration is only available while MCP is enabled (`mcp_enabled`): otherwise
+`POST /api/oauth/register` returns `404` and the authorization-server metadata omits
+`registration_endpoint`.
+
+### The reserved admin scope
+
+`admin` is only ever carried by tokens of the first-party client (`FirstParty`) and by
+PATs. Enforced in four places: DCR (`narrowScopeToSupported`), the authorize/consent
+path (`narrowScope` drops it for non-first-party clients, even if the stored client scope
+has it), the refresh grant (`auth.RefreshTokenSet` strips it from the rotated set for
+non-first-party clients, so an older chain loses it at its next refresh; access tokens
+already issued expire on their own), and discovery (`models.AdvertisedScopes`).
+
+### Pruning
+
+A daily job (`controllers.PruneUnusedOAuthClients`, 03:30) deletes non-first-party
+clients created more than 7 days ago that have no live (unrevoked, unexpired) refresh
+token, together with their authorization codes and refresh-token rows.
 
 ## Key code locations
 

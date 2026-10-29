@@ -29,7 +29,6 @@ import (
 	_ "time/tzdata"
 
 	"codnect.io/chrono"
-	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 )
 
@@ -173,6 +172,7 @@ func scheduleJobs(taskScheduler chrono.TaskScheduler) int {
 		cron    string
 		run     func()
 	}{
+		{"prune unused OAuth clients", true, "0 30 3 * * *", controllers.PruneUnusedOAuthClients},
 		{"sunday reminder", true, "0 0 18 * * 7", controllers.SendSundayReminders},
 		{"generating results for last week", true, "0 0 8 * * 1", controllers.ProcessLastWeek},
 		{"Ollama pre-cache", files.ConfigFile.Ollama.Enabled, "0 0 6 * * *", controllers.OllamaPreCacheForAllUsers},
@@ -431,17 +431,6 @@ func initRouter(configFile models.ConfigStruct) *gin.Engine {
 	// MCP (Model Context Protocol) endpoint — JSON-RPC over Streamable HTTP,
 	// authenticated with an OAuth access token or a Personal Access Token.
 	router.Any("/mcp", controllers.MCPHandler())
-
-	router.Use(cors.New(cors.Config{
-		AllowOrigins: []string{"*"},
-		// AllowAllOrigins:  true,
-		AllowMethods:     []string{"GET", "POST", "PATCH"},
-		AllowHeaders:     []string{"Origin", "Content-Type", "Authorization", "Access-Control-Allow-Origin"},
-		ExposeHeaders:    []string{"Content-Length"},
-		AllowCredentials: true,
-		AllowOriginFunc:  func(origin string) bool { return true },
-		MaxAge:           12 * time.Hour,
-	}))
 
 	// load HTML blobs
 	router.LoadHTMLGlob("./web/*/*.html")

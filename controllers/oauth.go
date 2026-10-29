@@ -162,7 +162,7 @@ func oauthTokenRefreshGrant(context *gin.Context) {
 		return
 	}
 
-	tokenSet, err := auth.RefreshTokenSet(refreshToken, client.ClientID)
+	tokenSet, err := auth.RefreshTokenSet(refreshToken, client.ClientID, client.FirstParty)
 	if err != nil {
 		oauthError(context, http.StatusBadRequest, "invalid_grant", err.Error())
 		return

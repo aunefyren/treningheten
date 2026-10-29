@@ -137,6 +137,7 @@ func moreFaultScenarios() []faultScenario {
 			}
 		}),
 		callScenario("authorization code flow", func(t *testing.T, h *apiHarness, w faultWorld) func() error {
+			setMCPEnabled(t, true)
 			registered := h.expect(http.StatusCreated, "POST", "/api/oauth/register", "", OAuthClientRegistrationRequest{RedirectURIs: []string{"http://127.0.0.1/cb"}})
 			clientID := registered["client_id"].(string)
 			verifier, challenge := pkcePair()
@@ -155,6 +156,7 @@ func moreFaultScenarios() []faultScenario {
 			}
 		}),
 		scenario("register oauth client", http.StatusCreated, func(t *testing.T, h *apiHarness, w faultWorld) faultRequest {
+			setMCPEnabled(t, true)
 			return faultRequest{"POST", "/api/oauth/register", "", OAuthClientRegistrationRequest{RedirectURIs: []string{"https://a/cb"}, TokenEndpointAuthMethod: "client_secret_post"}, nil}
 		}),
 

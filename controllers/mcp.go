@@ -132,6 +132,12 @@ type mcpActivityOutput struct {
 	Activity models.MCPActivity `json:"activity"`
 }
 
+// mcpEnabled reports whether the MCP server (and with it dynamic client registration)
+// is switched on in the config.
+func mcpEnabled() bool {
+	return files.ConfigFile.MCPEnabled != nil && *files.ConfigFile.MCPEnabled
+}
+
 // MCPHandler authenticates the caller, then serves the MCP Streamable HTTP
 // endpoint. The authenticated principal is passed to the per-request server via
 // the request context.
@@ -142,7 +148,7 @@ func MCPHandler() gin.HandlerFunc {
 	}, nil)
 
 	return func(c *gin.Context) {
-		if files.ConfigFile.MCPEnabled == nil || !*files.ConfigFile.MCPEnabled {
+		if !mcpEnabled() {
 			// MCP server disabled via config; behave as if the endpoint does not exist.
 			c.JSON(http.StatusNotFound, gin.H{"error": "MCP server is disabled."})
 			return

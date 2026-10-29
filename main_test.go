@@ -236,6 +236,27 @@ func TestEveryProtectedRouteRejectsAnonymousCallers(t *testing.T) {
 	}
 }
 
+// The API is same-origin only: no CORS middleware may answer cross-origin requests.
+func TestInitRouterSendsNoCORSHeaders(t *testing.T) {
+	router := initRouter(testConfig())
+
+	for _, method := range []string{"GET", "OPTIONS"} {
+		request := httptest.NewRequest(method, "/api/auth/seasons", nil)
+		request.Header.Set("Origin", "https://evil.example")
+		if method == "OPTIONS" {
+			request.Header.Set("Access-Control-Request-Method", "GET")
+			request.Header.Set("Access-Control-Request-Headers", "Authorization")
+		}
+		recorder := httptest.NewRecorder()
+		router.ServeHTTP(recorder, request)
+		for name := range recorder.Header() {
+			if strings.HasPrefix(name, "Access-Control-") {
+				t.Errorf("%s /api cross-origin: unexpected %s header", method, name)
+			}
+		}
+	}
+}
+
 func TestResolveSecret(t *testing.T) {
 	tests := []struct {
 		name      string

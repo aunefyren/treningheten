@@ -120,6 +120,18 @@ save. Without that, an install that predates this change would keep its world-re
 `0644` secrets forever. The chmod failures are logged, not fatal: a bind mount or a
 Windows host may not honour the change, and that shouldn't stop the app from starting.
 
+## The admin scope is reserved; DCR needs MCP (#18)
+
+`POST /api/oauth/register` is unauthenticated, and `admin` used to be registrable, so a
+third-party client could be granted `admin` if an admin approved consent. Now `admin` is
+reserved for the first-party client and Personal Access Tokens: registration never grants
+it, `narrowScope` drops it for any non-first-party client (even one registered earlier with
+it stored), the refresh grant drops it from a non-first-party chain at its next rotation,
+and discovery no longer advertises it. Dynamic client registration also returns `404`
+(and the metadata omits `registration_endpoint`) unless `mcp_enabled` is on, and a daily
+job deletes registrations older than 7 days with no live refresh token. See
+[oauth.md](oauth.md).
+
 ## Confidential OAuth clients must present their secret
 
 `OAuthClient.Public` is tagged `default:true`. GORM leaves a `false` zero value out of the
@@ -136,6 +148,14 @@ whenever a secret hash is stored, whatever `Public` says — which also covers r
 before the fix, without a data migration. Tests: `database.TestCreateOAuthClientStoresConfidentialClientsAsConfidential`
 and `controllers.TestOAuthConfidentialClientRegistration` (including a deliberately
 mis-stored legacy row).
+
+## Same-origin only, no CORS
+
+The web UI is served from the same origin as the API, and MCP/OAuth clients are not
+browsers, so the app registers no CORS middleware and the API sends no
+`Access-Control-Allow-*` headers (`TestInitRouterSendsNoCORSHeaders`). Adding CORS later is a
+deliberate design change: use an explicit origin allow-list registered above the route
+groups, never a wildcard with credentials.
 
 ## Accepted risks
 
@@ -241,12 +261,20 @@ resolving. Fixed in the 2026-09-03 privacy pass:
   `GetExerciseDaysForSharingUsersInListUsingDates` for the requested user, with the explicit
   gate kept as defence in depth.
 
+## Toolchain patch drift (S12, #15)
+
+Shipped binaries and images are built with a current Go patch: the `Dockerfile` builder uses
+the floating `golang:1.26-alpine` (runtime `alpine:3.24`), and `release.yaml` pins the latest
+1.26.x patch because `wangyoucao577/go-release-action` builds the download URL from
+`goversion` verbatim, so a floating `1.26` does not resolve. Bump that pin on each Go
+patch release. The `govulncheck` job in `go.yml` runs `govulncheck ./...` on Go `1.26.x` and
+fails CI on any reachable vulnerability. `go.mod`'s `go 1.26.0` is only the minimum language
+version, not the build toolchain.
+
 ## Still open
 
 Tracked as GitHub issues with the
 [`security` label](https://github.com/aunefyren/treningheten/issues?q=is%3Aissue+label%3Asecurity):
-toolchain patch drift (S12, #15), the
-wildcard CORS configuration (#16), the JS-readable 30-day refresh cookie (#17), whether the
-`admin` scope should be grantable to dynamically registered clients (#18), and the
-absence of a script-restricting Content-Security-Policy (#52, which first needs the inline
-handlers and scripts removed from `web/`).
+the JS-readable 30-day refresh cookie (the `Secure` flag is set on HTTPS; the `HttpOnly`
+follow-up is #55), and the absence of a script-restricting Content-Security-Policy (#52,
+which first needs the inline handlers and scripts removed from `web/`).
