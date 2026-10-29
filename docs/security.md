@@ -215,6 +215,6 @@ resolving. Fixed in the 2026-09-03 privacy pass:
 Tracked as GitHub issues with the
 [`security` label](https://github.com/aunefyren/treningheten/issues?q=is%3Aissue+label%3Asecurity):
 secrets passed as argv by `entrypoint.sh` (S10, #14), toolchain patch drift (S12, #15), the
-wildcard CORS configuration (#16), the JS-readable 30-day refresh cookie (#17), whether the
+wildcard CORS configuration (#16), the JS-readable 30-day refresh cookie (the `Secure` flag is set on HTTPS; the `HttpOnly` follow-up is #55), whether the
 `admin` scope should be grantable to dynamically registered clients (#18), and the absence
 of security response headers, notably a CSP (#19).
