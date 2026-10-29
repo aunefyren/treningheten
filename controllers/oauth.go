@@ -145,7 +145,7 @@ func oauthTokenPasswordGrant(context *gin.Context) {
 		return
 	}
 
-	writeTokenResponse(context, tokenSet)
+	writeTokenResponse(context, tokenSet, client.FirstParty)
 }
 
 // oauthTokenRefreshGrant handles the refresh_token grant with rotation.
@@ -156,7 +156,16 @@ func oauthTokenRefreshGrant(context *gin.Context) {
 		return
 	}
 
+	// The first-party web client keeps its refresh token in an HttpOnly cookie that
+	// script cannot read, so it posts the grant without a refresh_token field.
 	refreshToken := context.PostForm("refresh_token")
+	fromCookie := false
+	if refreshToken == "" && client.FirstParty {
+		if cookie, cookieErr := context.Cookie(refreshCookieName); cookieErr == nil {
+			refreshToken = cookie
+			fromCookie = true
+		}
+	}
 	if refreshToken == "" {
 		oauthError(context, http.StatusBadRequest, "invalid_request", "refresh_token is required")
 		return
@@ -164,17 +173,25 @@ func oauthTokenRefreshGrant(context *gin.Context) {
 
 	tokenSet, err := auth.RefreshTokenSet(refreshToken, client.ClientID, client.FirstParty)
 	if err != nil {
+		if client.FirstParty && fromCookie {
+			clearRefreshCookie(context)
+		}
 		oauthError(context, http.StatusBadRequest, "invalid_grant", err.Error())
 		return
 	}
 
-	writeTokenResponse(context, tokenSet)
+	writeTokenResponse(context, tokenSet, client.FirstParty)
 }
 
 // oauthTokenAuthorizationCodeGrant is implemented alongside the authorization
 // endpoint (see oauth_authorize.go).
 
-func writeTokenResponse(context *gin.Context, tokenSet models.OAuthTokenResponse) {
+// writeTokenResponse writes a successful token response. For the first-party client the
+// refresh token is moved into the HttpOnly cookie and left out of the body.
+func writeTokenResponse(context *gin.Context, tokenSet models.OAuthTokenResponse, firstParty bool) {
+	if firstParty {
+		tokenSet = setRefreshCookie(context, tokenSet)
+	}
 	context.Header("Cache-Control", "no-store")
 	context.Header("Pragma", "no-cache")
 	context.JSON(http.StatusOK, tokenSet)

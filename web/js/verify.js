@@ -80,7 +80,7 @@ function verifyAccount(){
 
                 // store the OAuth token pair (auto-login after verification)
                 if(result.data) {
-                    store_tokens(result.data.access_token, result.data.refresh_token);
+                    store_tokens(result.data.access_token, result.data.expires_in);
                 }
                 frontPageRedirect();
 
