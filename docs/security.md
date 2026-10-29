@@ -62,6 +62,29 @@ ranges (the normal reverse-proxy-on-the-same-host/Docker-network deployment).
 through it is attributed to the proxy's IP and shares one budget. Such a deployment
 needs its proxy's range added to `trustedProxyCIDRs`.
 
+## Security response headers
+
+`middlewares/headers.go`, `SecurityHeaders(externalURL)`, sent on every response:
+
+| Header | Value | Why |
+| --- | --- | --- |
+| `X-Content-Type-Options` | `nosniff` | no MIME sniffing of served files |
+| `X-Frame-Options` | `DENY` | clickjacking; nothing in `web/` frames the app |
+| `Content-Security-Policy` | `frame-ancestors 'none'` | modern equivalent of the above. It has only this directive, so scripts are **not** restricted yet; the strict policy is [#52](https://github.com/aunefyren/treningheten/issues/52) and extends this same header |
+| `Referrer-Policy` | `strict-origin-when-cross-origin` | no full URLs to other origins |
+| `Strict-Transport-Security` | `max-age=31536000` | only when the configured external URL is `https` |
+
+HSTS is conditional because sending it from a plain-HTTP instance would be meaningless
+at best, and it pins browsers to HTTPS for a year once seen. It omits `includeSubDomains`
+and `preload` because self-hosted instances often share a parent domain with other
+services. TLS is normally terminated by a reverse proxy, which is why the decision keys
+on the configured external URL rather than the request.
+
+**Registration order matters.** Gin freezes a route's handler chain when the route is
+registered, so `router.Use(SecurityHeaders(...))` sits in `initRouter` right after
+`SetTrustedProxies` and above every route and group. `TestInitRouterSendsSecurityHeaders`
+(`main_test.go`) checks an API route and templated pages against the real router.
+
 ## Password changes end existing sessions
 
 `database.RevokeAllRefreshTokensForUser` revokes every live refresh token for a user in
@@ -227,5 +250,6 @@ resolving. Fixed in the 2026-09-03 privacy pass:
 Tracked as GitHub issues with the
 [`security` label](https://github.com/aunefyren/treningheten/issues?q=is%3Aissue+label%3Asecurity):
 secrets passed as argv by `entrypoint.sh` (S10, #14), toolchain patch drift (S12, #15), the
-wildcard CORS configuration (#16), the JS-readable 30-day refresh cookie (#17), and the absence
-of security response headers, notably a CSP (#19).
+wildcard CORS configuration (#16), the JS-readable 30-day refresh cookie (#17), and the
+absence of a script-restricting Content-Security-Policy (#52, which first needs the inline
+handlers and scripts removed from `web/`).
