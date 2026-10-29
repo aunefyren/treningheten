@@ -1,5 +1,5 @@
 # ---------- Build ----------
-FROM golang:1.26.0-alpine AS builder
+FROM golang:1.26-alpine AS builder
 ARG TARGETOS
 ARG TARGETARCH
 WORKDIR /app
@@ -14,7 +14,7 @@ RUN CGO_ENABLED=0 GOOS=${TARGETOS} GOARCH=${TARGETARCH} \
     go build -trimpath -ldflags="-s -w" -o /app/treningheten .
 
 # ---------- Runtime ----------
-FROM alpine:3.20
+FROM alpine:3.24
 ENV PUID=1000 PGID=1000 LANG=C.UTF-8 LC_ALL=C.UTF-8
 WORKDIR /app
 RUN apk add --no-cache ca-certificates tzdata
