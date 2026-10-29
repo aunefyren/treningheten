@@ -63,21 +63,22 @@ jobs:
           | jq -r '(if has("linux/amd64") then .["linux/amd64"] else . end)
                    | .config.Labels["org.opencontainers.image.revision"] // empty' 2>/dev/null) || last=""
 
+        # Why main needs a new beta; every path that would build still has to pass the
+        # green check below.
         if [ -z "$last" ]; then
-          finish true "No revision label on the published beta (missing or unreadable), building."
-        fi
-        if [ "$last" = "$head" ]; then
+          reason="no revision label on the published beta (missing or unreadable)"
+        elif [ "$last" = "$head" ]; then
           finish false "Skipped: beta is already published for this commit (unchanged)."
-        fi
-        if ! git cat-file -e "$last^{commit}" 2>/dev/null; then
-          finish true "Published revision \`${last:0:7}\` is not in history, building."
-        fi
-
-        # Skip when only docs, Markdown files or issue templates changed.
-        relevant=$(git diff --name-only "$last" "$head" \
-          | grep -v -E '^docs/|\.md$|^\.github/ISSUE_TEMPLATE/' || true)
-        if [ -z "$relevant" ]; then
-          finish false "Skipped: only docs, Markdown or issue templates changed since \`${last:0:7}\`."
+        elif ! git cat-file -e "$last^{commit}" 2>/dev/null; then
+          reason="published revision \`${last:0:7}\` is not in history"
+        else
+          # Skip when only docs, Markdown files or issue templates changed.
+          relevant=$(git diff --name-only "$last" "$head" \
+            | grep -v -E '^docs/|\.md$|^\.github/ISSUE_TEMPLATE/' || true)
+          if [ -z "$relevant" ]; then
+            finish false "Skipped: only docs, Markdown or issue templates changed since \`${last:0:7}\`."
+          fi
+          reason="main moved from \`${last:0:7}\`"
         fi
 
         # Wait for green: go.yml must have a successful push run for this exact commit.
@@ -87,7 +88,7 @@ jobs:
           finish false "Skipped: go.yml has no successful push run for this commit yet (still running, failed or missing). Re-checked next hour."
         fi
 
-        finish true "Building: main moved from \`${last:0:7}\` and go.yml is green."
+        finish true "Building: $reason, and go.yml is green."
 
   build:
     needs: gate
