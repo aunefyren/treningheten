@@ -256,3 +256,27 @@ func TestInitRouterSendsNoCORSHeaders(t *testing.T) {
 		}
 	}
 }
+
+// The security headers must reach API routes and templated pages alike; Gin freezes a
+// route's middleware chain at registration, so moving the Use below the routes would
+// silently drop them.
+func TestInitRouterSendsSecurityHeaders(t *testing.T) {
+	config := testConfig()
+	config.TreninghetenExternalURL = "https://treningheten.example.com"
+	router := initRouter(config)
+
+	for _, path := range []string{"/api/auth/seasons", "/", "/js/frontpage.js", "/robots.txt"} {
+		header := get(router, path).Header()
+		for name, value := range map[string]string{
+			"X-Content-Type-Options":    "nosniff",
+			"X-Frame-Options":           "DENY",
+			"Content-Security-Policy":   "frame-ancestors 'none'",
+			"Referrer-Policy":           "strict-origin-when-cross-origin",
+			"Strict-Transport-Security": "max-age=31536000",
+		} {
+			if got := header.Get(name); got != value {
+				t.Errorf("GET %s: %s = %q, want %q", path, name, got, value)
+			}
+		}
+	}
+}
