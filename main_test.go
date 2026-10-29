@@ -236,6 +236,32 @@ func TestEveryProtectedRouteRejectsAnonymousCallers(t *testing.T) {
 	}
 }
 
+func TestResolveSecret(t *testing.T) {
+	tests := []struct {
+		name      string
+		flagSet   bool
+		flagValue string
+		env       string
+		config    string
+		want      string
+	}{
+		{"neither flag nor env keeps config", false, "config", "", "config", "config"},
+		{"env beats config", false, "config", "fromenv", "config", "fromenv"},
+		{"flag beats env and config", true, "fromflag", "fromenv", "config", "fromflag"},
+		{"flag beats config", true, "fromflag", "", "config", "fromflag"},
+		{"explicit empty flag still wins", true, "", "fromenv", "config", ""},
+		{"nothing set is empty", false, "", "", "", ""},
+		{"value with spaces and flag text is untouched", false, "", "a b --generateinvite true", "", "a b --generateinvite true"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := resolveSecret(tt.flagSet, tt.flagValue, tt.env, tt.config); got != tt.want {
+				t.Errorf("resolveSecret() = %q, want %q", got, tt.want)
+			}
+		})
+	}
+}
+
 // The security headers must reach API routes and templated pages alike; Gin freezes a
 // route's middleware chain at registration, so moving the Use below the routes would
 // silently drop them.
