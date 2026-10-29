@@ -2370,3 +2370,17 @@ function escapeHTML(value) {
         .replace(/>/g, "&gt;")
         .replace(/"/g, "&quot;");
 }
+
+
+// Page bootstrap (formerly an inline <script> in web/html/account.html).
+var groups;
+var user_id;
+var jwt;
+var vapid_public_key = "";
+
+document.addEventListener('DOMContentLoaded', function() {
+    info('Loading...');
+    showLoggedOutMenu();
+    jwt = get_cookie('treningheten');
+    get_login(jwt);
+});
