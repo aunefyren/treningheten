@@ -249,11 +249,21 @@ resolving. Fixed in the 2026-09-03 privacy pass:
   `GetExerciseDaysForSharingUsersInListUsingDates` for the requested user, with the explicit
   gate kept as defence in depth.
 
+## Toolchain patch drift (S12, #15)
+
+Shipped binaries and images are built with a current Go patch: the `Dockerfile` builder uses
+the floating `golang:1.26-alpine` (runtime `alpine:3.24`), and `release.yaml` pins the latest
+1.26.x patch because `wangyoucao577/go-release-action` builds the download URL from
+`goversion` verbatim, so a floating `1.26` does not resolve. Bump that pin on each Go
+patch release. The `govulncheck` job in `go.yml` runs `govulncheck ./...` on Go `1.26.x` and
+fails CI on any reachable vulnerability. `go.mod`'s `go 1.26.0` is only the minimum language
+version, not the build toolchain.
+
 ## Still open
 
 Tracked as GitHub issues with the
 [`security` label](https://github.com/aunefyren/treningheten/issues?q=is%3Aissue+label%3Asecurity):
-toolchain patch drift (S12, #15), the
+the
 JS-readable 30-day refresh cookie (the `Secure` flag is set on HTTPS; the `HttpOnly`
 follow-up is #55), whether the
 `admin` scope should be grantable to dynamically registered clients (#18), and the

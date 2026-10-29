@@ -28,6 +28,21 @@ jobs:
       - name: Vet
         run: go vet ./...
 
+  # Fails on vulnerabilities in the standard library or dependencies that the code can
+  # actually reach (govulncheck's default); unreachable ones in required modules are ignored.
+  govulncheck:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.26.x'
+      - name: Install govulncheck
+        run: go install golang.org/x/vuln/cmd/govulncheck@latest
+      - name: Check for reachable vulnerabilities
+        run: govulncheck ./...
+
   # The race detector over the fast suite (-short skips the fault sweeps, which take ~20
   # minutes under -race). Catches background work racing the code that started it.
   race:
