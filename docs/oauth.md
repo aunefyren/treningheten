@@ -92,6 +92,12 @@ The web frontend stores the access token in the `treningheten` cookie and the
 refresh token in `treningheten_refresh`. On a rejected access token it silently
 calls the refresh grant once (see `web/js/functions.js`), then retries.
 
+Both cookies are set by `set_cookie` with `path=/; samesite=strict`, plus `secure` when the
+page is served over HTTPS (plain-HTTP installs would otherwise lose the cookie). `clear_tokens`
+uses the same function, so the attributes match when the cookies are deleted. The cookies are
+JS-readable (no `HttpOnly`); moving the refresh token to a server-set `HttpOnly` cookie is
+tracked in #55.
+
 ### Authorization code + PKCE (third-party / MCP)
 
 1. Client directs the browser to `GET {external}/authorize?response_type=code&client_id=…&redirect_uri=…&scope=…&state=…&code_challenge=…&code_challenge_method=S256`.

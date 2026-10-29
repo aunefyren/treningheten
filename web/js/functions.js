@@ -168,7 +168,9 @@ function set_cookie(cname, cvalue, exdays) {
     var d = new Date();
     d.setTime(d.getTime() + (exdays*24*60*60*1000));
     var expires = "expires="+ d.toUTCString();
-    document.cookie = cname + "=" + cvalue + "; " + expires + "; path=/; samesite=strict;";
+    // Secure only over HTTPS: browsers drop Secure cookies on plain-HTTP installs
+    var secure = window.location.protocol === "https:" ? "; secure" : "";
+    document.cookie = cname + "=" + cvalue + "; " + expires + "; path=/; samesite=strict" + secure + ";";
 }
 
 // Get cookie from browser
