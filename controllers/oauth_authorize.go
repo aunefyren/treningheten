@@ -223,7 +223,7 @@ func oauthTokenAuthorizationCodeGrant(context *gin.Context) {
 		return
 	}
 
-	writeTokenResponse(context, tokenSet)
+	writeTokenResponse(context, tokenSet, client.FirstParty)
 }
 
 // verifyPKCE checks an S256 code_challenge against the presented verifier.

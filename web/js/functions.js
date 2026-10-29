@@ -1,37 +1,34 @@
 var api_url = window.location.origin + "/api/";
 var OAUTH_CLIENT_ID = "treningheten-web";
 
-// Store the OAuth token pair. Access token keeps the legacy cookie name so all
-// existing Authorization headers keep working.
-function store_tokens(access_token, refresh_token) {
+// Store the access token. It keeps the legacy cookie name so all existing Authorization
+// headers keep working, and lives as long as the JWT (expires_in, seconds). The refresh
+// token is never visible to script: the server keeps it in an HttpOnly cookie.
+function store_tokens(access_token, expires_in) {
     if(access_token) {
-        set_cookie("treningheten", access_token, 7);
+        set_cookie("treningheten", access_token, (expires_in || 3600) / 86400);
         jwt = access_token;
-    }
-    if(refresh_token) {
-        set_cookie("treningheten_refresh", refresh_token, 30);
     }
 }
 
-// Clear both tokens (logout / failed refresh).
+// Clear the access token (failed refresh / login page). The HttpOnly refresh cookie can
+// only be cleared by the server: logout() revokes it, a failed refresh clears it.
 function clear_tokens() {
-    set_cookie("treningheten", "", 1);
-    set_cookie("treningheten_refresh", "", 1);
+    set_cookie("treningheten", "", -1);
     jwt = "";
 }
 
-// Exchange the refresh token for a new access token. Calls back with the new
-// access token on success, or "" on failure.
-function refresh_access_token(callback) {
-    var refresh_token = get_cookie("treningheten_refresh");
-    if(!refresh_token) {
-        callback("");
-        return;
-    }
+// The refresh token used to be a JS-readable cookie; it is ignored by the server now,
+// so delete any leftover.
+if(get_cookie("treningheten_refresh")) {
+    set_cookie("treningheten_refresh", "", -1);
+}
 
+// Exchange the refresh token (sent by the browser as an HttpOnly cookie) for a new
+// access token. Calls back with the new access token on success, or "" on failure.
+function refresh_access_token(callback) {
     var body = "grant_type=refresh_token"
-        + "&client_id=" + encodeURIComponent(OAUTH_CLIENT_ID)
-        + "&refresh_token=" + encodeURIComponent(refresh_token);
+        + "&client_id=" + encodeURIComponent(OAUTH_CLIENT_ID);
 
     var xhttp = new XMLHttpRequest();
     xhttp.onreadystatechange = function() {
@@ -39,7 +36,7 @@ function refresh_access_token(callback) {
             try {
                 var result = JSON.parse(this.responseText);
                 if(this.status >= 200 && this.status < 300 && result.access_token) {
-                    store_tokens(result.access_token, result.refresh_token);
+                    store_tokens(result.access_token, result.expires_in);
                     callback(result.access_token);
                     return;
                 }
@@ -50,6 +47,7 @@ function refresh_access_token(callback) {
             callback("");
         }
     };
+    xhttp.withCredentials = true;
     xhttp.open("post", api_url + "oauth/token");
     xhttp.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");
     xhttp.send(body);
@@ -196,7 +194,7 @@ function get_login(cookie, triedRefresh) {
 
     if(jwt == "") {
         // No access token: try to silently refresh before giving up.
-        if(!triedRefresh && get_cookie("treningheten_refresh")) {
+        if(!triedRefresh) {
             refresh_access_token(function(newToken) {
                 if(newToken) {
                     get_login(newToken, true);
@@ -246,7 +244,7 @@ function get_login(cookie, triedRefresh) {
             } else if(result.error) {
                 // Access token rejected: attempt a single silent refresh before
                 // bouncing the user to the login page.
-                if(!triedRefresh && get_cookie("treningheten_refresh")) {
+                if(!triedRefresh) {
                     refresh_access_token(function(newToken) {
                         if(newToken) {
                             get_login(newToken, true);
@@ -498,8 +496,21 @@ function error(message) {
 
 // When log out button is pressed, remove cookie and redirect to home page
 function logout() {
-    clear_tokens();
-    window.location.href = '/';
+    // Revoke the HttpOnly refresh cookie server-side; script cannot clear it.
+    var done = function() {
+        clear_tokens();
+        window.location.href = '/';
+    };
+    var xhttp = new XMLHttpRequest();
+    xhttp.onreadystatechange = function() {
+        if(this.readyState == 4) {
+            done();
+        }
+    };
+    xhttp.withCredentials = true;
+    xhttp.open("post", api_url + "oauth/revoke");
+    xhttp.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");
+    xhttp.send("client_id=" + encodeURIComponent(OAUTH_CLIENT_ID));
 }
 
 // Return GET parameters in a given URL

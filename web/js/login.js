@@ -197,7 +197,7 @@ function send_log_in(){
             } else {
 
                 // store the OAuth token pair
-                store_tokens(result.access_token, result.refresh_token);
+                store_tokens(result.access_token, result.expires_in);
 
                 // show home page &amp; tell the user it was a successful login
                 showLoggedInMenu();

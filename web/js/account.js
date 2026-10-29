@@ -403,7 +403,7 @@ function submitAccountUpdate(formData, userID) {
 
             // store the refreshed OAuth token pair
             if(result.data) {
-                store_tokens(result.data.access_token, result.data.refresh_token);
+                store_tokens(result.data.access_token, result.data.expires_in);
             }
 
             if(result.verified) {

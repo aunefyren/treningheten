@@ -26,7 +26,7 @@ Phase 1 of a larger effort (Phase 2: Personal Access Tokens, Phase 3: MCP server
 | `POST /api/oauth/authorize/decision` | RFC 6749 §4.1 | Bearer | Records approval/denial; issues an authorization code on approval |
 | `POST /api/oauth/token` | RFC 6749 §3.2 | client | Token endpoint (form-encoded) |
 | `POST /api/oauth/register` | RFC 7591 | public | Dynamic Client Registration |
-| `POST /api/oauth/revoke` | RFC 7009 | client | Revoke a refresh token |
+| `POST /api/oauth/revoke` | RFC 7009 | client | Revoke a refresh token (first-party: from the `treningheten_rt` cookie when no `token` is sent) |
 
 The token endpoint accepts `application/x-www-form-urlencoded` and supports the
 grants `authorization_code`, `refresh_token`, and `password`. Errors follow
@@ -85,18 +85,38 @@ per-endpoint / per-resource scopes are still deferred to the MCP phase. See
 ```
 POST /api/oauth/token
   grant_type=password&client_id=treningheten-web&username=<email>&password=<pw>
--> { access_token, token_type: "Bearer", expires_in, refresh_token, scope }
+-> { access_token, token_type: "Bearer", expires_in, scope }   + Set-Cookie: treningheten_rt
 ```
 
-The web frontend stores the access token in the `treningheten` cookie and the
-refresh token in `treningheten_refresh`. On a rejected access token it silently
-calls the refresh grant once (see `web/js/functions.js`), then retries.
+For the first-party client the refresh token never appears in the response body or in
+script: the server sets it as the `treningheten_rt` cookie (`HttpOnly; SameSite=Strict;
+Path=/api/oauth; Max-Age = auth.RefreshTokenTTL`, plus `Secure` when the external URL is
+https, the same rule as HSTS via `middlewares.IsHTTPSURL`). The helpers are
+`setRefreshCookie` / `clearRefreshCookie` in `controllers/oauth_cookie.go`; every
+first-party token issuer uses them: the password, refresh and authorization-code grants
+(via `writeTokenResponse`) and the two `auth.IssueTokenSet(..., FirstPartyClientID)` call
+sites in `controllers/user.go` (verify and account update). Third-party clients (DCR/MCP)
+are unchanged and still get `refresh_token` in the body.
 
-Both cookies are set by `set_cookie` with `path=/; samesite=strict`, plus `secure` when the
-page is served over HTTPS (plain-HTTP installs would otherwise lose the cookie). `clear_tokens`
-uses the same function, so the attributes match when the cookies are deleted. The cookies are
-JS-readable (no `HttpOnly`); moving the refresh token to a server-set `HttpOnly` cookie is
-tracked in #55.
+- **Refresh grant:** for the first-party client with no `refresh_token` form field, the token
+  is read from the cookie and rotated into a new cookie. A failed cookie-borne refresh
+  (invalid, expired, reused) clears the cookie. The cookie is never honoured for any other
+  `client_id`.
+- **Revoke:** `POST /api/oauth/revoke` with `client_id=treningheten-web` and no `token`
+  falls back to the cookie, revokes it and clears it. This is what `logout()` calls, since
+  script cannot clear an `HttpOnly` cookie.
+- **Access token:** stored by `store_tokens` in the JS-readable `treningheten` cookie
+  (`path=/; samesite=strict`, plus `secure` over HTTPS) with a lifetime equal to
+  `expires_in` (60 min). It has to stay readable because `AuthImageReadOnly` /
+  `ImageRequestUserID` authenticate `<img>` requests from it. On a missing or rejected
+  access token the frontend attempts one silent refresh (`credentials` included, no token
+  in the body) and treats a 400/401 as logged out (see `web/js/functions.js`).
+- **Legacy cookie:** the old JS-set `treningheten_refresh` cookie is ignored by the server
+  (the new cookie has a different name so the two can never be confused) and deleted by
+  `functions.js` on load. There is no migration: users who only had the old cookie log in
+  again once, when their access token expires.
+- **CSRF:** `SameSite=Strict`, the narrow `Path` and the absence of CORS mean a cross-site
+  page can neither send the cookie nor read the response.
 
 ### Authorization code + PKCE (third-party / MCP)
 

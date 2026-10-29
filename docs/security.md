@@ -194,6 +194,11 @@ doesn't re-derive them:
 - **OAuth authorization-code flow** — exact-match redirect URI, mandatory PKCE S256,
   constant-time verifier comparison, single-use codes consumed atomically, code bound to
   the issuing client, scope narrowed to the client's grant (`controllers/oauth_authorize.go`).
+- **Refresh-token transport** — the first-party web client's 30-day refresh token lives only
+  in the server-set `treningheten_rt` cookie (`HttpOnly; SameSite=Strict; Path=/api/oauth`,
+  `Secure` on HTTPS) and is omitted from response bodies, so an XSS cannot read it. The
+  1-hour access token stays in a JS-readable cookie for `<img>` requests. See
+  [oauth.md](oauth.md#first-party-web-login-password-grant).
 - **Refresh-token lifecycle** — rotation with reuse detection revoking the whole chain;
   admin status re-derived from the DB on each refresh (`auth/auth.go`).
 - **Credential encryption at rest** — AES-256-GCM, random nonce per encryption, correct
@@ -275,6 +280,5 @@ version, not the build toolchain.
 
 Tracked as GitHub issues with the
 [`security` label](https://github.com/aunefyren/treningheten/issues?q=is%3Aissue+label%3Asecurity):
-the JS-readable 30-day refresh cookie (the `Secure` flag is set on HTTPS; the `HttpOnly`
-follow-up is #55), and the absence of a script-restricting Content-Security-Policy (#52,
-which first needs the inline handlers and scripts removed from `web/`).
+the absence of a script-restricting Content-Security-Policy (#52, which first needs the
+inline handlers and scripts removed from `web/`).
