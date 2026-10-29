@@ -7,7 +7,7 @@ changes they can't push themselves.
 
 | Workflow | Trigger | What it does |
 |---|---|---|
-| `go.yml` (Test Go Compile) | push to `main`, PRs to `main` | Build + `go vet`; the `-short` suite under `-race`; the `database`/`controllers` suites on Postgres and MySQL; full suite with coverage (updates the coverage badge gist on `main`). **Must pass before merge.** |
+| `go.yml` (Test Go Compile) | push to `main`, PRs to `main` | Build + `go vet`; the `-short` suite under `-race`; the `database`/`controllers` suites on Postgres and MySQL; full suite with coverage (updates the coverage badge gist on `main`); `govulncheck ./...`, failing on reachable vulnerabilities. **Must pass before merge.** |
 | `codeql-analysis.yml` | push/PR to `main`, weekly | CodeQL static analysis for Go. |
 | `docker-image-beta.yml` | hourly (`17 * * * *`), manual | Gate job decides, then builds the image for `linux/amd64`, `arm64`, `arm/v7` and `386` and pushes `beta` and `beta-<short sha>` to Docker Hub (`aunefyren/treningheten`) and GHCR. See [Beta images](#beta-images). The version placeholder becomes `beta-<short sha>`. |
 | `docker-image.yml` | release published | The same multi-arch image, tagged with the release tag and `latest`. |
