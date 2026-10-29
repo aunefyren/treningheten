@@ -1,7 +1,10 @@
 # ---------- Build ----------
-FROM golang:1.26-alpine AS builder
+# The builder runs on the build host's own platform and Go cross-compiles for the target, so
+# multi-arch builds don't run the compiler under QEMU. Only the runtime stage is per platform.
+FROM --platform=$BUILDPLATFORM golang:1.26-alpine AS builder
 ARG TARGETOS
 ARG TARGETARCH
+ARG TARGETVARIANT
 WORKDIR /app
 
 # faster caching
@@ -10,7 +13,9 @@ RUN go mod download
 
 COPY . .
 
-RUN CGO_ENABLED=0 GOOS=${TARGETOS} GOARCH=${TARGETARCH} \
+# GOARM comes from the variant (linux/arm/v7 -> 7) and only applies to GOARCH=arm.
+RUN if [ "${TARGETARCH}" = "arm" ]; then export GOARM="${TARGETVARIANT#v}"; fi && \
+    CGO_ENABLED=0 GOOS=${TARGETOS} GOARCH=${TARGETARCH} \
     go build -trimpath -ldflags="-s -w" -o /app/treningheten .
 
 # ---------- Runtime ----------
