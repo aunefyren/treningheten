@@ -280,3 +280,15 @@ function deleteNews(newsID) {
     xhttp.send();
     return;
 }
+
+
+// Page bootstrap (formerly an inline <script> in web/html/news.html).
+var groups;
+var jwt;
+
+document.addEventListener('DOMContentLoaded', function() {
+    info('Loading...');
+    showLoggedOutMenu();
+    jwt = get_cookie('treningheten');
+    get_login(jwt);
+});

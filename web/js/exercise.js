@@ -3321,3 +3321,16 @@ function stravaSyncOperationSet(operationSetID) {
 // re-render of the read view and needs no re-binding.
 wireInfoMarks();
 wireTraceTabs();
+
+
+// Page bootstrap (formerly an inline <script> in web/html/exercise.html).
+var groups;
+var jwt;
+var exerciseList = [];
+
+document.addEventListener('DOMContentLoaded', function() {
+    info('Loading...');
+    showLoggedOutMenu();
+    jwt = get_cookie('treningheten');
+    get_login(jwt);
+});

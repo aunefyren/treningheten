@@ -380,3 +380,14 @@ function checkResetCode(resetCode){
     xhttp.send();
     return false;
 }
+
+
+// Page bootstrap (formerly an inline <script> in web/html/login.html).
+var jwt;
+
+document.addEventListener('DOMContentLoaded', function() {
+    info('Loading...');
+    showLoggedOutMenu();
+    jwt = get_cookie('treningheten');
+    get_login(jwt);
+});
