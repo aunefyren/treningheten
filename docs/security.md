@@ -114,6 +114,14 @@ before the fix, without a data migration. Tests: `database.TestCreateOAuthClient
 and `controllers.TestOAuthConfidentialClientRegistration` (including a deliberately
 mis-stored legacy row).
 
+## Same-origin only, no CORS
+
+The web UI is served from the same origin as the API, and MCP/OAuth clients are not
+browsers, so the app registers no CORS middleware and the API sends no
+`Access-Control-Allow-*` headers (`TestInitRouterSendsNoCORSHeaders`). Adding CORS later is a
+deliberate design change: use an explicit origin allow-list registered above the route
+groups, never a wildcard with credentials.
+
 ## Accepted risks
 
 Deliberate trade-offs, recorded so they aren't rediscovered as findings:
@@ -215,6 +223,6 @@ resolving. Fixed in the 2026-09-03 privacy pass:
 Tracked as GitHub issues with the
 [`security` label](https://github.com/aunefyren/treningheten/issues?q=is%3Aissue+label%3Asecurity):
 secrets passed as argv by `entrypoint.sh` (S10, #14), toolchain patch drift (S12, #15), the
-wildcard CORS configuration (#16), the JS-readable 30-day refresh cookie (#17), whether the
+JS-readable 30-day refresh cookie (#17), whether the
 `admin` scope should be grantable to dynamically registered clients (#18), and the absence
 of security response headers, notably a CSP (#19).
