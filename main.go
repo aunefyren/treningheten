@@ -229,6 +229,11 @@ func initRouter(configFile models.ConfigStruct) *gin.Engine {
 		logger.Log.Error("failed to set trusted proxies. error: " + err.Error())
 	}
 
+	// Gin freezes a route's handler chain when the route is registered, so this must
+	// stay above every route and group below: middleware added later would silently
+	// skip them.
+	router.Use(middlewares.SecurityHeaders(configFile.TreninghetenExternalURL))
+
 	router.LoadHTMLGlob("web/*/*.html")
 
 	// API endpoint
