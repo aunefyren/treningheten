@@ -1,72 +1,24 @@
 #!/bin/sh
 
-# Initialize the command with the binary
-CMD="/app/treningheten"
+# Build the argument list with positional parameters so every value stays one quoted
+# argument. The dbpassword and smtppassword environment variables are read by the binary
+# directly and deliberately not passed as flags (flags are visible in the process list).
+set -- /app/treningheten
 
-# Add the --port flag if the PORT environment variable is set
-if [ -n "$port" ]; then
-  CMD="$CMD --port $port"
-fi
+[ -n "$port" ] && set -- "$@" --port "$port"
+[ -n "$externalurl" ] && set -- "$@" --externalurl "$externalurl"
+[ -n "$timezone" ] && set -- "$@" --timezone "$timezone"
 
-# Add the --externalURL flag if the PORT environment variable is set
-if [ -n "$externalurl" ]; then
-  CMD="$CMD --externalurl $externalurl"
-fi
+[ -n "$dbip" ] && set -- "$@" --dbip "$dbip"
+[ -n "$dbport" ] && set -- "$@" --dbport "$dbport"
+[ -n "$dbname" ] && set -- "$@" --dbname "$dbname"
+[ -n "$dbusername" ] && set -- "$@" --dbusername "$dbusername"
 
-# Add the --timezone flag if the TIMEZONE environment variable is set
-if [ -n "$timezone" ]; then
-  CMD="$CMD --timezone $timezone"
-fi
+[ -n "$generateinvite" ] && set -- "$@" --generateinvite "$generateinvite"
+[ -n "$disablesmtp" ] && set -- "$@" --disablesmtp "$disablesmtp"
+[ -n "$smtphost" ] && set -- "$@" --smtphost "$smtphost"
+[ -n "$smtpport" ] && set -- "$@" --smtpport "$smtpport"
+[ -n "$smtpusername" ] && set -- "$@" --smtpusername "$smtpusername"
+[ -n "$smtpfrom" ] && set -- "$@" --smtpfrom "$smtpfrom"
 
-# Add database-related flags if the corresponding environment variables are set
-if [ -n "$dbip" ]; then
-  CMD="$CMD --dbip $dbip"
-fi
-
-if [ -n "$dbport" ]; then
-  CMD="$CMD --dbport $dbport"
-fi
-
-if [ -n "$dbname" ]; then
-  CMD="$CMD --dbname $dbname"
-fi
-
-if [ -n "$dbusername" ]; then
-  CMD="$CMD --dbusername $dbusername"
-fi
-
-if [ -n "$dbpassword" ]; then
-  CMD="$CMD --dbpassword $dbpassword"
-fi
-
-# Add flags for invite generation and SMTP settings if those environment variables are set
-if [ -n "$generateinvite" ]; then
-  CMD="$CMD --generateinvite $generateinvite"
-fi
-
-if [ -n "$disablesmtp" ]; then
-  CMD="$CMD --disablesmtp $disablesmtp"
-fi
-
-if [ -n "$smtphost" ]; then
-  CMD="$CMD --smtphost $smtphost"
-fi
-
-if [ -n "$smtpport" ]; then
-  CMD="$CMD --smtpport $smtpport"
-fi
-
-if [ -n "$smtpusername" ]; then
-  CMD="$CMD --smtpusername $smtpusername"
-fi
-
-if [ -n "$smtppassword" ]; then
-  CMD="$CMD --smtppassword $smtppassword"
-fi
-
-if [ -n "$smtpfrom" ]; then
-  CMD="$CMD --smtpfrom $smtpfrom"
-fi
-
-# Execute the final command
-exec $CMD
+exec "$@"

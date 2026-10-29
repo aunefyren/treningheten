@@ -121,8 +121,12 @@ Config comes from `config/config.json`, flags, or env vars (mapped to flags in
 per-provider flags — exist only in the JSON. Typical local run:
 
 ```bash
-./treningheten --port 8080 --dbip 127.0.0.1 --dbusername user --dbpassword pass --dbname treningheten --generateinvite true
+dbpassword=pass ./treningheten --port 8080 --dbip 127.0.0.1 --dbusername user --dbname treningheten --generateinvite true
 ```
+
+The DB and SMTP passwords are read from the `dbpassword` / `smtppassword` environment
+variables (precedence: `--dbpassword` / `--smtppassword` flag > env var > config file). Prefer
+the env vars: flag values are visible in the process list.
 
 `--generateinvite true` prints a one-time invite code at startup, needed to register the
 first user. `--disablesmtp true` turns mail off, which also skips email verification.

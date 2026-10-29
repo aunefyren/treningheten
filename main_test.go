@@ -235,3 +235,29 @@ func TestEveryProtectedRouteRejectsAnonymousCallers(t *testing.T) {
 		t.Errorf("only %d protected routes checked; did the route table change?", checked)
 	}
 }
+
+func TestResolveSecret(t *testing.T) {
+	tests := []struct {
+		name      string
+		flagSet   bool
+		flagValue string
+		env       string
+		config    string
+		want      string
+	}{
+		{"neither flag nor env keeps config", false, "config", "", "config", "config"},
+		{"env beats config", false, "config", "fromenv", "config", "fromenv"},
+		{"flag beats env and config", true, "fromflag", "fromenv", "config", "fromflag"},
+		{"flag beats config", true, "fromflag", "", "config", "fromflag"},
+		{"explicit empty flag still wins", true, "", "fromenv", "config", ""},
+		{"nothing set is empty", false, "", "", "", ""},
+		{"value with spaces and flag text is untouched", false, "", "a b --generateinvite true", "", "a b --generateinvite true"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := resolveSecret(tt.flagSet, tt.flagValue, tt.env, tt.config); got != tt.want {
+				t.Errorf("resolveSecret() = %q, want %q", got, tt.want)
+			}
+		})
+	}
+}
