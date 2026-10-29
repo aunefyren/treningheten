@@ -37,9 +37,9 @@ together with the maintainer; **coding agents** (Sonnet) implement an agreed pla
   the body says `Closes #<issue>`. CI (`.github/workflows/go.yml`) must pass. The maintainer
   merges — agents never merge or push to `main`.
 - **GitHub Actions changes go in `.github/potential-workflows/`.** The agent token can't push
-  to `.github/workflows/`, so put the full new or changed workflow file there under its real
-  name. Never edit `.github/workflows/` directly. The PR body lists the `git mv` commands so the
-  maintainer can move the files into place within the PR.
+  to `.github/workflows/`, so never touch that directory. Stage complete workflow files under
+  their real names, and list the `git mv`/`git rm` commands at the top of the PR body for the
+  maintainer. Procedure and workflow overview: [`docs/ci.md`](docs/ci.md).
 - **Nothing lasts outside the repo.** Agent memory is per worktree path and is lost with it.
   A fact worth keeping goes into the relevant `docs/*.md`, or into the issue.
 
