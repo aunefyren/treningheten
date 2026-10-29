@@ -6,6 +6,7 @@ var OAUTH_CLIENT_ID = "treningheten-web";
 // token is never visible to script: the server keeps it in an HttpOnly cookie.
 function store_tokens(access_token, expires_in) {
     if(access_token) {
+        set_session_hint(true);
         set_cookie("treningheten", access_token, (expires_in || 3600) / 86400);
         jwt = access_token;
     }
@@ -14,8 +15,30 @@ function store_tokens(access_token, expires_in) {
 // Clear the access token (failed refresh / login page). The HttpOnly refresh cookie can
 // only be cleared by the server: logout() revokes it, a failed refresh clears it.
 function clear_tokens() {
+    set_session_hint(false);
     set_cookie("treningheten", "", -1);
     jwt = "";
+}
+
+// The HttpOnly refresh cookie is invisible to script, so a localStorage flag records that
+// a session probably exists. The silent refresh only runs when it is set, which keeps
+// logged-out page loads off the rate-limited token endpoint. It is not a credential.
+var SESSION_HINT_KEY = "treningheten_session";
+function set_session_hint(present) {
+    try {
+        if(present) {
+            localStorage.setItem(SESSION_HINT_KEY, "1");
+        } else {
+            localStorage.removeItem(SESSION_HINT_KEY);
+        }
+    } catch(e) {}
+}
+function has_session_hint() {
+    try {
+        return localStorage.getItem(SESSION_HINT_KEY) === "1";
+    } catch(e) {
+        return false;
+    }
 }
 
 // The refresh token used to be a JS-readable cookie; it is ignored by the server now,
@@ -194,7 +217,7 @@ function get_login(cookie, triedRefresh) {
 
     if(jwt == "") {
         // No access token: try to silently refresh before giving up.
-        if(!triedRefresh) {
+        if(!triedRefresh && has_session_hint()) {
             refresh_access_token(function(newToken) {
                 if(newToken) {
                     get_login(newToken, true);
@@ -244,7 +267,7 @@ function get_login(cookie, triedRefresh) {
             } else if(result.error) {
                 // Access token rejected: attempt a single silent refresh before
                 // bouncing the user to the login page.
-                if(!triedRefresh) {
+                if(!triedRefresh && has_session_hint()) {
                     refresh_access_token(function(newToken) {
                         if(newToken) {
                             get_login(newToken, true);

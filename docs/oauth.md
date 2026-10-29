@@ -111,6 +111,11 @@ are unchanged and still get `refresh_token` in the body.
   `ImageRequestUserID` authenticate `<img>` requests from it. On a missing or rejected
   access token the frontend attempts one silent refresh (`credentials` included, no token
   in the body) and treats a 400/401 as logged out (see `web/js/functions.js`).
+- **Session hint:** because script cannot see the refresh cookie, `store_tokens` sets a
+  `treningheten_session` flag in `localStorage` (removed by `clear_tokens`, `logout()` and a
+  failed refresh) and the silent refresh only runs when it is set. Without it every
+  logged-out page load would hit `/api/oauth/token` and burn its per-IP rate limit. The hint
+  is not a credential.
 - **Legacy cookie:** the old JS-set `treningheten_refresh` cookie is ignored by the server
   (the new cookie has a different name so the two can never be confused) and deleted by
   `functions.js` on load. There is no migration: users who only had the old cookie log in
