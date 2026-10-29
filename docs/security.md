@@ -120,6 +120,18 @@ save. Without that, an install that predates this change would keep its world-re
 `0644` secrets forever. The chmod failures are logged, not fatal: a bind mount or a
 Windows host may not honour the change, and that shouldn't stop the app from starting.
 
+## The admin scope is reserved; DCR needs MCP (#18)
+
+`POST /api/oauth/register` is unauthenticated, and `admin` used to be registrable, so a
+third-party client could be granted `admin` if an admin approved consent. Now `admin` is
+reserved for the first-party client and Personal Access Tokens: registration never grants
+it, `narrowScope` drops it for any non-first-party client (even one registered earlier with
+it stored), the refresh grant drops it from a non-first-party chain at its next rotation,
+and discovery no longer advertises it. Dynamic client registration also returns `404`
+(and the metadata omits `registration_endpoint`) unless `mcp_enabled` is on, and a daily
+job deletes registrations older than 7 days with no live refresh token. See
+[oauth.md](oauth.md).
+
 ## Confidential OAuth clients must present their secret
 
 `OAuthClient.Public` is tagged `default:true`. GORM leaves a `false` zero value out of the
@@ -263,9 +275,6 @@ version, not the build toolchain.
 
 Tracked as GitHub issues with the
 [`security` label](https://github.com/aunefyren/treningheten/issues?q=is%3Aissue+label%3Asecurity):
-the
-JS-readable 30-day refresh cookie (the `Secure` flag is set on HTTPS; the `HttpOnly`
-follow-up is #55), whether the
-`admin` scope should be grantable to dynamically registered clients (#18), and the
-absence of a script-restricting Content-Security-Policy (#52, which first needs the inline
-handlers and scripts removed from `web/`).
+the JS-readable 30-day refresh cookie (the `Secure` flag is set on HTTPS; the `HttpOnly`
+follow-up is #55), and the absence of a script-restricting Content-Security-Policy (#52,
+which first needs the inline handlers and scripts removed from `web/`).

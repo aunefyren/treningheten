@@ -26,13 +26,18 @@ func baseURL(context *gin.Context) string {
 // OAuthAuthorizationServerMetadata serves the RFC 8414 discovery document.
 func OAuthAuthorizationServerMetadata(context *gin.Context) {
 	base := baseURL(context)
+	// Dynamic client registration only exists while MCP is enabled.
+	registrationEndpoint := ""
+	if mcpEnabled() {
+		registrationEndpoint = base + "/api/oauth/register"
+	}
 	context.JSON(http.StatusOK, models.AuthorizationServerMetadata{
 		Issuer:                            base,
 		AuthorizationEndpoint:             base + "/authorize",
 		TokenEndpoint:                     base + "/api/oauth/token",
-		RegistrationEndpoint:              base + "/api/oauth/register",
+		RegistrationEndpoint:              registrationEndpoint,
 		RevocationEndpoint:                base + "/api/oauth/revoke",
-		ScopesSupported:                   models.SupportedScopes,
+		ScopesSupported:                   models.AdvertisedScopes,
 		ResponseTypesSupported:            []string{"code"},
 		GrantTypesSupported:               []string{"authorization_code", "refresh_token", "password"},
 		TokenEndpointAuthMethodsSupported: []string{"none", "client_secret_basic", "client_secret_post"},
@@ -47,7 +52,7 @@ func OAuthProtectedResourceMetadata(context *gin.Context) {
 	context.JSON(http.StatusOK, models.ProtectedResourceMetadata{
 		Resource:               base,
 		AuthorizationServers:   []string{base},
-		ScopesSupported:        models.SupportedScopes,
+		ScopesSupported:        models.AdvertisedScopes,
 		BearerMethodsSupported: []string{"header"},
 	})
 }

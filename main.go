@@ -172,6 +172,7 @@ func scheduleJobs(taskScheduler chrono.TaskScheduler) int {
 		cron    string
 		run     func()
 	}{
+		{"prune unused OAuth clients", true, "0 30 3 * * *", controllers.PruneUnusedOAuthClients},
 		{"sunday reminder", true, "0 0 18 * * 7", controllers.SendSundayReminders},
 		{"generating results for last week", true, "0 0 8 * * 1", controllers.ProcessLastWeek},
 		{"Ollama pre-cache", files.ConfigFile.Ollama.Enabled, "0 0 6 * * *", controllers.OllamaPreCacheForAllUsers},
