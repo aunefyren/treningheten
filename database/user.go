@@ -652,7 +652,7 @@ func GetAmountOfEnabledUsers() (int, error) {
 	var users []models.User
 
 	userRecords := Instance.
-		Where(&models.User{Enabled: true}).
+		Where("users.enabled = ?", true).
 		Find(&users)
 
 	if userRecords.Error != nil {
