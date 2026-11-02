@@ -70,9 +70,43 @@ needs its proxy's range added to `trustedProxyCIDRs`.
 | --- | --- | --- |
 | `X-Content-Type-Options` | `nosniff` | no MIME sniffing of served files |
 | `X-Frame-Options` | `DENY` | clickjacking; nothing in `web/` frames the app |
-| `Content-Security-Policy` | `frame-ancestors 'none'` | modern equivalent of the above. It has only this directive, so scripts are **not** restricted yet; the strict policy is [#52](https://github.com/aunefyren/treningheten/issues/52) and extends this same header |
+| `Content-Security-Policy` | `frame-ancestors 'none'` | modern equivalent of the above. Enforced; deliberately only this directive until the strict policy below is enforced |
+| `Content-Security-Policy-Report-Only` | `middlewares.ContentSecurityPolicy` | the strict policy ([#52](https://github.com/aunefyren/treningheten/issues/52)), reported but not enforced |
 | `Referrer-Policy` | `strict-origin-when-cross-origin` | no full URLs to other origins |
 | `Strict-Transport-Security` | `max-age=31536000` | only when the configured external URL is `https` |
+
+### Strict CSP (report-only)
+
+`middlewares.ContentSecurityPolicy` is one constant: `default-src 'self'`, `script-src 'self'`,
+`style-src 'self'`, `font-src 'self'`, `img-src 'self' data: blob:`, `connect-src 'self'`,
+`object-src 'none'`, `base-uri 'self'`, `form-action 'self'`, `frame-ancestors 'none'`, plus
+these external origins, each really used by `web/`:
+
+- `https://fonts.googleapis.com` (style) and `https://fonts.gstatic.com` (font): Google Fonts.
+- `https://cdnjs.cloudflare.com` and `https://unpkg.com` (script, style): Chart.js and Leaflet.
+- `https://*.tile.openstreetmap.org` (img): Leaflet map tiles.
+- `https://i.scdn.co` (img): Spotify cover art, passed through by the API.
+
+It is sent as `Content-Security-Policy-Report-Only` with **no `report-uri`** (no
+unauthenticated write route): violations appear in the browser console. Once every page
+is clean the same constant is enforced (#71). Until then, check a page by opening it with
+the console open and looking for "Content-Security-Policy-Report-Only" violations.
+
+Refactor rules for making a page compliant (shared by the #52 sub-issues):
+
+- **Handlers:** no `on*=` attributes and no `javascript:` URLs. Use `addEventListener`, or
+  for JS-built lists one listener on a stable container plus `data-action="..."` and
+  `data-*` arguments on the element, via `on_action(container, handlers)` in `functions.js`.
+- **Styles:** no `style=` attributes in HTML or JS-built markup, and no
+  `setAttribute('style', ...)` or `style.cssText`. Use classes (`web/css/*.css`) and the
+  `hidden` attribute. Setting `element.style.x = ...` (CSSOM) is allowed.
+- **Scripts:** no inline `<script>` blocks. A page's init lives in its own JS file and runs
+  on `DOMContentLoaded`; carry template values via `data-*` or `<meta>`.
+- **No `eval`:** libraries must be given functions, not code strings (Winwheel callbacks).
+
+Done so far (#66): inline `<script>` blocks, the nav `toggle_navbar`/`logout` handlers
+(bound in `functions.js`) and the wheel page. Page-specific inline handlers and `style=`
+attributes remain and are reported in the console until #67 to #70 land.
 
 HSTS is conditional because sending it from a plain-HTTP instance would be meaningless
 at best, and it pins browsers to HTTPS for a year once seen. It omits `includeSubDomains`
@@ -206,6 +240,11 @@ doesn't re-derive them:
 - **Ownership scoping** — the `…ByIDAndUserID` pattern covers operations, operation sets,
   exercises, gear, weights, PATs and media sync. Pointer-returning getters must return
   `nil` on a miss (see [conventions.md](conventions.md#a-not-found-getter-must-return-nil-and-the-caller-must-check-it)).
+- **Nil-UUID ids** (2026-11-02) — GORM drops zero-valued fields from struct conditions, so
+  a nil-UUID id would erase the id filter of any `Where(&models.X{ID: id})`. No query is
+  written that way, and the guard tests in
+  [data-conventions.md](data-conventions.md#never-put-an-id-in-a-gorm-struct-map-or-inline-condition)
+  keep it so: every route and MCP tool answers the nil UUID like any unknown id.
 - **Admin enforcement** — `Auth(true)` requires both the admin scope on the token and a
   live `admin` flag on the DB row; read-only scopes are blocked from write methods
   (`middlewares/auth.go`).
@@ -280,5 +319,5 @@ version, not the build toolchain.
 
 Tracked as GitHub issues with the
 [`security` label](https://github.com/aunefyren/treningheten/issues?q=is%3Aissue+label%3Asecurity):
-the absence of a script-restricting Content-Security-Policy (#52, which first needs the
-inline handlers and scripts removed from `web/`).
+the strict Content-Security-Policy, which is report-only until the inline handlers and styles
+are removed from `web/` (#52, enforced in #71).

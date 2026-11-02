@@ -2606,3 +2606,7 @@ label {
 }
 .integration-banner .integration-notice { margin: 0 0 var(--space-2); }
 .integration-banner .integration-notice:last-child { margin-bottom: 0; }
+
+/* Wheel page: the module and the Reset / Replay buttons start with the `hidden` attribute and
+   are revealed from JS; these win over .module / .btn, which set their own display. */
+#wheel-module[hidden], .canvas-buttons [hidden] { display: none; }

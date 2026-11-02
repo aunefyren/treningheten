@@ -2017,3 +2017,17 @@ function switchSeason(userID) {
     var seasonID = document.getElementById('season_title').value;
     get_season(userID, true, seasonID)
 }
+
+
+// Page bootstrap (formerly an inline <script> in web/html/frontpage.html).
+var jwt;
+var fireworks_int = 0;
+var user_id = 0;
+var userList = {};
+
+document.addEventListener('DOMContentLoaded', function() {
+    info('Loading...');
+    showLoggedOutMenu();
+    jwt = get_cookie('treningheten');
+    get_login(jwt);
+});

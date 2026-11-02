@@ -1,0 +1,22 @@
+name: Idea
+description: Something worth discussing, not yet planned
+labels: [idea]
+body:
+  - type: textarea
+    id: idea
+    attributes:
+      label: The idea
+    validations:
+      required: true
+  - type: textarea
+    id: why
+    attributes:
+      label: Why
+      description: The problem it solves or the use case behind it.
+    validations:
+      required: true
+  - type: textarea
+    id: questions
+    attributes:
+      label: Open questions
+      description: Anything undecided. If this blocks the work, the maintainer adds `needs-decision`.

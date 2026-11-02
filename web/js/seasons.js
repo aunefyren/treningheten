@@ -358,3 +358,16 @@ function place_leaderboard(weeks_array, season_id) {
     return
 
 }
+
+
+// Page bootstrap (formerly an inline <script> in web/html/seasons.html).
+var groups;
+var jwt;
+var userList = {};
+
+document.addEventListener('DOMContentLoaded', function() {
+    info('Loading...');
+    showLoggedOutMenu();
+    jwt = get_cookie('treningheten');
+    get_login(jwt);
+});

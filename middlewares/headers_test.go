@@ -3,6 +3,7 @@ package middlewares
 import (
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 
 	"github.com/gin-gonic/gin"
@@ -25,6 +26,8 @@ func TestSecurityHeadersAreSet(t *testing.T) {
 		"X-Frame-Options":         "DENY",
 		"Content-Security-Policy": "frame-ancestors 'none'",
 		"Referrer-Policy":         "strict-origin-when-cross-origin",
+
+		"Content-Security-Policy-Report-Only": ContentSecurityPolicy,
 	}
 	for name, value := range want {
 		if got := header.Get(name); got != value {
@@ -43,5 +46,16 @@ func TestSecurityHeadersHSTSOnlyForHTTPS(t *testing.T) {
 		if got := headersFor(t, external).Get("Strict-Transport-Security"); got != "" {
 			t.Errorf("%q: HSTS = %q, want none", external, got)
 		}
+	}
+}
+
+func TestContentSecurityPolicyIsStrict(t *testing.T) {
+	for _, directive := range []string{"default-src 'self'", "script-src 'self'", "object-src 'none'", "base-uri 'self'", "frame-ancestors 'none'"} {
+		if !strings.Contains(ContentSecurityPolicy, directive) {
+			t.Errorf("policy lacks %q", directive)
+		}
+	}
+	if strings.Contains(ContentSecurityPolicy, "unsafe-") {
+		t.Error("policy must not allow unsafe-inline or unsafe-eval")
 	}
 }

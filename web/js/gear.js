@@ -74,3 +74,14 @@ function escapeHTML(value) {
         .replace(/"/g, "&quot;")
         .replace(/'/g, "&#39;");
 }
+
+
+// Page bootstrap (formerly an inline <script> in web/html/gear.html).
+var jwt;
+
+document.addEventListener('DOMContentLoaded', function() {
+    info('Loading...');
+    showLoggedOutMenu();
+    jwt = get_cookie('treningheten');
+    get_login(jwt);
+});

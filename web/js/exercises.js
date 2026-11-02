@@ -636,3 +636,15 @@ function feedTimeOnly(timeString) {
 function exerciseRedirect(exerciseDayID) {
     window.location = '/exercises/' + exerciseDayID;
 }
+
+
+// Page bootstrap (formerly an inline <script> in web/html/exercises.html).
+var groups;
+var jwt;
+
+document.addEventListener('DOMContentLoaded', function() {
+    info('Loading...');
+    showLoggedOutMenu();
+    jwt = get_cookie('treningheten');
+    get_login(jwt);
+});

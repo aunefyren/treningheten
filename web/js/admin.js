@@ -885,3 +885,15 @@ function syncIntegration(integration) {
         success(result.message);
     });
 }
+
+
+// Page bootstrap (formerly an inline <script> in web/html/admin.html).
+var groups;
+var jwt;
+
+document.addEventListener('DOMContentLoaded', function() {
+    info('Loading...');
+    showLoggedOutMenu();
+    jwt = get_cookie('treningheten');
+    get_login(jwt);
+});
