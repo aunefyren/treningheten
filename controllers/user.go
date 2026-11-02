@@ -315,6 +315,7 @@ func VerifyUser(context *gin.Context) {
 	}
 
 	// Reply
+	tokenSet = setRefreshCookie(context, tokenSet)
 	context.JSON(http.StatusOK, gin.H{"message": "User verified.", "data": tokenSet})
 
 }
@@ -517,6 +518,7 @@ func APIUpdateUser(context *gin.Context) {
 		}
 	}
 
+	tokenSet = setRefreshCookie(context, tokenSet)
 	context.JSON(http.StatusOK, gin.H{"message": "Account updated.", "data": tokenSet, "verified": user.Verified})
 }
 

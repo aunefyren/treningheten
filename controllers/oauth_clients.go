@@ -123,9 +123,17 @@ func OAuthRegister(context *gin.Context) {
 
 // OAuthRevoke implements RFC 7009 token revocation. Only refresh tokens are
 // revocable (access tokens are stateless JWTs); per the spec we respond 200
-// regardless to avoid leaking token state.
+// regardless to avoid leaking token state. Revoking by the first-party cookie also clears it.
 func OAuthRevoke(context *gin.Context) {
 	token := context.PostForm("token")
+	// The first-party web client holds its refresh token in an HttpOnly cookie, so it
+	// revokes without a token field: fall back to the cookie and clear it.
+	if token == "" && context.PostForm("client_id") == models.FirstPartyClientID {
+		if cookie, err := context.Cookie(refreshCookieName); err == nil {
+			token = cookie
+		}
+		clearRefreshCookie(context)
+	}
 	if token != "" {
 		if err := database.RevokeRefreshToken(auth.HashToken(token)); err != nil {
 			logger.Log.Info("token revocation lookup failed. error: " + err.Error())

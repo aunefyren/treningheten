@@ -7,6 +7,13 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+// IsHTTPSURL reports whether rawURL has an https scheme. It is the one rule for "this
+// instance is served over HTTPS" (HSTS, the Secure flag on server-set cookies).
+func IsHTTPSURL(rawURL string) bool {
+	parsed, err := url.Parse(strings.TrimSpace(rawURL))
+	return err == nil && strings.EqualFold(parsed.Scheme, "https")
+}
+
 // ContentSecurityPolicy is the strict policy for the whole app. It is sent as
 // Content-Security-Policy-Report-Only for now and is meant to be enforced as-is later, so
 // keep it a single constant. No report-uri: violations show up in the browser console.
@@ -40,10 +47,7 @@ const ContentSecurityPolicy = "default-src 'self'; " +
 // never pins browsers to HTTPS. It deliberately omits includeSubDomains and preload:
 // self-hosted instances often share a parent domain with other services.
 func SecurityHeaders(externalURL string) gin.HandlerFunc {
-	https := false
-	if parsed, err := url.Parse(strings.TrimSpace(externalURL)); err == nil {
-		https = strings.EqualFold(parsed.Scheme, "https")
-	}
+	https := IsHTTPSURL(externalURL)
 
 	return func(context *gin.Context) {
 		header := context.Writer.Header()
