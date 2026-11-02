@@ -1,3 +1,12 @@
+function escapeHTML(value) {
+    return String(value == null ? "" : value)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#39;");
+}
+
 function load_page(result) {
 
     if(result !== false) {
@@ -202,7 +211,7 @@ function PlaceUserData(user_object) {
         userLinks.style.display = "flex"
 
         userLinks.innerHTML += `
-            <div onclick="window.open('${user_object.hevy_profile_url}', '_blank');" class="user-link clickable" title="Hevy profile">
+            <div data-href="${escapeHTML(user_object.hevy_profile_url)}" onclick="window.open(this.dataset.href, '_blank', 'noopener');" class="user-link clickable" title="Hevy profile">
                 <img src="/assets/hevy.png">
             </div>
         `;
@@ -482,7 +491,7 @@ function PlaceUserStats(data) {
     if (act && act.action) {
         var actionName  = act.action.name || "";
         var actionLogo  = act.action.has_logo
-            ? `<img src="/assets/actions/${act.action.name}.svg" class="stat-title-logo" onerror="this.style.display='none'">`
+            ? `<img src="/assets/actions/${encodeURIComponent(act.action.name)}.svg" class="stat-title-logo" onerror="this.style.display='none'">`
             : "";
 
         // An average is null when the window holds too few sessions to average without

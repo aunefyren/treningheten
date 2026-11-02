@@ -160,6 +160,20 @@ func getOrCreateHevyAction(template models.HevyExerciseTemplate) (*models.Action
 	return &created, nil
 }
 
+// hevyProfileURL validates the profile URL Hevy reports for a user, returning it trimmed
+// and true only when it is an absolute https URL with a host.
+func hevyProfileURL(raw string) (string, bool) {
+	raw = strings.TrimSpace(raw)
+	if raw == "" {
+		return "", false
+	}
+	parsed, err := url.Parse(raw)
+	if err != nil || parsed.Scheme != "https" || parsed.Host == "" {
+		return "", false
+	}
+	return raw, true
+}
+
 // encryptHevyAPIKey encrypts the API key at rest using the configured Hevy token key.
 func encryptHevyAPIKey(apiKey string) (string, error) {
 	if apiKey == "" {
@@ -659,8 +673,9 @@ func APISetHevyAPIKey(context *gin.Context) {
 
 	// Store the public profile URL so it can be shown (gated by HevyPublic) on the
 	// user's profile, mirroring the Strava athlete link.
-	if strings.TrimSpace(userInfo.URL) != "" {
-		profileURL := strings.TrimSpace(userInfo.URL)
+	// Only an absolute https URL is kept: the profile page opens it as a link, so a
+	// javascript: (or other) scheme from the upstream response must never be stored.
+	if profileURL, ok := hevyProfileURL(userInfo.URL); ok {
 		user.HevyProfileURL = &profileURL
 	}
 

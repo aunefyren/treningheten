@@ -305,6 +305,19 @@ resolving. Fixed in the 2026-09-03 privacy pass:
   `GetExerciseDaysForSharingUsersInListUsingDates` for the requested user, with the explicit
   gate kept as defence in depth.
 
+Fixed 2026-11-02:
+
+- **Stored XSS through action names (2026-11-02).** Any user can create a global action,
+  and the exercise picker built `onclick="selectActionForOperation('…', '${action.name}')"`
+  plus the visible label from the raw name, so a name like `x');alert(1);//` or an `<img
+  onerror>` ran in every other user's session. The picker now escapes the label and passes
+  the name through `data-action-name`; action logo paths use `encodeURIComponent`;
+  `APICreateAction` refuses markup and quote characters (`models.ValidActionName`). The
+  Hevy profile link got the same treatment: it is passed via `data-href`, and
+  `hevyProfileURL` only stores an absolute `https` URL. Same bug class as a wish-URL
+  advisory in a sibling project; rule in
+  [conventions.md](conventions.md#frontend-vanilla-js-conventions).
+
 ## Toolchain patch drift (S12, #15)
 
 Shipped binaries and images are built with a current Go patch: the `Dockerfile` builder uses

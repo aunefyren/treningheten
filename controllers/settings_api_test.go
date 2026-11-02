@@ -72,6 +72,8 @@ func TestCustomActionsAndPrizes(t *testing.T) {
 		"bad type":      {Name: "Thing", Type: "flying"},
 		"bad category":  {Name: "Thing", Type: "lifting", Category: "vibes"},
 		"bad equipment": {Name: "Thing", Type: "lifting", Equipment: "anvil"},
+		"markup name":   {Name: "<img src=x onerror=alert(1)>", Type: "lifting"},
+		"quoted name":   {NorwegianName: `x" onclick="alert(1)`, Type: "lifting"},
 	} {
 		if code := h.do("POST", "/api/auth/actions", token, request).Code; code != http.StatusBadRequest {
 			t.Errorf("%s: status = %d, want 400", name, code)
