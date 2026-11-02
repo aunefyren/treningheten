@@ -29,3 +29,19 @@ func TestHevyTypeToActionType(t *testing.T) {
 		}
 	}
 }
+
+func TestHevyProfileURL(t *testing.T) {
+	for raw, want := range map[string]string{
+		"https://hevy.com/user/someone": "https://hevy.com/user/someone",
+		"  https://hevy.com/user/x  ":   "https://hevy.com/user/x",
+	} {
+		if got, ok := hevyProfileURL(raw); !ok || got != want {
+			t.Errorf("hevyProfileURL(%q) = %q, %v; want %q, true", raw, got, ok, want)
+		}
+	}
+	for _, raw := range []string{"", "javascript:alert(1)", "http://hevy.com/user/x", "https:///path", "hevy.com/user/x", "');alert(1);//"} {
+		if got, ok := hevyProfileURL(raw); ok {
+			t.Errorf("hevyProfileURL(%q) = %q, true; want rejected", raw, got)
+		}
+	}
+}

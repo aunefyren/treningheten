@@ -149,6 +149,11 @@ strength); user-created actions pick it in the "Add exercise" form or default fr
 (lifting → strength, moving → cardio, timing → general). `backfillActionCategories` filled
 existing rows once.
 
+Actions are global, so a name one user creates is shown to everyone. `APICreateAction`
+rejects names longer than `models.MaxActionNameLength` (64 runes) or containing `<`, `>`,
+`"`, `` ` ``, `\` or control characters (`models.ValidActionName`); the frontend escapes them
+as well.
+
 ### Equipment
 
 Equipment belongs to the **exercise**, so it lives on **`Action.Equipment`** (barbell, dumbbell,

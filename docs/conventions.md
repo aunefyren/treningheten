@@ -242,6 +242,12 @@ There is no build step or framework — `web/js/*.js` is served through Go templ
   theoretical — an unescaped day note plus a missing ownership check on its write endpoint
   was a stored-XSS path to another user's session tokens, which are readable from
   `document.cookie` by design.
+- **Never put a free-text value inside a JS string in an inline handler.** The browser
+  HTML-decodes an attribute before running it, so `onclick="f('${escapeHTML(name)}')"` is
+  still injectable: `&#39;` turns back into `'`. Put the value in an escaped `data-*`
+  attribute and read it back (`onclick="f(this.dataset.name)"`, or `on_action`). Values
+  built into URLs (`src`, `href`) go through `encodeURIComponent`, and an external link
+  stored from a third party is checked for an `https` scheme server-side before it is saved.
 - **Avoid `innerHTML +=` inside loops** — accumulate a string and assign once (repeated
   `+=` reparses the DOM each iteration).
 - **Images load via `<img src>`, not XHR.** Profile/achievement images are served as raw
