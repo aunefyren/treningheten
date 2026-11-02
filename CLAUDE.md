@@ -69,6 +69,9 @@ together with the maintainer; **coding agents** (Sonnet) implement an agreed pla
 - **Durations are seconds.** `*time.Duration` fields (`Operation.Duration`,
   `OperationSet.Time`/`MovingTime`) hold a raw seconds count — `int64(*d)`, never
   `d.Seconds()`.
+- **No GORM struct, map or inline conditions** — `Where("gear.id = ?", id)`, never
+  `Where(&models.Gear{…ID: id})` or `First(&gear, id)`: a nil UUID drops out of those and
+  matches every row ([data-conventions](docs/data-conventions.md#never-put-an-id-in-a-gorm-struct-map-or-inline-condition)).
 - **New models go in `Migrate()`** (`database/client.go`). There are no migration files;
   queries must run on SQLite, MySQL and Postgres ([conventions](docs/conventions.md#portable-sql)).
 - **New routes go in `initRouter`** (`main.go`) *and* in the test harness route table

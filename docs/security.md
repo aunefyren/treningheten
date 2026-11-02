@@ -235,6 +235,11 @@ doesn't re-derive them:
 - **Ownership scoping** — the `…ByIDAndUserID` pattern covers operations, operation sets,
   exercises, gear, weights, PATs and media sync. Pointer-returning getters must return
   `nil` on a miss (see [conventions.md](conventions.md#a-not-found-getter-must-return-nil-and-the-caller-must-check-it)).
+- **Nil-UUID ids** (2026-11-02) — GORM drops zero-valued fields from struct conditions, so
+  a nil-UUID id would erase the id filter of any `Where(&models.X{ID: id})`. No query is
+  written that way, and the guard tests in
+  [data-conventions.md](data-conventions.md#never-put-an-id-in-a-gorm-struct-map-or-inline-condition)
+  keep it so: every route and MCP tool answers the nil UUID like any unknown id.
 - **Admin enforcement** — `Auth(true)` requires both the admin scope on the token and a
   live `admin` flag on the DB row; read-only scopes are blocked from write methods
   (`middlewares/auth.go`).

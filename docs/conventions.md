@@ -326,6 +326,14 @@ sweeps below. Total statement coverage is about 90%.
   with random ids, then again with the database closed, and must not panic. It found the
   missing `return` in `APIRegisterSickleave`; keep new routes in the harness so they're
   swept too.
+- **Nil-UUID sweep** (`controllers/nil_uuid_test.go`): every harness route (as an anonymous
+  caller, a user and an admin) and every id-taking MCP tool is called once with a random
+  UUID and once with the nil UUID, in the path, the query and the body, over a world where
+  three users own a row of every kind. Both must give the same status, the nil UUID must
+  not return another user's data, and it must not write tables the random id didn't. With
+  the source guard `TestNoStructConditions` it holds the rule in
+  [data-conventions.md](data-conventions.md#never-put-an-id-in-a-gorm-struct-map-or-inline-condition).
+  A new user-owned model belongs in `seedNilUUIDWorld`.
 - **Fault-injection sweep** (`controllers/fault_test.go`, scenarios in
   `fault_scenarios*_test.go`): `installFaultInjector` registers GORM callbacks that fail
   exactly the Nth database operation. Each scenario runs once cleanly to count its
