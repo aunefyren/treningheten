@@ -295,3 +295,15 @@ function PlaceUserAchievements(achievementArrayPersonal, achievementArray, userI
 
 }
 
+
+
+// Page bootstrap (formerly an inline <script> in web/html/achievements.html).
+var groups;
+var jwt;
+
+document.addEventListener('DOMContentLoaded', function() {
+    info('Loading...');
+    showLoggedOutMenu();
+    jwt = get_cookie('treningheten');
+    get_login(jwt);
+});

@@ -456,10 +456,54 @@ function markActiveNavItem() {
     }
 }
 
+// The <nav> element; clicks inside it never close the mobile dropdown. Set on DOMContentLoaded.
+var ignoreNav = null;
+
+// Bind the shared nav handlers (every page has the same nav markup), so the templates need
+// no inline onclick attributes: the burger button toggles the dropdown, "Log out" logs out.
+document.addEventListener('DOMContentLoaded', function() {
+    ignoreNav = document.getElementById('nav');
+
+    var navToggle = document.getElementById('nav-toggle');
+    if (navToggle) {
+        navToggle.addEventListener('click', toggle_navbar);
+    }
+
+    var logoutLink = document.getElementById('logout');
+    if (logoutLink) {
+        logoutLink.addEventListener('click', function(event) {
+            event.preventDefault();
+            logout();
+        });
+    }
+});
+
+// on_action wires event delegation for markup without inline handlers: one listener on a
+// stable container dispatches on the closest [data-action] element to handlers[action].
+// A handler is called as handler(element, event); read its arguments from element.dataset.
+//   container: element or element id; handlers: { actionName: function(element, event) {} }
+//   eventName: defaults to 'click'.
+function on_action(container, handlers, eventName) {
+    var root = (typeof container === 'string') ? document.getElementById(container) : container;
+    if (!root) {
+        return;
+    }
+    root.addEventListener(eventName || 'click', function(event) {
+        var element = event.target.closest('[data-action]');
+        if (!element || !root.contains(element)) {
+            return;
+        }
+        var handler = handlers[element.dataset.action];
+        if (typeof handler === 'function') {
+            handler(element, event);
+        }
+    });
+}
+
 // Close the open mobile dropdown when clicking outside the nav (modal backdrop
 // dismissal is handled by TRModal).
 document.addEventListener('click', function(event) {
-    var isClickInsideElement = ignoreNav.contains(event.target);
+    var isClickInsideElement = ignoreNav && ignoreNav.contains(event.target);
     if (!isClickInsideElement) {
         var nav_classlist = document.getElementById('navbar').classList;
         if (nav_classlist.contains('nav-open')) {

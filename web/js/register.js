@@ -131,3 +131,14 @@ function clear_data() {
 function disable_register_button() {
     document.getElementById("register-button").disabled = true;
 }
+
+
+// Page bootstrap (formerly an inline <script> in web/html/register.html).
+var jwt;
+
+document.addEventListener('DOMContentLoaded', function() {
+    info('Loading...');
+    showLoggedOutMenu();
+    jwt = get_cookie('treningheten');
+    get_login(jwt);
+});

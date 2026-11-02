@@ -49,7 +49,7 @@ function load_page(result) {
 
     var html = `
                     
-        <div class="module" id="wheel-module" style="display: none;">
+        <div class="module" id="wheel-module" hidden>
 
             <div id="spinner-winner-image-wrapper" class="spinner-winner-image-wrapper">
                 <div class="title">
@@ -71,14 +71,32 @@ function load_page(result) {
 
             <div id="canvas-buttons" class="canvas-buttons">
 
-                <button id="bigButton" class="btn btn--primary" onclick="calculatePrize(); this.disabled=true;">Spin the Wheel</button>
-                <a href="javascript:void(0);" id="reset-button" class="btn btn--ghost" style="display: none;" onclick="theWheel.stopAnimation(false); theWheel.rotationAngle=0; theWheel.draw(); drawTriangle(); bigButton.disabled=false; clearResponse(); resetPage();">Reset</a>
-                <a href="javascript:void(0);" id="reload-button" class="btn btn--ghost" style="display: none;" onclick="location.reload();">Replay</a>
+                <button id="bigButton" class="btn btn--primary" type="button">Spin the Wheel</button>
+                <button id="reset-button" class="btn btn--ghost" type="button" hidden>Reset</button>
+                <button id="reload-button" class="btn btn--ghost" type="button" hidden>Replay</button>
             </div>
         </div>
     `;
 
     document.getElementById('content').innerHTML = html;
+
+    document.getElementById('bigButton').addEventListener('click', function() {
+        calculatePrize();
+        this.disabled = true;
+    });
+    document.getElementById('reset-button').addEventListener('click', function() {
+        theWheel.stopAnimation(false);
+        theWheel.rotationAngle = 0;
+        theWheel.draw();
+        drawTriangle();
+        document.getElementById('bigButton').disabled = false;
+        clearResponse();
+        resetPage();
+    });
+    document.getElementById('reload-button').addEventListener('click', function() {
+        location.reload();
+    });
+
     document.getElementById('card-header').innerHTML = 'It\'s not gambling...';
     clearResponse();
 
@@ -133,7 +151,7 @@ function get_debt(debt_id) {
                     winner = result.debt.winner
                     replay = true;
                     document.getElementById('bigButton').innerHTML = "See the result";
-                    document.getElementById('reset-button').style.display = "inline-block";
+                    document.getElementById('reset-button').hidden = false;
                 } else {
                     if(result.debt.loser.id != user_id) {
                         error("This wheel has not been spun yet.")
@@ -270,7 +288,7 @@ function placeWheel(candidateArray) {
         "#800000", "#9A6324", "#808000", "#469990", "#e6194B", "#f58231", "#ffe119", "#bfef45", "#3cb44b", "#42d4f4", "#4363d8", "#911eb4", "#f032e6", "#a9a9a9", "#fabed4", "#ffd8b1", "#fffac8", "#aaffc3", "#dcbeff", "#ffffff"
     ];
 
-    document.getElementById('wheel-module').style.display = "flex";
+    document.getElementById('wheel-module').hidden = false;
 
     // Render the canvas backing store at the device pixel ratio so segment borders and
     // names stay crisp on high-DPI / mobile screens. The displayed (CSS) size is
@@ -380,8 +398,8 @@ function placeWheel(candidateArray) {
             'type'          : 'spinToStop',
             'duration'      : 8,
             'spins'         : 16,
-            'callbackAfter' : 'drawTriangle()',
-            'callbackFinished' : 'spinFinished()'
+            'callbackAfter' : drawTriangle,        // functions, not strings: Winwheel would eval() a string, which CSP forbids
+            'callbackFinished' : spinFinished
         }
     });
 
@@ -434,7 +452,7 @@ async function calculatePrize()
     theWheel.startAnimation();
 
     if(!replay) {
-        document.getElementById('reload-button').style.display = "inline-block";
+        document.getElementById('reload-button').hidden = false;
     }
 
 }
@@ -540,3 +558,22 @@ function resetPage() {
     document.getElementById('spinner-winner-image-wrapper').style.animation = "";
     document.getElementById('spinner-winner-image-wrapper').style.height = "0";
 }
+
+
+// Page bootstrap (formerly an inline <script> in web/html/wheel.html).
+var theWheel;
+var winner = false;
+var loser = false;
+var prize = false;
+var placementArray = [];
+var debt_id = 0;
+var user_id = 0;
+var replay = false;
+var jwt;
+
+document.addEventListener('DOMContentLoaded', function() {
+    info('Loading...');
+    showLoggedOutMenu();
+    jwt = get_cookie('treningheten');
+    get_login(jwt);
+});

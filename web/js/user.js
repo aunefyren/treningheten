@@ -572,3 +572,16 @@ function switchStatTab(key) {
     });
     if (activeBtn) activeBtn.classList.add("user-stat-tab-active");
 }
+
+
+// Page bootstrap (formerly an inline <script> in web/html/user.html).
+var groups;
+var user_id;
+var jwt;
+
+document.addEventListener('DOMContentLoaded', function() {
+    info('Loading...');
+    showLoggedOutMenu();
+    jwt = get_cookie('treningheten');
+    get_login(jwt);
+});

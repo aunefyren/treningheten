@@ -71,7 +71,7 @@
                     <a class="nav-title" id="nav-title" href="/"><b>{{.appName}}</b></a>
                 </div>
 
-                <button class="nav-toggle" id="nav-toggle" type="button" aria-label="Menu" aria-controls="navbar" aria-expanded="false" onclick="toggle_navbar()">
+                <button class="nav-toggle" id="nav-toggle" type="button" aria-label="Menu" aria-controls="navbar" aria-expanded="false">
                     <span class="nav-toggle-bars" aria-hidden="true"><span></span><span></span><span></span></span>
                 </button>
 
@@ -85,7 +85,7 @@
                     <a class="nav-item disabled" href="/admin" id="admin">Admin</a>
                     <a class="nav-item enabled" href="/login" id="login">Log in</a>
                     <a class="nav-item enabled" href="/register" id="register">Register</a>
-                    <a class="nav-item disabled" href="#" onclick="logout()" id="logout">Log out</a>
+                    <a class="nav-item disabled" href="#" id="logout">Log out</a>
                 </div>
             </nav>
         </div>
@@ -109,20 +109,6 @@
         </main> 
         <!-- /container -->
       
-        <script>
-
-            var ignoreNav = document.getElementById('nav');
-            var groups;
-            var user_id;
-            var jwt;
-            var vapid_public_key = "";
-            
-            info('Loading...');
-            showLoggedOutMenu();
-            jwt = get_cookie('treningheten');
-            get_login(jwt);
-            
-        </script>
 
         <noscript>
             <h3>You need JavaScript to use this website.</h3>

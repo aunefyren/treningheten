@@ -224,6 +224,15 @@ There is no build step or framework — `web/js/*.js` is served through Go templ
   `info(msg)`, `success(msg)`, `clearResponse()` — don't roll your own alert markup.
 - **Auth/token plumbing** (`get_login`, `refresh_access_token`, `store_tokens`,
   cookies) lives in `functions.js`; reuse it rather than re-implementing token refresh.
+- **No inline handlers, styles or scripts** (strict CSP, see
+  [security.md](security.md#strict-csp-report-only)). No `on*=` attributes, `javascript:`
+  URLs, `style=` attributes or inline `<script>` blocks, in templates or in JS-built markup.
+  Bind with `addEventListener`; for JS-built lists use one listener on a stable container
+  with `data-action` + `data-*` attributes via `on_action(container, handlers)` in
+  `functions.js`. Show/hide with the `hidden` attribute or a class (`element.style.x = ...`
+  is fine). A page's init goes in its JS file inside a `DOMContentLoaded` listener, with the
+  page globals (`var jwt;` ...) declared at the top level of that file. Never pass a string
+  to `setTimeout`/`setInterval`/library callbacks (no `eval`).
 - **Escape every value you interpolate into HTML.** Markup is built as template strings
   and assigned with `innerHTML`, so any value that originated outside the page — a note, a
   gear or action name, a track title, a Strava description — must go through the local
