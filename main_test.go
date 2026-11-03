@@ -235,3 +235,74 @@ func TestEveryProtectedRouteRejectsAnonymousCallers(t *testing.T) {
 		t.Errorf("only %d protected routes checked; did the route table change?", checked)
 	}
 }
+
+// The API is same-origin only: no CORS middleware may answer cross-origin requests.
+func TestInitRouterSendsNoCORSHeaders(t *testing.T) {
+	router := initRouter(testConfig())
+
+	for _, method := range []string{"GET", "OPTIONS"} {
+		request := httptest.NewRequest(method, "/api/auth/seasons", nil)
+		request.Header.Set("Origin", "https://evil.example")
+		if method == "OPTIONS" {
+			request.Header.Set("Access-Control-Request-Method", "GET")
+			request.Header.Set("Access-Control-Request-Headers", "Authorization")
+		}
+		recorder := httptest.NewRecorder()
+		router.ServeHTTP(recorder, request)
+		for name := range recorder.Header() {
+			if strings.HasPrefix(name, "Access-Control-") {
+				t.Errorf("%s /api cross-origin: unexpected %s header", method, name)
+			}
+		}
+	}
+}
+
+func TestResolveSecret(t *testing.T) {
+	tests := []struct {
+		name      string
+		flagSet   bool
+		flagValue string
+		env       string
+		config    string
+		want      string
+	}{
+		{"neither flag nor env keeps config", false, "config", "", "config", "config"},
+		{"env beats config", false, "config", "fromenv", "config", "fromenv"},
+		{"flag beats env and config", true, "fromflag", "fromenv", "config", "fromflag"},
+		{"flag beats config", true, "fromflag", "", "config", "fromflag"},
+		{"explicit empty flag still wins", true, "", "fromenv", "config", ""},
+		{"nothing set is empty", false, "", "", "", ""},
+		{"value with spaces and flag text is untouched", false, "", "a b --generateinvite true", "", "a b --generateinvite true"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := resolveSecret(tt.flagSet, tt.flagValue, tt.env, tt.config); got != tt.want {
+				t.Errorf("resolveSecret() = %q, want %q", got, tt.want)
+			}
+		})
+	}
+}
+
+// The security headers must reach API routes and templated pages alike; Gin freezes a
+// route's middleware chain at registration, so moving the Use below the routes would
+// silently drop them.
+func TestInitRouterSendsSecurityHeaders(t *testing.T) {
+	config := testConfig()
+	config.TreninghetenExternalURL = "https://treningheten.example.com"
+	router := initRouter(config)
+
+	for _, path := range []string{"/api/auth/seasons", "/", "/js/frontpage.js", "/robots.txt"} {
+		header := get(router, path).Header()
+		for name, value := range map[string]string{
+			"X-Content-Type-Options":    "nosniff",
+			"X-Frame-Options":           "DENY",
+			"Content-Security-Policy":   "frame-ancestors 'none'",
+			"Referrer-Policy":           "strict-origin-when-cross-origin",
+			"Strict-Transport-Security": "max-age=31536000",
+		} {
+			if got := header.Get(name); got != value {
+				t.Errorf("GET %s: %s = %q, want %q", path, name, got, value)
+			}
+		}
+	}
+}

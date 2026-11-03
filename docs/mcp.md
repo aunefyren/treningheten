@@ -26,6 +26,8 @@ for example, give feedback on their latest run. This is Phase 3 of the auth work
   `WWW-Authenticate: Bearer … resource_metadata="…/.well-known/oauth-protected-resource"`,
   which lets an MCP client **discover** the authorization server and run the
   authorization-code + PKCE flow (with dynamic client registration) built in Phase 1.
+Dynamic client registration is only available while MCP is enabled, and dynamically
+registered clients never receive the `admin` scope (see [oauth.md](oauth.md)).
 - The gin wrapper authenticates the bearer (token or PAT), requires the `api`/`api:read`
   scope, and passes the principal to the per-request MCP server via the request context.
 

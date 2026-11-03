@@ -197,7 +197,7 @@ function send_log_in(){
             } else {
 
                 // store the OAuth token pair
-                store_tokens(result.access_token, result.refresh_token);
+                store_tokens(result.access_token, result.expires_in);
 
                 // show home page &amp; tell the user it was a successful login
                 showLoggedInMenu();
@@ -380,3 +380,14 @@ function checkResetCode(resetCode){
     xhttp.send();
     return false;
 }
+
+
+// Page bootstrap (formerly an inline <script> in web/html/login.html).
+var jwt;
+
+document.addEventListener('DOMContentLoaded', function() {
+    info('Loading...');
+    showLoggedOutMenu();
+    jwt = get_cookie('treningheten');
+    get_login(jwt);
+});

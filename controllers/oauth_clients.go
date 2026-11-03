@@ -2,7 +2,9 @@ package controllers
 
 import (
 	"net/http"
+	"strconv"
 	"strings"
+	"time"
 
 	"github.com/aunefyren/treningheten/auth"
 	"github.com/aunefyren/treningheten/database"
@@ -27,6 +29,12 @@ type OAuthClientRegistrationRequest struct {
 
 // OAuthRegister implements RFC 7591 Dynamic Client Registration.
 func OAuthRegister(context *gin.Context) {
+	// Registration is only offered to MCP clients; behave as if it does not exist otherwise.
+	if !mcpEnabled() {
+		context.JSON(http.StatusNotFound, gin.H{"error": "Dynamic client registration is disabled."})
+		return
+	}
+
 	var request OAuthClientRegistrationRequest
 	if err := context.ShouldBindJSON(&request); err != nil {
 		oauthError(context, http.StatusBadRequest, "invalid_client_metadata", "invalid registration body")
@@ -115,9 +123,17 @@ func OAuthRegister(context *gin.Context) {
 
 // OAuthRevoke implements RFC 7009 token revocation. Only refresh tokens are
 // revocable (access tokens are stateless JWTs); per the spec we respond 200
-// regardless to avoid leaking token state.
+// regardless to avoid leaking token state. Revoking by the first-party cookie also clears it.
 func OAuthRevoke(context *gin.Context) {
 	token := context.PostForm("token")
+	// The first-party web client holds its refresh token in an HttpOnly cookie, so it
+	// revokes without a token field: fall back to the cookie and clear it.
+	if token == "" && context.PostForm("client_id") == models.FirstPartyClientID {
+		if cookie, err := context.Cookie(refreshCookieName); err == nil {
+			token = cookie
+		}
+		clearRefreshCookie(context)
+	}
 	if token != "" {
 		if err := database.RevokeRefreshToken(auth.HashToken(token)); err != nil {
 			logger.Log.Info("token revocation lookup failed. error: " + err.Error())
@@ -127,11 +143,11 @@ func OAuthRevoke(context *gin.Context) {
 	context.JSON(http.StatusOK, gin.H{})
 }
 
-// narrowScopeToSupported limits a requested scope string to SupportedScopes,
-// defaulting to the general API scope when nothing valid is requested.
+// narrowScopeToSupported limits a requested scope string to AdvertisedScopes (never the
+// reserved admin scope), defaulting to the general API scope when nothing valid is requested.
 func narrowScopeToSupported(requested string) string {
 	supported := map[string]bool{}
-	for _, s := range models.SupportedScopes {
+	for _, s := range models.AdvertisedScopes {
 		supported[s] = true
 	}
 	var granted []string
@@ -148,4 +164,20 @@ func narrowScopeToSupported(requested string) string {
 
 func base64Secret() string {
 	return strings.ToLower(randstr.Hex(32))
+}
+
+// oauthClientPruneAge is how long a dynamically registered client may sit without a live
+// refresh token before the daily job deletes it.
+const oauthClientPruneAge = 7 * 24 * time.Hour
+
+// PruneUnusedOAuthClients is the daily job that removes abandoned dynamic registrations.
+func PruneUnusedOAuthClients() {
+	removed, err := database.PruneUnusedOAuthClients(time.Now().Add(-oauthClientPruneAge))
+	if err != nil {
+		logger.Log.Error("failed to prune unused oauth clients. error: " + err.Error())
+		return
+	}
+	if removed > 0 {
+		logger.Log.Info("pruned unused oauth clients: " + strconv.FormatInt(removed, 10))
+	}
 }

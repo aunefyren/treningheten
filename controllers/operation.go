@@ -943,6 +943,12 @@ func APICreateAction(context *gin.Context) {
 		return
 	}
 
+	if !models.ValidActionName(action.Name) || !models.ValidActionName(action.NorwegianName) {
+		context.JSON(http.StatusBadRequest, gin.H{"error": "Invalid exercise name."})
+		context.Abort()
+		return
+	}
+
 	if len(action.Description) > 255 {
 		context.JSON(http.StatusBadRequest, gin.H{"error": "Invalid description length."})
 		context.Abort()

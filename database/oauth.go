@@ -190,3 +190,43 @@ func RevokeAllRefreshTokensForUser(userID uuid.UUID) error {
 		Update("revoked_at", now)
 	return record.Error
 }
+
+// --- Pruning ---
+
+// PruneUnusedOAuthClients hard-deletes dynamically registered (non-first-party) clients
+// created before createdBefore that have no live refresh token — none unrevoked and
+// unexpired — together with their authorization codes and refresh-token rows. It returns
+// the number of clients removed. Abandoned registrations from the unauthenticated DCR
+// endpoint would otherwise pile up forever.
+func PruneUnusedOAuthClients(createdBefore time.Time) (int64, error) {
+	var removed int64
+	err := Instance.Transaction(func(tx *gorm.DB) error {
+		liveClients := tx.Model(&models.OAuthRefreshToken{}).
+			Select("client_id").
+			Where("revoked_at IS NULL AND expires_at > ?", time.Now())
+
+		var clientIDs []string
+		if err := tx.Model(&models.OAuthClient{}).
+			Where("first_party = ? AND created_at < ? AND client_id NOT IN (?)", false, createdBefore, liveClients).
+			Pluck("client_id", &clientIDs).Error; err != nil {
+			return err
+		}
+		if len(clientIDs) == 0 {
+			return nil
+		}
+
+		if err := tx.Unscoped().Where("client_id IN ?", clientIDs).Delete(&models.OAuthAuthorizationCode{}).Error; err != nil {
+			return err
+		}
+		if err := tx.Unscoped().Where("client_id IN ?", clientIDs).Delete(&models.OAuthRefreshToken{}).Error; err != nil {
+			return err
+		}
+		record := tx.Unscoped().Where("client_id IN ?", clientIDs).Delete(&models.OAuthClient{})
+		removed = record.RowsAffected
+		return record.Error
+	})
+	if err != nil {
+		return 0, err
+	}
+	return removed, nil
+}

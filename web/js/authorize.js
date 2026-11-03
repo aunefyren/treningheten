@@ -127,3 +127,16 @@ function submit_decision(req, approve) {
     xhttp.setRequestHeader("Authorization", "Bearer " + jwt);
     xhttp.send(body);
 }
+
+
+// Page bootstrap (formerly an inline <script> in web/html/authorize.html).
+var jwt;
+var fireworks_int = 0;
+var user_id = 0;
+
+document.addEventListener('DOMContentLoaded', function() {
+    info('Loading...');
+    showLoggedOutMenu();
+    jwt = get_cookie('treningheten');
+    get_login(jwt);
+});

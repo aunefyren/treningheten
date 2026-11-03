@@ -20,6 +20,8 @@ the rules every change follows; plans and open work live in GitHub issues, not h
   per-entity reference. Read this before touching the data layer.
 - [data-conventions.md](data-conventions.md) — data-model gotchas: the `Convert*Object`
   read layer, durations stored as seconds, per-operation units, soft deletes.
+- [ci.md](ci.md) — the GitHub Actions workflows (tests, beta/release images, binaries) and
+  how agents stage workflow changes in `.github/potential-workflows/`.
 - [`docker-test/README.md`](../docker-test/README.md) — the live Docker test harness:
   the app built from the checkout plus Mailpit, Audiobookshelf and optional
   MariaDB/Ollama, with a seed script that registers, verifies and connects a user.

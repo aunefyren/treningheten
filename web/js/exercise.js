@@ -624,7 +624,7 @@ function renderActivitySubCard(operation, exercise) {
 function activityActionIcon(operation) {
     const action = operation.action;
     if (action && action.has_logo) {
-        return `<img src="/assets/actions/${action.name}.svg" class="wv-activity-icon" alt="">`;
+        return `<img src="/assets/actions/${encodeURIComponent(action.name)}.svg" class="wv-activity-icon" alt="">`;
     }
     const emoji = operation.type === 'lifting' ? '🏋️' : operation.type === 'timing' ? '⏱️' : '🏃';
     return `<span class="wv-activity-emoji">${emoji}</span>`;
@@ -2740,15 +2740,15 @@ function processExerciseList(operationID) {
     actions.forEach(function(action){
         if(action.name && action.name != "") {
             exerciseListHTML += `
-                <a value="" onclick="selectActionForOperation('${operationID}', '${action.name}')" class="dropdown-action clickable">
-                    ${action.name}
+                <a value="" data-action-name="${escapeHTML(action.name)}" onclick="selectActionForOperation('${operationID}', this.dataset.actionName)" class="dropdown-action clickable">
+                    ${escapeHTML(action.name)}
                 </a>
             `
         }
         if(action.norwegian_name && action.norwegian_name != "" && action.norwegian_name != action.name) {
             exerciseListHTML += `
-                <a value="" onclick="selectActionForOperation('${operationID}', '${action.norwegian_name}')" class="dropdown-action clickable">
-                    ${action.norwegian_name}
+                <a value="" data-action-name="${escapeHTML(action.norwegian_name)}" onclick="selectActionForOperation('${operationID}', this.dataset.actionName)" class="dropdown-action clickable">
+                    ${escapeHTML(action.norwegian_name)}
                 </a>
             `
         }
@@ -3325,3 +3325,16 @@ function stravaSyncOperationSet(operationSetID) {
 // re-render of the read view and needs no re-binding.
 wireInfoMarks();
 wireTraceTabs();
+
+
+// Page bootstrap (formerly an inline <script> in web/html/exercise.html).
+var groups;
+var jwt;
+var exerciseList = [];
+
+document.addEventListener('DOMContentLoaded', function() {
+    info('Loading...');
+    showLoggedOutMenu();
+    jwt = get_cookie('treningheten');
+    get_login(jwt);
+});

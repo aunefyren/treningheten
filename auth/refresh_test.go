@@ -64,11 +64,11 @@ func TestRefreshTokenRotationAndReuseDetection(t *testing.T) {
 	}
 
 	// Refresh tokens are bound to their client.
-	if _, err := RefreshTokenSet(issued.RefreshToken, "client-b"); err == nil {
+	if _, err := RefreshTokenSet(issued.RefreshToken, "client-b", true); err == nil {
 		t.Error("a refresh token was accepted from another client")
 	}
 
-	rotated, err := RefreshTokenSet(issued.RefreshToken, "client-a")
+	rotated, err := RefreshTokenSet(issued.RefreshToken, "client-a", true)
 	if err != nil {
 		t.Fatalf("RefreshTokenSet: %v", err)
 	}
@@ -77,14 +77,14 @@ func TestRefreshTokenRotationAndReuseDetection(t *testing.T) {
 	}
 
 	// Replaying the rotated-out token is reuse: refused, and the whole chain dies with it.
-	if _, err := RefreshTokenSet(issued.RefreshToken, "client-a"); err == nil {
+	if _, err := RefreshTokenSet(issued.RefreshToken, "client-a", true); err == nil {
 		t.Error("a rotated-out refresh token was accepted")
 	}
-	if _, err := RefreshTokenSet(rotated.RefreshToken, "client-a"); err == nil {
+	if _, err := RefreshTokenSet(rotated.RefreshToken, "client-a", true); err == nil {
 		t.Error("the chain survived reuse of an earlier token")
 	}
 
-	if _, err := RefreshTokenSet("never-issued", ""); err == nil {
+	if _, err := RefreshTokenSet("never-issued", "", true); err == nil {
 		t.Error("an unknown refresh token was accepted")
 	}
 }
@@ -102,7 +102,7 @@ func TestRefreshReDerivesAdminAndRejectsExpired(t *testing.T) {
 	// Demote the user; the refreshed access token must drop the admin claim.
 	notAdmin := false
 	database.Instance.Model(&models.User{}).Where("id = ?", user.ID).Update("admin", &notAdmin)
-	refreshed, err := RefreshTokenSet(issued.RefreshToken, "")
+	refreshed, err := RefreshTokenSet(issued.RefreshToken, "", true)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -121,7 +121,7 @@ func TestRefreshReDerivesAdminAndRejectsExpired(t *testing.T) {
 	}
 	database.Instance.Model(&models.OAuthRefreshToken{}).Where("token_hash = ?", HashToken(expired.RefreshToken)).
 		Update("expires_at", time.Now().Add(-time.Hour))
-	if _, err := RefreshTokenSet(expired.RefreshToken, "web"); err == nil {
+	if _, err := RefreshTokenSet(expired.RefreshToken, "web", true); err == nil {
 		t.Error("an expired refresh token was accepted")
 	}
 }
@@ -148,5 +148,31 @@ func TestValidateTokenAdmin(t *testing.T) {
 		if err := ValidateToken(token, true); err == nil {
 			t.Errorf("%s: passed admin validation", name)
 		}
+	}
+}
+
+func TestRefreshDropsAdminForNonFirstParty(t *testing.T) {
+	withSigningKey(t, "")
+	withAuthDB(t)
+	user := makeAuthTestUser(t, true)
+
+	issued, err := IssueTokenSet(user.ID, true, models.ScopeAPI+" "+models.ScopeAdmin, "dcr")
+	if err != nil {
+		t.Fatal(err)
+	}
+	refreshed, err := RefreshTokenSet(issued.RefreshToken, "dcr", false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if refreshed.Scope != models.ScopeAPI {
+		t.Errorf("scope = %q, want admin dropped", refreshed.Scope)
+	}
+	claims, err := ParseToken(refreshed.AccessToken)
+	if err != nil || claims.Scope != models.ScopeAPI {
+		t.Errorf("access token scope = %q (err %v), want api", claims.Scope, err)
+	}
+	stored, _ := database.GetRefreshTokenByHash(HashToken(refreshed.RefreshToken))
+	if stored.Scope != models.ScopeAPI {
+		t.Errorf("rotated refresh token scope = %q, want api", stored.Scope)
 	}
 }

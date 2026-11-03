@@ -16,8 +16,13 @@ const (
 	ScopeAdmin    = "admin"     // admin endpoints
 )
 
-// SupportedScopes is advertised in discovery metadata.
+// SupportedScopes is every scope the server understands. ScopeAdmin is reserved for
+// the first-party client and Personal Access Tokens, so it is not in AdvertisedScopes.
 var SupportedScopes = []string{ScopeAPI, ScopeAPIRead, ScopeAPIWrite, ScopeAdmin}
+
+// AdvertisedScopes is what discovery metadata lists and what a dynamically registered
+// client may hold: SupportedScopes without the reserved admin scope.
+var AdvertisedScopes = []string{ScopeAPI, ScopeAPIRead, ScopeAPIWrite}
 
 // FirstPartyClientID is the seeded OAuth client used by the Treningheten web app.
 const FirstPartyClientID = "treningheten-web"
@@ -30,11 +35,11 @@ type OAuthClient struct {
 	ClientID                string  `json:"client_id" gorm:"unique;not null;type:varchar(100)"`
 	ClientSecretHash        *string `json:"-" gorm:"default:null"`
 	ClientName              string  `json:"client_name" gorm:"not null"`
-	RedirectURIs            string  `json:"redirect_uris" gorm:"not null"`               // space-delimited
-	GrantTypes              string  `json:"grant_types" gorm:"not null"`                 // space-delimited
-	ResponseTypes           string  `json:"response_types" gorm:"not null"`              // space-delimited
-	Scope                   string  `json:"scope" gorm:"not null"`                       // space-delimited
-	TokenEndpointAuthMethod string  `json:"token_endpoint_auth_method" gorm:"not null"`  // "none" | "client_secret_basic" | "client_secret_post"
+	RedirectURIs            string  `json:"redirect_uris" gorm:"not null"`              // space-delimited
+	GrantTypes              string  `json:"grant_types" gorm:"not null"`                // space-delimited
+	ResponseTypes           string  `json:"response_types" gorm:"not null"`             // space-delimited
+	Scope                   string  `json:"scope" gorm:"not null"`                      // space-delimited
+	TokenEndpointAuthMethod string  `json:"token_endpoint_auth_method" gorm:"not null"` // "none" | "client_secret_basic" | "client_secret_post"
 	Public                  bool    `json:"-" gorm:"not null;default:true"`
 	FirstParty              bool    `json:"-" gorm:"not null;default:false"`
 }
@@ -105,7 +110,7 @@ type AuthorizationServerMetadata struct {
 	Issuer                            string   `json:"issuer"`
 	AuthorizationEndpoint             string   `json:"authorization_endpoint"`
 	TokenEndpoint                     string   `json:"token_endpoint"`
-	RegistrationEndpoint              string   `json:"registration_endpoint"`
+	RegistrationEndpoint              string   `json:"registration_endpoint,omitempty"`
 	RevocationEndpoint                string   `json:"revocation_endpoint"`
 	ScopesSupported                   []string `json:"scopes_supported"`
 	ResponseTypesSupported            []string `json:"response_types_supported"`
@@ -117,8 +122,8 @@ type AuthorizationServerMetadata struct {
 // ProtectedResourceMetadata is the RFC 9728 discovery document used by MCP
 // clients to locate the authorization server.
 type ProtectedResourceMetadata struct {
-	Resource             string   `json:"resource"`
-	AuthorizationServers []string `json:"authorization_servers"`
-	ScopesSupported      []string `json:"scopes_supported,omitempty"`
+	Resource               string   `json:"resource"`
+	AuthorizationServers   []string `json:"authorization_servers"`
+	ScopesSupported        []string `json:"scopes_supported,omitempty"`
 	BearerMethodsSupported []string `json:"bearer_methods_supported,omitempty"`
 }

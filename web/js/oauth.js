@@ -106,3 +106,16 @@ function setNewStravaCode(user_id, code){
 function frontPageRedirect() {
     window.location = '/'
 }
+
+
+// Page bootstrap (formerly an inline <script> in web/html/oauth.html).
+var jwt;
+var fireworks_int = 0;
+var user_id = 0;
+
+document.addEventListener('DOMContentLoaded', function() {
+    info('Loading...');
+    showLoggedOutMenu();
+    jwt = get_cookie('treningheten');
+    get_login(jwt);
+});

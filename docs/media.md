@@ -268,8 +268,21 @@ So `buildAudiobookshelfPlaybackForWindow` reads a session as follows:
   same item starts within `absResumeHandoff` (1 min) of `updatedAt`, the session was closed on
   resume: the pause was at its end, and the listening was `[startedAt, startedAt + listened]`.
   Taking `updatedAt` there put a podcast paused the night before into the next morning's
-  workout, as an "already playing" row. Otherwise the pause could be anywhere, so the span
-  stays `[startedAt, updatedAt]` and the listened time is assumed spread evenly over it.
+  workout, as an "already playing" row. Otherwise the pause could be anywhere (the ABS iOS app keeps it inside the session).
+  Then the run's **other listening** narrows it: one thing plays at a time, so the session
+  is taken to have resumed when the latest other listen ending inside
+  `(startedAt, updatedAt)` ended, and to have played on to `updatedAt`
+  (`absResumeFromOthers`). The other listening is the Plex/Spotify rows already stored for
+  the run (`otherProviderListenEnds`; rows ending at the window end are skipped, as their end
+  is clamped) plus the exact ends of continuous ABS sessions of other items. The row is
+  `[resume, updatedAt]`, so it starts inside the run, not "already playing", and its minutes
+  are that stretch (capped at the listened time). The guess is dropped when it contradicts
+  the session: a stretch longer than the listened time (+ `absContinuousSlack`), or one too
+  short to hold the listening the session must have had inside the window (listened time
+  minus what its spans before and after the window can hold). With nothing to narrow it, or
+  a dropped guess, the span stays `[startedAt, updatedAt]` and the listened time is assumed
+  spread evenly over it. Plex is pulled before ABS in a sync, so a Plex-only re-pull does not
+  refresh an earlier ABS row; re-pull ABS (or all providers) to apply it.
 - **Positions** go on the play event, so a listen resumed in a fresh session merges with the
   one before it (see [Duplicate plays & overlap merging](#duplicate-plays--overlap-merging)).
 

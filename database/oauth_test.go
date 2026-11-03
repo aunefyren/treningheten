@@ -226,3 +226,71 @@ func TestRevokeRefreshTokenChain(t *testing.T) {
 		t.Errorf("tail token C should be revoked after chain revocation")
 	}
 }
+
+func TestPruneUnusedOAuthClients(t *testing.T) {
+	newTestDB(t)
+	SeedOAuthClients()
+
+	userID := uuid.New()
+	old := time.Now().Add(-8 * 24 * time.Hour)
+	create := func(clientID string, firstParty bool, createdAt time.Time) {
+		client := &models.OAuthClient{
+			GormModel: models.GormModel{ID: uuid.New(), CreatedAt: createdAt},
+			ClientID:  clientID, ClientName: clientID, RedirectURIs: "https://a.test/cb", GrantTypes: "authorization_code",
+			ResponseTypes: "code", Scope: models.ScopeAPI, TokenEndpointAuthMethod: "none", Public: true, FirstParty: firstParty,
+		}
+		if err := CreateOAuthClient(client); err != nil {
+			t.Fatal(err)
+		}
+		Instance.Model(&models.OAuthClient{}).Where("client_id = ?", clientID).Update("created_at", createdAt)
+	}
+	create("old-unused", false, old)
+	create("old-revoked", false, old)
+	create("old-expired", false, old)
+	create("old-live", false, old)
+	create("recent", false, time.Now().Add(-time.Hour))
+	Instance.Model(&models.OAuthClient{}).Where("client_id = ?", models.FirstPartyClientID).Update("created_at", old)
+
+	token := func(clientID, hash string, revoked bool, expires time.Time) {
+		stored := newRefreshToken(userID, hash)
+		stored.ClientID = clientID
+		stored.ExpiresAt = expires
+		if revoked {
+			now := time.Now()
+			stored.RevokedAt = &now
+		}
+		if err := CreateRefreshToken(stored); err != nil {
+			t.Fatal(err)
+		}
+	}
+	token("old-revoked", "h1", true, time.Now().Add(time.Hour))
+	token("old-expired", "h2", false, time.Now().Add(-time.Hour))
+	token("old-live", "h3", false, time.Now().Add(time.Hour))
+	if err := CreateAuthorizationCode(&models.OAuthAuthorizationCode{
+		CodeHash: "c1", ClientID: "old-unused", UserID: userID, RedirectURI: "https://a.test/cb", Scope: models.ScopeAPI,
+		CodeChallenge: "x", CodeChallengeMethod: "S256", ExpiresAt: time.Now(),
+	}); err != nil {
+		t.Fatal(err)
+	}
+
+	removed, err := PruneUnusedOAuthClients(time.Now().Add(-7 * 24 * time.Hour))
+	if err != nil || removed != 3 {
+		t.Fatalf("PruneUnusedOAuthClients = %d, %v; want 3 removed", removed, err)
+	}
+	for _, gone := range []string{"old-unused", "old-revoked", "old-expired"} {
+		if _, err := GetOAuthClientByClientID(gone); err == nil {
+			t.Errorf("client %s survived the prune", gone)
+		}
+	}
+	for _, kept := range []string{"old-live", "recent", models.FirstPartyClientID} {
+		if _, err := GetOAuthClientByClientID(kept); err != nil {
+			t.Errorf("client %s was pruned: %v", kept, err)
+		}
+	}
+	var codes, tokens int64
+	Instance.Unscoped().Model(&models.OAuthAuthorizationCode{}).Count(&codes)
+	Instance.Unscoped().Model(&models.OAuthRefreshToken{}).Count(&tokens)
+	if codes != 0 || tokens != 1 {
+		t.Errorf("leftover rows: %d codes, %d tokens; want 0 and 1", codes, tokens)
+	}
+}

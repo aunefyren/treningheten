@@ -62,6 +62,63 @@ ranges (the normal reverse-proxy-on-the-same-host/Docker-network deployment).
 through it is attributed to the proxy's IP and shares one budget. Such a deployment
 needs its proxy's range added to `trustedProxyCIDRs`.
 
+## Security response headers
+
+`middlewares/headers.go`, `SecurityHeaders(externalURL)`, sent on every response:
+
+| Header | Value | Why |
+| --- | --- | --- |
+| `X-Content-Type-Options` | `nosniff` | no MIME sniffing of served files |
+| `X-Frame-Options` | `DENY` | clickjacking; nothing in `web/` frames the app |
+| `Content-Security-Policy` | `frame-ancestors 'none'` | modern equivalent of the above. Enforced; deliberately only this directive until the strict policy below is enforced |
+| `Content-Security-Policy-Report-Only` | `middlewares.ContentSecurityPolicy` | the strict policy ([#52](https://github.com/aunefyren/treningheten/issues/52)), reported but not enforced |
+| `Referrer-Policy` | `strict-origin-when-cross-origin` | no full URLs to other origins |
+| `Strict-Transport-Security` | `max-age=31536000` | only when the configured external URL is `https` |
+
+### Strict CSP (report-only)
+
+`middlewares.ContentSecurityPolicy` is one constant: `default-src 'self'`, `script-src 'self'`,
+`style-src 'self'`, `font-src 'self'`, `img-src 'self' data: blob:`, `connect-src 'self'`,
+`object-src 'none'`, `base-uri 'self'`, `form-action 'self'`, `frame-ancestors 'none'`, plus
+these external origins, each really used by `web/`:
+
+- `https://fonts.googleapis.com` (style) and `https://fonts.gstatic.com` (font): Google Fonts.
+- `https://cdnjs.cloudflare.com` and `https://unpkg.com` (script, style): Chart.js and Leaflet.
+- `https://*.tile.openstreetmap.org` (img): Leaflet map tiles.
+- `https://i.scdn.co` (img): Spotify cover art, passed through by the API.
+
+It is sent as `Content-Security-Policy-Report-Only` with **no `report-uri`** (no
+unauthenticated write route): violations appear in the browser console. Once every page
+is clean the same constant is enforced (#71). Until then, check a page by opening it with
+the console open and looking for "Content-Security-Policy-Report-Only" violations.
+
+Refactor rules for making a page compliant (shared by the #52 sub-issues):
+
+- **Handlers:** no `on*=` attributes and no `javascript:` URLs. Use `addEventListener`, or
+  for JS-built lists one listener on a stable container plus `data-action="..."` and
+  `data-*` arguments on the element, via `on_action(container, handlers)` in `functions.js`.
+- **Styles:** no `style=` attributes in HTML or JS-built markup, and no
+  `setAttribute('style', ...)` or `style.cssText`. Use classes (`web/css/*.css`) and the
+  `hidden` attribute. Setting `element.style.x = ...` (CSSOM) is allowed.
+- **Scripts:** no inline `<script>` blocks. A page's init lives in its own JS file and runs
+  on `DOMContentLoaded`; carry template values via `data-*` or `<meta>`.
+- **No `eval`:** libraries must be given functions, not code strings (Winwheel callbacks).
+
+Done so far (#66): inline `<script>` blocks, the nav `toggle_navbar`/`logout` handlers
+(bound in `functions.js`) and the wheel page. Page-specific inline handlers and `style=`
+attributes remain and are reported in the console until #67 to #70 land.
+
+HSTS is conditional because sending it from a plain-HTTP instance would be meaningless
+at best, and it pins browsers to HTTPS for a year once seen. It omits `includeSubDomains`
+and `preload` because self-hosted instances often share a parent domain with other
+services. TLS is normally terminated by a reverse proxy, which is why the decision keys
+on the configured external URL rather than the request.
+
+**Registration order matters.** Gin freezes a route's handler chain when the route is
+registered, so `router.Use(SecurityHeaders(...))` sits in `initRouter` right after
+`SetTrustedProxies` and above every route and group. `TestInitRouterSendsSecurityHeaders`
+(`main_test.go`) checks an API route and templated pages against the real router.
+
 ## Password changes end existing sessions
 
 `database.RevokeAllRefreshTokensForUser` revokes every live refresh token for a user in
@@ -97,6 +154,18 @@ save. Without that, an install that predates this change would keep its world-re
 `0644` secrets forever. The chmod failures are logged, not fatal: a bind mount or a
 Windows host may not honour the change, and that shouldn't stop the app from starting.
 
+## The admin scope is reserved; DCR needs MCP (#18)
+
+`POST /api/oauth/register` is unauthenticated, and `admin` used to be registrable, so a
+third-party client could be granted `admin` if an admin approved consent. Now `admin` is
+reserved for the first-party client and Personal Access Tokens: registration never grants
+it, `narrowScope` drops it for any non-first-party client (even one registered earlier with
+it stored), the refresh grant drops it from a non-first-party chain at its next rotation,
+and discovery no longer advertises it. Dynamic client registration also returns `404`
+(and the metadata omits `registration_endpoint`) unless `mcp_enabled` is on, and a daily
+job deletes registrations older than 7 days with no live refresh token. See
+[oauth.md](oauth.md).
+
 ## Confidential OAuth clients must present their secret
 
 `OAuthClient.Public` is tagged `default:true`. GORM leaves a `false` zero value out of the
@@ -113,6 +182,14 @@ whenever a secret hash is stored, whatever `Public` says — which also covers r
 before the fix, without a data migration. Tests: `database.TestCreateOAuthClientStoresConfidentialClientsAsConfidential`
 and `controllers.TestOAuthConfidentialClientRegistration` (including a deliberately
 mis-stored legacy row).
+
+## Same-origin only, no CORS
+
+The web UI is served from the same origin as the API, and MCP/OAuth clients are not
+browsers, so the app registers no CORS middleware and the API sends no
+`Access-Control-Allow-*` headers (`TestInitRouterSendsNoCORSHeaders`). Adding CORS later is a
+deliberate design change: use an explicit origin allow-list registered above the route
+groups, never a wildcard with credentials.
 
 ## Accepted risks
 
@@ -151,6 +228,11 @@ doesn't re-derive them:
 - **OAuth authorization-code flow** — exact-match redirect URI, mandatory PKCE S256,
   constant-time verifier comparison, single-use codes consumed atomically, code bound to
   the issuing client, scope narrowed to the client's grant (`controllers/oauth_authorize.go`).
+- **Refresh-token transport** — the first-party web client's 30-day refresh token lives only
+  in the server-set `treningheten_rt` cookie (`HttpOnly; SameSite=Strict; Path=/api/oauth`,
+  `Secure` on HTTPS) and is omitted from response bodies, so an XSS cannot read it. The
+  1-hour access token stays in a JS-readable cookie for `<img>` requests. See
+  [oauth.md](oauth.md#first-party-web-login-password-grant).
 - **Refresh-token lifecycle** — rotation with reuse detection revoking the whole chain;
   admin status re-derived from the DB on each refresh (`auth/auth.go`).
 - **Credential encryption at rest** — AES-256-GCM, random nonce per encryption, correct
@@ -158,6 +240,11 @@ doesn't re-derive them:
 - **Ownership scoping** — the `…ByIDAndUserID` pattern covers operations, operation sets,
   exercises, gear, weights, PATs and media sync. Pointer-returning getters must return
   `nil` on a miss (see [conventions.md](conventions.md#a-not-found-getter-must-return-nil-and-the-caller-must-check-it)).
+- **Nil-UUID ids** (2026-11-02) — GORM drops zero-valued fields from struct conditions, so
+  a nil-UUID id would erase the id filter of any `Where(&models.X{ID: id})`. No query is
+  written that way, and the guard tests in
+  [data-conventions.md](data-conventions.md#never-put-an-id-in-a-gorm-struct-map-or-inline-condition)
+  keep it so: every route and MCP tool answers the nil UUID like any unknown id.
 - **Admin enforcement** — `Auth(true)` requires both the admin scope on the token and a
   live `admin` flag on the DB row; read-only scopes are blocked from write methods
   (`middlewares/auth.go`).
@@ -203,6 +290,14 @@ resolving. Fixed in the 2026-09-03 privacy pass:
 - **S16 — the Plex artwork proxy rejects dot-segments.** `plexArtworkPathAllowed` matches
   `^/library/[A-Za-z0-9/._-]+$` and rejects any `..` outright, since Go's HTTP client doesn't
   clean request paths.
+- **S10 — DB and SMTP passwords no longer travel as argv.** `parseFlags` reads the
+  `dbpassword` / `smtppassword` environment variables (`resolveSecret`; precedence: explicit
+  flag > env var > config file). `entrypoint.sh` builds its arguments with `set --` and
+  `exec "$@"` (every value quoted, so a value with spaces or `--flag` text cannot split or
+  inject arguments) and no longer passes the two passwords; the inherited environment
+  carries them, readable only by the same user or root, unlike `/proc/<pid>/cmdline`. The
+  `--dbpassword` / `--smtppassword` flags remain for non-Docker use but are visible in the
+  process list. Test: `TestResolveSecret` in `main_test.go`.
 - **S11 — `GET /api/auth/users/:user_id/activities` fixed in both halves at once.** The gate
   read a censored user with `ShareActivities` nil-ed (so it 403'd everyone), and the filter
   behind it kept *other* users' days. Fixing either half alone would have turned a dead
@@ -210,11 +305,32 @@ resolving. Fixed in the 2026-09-03 privacy pass:
   `GetExerciseDaysForSharingUsersInListUsingDates` for the requested user, with the explicit
   gate kept as defence in depth.
 
+Fixed 2026-11-02:
+
+- **Stored XSS through action names (2026-11-02).** Any user can create a global action,
+  and the exercise picker built `onclick="selectActionForOperation('…', '${action.name}')"`
+  plus the visible label from the raw name, so a name like `x');alert(1);//` or an `<img
+  onerror>` ran in every other user's session. The picker now escapes the label and passes
+  the name through `data-action-name`; action logo paths use `encodeURIComponent`;
+  `APICreateAction` refuses markup and quote characters (`models.ValidActionName`). The
+  Hevy profile link got the same treatment: it is passed via `data-href`, and
+  `hevyProfileURL` only stores an absolute `https` URL. Same bug class as a wish-URL
+  advisory in a sibling project; rule in
+  [conventions.md](conventions.md#frontend-vanilla-js-conventions).
+
+## Toolchain patch drift (S12, #15)
+
+Shipped binaries and images are built with a current Go patch: the `Dockerfile` builder uses
+the floating `golang:1.26-alpine` (runtime `alpine:3.24`), and `release.yaml` pins the latest
+1.26.x patch because `wangyoucao577/go-release-action` builds the download URL from
+`goversion` verbatim, so a floating `1.26` does not resolve. Bump that pin on each Go
+patch release. The `govulncheck` job in `go.yml` runs `govulncheck ./...` on Go `1.26.x` and
+fails CI on any reachable vulnerability. `go.mod`'s `go 1.26.0` is only the minimum language
+version, not the build toolchain.
+
 ## Still open
 
 Tracked as GitHub issues with the
 [`security` label](https://github.com/aunefyren/treningheten/issues?q=is%3Aissue+label%3Asecurity):
-secrets passed as argv by `entrypoint.sh` (S10, #14), toolchain patch drift (S12, #15), the
-wildcard CORS configuration (#16), the JS-readable 30-day refresh cookie (#17), whether the
-`admin` scope should be grantable to dynamically registered clients (#18), and the absence
-of security response headers, notably a CSP (#19).
+the strict Content-Security-Policy, which is report-only until the inline handlers and styles
+are removed from `web/` (#52, enforced in #71).

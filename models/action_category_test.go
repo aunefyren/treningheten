@@ -1,6 +1,9 @@
 package models
 
-import "testing"
+import (
+	"strings"
+	"testing"
+)
 
 func TestValidActionCategory(t *testing.T) {
 	for _, category := range []string{ActionCategoryStrength, ActionCategoryCardio, ActionCategorySport, ActionCategoryMobility, ActionCategoryGeneral} {
@@ -102,5 +105,25 @@ func TestHevyToActionCategoryAndEquipment(t *testing.T) {
 	action := HevyExerciseTemplate{ID: "T1", Title: "Bench Press (Dumbbell)", Type: "weight_reps", PrimaryMuscleGroup: "chest"}.ToAction()
 	if action.Category != ActionCategoryStrength || action.Equipment != ActionEquipmentDumbbell {
 		t.Fatalf("category/equipment = %q/%q, want strength/dumbbell", action.Category, action.Equipment)
+	}
+}
+
+func TestValidActionName(t *testing.T) {
+	for _, name := range []string{"", "Bench Press", "Knebøy", "Farmer's Walk", "Pull-up (wide)", strings.Repeat("a", MaxActionNameLength)} {
+		if !ValidActionName(name) {
+			t.Errorf("ValidActionName(%q) = false, want true", name)
+		}
+	}
+	for _, name := range []string{
+		"<img src=x onerror=alert(1)>",
+		`x" onmouseover="alert(1)`,
+		"x`alert(1)`",
+		`back\slash`,
+		"tab\there",
+		strings.Repeat("a", MaxActionNameLength+1),
+	} {
+		if ValidActionName(name) {
+			t.Errorf("ValidActionName(%q) = true, want false", name)
+		}
 	}
 }

@@ -19,6 +19,7 @@ import (
 	"github.com/aunefyren/treningheten/utilities"
 
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 )
 
 // absListeningSessionsPageSize is the history page size requested per call. Sessions
@@ -289,6 +290,12 @@ const absResumeHandoff = time.Minute
 // absCoverageEnd decides which stretch of [startedAt, updatedAt] was listening, and the
 // playback positions let a listen resumed in a fresh session merge with the one before.
 func buildAudiobookshelfPlaybackForWindow(sessions []models.AudiobookshelfListenSession, start, end time.Time) []models.MediaPlayback {
+	return buildAudiobookshelfPlaybackWithOthers(sessions, start, end, nil)
+}
+
+// buildAudiobookshelfPlaybackWithOthers is buildAudiobookshelfPlaybackForWindow given the
+// ends of the run's other listening (Plex, Spotify), see absResumeFromOthers.
+func buildAudiobookshelfPlaybackWithOthers(sessions []models.AudiobookshelfListenSession, start, end time.Time, otherEnds []time.Time) []models.MediaPlayback {
 	ordered := make([]models.AudiobookshelfListenSession, 0, len(sessions))
 	for _, session := range sessions {
 		if session.StartedAt > 0 {
@@ -308,9 +315,31 @@ func buildAudiobookshelfPlaybackForWindow(sessions []models.AudiobookshelfListen
 		lastOfItem[item] = i
 	}
 
+	// Sessions that were one continuous listen have an exact end, so beside the other
+	// providers' rows they mark time a paused session of another item was not playing.
+	listenedOf := make([]int64, len(ordered))
+	for i, session := range ordered {
+		listenedOf[i] = absListenedSeconds(session)
+	}
+
 	events := []mediaPlayEvent{}
 	for i, session := range ordered {
-		listened := absListenedSeconds(session)
+		listened := listenedOf[i]
+		coverageEnd := absCoverageEnd(session, listened, nextOfItem[i])
+		startedAt := time.UnixMilli(session.StartedAt).UTC()
+		trackLength := listened
+		if absPauseUnlocated(session, listened, nextOfItem[i]) {
+			ends := append([]time.Time{}, otherEnds...)
+			for j, other := range ordered {
+				if j != i && absSessionItemID(other) != absSessionItemID(session) && other.UpdatedAt > other.StartedAt &&
+					!absPauseUnlocated(other, listenedOf[j], nextOfItem[j]) {
+					ends = append(ends, time.UnixMilli(other.UpdatedAt).UTC())
+				}
+			}
+			if resume, stretch, ok := absResumeFromOthers(session, listened, ends, start, end); ok {
+				startedAt, trackLength = resume, stretch
+			}
+		}
 
 		events = append(events, mediaPlayEvent{
 			mediaType: absClassifyMediaType(session.MediaType),
@@ -323,9 +352,9 @@ func buildAudiobookshelfPlaybackForWindow(sessions []models.AudiobookshelfListen
 			providerItemID:    absSessionItemID(session),
 			providerParentID:  session.LibraryItemID,
 			providerSessionID: session.ID,
-			startedAt:         time.UnixMilli(session.StartedAt).UTC(),
-			coverageEnd:       absCoverageEnd(session, listened, nextOfItem[i]),
-			trackLengthSec:    listened,
+			startedAt:         startedAt,
+			coverageEnd:       coverageEnd,
+			trackLengthSec:    trackLength,
 			// ABS reports time actually listened, not the item's length — so merged
 			// sessions on one episode add up rather than taking the longest.
 			trackLengthIsListened: true,
@@ -392,6 +421,60 @@ func absCoverageEnd(session models.AudiobookshelfListenSession, listenedSec int6
 	return updatedAt
 }
 
+// absPauseUnlocated is true when a session spans a pause that absCoverageEnd could not
+// place: the span exceeds the listened time by more than absContinuousSlack and the
+// session was not closed on resume, so its listening is assumed spread over the span.
+func absPauseUnlocated(session models.AudiobookshelfListenSession, listenedSec int64, next *models.AudiobookshelfListenSession) bool {
+	if listenedSec <= 0 || session.UpdatedAt <= session.StartedAt {
+		return false
+	}
+	startedAt := time.UnixMilli(session.StartedAt).UTC()
+	updatedAt := time.UnixMilli(session.UpdatedAt).UTC()
+	if updatedAt.Sub(startedAt.Add(time.Duration(listenedSec)*time.Second)) <= absContinuousSlack {
+		return false
+	}
+	return absCoverageEnd(session, listenedSec, next).Equal(updatedAt)
+}
+
+// absResumeFromOthers guesses where a session with an unlocated pause resumed, from the
+// run's other listening. One thing plays at a time, so the session resumed when the
+// latest other listen that ended inside (startedAt, updatedAt) ended, and played on to
+// updatedAt. It returns that resume time and the listening in [resume, updatedAt]
+// (capped at the session's listened time). ok is false, leaving the even-spread rule
+// to apply, when nothing narrows the pause, or the guess contradicts the session: the
+// stretch is longer than the listened time (it paused again in it), or too short to
+// hold the listening the session must have had inside the window (its listened time
+// minus what the spans before and after the window can hold).
+func absResumeFromOthers(session models.AudiobookshelfListenSession, listenedSec int64, otherEnds []time.Time, start, end time.Time) (resume time.Time, stretchSec int64, ok bool) {
+	startedAt := time.UnixMilli(session.StartedAt).UTC()
+	updatedAt := time.UnixMilli(session.UpdatedAt).UTC()
+	for _, otherEnd := range otherEnds {
+		if otherEnd.After(startedAt) && otherEnd.Before(updatedAt) && otherEnd.After(resume) {
+			resume = otherEnd
+		}
+	}
+	if resume.IsZero() {
+		return time.Time{}, 0, false
+	}
+
+	stretch := updatedAt.Sub(resume)
+	if stretch > time.Duration(listenedSec)*time.Second+absContinuousSlack {
+		return time.Time{}, 0, false
+	}
+
+	outside := windowOverlap(startedAt, updatedAt, startedAt.Add(-time.Hour), start) + windowOverlap(startedAt, updatedAt, end, updatedAt.Add(time.Hour))
+	mustHeard := time.Duration(listenedSec)*time.Second - outside
+	if windowOverlap(resume, updatedAt, start, end)+absContinuousSlack < mustHeard {
+		return time.Time{}, 0, false
+	}
+
+	stretchSec = int64(math.Round(stretch.Seconds()))
+	if stretchSec > listenedSec {
+		stretchSec = listenedSec
+	}
+	return resume, stretchSec, true
+}
+
 // MatchAudiobookshelfSessions exposes the ABS window matcher to developer tooling
 // (scripts/mediaprobe), so real history can be replayed through exactly the logic a
 // sync runs without a database or a stored connection.
@@ -429,7 +512,7 @@ func AudiobookshelfSyncExerciseForUser(user models.User, exercise models.Exercis
 		return err
 	}
 
-	playback := buildAudiobookshelfPlaybackForWindow(sessions, start, end)
+	playback := buildAudiobookshelfPlaybackWithOthers(sessions, start, end, otherProviderListenEnds(exercise.ID, end))
 
 	if err := database.ReplaceMediaPlaybackForExerciseProvider(exercise.ID, models.MediaProviderAudiobookshelf, playback); err != nil {
 		return err
@@ -446,4 +529,23 @@ func AudiobookshelfSyncExerciseForUser(user models.User, exercise models.Exercis
 
 	logger.Log.Info("Synced " + strconv.Itoa(len(playback)) + " Audiobookshelf playback rows for session " + exercise.ID.String())
 	return nil
+}
+
+// otherProviderListenEnds is when the run's Plex and Spotify rows, already stored by
+// their own pulls, stopped playing. Rows ending at or after the window end are left
+// out: their end was clamped to it, so it is not when they really stopped. A read
+// failure is the same as having no other listening.
+func otherProviderListenEnds(exerciseID uuid.UUID, windowEnd time.Time) []time.Time {
+	rows, err := database.GetMediaPlaybackForExercise(exerciseID)
+	if err != nil {
+		logger.Log.Warn("Failed to read other media rows for Audiobookshelf match. Error: " + err.Error())
+		return nil
+	}
+	ends := []time.Time{}
+	for _, row := range rows {
+		if row.Provider != models.MediaProviderAudiobookshelf && row.EndedAt != nil && row.EndedAt.Before(windowEnd) {
+			ends = append(ends, *row.EndedAt)
+		}
+	}
+	return ends
 }

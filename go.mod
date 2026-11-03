@@ -4,7 +4,6 @@ go 1.26.0
 
 require (
 	codnect.io/chrono v1.1.3
-	github.com/gin-contrib/cors v1.7.9
 	github.com/gin-gonic/gin v1.12.0
 	github.com/go-mail/mail v2.3.1+incompatible
 	github.com/golang-jwt/jwt/v5 v5.3.1

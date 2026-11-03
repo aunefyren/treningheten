@@ -100,8 +100,8 @@ func TestScheduleJobsRespectsIntegrationFlags(t *testing.T) {
 	files.ConfigFile.StravaEnabled = false
 	files.ConfigFile.HevyEnabled = false
 	files.ConfigFile.Media.Enabled = false
-	if got := scheduleJobs(scheduler); got != 2 {
-		t.Errorf("jobs with every integration off = %d, want the two core jobs", got)
+	if got := scheduleJobs(scheduler); got != 3 {
+		t.Errorf("jobs with every integration off = %d, want the three core jobs", got)
 	}
 
 	files.ConfigFile.Ollama.Enabled = true
@@ -109,7 +109,7 @@ func TestScheduleJobsRespectsIntegrationFlags(t *testing.T) {
 	files.ConfigFile.HevyEnabled = true
 	files.ConfigFile.Media.Enabled = true
 	// Media brings two: the reconcile and the integration health check.
-	if got := scheduleJobs(scheduler); got != 7 {
-		t.Errorf("jobs with every integration on = %d, want 7", got)
+	if got := scheduleJobs(scheduler); got != 8 {
+		t.Errorf("jobs with every integration on = %d, want 8", got)
 	}
 }

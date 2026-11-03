@@ -145,6 +145,29 @@ hit this — a soundtrack mixing a book (no episode id) and a podcast episode wa
 stored on SQLite — and now inserts row by row inside its transaction. Prefer that for any
 batch whose rows aren't uniformly shaped.
 
+## Never put an id in a GORM struct, map or inline condition
+
+GORM leaves zero-valued fields out of a struct condition. `uuid.Parse` accepts the nil UUID
+(`00000000-0000-0000-0000-000000000000`), so a request can send it as any id, and then
+`Where(&models.Gear{GormModel: models.GormModel{ID: id}})` has **no id filter at all**: it
+matches the first row, or every row, and an ownership check that relies on it passes for
+anyone. Primary-key inline conditions (`First(&gear, id)`) and a primary key carried by the
+model value (`Delete(&models.Gear{GormModel: …})`, `Model(&models.Gear{…}).Updates(…)`) drop
+out the same way.
+
+**Rule:** write every condition as an explicit column condition —
+`Where("gear.id = ?", id).Where("gear.user_id = ?", userID)` — where the nil UUID is just a
+value that matches nothing. Two tests hold the line:
+
+- `TestNoStructConditions` (`database/gorm_conditions_test.go`) scans every non-test Go
+  file and fails on a struct/map literal (or `&variable`) passed to `Where`/`Or`/`Not`, an
+  inline condition after the destination of `First`/`Last`/`Take`/`Find`/`Delete`/
+  `FirstOrInit`/`FirstOrCreate`, and a filled model literal given to `Model`/`Delete`.
+- `TestRoutesTreatTheNilUUIDAsUnknown` and `TestMCPToolsTreatTheNilUUIDAsUnknown`
+  (`controllers/nil_uuid_test.go`) send every route and every id-taking MCP tool the nil
+  UUID and a random UUID, and require the same answer, none of another user's data, and no
+  extra writes.
+
 ## Related
 
 - [seasons-and-goals.md](seasons-and-goals.md) — entities that use these conventions

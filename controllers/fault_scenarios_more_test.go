@@ -130,13 +130,19 @@ func moreFaultScenarios() []faultScenario {
 		}),
 		callScenario("refresh token", func(t *testing.T, h *apiHarness, w faultWorld) func() error {
 			registerWithPassword(t, h, w, "refresh@fault.test")
-			_, login := passwordLogin(h, "refresh@fault.test", "Password123")
-			refresh := login["refresh_token"].(string)
+			login := h.doForm("/api/oauth/token", url.Values{"grant_type": {"password"}, "client_id": {models.FirstPartyClientID}, "username": {"refresh@fault.test"}, "password": {"Password123"}})
+			cookie := findCookie(login, refreshCookieName)
+			if cookie == nil {
+				t.Fatal("password login set no refresh cookie")
+			}
 			return func() error {
-				return statusError(h.doForm("/api/oauth/token", url.Values{"grant_type": {"refresh_token"}, "client_id": {models.FirstPartyClientID}, "refresh_token": {refresh}}), http.StatusOK)
+				request := newFormRequest("/api/oauth/token", url.Values{"grant_type": {"refresh_token"}, "client_id": {models.FirstPartyClientID}})
+				request.AddCookie(&http.Cookie{Name: refreshCookieName, Value: cookie.Value})
+				return statusError(serve(h, request), http.StatusOK)
 			}
 		}),
 		callScenario("authorization code flow", func(t *testing.T, h *apiHarness, w faultWorld) func() error {
+			setMCPEnabled(t, true)
 			registered := h.expect(http.StatusCreated, "POST", "/api/oauth/register", "", OAuthClientRegistrationRequest{RedirectURIs: []string{"http://127.0.0.1/cb"}})
 			clientID := registered["client_id"].(string)
 			verifier, challenge := pkcePair()
@@ -155,6 +161,7 @@ func moreFaultScenarios() []faultScenario {
 			}
 		}),
 		scenario("register oauth client", http.StatusCreated, func(t *testing.T, h *apiHarness, w faultWorld) faultRequest {
+			setMCPEnabled(t, true)
 			return faultRequest{"POST", "/api/oauth/register", "", OAuthClientRegistrationRequest{RedirectURIs: []string{"https://a/cb"}, TokenEndpointAuthMethod: "client_secret_post"}, nil}
 		}),
 

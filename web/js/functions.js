@@ -1,37 +1,57 @@
 var api_url = window.location.origin + "/api/";
 var OAUTH_CLIENT_ID = "treningheten-web";
 
-// Store the OAuth token pair. Access token keeps the legacy cookie name so all
-// existing Authorization headers keep working.
-function store_tokens(access_token, refresh_token) {
+// Store the access token. It keeps the legacy cookie name so all existing Authorization
+// headers keep working, and lives as long as the JWT (expires_in, seconds). The refresh
+// token is never visible to script: the server keeps it in an HttpOnly cookie.
+function store_tokens(access_token, expires_in) {
     if(access_token) {
-        set_cookie("treningheten", access_token, 7);
+        set_session_hint(true);
+        set_cookie("treningheten", access_token, (expires_in || 3600) / 86400);
         jwt = access_token;
-    }
-    if(refresh_token) {
-        set_cookie("treningheten_refresh", refresh_token, 30);
     }
 }
 
-// Clear both tokens (logout / failed refresh).
+// Clear the access token (failed refresh / login page). The HttpOnly refresh cookie can
+// only be cleared by the server: logout() revokes it, a failed refresh clears it.
 function clear_tokens() {
-    set_cookie("treningheten", "", 1);
-    set_cookie("treningheten_refresh", "", 1);
+    set_session_hint(false);
+    set_cookie("treningheten", "", -1);
     jwt = "";
 }
 
-// Exchange the refresh token for a new access token. Calls back with the new
-// access token on success, or "" on failure.
-function refresh_access_token(callback) {
-    var refresh_token = get_cookie("treningheten_refresh");
-    if(!refresh_token) {
-        callback("");
-        return;
+// The HttpOnly refresh cookie is invisible to script, so a localStorage flag records that
+// a session probably exists. The silent refresh only runs when it is set, which keeps
+// logged-out page loads off the rate-limited token endpoint. It is not a credential.
+var SESSION_HINT_KEY = "treningheten_session";
+function set_session_hint(present) {
+    try {
+        if(present) {
+            localStorage.setItem(SESSION_HINT_KEY, "1");
+        } else {
+            localStorage.removeItem(SESSION_HINT_KEY);
+        }
+    } catch(e) {}
+}
+function has_session_hint() {
+    try {
+        return localStorage.getItem(SESSION_HINT_KEY) === "1";
+    } catch(e) {
+        return false;
     }
+}
 
+// The refresh token used to be a JS-readable cookie; it is ignored by the server now,
+// so delete any leftover.
+if(get_cookie("treningheten_refresh")) {
+    set_cookie("treningheten_refresh", "", -1);
+}
+
+// Exchange the refresh token (sent by the browser as an HttpOnly cookie) for a new
+// access token. Calls back with the new access token on success, or "" on failure.
+function refresh_access_token(callback) {
     var body = "grant_type=refresh_token"
-        + "&client_id=" + encodeURIComponent(OAUTH_CLIENT_ID)
-        + "&refresh_token=" + encodeURIComponent(refresh_token);
+        + "&client_id=" + encodeURIComponent(OAUTH_CLIENT_ID);
 
     var xhttp = new XMLHttpRequest();
     xhttp.onreadystatechange = function() {
@@ -39,7 +59,7 @@ function refresh_access_token(callback) {
             try {
                 var result = JSON.parse(this.responseText);
                 if(this.status >= 200 && this.status < 300 && result.access_token) {
-                    store_tokens(result.access_token, result.refresh_token);
+                    store_tokens(result.access_token, result.expires_in);
                     callback(result.access_token);
                     return;
                 }
@@ -50,6 +70,7 @@ function refresh_access_token(callback) {
             callback("");
         }
     };
+    xhttp.withCredentials = true;
     xhttp.open("post", api_url + "oauth/token");
     xhttp.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");
     xhttp.send(body);
@@ -214,7 +235,9 @@ function set_cookie(cname, cvalue, exdays) {
     var d = new Date();
     d.setTime(d.getTime() + (exdays*24*60*60*1000));
     var expires = "expires="+ d.toUTCString();
-    document.cookie = cname + "=" + cvalue + "; " + expires + "; path=/; samesite=strict;";
+    // Secure only over HTTPS: browsers drop Secure cookies on plain-HTTP installs
+    var secure = window.location.protocol === "https:" ? "; secure" : "";
+    document.cookie = cname + "=" + cvalue + "; " + expires + "; path=/; samesite=strict" + secure + ";";
 }
 
 // Get cookie from browser
@@ -240,7 +263,7 @@ function get_login(cookie, triedRefresh) {
 
     if(jwt == "") {
         // No access token: try to silently refresh before giving up.
-        if(!triedRefresh && get_cookie("treningheten_refresh")) {
+        if(!triedRefresh && has_session_hint()) {
             refresh_access_token(function(newToken) {
                 if(newToken) {
                     get_login(newToken, true);
@@ -290,7 +313,7 @@ function get_login(cookie, triedRefresh) {
             } else if(result.error) {
                 // Access token rejected: attempt a single silent refresh before
                 // bouncing the user to the login page.
-                if(!triedRefresh && get_cookie("treningheten_refresh")) {
+                if(!triedRefresh && has_session_hint()) {
                     refresh_access_token(function(newToken) {
                         if(newToken) {
                             get_login(newToken, true);
@@ -500,10 +523,54 @@ function markActiveNavItem() {
     }
 }
 
+// The <nav> element; clicks inside it never close the mobile dropdown. Set on DOMContentLoaded.
+var ignoreNav = null;
+
+// Bind the shared nav handlers (every page has the same nav markup), so the templates need
+// no inline onclick attributes: the burger button toggles the dropdown, "Log out" logs out.
+document.addEventListener('DOMContentLoaded', function() {
+    ignoreNav = document.getElementById('nav');
+
+    var navToggle = document.getElementById('nav-toggle');
+    if (navToggle) {
+        navToggle.addEventListener('click', toggle_navbar);
+    }
+
+    var logoutLink = document.getElementById('logout');
+    if (logoutLink) {
+        logoutLink.addEventListener('click', function(event) {
+            event.preventDefault();
+            logout();
+        });
+    }
+});
+
+// on_action wires event delegation for markup without inline handlers: one listener on a
+// stable container dispatches on the closest [data-action] element to handlers[action].
+// A handler is called as handler(element, event); read its arguments from element.dataset.
+//   container: element or element id; handlers: { actionName: function(element, event) {} }
+//   eventName: defaults to 'click'.
+function on_action(container, handlers, eventName) {
+    var root = (typeof container === 'string') ? document.getElementById(container) : container;
+    if (!root) {
+        return;
+    }
+    root.addEventListener(eventName || 'click', function(event) {
+        var element = event.target.closest('[data-action]');
+        if (!element || !root.contains(element)) {
+            return;
+        }
+        var handler = handlers[element.dataset.action];
+        if (typeof handler === 'function') {
+            handler(element, event);
+        }
+    });
+}
+
 // Close the open mobile dropdown when clicking outside the nav (modal backdrop
 // dismissal is handled by TRModal).
 document.addEventListener('click', function(event) {
-    var isClickInsideElement = ignoreNav.contains(event.target);
+    var isClickInsideElement = ignoreNav && ignoreNav.contains(event.target);
     if (!isClickInsideElement) {
         var nav_classlist = document.getElementById('navbar').classList;
         if (nav_classlist.contains('nav-open')) {
@@ -542,8 +609,21 @@ function error(message) {
 
 // When log out button is pressed, remove cookie and redirect to home page
 function logout() {
-    clear_tokens();
-    window.location.href = '/';
+    // Revoke the HttpOnly refresh cookie server-side; script cannot clear it.
+    var done = function() {
+        clear_tokens();
+        window.location.href = '/';
+    };
+    var xhttp = new XMLHttpRequest();
+    xhttp.onreadystatechange = function() {
+        if(this.readyState == 4) {
+            done();
+        }
+    };
+    xhttp.withCredentials = true;
+    xhttp.open("post", api_url + "oauth/revoke");
+    xhttp.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");
+    xhttp.send("client_id=" + encodeURIComponent(OAUTH_CLIENT_ID));
 }
 
 // Return GET parameters in a given URL

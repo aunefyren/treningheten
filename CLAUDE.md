@@ -21,7 +21,7 @@ together with the maintainer; **coding agents** (Sonnet) implement an agreed pla
   files in the repo.
 - **Planning (Opus):** talk features, architecture and design through with the maintainer
   *before* code is written — propose, then confirm direction. Record the outcome in the issue in
-  the shape of the "Planned work" template (`.github/ISSUE_TEMPLATE/planned-work.md`): goal,
+  the shape of the "Planned work" template (`.github/ISSUE_TEMPLATE/planned-work.yml`): goal,
   decided approach, files involved, docs to update, tests, open questions. Labels: `idea`
   (not planned yet), `needs-decision` (open questions block the work), `security`, `bug`,
   `enhancement`.
@@ -36,6 +36,10 @@ together with the maintainer; **coding agents** (Sonnet) implement an agreed pla
   `chore/` likewise). PR titles keep the commit style (`feature: …`, `fix: …`, `docs: …`) and
   the body says `Closes #<issue>`. CI (`.github/workflows/go.yml`) must pass. The maintainer
   merges — agents never merge or push to `main`.
+- **GitHub Actions changes go in `.github/potential-workflows/`.** The agent token can't push
+  to `.github/workflows/`, so never touch that directory. Stage complete workflow files under
+  their real names, and list the `git mv`/`git rm` commands at the top of the PR body for the
+  maintainer. Procedure and workflow overview: [`docs/ci.md`](docs/ci.md).
 - **Nothing lasts outside the repo.** Agent memory is per worktree path and is lost with it.
   A fact worth keeping goes into the relevant `docs/*.md`, or into the issue.
 
@@ -65,6 +69,9 @@ together with the maintainer; **coding agents** (Sonnet) implement an agreed pla
 - **Durations are seconds.** `*time.Duration` fields (`Operation.Duration`,
   `OperationSet.Time`/`MovingTime`) hold a raw seconds count — `int64(*d)`, never
   `d.Seconds()`.
+- **No GORM struct, map or inline conditions** — `Where("gear.id = ?", id)`, never
+  `Where(&models.Gear{…ID: id})` or `First(&gear, id)`: a nil UUID drops out of those and
+  matches every row ([data-conventions](docs/data-conventions.md#never-put-an-id-in-a-gorm-struct-map-or-inline-condition)).
 - **New models go in `Migrate()`** (`database/client.go`). There are no migration files;
   queries must run on SQLite, MySQL and Postgres ([conventions](docs/conventions.md#portable-sql)).
 - **New routes go in `initRouter`** (`main.go`) *and* in the test harness route table

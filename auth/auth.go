@@ -212,8 +212,10 @@ func IssueTokenSet(userID uuid.UUID, admin bool, scope string, clientID string) 
 }
 
 // RefreshTokenSet validates and rotates a refresh token, returning a fresh token
-// pair. Reuse of an already-rotated token revokes the whole chain.
-func RefreshTokenSet(presentedToken string, clientID string) (models.OAuthTokenResponse, error) {
+// pair. Reuse of an already-rotated token revokes the whole chain. The admin scope is
+// reserved for the first-party client: when firstParty is false it is dropped from the
+// rotated set, so a chain that held it loses it at its next refresh.
+func RefreshTokenSet(presentedToken string, clientID string, firstParty bool) (models.OAuthTokenResponse, error) {
 	stored, err := database.GetRefreshTokenByHash(HashToken(presentedToken))
 	if err != nil {
 		return models.OAuthTokenResponse{}, errors.New("invalid refresh token")
@@ -244,7 +246,12 @@ func RefreshTokenSet(presentedToken string, clientID string) (models.OAuthTokenR
 	}
 	admin := userObject.Admin != nil && *userObject.Admin
 
-	accessToken, expiresAt, err := GenerateAccessToken(stored.UserID, admin, stored.Scope, stored.ClientID)
+	scope := stored.Scope
+	if !firstParty {
+		scope = withoutAdminScope(scope)
+	}
+
+	accessToken, expiresAt, err := GenerateAccessToken(stored.UserID, admin, scope, stored.ClientID)
 	if err != nil {
 		return models.OAuthTokenResponse{}, err
 	}
@@ -254,7 +261,7 @@ func RefreshTokenSet(presentedToken string, clientID string) (models.OAuthTokenR
 		TokenHash: HashToken(newRefreshToken),
 		UserID:    stored.UserID,
 		ClientID:  stored.ClientID,
-		Scope:     stored.Scope,
+		Scope:     scope,
 		ExpiresAt: time.Now().Add(RefreshTokenTTL),
 	}
 	if err := database.RotateRefreshToken(stored.ID, &newStored); err != nil {
@@ -266,6 +273,21 @@ func RefreshTokenSet(presentedToken string, clientID string) (models.OAuthTokenR
 		TokenType:    "Bearer",
 		ExpiresIn:    int(time.Until(expiresAt).Seconds()),
 		RefreshToken: newRefreshToken,
-		Scope:        stored.Scope,
+		Scope:        scope,
 	}, nil
+}
+
+// withoutAdminScope removes the admin scope from a space-delimited scope string,
+// falling back to the general API scope if nothing else would be left.
+func withoutAdminScope(scope string) string {
+	var kept []string
+	for _, s := range strings.Fields(scope) {
+		if s != models.ScopeAdmin {
+			kept = append(kept, s)
+		}
+	}
+	if len(kept) == 0 {
+		return models.ScopeAPI
+	}
+	return strings.Join(kept, " ")
 }

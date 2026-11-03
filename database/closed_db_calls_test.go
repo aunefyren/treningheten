@@ -233,6 +233,7 @@ var closedDBCalls = []struct {
 		return err
 	}},
 	{"GetWheelviewByDebtIDAndUserID", true, func() error { _, _, err := GetWheelviewByDebtIDAndUserID(uuid.UUID{}, uuid.UUID{}); return err }},
+	{"PruneUnusedOAuthClients", true, func() error { _, err := PruneUnusedOAuthClients(time.Time{}); return err }},
 	{"RegisterAchievementDelegationInDB", true, func() error { _, err := RegisterAchievementDelegationInDB(models.AchievementDelegation{}); return err }},
 	{"RegisterAchievementInDB", true, func() error { _, err := RegisterAchievementInDB(models.Achievement{}); return err }},
 	{"RegisterDebtInDB", true, func() error { _, err := RegisterDebtInDB(models.Debt{}); return err }},

@@ -17,7 +17,8 @@ no refresh/redirect lifecycle.
   mirroring `StravaTokenKey`). The field is `json:"-"` — the key is **never** serialized
   back to clients.
 - On connect, the user's public profile URL from `/user/info` is stored as
-  `User.HevyProfileURL` (cleared on disconnect) so a Hevy link can be shown on the profile,
+  `User.HevyProfileURL` (cleared on disconnect; kept only when it is an absolute `https` URL,
+  see `hevyProfileURL`) so a Hevy link can be shown on the profile,
   gated by the `User.HevyPublic` visibility toggle (default true; mirrors `StravaPublic`).
 - `User.HevyConnected` (`bool`, `gorm:"-"`) is a derived flag set only on the user's own
   `GET /api/auth/users/:id` response so the frontend can show connect vs. disconnect

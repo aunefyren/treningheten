@@ -29,7 +29,6 @@ import (
 	_ "time/tzdata"
 
 	"codnect.io/chrono"
-	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 )
 
@@ -173,6 +172,7 @@ func scheduleJobs(taskScheduler chrono.TaskScheduler) int {
 		cron    string
 		run     func()
 	}{
+		{"prune unused OAuth clients", true, "0 30 3 * * *", controllers.PruneUnusedOAuthClients},
 		{"sunday reminder", true, "0 0 18 * * 7", controllers.SendSundayReminders},
 		{"generating results for last week", true, "0 0 8 * * 1", controllers.ProcessLastWeek},
 		{"Ollama pre-cache", files.ConfigFile.Ollama.Enabled, "0 0 6 * * *", controllers.OllamaPreCacheForAllUsers},
@@ -228,6 +228,11 @@ func initRouter(configFile models.ConfigStruct) *gin.Engine {
 	if err := router.SetTrustedProxies(trustedProxyCIDRs); err != nil {
 		logger.Log.Error("failed to set trusted proxies. error: " + err.Error())
 	}
+
+	// Gin freezes a route's handler chain when the route is registered, so this must
+	// stay above every route and group below: middleware added later would silently
+	// skip them.
+	router.Use(middlewares.SecurityHeaders(configFile.TreninghetenExternalURL))
 
 	router.LoadHTMLGlob("web/*/*.html")
 
@@ -429,17 +434,6 @@ func initRouter(configFile models.ConfigStruct) *gin.Engine {
 	// authenticated with an OAuth access token or a Personal Access Token.
 	router.Any("/mcp", controllers.MCPHandler())
 
-	router.Use(cors.New(cors.Config{
-		AllowOrigins: []string{"*"},
-		// AllowAllOrigins:  true,
-		AllowMethods:     []string{"GET", "POST", "PATCH"},
-		AllowHeaders:     []string{"Origin", "Content-Type", "Authorization", "Access-Control-Allow-Origin"},
-		ExposeHeaders:    []string{"Content-Length"},
-		AllowCredentials: true,
-		AllowOriginFunc:  func(origin string) bool { return true },
-		MaxAge:           12 * time.Hour,
-	}))
-
 	// load HTML blobs
 	router.LoadHTMLGlob("./web/*/*.html")
 
@@ -497,7 +491,7 @@ func parseFlags(configFile models.ConfigStruct) (models.ConfigStruct, bool, erro
 	// Timezone flags
 	var dbPort = flag.Int("dbport", configFile.DBPort, "The port the database is listening on.")
 	var dbUsername = flag.String("dbusername", configFile.DBUsername, "The username used to interact with the database.")
-	var dbPassword = flag.String("dbpassword", configFile.DBPassword, "The password used to interact with the database.")
+	var dbPassword = flag.String("dbpassword", configFile.DBPassword, "The password used to interact with the database. Visible in the process list; prefer the dbpassword environment variable.")
 	var dbName = flag.String("dbname", configFile.DBName, "The database table used within the database.")
 	var dbIP = flag.String("dbip", configFile.DBIP, "The IP address used to reach the database.")
 
@@ -506,7 +500,7 @@ func parseFlags(configFile models.ConfigStruct) (models.ConfigStruct, bool, erro
 	var smtpHost = flag.String("smtphost", configFile.SMTPHost, "The SMTP server which sends e-mail.")
 	var smtpPort = flag.Int("smtpport", configFile.SMTPPort, "The SMTP server port.")
 	var smtpUsername = flag.String("smtpusername", configFile.SMTPUsername, "The username used to verify against the SMTP server.")
-	var smtpPassword = flag.String("smtppassword", configFile.SMTPPassword, "The password used to verify against the SMTP server.")
+	var smtpPassword = flag.String("smtppassword", configFile.SMTPPassword, "The password used to verify against the SMTP server. Visible in the process list; prefer the smtppassword environment variable.")
 	var smtpFrom = flag.String("smtpfrom", configFile.SMTPFrom, "The sender address when sending e-mail from Treningheten.")
 
 	// Generate invite flag
@@ -514,6 +508,10 @@ func parseFlags(configFile models.ConfigStruct) (models.ConfigStruct, bool, erro
 
 	// Parse the flags from input
 	flag.Parse()
+
+	// Secrets: explicit flag > environment variable > config file
+	flagsSet := map[string]bool{}
+	flag.Visit(func(f *flag.Flag) { flagsSet[f.Name] = true })
 
 	// Respect the flag if config is empty
 	if port != nil {
@@ -542,7 +540,7 @@ func parseFlags(configFile models.ConfigStruct) (models.ConfigStruct, bool, erro
 
 	// Respect the flag if config is empty
 	if dbPassword != nil {
-		configFile.DBPassword = *dbPassword
+		configFile.DBPassword = resolveSecret(flagsSet["dbpassword"], *dbPassword, os.Getenv("dbpassword"), configFile.DBPassword)
 	}
 
 	// Respect the flag if config is empty
@@ -579,7 +577,7 @@ func parseFlags(configFile models.ConfigStruct) (models.ConfigStruct, bool, erro
 
 	// Respect the flag if config is empty
 	if smtpPassword != nil {
-		configFile.SMTPPassword = *smtpPassword
+		configFile.SMTPPassword = resolveSecret(flagsSet["smtppassword"], *smtpPassword, os.Getenv("smtppassword"), configFile.SMTPPassword)
 	}
 
 	// Respect the flag if config is empty
@@ -599,6 +597,19 @@ func parseFlags(configFile models.ConfigStruct) (models.ConfigStruct, bool, erro
 	}
 
 	return configFile, generateInviteBool, nil
+}
+
+// resolveSecret picks a secret by precedence: an explicitly set flag, then a non-empty
+// environment variable, then the config file value. Env vars keep secrets out of
+// /proc/<pid>/cmdline, which flags do not.
+func resolveSecret(flagSet bool, flagValue, envValue, configValue string) string {
+	if flagSet {
+		return flagValue
+	}
+	if envValue != "" {
+		return envValue
+	}
+	return configValue
 }
 
 func registerTemplatedStaticFilesForDirectory(

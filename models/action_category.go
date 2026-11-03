@@ -1,6 +1,10 @@
 package models
 
-import "strings"
+import (
+	"strings"
+	"unicode"
+	"unicode/utf8"
+)
 
 // Action categories say what kind of training an action is, independent of how it is
 // measured (Action.Type: lifting/moving/timing). Weight Training and Yoga are both measured
@@ -109,4 +113,23 @@ func HevyActionCategory(primaryMuscleGroup string) string {
 		return ActionCategoryMobility
 	}
 	return ActionCategoryStrength
+}
+
+// MaxActionNameLength caps a user-created action name, in runes.
+const MaxActionNameLength = 64
+
+// ValidActionName reports whether a user-supplied action name is acceptable. Actions are
+// global — every user sees every name — so markup and quoting characters (<, >, ", `, \)
+// and control characters are refused outright as defence in depth; the frontend escapes
+// names as well. An empty name is valid here (only one of the two names is required).
+func ValidActionName(name string) bool {
+	if utf8.RuneCountInString(name) > MaxActionNameLength {
+		return false
+	}
+	for _, r := range name {
+		if unicode.IsControl(r) || strings.ContainsRune("<>\"`\\", r) {
+			return false
+		}
+	}
+	return true
 }
