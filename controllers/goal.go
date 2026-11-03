@@ -59,6 +59,11 @@ func APIRegisterGoalToSeason(context *gin.Context) {
 		context.JSON(http.StatusBadRequest, gin.H{"error": "Failed to find season by ID."})
 		context.Abort()
 		return
+	} else if season.End.Before(time.Now()) {
+		// Even a join-anytime season can't be joined once it is over.
+		context.JSON(http.StatusBadRequest, gin.H{"error": "Season has already ended."})
+		context.Abort()
+		return
 	} else if season.Start.Before(time.Now()) && !*season.JoinAnytime {
 		context.JSON(http.StatusBadRequest, gin.H{"error": "Season has already started."})
 		context.Abort()

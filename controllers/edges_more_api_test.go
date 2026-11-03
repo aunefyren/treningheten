@@ -17,10 +17,13 @@ func TestGoalInviteGearNewsEdges(t *testing.T) {
 	_, adminToken := h.user("admin@edges2.test", true)
 	user, token := h.user("user@edges2.test", false)
 
-	// Goals: unknown season, a started season that doesn't allow late joining, unknown goal.
+	// Goals: unknown season, a started season that doesn't allow late joining, an ended
+	// season even though it allows late joining, unknown goal.
 	h.expect(http.StatusBadRequest, "POST", "/api/auth/goals", token, models.GoalCreationRequest{ExerciseInterval: 2, SeasonID: uuid.New()})
 	closed := seedSeason(t, "Closed season", time.Now().AddDate(0, 0, -7), time.Now().AddDate(0, 0, 30), false)
 	h.expect(http.StatusBadRequest, "POST", "/api/auth/goals", token, models.GoalCreationRequest{ExerciseInterval: 2, SeasonID: closed.ID})
+	ended := seedSeason(t, "Ended season", time.Now().AddDate(0, 0, -30), time.Now().AddDate(0, 0, -2), true)
+	h.expect(http.StatusBadRequest, "POST", "/api/auth/goals", token, models.GoalCreationRequest{ExerciseInterval: 2, SeasonID: ended.ID})
 	if code := h.do("DELETE", "/api/auth/goals/"+uuid.NewString(), token, nil).Code; code < 400 {
 		t.Errorf("withdrawing an unknown goal: status = %d", code)
 	}

@@ -16,7 +16,7 @@ owned by a user.
 | `Start`, `End` | The competition window |
 | `Prize` | What the winner receives (see prizes/wheel) |
 | `Sickleave` | How many weeks of sick leave each participant is allowed (see below) |
-| `JoinAnytime` | If false, users may only join before/at the start; if true, they can join mid-season |
+| `JoinAnytime` | If false, users may only join before/at the start; if true, they can join mid-season (never after it has ended) |
 | `CarryOverMax`, `CarryOverWeeks` | **Saved workouts**: how many extra workouts a participant can hold, and how many weeks each lasts. `0` = off, the default. See [flexible-workouts.md](flexible-workouts.md) |
 | `Enabled` | Soft-delete flag |
 
@@ -30,7 +30,8 @@ Code: `models/season.go`, `controllers/season.go`, `database/season.go`. Seasons
 created by admins (`POST /api/admin/seasons`). A season starts on a Monday and ends on a
 Sunday after it, so the shortest is one week. It may lie in the past: an admin can register a
 season that has already started, or even ended. Joining a started season still needs
-`JoinAnytime`, and the joinable-season list never offers an ended one.
+`JoinAnytime`, and an ended season can't be joined at all (`POST /api/auth/goals` refuses
+it, and the joinable-season list never offers one).
 
 **Seasons live in the server's zone.** `APIRegisterSeason` keeps the calendar dates the admin
 picked and builds `Start` (Monday 00:00) and `End` (Sunday 23:59:59) in `time.Local` — the
