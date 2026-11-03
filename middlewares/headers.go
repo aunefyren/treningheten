@@ -14,9 +14,10 @@ func IsHTTPSURL(rawURL string) bool {
 	return err == nil && strings.EqualFold(parsed.Scheme, "https")
 }
 
-// ContentSecurityPolicy is the strict policy for the whole app. It is sent as
-// Content-Security-Policy-Report-Only for now and is meant to be enforced as-is later, so
-// keep it a single constant. No report-uri: violations show up in the browser console.
+// ContentSecurityPolicy is the strict policy for the whole app, enforced on every response.
+// No 'unsafe-inline' for scripts or styles: web/ carries no inline handlers, style
+// attributes or inline scripts (see docs/security.md, guarded by TestWebAssetsAreCSPClean).
+// No report-uri: violations show up in the browser console.
 //
 // External origins, each one really used by web/:
 //   - fonts.googleapis.com (style-src): the Google Fonts stylesheets linked in every page.
@@ -38,10 +39,8 @@ const ContentSecurityPolicy = "default-src 'self'; " +
 	"frame-ancestors 'none'"
 
 // SecurityHeaders sets baseline hardening headers on every response: no MIME sniffing,
-// no framing, a conservative referrer policy and, when the instance is served over
-// HTTPS, HSTS. The enforced Content-Security-Policy carries only frame-ancestors; the
-// strict policy (ContentSecurityPolicy) is sent alongside it as Report-Only until every
-// page is compliant (see docs/security.md).
+// no framing, the strict Content-Security-Policy, a conservative referrer policy and,
+// when the instance is served over HTTPS, HSTS (see docs/security.md).
 //
 // HSTS is sent only when externalURL has an https scheme, so a plain-HTTP instance
 // never pins browsers to HTTPS. It deliberately omits includeSubDomains and preload:
@@ -53,8 +52,7 @@ func SecurityHeaders(externalURL string) gin.HandlerFunc {
 		header := context.Writer.Header()
 		header.Set("X-Content-Type-Options", "nosniff")
 		header.Set("X-Frame-Options", "DENY")
-		header.Set("Content-Security-Policy", "frame-ancestors 'none'")
-		header.Set("Content-Security-Policy-Report-Only", ContentSecurityPolicy)
+		header.Set("Content-Security-Policy", ContentSecurityPolicy)
 		header.Set("Referrer-Policy", "strict-origin-when-cross-origin")
 		if https {
 			header.Set("Strict-Transport-Security", "max-age=31536000")

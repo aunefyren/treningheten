@@ -77,6 +77,9 @@ together with the maintainer; **coding agents** (Sonnet) implement an agreed pla
 - **New routes go in `initRouter`** (`main.go`) *and* in the test harness route table
   (`controllers/api_harness_test.go`).
 - **Background work uses `goSafely`**, never a bare `go`.
+- **No inline handlers, `style=` or inline scripts in `web/`**: the strict CSP is enforced
+  (blocked silently) and `TestWebAssetsAreCSPClean` fails. Use `data-action` + `on_action`
+  and the `hidden` attribute ([security](docs/security.md#strict-content-security-policy)).
 - **Read request bodies with `bindJSON`**, not `ShouldBindJSON`, and give every string field of a
   `*Request` struct a `sanitize` tag (`-` for passwords). A test fails on untagged fields. Values
   are stored unescaped, so escape on output

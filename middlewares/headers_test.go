@@ -24,15 +24,16 @@ func TestSecurityHeadersAreSet(t *testing.T) {
 	want := map[string]string{
 		"X-Content-Type-Options":  "nosniff",
 		"X-Frame-Options":         "DENY",
-		"Content-Security-Policy": "frame-ancestors 'none'",
+		"Content-Security-Policy": ContentSecurityPolicy,
 		"Referrer-Policy":         "strict-origin-when-cross-origin",
-
-		"Content-Security-Policy-Report-Only": ContentSecurityPolicy,
 	}
 	for name, value := range want {
 		if got := header.Get(name); got != value {
 			t.Errorf("%s = %q, want %q", name, got, value)
 		}
+	}
+	if got := header.Get("Content-Security-Policy-Report-Only"); got != "" {
+		t.Errorf("Content-Security-Policy-Report-Only = %q, want none: the strict policy is enforced", got)
 	}
 }
 
@@ -50,7 +51,7 @@ func TestSecurityHeadersHSTSOnlyForHTTPS(t *testing.T) {
 }
 
 func TestContentSecurityPolicyIsStrict(t *testing.T) {
-	for _, directive := range []string{"default-src 'self'", "script-src 'self'", "object-src 'none'", "base-uri 'self'", "frame-ancestors 'none'"} {
+	for _, directive := range []string{"default-src 'self'", "script-src 'self'", "style-src 'self'", "object-src 'none'", "base-uri 'self'", "frame-ancestors 'none'"} {
 		if !strings.Contains(ContentSecurityPolicy, directive) {
 			t.Errorf("policy lacks %q", directive)
 		}

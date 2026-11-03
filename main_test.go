@@ -10,6 +10,7 @@ import (
 	"testing"
 
 	"github.com/aunefyren/treningheten/logger"
+	"github.com/aunefyren/treningheten/middlewares"
 	"github.com/aunefyren/treningheten/models"
 
 	"github.com/gin-gonic/gin"
@@ -296,7 +297,7 @@ func TestInitRouterSendsSecurityHeaders(t *testing.T) {
 		for name, value := range map[string]string{
 			"X-Content-Type-Options":    "nosniff",
 			"X-Frame-Options":           "DENY",
-			"Content-Security-Policy":   "frame-ancestors 'none'",
+			"Content-Security-Policy":   middlewares.ContentSecurityPolicy,
 			"Referrer-Policy":           "strict-origin-when-cross-origin",
 			"Strict-Transport-Security": "max-age=31536000",
 		} {

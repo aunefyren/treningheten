@@ -50,13 +50,15 @@ Embed images directly; never re-introduce XHR→base64 fetching. Use the helpers
 `functions.js`:
 
 ```js
-<img src="${profileImageURL(userID, true)}"      onerror="${IMAGE_FALLBACK_ONERROR}">
-<img src="${achievementImageURL(achievementID, true)}" onerror="${IMAGE_FALLBACK_ONERROR}">
+<img src="${profileImageURL(userID, true)}"      data-fallback="placeholder">
+<img src="${achievementImageURL(achievementID, true)}" data-fallback="placeholder">
 ```
 
-`IMAGE_FALLBACK_ONERROR` swaps in the local `barbell.gif` placeholder if a request fails
-(e.g. an expired session, or an achievement with no image — the achievement endpoint
-404/400s rather than serving a default).
+`data-fallback="placeholder"` swaps in the local `barbell.gif` placeholder once if a request
+fails (e.g. an expired session, or an achievement with no image — the achievement endpoint
+404/400s rather than serving a default). One capturing `error` listener in `functions.js`
+handles it, since the strict CSP blocks inline `onerror` handlers
+([security.md](security.md#strict-content-security-policy)).
 
 ## Uploads
 

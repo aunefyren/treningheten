@@ -29,7 +29,7 @@ Every page links, **in this order**: `tokens.css` → `base.css` → `components
 `workout.css` / `admin.css`).
 `base`/`components`/`instrument` are the sequential split of the old `main.css` — the order
 above reproduces its cascade exactly. `tokens.css` is first so every stylesheet — and any
-inline `style="…"` string emitted from JS — resolves its `var(--…)` values from it. There is
+value JS sets through the CSSOM — resolves its `var(--…)` values from it. There is
 no shared HTML head partial: each page in `web/html/` links its own stylesheets.
 
 ## Design language
@@ -389,8 +389,9 @@ carries the one `--focus-ring`.
 - Below the workouts: the add row reuses the builder's `.we-add-exercise` (wrapped in
   `.workout-view` so its tokens resolve), a deleted workout is one inset `.day-deleted` row with
   Restore, Combine is a `.btn--ghost` shown only once two workouts are ticked, and `.day-links`
-  are plain `--mediumblue` links. The page hides things with the `hidden` attribute;
-  `.day-page [hidden]` makes it win over components that set their own `display`.
+  are plain `--mediumblue` links. The page hides things with the `hidden` attribute, which
+  the global `[hidden]` rule in `base.css` makes win over components that set their own
+  `display`.
 
 ### Statistics
 
@@ -694,8 +695,9 @@ is a later pass. Compose them: `class="u-w-full u-text-center"`.
 Component classes extracted from repeated inline styles (in `components.css`):
 `.integration-btn` (12em connect/disconnect buttons).
 
-**Scope note:** visibility toggling (`display:none` + `.style.display` in JS) is *state*,
-not theme — left inline on purpose. Dynamic (`${…}`) values stay inline too.
+**Scope note:** visibility is *state*, not theme: it is the `hidden` attribute (or
+`element.style.display` from JS), never an inline `style="display:none"`, which the strict CSP
+blocks. Dynamic (`${…}`) values go through the `data-*` styles (rule 6 below).
 
 ## Adding new UI — the rules
 
@@ -705,20 +707,33 @@ not theme — left inline on purpose. Dynamic (`${…}`) values stay inline too.
 2. **Reuse a component before inventing one.** Buttons → `.btn` (+ modifier). Metric tiles
    → `.stat-card`. Tags → `.tag-chip`. Modals → extend `TRModal`. Don't hand-roll parallels.
 3. **One-off spacing/alignment → a `.u-*` utility**, composed on the element. Reach for a
-   utility over an inline `style="…"`. If you need a value the utilities don't have, add the
-   utility (keep the set small and predictable) rather than an inline style.
+   utility. If you need a value the utilities don't have, add the utility (keep the set
+   small and predictable).
 4. **A recurring widget → a semantic component class** (in `components.css` or
    `instrument.css`), not a pile of utilities. `.integration-btn` / `.record-tile` are examples.
 5. **Put the rule in the right layer** (see *Where things live*): global element/base →
    `base.css`; shared component → `components.css`; the new dark design system →
    `instrument.css`; atomic helper → `utilities.css`. Tokens only in `tokens.css`.
-6. **Inline `style="…"` is for genuinely dynamic values only** (computed `${…}`, JS-driven
-   visibility). Static presentational styling belongs in a class.
+6. **No inline `style="…"` at all** — the enforced CSP blocks it
+   ([security.md](security.md#strict-content-security-policy)). Visibility is the `hidden`
+   attribute (`base.css` makes `[hidden]` win over any component `display`); a value computed
+   per item goes in a typed data attribute (`data-width`, `data-bg-color`, `data-bg-image`,
+   `data-cat-color`) that `functions.js` applies through the CSSOM; JS may also set
+   `element.style.x` directly. Static presentational styling belongs in a class.
 7. **When you touch legacy UI, migrate it** toward the instrument look and these
    conventions — don't extend the legacy pattern.
 
 ## Decisions log
 
+- **Strict CSP, no inline styles (#52).** Every `style="…"` left the markup. Initially hidden
+  elements carry `hidden` instead of `display: none`, made reliable by a global
+  `[hidden] { display: none !important; }` in `base.css` (the per-page `.day-page [hidden]` /
+  `.stats-page [hidden]` rules are now redundant). Static leftovers became classes:
+  `.login-cta`, `.week-save-button`, `.week-goal-title`, `.current-week-user-name`, the
+  countdown classes and `.season-select` (components.css), `.we-action-input-invalid`
+  (workout.css). `.hero-saved-note` and `.dropdown-actions-wrapper` declare the `display: flex`
+  JS used to set. Computed widths, swatch colours, cover art and category colours go through
+  `data-width` / `data-bg-color` / `data-bg-image` / `data-cat-color`.
 - **Saved workouts.** A season can let participants save extra workouts to make up a short week
   ([flexible-workouts.md](flexible-workouts.md)). One new token, `--saved` (`--lightblue`), for
   the paler second tone of progress: the hero ring got a second conic segment after the arc

@@ -70,12 +70,11 @@ needs its proxy's range added to `trustedProxyCIDRs`.
 | --- | --- | --- |
 | `X-Content-Type-Options` | `nosniff` | no MIME sniffing of served files |
 | `X-Frame-Options` | `DENY` | clickjacking; nothing in `web/` frames the app |
-| `Content-Security-Policy` | `frame-ancestors 'none'` | modern equivalent of the above. Enforced; deliberately only this directive until the strict policy below is enforced |
-| `Content-Security-Policy-Report-Only` | `middlewares.ContentSecurityPolicy` | the strict policy ([#52](https://github.com/aunefyren/treningheten/issues/52)), reported but not enforced |
+| `Content-Security-Policy` | `middlewares.ContentSecurityPolicy` | the strict policy below; structural mitigation for the `innerHTML` XSS class. Its `frame-ancestors 'none'` is the modern equivalent of `X-Frame-Options` |
 | `Referrer-Policy` | `strict-origin-when-cross-origin` | no full URLs to other origins |
 | `Strict-Transport-Security` | `max-age=31536000` | only when the configured external URL is `https` |
 
-### Strict CSP (report-only)
+### Strict Content-Security-Policy
 
 `middlewares.ContentSecurityPolicy` is one constant: `default-src 'self'`, `script-src 'self'`,
 `style-src 'self'`, `font-src 'self'`, `img-src 'self' data: blob:`, `connect-src 'self'`,
@@ -87,26 +86,45 @@ these external origins, each really used by `web/`:
 - `https://*.tile.openstreetmap.org` (img): Leaflet map tiles.
 - `https://i.scdn.co` (img): Spotify cover art, passed through by the API.
 
-It is sent as `Content-Security-Policy-Report-Only` with **no `report-uri`** (no
-unauthenticated write route): violations appear in the browser console. Once every page
-is clean the same constant is enforced (#71). Until then, check a page by opening it with
-the console open and looking for "Content-Security-Policy-Report-Only" violations.
+It is **enforced** with **no `report-uri`** (no unauthenticated write route): a blocked
+handler, style or script fails silently on the page and logs a
+"Content-Security-Policy" violation in the browser console. No `'unsafe-inline'` for
+scripts *or* styles, so injected markup can neither run code nor restyle the page. It
+shipped report-only first (#66) while every page was refactored (#67 to #70), then was
+enforced (#71); [#52](https://github.com/aunefyren/treningheten/issues/52) tracks the work.
 
-Refactor rules for making a page compliant (shared by the #52 sub-issues):
+Rules for `web/` (`TestWebAssetsAreCSPClean` in `web_csp_test.go` enforces them on
+`web/html` and `web/js`, skipping the vendored `Winwheel.js` and `TweenMax.min.js`):
 
 - **Handlers:** no `on*=` attributes and no `javascript:` URLs. Use `addEventListener`, or
-  for JS-built lists one listener on a stable container plus `data-action="..."` and
-  `data-*` arguments on the element, via `on_action(container, handlers)` in `functions.js`.
-- **Styles:** no `style=` attributes in HTML or JS-built markup, and no
+  for JS-built markup `data-action="..."` plus `data-*` arguments on the element, dispatched
+  by `on_action(container, handlers, eventName)` in `functions.js`. Each page binds its
+  actions once in a `bind<Page>Actions()` called from its `DOMContentLoaded` bootstrap, one
+  `on_action(document.body, ...)` per event type (`click`, `change`, `input`, `submit`,
+  `keyup`, `focusin` since `focus` doesn't bubble). Action names are per event table, so an
+  input can map one name to different handlers for `input` and `change`; a `submit` or
+  `href="#"` handler calls `event.preventDefault()` itself. Shared actions in
+  `functions.js`, which pages must not redefine: `openURL`, `replaceURL` and `openTab`
+  (target in `data-href`; `openTab` opens without an opener). `gear-shared.js` binds its
+  own `createGear`/`deleteGear`/`updateGearField`.
+- **Styles:** no `style=` attributes in HTML or JS-built markup, no style elements, and no
   `setAttribute('style', ...)` or `style.cssText`. Use classes (`web/css/*.css`) and the
-  `hidden` attribute. Setting `element.style.x = ...` (CSSOM) is allowed.
+  `hidden` attribute (a global `[hidden] { display: none !important; }` in `base.css` makes
+  it win over component `display` rules). Setting `element.style.x = ...` (CSSOM) is
+  allowed. Values computed per item go in typed data attributes that a `MutationObserver`
+  in `functions.js` applies through the CSSOM as soon as the markup is inserted:
+  `data-width` (a percentage), `data-bg-color`, `data-bg-image` (a URL) and
+  `data-cat-color` (the `--cat-color` property). Add a key to `DATA_STYLES` for a new one;
+  never a free-form style string.
+- **Images:** no `onerror=`. `data-fallback="placeholder"` swaps in the local placeholder,
+  `"hide"` hides the image and `"glyph"` replaces it with the text in `data-glyph`
+  (one capturing `error` listener in `functions.js`).
 - **Scripts:** no inline `<script>` blocks. A page's init lives in its own JS file and runs
   on `DOMContentLoaded`; carry template values via `data-*` or `<meta>`.
 - **No `eval`:** libraries must be given functions, not code strings (Winwheel callbacks).
-
-Done so far (#66): inline `<script>` blocks, the nav `toggle_navbar`/`logout` handlers
-(bound in `functions.js`) and the wheel page. Page-specific inline handlers and `style=`
-attributes remain and are reported in the console until #67 to #70 land.
+- **Libraries:** Chart.js would inject a style element, so `functions.js` sets
+  `Chart.platform.disableCSSInjection` and the Chart.js pages link its `Chart.min.css`.
+  Check a new library for injected style elements, `eval` and inline handlers.
 
 HSTS is conditional because sending it from a plain-HTTP instance would be meaningless
 at best, and it pins browsers to HTTPS for a year once seen. It omits `includeSubDomains`
@@ -331,6 +349,4 @@ version, not the build toolchain.
 ## Still open
 
 Tracked as GitHub issues with the
-[`security` label](https://github.com/aunefyren/treningheten/issues?q=is%3Aissue+label%3Asecurity):
-the strict Content-Security-Policy, which is report-only until the inline handlers and styles
-are removed from `web/` (#52, enforced in #71).
+[`security` label](https://github.com/aunefyren/treningheten/issues?q=is%3Aissue+label%3Asecurity).
