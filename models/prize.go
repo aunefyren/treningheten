@@ -8,6 +8,6 @@ type Prize struct {
 }
 
 type PrizeCreationRequest struct {
-	Name     string `json:"name"`
+	Name     string `json:"name" sanitize:"trim,collapse,capfirst"`
 	Quantity int    `json:"quantity"`
 }

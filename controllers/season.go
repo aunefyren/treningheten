@@ -4,7 +4,6 @@ import (
 	"errors"
 	"net/http"
 	"strconv"
-	"strings"
 	"time"
 
 	"github.com/aunefyren/treningheten/database"
@@ -237,15 +236,13 @@ func APIRegisterSeason(context *gin.Context) {
 	var season models.SeasonCreationRequest
 	var seasonDB models.Season
 
-	if err := context.ShouldBindJSON(&season); err != nil {
+	if err := bindJSON(context, &season); err != nil {
 		logger.Log.Info("Failed to parse request. Error: " + err.Error())
 		context.JSON(http.StatusBadRequest, gin.H{"error": "Failed to parse request."})
 		context.Abort()
 		return
 	}
 
-	season.Name = strings.TrimSpace(season.Name)
-	season.Description = strings.TrimSpace(season.Description)
 	season.Start, season.End = seasonBoundariesInServerZone(season.Start, season.End)
 
 	// Verify season name

@@ -2,7 +2,6 @@ package controllers
 
 import (
 	"errors"
-	"html"
 	"net/http"
 	"strconv"
 	"strings"
@@ -11,6 +10,7 @@ import (
 	"github.com/aunefyren/treningheten/auth"
 	"github.com/aunefyren/treningheten/database"
 	"github.com/aunefyren/treningheten/files"
+	"github.com/aunefyren/treningheten/internal/sanitize"
 	"github.com/aunefyren/treningheten/logger"
 	"github.com/aunefyren/treningheten/middlewares"
 	"github.com/aunefyren/treningheten/models"
@@ -28,7 +28,7 @@ func RegisterUser(context *gin.Context) {
 	var userCreationRequest models.UserCreationRequest
 
 	// Parse creation request
-	if err := context.ShouldBindJSON(&userCreationRequest); err != nil {
+	if err := bindJSON(context, &userCreationRequest); err != nil {
 		context.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		context.Abort()
 		return
@@ -57,10 +57,10 @@ func RegisterUser(context *gin.Context) {
 	var trueVariable = true
 
 	// Move values from request to object
-	user.Email = html.EscapeString(strings.TrimSpace(strings.ToLower(userCreationRequest.Email)))
+	user.Email = userCreationRequest.Email
 	user.Password = userCreationRequest.Password
-	user.FirstName = html.EscapeString(strings.TrimSpace(userCreationRequest.FirstName))
-	user.LastName = html.EscapeString(strings.TrimSpace(userCreationRequest.LastName))
+	user.FirstName = userCreationRequest.FirstName
+	user.LastName = userCreationRequest.LastName
 	user.Enabled = true
 	user.ID = uuid.New()
 
@@ -113,7 +113,7 @@ func RegisterUser(context *gin.Context) {
 	}
 
 	// Verify unused invite code exists
-	uniqueInviteCode, err := database.VerifyUnusedUserInviteCode(strings.TrimSpace(userCreationRequest.InviteCode))
+	uniqueInviteCode, err := database.VerifyUnusedUserInviteCode(userCreationRequest.InviteCode)
 	if err != nil {
 		context.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		context.Abort()
@@ -146,7 +146,7 @@ func RegisterUser(context *gin.Context) {
 	}
 
 	// Set code to used
-	err = database.SetUsedUserInviteCode(strings.TrimSpace(userCreationRequest.InviteCode), user.ID)
+	err = database.SetUsedUserInviteCode(userCreationRequest.InviteCode, user.ID)
 	if err != nil {
 		context.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		context.Abort()
@@ -363,7 +363,7 @@ func SendUserVerificationCode(context *gin.Context) {
 // Every field is validated before anything is written, so a rejected request changes nothing.
 func APIUpdateUser(context *gin.Context) {
 	var userUpdateRequest models.UserUpdateRequest
-	if err := context.ShouldBindJSON(&userUpdateRequest); err != nil {
+	if err := bindJSON(context, &userUpdateRequest); err != nil {
 		logger.Log.Info("Failed to parse update request. Error: " + err.Error())
 		context.JSON(http.StatusBadRequest, gin.H{"error": "Failed to parse update request."})
 		context.Abort()
@@ -579,7 +579,7 @@ func validateTrainingProfile(request models.UserTrainingProfileRequest, now time
 // authenticated user.
 func APIUpdateTrainingProfile(context *gin.Context) {
 	var request models.UserTrainingProfileRequest
-	err := context.ShouldBindJSON(&request)
+	err := bindJSON(context, &request)
 	if err != nil {
 		logger.Log.Info("Failed to parse training profile request. Error: " + err.Error())
 		context.JSON(http.StatusBadRequest, gin.H{"error": "Failed to parse training profile request."})
@@ -645,7 +645,7 @@ func APIUpdateTrainingProfile(context *gin.Context) {
 // way to deliver a code, so the account stays verified rather than locking the user out.
 // It returns a user-facing message when the address is taken.
 func applyEmailChange(user *models.User, newEmail string, smtpEnabled bool) (string, error) {
-	newEmail = html.EscapeString(strings.TrimSpace(strings.ToLower(newEmail)))
+	newEmail = sanitize.Email(newEmail)
 	if newEmail == user.Email {
 		return "", nil
 	}
@@ -678,13 +678,13 @@ func APIResetPassword(context *gin.Context) {
 	}
 
 	type resetRequest struct {
-		Email string `json:"email"`
+		Email string `json:"email" sanitize:"trim,lower"`
 	}
 
 	var resetRequestVar resetRequest
 
 	// Parse reset request
-	if err := context.ShouldBindJSON(&resetRequestVar); err != nil {
+	if err := bindJSON(context, &resetRequestVar); err != nil {
 		context.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		context.Abort()
 		return
@@ -766,7 +766,7 @@ func APIChangePassword(context *gin.Context) {
 	var userUpdatePasswordRequest models.UserUpdatePasswordRequest
 
 	// Parse creation request
-	err := context.ShouldBindJSON(&userUpdatePasswordRequest)
+	err := bindJSON(context, &userUpdatePasswordRequest)
 	if err != nil {
 		logger.Log.Info("Failed to parse request. Error: " + err.Error())
 		context.JSON(http.StatusBadRequest, gin.H{"error": "Failed to parse request."})
@@ -936,7 +936,7 @@ func APISetStravaCode(context *gin.Context) {
 	var userStravaCodeUpdateRequest models.UserStravaCodeUpdateRequest
 
 	// Parse creation request
-	err := context.ShouldBindJSON(&userStravaCodeUpdateRequest)
+	err := bindJSON(context, &userStravaCodeUpdateRequest)
 	if err != nil {
 		context.JSON(http.StatusBadRequest, gin.H{"error": "Failed to parse request."})
 		context.Abort()
@@ -1046,7 +1046,7 @@ func APIPartialUpdateUser(context *gin.Context) {
 	var err error
 
 	// Parse creation request
-	err = context.ShouldBindJSON(&userUpdateRequest)
+	err = bindJSON(context, &userUpdateRequest)
 	if err != nil {
 		logger.Log.Info("Failed to parse update request. Error: " + err.Error())
 		context.JSON(http.StatusBadRequest, gin.H{"error": "Failed to parse update request."})
@@ -1102,7 +1102,7 @@ func APIPartialUpdateUser(context *gin.Context) {
 
 	// Wheel appearance. An empty value clears the field (reverts to auto-assignment).
 	if userUpdateRequest.WheelColor != nil {
-		color := strings.TrimSpace(*userUpdateRequest.WheelColor)
+		color := *userUpdateRequest.WheelColor
 		if color == "" {
 			userObject.WheelColor = nil
 		} else if utilities.ValidHexColor(color) {
@@ -1115,7 +1115,7 @@ func APIPartialUpdateUser(context *gin.Context) {
 	}
 
 	if userUpdateRequest.WheelBorderColor != nil {
-		border := strings.TrimSpace(*userUpdateRequest.WheelBorderColor)
+		border := *userUpdateRequest.WheelBorderColor
 		if border == "" {
 			userObject.WheelBorderColor = nil
 		} else if utilities.ValidHexColor(border) {
@@ -1128,7 +1128,7 @@ func APIPartialUpdateUser(context *gin.Context) {
 	}
 
 	if userUpdateRequest.WheelEmoji != nil {
-		emoji := strings.TrimSpace(*userUpdateRequest.WheelEmoji)
+		emoji := *userUpdateRequest.WheelEmoji
 		if emoji == "" {
 			userObject.WheelEmoji = nil
 		} else if utilities.ValidWheelEmoji(emoji) {

@@ -955,7 +955,7 @@ func APIGenerateDebtForWeek(context *gin.Context) {
 	var debtCreationRequest models.DebtCreationRequest
 
 	// Bind the incoming request body to the GenerateDebtRequest model
-	if err := context.ShouldBindJSON(&debtCreationRequest); err != nil {
+	if err := bindJSON(context, &debtCreationRequest); err != nil {
 		// If there is an error binding the request, return a Bad Request response
 		logger.Log.Error("Failed to parse request. Error: " + err.Error())
 		context.JSON(http.StatusBadRequest, gin.H{"error": "Failed to parse request."})

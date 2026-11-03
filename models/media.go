@@ -100,8 +100,8 @@ type MediaPlayback struct {
 // ExerciseIDs re-syncs all of each user's sessions. To re-sync just your own history,
 // pass your user id in UserIDs (mirrors the Strava sync-activities-for-users endpoint).
 type MediaSyncForUsersRequest struct {
-	UserIDs     []string `json:"user_ids"`
-	ExerciseIDs []string `json:"exercise_ids"`
+	UserIDs     []string `json:"user_ids" sanitize:"trim"`
+	ExerciseIDs []string `json:"exercise_ids" sanitize:"trim"`
 }
 
 // MediaConnectionObject is the enriched/safe read shape for a connection: identity

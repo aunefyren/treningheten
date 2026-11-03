@@ -26,13 +26,13 @@ func APICreatePersonalAccessToken(context *gin.Context) {
 	}
 
 	var request models.PATCreationRequest
-	if err := context.ShouldBindJSON(&request); err != nil {
+	if err := bindJSON(context, &request); err != nil {
 		context.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request."})
 		context.Abort()
 		return
 	}
 
-	name := strings.TrimSpace(request.Name)
+	name := request.Name
 	if name == "" {
 		context.JSON(http.StatusBadRequest, gin.H{"error": "A name is required."})
 		context.Abort()

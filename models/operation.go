@@ -42,26 +42,26 @@ type Operation struct {
 type OperationCreationRequest struct {
 	ExerciseID   uuid.UUID  `json:"exercise_id"`
 	Action       *uuid.UUID `json:"action"`
-	Type         string     `json:"type"`
-	WeightUnit   string     `json:"weight_unit"`
-	DistanceUnit string     `json:"distance_unit"`
-	Equipment    *string    `json:"equipment"`
+	Type         string     `json:"type" sanitize:"trim"`
+	WeightUnit   string     `json:"weight_unit" sanitize:"trim"`
+	DistanceUnit string     `json:"distance_unit" sanitize:"trim"`
+	Equipment    *string    `json:"equipment" sanitize:"trim"`
 }
 
 type OperationUpdateRequest struct {
-	Action       string `json:"action"`
-	Type         string `json:"type"`
-	WeightUnit   string `json:"weight_unit"`
-	DistanceUnit string `json:"distance_unit"`
+	Action       string `json:"action" sanitize:"trim"`
+	Type         string `json:"type" sanitize:"trim"`
+	WeightUnit   string `json:"weight_unit" sanitize:"trim"`
+	DistanceUnit string `json:"distance_unit" sanitize:"trim"`
 	// Equipment, Tags, Description and GearID are pointers so an omitted field (e.g. a
 	// non-moving op card never sends gear) leaves the stored value untouched,
 	// while an explicit value replaces it (an empty GearID string clears gear).
 	// Equipment is legacy: the builder no longer sends it (equipment now lives on the
 	// Action), so omitting it must not wipe what older sessions stored.
-	Equipment   *string   `json:"equipment"`
-	Tags        *[]string `json:"tags"`
-	Description *string   `json:"description"`
-	GearID      *string   `json:"gear_id"`
+	Equipment   *string   `json:"equipment" sanitize:"trim"`
+	Tags        *[]string `json:"tags" sanitize:"trim"`
+	Description *string   `json:"description" sanitize:"trim"`
+	GearID      *string   `json:"gear_id" sanitize:"trim"`
 }
 
 type OperationObject struct {
@@ -153,14 +153,14 @@ type Action struct {
 }
 
 type ActionCreationRequest struct {
-	Name          string `json:"name"`
-	NorwegianName string `json:"norwegian_name"`
-	Description   string `json:"description"`
-	Type          string `json:"type"`
-	BodyPart      string `json:"body_part"`
+	Name          string `json:"name" sanitize:"trim,collapse"`
+	NorwegianName string `json:"norwegian_name" sanitize:"trim,collapse"`
+	Description   string `json:"description" sanitize:"trim"`
+	Type          string `json:"type" sanitize:"trim"`
+	BodyPart      string `json:"body_part" sanitize:"trim,collapse"`
 	// Category defaults from Type when empty; Equipment is optional.
-	Category  string `json:"category"`
-	Equipment string `json:"equipment"`
+	Category  string `json:"category" sanitize:"trim"`
+	Equipment string `json:"equipment" sanitize:"trim"`
 }
 
 // ActionMediaStatistics is the aggregated soundtrack overlay for an action's

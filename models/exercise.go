@@ -67,7 +67,7 @@ type ExerciseDayWeekSeason struct {
 }
 
 type ExerciseDayUpdateRequest struct {
-	Note string `json:"note"`
+	Note string `json:"note" sanitize:"trim"`
 }
 
 type Exercise struct {
@@ -109,10 +109,10 @@ type Exercise struct {
 }
 
 type ExerciseUpdateRequest struct {
-	Note     string `json:"note"`
+	Note     string `json:"note" sanitize:"trim"`
 	IsOn     bool   `json:"is_on"`
 	Duration *int64 `json:"duration"`
-	Time     string `json:"time"`
+	Time     string `json:"time" sanitize:"trim"`
 	// CountsTowardGoal is a pointer so an omitted field leaves the stored value
 	// untouched — existing update callers that don't send it must not zero it.
 	CountsTowardGoal *bool `json:"counts_toward_goal"`
@@ -122,7 +122,7 @@ type ExerciseUpdateRequest struct {
 
 type ExerciseCreationRequest struct {
 	ExerciseDayID uuid.UUID `json:"exercise_day_id"`
-	Note          string    `json:"note"`
+	Note          string    `json:"note" sanitize:"trim"`
 	IsOn          bool      `json:"is_on"`
 	Duration      *int64    `json:"duration"`
 }
@@ -150,7 +150,7 @@ type ExerciseObject struct {
 
 type ExerciseDayCreationRequest struct {
 	Date             time.Time `json:"date"`
-	Note             string    `json:"note"`
+	Note             string    `json:"note" sanitize:"trim"`
 	ExerciseInterval int       `json:"exercise_interval"`
 }
 
@@ -161,7 +161,7 @@ type Week struct {
 
 type WeekCreationRequest struct {
 	Days     []ExerciseDayCreationRequest `json:"days"`
-	TimeZone string                       `json:"timezone"`
+	TimeZone string                       `json:"timezone" sanitize:"trim"`
 }
 
 type WeekFrequency struct {

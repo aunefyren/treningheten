@@ -627,7 +627,7 @@ func HevyEventsSyncForAllUsers() {
 func APISetHevyAPIKey(context *gin.Context) {
 	var request models.UserHevyAPIKeyUpdateRequest
 
-	if err := context.ShouldBindJSON(&request); err != nil {
+	if err := bindJSON(context, &request); err != nil {
 		context.JSON(http.StatusBadRequest, gin.H{"error": "Failed to parse request."})
 		context.Abort()
 		return
@@ -639,7 +639,7 @@ func APISetHevyAPIKey(context *gin.Context) {
 		return
 	}
 
-	apiKey := strings.TrimSpace(request.HevyAPIKey)
+	apiKey := request.HevyAPIKey
 	if apiKey == "" {
 		context.JSON(http.StatusBadRequest, gin.H{"error": "A Hevy API key is required."})
 		context.Abort()

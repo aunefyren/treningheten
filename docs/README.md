@@ -8,8 +8,8 @@ the rules every change follows; plans and open work live in GitHub issues, not h
 - [architecture.md](architecture.md) — packages, routing and auth groups, how the frontend
   is served through Go templates, persistence, scheduled jobs, configuration, versioning.
 - [conventions.md](conventions.md) — code conventions: naming (camelCase, `ID`
-  uppercase), Go error handling, API response shapes, frontend JS patterns, tests, and
-  migrations.
+  uppercase), Go error handling, input sanitisation (`sanitize` tags, `bindJSON`), API
+  response shapes, frontend JS patterns, tests, and migrations.
 - [styleguide.md](styleguide.md) — the frontend **visual system**: the CSS layer/file
   layout, design tokens, and the shared components (`.btn`, cards, chips, the `.trm`
   modal, `.u-*` utilities). Read before building or restyling UI.

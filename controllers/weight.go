@@ -92,7 +92,7 @@ func APICreateWeightForUser(context *gin.Context) {
 	}
 
 	// Parse creation request
-	if err := context.ShouldBindJSON(&weightCreationRequest); err != nil {
+	if err := bindJSON(context, &weightCreationRequest); err != nil {
 		logger.Log.Error("Failed to parse creation request. Error: " + err.Error())
 		context.JSON(http.StatusBadRequest, gin.H{"error": "Failed to parse creation request."})
 		context.Abort()

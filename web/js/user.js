@@ -175,7 +175,7 @@ function GetUserData(userID) {
 
 function PlaceUserData(user_object) {
 
-    document.getElementById("user_name").innerHTML = user_object.first_name + " " + user_object.last_name
+    document.getElementById("user_name").innerHTML = escapeHTML(user_object.first_name + " " + user_object.last_name)
 
     // parse date object
     try {

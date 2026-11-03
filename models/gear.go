@@ -59,22 +59,22 @@ type GearObject struct {
 }
 
 type GearCreationRequest struct {
-	Name     string  `json:"name"`
-	Type     string  `json:"type"`
-	Brand    *string `json:"brand"`
-	Model    *string `json:"model"`
-	Nickname *string `json:"nickname"`
+	Name     string  `json:"name" sanitize:"trim,collapse,capfirst"`
+	Type     string  `json:"type" sanitize:"trim,lower"`
+	Brand    *string `json:"brand" sanitize:"trim,collapse"`
+	Model    *string `json:"model" sanitize:"trim,collapse"`
+	Nickname *string `json:"nickname" sanitize:"trim,collapse"`
 }
 
 // GearUpdateRequest fields are pointers so an omitted field leaves the stored
 // value untouched. Identity fields on Strava-sourced gear are read-only and are
 // rejected by the handler.
 type GearUpdateRequest struct {
-	Name      *string `json:"name"`
-	Type      *string `json:"type"`
-	Brand     *string `json:"brand"`
-	Model     *string `json:"model"`
-	Nickname  *string `json:"nickname"`
+	Name      *string `json:"name" sanitize:"trim,collapse,capfirst"`
+	Type      *string `json:"type" sanitize:"trim,lower"`
+	Brand     *string `json:"brand" sanitize:"trim,collapse"`
+	Model     *string `json:"model" sanitize:"trim,collapse"`
+	Nickname  *string `json:"nickname" sanitize:"trim,collapse"`
 	Retired   *bool   `json:"retired"`
 	IsPrimary *bool   `json:"is_primary"`
 }

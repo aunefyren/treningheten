@@ -119,7 +119,7 @@ func APISetActivityGoalSetting(context *gin.Context) {
 	}
 
 	var request models.ActivityGoalSettingUpdateRequest
-	if err := context.ShouldBindJSON(&request); err != nil {
+	if err := bindJSON(context, &request); err != nil {
 		logger.Log.Info("Failed to parse request. Error: " + err.Error())
 		context.JSON(http.StatusBadRequest, gin.H{"error": "Failed to parse request."})
 		context.Abort()

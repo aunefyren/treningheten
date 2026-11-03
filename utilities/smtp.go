@@ -25,7 +25,7 @@ func SendSMTPVerificationEmail(user models.User) error {
 	m.SetAddressHeader("From", files.ConfigFile.SMTPFrom, files.ConfigFile.TreninghetenName)
 	m.SetHeader("To", user.Email)
 	m.SetHeader("Subject", "Please verify your account")
-	m.SetBody("text/html", "Hello <b>"+user.FirstName+"</b>!<br><br>Someone created a Treningheten account using your e-mail. If this wasn't you, please ignore this e-mail.<br><br>To verify the new account, visit Treningheten and verify the account using this code: <b>"+*user.VerificationCode+"</b>.")
+	m.SetBody("text/html", "Hello <b>"+html.EscapeString(user.FirstName)+"</b>!<br><br>Someone created a Treningheten account using your e-mail. If this wasn't you, please ignore this e-mail.<br><br>To verify the new account, visit Treningheten and verify the account using this code: <b>"+*user.VerificationCode+"</b>.")
 
 	d := mail.NewDialer(files.ConfigFile.SMTPHost, files.ConfigFile.SMTPPort, files.ConfigFile.SMTPUsername, files.ConfigFile.SMTPPassword)
 
@@ -52,7 +52,7 @@ func SendSMTPResetEmail(user models.User) error {
 	m.SetAddressHeader("From", files.ConfigFile.SMTPFrom, files.ConfigFile.TreninghetenName)
 	m.SetHeader("To", user.Email)
 	m.SetHeader("Subject", "Password reset request")
-	m.SetBody("text/html", "Hello <b>"+user.FirstName+"</b>!<br><br>Someone attempted a password change on your Treningheten account. If this wasn't you, please ignore this e-mail.<br><br>To reset your password, visit Treningheten using <a href='"+link+"' target='_blank'>this link</a>.")
+	m.SetBody("text/html", "Hello <b>"+html.EscapeString(user.FirstName)+"</b>!<br><br>Someone attempted a password change on your Treningheten account. If this wasn't you, please ignore this e-mail.<br><br>To reset your password, visit Treningheten using <a href='"+link+"' target='_blank'>this link</a>.")
 
 	d := mail.NewDialer(files.ConfigFile.SMTPHost, files.ConfigFile.SMTPPort, files.ConfigFile.SMTPUsername, files.ConfigFile.SMTPPassword)
 
@@ -89,7 +89,7 @@ func SendSMTPSundayReminderEmail(user models.User, season models.Season, timeSta
 		seasonLink := strings.TrimRight(link, "/") + "/?season=" + season.ID.String()
 		savedWorkoutsHTML = html.EscapeString(savedWorkoutsNote) + " <a href='" + seasonLink + "' target='_blank'>Open " + html.EscapeString(season.Name) + "</a>.<br><br>"
 	}
-	m.SetBody("text/html", "Hello <b>"+user.FirstName+"</b>!<br><br>It's Sunday and week "+strconv.Itoa(weekNumber)+" within '"+season.Name+"' is almost over.<br><br>"+savedWorkoutsHTML+"If you haven't already, head to Treningheten using <a href='"+link+"' target='_blank'>this link</a> and log your workouts.<br><br>You can disable this alert in your settings.")
+	m.SetBody("text/html", "Hello <b>"+html.EscapeString(user.FirstName)+"</b>!<br><br>It's Sunday and week "+strconv.Itoa(weekNumber)+" within '"+html.EscapeString(season.Name)+"' is almost over.<br><br>"+savedWorkoutsHTML+"If you haven't already, head to Treningheten using <a href='"+link+"' target='_blank'>this link</a> and log your workouts.<br><br>You can disable this alert in your settings.")
 
 	d := mail.NewDialer(files.ConfigFile.SMTPHost, files.ConfigFile.SMTPPort, files.ConfigFile.SMTPUsername, files.ConfigFile.SMTPPassword)
 
@@ -127,7 +127,7 @@ func SendSMTPSeasonStartEmail(season models.SeasonObject) error {
 		m.SetAddressHeader("From", files.ConfigFile.SMTPFrom, files.ConfigFile.TreninghetenName)
 		m.SetHeader("To", email)
 		m.SetHeader("Subject", "A new season has begun")
-		m.SetBody("text/html", "Hello <b>"+goal.User.FirstName+"</b>!<br><br>It's Monday and a new season of Treningheten has begun. You signed up for "+strconv.Itoa(goal.ExerciseInterval)+" exercise(s) a week, and there is no going back now.<br><br>To achieve your goal you must log all exercises at the Treningheten website. Go to Treningheten using <a href='"+link+"' target='_blank'>this link</a>.")
+		m.SetBody("text/html", "Hello <b>"+html.EscapeString(goal.User.FirstName)+"</b>!<br><br>It's Monday and a new season of Treningheten has begun. You signed up for "+strconv.Itoa(goal.ExerciseInterval)+" exercise(s) a week, and there is no going back now.<br><br>To achieve your goal you must log all exercises at the Treningheten website. Go to Treningheten using <a href='"+link+"' target='_blank'>this link</a>.")
 
 		d := mail.NewDialer(files.ConfigFile.SMTPHost, files.ConfigFile.SMTPPort, files.ConfigFile.SMTPUsername, files.ConfigFile.SMTPPassword)
 
@@ -157,7 +157,7 @@ func SendSMTPForWeekLost(user models.User, weekNumber int) error {
 	m.SetAddressHeader("From", files.ConfigFile.SMTPFrom, files.ConfigFile.TreninghetenName)
 	m.SetHeader("To", user.Email)
 	m.SetHeader("Subject", "Your week didn't go as planned")
-	m.SetBody("text/html", "Hello <b>"+user.FirstName+"</b>!<br><br>You didn't hit your goal for week "+strconv.Itoa(weekNumber)+". 😢<br><br>If you haven't already, head to Treningheten using <a href='"+link+"' target='_blank'>this link</a> and check who won.")
+	m.SetBody("text/html", "Hello <b>"+html.EscapeString(user.FirstName)+"</b>!<br><br>You didn't hit your goal for week "+strconv.Itoa(weekNumber)+". 😢<br><br>If you haven't already, head to Treningheten using <a href='"+link+"' target='_blank'>this link</a> and check who won.")
 
 	d := mail.NewDialer(files.ConfigFile.SMTPHost, files.ConfigFile.SMTPPort, files.ConfigFile.SMTPUsername, files.ConfigFile.SMTPPassword)
 
@@ -184,7 +184,7 @@ func SendSMTPForWheelSpin(user models.User, weekNumber int) error {
 	m.SetAddressHeader("From", files.ConfigFile.SMTPFrom, files.ConfigFile.TreninghetenName)
 	m.SetHeader("To", user.Email)
 	m.SetHeader("Subject", "You have a wheel to spin")
-	m.SetBody("text/html", "Hello <b>"+user.FirstName+"</b>!<br><br>You didn't hit your goal for week "+strconv.Itoa(weekNumber)+". 😢<br><br>If you haven't already, head to Treningheten using <a href='"+link+"' target='_blank'>this link</a> and spin the wheel.")
+	m.SetBody("text/html", "Hello <b>"+html.EscapeString(user.FirstName)+"</b>!<br><br>You didn't hit your goal for week "+strconv.Itoa(weekNumber)+". 😢<br><br>If you haven't already, head to Treningheten using <a href='"+link+"' target='_blank'>this link</a> and spin the wheel.")
 
 	d := mail.NewDialer(files.ConfigFile.SMTPHost, files.ConfigFile.SMTPPort, files.ConfigFile.SMTPUsername, files.ConfigFile.SMTPPassword)
 
@@ -211,7 +211,7 @@ func SendSMTPForWheelSpinCheck(user models.User, weekNumber int) error {
 	m.SetAddressHeader("From", files.ConfigFile.SMTPFrom, files.ConfigFile.TreninghetenName)
 	m.SetHeader("To", user.Email)
 	m.SetHeader("Subject", "Someone spun the wheel")
-	m.SetBody("text/html", "Hello <b>"+user.FirstName+"</b>!<br><br>Someone spun the wheel, check if you won in week "+strconv.Itoa(weekNumber)+". 🏆<br><br>If you haven't already, head to Treningheten using <a href='"+link+"' target='_blank'>this link</a> and check out the wheel spin.")
+	m.SetBody("text/html", "Hello <b>"+html.EscapeString(user.FirstName)+"</b>!<br><br>Someone spun the wheel, check if you won in week "+strconv.Itoa(weekNumber)+". 🏆<br><br>If you haven't already, head to Treningheten using <a href='"+link+"' target='_blank'>this link</a> and check out the wheel spin.")
 
 	d := mail.NewDialer(files.ConfigFile.SMTPHost, files.ConfigFile.SMTPPort, files.ConfigFile.SMTPUsername, files.ConfigFile.SMTPPassword)
 
@@ -238,7 +238,7 @@ func SendSMTPForWheelSpinWin(user models.User, weekNumber int) error {
 	m.SetAddressHeader("From", files.ConfigFile.SMTPFrom, files.ConfigFile.TreninghetenName)
 	m.SetHeader("To", user.Email)
 	m.SetHeader("Subject", "Someone just paid their dues")
-	m.SetBody("text/html", "Hello <b>"+user.FirstName+"</b>!<br><br>Someone failed to hit their goal, and you won for week "+strconv.Itoa(weekNumber)+". 🏆<br><br>If you haven't already, head to Treningheten using <a href='"+link+"' target='_blank'>this link</a> and check out your prize.")
+	m.SetBody("text/html", "Hello <b>"+html.EscapeString(user.FirstName)+"</b>!<br><br>Someone failed to hit their goal, and you won for week "+strconv.Itoa(weekNumber)+". 🏆<br><br>If you haven't already, head to Treningheten using <a href='"+link+"' target='_blank'>this link</a> and check out your prize.")
 
 	d := mail.NewDialer(files.ConfigFile.SMTPHost, files.ConfigFile.SMTPPort, files.ConfigFile.SMTPUsername, files.ConfigFile.SMTPPassword)
 

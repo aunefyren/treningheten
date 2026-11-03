@@ -2,7 +2,6 @@ package controllers
 
 import (
 	"errors"
-	"html"
 	"net/http"
 	"sort"
 	"strconv"
@@ -27,7 +26,7 @@ func APIRegisterWeek(context *gin.Context) {
 	var week models.WeekCreationRequest
 
 	// Parse request
-	if err := context.ShouldBindJSON(&week); err != nil {
+	if err := bindJSON(context, &week); err != nil {
 		logger.Log.Info("Failed to parse request. Error: " + err.Error())
 		context.JSON(http.StatusBadRequest, gin.H{"error": "Failed to parse request."})
 		context.Abort()
@@ -106,7 +105,7 @@ func APIRegisterWeek(context *gin.Context) {
 			return
 		}
 
-		if len(strings.TrimSpace(day.Note)) > 255 {
+		if len(day.Note) > 255 {
 			context.JSON(http.StatusBadRequest, gin.H{"error": "The note is too long."})
 			context.Abort()
 			return
@@ -162,9 +161,9 @@ func APIRegisterWeek(context *gin.Context) {
 			}
 
 			// If no changes, don't update it
-			if exerciseDay.ExerciseInterval != day.ExerciseInterval || exerciseDay.Note != html.EscapeString(strings.TrimSpace(day.Note)) {
+			if exerciseDay.ExerciseInterval != day.ExerciseInterval || exerciseDay.Note != day.Note {
 
-				exerciseDayDB.Note = html.EscapeString(strings.TrimSpace(day.Note))
+				exerciseDayDB.Note = day.Note
 
 				*exerciseDayDB, err = database.UpdateExerciseDayInDatabase(*exerciseDayDB)
 				if err != nil {
@@ -910,14 +909,14 @@ func APIUpdateExerciseDay(context *gin.Context) {
 	var exerciseDayID = context.Param("exercise_day_id")
 
 	// Parse creation request
-	if err := context.ShouldBindJSON(&exerciseDayUpdateRequest); err != nil {
+	if err := bindJSON(context, &exerciseDayUpdateRequest); err != nil {
 		logger.Log.Info("Failed to parse update request. Error: " + err.Error())
 		context.JSON(http.StatusBadRequest, gin.H{"error": "Failed to parse update request."})
 		context.Abort()
 		return
 	}
 
-	if len(strings.TrimSpace(exerciseDayUpdateRequest.Note)) > 255 {
+	if len(exerciseDayUpdateRequest.Note) > 255 {
 		context.JSON(http.StatusBadRequest, gin.H{"error": "The note is too long."})
 		context.Abort()
 		return
@@ -954,7 +953,7 @@ func APIUpdateExerciseDay(context *gin.Context) {
 		return
 	}
 
-	exerciseDay.Note = strings.TrimSpace(exerciseDayUpdateRequest.Note)
+	exerciseDay.Note = exerciseDayUpdateRequest.Note
 
 	*exerciseDay, err = database.UpdateExerciseDayInDatabase(*exerciseDay)
 	if err != nil {
@@ -1002,7 +1001,7 @@ func APIUpdateExercise(context *gin.Context) {
 	}
 
 	// Parse update request
-	if err := context.ShouldBindJSON(&exerciseUpdateRequest); err != nil {
+	if err := bindJSON(context, &exerciseUpdateRequest); err != nil {
 		logger.Log.Info("Failed to parse update request. Error: " + err.Error())
 		context.JSON(http.StatusBadRequest, gin.H{"error": "Failed to parse update request."})
 		context.Abort()
@@ -1103,7 +1102,7 @@ func APIUpdateExercise(context *gin.Context) {
 		exercise.Time = &utcTime
 	}
 
-	exercise.Note = strings.TrimSpace(exerciseUpdateRequest.Note)
+	exercise.Note = exerciseUpdateRequest.Note
 	exercise.IsOn = exerciseUpdateRequest.IsOn
 	exercise.Duration = exerciseUpdateRequest.Duration
 
@@ -1157,7 +1156,7 @@ func APICreateExercise(context *gin.Context) {
 	}
 
 	// Parse creation request
-	if err := context.ShouldBindJSON(&exerciseCreationRequest); err != nil {
+	if err := bindJSON(context, &exerciseCreationRequest); err != nil {
 		logger.Log.Info("Failed to parse creation request. Error: " + err.Error())
 		context.JSON(http.StatusBadRequest, gin.H{"error": "Failed to parse creation request."})
 		context.Abort()
@@ -1206,7 +1205,7 @@ func APICreateExercise(context *gin.Context) {
 	exercise.IsOn = exerciseCreationRequest.IsOn
 	exercise.CountsTowardGoal = true // manually logged sessions count by default; the builder toggle opts out
 	exercise.Duration = exerciseCreationRequest.Duration
-	exercise.Note = strings.TrimSpace(exerciseCreationRequest.Note)
+	exercise.Note = exerciseCreationRequest.Note
 	exercise.ExerciseDayID = exerciseCreationRequest.ExerciseDayID
 	exercise.ID = uuid.New()
 
@@ -1291,7 +1290,7 @@ func APIStravaCombine(context *gin.Context) {
 	var exerciseDayID *uuid.UUID
 
 	// Parse request
-	if err := context.ShouldBindJSON(&stravaIDs); err != nil {
+	if err := bindJSON(context, &stravaIDs); err != nil {
 		logger.Log.Info("Failed to parse request. Error: " + err.Error())
 		context.JSON(http.StatusBadRequest, gin.H{"error": "Failed to parse request."})
 		context.Abort()

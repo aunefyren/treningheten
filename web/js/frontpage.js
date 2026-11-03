@@ -1222,7 +1222,7 @@ function place_leaderboard(weeks_array) {
             var result_html = `
             <div class="leaderboard-week-result" id="">
                 <div class="leaderboard-week-result-user clickable" onclick="location.href='/users/${weeks_array[i].users[j].user_id}'">
-                    ` + userDisplayName(weeks_array[i].users[j].user_id).first_name + `
+                    ` + escapeHTML(userDisplayName(weeks_array[i].users[j].user_id).first_name) + `
                 </div>
                 <div class="leaderboard-week-result-exercise ` + clickable_str  + `" onclick="` + onclick_command_str  + `">
                     ` + completion  + `
@@ -1304,10 +1304,10 @@ function place_current_week(week_array) {
                 <div class="">
 
                     <div class="" style="font-size: 0.8em;">
-                        <b>${user.first_name}</b>
+                        <b>${escapeHTML(user.first_name)}</b>
                     </div>
 
-                    <div class="current-week-user-photo" title="` + user.first_name + ` ` + user.last_name + `" onclick="location.href='/users/${week_array.users[i].user_id}'">
+                    <div class="current-week-user-photo" title="` + escapeHTML(user.first_name + " " + user.last_name) + `" onclick="location.href='/users/${week_array.users[i].user_id}'">
                         <img class="current-week-user-photo-img u-fill" src="${profileImageURL(week_array.users[i].user_id, true)}" onerror="${IMAGE_FALLBACK_ONERROR}">
                     </div>
                 </div>
@@ -1685,7 +1685,7 @@ function placeDebtOverview(overviewArray) {
 
         html += `
             <div class="debt-module-notification-view" id="">
-                ${overviewArray.debt_unviewed[i].debt.loser.first_name} ${overviewArray.debt_unviewed[i].debt.loser.last_name} spun the wheel for week ${date_str}.<br>See if you won!<br>
+                ${escapeHTML(overviewArray.debt_unviewed[i].debt.loser.first_name + " " + overviewArray.debt_unviewed[i].debt.loser.last_name)} spun the wheel for week ${date_str}.<br>See if you won!<br>
                 <img src="assets/arrow-right.svg" class="btn btn--icon clickable" onclick="location.replace('/wheel?debt_id=${overviewArray.debt_unviewed[i].debt.id}'); ">
             </div>
         `;
@@ -1707,7 +1707,7 @@ function placeDebtOverview(overviewArray) {
 
         html += `
             <div class="debt-module-notification-prize" id="">
-                ${overviewArray.debt_won[i].loser.first_name} ${overviewArray.debt_won[i].loser.last_name} spun the wheel for week ${date_str} and you won <b>${overviewArray.debt_won[i].season.prize.quantity} ${overviewArray.debt_won[i].season.prize.name}</b>!<br>Have you received it?<br>
+                ${escapeHTML(overviewArray.debt_won[i].loser.first_name + " " + overviewArray.debt_won[i].loser.last_name)} spun the wheel for week ${date_str} and you won <b>${overviewArray.debt_won[i].season.prize.quantity} ${escapeHTML(overviewArray.debt_won[i].season.prize.name)}</b>!<br>Have you received it?<br>
                 <img src="assets/done.svg" class="btn btn--icon clickable" onclick="setPrizeReceived('${overviewArray.debt_won[i].id}');">
             </div>
         `;
@@ -1729,7 +1729,7 @@ function placeDebtOverview(overviewArray) {
 
         html += `
             <div class="debt-module-notification-debt" id="">
-                You spun the wheel for week ${date_str} and ${overviewArray.debt_unpaid[i].winner.first_name} ${overviewArray.debt_unpaid[i].winner.last_name} won ${overviewArray.debt_unpaid[i].season.prize.quantity} ${overviewArray.debt_unpaid[i].season.prize.name}!<br>Provide the prize as soon as possible!<br>
+                You spun the wheel for week ${date_str} and ${escapeHTML(overviewArray.debt_unpaid[i].winner.first_name + " " + overviewArray.debt_unpaid[i].winner.last_name)} won ${overviewArray.debt_unpaid[i].season.prize.quantity} ${escapeHTML(overviewArray.debt_unpaid[i].season.prize.name)}!<br>Provide the prize as soon as possible!<br>
             </div>
             `;
     }
@@ -2288,14 +2288,14 @@ function generateActivityHTML(activity) {
 
             <div class="activity-sections">
                 <div class="activity-photo-wrapper">
-                    <div class="activity-user-photo" title="` + activity.user.first_name + ` ` + activity.user.last_name + `" onclick="location.href='/users/${activity.user.id}'">
+                    <div class="activity-user-photo" title="` + escapeHTML(activity.user.first_name + " " + activity.user.last_name) + `" onclick="location.href='/users/${activity.user.id}'">
                         <img class="activity-user-photo-img" src="${profileImageURL(activity.user.id, true)}" onerror="${IMAGE_FALLBACK_ONERROR}">
                     </div>
                 </div>
 
                 <div class="activity-details">
                     <div>
-                        ${activity.user.first_name} ${activitySentence}!
+                        ${escapeHTML(activity.user.first_name)} ${activitySentence}!
                     </div>
 
                     <div class="activity-logo-wrapper">

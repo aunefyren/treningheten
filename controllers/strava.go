@@ -1108,7 +1108,7 @@ func APISyncStravaActivitiesForUsers(context *gin.Context) {
 		return
 	}
 
-	if err := context.ShouldBindJSON(&syncRequest); err != nil {
+	if err := bindJSON(context, &syncRequest); err != nil {
 		logger.Log.Error("failed to parse request. error: " + err.Error())
 		context.JSON(http.StatusBadRequest, gin.H{"error": "failed to parse request"})
 		context.Abort()

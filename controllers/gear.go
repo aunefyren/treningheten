@@ -97,14 +97,13 @@ func APICreateGear(context *gin.Context) {
 		return
 	}
 
-	if err := context.ShouldBindJSON(&gearCreationRequest); err != nil {
+	if err := bindJSON(context, &gearCreationRequest); err != nil {
 		logger.Log.Error("Failed to parse creation request. Error: " + err.Error())
 		context.JSON(http.StatusBadRequest, gin.H{"error": "Failed to parse creation request."})
 		context.Abort()
 		return
 	}
 
-	gearCreationRequest.Name = strings.TrimSpace(gearCreationRequest.Name)
 	if gearCreationRequest.Name == "" {
 		logger.Log.Warn("Gear creation request had an empty name.")
 		context.JSON(http.StatusBadRequest, gin.H{"error": "Gear must have a name."})
@@ -160,7 +159,7 @@ func APIUpdateGear(context *gin.Context) {
 		return
 	}
 
-	if err := context.ShouldBindJSON(&gearUpdateRequest); err != nil {
+	if err := bindJSON(context, &gearUpdateRequest); err != nil {
 		logger.Log.Error("Failed to parse update request. Error: " + err.Error())
 		context.JSON(http.StatusBadRequest, gin.H{"error": "Failed to parse update request."})
 		context.Abort()
@@ -190,7 +189,7 @@ func APIUpdateGear(context *gin.Context) {
 	}
 
 	if gearUpdateRequest.Name != nil {
-		name := strings.TrimSpace(*gearUpdateRequest.Name)
+		name := *gearUpdateRequest.Name
 		if name == "" {
 			context.JSON(http.StatusBadRequest, gin.H{"error": "Gear must have a name."})
 			context.Abort()
@@ -317,7 +316,7 @@ func APISetGearForExercise(context *gin.Context) {
 		return
 	}
 
-	if err := context.ShouldBindJSON(&request); err != nil {
+	if err := bindJSON(context, &request); err != nil {
 		logger.Log.Error("Failed to parse request. Error: " + err.Error())
 		context.JSON(http.StatusBadRequest, gin.H{"error": "Failed to parse request."})
 		context.Abort()

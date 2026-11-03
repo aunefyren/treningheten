@@ -2,7 +2,6 @@ package controllers
 
 import (
 	"net/http"
-	"strings"
 	"time"
 
 	"github.com/aunefyren/treningheten/database"
@@ -62,7 +61,7 @@ func RegisterNewsPost(context *gin.Context) {
 	var newsCreationRequest models.NewsCreationRequest
 
 	// Bind the incoming request body to the NewsCreationRequest model
-	if err := context.ShouldBindJSON(&newsCreationRequest); err != nil {
+	if err := bindJSON(context, &newsCreationRequest); err != nil {
 		// If there is an error binding the request, return a Bad Request response
 		logger.Log.Info("Failed to parse request. Error: " + err.Error())
 		context.JSON(http.StatusBadRequest, gin.H{"error": "Failed to parse request."})
@@ -71,8 +70,8 @@ func RegisterNewsPost(context *gin.Context) {
 	}
 
 	// Copy the data from the NewsCreationRequest model to the News model
-	news.Title = strings.TrimSpace(newsCreationRequest.Title)
-	news.Body = strings.TrimSpace(newsCreationRequest.Body)
+	news.Title = newsCreationRequest.Title
+	news.Body = newsCreationRequest.Body
 
 	// Verify that the News title is not empty and has at least 5 characters
 	if len(news.Title) < 5 || news.Title == "" {
