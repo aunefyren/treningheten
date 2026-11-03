@@ -197,9 +197,27 @@ function achievementImageURL(achievementID, thumbnail) {
     return url;
 }
 
-// IMAGE_FALLBACK_ONERROR is the inline onerror handler for profile/achievement <img> tags:
-// if the request fails (e.g. expired session), swap in the local placeholder once.
-var IMAGE_FALLBACK_ONERROR = "this.onerror=null;this.src='/assets/images/barbell.gif'";
+// Image fallbacks without inline onerror handlers (strict CSP). An <img> opts in with
+// data-fallback; error events don't bubble, so one capturing listener sees them all:
+//   data-fallback="placeholder": swap in the local placeholder once (profile/achievement
+//     images whose request fails, e.g. on an expired session).
+//   data-fallback="hide": hide the image (an action logo with no SVG).
+//   data-fallback="glyph": replace the image with the text in data-glyph.
+document.addEventListener('error', function(event) {
+    var image = event.target;
+    if (!(image instanceof HTMLImageElement) || !image.dataset.fallback) {
+        return;
+    }
+    var fallback = image.dataset.fallback;
+    delete image.dataset.fallback;
+    if (fallback === 'placeholder') {
+        image.src = '/assets/images/barbell.gif';
+    } else if (fallback === 'hide') {
+        image.hidden = true;
+    } else if (fallback === 'glyph') {
+        image.replaceWith(document.createTextNode(image.dataset.glyph || ''));
+    }
+}, true);
 
 // Make XHTTP requests
 function makeRequest (method, url, data) {
@@ -566,6 +584,17 @@ function on_action(container, handlers, eventName) {
         }
     });
 }
+
+// Navigation actions shared by every page's JS-built markup, in place of inline onclick
+// navigation: data-action="openURL" (same tab), "replaceURL" (replaces the history entry) or
+// "openTab" (new tab), each with the target in data-href. Pages must not reuse these names.
+document.addEventListener('DOMContentLoaded', function() {
+    on_action(document.body, {
+        openURL: function(element) { window.location.href = element.dataset.href; },
+        replaceURL: function(element) { window.location.replace(element.dataset.href); },
+        openTab: function(element) { window.open(element.dataset.href, '_blank'); }
+    });
+});
 
 // Close the open mobile dropdown when clicking outside the nav (modal backdrop
 // dismissal is handled by TRModal).

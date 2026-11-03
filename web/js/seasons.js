@@ -329,7 +329,7 @@ function place_leaderboard(weeks_array, season_id) {
                     var joined_image = `
                     <div class="leaderboard-week-member" id="member-${season_id}-${weeks_array[i].users[j].user_id}" title="${escapeHTML(userList[weeks_array[i].users[j].user_id].first_name)}" onclick="location.href='/users/${weeks_array[i].users[j].user_id}'">
                         <div class="leaderboard-week-member-image">
-                            <img class="u-fill leaderboard-week-member-image-img" src="${profileImageURL(weeks_array[i].users[j].user_id, true)}" onerror="${IMAGE_FALLBACK_ONERROR}">
+                            <img class="u-fill leaderboard-week-member-image-img" src="${profileImageURL(weeks_array[i].users[j].user_id, true)}" data-fallback="placeholder">
                         </div>
                         ${escapeHTML(userList[weeks_array[i].users[j].user_id].first_name)}
                     </div>

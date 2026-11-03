@@ -604,6 +604,31 @@ input[type=checkbox]
 
 .countdown_number {
   font-family: 'Roboto', sans-serif;
+  font-size: 2em;
+  text-align: center;
+}
+
+/* Front page pieces that used to carry inline style attributes (strict CSP). */
+.login-cta {
+  display: inline-block;
+  margin-top: 2em;
+  width: 10em;
+}
+.week-save-button {
+  margin-bottom: 0;
+  transition: 1s;
+}
+.week-goal-title { margin: 1em 0 0 0; }
+.current-week-user-name { font-size: 0.8em; }
+.countdown-season-title { margin: 0 0 0.5em 0; }
+.countdown-title { margin-top: 0.25em; }
+.countdown-cancel {
+  margin: 1em 0 0 0;
+  font-size: 0.75em;
+}
+.season-select {
+  height: 2rem;
+  font-weight: bold;
 }
 
 .debt-form {
@@ -2125,6 +2150,7 @@ label {
 
 /* What this week does with saved workouts, with Undo beside it; wraps under the text on a phone. */
 .hero-saved-note {
+  display: flex;
   flex-wrap: wrap;
   align-items: center;
   justify-content: center;

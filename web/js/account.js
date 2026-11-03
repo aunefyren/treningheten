@@ -2379,11 +2379,11 @@ function escapeHTML(value) {
 
 // bindAccountActions wires the page's delegated handlers once: the sections re-render their
 // markup often, so every control carries a data-action (and data-* arguments) instead of an
-// inline handler (strict CSP, docs/security.md).
+// inline handler (strict CSP, docs/security.md). Links use the shared openURL action from
+// functions.js.
 function bindAccountActions() {
     var body = document.body;
     on_action(body, {
-        openURL: function(element) { window.location.href = element.dataset.href; },
         leaveSeason: function() { leaveSeason(); },
         deleteAccount: function() { deleteAccount(); },
         toggleSection: function(element) {

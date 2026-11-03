@@ -323,7 +323,7 @@ function PlaceUserAchievements(achievementArray) {
                 ${delegationSumHTML}
 
                 <div class="achievement-image" style="--cat-color: ${categoryColor};">
-                    <img class="achievement-img u-fill" src="${achievementImageURL(achievementArray[i].id, true)}" onerror="${IMAGE_FALLBACK_ONERROR}">
+                    <img class="achievement-img u-fill" src="${achievementImageURL(achievementArray[i].id, true)}" data-fallback="placeholder">
                 </div>
 
                 <div class="achievement-title">
