@@ -98,7 +98,7 @@ func APISubscribeToNotification(context *gin.Context) {
 	var subscriptionRequest models.SubscriptionCreationRequest
 	var subscription models.Subscription
 
-	if err := context.ShouldBindJSON(&subscriptionRequest); err != nil {
+	if err := bindJSON(context, &subscriptionRequest); err != nil {
 		logger.Log.Info("Failed to parse request. Error: " + err.Error())
 		context.JSON(http.StatusBadRequest, gin.H{"error": "Failed to parse request."})
 		context.Abort()
@@ -188,7 +188,7 @@ func APIPushNotificationToAllDevicesForUser(context *gin.Context) {
 	// Create notification request
 	var notificationRequest models.NotificationCreationRequest
 
-	if err := context.ShouldBindJSON(&notificationRequest); err != nil {
+	if err := bindJSON(context, &notificationRequest); err != nil {
 		logger.Log.Info("Failed to parse request. Error: " + err.Error())
 		context.JSON(http.StatusBadRequest, gin.H{"error": "Failed to parse request."})
 		context.Abort()
@@ -220,7 +220,7 @@ func APIGetSubscriptionForEndpoint(context *gin.Context) {
 	// Create notification request
 	var subscriptionRequest models.SubscriptionGetRequest
 
-	if err := context.ShouldBindJSON(&subscriptionRequest); err != nil {
+	if err := bindJSON(context, &subscriptionRequest); err != nil {
 		logger.Log.Info("Failed to parse request. Error: " + err.Error())
 		context.JSON(http.StatusBadRequest, gin.H{"error": "Failed to parse request."})
 		context.Abort()
@@ -257,7 +257,7 @@ func APIUpdateSubscriptionForEndpoint(context *gin.Context) {
 	// Create notification request
 	var subscriptionUpdateRequest models.SubscriptionUpdateRequest
 
-	if err := context.ShouldBindJSON(&subscriptionUpdateRequest); err != nil {
+	if err := bindJSON(context, &subscriptionUpdateRequest); err != nil {
 		logger.Log.Info("Failed to parse request. Error: " + err.Error())
 		context.JSON(http.StatusBadRequest, gin.H{"error": "Failed to parse request."})
 		context.Abort()

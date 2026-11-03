@@ -130,6 +130,49 @@ which let any authenticated user attach an activity to another user's session. P
 `database.TestExerciseGettersReturnNilOnMiss` and
 `controllers/operation_authz_test.go`.
 
+## Input sanitisation
+
+User input is normalised once, when the request is read, so handlers, lookups and the
+database only ever see one form of a value. The rules live on the request struct as a
+`sanitize` tag, and `internal/sanitize` applies them:
+
+```go
+type GearCreationRequest struct {
+	Name     string  `json:"name" sanitize:"trim,collapse,capfirst"`
+	Type     string  `json:"type" sanitize:"trim,lower"`
+	Nickname *string `json:"nickname" sanitize:"trim,collapse"`
+}
+```
+
+- **Read request bodies with `bindJSON(context, &request)`**, never `ShouldBindJSON`. It
+  binds and then runs `sanitize.Struct`, and returns the bind error for the handler's own
+  400. Don't re-trim tagged fields in the handler. Checks that need the clean value (empty
+  after trimming, length limits) stay in the handler.
+- **Every string field of a `*Request` struct needs a tag**, including `*string`, `[]string`
+  and the strings of struct types it nests. `TestRequestStructsDeclareSanitization`
+  (`controllers/sanitize_coverage_test.go`) fails on an untagged one. A struct that is sent
+  to another service rather than bound from a client goes in its `outboundRequestTypes`.
+- **Rules**, applied left to right: `trim` (surrounding whitespace, Unicode spaces and
+  zero-width characters included), `lower`, `collapse` (also trims and squashes inner
+  whitespace into one space, so single-line values only) and `capfirst` (uppercase the
+  first letter, leave the rest). `-` means "kept exactly as sent". An unknown rule panics.
+- **Which rule fits which field:**
+  - **e-mail:** `trim,lower`
+  - **people's names:** `trim`. Never change their case: title case breaks McDonald,
+    van der Berg and DeShawn.
+  - **short labels** (gear, season, prize and token names): `trim,collapse,capfirst`.
+    Curated action names keep the full title case `APICreateAction` applies.
+  - **free text** (notes, descriptions, news): `trim`
+  - **enum-like values, codes, tokens, URLs, IDs:** `trim`. Add `lower` only where the
+    handler already compares lowercase, so the set of accepted values doesn't change.
+  - **passwords and image data:** `-`
+- **Input that isn't a JSON body** calls the functions directly. Login runs
+  `sanitize.Email` on the form's `username`; query parameters are trimmed where they are read.
+- **Escape on output, never on save.** Stored values are what the user typed, after the rules
+  above. The frontend escapes with `escapeHTML()` (see the frontend conventions below), and HTML
+  e-mails in `utilities/smtp.go` run every user value through `html.EscapeString`. Rows saved
+  before this rule may still hold escaped text; that is accepted, and there is no migration.
+
 ## API response shape
 
 Success responses are a `gin.H` with the **resource under a named key** plus a
@@ -234,9 +277,11 @@ There is no build step or framework — `web/js/*.js` is served through Go templ
   page globals (`var jwt;` ...) declared at the top level of that file. Never pass a string
   to `setTimeout`/`setInterval`/library callbacks (no `eval`).
 - **Escape every value you interpolate into HTML.** Markup is built as template strings
-  and assigned with `innerHTML`, so any value that originated outside the page — a note, a
-  gear or action name, a track title, a Strava description — must go through the local
-  `escapeHTML()` helper. That includes values inside a `<textarea>`: a `</textarea>` in the
+  and assigned with `innerHTML`, so any value that originated outside the page — a user's
+  name, a note, a gear or action name, a track title, a Strava description — must go through
+  `escapeHTML()` (shared in `functions.js`; some pages still keep an identical local copy).
+  The server stores input as typed, only trimmed and normalised and never HTML-escaped
+  ([Input sanitisation](#input-sanitisation)), so the page is the only place escaping happens. That includes values inside a `<textarea>`: a `</textarea>` in the
   content closes the element and everything after it is parsed as markup. Attribute values
   need it too (the helper escapes `"`, so keep attributes double-quoted). This is not
   theoretical — an unescaped day note plus a missing ownership check on its write endpoint

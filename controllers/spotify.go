@@ -127,7 +127,7 @@ func APISpotifyCallback(context *gin.Context) {
 	}
 
 	var request models.SpotifyCallbackRequest
-	if err := context.ShouldBindJSON(&request); err != nil || strings.TrimSpace(request.Code) == "" {
+	if err := bindJSON(context, &request); err != nil || request.Code == "" {
 		context.JSON(http.StatusBadRequest, gin.H{"error": "Missing Spotify authorization code."})
 		context.Abort()
 		return
@@ -135,7 +135,7 @@ func APISpotifyCallback(context *gin.Context) {
 
 	form := url.Values{}
 	form.Set("grant_type", "authorization_code")
-	form.Set("code", strings.TrimSpace(request.Code))
+	form.Set("code", request.Code)
 	form.Set("redirect_uri", files.ConfigFile.Media.Spotify.RedirectURI)
 
 	tokens, err := spotifyTokenRequest(form)

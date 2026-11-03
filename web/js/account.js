@@ -785,7 +785,7 @@ function collectSportMaxHR() {
 }
 
 function placeUserData(userObject, stravaOauth, stravaEnabled, hevyEnabled) {
-    document.getElementById("user_name").innerHTML = userObject.first_name + " " + userObject.last_name;
+    document.getElementById("user_name").innerHTML = escapeHTML(userObject.first_name + " " + userObject.last_name);
     document.getElementById("email").value = userObject.email;
 
     if(userObject.birth_date != null) {

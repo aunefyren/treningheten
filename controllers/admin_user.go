@@ -40,7 +40,7 @@ func APIAdminGetUsers(context *gin.Context) {
 // restores access only — the user rejoins seasons themselves.
 func APIAdminSetUserEnabled(context *gin.Context) {
 	var request models.UserEnabledRequest
-	if err := context.ShouldBindJSON(&request); err != nil || request.Enabled == nil {
+	if err := bindJSON(context, &request); err != nil || request.Enabled == nil {
 		context.JSON(http.StatusBadRequest, gin.H{"error": "Failed to parse request."})
 		context.Abort()
 		return

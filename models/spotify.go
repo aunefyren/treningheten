@@ -56,5 +56,5 @@ type SpotifyImage struct {
 // SpotifyCallbackRequest carries the authorization code from the /oauth page after
 // the user approves the Spotify consent screen.
 type SpotifyCallbackRequest struct {
-	Code string `json:"code"`
+	Code string `json:"code" sanitize:"trim"`
 }

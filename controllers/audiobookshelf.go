@@ -98,13 +98,13 @@ func APIAudiobookshelfConnect(context *gin.Context) {
 	}
 
 	var request models.AudiobookshelfConnectRequest
-	if err := context.ShouldBindJSON(&request); err != nil {
+	if err := bindJSON(context, &request); err != nil {
 		context.JSON(http.StatusBadRequest, gin.H{"error": "Failed to parse request."})
 		context.Abort()
 		return
 	}
 
-	token := strings.TrimSpace(request.Token)
+	token := request.Token
 	serverURL, urlErr := validateMediaServerURL(request.ServerURL)
 	if urlErr != nil {
 		context.JSON(http.StatusBadRequest, gin.H{"error": urlErr.Error()})

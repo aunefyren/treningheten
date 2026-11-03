@@ -19,7 +19,7 @@ func APIRegisterGoalToSeason(context *gin.Context) {
 	var goal models.GoalCreationRequest
 	var goalDB models.Goal
 
-	if err := context.ShouldBindJSON(&goal); err != nil {
+	if err := bindJSON(context, &goal); err != nil {
 		logger.Log.Info("Failed to parse request. Error: " + err.Error())
 		context.JSON(http.StatusBadRequest, gin.H{"error": "Failed to parse request."})
 		context.Abort()

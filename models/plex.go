@@ -93,7 +93,7 @@ type PlexPinCheckResponse struct {
 // is fronted by a reverse proxy (e.g. Cloudflare on :443), which Plex's resources
 // API does not advertise.
 type PlexServerURLRequest struct {
-	ServerURL string `json:"server_url"`
+	ServerURL string `json:"server_url" sanitize:"trim"`
 }
 
 // PlexHistoryResponse is the PMS /status/sessions/history/all reply (Accept: json).

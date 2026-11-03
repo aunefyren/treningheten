@@ -1207,7 +1207,7 @@ func APIGiveUserAnAchievement(context *gin.Context) {
 	var achievementDelegationCreationRequest models.AchievementDelegationCreationRequest
 
 	// Parse creation request
-	if err := context.ShouldBindJSON(&achievementDelegationCreationRequest); err != nil {
+	if err := bindJSON(context, &achievementDelegationCreationRequest); err != nil {
 		logger.Log.Info("Failed to parse creation request. Error: " + err.Error())
 		context.JSON(http.StatusBadRequest, gin.H{"error": "Failed to parse creation request."})
 		context.Abort()

@@ -832,6 +832,18 @@ Date.prototype.addDays = function(days) {
     return date;
 }
 
+// escapeHTML makes a value safe to interpolate into markup, attributes included (keep them
+// double-quoted). Every user-supplied value goes through it: the server stores input as typed.
+// Some pages still define an identical local copy.
+function escapeHTML(value) {
+    return String(value == null ? "" : value)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#39;");
+}
+
 function HTMLDecode(text) {
     var txt = document.createElement("textarea");
     txt.innerHTML = text;

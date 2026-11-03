@@ -183,6 +183,6 @@ type StravaGear struct {
 }
 
 type StravaSyncActivitiesForUsersRequest struct {
-	UserIDs   []string `json:"user_ids"`
-	StravaIDs []string `json:"strava_ids"`
+	UserIDs   []string `json:"user_ids" sanitize:"trim"`
+	StravaIDs []string `json:"strava_ids" sanitize:"trim"`
 }

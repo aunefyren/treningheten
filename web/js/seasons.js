@@ -308,7 +308,7 @@ function place_leaderboard(weeks_array, season_id) {
                 var result_html = `
                 <div class="leaderboard-week-result" id="">
                     <div class="leaderboard-week-result-user clickable grey-underline" onclick="location.href='/users/${weeks_array[i].users[j].user_id}'">
-                        ` + userList[weeks_array[i].users[j].user_id].first_name + `
+                        ` + escapeHTML(userList[weeks_array[i].users[j].user_id].first_name) + `
                     </div>
                     <div class="leaderboard-week-result-exercise ` + clickable_str  + `" onclick="` + onclick_command_str  + `">
                         ` + completion  + `
@@ -327,11 +327,11 @@ function place_leaderboard(weeks_array, season_id) {
 
                 if(!userFound) {
                     var joined_image = `
-                    <div class="leaderboard-week-member" id="member-${season_id}-${weeks_array[i].users[j].user_id}" title="${userList[weeks_array[i].users[j].user_id].first_name}" onclick="location.href='/users/${weeks_array[i].users[j].user_id}'">
+                    <div class="leaderboard-week-member" id="member-${season_id}-${weeks_array[i].users[j].user_id}" title="${escapeHTML(userList[weeks_array[i].users[j].user_id].first_name)}" onclick="location.href='/users/${weeks_array[i].users[j].user_id}'">
                         <div class="leaderboard-week-member-image">
                             <img class="u-fill leaderboard-week-member-image-img" src="${profileImageURL(weeks_array[i].users[j].user_id, true)}" onerror="${IMAGE_FALLBACK_ONERROR}">
                         </div>
-                        ${userList[weeks_array[i].users[j].user_id].first_name}
+                        ${escapeHTML(userList[weeks_array[i].users[j].user_id].first_name)}
                     </div>
                     `;
                     members += joined_image

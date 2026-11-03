@@ -19,12 +19,12 @@ import (
 
 // OAuthClientRegistrationRequest is the RFC 7591 dynamic client registration body.
 type OAuthClientRegistrationRequest struct {
-	ClientName              string   `json:"client_name"`
-	RedirectURIs            []string `json:"redirect_uris"`
-	GrantTypes              []string `json:"grant_types"`
-	ResponseTypes           []string `json:"response_types"`
-	Scope                   string   `json:"scope"`
-	TokenEndpointAuthMethod string   `json:"token_endpoint_auth_method"`
+	ClientName              string   `json:"client_name" sanitize:"trim"`
+	RedirectURIs            []string `json:"redirect_uris" sanitize:"trim"`
+	GrantTypes              []string `json:"grant_types" sanitize:"trim"`
+	ResponseTypes           []string `json:"response_types" sanitize:"trim"`
+	Scope                   string   `json:"scope" sanitize:"trim"`
+	TokenEndpointAuthMethod string   `json:"token_endpoint_auth_method" sanitize:"trim"`
 }
 
 // OAuthRegister implements RFC 7591 Dynamic Client Registration.
@@ -36,7 +36,7 @@ func OAuthRegister(context *gin.Context) {
 	}
 
 	var request OAuthClientRegistrationRequest
-	if err := context.ShouldBindJSON(&request); err != nil {
+	if err := bindJSON(context, &request); err != nil {
 		oauthError(context, http.StatusBadRequest, "invalid_client_metadata", "invalid registration body")
 		return
 	}
@@ -70,7 +70,7 @@ func OAuthRegister(context *gin.Context) {
 	// Restrict requested scope to what the server supports.
 	grantedScope := narrowScopeToSupported(request.Scope)
 
-	clientName := strings.TrimSpace(request.ClientName)
+	clientName := request.ClientName
 	if clientName == "" {
 		clientName = "Dynamically Registered Client"
 	}

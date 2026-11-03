@@ -137,20 +137,20 @@ type UserEnabledRequest struct {
 }
 
 type UserCreationRequest struct {
-	FirstName      string `json:"first_name"`
-	LastName       string `json:"last_name"`
-	Email          string `json:"email"`
-	Password       string `json:"password"`
-	PasswordRepeat string `json:"password_repeat"`
-	InviteCode     string `json:"invite_code"`
+	FirstName      string `json:"first_name" sanitize:"trim"`
+	LastName       string `json:"last_name" sanitize:"trim"`
+	Email          string `json:"email" sanitize:"trim,lower"`
+	Password       string `json:"password" sanitize:"-"`
+	PasswordRepeat string `json:"password_repeat" sanitize:"-"`
+	InviteCode     string `json:"invite_code" sanitize:"trim"`
 }
 
 type UserUpdateRequest struct {
-	Email           string `json:"email"`
-	Password        string `json:"password"`
-	PasswordRepeat  string `json:"password_repeat"`
-	ProfileImage    string `json:"profile_image"`
-	OldPassword     string `json:"password_old"`
+	Email           string `json:"email" sanitize:"trim,lower"`
+	Password        string `json:"password" sanitize:"-"`
+	PasswordRepeat  string `json:"password_repeat" sanitize:"-"`
+	ProfileImage    string `json:"profile_image" sanitize:"-"`
+	OldPassword     string `json:"password_old" sanitize:"-"`
 	ShareActivities *bool  `json:"share_activities"`
 	ShareStatistics *bool  `json:"share_statistics"`
 }
@@ -163,7 +163,7 @@ type UserTrainingProfileRequest struct {
 	BirthDate          *time.Time          `json:"birth_date"`
 	MaxHeartrate       *int                `json:"max_heartrate"`
 	RestingHeartrate   *int                `json:"resting_heartrate"`
-	HRZoneSystem       *string             `json:"hr_zone_system"`
+	HRZoneSystem       *string             `json:"hr_zone_system" sanitize:"trim"`
 	SportMaxHeartrates []SportMaxHeartrate `json:"sport_max_heartrates"`
 }
 
@@ -172,25 +172,25 @@ type UserPartialUpdateRequest struct {
 	StravaPublic *bool `json:"strava_public"`
 	// ActivitySourcePriority is a comma-separated, highest-first source list; empty turns
 	// duplicate detection off.
-	ActivitySourcePriority *string `json:"activity_source_priority"`
+	ActivitySourcePriority *string `json:"activity_source_priority" sanitize:"trim"`
 	HevyPublic             *bool   `json:"hevy_public"`
-	WheelColor             *string `json:"wheel_color"`
-	WheelBorderColor       *string `json:"wheel_border_color"`
-	WheelEmoji             *string `json:"wheel_emoji"`
+	WheelColor             *string `json:"wheel_color" sanitize:"trim"`
+	WheelBorderColor       *string `json:"wheel_border_color" sanitize:"trim"`
+	WheelEmoji             *string `json:"wheel_emoji" sanitize:"trim"`
 }
 
 type UserUpdatePasswordRequest struct {
-	ResetCode      string `json:"reset_code"`
-	Password       string `json:"password"`
-	PasswordRepeat string `json:"password_repeat"`
+	ResetCode      string `json:"reset_code" sanitize:"trim"`
+	Password       string `json:"password" sanitize:"-"`
+	PasswordRepeat string `json:"password_repeat" sanitize:"-"`
 }
 
 type UserStravaCodeUpdateRequest struct {
-	StravaCode string `json:"strava_code"`
+	StravaCode string `json:"strava_code" sanitize:"trim"`
 }
 
 type UserHevyAPIKeyUpdateRequest struct {
-	HevyAPIKey string `json:"hevy_api_key"`
+	HevyAPIKey string `json:"hevy_api_key" sanitize:"trim"`
 }
 
 type UserWithTickets struct {

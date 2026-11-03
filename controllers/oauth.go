@@ -2,10 +2,10 @@ package controllers
 
 import (
 	"net/http"
-	"strings"
 
 	"github.com/aunefyren/treningheten/auth"
 	"github.com/aunefyren/treningheten/database"
+	"github.com/aunefyren/treningheten/internal/sanitize"
 	"github.com/aunefyren/treningheten/logger"
 	"github.com/aunefyren/treningheten/middlewares"
 	"github.com/aunefyren/treningheten/models"
@@ -96,7 +96,7 @@ func oauthTokenPasswordGrant(context *gin.Context) {
 		return
 	}
 
-	username := strings.TrimSpace(strings.ToLower(context.PostForm("username")))
+	username := sanitize.Email(context.PostForm("username"))
 	password := context.PostForm("password")
 	if username == "" || password == "" {
 		oauthError(context, http.StatusBadRequest, "invalid_request", "username and password are required")

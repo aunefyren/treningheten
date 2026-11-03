@@ -299,7 +299,7 @@ func APICreateOperationForUser(context *gin.Context) {
 	}
 
 	// Parse creation request
-	if err := context.ShouldBindJSON(&operationCreationRequest); err != nil {
+	if err := bindJSON(context, &operationCreationRequest); err != nil {
 		logger.Log.Info("Failed to parse creation request. Error: " + err.Error())
 		context.JSON(http.StatusBadRequest, gin.H{"error": "Failed to parse creation request."})
 		context.Abort()
@@ -323,14 +323,14 @@ func APICreateOperationForUser(context *gin.Context) {
 	}
 
 	operation.ActionID = nil
-	operation.DistanceUnit = strings.TrimSpace(operationCreationRequest.DistanceUnit)
+	operation.DistanceUnit = operationCreationRequest.DistanceUnit
 	operation.ExerciseID = operationCreationRequest.ExerciseID
-	operation.Type = strings.TrimSpace(operationCreationRequest.Type)
-	operation.WeightUnit = strings.TrimSpace(operationCreationRequest.WeightUnit)
+	operation.Type = operationCreationRequest.Type
+	operation.WeightUnit = operationCreationRequest.WeightUnit
 	operation.ID = uuid.New()
 
 	if operationCreationRequest.Equipment != nil {
-		trimmedEquipment := strings.TrimSpace(*operationCreationRequest.Equipment)
+		trimmedEquipment := *operationCreationRequest.Equipment
 
 		if !validEquipment(trimmedEquipment) {
 			context.JSON(http.StatusBadRequest, gin.H{"error": "Invalid equipment type."})
@@ -413,7 +413,7 @@ func APICreateOperationSetForUser(context *gin.Context) {
 	}
 
 	// Parse creation request
-	if err := context.ShouldBindJSON(&operationSetCreationRequest); err != nil {
+	if err := bindJSON(context, &operationSetCreationRequest); err != nil {
 		logger.Log.Info("Failed to parse creation request. Error: " + err.Error())
 		context.JSON(http.StatusBadRequest, gin.H{"error": "Failed to parse creation request."})
 		context.Abort()
@@ -514,7 +514,7 @@ func APIUpdateOperation(context *gin.Context) {
 	}
 
 	// Parse update request
-	if err := context.ShouldBindJSON(&operationUpdateRequest); err != nil {
+	if err := bindJSON(context, &operationUpdateRequest); err != nil {
 		logger.Log.Info("Failed to parse update request. Error: " + err.Error())
 		context.JSON(http.StatusBadRequest, gin.H{"error": "Failed to parse update request."})
 		context.Abort()
@@ -532,7 +532,7 @@ func APIUpdateOperation(context *gin.Context) {
 	previousActionID := operation.ActionID
 
 	if operationUpdateRequest.Action != "" {
-		action, err := database.GetActionByName(strings.TrimSpace(operationUpdateRequest.Action))
+		action, err := database.GetActionByName(operationUpdateRequest.Action)
 		if err != nil {
 			logger.Log.Info("Failed to get action by name. Error: " + err.Error())
 			context.JSON(http.StatusBadRequest, gin.H{"error": "Choose a valid exercise."})
@@ -544,15 +544,15 @@ func APIUpdateOperation(context *gin.Context) {
 	} else {
 		operation.ActionID = nil
 		operation.Action = nil
-		operation.Type = strings.TrimSpace(operationUpdateRequest.Type)
+		operation.Type = operationUpdateRequest.Type
 	}
 
-	operation.DistanceUnit = strings.TrimSpace(operationUpdateRequest.DistanceUnit)
-	operation.WeightUnit = strings.TrimSpace(operationUpdateRequest.WeightUnit)
+	operation.DistanceUnit = operationUpdateRequest.DistanceUnit
+	operation.WeightUnit = operationUpdateRequest.WeightUnit
 
 	// Legacy per-operation equipment: omitted leaves it untouched, empty clears it.
 	if operationUpdateRequest.Equipment != nil {
-		trimmedEquipment := strings.TrimSpace(*operationUpdateRequest.Equipment)
+		trimmedEquipment := *operationUpdateRequest.Equipment
 
 		if trimmedEquipment != "" && !validEquipment(trimmedEquipment) {
 			context.JSON(http.StatusBadRequest, gin.H{"error": "Invalid equipment type."})
@@ -604,7 +604,7 @@ func APIUpdateOperation(context *gin.Context) {
 
 	// Description is replaced only when explicitly provided; an empty value clears it.
 	if operationUpdateRequest.Description != nil {
-		trimmedDescription := strings.TrimSpace(*operationUpdateRequest.Description)
+		trimmedDescription := *operationUpdateRequest.Description
 		if trimmedDescription == "" {
 			operation.Description = nil
 		} else {
@@ -615,7 +615,7 @@ func APIUpdateOperation(context *gin.Context) {
 	// Gear is replaced only when explicitly provided (non-moving op cards omit it);
 	// an empty value clears it, otherwise the gear must belong to the user.
 	if operationUpdateRequest.GearID != nil {
-		gearID, clientErr, serverErr := resolveGearIDForUser(strings.TrimSpace(*operationUpdateRequest.GearID), userID)
+		gearID, clientErr, serverErr := resolveGearIDForUser(*operationUpdateRequest.GearID, userID)
 		if serverErr != nil {
 			logger.Log.Error("Failed to resolve gear. Error: " + serverErr.Error())
 			context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get gear."})
@@ -681,7 +681,7 @@ func APIUpdateOperationSet(context *gin.Context) {
 	}
 
 	// Parse update request
-	if err := context.ShouldBindJSON(&operationSetUpdateRequest); err != nil {
+	if err := bindJSON(context, &operationSetUpdateRequest); err != nil {
 		logger.Log.Info("Failed to parse update request. Error: " + err.Error())
 		context.JSON(http.StatusBadRequest, gin.H{"error": "Failed to parse update request."})
 		context.Abort()
@@ -896,7 +896,7 @@ func APICreateAction(context *gin.Context) {
 	var action models.Action
 
 	// Parse creation request
-	err := context.ShouldBindJSON(&actionCreationRequest)
+	err := bindJSON(context, &actionCreationRequest)
 	if err != nil {
 		logger.Log.Info("Failed to parse creation request. Error: " + err.Error())
 		context.JSON(http.StatusBadRequest, gin.H{"error": "Failed to parse creation request."})
@@ -907,12 +907,12 @@ func APICreateAction(context *gin.Context) {
 	caserEng := cases.Title(language.English)
 	caserNor := cases.Title(language.Norwegian)
 
-	action.BodyPart = caserEng.String(strings.TrimSpace(actionCreationRequest.BodyPart))
-	action.Name = caserEng.String(strings.TrimSpace(actionCreationRequest.Name))
-	action.NorwegianName = caserNor.String(strings.TrimSpace(actionCreationRequest.NorwegianName))
+	action.BodyPart = caserEng.String(actionCreationRequest.BodyPart)
+	action.Name = caserEng.String(actionCreationRequest.Name)
+	action.NorwegianName = caserNor.String(actionCreationRequest.NorwegianName)
 
-	action.Type = strings.TrimSpace(actionCreationRequest.Type)
-	action.Description = strings.TrimSpace(actionCreationRequest.Description)
+	action.Type = actionCreationRequest.Type
+	action.Description = actionCreationRequest.Description
 	action.ID = uuid.New()
 
 	if action.Type != "lifting" && action.Type != "moving" && action.Type != "timing" {
@@ -921,7 +921,7 @@ func APICreateAction(context *gin.Context) {
 		return
 	}
 
-	action.Category = strings.TrimSpace(actionCreationRequest.Category)
+	action.Category = actionCreationRequest.Category
 	if action.Category == "" {
 		action.Category = models.DefaultActionCategory(action.Type)
 	} else if !models.ValidActionCategory(action.Category) {
@@ -930,7 +930,7 @@ func APICreateAction(context *gin.Context) {
 		return
 	}
 
-	action.Equipment = strings.TrimSpace(actionCreationRequest.Equipment)
+	action.Equipment = actionCreationRequest.Equipment
 	if !models.ValidActionEquipment(action.Equipment) {
 		context.JSON(http.StatusBadRequest, gin.H{"error": "Invalid equipment type."})
 		context.Abort()

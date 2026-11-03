@@ -28,10 +28,10 @@ type PersonalAccessToken struct {
 
 // PATCreationRequest is the body for creating a Personal Access Token.
 type PATCreationRequest struct {
-	Name          string `json:"name"`
-	Scope         string `json:"scope"`           // "api:read" or "api:write"
-	Admin         bool   `json:"admin"`           // include the admin scope (admins only)
-	ExpiresInDays int    `json:"expires_in_days"` // 1..PATMaxLifetimeDays
+	Name          string `json:"name" sanitize:"trim,collapse,capfirst"`
+	Scope         string `json:"scope" sanitize:"trim"` // "api:read" or "api:write"
+	Admin         bool   `json:"admin"`                 // include the admin scope (admins only)
+	ExpiresInDays int    `json:"expires_in_days"`       // 1..PATMaxLifetimeDays
 }
 
 // PATCreationResponse returns the one-time plaintext token plus its metadata.

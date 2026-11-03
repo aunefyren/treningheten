@@ -60,6 +60,6 @@ type AudiobookshelfListenSession struct {
 // AudiobookshelfConnectRequest is the account-page connect payload: the self-hosted
 // server URL and a per-user API token from the ABS account settings.
 type AudiobookshelfConnectRequest struct {
-	ServerURL string `json:"server_url"`
-	Token     string `json:"token"`
+	ServerURL string `json:"server_url" sanitize:"trim"`
+	Token     string `json:"token" sanitize:"trim"`
 }

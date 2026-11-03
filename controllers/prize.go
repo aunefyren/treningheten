@@ -2,7 +2,6 @@ package controllers
 
 import (
 	"net/http"
-	"strings"
 
 	"github.com/aunefyren/treningheten/database"
 	"github.com/aunefyren/treningheten/logger"
@@ -33,14 +32,12 @@ func APIRegisterPrize(context *gin.Context) {
 	var prize models.PrizeCreationRequest
 
 	// Parse request
-	if err := context.ShouldBindJSON(&prize); err != nil {
+	if err := bindJSON(context, &prize); err != nil {
 		logger.Log.Info("Failed to parse request. Error: " + err.Error())
 		context.JSON(http.StatusBadRequest, gin.H{"error": "Failed to parse request."})
 		context.Abort()
 		return
 	}
-
-	prize.Name = strings.TrimSpace(prize.Name)
 
 	if len(prize.Name) < 5 || prize.Name == "" {
 		context.JSON(http.StatusBadRequest, gin.H{"error": "Name must be five characters or more."})
@@ -62,7 +59,7 @@ func APIRegisterPrize(context *gin.Context) {
 	}
 
 	prizeDB := models.Prize{
-		Name:     strings.TrimSpace(prize.Name),
+		Name:     prize.Name,
 		Quantity: prize.Quantity,
 	}
 	prizeDB.ID = uuid.New()

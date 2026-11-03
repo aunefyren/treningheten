@@ -39,8 +39,8 @@ type Season struct {
 }
 
 type SeasonCreationRequest struct {
-	Name        string    `json:"name"`
-	Description string    `json:"description"`
+	Name        string    `json:"name" sanitize:"trim,collapse,capfirst"`
+	Description string    `json:"description" sanitize:"trim"`
 	Start       time.Time `json:"start"`
 	End         time.Time `json:"end"`
 	Prize       uuid.UUID `json:"prize_id"`
@@ -48,7 +48,7 @@ type SeasonCreationRequest struct {
 	// Deprecated: ignored. Season boundaries are always built in the server's configured
 	// zone (see seasonBoundariesInServerZone); the field is still accepted so older clients
 	// keep working.
-	TimeZone    string `json:"timezone"`
+	TimeZone    string `json:"timezone" sanitize:"trim"`
 	JoinAnytime bool   `json:"join_anytime"`
 	// Saved workouts: both optional, and leaving them out keeps the season's feature off.
 	CarryOverMax   int `json:"carry_over_max"`

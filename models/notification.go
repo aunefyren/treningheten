@@ -27,14 +27,14 @@ type Subscription struct {
 }
 
 type SubscriptionOriginal struct {
-	Endpoint       string                   `json:"endpoint"`
+	Endpoint       string                   `json:"endpoint" sanitize:"trim"`
 	ExpirationTime *time.Time               `json:"expirationTime"`
 	Keys           SubscriptionOriginalKeys `json:"keys"`
 }
 
 type SubscriptionOriginalKeys struct {
-	Auth   string `json:"auth"`
-	P256Dh string `json:"p256dh"`
+	Auth   string `json:"auth" sanitize:"trim"`
+	P256Dh string `json:"p256dh" sanitize:"trim"`
 }
 
 type SubscriptionCreationRequest struct {
@@ -60,19 +60,19 @@ type PushNotificationPayload struct {
 }
 
 type NotificationCreationRequest struct {
-	Title          string    `json:"title"`
-	Body           string    `json:"body"`
+	Title          string    `json:"title" sanitize:"trim"`
+	Body           string    `json:"body" sanitize:"trim"`
 	UserID         uuid.UUID `json:"user"`
-	AdditionalData *string   `json:"additional_data"`
-	Category       string    `json:"category"`
+	AdditionalData *string   `json:"additional_data" sanitize:"trim"`
+	Category       string    `json:"category" sanitize:"trim"`
 }
 
 type SubscriptionGetRequest struct {
-	Endpoint string `json:"endpoint"`
+	Endpoint string `json:"endpoint" sanitize:"trim"`
 }
 
 type SubscriptionUpdateRequest struct {
-	Endpoint         string `json:"endpoint"`
+	Endpoint         string `json:"endpoint" sanitize:"trim"`
 	SundayAlert      bool   `json:"sunday_alert"`
 	AchievementAlert bool   `json:"achievement_alert"`
 	NewsAlert        bool   `json:"news_alert"`
