@@ -2046,7 +2046,7 @@ function renderWheelSection(user_object) {
         for (var i = 0; i < wheelPalette.length; i++) {
             var c = wheelPalette[i];
             var sel = (current && current.toLowerCase() === c.toLowerCase()) ? " wheel-swatch-selected" : "";
-            html += `<button type="button" data-color="${c}" class="wheel-swatch${sel}" title="${c}" data-action="selectWheelColor" data-kind="${kind}"></button>`;
+            html += `<button type="button" data-color="${c}" data-bg-color="${c}" class="wheel-swatch${sel}" title="${c}" data-action="selectWheelColor" data-kind="${kind}"></button>`;
         }
         return html;
     };
@@ -2087,11 +2087,6 @@ function renderWheelSection(user_object) {
     `;
 
     document.getElementById("wheel-wrapper").innerHTML = html;
-    // Swatch colours go through the CSSOM: the CSP blocks inline style attributes.
-    var swatchButtons = document.querySelectorAll("#wheel-wrapper .wheel-swatch");
-    for (var j = 0; j < swatchButtons.length; j++) {
-        swatchButtons[j].style.background = swatchButtons[j].dataset.color;
-    }
     updateWheelPreview();
 }
 

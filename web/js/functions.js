@@ -219,6 +219,42 @@ document.addEventListener('error', function(event) {
     }
 }, true);
 
+// Dynamic styles without style attributes (strict CSP blocks those, not the CSSOM). JS-built
+// markup carries one of these data attributes, applied as soon as the markup is inserted:
+//   data-width="42": width as a percentage (progress, split and zone bars).
+//   data-bg-color="#4363d8": background colour (wheel swatches).
+//   data-bg-image="https://...": background image URL (soundtrack cover art).
+//   data-cat-color="#e6194b": the --cat-color custom property (achievement category ring).
+var DATA_STYLES = {
+    width: function(style, value) { style.width = parseFloat(value) + '%'; },
+    bgColor: function(style, value) { style.backgroundColor = value; },
+    bgImage: function(style, value) { style.backgroundImage = 'url("' + value.replace(/["\\\n]/g, '\\$&') + '")'; },
+    catColor: function(style, value) { style.setProperty('--cat-color', value); }
+};
+var DATA_STYLES_SELECTOR = '[data-width], [data-bg-color], [data-bg-image], [data-cat-color]';
+
+function applyDataStyles(element) {
+    for (var key in DATA_STYLES) {
+        if (element.dataset[key] !== undefined) {
+            DATA_STYLES[key](element.style, element.dataset[key]);
+        }
+    }
+}
+
+new MutationObserver(function(mutations) {
+    mutations.forEach(function(mutation) {
+        mutation.addedNodes.forEach(function(node) {
+            if (node.nodeType !== Node.ELEMENT_NODE) {
+                return;
+            }
+            if (node.matches(DATA_STYLES_SELECTOR)) {
+                applyDataStyles(node);
+            }
+            node.querySelectorAll(DATA_STYLES_SELECTOR).forEach(applyDataStyles);
+        });
+    });
+}).observe(document.documentElement, { childList: true, subtree: true });
+
 // Make XHTTP requests
 function makeRequest (method, url, data) {
     return new Promise(function (resolve, reject) {
@@ -1050,11 +1086,7 @@ function parseDurationStringToSeconds(duration) {
 }
 
 function showSelectDropdown(operationID, toggle) {
-    if(toggle) {
-        document.getElementById("operation-action-text-list-" + operationID).style.display = "flex";
-    } else {
-        document.getElementById("operation-action-text-list-" + operationID).style.display = "none";
-    }
+    document.getElementById("operation-action-text-list-" + operationID).hidden = !toggle;
     filterFunction(operationID);
 }
 
@@ -1073,7 +1105,7 @@ function filterFunction(operationID) {
             a[i].style.display = "none";
         }
     }
-    toggleActionBorder(operationID, 'none');
+    markActionInvalid(operationID, false);
 }
 
 function logInPageRedirect(errorMessage) {

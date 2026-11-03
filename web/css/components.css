@@ -1399,6 +1399,7 @@ input[type=checkbox]
 }
 
 .dropdown-actions-wrapper {
+  display: flex;
   flex-direction: column;
   flex-wrap: nowrap;
   align-content: center;
