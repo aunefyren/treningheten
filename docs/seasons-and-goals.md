@@ -27,7 +27,10 @@ owned by a user.
 - `now > End` → **ended**
 
 Code: `models/season.go`, `controllers/season.go`, `database/season.go`. Seasons are
-created by admins (`POST /api/admin/seasons`).
+created by admins (`POST /api/admin/seasons`). A season starts on a Monday and ends on a
+Sunday after it, so the shortest is one week. It may lie in the past: an admin can register a
+season that has already started, or even ended. Joining a started season still needs
+`JoinAnytime`, and the joinable-season list never offers an ended one.
 
 **Seasons live in the server's zone.** `APIRegisterSeason` keeps the calendar dates the admin
 picked and builds `Start` (Monday 00:00) and `End` (Sunday 23:59:59) in `time.Local` — the
@@ -37,6 +40,9 @@ and a season stored in another one put its final Sunday outside the last window,
 week was never processed. The admin form (`addSeason` in `web/js/admin.js`) validates the
 weekday on the picked calendar date in the browser's zone (`parsePickedDate`) and sends it
 as `YYYY-MM-DDT00:00:00Z`, so the date survives unchanged whatever zone the browser is in.
+The date inputs carry a Monday/Sunday `min` with `step="7"`, so the browser itself only
+accepts those weekdays; `placeSeasonLength` moves the end's `min` to the picked start's
+Sunday and shows the season's length in weeks.
 
 ## Goals — how a user participates
 

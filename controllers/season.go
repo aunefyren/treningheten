@@ -255,19 +255,17 @@ func APIRegisterSeason(context *gin.Context) {
 		return
 	}
 
-	// Verify season start
-	now := time.Now()
-	weekday := int(season.Start.Weekday())
-	if season.Start.Before(now) || weekday != 1 {
-		context.JSON(http.StatusBadRequest, gin.H{"error": "Your season must be in the future and start on a monday."})
+	// Verify season start. It may lie in the past: an admin can register a season that has
+	// already started (or ended).
+	if season.Start.Weekday() != time.Monday {
+		context.JSON(http.StatusBadRequest, gin.H{"error": "Your season must start on a monday."})
 		context.Abort()
 		return
 	}
 
-	// Verify season end
-	weekdayTwo := int(season.End.Weekday())
-	if season.End.Before(season.Start) || weekdayTwo != 0 {
-		context.JSON(http.StatusBadRequest, gin.H{"error": "Your season must end after the start and end on a sunday."})
+	// Verify season end. A sunday after the start monday makes the season at least one week.
+	if season.End.Before(season.Start) || season.End.Weekday() != time.Sunday {
+		context.JSON(http.StatusBadRequest, gin.H{"error": "Your season must end on a sunday after the start."})
 		context.Abort()
 		return
 	}

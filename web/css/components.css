@@ -278,10 +278,6 @@ input[type=checkbox]
   text-align: center;
 }
 
-.add-season-module {
-  max-height: 50rem !important;
-}
-
 .leaderboard {
   color: var(--black);
   width: auto;

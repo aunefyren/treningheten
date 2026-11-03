@@ -127,16 +127,20 @@ function load_page(result) {
 
                             <form action="" onsubmit="event.preventDefault(); addSeason();">
 
+                                <!-- min is a monday (start) or sunday (end) and step="7" counts days from
+                                     it, so the browser only accepts mondays and sundays. placeSeasonLength
+                                     moves the end's min to the picked start's sunday. -->
                                 <div class="field-row">
                                     <div class="field">
-                                        <label for="season-start" class="field-label">Start of season (monday)</label>
-                                        <input type="date" id="season-start" name="season-start" required>
+                                        <label for="season-start" class="field-label">Start (monday)</label>
+                                        <input type="date" id="season-start" name="season-start" min="2000-01-03" step="7" required>
                                     </div>
                                     <div class="field">
-                                        <label for="season-end" class="field-label">End of season (sunday)</label>
-                                        <input type="date" id="season-end" name="season-end" required>
+                                        <label for="season-end" class="field-label">End (sunday)</label>
+                                        <input type="date" id="season-end" name="season-end" min="2000-01-09" step="7" required>
                                     </div>
                                 </div>
+                                <span class="field-hint season-length" id="season-length" aria-live="polite"></span>
 
                                 <div class="field">
                                     <label for="season-name" class="field-label">Name</label>
@@ -148,9 +152,15 @@ function load_page(result) {
                                     <textarea id="season-desc" name="season-desc" placeholder="What is this season about?" autocomplete="off" required></textarea>
                                 </div>
 
-                                <div class="field">
-                                    <label for="season-sickleave" class="field-label">Season sick leave</label>
-                                    <input type="number" id="season-sickleave" name="season-sickleave" value="0" min="0" max="99" required>
+                                <div class="field-row">
+                                    <div class="field">
+                                        <label for="season-sickleave" class="field-label">Sick leave</label>
+                                        <input type="number" id="season-sickleave" name="season-sickleave" value="0" min="0" max="99" required>
+                                    </div>
+                                    <div class="field">
+                                        <label for="season-prize" class="field-label">Prize</label>
+                                        <select id="season-prize" name="season-prize" required></select>
+                                    </div>
                                 </div>
 
                                 <!-- Saved workouts (docs/flexible-workouts.md): off at 0. The line under
@@ -167,11 +177,6 @@ function load_page(result) {
                                     </div>
                                 </div>
                                 <p class="saved-rule-preview" id="season-saved-rule" aria-live="polite"></p>
-
-                                <div class="field">
-                                    <label for="season-prize" class="field-label">Season prize</label>
-                                    <select id="season-prize" name="season-prize" required></select>
-                                </div>
 
                                 <div class="field-check">
                                     <input type="checkbox" id="join_anytime" name="join_anytime" value="join_anytime">
@@ -285,6 +290,8 @@ function load_page(result) {
     document.getElementById('card-header').innerHTML = 'Ultimate power.';
     clearResponse();
     placeSavedWorkoutsRule();
+    document.getElementById("season-start").addEventListener("change", placeSeasonLength);
+    document.getElementById("season-end").addEventListener("change", placeSeasonLength);
 
     if(result !== false) {
         showLoggedInMenu();
@@ -734,9 +741,36 @@ function parsePickedDate(value) {
     return new Date(parseInt(parts[1], 10), parseInt(parts[2], 10) - 1, parseInt(parts[3], 10));
 }
 
-// addSeason validates the season form and posts it. The weekday and "in the future" checks run
-// on the picked calendar dates in the browser's zone; the dates are sent as UTC midnight of the
-// same calendar day, and the server builds the boundaries in its own zone from that date.
+// placeSeasonLength keeps the season end's min on the sunday of the picked start's week, so
+// the browser only offers sundays after the start, and says how many weeks the dates make.
+function placeSeasonLength() {
+    var startInput = document.getElementById("season-start");
+    var endInput = document.getElementById("season-end");
+    var hint = document.getElementById("season-length");
+
+    var start = parsePickedDate(startInput.value);
+    var startIsMonday = start !== null && start.getDay() == 1;
+    if(startIsMonday) {
+        var firstSunday = new Date(start.getFullYear(), start.getMonth(), start.getDate() + 6);
+        endInput.min = toLocalISOString(firstSunday).substring(0, 10);
+    } else {
+        endInput.min = "2000-01-09";
+    }
+
+    var end = parsePickedDate(endInput.value);
+    hint.textContent = "";
+    if(startIsMonday && end !== null && end.getDay() == 0 && end > start) {
+        // Counted in UTC so a daylight-saving change in between doesn't shave off an hour.
+        var days = (Date.UTC(end.getFullYear(), end.getMonth(), end.getDate()) - Date.UTC(start.getFullYear(), start.getMonth(), start.getDate())) / 86400000 + 1;
+        var weeks = Math.round(days / 7);
+        hint.textContent = weeks + (weeks == 1 ? " week" : " weeks") + ", " + shortDateString(start) + " – " + shortDateString(end) + ".";
+    }
+}
+
+// addSeason validates the season form and posts it. The weekday checks run on the picked
+// calendar dates in the browser's zone; the dates are sent as UTC midnight of the same
+// calendar day, and the server builds the boundaries in its own zone from that date. A season
+// may already have started or ended.
 function addSeason() {
     clearResponse();
 
@@ -777,12 +811,7 @@ function addSeason() {
     }
 
     if(seasonEnd < seasonStart) {
-        error("Season start must be before season end.");
-        return false;
-    }
-
-    if(seasonStart < new Date()) {
-        error("Season start must be later than now.");
+        error("Season end must be a sunday after the start.");
         return false;
     }
 
