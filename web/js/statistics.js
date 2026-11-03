@@ -86,7 +86,7 @@ function load_page(result) {
 
 function statisticsPageHTML() {
     var tabs = statsTabs.map(function(tab) {
-        return `<button type="button" class="user-stat-tab stats-tab" role="tab" id="stats-tab-${tab.key}" aria-controls="stats-panel-${tab.key}" aria-selected="false" tabindex="-1" onclick="selectStatisticsTab('${tab.key}')" onkeydown="statisticsTabKey(event)">${tab.label}</button>`;
+        return `<button type="button" class="user-stat-tab stats-tab" role="tab" id="stats-tab-${tab.key}" aria-controls="stats-panel-${tab.key}" aria-selected="false" tabindex="-1" data-action="selectStatisticsTab" data-tab="${tab.key}">${tab.label}</button>`;
     }).join("");
 
     return `
@@ -116,7 +116,7 @@ function statisticsPageHTML() {
                 <div class="stat-panel">
                     <div class="stats-panel-head">
                         <h2 class="stats-heading">Records set in this period</h2>
-                        <button type="button" class="btn btn--ghost btn--sm" id="overview-records-link" onclick="selectStatisticsTab('records')">All records</button>
+                        <button type="button" class="btn btn--ghost btn--sm" id="overview-records-link" data-action="selectStatisticsTab" data-tab="records">All records</button>
                     </div>
                     <div id="overview-records"></div>
                 </div>
@@ -130,7 +130,7 @@ function statisticsPageHTML() {
                 <div class="stats-controls">
                     <div class="field stats-type-field">
                         <label for="types-action" class="field-label">Activity type</label>
-                        <select id="types-action" onchange="chooseStatisticsType(this.value)">
+                        <select id="types-action" data-action="chooseStatisticsType">
                             <option value="">Choose an activity type</option>
                         </select>
                     </div>
@@ -138,11 +138,11 @@ function statisticsPageHTML() {
                     <div class="field-row stats-custom" id="types-custom" hidden>
                         <div class="field">
                             <label for="types-start" class="field-label">From</label>
-                            <input type="date" id="types-start" onchange="loadTypeStatistics()">
+                            <input type="date" id="types-start" data-action="loadTypeStatistics">
                         </div>
                         <div class="field">
                             <label for="types-end" class="field-label">To</label>
-                            <input type="date" id="types-end" onchange="loadTypeStatistics()">
+                            <input type="date" id="types-end" data-action="loadTypeStatistics">
                         </div>
                     </div>
                 </div>
@@ -154,7 +154,7 @@ function statisticsPageHTML() {
                     <div class="stat-panel" id="types-records-panel" hidden>
                         <div class="stats-panel-head">
                             <h2 class="stats-heading">Bests in this period</h2>
-                            <button type="button" class="btn btn--ghost btn--sm" id="types-records-link" onclick="selectStatisticsTab('records')">All-time records</button>
+                            <button type="button" class="btn btn--ghost btn--sm" id="types-records-link" data-action="selectStatisticsTab" data-tab="records">All-time records</button>
                         </div>
                         <div class="records-grid" id="types-records"></div>
                     </div>
@@ -179,7 +179,7 @@ function statisticsPageHTML() {
                 <div class="stats-controls">
                     <div class="field stats-type-field">
                         <label for="select_season" class="field-label">Season</label>
-                        <select id="select_season" onchange="chooseSeason()"></select>
+                        <select id="select_season" data-action="chooseSeason"></select>
                     </div>
                 </div>
                 <div class="user-stats-empty" id="season-empty" hidden>
@@ -202,7 +202,7 @@ function statisticsPageHTML() {
 
             <section class="stats-panel" role="tabpanel" id="stats-panel-body" aria-labelledby="stats-tab-body" hidden>
                 <div class="stats-controls">
-                    <button type="button" class="btn btn--primary" onclick="getWeights(true)"><img src="/assets/plus.svg" class="color-invert" alt="">Log weight</button>
+                    <button type="button" class="btn btn--primary" data-action="logWeight"><img src="/assets/plus.svg" class="color-invert" alt="">Log weight</button>
                 </div>
                 <div class="user-stats-empty" id="body-empty" hidden>
                     <div class="user-stats-empty-title">No weight logged yet</div>
@@ -291,7 +291,7 @@ function statisticsTabKey(event) {
 function placeSegments(containerID, options, activeKey, handler) {
     document.getElementById(containerID).innerHTML = options.map(function(option) {
         var active = option.key === activeKey;
-        return `<button type="button" class="user-stat-tab${active ? " user-stat-tab-active" : ""}" aria-pressed="${active}" onclick="${handler}('${option.key}')">${option.label}</button>`;
+        return `<button type="button" class="user-stat-tab${active ? " user-stat-tab-active" : ""}" aria-pressed="${active}" data-action="${handler}" data-key="${option.key}">${option.label}</button>`;
     }).join("");
 }
 
@@ -510,8 +510,8 @@ function placeOverview() {
         var pct = longest > 0 ? Math.max(2, Math.round(item.duration_seconds / longest * 100)) : 0;
         return `
             <li class="stats-mix-row">
-                <button type="button" class="stats-mix-name" onclick="openStatisticsType('${item.action_id}')">${escapeStat(item.name)}</button>
-                <span class="stats-mix-bar" aria-hidden="true"><span class="stats-mix-fill" style="width: ${pct}%"></span></span>
+                <button type="button" class="stats-mix-name" data-action="openStatisticsType" data-action-id="${item.action_id}">${escapeStat(item.name)}</button>
+                <span class="stats-mix-bar" aria-hidden="true"><span class="stats-mix-fill" data-width="${pct}"></span></span>
                 <span class="stats-mix-figure">${formatHours(item.duration_seconds)}<span class="stats-mix-count">${item.activities} ${plural(item.activities, "time", "times")}</span></span>
             </li>`;
     }).join("") : `<li class="stats-note">Nothing logged in this period.</li>`;
@@ -638,7 +638,7 @@ function recordTileHTML(record, actionID, actionName, inPeriod, allTime) {
     var label = (actionName ? actionName + ", " : "") + record.label + ": " + recordValueText(record, record.current);
 
     return `
-        <button type="button" class="record-tile" onclick="openRecordHistory('${actionID}', '${record.key}')" aria-label="${escapeStat(label)}. Show history">
+        <button type="button" class="record-tile" data-action="openRecordHistory" data-action-id="${actionID}" data-record="${record.key}" aria-label="${escapeStat(label)}. Show history">
             ${type}
             <span class="record-label">${escapeStat(record.label)}${fresh}</span>
             <span class="record-value">${escapeStat(parts.value)}${parts.unit ? `<span class="record-unit">${escapeStat(parts.unit)}</span>` : ""}</span>
@@ -664,7 +664,7 @@ function placeRecords(groups) {
                 <div class="stats-panel-head">
                     <h2 class="stats-heading">${escapeStat(group.action.name)}<span class="stats-heading-note">${group.activities} ${plural(group.activities, "time", "times")}</span></h2>
                     <div class="btn-group">
-                        <button type="button" class="btn btn--ghost btn--sm" onclick="openStatisticsType('${group.action.id}')">Statistics</button>
+                        <button type="button" class="btn btn--ghost btn--sm" data-action="openStatisticsType" data-action-id="${group.action.id}">Statistics</button>
                         <a class="btn btn--ghost btn--sm" href="/exercises?action=${group.action.id}">Workouts</a>
                     </div>
                 </div>
@@ -1032,7 +1032,7 @@ function soundtrackSub(artist, count) {
 // provider gave no artwork) beside a label / title / subline.
 function soundtrackTopRow(label, title, sub, artwork, glyph) {
     var art = artwork
-        ? `<div class="soundtrack-art" style="background-image:url('${escapeStat(artwork)}')"></div>`
+        ? `<div class="soundtrack-art" data-bg-image="${escapeStat(artwork)}"></div>`
         : `<div class="soundtrack-art soundtrack-art-glyph">${glyph}</div>`;
     var subHtml = sub ? `<div class="soundtrack-top-sub">${escapeStat(sub)}</div>` : "";
     return `
@@ -1569,7 +1569,7 @@ function viewWeight(weights) {
                 <div class="weight-date u-fs-sm">${timeString}</div>
                 <div class="weight-amount">${weight.weight} kg</div>
                 <div class="weight-actions">
-                    <button type="button" class="btn btn--icon" title="Delete weight" aria-label="Delete weight" onclick="deleteWeight('${weight.id}');">
+                    <button type="button" class="btn btn--icon" title="Delete weight" aria-label="Delete weight" data-action="deleteWeight" data-weight-id="${weight.id}">
                         <img src="/assets/trash-2.svg" alt="">
                     </button>
                 </div>
@@ -1588,7 +1588,7 @@ function viewWeight(weights) {
                 <input type="date" name="weightTime" id="weightTime" autocomplete="off" value="${isoDate(now)}" />
             </div>
         </div>
-        <button class="btn btn--primary btn--block" id="register-button" type="submit" onclick="addWeight()">Save weight</button>
+        <button class="btn btn--primary btn--block" id="register-button" type="submit" data-action="addWeight">Save weight</button>
         <hr>
         <div class="weight-values-wrapper">
             ${weightsHTML}
@@ -1688,7 +1688,36 @@ var groups;
 var jwt;
 var userList = {};
 
+// bindStatisticsActions wires the page's delegated handlers once (strict CSP: no inline
+// handlers). Segmented controls carry their handler's name as the action (placeSegments).
+function bindStatisticsActions() {
+    var body = document.body;
+    on_action(body, {
+        selectStatisticsTab: function(element) { selectStatisticsTab(element.dataset.tab); },
+        chooseOverviewPeriod: function(element) { chooseOverviewPeriod(element.dataset.key); },
+        chooseOverviewMetric: function(element) { chooseOverviewMetric(element.dataset.key); },
+        chooseTypePeriod: function(element) { chooseTypePeriod(element.dataset.key); },
+        chooseTypeTrendMetric: function(element) { chooseTypeTrendMetric(element.dataset.key); },
+        openStatisticsType: function(element) { openStatisticsType(element.dataset.actionId); },
+        openRecordHistory: function(element) { openRecordHistory(element.dataset.actionId, element.dataset.record); },
+        logWeight: function() { getWeights(true); },
+        deleteWeight: function(element) { deleteWeight(element.dataset.weightId); },
+        addWeight: function() { addWeight(); }
+    });
+    on_action(body, {
+        selectStatisticsTab: function(element, event) {
+            if (element.classList.contains("stats-tab")) statisticsTabKey(event);
+        }
+    }, 'keydown');
+    on_action(body, {
+        chooseStatisticsType: function(element) { chooseStatisticsType(element.value); },
+        loadTypeStatistics: function() { loadTypeStatistics(); },
+        chooseSeason: function() { chooseSeason(); }
+    }, 'change');
+}
+
 document.addEventListener('DOMContentLoaded', function() {
+    bindStatisticsActions();
     info('Loading...');
     showLoggedOutMenu();
     jwt = get_cookie('treningheten');

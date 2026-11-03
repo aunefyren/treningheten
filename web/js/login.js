@@ -70,7 +70,7 @@ function action_login() {
     </div>
 
     <div class="action-block">
-        <form action="" onsubmit="event.preventDefault(); send_log_in();">
+        <form action="" data-action="sendLogIn">
 
             <input type="email" name="email" id="email" value="` + email + `" placeholder="Email" autocomplete="email" required/>
 
@@ -83,7 +83,7 @@ function action_login() {
     `;
 
     var html2 = `
-    <a class="u-fs-sm u-pointer" onclick="action_newpassword();">I forgot my password!</a>
+    <a class="u-fs-sm u-pointer" data-action="showNewPassword">I forgot my password!</a>
     `;
 
     document.getElementById("action").innerHTML = html;
@@ -109,7 +109,7 @@ function action_newpassword() {
     </div>
 
     <div class="action-block">
-        <form action="" onsubmit="event.preventDefault(); reset_password_request();">
+        <form action="" data-action="resetPasswordRequest">
 
             <input type="email" name="email" id="email" value="` + email + `" placeholder="Email" required/>
 
@@ -120,7 +120,7 @@ function action_newpassword() {
     `;
 
     var html2 = `
-    <a class="u-fs-sm u-pointer" onclick="action_login();">Log in!</a>
+    <a class="u-fs-sm u-pointer" data-action="showLogIn">Log in!</a>
     `;
 
     document.getElementById("action").innerHTML = html;
@@ -142,7 +142,7 @@ function action_resetpassword(reset_code) {
     </div>
 
     <div class="action-block">
-        <form action="" onsubmit="event.preventDefault(); reset_password();">
+        <form action="" data-action="resetPassword">
 
             <input type="password" name="password" id="password" placeholder="New password" />
 
@@ -157,7 +157,7 @@ function action_resetpassword(reset_code) {
     `;
 
     var html2 = `
-    <a class="u-fs-sm u-pointer" onclick="action_login();">Log in!</a>
+    <a class="u-fs-sm u-pointer" data-action="showLogIn">Log in!</a>
     `;
 
     document.getElementById("action").innerHTML = html;
@@ -385,7 +385,21 @@ function checkResetCode(resetCode){
 // Page bootstrap (formerly an inline <script> in web/html/login.html).
 var jwt;
 
+// bindLoginActions wires the page's delegated handlers once (strict CSP: no inline handlers).
+function bindLoginActions() {
+    on_action(document.body, {
+        showNewPassword: function() { action_newpassword(); },
+        showLogIn: function() { action_login(); }
+    });
+    on_action(document.body, {
+        sendLogIn: function(element, event) { event.preventDefault(); send_log_in(); },
+        resetPasswordRequest: function(element, event) { event.preventDefault(); reset_password_request(); },
+        resetPassword: function(element, event) { event.preventDefault(); reset_password(); }
+    }, 'submit');
+}
+
 document.addEventListener('DOMContentLoaded', function() {
+    bindLoginActions();
     info('Loading...');
     showLoggedOutMenu();
     jwt = get_cookie('treningheten');

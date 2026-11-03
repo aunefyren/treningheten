@@ -417,8 +417,8 @@ function invalid_session() {
             <div class="text-body u-text-center" id="front-page-text">
                 Log in to use the platform.
             </div>
-            <div id="log-in-button" style="margin-top: 2em; display: flex; width: 10em;">
-                <button class="btn" id="update-button" type="submit" href="#" onclick="window.location = '/login';">Log in</button>
+            <div id="log-in-button" class="login-cta login-cta--flex">
+                <button class="btn" id="update-button" type="submit" href="#" data-action="openURL" data-href="/login">Log in</button>
             </div>
         </div>
     </div>
@@ -623,12 +623,18 @@ function on_action(container, handlers, eventName) {
 
 // Navigation actions shared by every page's JS-built markup, in place of inline onclick
 // navigation: data-action="openURL" (same tab), "replaceURL" (replaces the history entry) or
-// "openTab" (new tab), each with the target in data-href. Pages must not reuse these names.
+// "openTab" (new tab, without an opener), each with the target in data-href. Pages must not
+// reuse these names.
 document.addEventListener('DOMContentLoaded', function() {
+    // Chart.js would inject its own style element, which the strict CSP blocks; pages that
+    // load Chart.js link its Chart.min.css instead.
+    if (window.Chart && Chart.platform) {
+        Chart.platform.disableCSSInjection = true;
+    }
     on_action(document.body, {
         openURL: function(element) { window.location.href = element.dataset.href; },
         replaceURL: function(element) { window.location.replace(element.dataset.href); },
-        openTab: function(element) { window.open(element.dataset.href, '_blank'); }
+        openTab: function(element) { window.open(element.dataset.href, '_blank', 'noopener'); }
     });
 });
 

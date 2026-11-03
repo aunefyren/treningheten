@@ -614,6 +614,7 @@ input[type=checkbox]
   margin-top: 2em;
   width: 10em;
 }
+.login-cta--flex { display: flex; }
 .week-save-button {
   margin-bottom: 0;
   transition: 1s;

@@ -24,7 +24,7 @@ function load_page(result) {
                         </div>
 
                         <div class="action-block">
-                            <form action="" onsubmit="event.preventDefault(); verifyAccount();">
+                            <form action="" data-action="verifyAccount">
                                 <input type="text" name="email_code" id="email_code" placeholder="Code" autocomplete="one-time-code" required />
                                 <button class="btn btn--primary btn--block" id="verify-button" type="submit">Verify</button>
                             </form>
@@ -33,7 +33,7 @@ function load_page(result) {
                     </div>
 
                     <div class="module auth-alt">
-                        <a class="u-fs-sm u-pointer" onclick="newCode();">Send me a new code!</a>
+                        <a class="u-fs-sm u-pointer" data-action="newCode">Send me a new code!</a>
                     </div>
 
                 </div>
@@ -148,7 +148,18 @@ var jwt;
 var fireworks_int = 0;
 var user_id = 0;
 
+// bindVerifyActions wires the page's delegated handlers once (strict CSP: no inline handlers).
+function bindVerifyActions() {
+    on_action(document.body, {
+        newCode: function() { newCode(); }
+    });
+    on_action(document.body, {
+        verifyAccount: function(element, event) { event.preventDefault(); verifyAccount(); }
+    }, 'submit');
+}
+
 document.addEventListener('DOMContentLoaded', function() {
+    bindVerifyActions();
     info('Loading...');
     showLoggedOutMenu();
     jwt = get_cookie('treningheten');

@@ -62,7 +62,7 @@ function load_page(result) {
                 <p id="join_date"></p>
                 <p id="user_admin"></p>
 
-                <div class="user-links" id="user-links" style="display:none;">
+                <div class="user-links" id="user-links" hidden>
                 </div>
             </div>
 
@@ -90,12 +90,12 @@ function load_page(result) {
                         <div class="skeleton-block skel-tile"></div>
                     </div>
                 </div>
-                <div id="user-stats-content" class="user-stats-content" style="display:none;"></div>
+                <div id="user-stats-content" class="user-stats-content" hidden></div>
             </div>
             </div><!-- /.user-profile-row -->
         </div>
 
-        <div class="module" id="achievements-module" style="display: none;">
+        <div class="module" id="achievements-module" hidden>
 
             <div id="achievements-title" class="title u-mb-1">
                 Achievements:
@@ -196,10 +196,10 @@ function PlaceUserData(user_object) {
     if(user_object.strava_id && user_object.strava_public) {
         userLinks = document.getElementById("user-links")
 
-        userLinks.style.display = "flex"
+        userLinks.hidden = false
 
         userLinks.innerHTML += `
-            <div onclick="window.open('https://www.strava.com/athletes/${user_object.strava_id}', '_blank');" class="user-link clickable" title="Strava profile">
+            <div data-action="openTab" data-href="https://www.strava.com/athletes/${user_object.strava_id}" class="user-link clickable" title="Strava profile">
                 <img src="/assets/strava-logo.svg">
             </div>
         `;
@@ -208,10 +208,10 @@ function PlaceUserData(user_object) {
     if(user_object.hevy_profile_url && user_object.hevy_public) {
         userLinks = document.getElementById("user-links")
 
-        userLinks.style.display = "flex"
+        userLinks.hidden = false
 
         userLinks.innerHTML += `
-            <div data-href="${escapeHTML(user_object.hevy_profile_url)}" onclick="window.open(this.dataset.href, '_blank', 'noopener');" class="user-link clickable" title="Hevy profile">
+            <div data-action="openTab" data-href="${escapeHTML(user_object.hevy_profile_url)}" class="user-link clickable" title="Hevy profile">
                 <img src="/assets/hevy.png">
             </div>
         `;
@@ -270,7 +270,7 @@ function GetUserAchievements(userID) {
 function PlaceUserAchievements(achievementArray) {
 
     if(achievementArray.length > 0) {
-        document.getElementById("achievements-module").style.display = "flex"
+        document.getElementById("achievements-module").hidden = false
     } else {
         return;
     }
@@ -322,7 +322,7 @@ function PlaceUserAchievements(achievementArray) {
 
                 ${delegationSumHTML}
 
-                <div class="achievement-image" style="--cat-color: ${categoryColor};">
+                <div class="achievement-image" data-cat-color="${categoryColor}">
                     <img class="achievement-img u-fill" src="${achievementImageURL(achievementArray[i].id, true)}" data-fallback="placeholder">
                 </div>
 
@@ -491,7 +491,7 @@ function PlaceUserStats(data) {
     if (act && act.action) {
         var actionName  = act.action.name || "";
         var actionLogo  = act.action.has_logo
-            ? `<img src="/assets/actions/${encodeURIComponent(act.action.name)}.svg" class="stat-title-logo" onerror="this.style.display='none'">`
+            ? `<img src="/assets/actions/${encodeURIComponent(act.action.name)}.svg" class="stat-title-logo" data-fallback="hide">`
             : "";
 
         // An average is null when the window holds too few sessions to average without
@@ -533,11 +533,11 @@ function PlaceUserStats(data) {
 
         var tabBtns = tabs.map(function(t, i) {
             var active = i === activeIndex ? " user-stat-tab-active" : "";
-            return `<button class="user-stat-tab${active}" onclick="switchStatTab('${t.key}')">${t.label}</button>`;
+            return `<button class="user-stat-tab${active}" data-action="switchStatTab" data-tab="${t.key}">${t.label}</button>`;
         }).join("");
 
         var tabPanels = tabs.map(function(t, i) {
-            var display = i === activeIndex ? "" : " style=\"display:none\"";
+            var display = i === activeIndex ? "" : " hidden";
             var body = t.period ? actPeriodHTML(t.period, t.label) : windowEmptyHTML();
             return `<div class="user-stats-row user-stat-panel" id="stat-panel-${t.key}"${display}>${body}</div>`;
         }).join("");
@@ -564,20 +564,20 @@ function PlaceUserStats(data) {
 
     content.innerHTML = streakHTML + countsHTML + actHTML;
     skeleton.style.display = "none";
-    content.style.display  = "flex";   // reveal (visibility is state); layout is in .user-stats-content
+    content.hidden = false;   // reveal (visibility is state); layout is in .user-stats-content
 }
 
 function switchStatTab(key) {
     var panels = document.querySelectorAll(".user-stat-panel");
-    panels.forEach(function(p) { p.style.display = "none"; });
+    panels.forEach(function(p) { p.hidden = true; });
     var tabs = document.querySelectorAll(".user-stat-tab");
     tabs.forEach(function(t) { t.classList.remove("user-stat-tab-active"); });
 
     var active = document.getElementById("stat-panel-" + key);
-    if (active) active.style.display = "";
+    if (active) active.hidden = false;
 
     var activeBtn = Array.from(tabs).find(function(t) {
-        return t.getAttribute("onclick") === "switchStatTab('" + key + "')";
+        return t.dataset.tab === key;
     });
     if (activeBtn) activeBtn.classList.add("user-stat-tab-active");
 }
@@ -588,7 +588,15 @@ var groups;
 var user_id;
 var jwt;
 
+// bindUserActions wires the page's delegated handlers once (strict CSP: no inline handlers).
+function bindUserActions() {
+    on_action(document.body, {
+        switchStatTab: function(element) { switchStatTab(element.dataset.tab); }
+    });
+}
+
 document.addEventListener('DOMContentLoaded', function() {
+    bindUserActions();
     info('Loading...');
     showLoggedOutMenu();
     jwt = get_cookie('treningheten');
