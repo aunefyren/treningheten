@@ -5,6 +5,12 @@
 /* Design tokens (palette, scales, semantic aliases) live in web/css/tokens.css,
    which is loaded before this file on every page. Reference them with var(). */
 
+  /* The hidden attribute always hides, even on components that set their own display.
+     Pages show/hide with it instead of inline style="display:none" (strict CSP, #52). */
+  [hidden] {
+    display: none !important;
+  }
+
   body{
     margin:0;
     font-size:1rem;

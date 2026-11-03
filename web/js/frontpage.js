@@ -42,7 +42,7 @@ function load_page(result) {
                              week. Saved workouts that make up the week show as a second, paler
                              segment after the arc. Hidden until a season/week populates it
                              (placeWeekProgress). -->
-                        <div class="hero-ring" id="hero-ring" style="display: none;">
+                        <div class="hero-ring" id="hero-ring" hidden>
                             <div class="hero-ring-figures">
                                 <span class="hero-ring-count hero-ring-week"><a id="workout_this_week">0</a> / <a id="goal_this_week">0</a></span>
                                 <span class="hero-ring-caption hero-ring-week" id="hero-ring-caption">this week</span>
@@ -51,14 +51,14 @@ function load_page(result) {
                             </div>
                         </div>
 
-                        <p class="hero-rest-note" id="hero-rest-note" style="display: none;"></p>
+                        <p class="hero-rest-note" id="hero-rest-note" hidden></p>
 
                         <!-- Saved workouts (docs/flexible-workouts.md): the chip says what you hold
                              and when it runs out, and opens the explanation; the note under it says
                              what this week does with them, with Undo. Both stay hidden in a season
                              that doesn't save workouts. -->
-                        <button type="button" class="saved-chip" id="saved-chip" onclick="openSavedWorkouts();" style="display: none;"></button>
-                        <div class="hero-saved-note" id="hero-saved-note" style="display: none;"></div>
+                        <button type="button" class="saved-chip" id="saved-chip" data-action="openSavedWorkouts" hidden></button>
+                        <div class="hero-saved-note" id="hero-saved-note" hidden></div>
 
                         <!-- The nav already shows the app name; the ring + CTA carry the hero, so no
                              redundant title/subtitle here. #front-page-text is used for the logged-out
@@ -67,26 +67,26 @@ function load_page(result) {
 
                         </div>
 
-                        <div id="log-in-button" style="margin-top: 2em; display: none; width: 10em;">
-                            <button class="btn" id="update-button" type="submit" href="#" onclick="window.location = '/login';">Log in</button>
+                        <div id="log-in-button" class="login-cta" hidden>
+                            <button class="btn" id="update-button" type="submit" href="#" data-action="openURL" data-href="/login">Log in</button>
                         </div>
 
-                        <div class="module" id="barbell-gif" style="display: none;">
+                        <div class="module" id="barbell-gif" hidden>
                             <img src="/assets/images/barbell.gif">
                         </div>
 
                         <div class="ai-button-row">
-                            <div id="ai-message-inline" style="display: none;"></div>
-                            <button type="submit" onclick="" id="add-exercise-button" class="btn btn--primary" style="display: none;"><img src="assets/plus.svg" class="color-invert">Start new workout</button>
+                            <div id="ai-message-inline" hidden></div>
+                            <button type="submit" id="add-exercise-button" class="btn btn--primary" hidden><img src="assets/plus.svg" class="color-invert">Start new workout</button>
                         </div>
 
-                        <div id="integration-banner" class="integration-banner" style="display: none;"></div>
+                        <div id="integration-banner" class="integration-banner" hidden></div>
 
-                        <div id="push-prompt" class="push-prompt" style="display: none;"></div>
+                        <div id="push-prompt" class="push-prompt" hidden></div>
 
                     </div>
 
-                    <div class="module" id="ongoingseason" style="display: none;">
+                    <div class="module" id="ongoingseason" hidden>
 
                         <div class="modules">
 
@@ -101,9 +101,9 @@ function load_page(result) {
                                                 0
                                             </div>
                                             <div class="day-buttons" id="day_1_buttons">
-                                                <img src="assets/minus.svg" class="btn btn--icon clickable" onclick="DecreaseNumberInput('day_1_check', 0, 3);">
-                                                <img src="assets/plus.svg" class="btn btn--icon clickable" onclick="IncreaseNumberInput('day_1_check', 0, 3);">
-                                                <img src="assets/edit-3.svg" class="btn btn--icon clickable" onclick="EditExercise(1);">
+                                                <img src="assets/minus.svg" class="btn btn--icon clickable" data-action="decreaseDay" data-day="1">
+                                                <img src="assets/plus.svg" class="btn btn--icon clickable" data-action="increaseDay" data-day="1">
+                                                <img src="assets/edit-3.svg" class="btn btn--icon clickable" data-action="editExercise" data-day="1">
                                             </div>
                                         </div>
                                         <div class="day-note">
@@ -123,9 +123,9 @@ function load_page(result) {
                                                 0
                                             </div>
                                             <div class="day-buttons" id="day_2_buttons">
-                                                <img src="assets/minus.svg" class="btn btn--icon clickable" onclick="DecreaseNumberInput('day_2_check', 0, 3);">
-                                                <img src="assets/plus.svg" class="btn btn--icon clickable" onclick="IncreaseNumberInput('day_2_check', 0, 3);">
-                                                <img src="assets/edit-3.svg" class="btn btn--icon clickable" onclick="EditExercise(2);">
+                                                <img src="assets/minus.svg" class="btn btn--icon clickable" data-action="decreaseDay" data-day="2">
+                                                <img src="assets/plus.svg" class="btn btn--icon clickable" data-action="increaseDay" data-day="2">
+                                                <img src="assets/edit-3.svg" class="btn btn--icon clickable" data-action="editExercise" data-day="2">
                                             </div>
                                         </div>
                                         <div class="day-note">
@@ -145,9 +145,9 @@ function load_page(result) {
                                                 0
                                             </div>
                                             <div class="day-buttons" id="day_3_buttons">
-                                                <img src="assets/minus.svg" class="btn btn--icon clickable" onclick="DecreaseNumberInput('day_3_check', 0, 3);">
-                                                <img src="assets/plus.svg" class="btn btn--icon clickable" onclick="IncreaseNumberInput('day_3_check', 0, 3);">
-                                                <img src="assets/edit-3.svg" class="btn btn--icon clickable" onclick="EditExercise(3);">
+                                                <img src="assets/minus.svg" class="btn btn--icon clickable" data-action="decreaseDay" data-day="3">
+                                                <img src="assets/plus.svg" class="btn btn--icon clickable" data-action="increaseDay" data-day="3">
+                                                <img src="assets/edit-3.svg" class="btn btn--icon clickable" data-action="editExercise" data-day="3">
                                             </div>
                                         </div>
                                         <div class="day-note">
@@ -167,9 +167,9 @@ function load_page(result) {
                                                 0
                                             </div>
                                             <div class="day-buttons" id="day_4_buttons">
-                                                <img src="assets/minus.svg" class="btn btn--icon clickable" onclick="DecreaseNumberInput('day_4_check', 0, 3);">
-                                                <img src="assets/plus.svg" class="btn btn--icon clickable" onclick="IncreaseNumberInput('day_4_check', 0, 3);">
-                                                <img src="assets/edit-3.svg" class="btn btn--icon clickable" onclick="EditExercise(4);">
+                                                <img src="assets/minus.svg" class="btn btn--icon clickable" data-action="decreaseDay" data-day="4">
+                                                <img src="assets/plus.svg" class="btn btn--icon clickable" data-action="increaseDay" data-day="4">
+                                                <img src="assets/edit-3.svg" class="btn btn--icon clickable" data-action="editExercise" data-day="4">
                                             </div>
                                         </div>
                                         <div class="day-note">
@@ -189,9 +189,9 @@ function load_page(result) {
                                                 0
                                             </div>
                                             <div class="day-buttons" id="day_5_buttons">
-                                                <img src="assets/minus.svg" class="btn btn--icon clickable" onclick="DecreaseNumberInput('day_5_check', 0, 3);">
-                                                <img src="assets/plus.svg" class="btn btn--icon clickable" onclick="IncreaseNumberInput('day_5_check', 0, 3);">
-                                                <img src="assets/edit-3.svg" class="btn btn--icon clickable" onclick="EditExercise(5);">
+                                                <img src="assets/minus.svg" class="btn btn--icon clickable" data-action="decreaseDay" data-day="5">
+                                                <img src="assets/plus.svg" class="btn btn--icon clickable" data-action="increaseDay" data-day="5">
+                                                <img src="assets/edit-3.svg" class="btn btn--icon clickable" data-action="editExercise" data-day="5">
                                             </div>
                                         </div>
                                         <div class="day-note">
@@ -211,9 +211,9 @@ function load_page(result) {
                                                 0
                                             </div>
                                             <div class="day-buttons" id="day_6_buttons">
-                                                <img src="assets/minus.svg" class="btn btn--icon clickable" onclick="DecreaseNumberInput('day_6_check', 0, 3);">
-                                                <img src="assets/plus.svg" class="btn btn--icon clickable" onclick="IncreaseNumberInput('day_6_check', 0, 3);">
-                                                <img src="assets/edit-3.svg" class="btn btn--icon clickable" onclick="EditExercise(6);">
+                                                <img src="assets/minus.svg" class="btn btn--icon clickable" data-action="decreaseDay" data-day="6">
+                                                <img src="assets/plus.svg" class="btn btn--icon clickable" data-action="increaseDay" data-day="6">
+                                                <img src="assets/edit-3.svg" class="btn btn--icon clickable" data-action="editExercise" data-day="6">
                                             </div>
                                         </div>
                                         <div class="day-note">
@@ -233,9 +233,9 @@ function load_page(result) {
                                                 0
                                             </div>
                                             <div class="day-buttons" id="day_7_buttons">
-                                                <img src="assets/minus.svg" class="btn btn--icon clickable" onclick="DecreaseNumberInput('day_7_check', 0, 3);">
-                                                <img src="assets/plus.svg" class="btn btn--icon clickable" onclick="IncreaseNumberInput('day_7_check', 0, 3);">
-                                                <img src="assets/edit-3.svg" class="btn btn--icon clickable" onclick="EditExercise(7);">
+                                                <img src="assets/minus.svg" class="btn btn--icon clickable" data-action="decreaseDay" data-day="7">
+                                                <img src="assets/plus.svg" class="btn btn--icon clickable" data-action="increaseDay" data-day="7">
+                                                <img src="assets/edit-3.svg" class="btn btn--icon clickable" data-action="editExercise" data-day="7">
                                             </div>
                                         </div>
                                         <div class="day-note">
@@ -249,16 +249,16 @@ function load_page(result) {
                                     <input type="hidden" value="" id="calendar_user_id">
                                     <input type="hidden" value="" id="calendar_season_id">
 
-                                    <button type="submit" onclick="update_exercises(false, 0);" id="goal_amount_button" class="btn btn--block" style="margin-bottom: 0em; transition: 1s;"><img src="assets/done.svg" class="color-invert">Save</button>
+                                    <button type="submit" data-action="saveWeek" id="goal_amount_button" class="btn btn--block week-save-button"><img src="assets/done.svg" class="color-invert">Save</button>
 
                                     <!-- Week actions: sick leave, and saved workouts when they would make up
                                          the week. The hint says what using them does before you choose. -->
-                                    <div class="week-actions" id="week-actions" style="display: none;">
+                                    <div class="week-actions" id="week-actions" hidden>
                                         <div class="btn-group">
-                                            <button type="button" class="btn btn--ghost btn--sm" id="sickleave-button" onclick="useSickLeave();" style="display: none;">Use sick leave</button>
-                                            <button type="button" class="btn btn--ghost btn--sm" id="saved-workouts-button" onclick="toggleSavedWorkouts();" style="display: none;">Use saved workouts</button>
+                                            <button type="button" class="btn btn--ghost btn--sm" id="sickleave-button" data-action="useSickLeave" hidden>Use sick leave</button>
+                                            <button type="button" class="btn btn--ghost btn--sm" id="saved-workouts-button" data-action="toggleSavedWorkouts" hidden>Use saved workouts</button>
                                         </div>
-                                        <p class="week-actions-hint" id="saved-workouts-hint" style="display: none;"></p>
+                                        <p class="week-actions-hint" id="saved-workouts-hint" hidden></p>
                                     </div>
 
                                 </div>
@@ -286,9 +286,9 @@ function load_page(result) {
                                     <p id="season_start_title" class="u-mt-1">Season start: <a id="season_start">...</a></p>
                                     <p id="season_end_title">Season end: <a id="season_end">...</a></p>
 
-                                    <p id="week_goal_title" style="margin: 1em 0 0 0;">Weekly goal: <b><a id="week_goal">0</a></b></p>
+                                    <p id="week_goal_title" class="week-goal-title">Weekly goal: <b><a id="week_goal">0</a></b></p>
                                     <p id="goal_sickleave_title">Sick leave left: <b><a id="goal_sickleave">0</a></b></p>
-                                    <div id="goal_saved_title" class="season-saved" style="display: none;">
+                                    <div id="goal_saved_title" class="season-saved" hidden>
                                         <p class="u-m-0">Saved workouts: <b><a id="goal_saved">0</a></b></p>
                                         <p class="season-saved-rule" id="goal_saved_rule"></p>
                                     </div>
@@ -298,17 +298,17 @@ function load_page(result) {
                                         <div id="prize-text" class="prize-text">...</div>
                                     </div>
 
-                                    <hr id="seasonDivider" style="display:none;">
+                                    <hr id="seasonDivider" hidden>
 
-                                    <div id="potentialSeasonsWrapper" style="display:none;">
+                                    <div id="potentialSeasonsWrapper" hidden>
                                     </div>
 
-                                    <div id="countdownSeasonsWrapper" style="display:none;">
+                                    <div id="countdownSeasonsWrapper" hidden>
                                     </div>
 
                                 </div>
 
-                                <div id="debt-module" class="debt-module" style="display: none;">
+                                <div id="debt-module" class="debt-module" hidden>
 
                                     <h3 id="debt-module-title">Prizes</h3>
 
@@ -399,7 +399,7 @@ function load_page(result) {
 
                     </div>
 
-                    <div class="module hero" id="unspun-wheel" style="display: none;">
+                    <div class="module hero" id="unspun-wheel" hidden>
 
                     </div>
 
@@ -424,7 +424,7 @@ function load_page(result) {
     if(result !== false) {
         showLoggedInMenu();
         get_season(user_id, true, activeSeason);
-        document.getElementById('front-page-text').style.display = 'none';
+        document.getElementById('front-page-text').hidden = true;
         if ("{{.ollamaEnabled}}" == "true") {
             load_ai_message();
         }
@@ -433,7 +433,7 @@ function load_page(result) {
     } else {
         showLoggedOutMenu();
         document.getElementById('front-page-text').innerHTML = 'Log in to use the platform.';
-        document.getElementById('log-in-button').style.display = 'inline-block';
+        document.getElementById('log-in-button').hidden = false;
     }
 }
 
@@ -481,13 +481,13 @@ function placeIntegrationBanner(integrations) {
             actions = `<a class="btn btn--sm" href="/account#${integration.provider}">Fix in settings</a>`;
         } else if (text.severity == "warning") {
             if (hidden[integration.provider] === integration.failing_since) return;
-            actions = `<button type="button" class="btn btn--ghost btn--sm" onclick="hideIntegrationOutage('${integration.provider}', '${integration.failing_since}');">Hide</button>`;
+            actions = `<button type="button" class="btn btn--ghost btn--sm" data-action="hideIntegrationOutage" data-provider="${integration.provider}" data-failing-since="${escapeHTML(integration.failing_since)}">Hide</button>`;
         }
         html += `<div id="integration-notice-${integration.provider}">${integrationNoticeHTML(text, actions)}</div>`;
     });
 
     banner.innerHTML = html;
-    banner.style.display = html ? 'flex' : 'none';
+    banner.hidden = !html;
 }
 
 // hideIntegrationOutage hides one provider's outage notice until it breaks again.
@@ -496,7 +496,7 @@ function hideIntegrationOutage(provider, failingSince) {
     if (notice) notice.remove();
 
     var banner = document.getElementById('integration-banner');
-    if (banner && !banner.children.length) banner.style.display = 'none';
+    if (banner && !banner.children.length) banner.hidden = true;
 
     var hidden = hiddenIntegrationOutages();
     hidden[provider] = failingSince;
@@ -577,11 +577,11 @@ function maybeShowPushPrompt() {
                     <span>${promptMessage}</span>
                 </div>
                 <div class="push-prompt-actions">
-                    <button type="submit" class="btn btn--sm" onclick="enablePushFromPrompt(); return false;">Enable</button>
-                    <button type="submit" class="btn btn--ghost btn--sm" onclick="dismissPushPrompt(); return false;">Not now</button>
+                    <button type="submit" class="btn btn--sm" data-action="enablePushFromPrompt">Enable</button>
+                    <button type="submit" class="btn btn--ghost btn--sm" data-action="dismissPushPrompt">Not now</button>
                 </div>
             `;
-            prompt.style.display = 'flex';
+            prompt.hidden = false;
         });
     }).catch(function(e) {
         console.log('Failed to evaluate push prompt. Error: ' + e);
@@ -603,12 +603,12 @@ function enablePushFromPrompt() {
             error('Notifications were not enabled.');
         }
         if (prompt) {
-            prompt.style.display = 'none';
+            prompt.hidden = true;
         }
     }).catch(function(e) {
         console.log('Failed to request notification permission. Error: ' + e);
         if (prompt) {
-            prompt.style.display = 'none';
+            prompt.hidden = true;
         }
     });
 
@@ -619,7 +619,7 @@ function dismissPushPrompt() {
 
     var prompt = document.getElementById('push-prompt');
     if (prompt) {
-        prompt.style.display = 'none';
+        prompt.hidden = true;
     }
 
     try {
@@ -634,7 +634,7 @@ function load_ai_message() {
     var el = document.getElementById('ai-message-inline');
     if (!el) return;
 
-    el.style.display = 'block';
+    el.hidden = false;
     el.innerHTML = `
         <div class="ai-message-card">
             <span class="ai-message-label">AI</span>
@@ -653,10 +653,10 @@ function load_ai_message() {
                         <span class="ai-message-text">${result.data}</span>
                     </div>`;
             } else {
-                el.style.display = 'none';
+                el.hidden = true;
             }
         } catch(e) {
-            el.style.display = 'none';
+            el.hidden = true;
         }
     };
     xhttp.open("GET", "/api/auth/ai/frontpage", true);
@@ -687,7 +687,7 @@ function get_season(user_id, loadingMessage, activeSeason){
 
                 clearResponse();
 
-                document.getElementById("ongoingseason").style.display = "flex"
+                document.getElementById("ongoingseason").hidden = false
                 getDebtOverview();
 
                 // The activity feed spans every season you have ever been in, so it is
@@ -965,7 +965,7 @@ function place_week(week, fireworks, user_id) {
         xhttp.setRequestHeader("Authorization", jwt);
         xhttp.send();
     };
-    addExerciseButton.style.display = 'flex'
+    addExerciseButton.hidden = false
 
     // Place editing icon for exercise
     for(var i = 1; i <= day; i++) {
@@ -1210,10 +1210,10 @@ function place_leaderboard(weeks_array) {
         for(var j = 0; j < weeks_array[i].users.length; j++) {
             var completion = weekStatusIcon(weeks_array[i].users[j])
 
-            var onclick_command_str = "return;"
+            var wheel_link_str = ""
             var clickable_str = ""
             if(weeks_array[i].users[j].debt !== null && weeks_array[i].users[j].debt.winner !== null) {
-                onclick_command_str = "location.replace('/wheel?debt_id=" + weeks_array[i].users[j].debt.id + "'); "
+                wheel_link_str = ` data-action="replaceURL" data-href="/wheel?debt_id=${weeks_array[i].users[j].debt.id}"`
                 clickable_str = "clickable grey-underline"
                 completion += "🎡"
             }
@@ -1221,10 +1221,10 @@ function place_leaderboard(weeks_array) {
 
             var result_html = `
             <div class="leaderboard-week-result" id="">
-                <div class="leaderboard-week-result-user clickable" onclick="location.href='/users/${weeks_array[i].users[j].user_id}'">
+                <div class="leaderboard-week-result-user clickable" data-action="openURL" data-href="/users/${weeks_array[i].users[j].user_id}">
                     ` + escapeHTML(userDisplayName(weeks_array[i].users[j].user_id).first_name) + `
                 </div>
-                <div class="leaderboard-week-result-exercise ` + clickable_str  + `" onclick="` + onclick_command_str  + `">
+                <div class="leaderboard-week-result-exercise ` + clickable_str  + `"` + wheel_link_str  + `>
                     ` + completion  + `
                 </div>
             </div>
@@ -1253,7 +1253,7 @@ function place_season_details(goal, season) {
     var savedRow = document.getElementById("goal_saved_title");
     if(savedRow) {
         var rule = season ? savedWorkoutsRule(season.carry_over_max, season.carry_over_weeks) : "";
-        savedRow.style.display = rule ? "block" : "none";
+        savedRow.hidden = !rule;
         document.getElementById("goal_saved_rule").textContent = rule;
         var mine = typeof this_week !== "undefined" ? myWeekResult(this_week) : null;
         document.getElementById("goal_saved").textContent = mine ? mine.carried_in : 0;
@@ -1303,12 +1303,12 @@ function place_current_week(week_array) {
 
                 <div class="">
 
-                    <div class="" style="font-size: 0.8em;">
+                    <div class="current-week-user-name">
                         <b>${escapeHTML(user.first_name)}</b>
                     </div>
 
-                    <div class="current-week-user-photo" title="` + escapeHTML(user.first_name + " " + user.last_name) + `" onclick="location.href='/users/${week_array.users[i].user_id}'">
-                        <img class="current-week-user-photo-img u-fill" src="${profileImageURL(week_array.users[i].user_id, true)}" onerror="${IMAGE_FALLBACK_ONERROR}">
+                    <div class="current-week-user-photo" title="` + escapeHTML(user.first_name + " " + user.last_name) + `" data-action="openURL" data-href="/users/${week_array.users[i].user_id}">
+                        <img class="current-week-user-photo-img u-fill" src="${profileImageURL(week_array.users[i].user_id, true)}" data-fallback="placeholder">
                     </div>
                 </div>
 
@@ -1356,14 +1356,14 @@ function placeSickLeaveState(isSick, sickleaveLeft, seasonName) {
         note.textContent = isSick
             ? `This week is sick leave in ${seasonName}. Your streak is kept and the week can't count against you.`
             : "";
-        note.style.display = isSick ? "block" : "none";
+        note.hidden = !isSick;
     }
 
     var button = document.getElementById("sickleave-button");
     if(button) {
         button.dataset.seasonName = seasonName || "";
         button.dataset.left = sickleaveLeft || 0;
-        button.style.display = !isSick && sickleaveLeft > 0 ? "inline-flex" : "none";
+        button.hidden = !(!isSick && sickleaveLeft > 0);
     }
     syncWeekActions();
 }
@@ -1377,9 +1377,9 @@ function syncWeekActions() {
     }
     var shown = ["sickleave-button", "saved-workouts-button", "saved-workouts-hint"].some(function(id) {
         var element = document.getElementById(id);
-        return element && element.style.display !== "none";
+        return element && !element.hidden;
     });
-    block.style.display = shown ? "flex" : "none";
+    block.hidden = !shown;
 }
 
 function useSickLeave() {
@@ -1522,10 +1522,10 @@ function placeSavedWorkoutsState(result, season, goal) {
         return;
     }
 
-    chip.style.display = "none";
-    note.style.display = "none";
-    button.style.display = "none";
-    hint.style.display = "none";
+    chip.hidden = true;
+    note.hidden = true;
+    button.hidden = true;
+    hint.hidden = true;
     showSavedWorkoutsState(view, chip, note, button, hint);
     syncWeekActions();
 }
@@ -1539,7 +1539,7 @@ function showSavedWorkoutsState(view, chip, note, button, hint) {
     if(chipText) {
         chip.innerHTML = `<span class="saved-chip-dot" aria-hidden="true"></span>${chipText}`;
         chip.title = "What are saved workouts?";
-        chip.style.display = "inline-flex";
+        chip.hidden = false;
     }
 
     // A sick-leave week neither uses nor earns saved workouts; the chip still shows what you hold.
@@ -1548,24 +1548,24 @@ function showSavedWorkoutsState(view, chip, note, button, hint) {
     }
 
     if(view.optedIn) {
-        note.innerHTML = `<span>${savedOnText(view)}</span><button type="button" class="btn btn--ghost btn--sm" onclick="toggleSavedWorkouts();">Undo</button>`;
-        note.style.display = "flex";
+        note.innerHTML = `<span>${savedOnText(view)}</span><button type="button" class="btn btn--ghost btn--sm" data-action="toggleSavedWorkouts">Undo</button>`;
+        note.hidden = false;
         button.textContent = "Stop using saved workouts";
-        button.style.display = "inline-flex";
+        button.hidden = false;
         return;
     }
 
     if(view.shortfall > 0 && view.held >= view.shortfall) {
         button.textContent = "Use saved workouts";
-        button.style.display = "inline-flex";
+        button.hidden = false;
         hint.textContent = savedOfferText(view);
-        hint.style.display = "block";
+        hint.hidden = false;
     } else if(view.shortfall > 0 && view.held > 0) {
         // Explain the missing button: what you hold can't cover the gap yet.
         var yours = yourSavedWorkouts(view.held);
         hint.textContent = yours.charAt(0).toUpperCase() + yours.slice(1) +
             " can make up the week once you're at " + (view.goal - view.held) + "/" + view.goal + ".";
-        hint.style.display = "block";
+        hint.hidden = false;
     }
 }
 
@@ -1600,9 +1600,9 @@ function openSavedWorkouts() {
 
     var action = "";
     if(!view.sickLeave && view.optedIn) {
-        action = `<div class="btn-group"><button type="button" class="btn btn--ghost" onclick="toggleSavedWorkouts();">Stop using saved workouts</button></div>`;
+        action = `<div class="btn-group"><button type="button" class="btn btn--ghost" data-action="toggleSavedWorkouts">Stop using saved workouts</button></div>`;
     } else if(!view.sickLeave && view.shortfall > 0 && view.held >= view.shortfall) {
-        action = `<div class="btn-group"><button type="button" class="btn btn--primary" onclick="toggleSavedWorkouts();">Use saved workouts</button></div>`;
+        action = `<div class="btn-group"><button type="button" class="btn btn--primary" data-action="toggleSavedWorkouts">Use saved workouts</button></div>`;
     }
 
     TRModal.open({
@@ -1669,7 +1669,7 @@ function placeDebtOverview(overviewArray) {
 
     var html = "";
 
-    document.getElementById("debt-module").style.display = "flex";
+    document.getElementById("debt-module").hidden = false;
 
     for(var i = 0; i < overviewArray.debt_unviewed.length; i++) {
 
@@ -1686,7 +1686,7 @@ function placeDebtOverview(overviewArray) {
         html += `
             <div class="debt-module-notification-view" id="">
                 ${escapeHTML(overviewArray.debt_unviewed[i].debt.loser.first_name + " " + overviewArray.debt_unviewed[i].debt.loser.last_name)} spun the wheel for week ${date_str}.<br>See if you won!<br>
-                <img src="assets/arrow-right.svg" class="btn btn--icon clickable" onclick="location.replace('/wheel?debt_id=${overviewArray.debt_unviewed[i].debt.id}'); ">
+                <img src="assets/arrow-right.svg" class="btn btn--icon clickable" data-action="replaceURL" data-href="/wheel?debt_id=${overviewArray.debt_unviewed[i].debt.id}">
             </div>
         `;
     }
@@ -1708,7 +1708,7 @@ function placeDebtOverview(overviewArray) {
         html += `
             <div class="debt-module-notification-prize" id="">
                 ${escapeHTML(overviewArray.debt_won[i].loser.first_name + " " + overviewArray.debt_won[i].loser.last_name)} spun the wheel for week ${date_str} and you won <b>${overviewArray.debt_won[i].season.prize.quantity} ${escapeHTML(overviewArray.debt_won[i].season.prize.name)}</b>!<br>Have you received it?<br>
-                <img src="assets/done.svg" class="btn btn--icon clickable" onclick="setPrizeReceived('${overviewArray.debt_won[i].id}');">
+                <img src="assets/done.svg" class="btn btn--icon clickable" data-action="setPrizeReceived" data-debt-id="${overviewArray.debt_won[i].id}">
             </div>
         `;
     }
@@ -1751,22 +1751,22 @@ function placeDebtSpin(overview) {
     }   
     
     try {
-        document.getElementById("ongoingseason").style.display = "none";
+        document.getElementById("ongoingseason").hidden = true;
     } catch (e) {
         console.log("Failed to hide ongoing season. Error: " + e)
     }  
 
     try {
-        document.getElementById("top-module").style.display = "none";
+        document.getElementById("top-module").hidden = true;
     } catch (e) {
         console.log("Failed to hide top module. Error: " + e)
     }  
     
-    document.getElementById("unspun-wheel").style.display = "flex";
+    document.getElementById("unspun-wheel").hidden = false;
     document.getElementById("unspun-wheel").innerHTML = `
         You failed to reach your goal for week ${date_str} and must spin the wheel.
         <div id="canvas-buttons" class="canvas-buttons">
-            <button class="btn" id="go-to-wheel" onclick="location.replace('/wheel?debt_id=${overview.debt_lost[0].id}');">Take me there</button>
+            <button class="btn" id="go-to-wheel" data-action="replaceURL" data-href="/wheel?debt_id=${overview.debt_lost[0].id}">Take me there</button>
         </div>
     `;
     return;
@@ -1863,7 +1863,7 @@ function placeWeekProgress(percentage, sickLeave, savedPercentage, savedCount) {
     }
 
     // Reveal the ring (hidden until a season populates it).
-    ring.style.display = "flex";
+    ring.hidden = false;
 
     var caption = document.getElementById("hero-ring-caption");
     if(caption) {
@@ -1989,7 +1989,7 @@ function placePotentialSeasons(seasonsArray) {
         var html = "Seasons you can join:<br><div class='potentialSeasonList'><hr>";
         for(var i = 0; i < seasonsArray.length; i++) {
             html += `
-                <button class="btn btn--block" onclick="document.location.href = '/registergoal?season_id=${seasonsArray[i].id}'">
+                <button class="btn btn--block" data-action="openURL" data-href="/registergoal?season_id=${seasonsArray[i].id}">
                     ${seasonsArray[i].name}
                 </button>
             `
@@ -1998,8 +1998,8 @@ function placePotentialSeasons(seasonsArray) {
 
         potentialSeasonsWrapper = document.getElementById("potentialSeasonsWrapper");
         potentialSeasonsWrapper.innerHTML = html;
-        potentialSeasonsWrapper.style.display = "flex";
-        document.getElementById("seasonDivider").style.display = "flex";
+        potentialSeasonsWrapper.hidden = false;
+        document.getElementById("seasonDivider").hidden = false;
     } catch (e) {
         console.log("Failed to place potential seasons. Error: " + e)
         error("Failed to place potential seasons.")
@@ -2069,15 +2069,15 @@ function placeCountdownSeasons(seasonsArray, userID) {
 
             html += `
                 <div class="countdownSeason">
-                    <h3 id="countdown_season_title" style="margin: 0 0 0.5em 0;">${seasonsArray[i].name}</h3>
+                    <h3 id="countdown_season_title" class="countdown-season-title">${seasonsArray[i].name}</h3>
                     <p id="countdown_season_start">${GetDateString(date_start, true)}</p>
                     <p id="countdown_season_end">${GetDateString(date_end, true)}</p>
 
-                    <p id="countdown_title" style="margin-top: 0.25em;">${participantCount + " " + partici_string}. Starting in:</p>
+                    <p id="countdown_title" class="countdown-title">${participantCount + " " + partici_string}. Starting in:</p>
 
-                    <p style="font-size: 2em; text-align: center;" id="countdown_number_${seasonsArray[i].id}" class="countdown_number">00d 00h 00m 00s</p>
+                    <p id="countdown_number_${seasonsArray[i].id}" class="countdown_number">00d 00h 00m 00s</p>
 
-                    <a class="clickable hover" style="margin: 1em 0 0 0; font-size:0.75em;" onclick="deleteGoal('${goalID}');">I changed my mind!</i></a>
+                    <a class="clickable hover countdown-cancel" data-action="deleteGoal" data-goal-id="${goalID}">I changed my mind!</i></a>
                     <hr>
                 </div>
             `
@@ -2086,14 +2086,14 @@ function placeCountdownSeasons(seasonsArray, userID) {
 
         countdownSeasonsWrapper = document.getElementById("countdownSeasonsWrapper");
         countdownSeasonsWrapper.innerHTML = html;
-        countdownSeasonsWrapper.style.display = "flex";
+        countdownSeasonsWrapper.hidden = false;
 
         for(var i = 0; i < seasonsArray.length; i++) {
             var date_start = new Date(seasonsArray[i].start);
             activateCountdown(date_start, seasonsArray[i].id);
         }
 
-        document.getElementById("seasonDivider").style.display = "flex";
+        document.getElementById("seasonDivider").hidden = false;
     } catch (e) {
         console.log("Failed to place countdown seasons. Error: " + e)
         error("Failed to place countdown seasons.")
@@ -2261,7 +2261,7 @@ function generateActivityHTML(activity) {
     if(activity.strava_ids && activity.strava_ids.length > 0) {
         activity.strava_ids.forEach(stravaID => {
             activityStravaHTML += `
-                <img class="strava-logo-img clickable" src="/assets/strava-logo.svg" onclick="window.open('https://www.strava.com/activities/${stravaID}', '_blank')">
+                <img class="strava-logo-img clickable" src="/assets/strava-logo.svg" data-action="openTab" data-href="https://www.strava.com/activities/${stravaID}">
                 </img>
             `;
         });
@@ -2288,8 +2288,8 @@ function generateActivityHTML(activity) {
 
             <div class="activity-sections">
                 <div class="activity-photo-wrapper">
-                    <div class="activity-user-photo" title="` + escapeHTML(activity.user.first_name + " " + activity.user.last_name) + `" onclick="location.href='/users/${activity.user.id}'">
-                        <img class="activity-user-photo-img" src="${profileImageURL(activity.user.id, true)}" onerror="${IMAGE_FALLBACK_ONERROR}">
+                    <div class="activity-user-photo" title="` + escapeHTML(activity.user.first_name + " " + activity.user.last_name) + `" data-action="openURL" data-href="/users/${activity.user.id}">
+                        <img class="activity-user-photo-img" src="${profileImageURL(activity.user.id, true)}" data-fallback="placeholder">
                     </div>
                 </div>
 
@@ -2323,7 +2323,7 @@ function placeSeasonAlternatives(seasonObject, userID, alternatives) {
     titleObject = document.getElementById('season_title');
     
     var html = `
-        <select name="selectedSeason" id="season_title" style="height: 2rem; font-weight: bold;" onchange="switchSeason('${userID}');">
+        <select name="selectedSeason" id="season_title" class="season-select" data-action="switchSeason" data-user-id="${userID}">
             <option value="${seasonObject.id}">${seasonObject.name}</option>
     `;
 
@@ -2343,6 +2343,31 @@ function switchSeason(userID) {
 }
 
 
+// bindFrontpageActions wires the page's delegated handlers once (strict CSP: no inline
+// handlers). Links use the shared openURL/replaceURL/openTab actions from functions.js.
+function bindFrontpageActions() {
+    var body = document.body;
+    on_action(body, {
+        openSavedWorkouts: function() { openSavedWorkouts(); },
+        toggleSavedWorkouts: function() { toggleSavedWorkouts(); },
+        useSickLeave: function() { useSickLeave(); },
+        decreaseDay: function(element) { DecreaseNumberInput('day_' + element.dataset.day + '_check', 0, 3); },
+        increaseDay: function(element) { IncreaseNumberInput('day_' + element.dataset.day + '_check', 0, 3); },
+        editExercise: function(element) { EditExercise(Number(element.dataset.day)); },
+        saveWeek: function() { update_exercises(); },
+        hideIntegrationOutage: function(element) {
+            hideIntegrationOutage(element.dataset.provider, element.dataset.failingSince);
+        },
+        enablePushFromPrompt: function(element, event) { event.preventDefault(); enablePushFromPrompt(); },
+        dismissPushPrompt: function(element, event) { event.preventDefault(); dismissPushPrompt(); },
+        setPrizeReceived: function(element) { setPrizeReceived(element.dataset.debtId); },
+        deleteGoal: function(element) { deleteGoal(element.dataset.goalId); }
+    });
+    on_action(body, {
+        switchSeason: function(element) { switchSeason(element.dataset.userId); }
+    }, 'change');
+}
+
 // Page bootstrap (formerly an inline <script> in web/html/frontpage.html).
 var jwt;
 var fireworks_int = 0;
@@ -2350,6 +2375,7 @@ var user_id = 0;
 var userList = {};
 
 document.addEventListener('DOMContentLoaded', function() {
+    bindFrontpageActions();
     info('Loading...');
     showLoggedOutMenu();
     jwt = get_cookie('treningheten');

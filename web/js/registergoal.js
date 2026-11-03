@@ -37,7 +37,7 @@ function load_page(result) {
     var html = `
         <div class="" id="front-page">
             
-            <div class="module" id="registergoal" style="display: none;">
+            <div class="module" id="registergoal" hidden>
 
                 <div id="season" class="season">
 
@@ -48,7 +48,7 @@ function load_page(result) {
 
                     <p class="u-mt-1 u-text-center" id="register_season_jointext">...</p>
 
-                    <p class="saved-rule-preview u-mt-1" id="register_saved_rule" style="display: none;"></p>
+                    <p class="saved-rule-preview u-mt-1" id="register_saved_rule" hidden></p>
 
                     <hr class="u-my-1">
 
@@ -57,8 +57,8 @@ function load_page(result) {
                         0
                     </div>
                     <div class="two-buttons">
-                        <img src="assets/minus.svg" class="btn btn--icon clickable" onclick="DecreaseNumberInput('commitment', 1, 21);">
-                        <img src="assets/plus.svg" class="btn btn--icon clickable" onclick="IncreaseNumberInput('commitment', 1, 21);">
+                        <img src="assets/minus.svg" class="btn btn--icon clickable" data-action="decreaseCommitment">
+                        <img src="assets/plus.svg" class="btn btn--icon clickable" data-action="increaseCommitment">
                     </div>
 
                     <hr class="u-my-1">
@@ -75,7 +75,7 @@ function load_page(result) {
 
                     <hr class="u-my-1">
 
-                    <button type="submit" onclick="registerGoal('${seasonID}');" id="register_goal_button" class="btn btn--primary btn--block"><img src="assets/done.svg" class="color-invert">Join season</button>
+                    <button type="submit" data-action="registerGoal" data-season-id="${seasonID}" id="register_goal_button" class="btn btn--primary btn--block"><img src="assets/done.svg" class="color-invert">Join season</button>
 
                 </div>
 
@@ -185,7 +185,7 @@ function registerGoalModule(season_object) {
         joinText = "<b>You must join before the start date.</b>"
     }
 
-    document.getElementById("registergoal").style.display = "flex"
+    document.getElementById("registergoal").hidden = false
     document.getElementById("register_season_title").innerHTML = season_object.name
     document.getElementById("register_season_start").innerHTML = "Season start: " + GetDateString(date_start, true)
     document.getElementById("register_season_end").innerHTML = "Season end: " + GetDateString(date_end, true)
@@ -198,9 +198,9 @@ function registerGoalModule(season_object) {
     var savedRuleElement = document.getElementById("register_saved_rule");
     if(savedRule) {
         savedRuleElement.innerHTML = `<span class="saved-chip-dot" aria-hidden="true"></span><span><b>Saved workouts.</b> ${savedRule} Do more than your weekly goal and the extras are saved. If a later week falls short, you can use them to make it up.</span>`;
-        savedRuleElement.style.display = "flex";
+        savedRuleElement.hidden = false;
     } else {
-        savedRuleElement.style.display = "none";
+        savedRuleElement.hidden = true;
     }
 }
 
@@ -259,7 +259,17 @@ function registerGoal(seasonID) {
 var groups;
 var jwt;
 
+// bindRegisterGoalActions wires the page's delegated handlers once (strict CSP: no inline handlers).
+function bindRegisterGoalActions() {
+    on_action(document.body, {
+        decreaseCommitment: function() { DecreaseNumberInput('commitment', 1, 21); },
+        increaseCommitment: function() { IncreaseNumberInput('commitment', 1, 21); },
+        registerGoal: function(element) { registerGoal(element.dataset.seasonId); }
+    });
+}
+
 document.addEventListener('DOMContentLoaded', function() {
+    bindRegisterGoalActions();
     info('Loading...');
     showLoggedOutMenu();
     jwt = get_cookie('treningheten');

@@ -31,7 +31,7 @@ function load_page(result) {
 
                     <div class="module">
 
-                        <div id="seasons-title" class="title" style="display: none;">
+                        <div id="seasons-title" class="title" hidden>
                             Seasons:
                         </div>
 
@@ -103,7 +103,7 @@ function place_seasons(seasons_array) {
         error_splash_image();
         return;
     } else {
-        document.getElementById("seasons-title").style.display = "inline-block"
+        document.getElementById("seasons-title").hidden = false
     }
 
     var html = ''
@@ -153,7 +153,7 @@ function place_seasons(seasons_array) {
                 }
 
                 html += '<div id="season-button-expand-' + seasons_array[i].id + '" class="season-button minimized">';
-                    html += `<button type="button" onclick="get_leaderboard('${seasons_array[i].id}');" class="btn btn--sm">Expand<img id="season-button-image-${seasons_array[i].id}" src="assets/chevron-right.svg" class="color-invert"></button>`;
+                    html += `<button type="button" data-action="getLeaderboard" data-season-id="${seasons_array[i].id}" class="btn btn--sm">Expand<img id="season-button-image-${seasons_array[i].id}" src="assets/chevron-right.svg" class="color-invert"></button>`;
                 html += '</div>';
 
             html += '</div>'
@@ -297,20 +297,20 @@ function place_leaderboard(weeks_array, season_id) {
             for(var j = 0; j < weeks_array[i].users.length; j++) {
                 var completion = weekStatusIcon(weeks_array[i].users[j])
 
-                var onclick_command_str = "return;"
+                var wheel_link_str = ""
                 var clickable_str = ""
                 if(weeks_array[i].users[j].debt !== null && weeks_array[i].users[j].debt.winner !== null) {
-                    onclick_command_str = "location.replace('/wheel?debt_id=" + weeks_array[i].users[j].debt.id + "'); "
+                    wheel_link_str = ` data-action="replaceURL" data-href="/wheel?debt_id=${weeks_array[i].users[j].debt.id}"`
                     clickable_str = "clickable grey-underline"
                     completion += "🎡"
                 }
 
                 var result_html = `
                 <div class="leaderboard-week-result" id="">
-                    <div class="leaderboard-week-result-user clickable grey-underline" onclick="location.href='/users/${weeks_array[i].users[j].user_id}'">
+                    <div class="leaderboard-week-result-user clickable grey-underline" data-action="openURL" data-href="/users/${weeks_array[i].users[j].user_id}">
                         ` + escapeHTML(userList[weeks_array[i].users[j].user_id].first_name) + `
                     </div>
-                    <div class="leaderboard-week-result-exercise ` + clickable_str  + `" onclick="` + onclick_command_str  + `">
+                    <div class="leaderboard-week-result-exercise ` + clickable_str  + `"` + wheel_link_str  + `>
                         ` + completion  + `
                     </div>
                 </div>
@@ -327,9 +327,9 @@ function place_leaderboard(weeks_array, season_id) {
 
                 if(!userFound) {
                     var joined_image = `
-                    <div class="leaderboard-week-member" id="member-${season_id}-${weeks_array[i].users[j].user_id}" title="${escapeHTML(userList[weeks_array[i].users[j].user_id].first_name)}" onclick="location.href='/users/${weeks_array[i].users[j].user_id}'">
+                    <div class="leaderboard-week-member" id="member-${season_id}-${weeks_array[i].users[j].user_id}" title="${escapeHTML(userList[weeks_array[i].users[j].user_id].first_name)}" data-action="openURL" data-href="/users/${weeks_array[i].users[j].user_id}">
                         <div class="leaderboard-week-member-image">
-                            <img class="u-fill leaderboard-week-member-image-img" src="${profileImageURL(weeks_array[i].users[j].user_id, true)}" onerror="${IMAGE_FALLBACK_ONERROR}">
+                            <img class="u-fill leaderboard-week-member-image-img" src="${profileImageURL(weeks_array[i].users[j].user_id, true)}" data-fallback="placeholder">
                         </div>
                         ${escapeHTML(userList[weeks_array[i].users[j].user_id].first_name)}
                     </div>
@@ -373,7 +373,15 @@ var groups;
 var jwt;
 var userList = {};
 
+// bindSeasonsActions wires the page's delegated handlers once (strict CSP: no inline handlers).
+function bindSeasonsActions() {
+    on_action(document.body, {
+        getLeaderboard: function(element) { get_leaderboard(element.dataset.seasonId); }
+    });
+}
+
 document.addEventListener('DOMContentLoaded', function() {
+    bindSeasonsActions();
     info('Loading...');
     showLoggedOutMenu();
     jwt = get_cookie('treningheten');

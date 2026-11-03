@@ -61,7 +61,7 @@ function load_page(result) {
                             <div class="invite-list" id="invite-list">
                             </div>
 
-                            <button type="submit" onclick="generateInvite();" id="generate_invite_button" class="btn"><img src="assets/plus.svg" class="color-invert">Generate</button>
+                            <button type="submit" data-action="generateInvite" id="generate_invite_button" class="btn"><img src="assets/plus.svg" class="color-invert">Generate</button>
 
                         </div>
 
@@ -73,7 +73,7 @@ function load_page(result) {
 
                             <h3 id="debt-module-title">Debt:</h3>
 
-                            <form action="" onsubmit="event.preventDefault(); generateDebt();">
+                            <form action="" data-action="generateDebt">
 
                                 <div class="field">
                                     <label for="debt-week" class="field-label">Week with debt</label>
@@ -99,7 +99,7 @@ function load_page(result) {
 
                             <h3 id="prize-module-title">Prize:</h3>
 
-                            <form action="" onsubmit="event.preventDefault(); addPrize();">
+                            <form action="" data-action="addPrize">
 
                                 <div class="field">
                                     <label for="prize-name" class="field-label">Name of prize</label>
@@ -125,7 +125,7 @@ function load_page(result) {
 
                             <h3 id="season-module-title">Season:</h3>
 
-                            <form action="" onsubmit="event.preventDefault(); addSeason();">
+                            <form action="" data-action="addSeason">
 
                                 <!-- min is a monday (start) or sunday (end) and step="7" counts days from
                                      it, so the browser only accepts mondays and sundays. placeSeasonLength
@@ -168,12 +168,12 @@ function load_page(result) {
                                 <div class="field-row">
                                     <div class="field">
                                         <label for="season-saved-max" class="field-label">Saved workouts per person</label>
-                                        <input type="number" id="season-saved-max" name="season-saved-max" value="0" min="0" max="10" required oninput="placeSavedWorkoutsRule();">
+                                        <input type="number" id="season-saved-max" name="season-saved-max" value="0" min="0" max="10" required data-action="placeSavedWorkoutsRule">
                                         <span class="field-hint">0 turns it off.</span>
                                     </div>
                                     <div class="field">
                                         <label for="season-saved-weeks" class="field-label">Weeks each one lasts</label>
-                                        <input type="number" id="season-saved-weeks" name="season-saved-weeks" value="1" min="1" max="12" required oninput="placeSavedWorkoutsRule();">
+                                        <input type="number" id="season-saved-weeks" name="season-saved-weeks" value="1" min="1" max="12" required data-action="placeSavedWorkoutsRule">
                                     </div>
                                 </div>
                                 <p class="saved-rule-preview" id="season-saved-rule" aria-live="polite"></p>
@@ -195,7 +195,7 @@ function load_page(result) {
 
                         <h3 id="achievement-module-title">Give achievement:</h3>
 
-                        <form action="" onsubmit="event.preventDefault(); giveAchievement();">
+                        <form action="" data-action="giveAchievement">
 
                             <div class="field">
                                 <label for="achievement-user" class="field-label">User</label>
@@ -222,7 +222,7 @@ function load_page(result) {
 
                         <h3 id="push-module-title">Push notification:</h3>
 
-                        <form action="" onsubmit="event.preventDefault(); pushNotification();">
+                        <form action="" data-action="pushNotification">
 
                             <div class="field">
                                 <label for="push-user" class="field-label">User</label>
@@ -255,11 +255,11 @@ function load_page(result) {
 
                     </div>
 
-                    <div class="admin-module" id="sync-module" style="display: none;">
+                    <div class="admin-module" id="sync-module" hidden>
 
                         <h3 id="sync-module-title">Integration sync:</h3>
 
-                        <form action="" id="strava-sync-form" style="display: none;" onsubmit="event.preventDefault(); syncIntegration('strava');">
+                        <form action="" id="strava-sync-form" hidden data-action="syncIntegration" data-integration="strava">
 
                             <div class="field">
                                 <label for="strava-sync-user" class="field-label">Strava: re-fetch activities for</label>
@@ -270,7 +270,7 @@ function load_page(result) {
 
                         </form>
 
-                        <form action="" id="media-sync-form" style="display: none;" onsubmit="event.preventDefault(); syncIntegration('media');">
+                        <form action="" id="media-sync-form" hidden data-action="syncIntegration" data-integration="media">
 
                             <div class="field">
                                 <label for="media-sync-user" class="field-label">Media: re-sync playback for</label>
@@ -543,8 +543,8 @@ function placeAdminUsers() {
         var action = "";
         if(user.id !== currentAdminID) {
             action = user.enabled
-                ? `<button type="button" class="btn" onclick="setUserEnabled('` + user.id + `', false);">Disable</button>`
-                : `<button type="button" class="btn" onclick="setUserEnabled('` + user.id + `', true);">Enable</button>`;
+                ? `<button type="button" class="btn" data-action="setUserEnabled" data-user-id="` + user.id + `" data-enabled="false">Disable</button>`
+                : `<button type="button" class="btn" data-action="setUserEnabled" data-user-id="` + user.id + `" data-enabled="true">Enable</button>`;
         }
 
         html += `
@@ -638,8 +638,8 @@ function placeInvites(invitesArray) {
                     <div class="leaderboard-object-user">
                         Not used
                     </div>
-                    <button type="button" class="btn btn--ghost btn--sm" data-invite-code="` + escapeHTML(invitesArray[i].code) + `" onclick="copyInviteLink(this)">Copy link</button>
-                    <img class="btn btn--icon clickable" onclick="deleteInvite('` + invitesArray[i].id + `')" src="/assets/trash-2.svg"></img>
+                    <button type="button" class="btn btn--ghost btn--sm" data-invite-code="` + escapeHTML(invitesArray[i].code) + `" data-action="copyInviteLink">Copy link</button>
+                    <img class="btn btn--icon clickable" data-action="deleteInvite" data-invite-id="` + invitesArray[i].id + `" src="/assets/trash-2.svg"></img>
                 `;
         }
 
@@ -949,9 +949,9 @@ function placeIntegrationSync(serverInfo) {
     var stravaEnabled = !!(serverInfo && serverInfo.strava && serverInfo.strava.enabled);
     var mediaEnabled = !!(serverInfo && serverInfo.media && serverInfo.media.enabled);
 
-    document.getElementById("strava-sync-form").style.display = stravaEnabled ? "" : "none";
-    document.getElementById("media-sync-form").style.display = mediaEnabled ? "" : "none";
-    document.getElementById("sync-module").style.display = (stravaEnabled || mediaEnabled) ? "" : "none";
+    document.getElementById("strava-sync-form").hidden = !stravaEnabled;
+    document.getElementById("media-sync-form").hidden = !mediaEnabled;
+    document.getElementById("sync-module").hidden = !(stravaEnabled || mediaEnabled);
 }
 
 // syncIntegration starts a background re-sync for one user, or for every connected user
@@ -977,7 +977,30 @@ function syncIntegration(integration) {
 var groups;
 var jwt;
 
+// bindAdminActions wires the page's delegated handlers once (strict CSP: no inline handlers).
+function bindAdminActions() {
+    var body = document.body;
+    on_action(body, {
+        generateInvite: function() { generateInvite(); },
+        setUserEnabled: function(element) { setUserEnabled(element.dataset.userId, element.dataset.enabled === "true"); },
+        copyInviteLink: function(element) { copyInviteLink(element); },
+        deleteInvite: function(element) { deleteInvite(element.dataset.inviteId); }
+    });
+    on_action(body, {
+        placeSavedWorkoutsRule: function() { placeSavedWorkoutsRule(); }
+    }, 'input');
+    on_action(body, {
+        generateDebt: function(element, event) { event.preventDefault(); generateDebt(); },
+        addPrize: function(element, event) { event.preventDefault(); addPrize(); },
+        addSeason: function(element, event) { event.preventDefault(); addSeason(); },
+        giveAchievement: function(element, event) { event.preventDefault(); giveAchievement(); },
+        pushNotification: function(element, event) { event.preventDefault(); pushNotification(); },
+        syncIntegration: function(element, event) { event.preventDefault(); syncIntegration(element.dataset.integration); }
+    }, 'submit');
+}
+
 document.addEventListener('DOMContentLoaded', function() {
+    bindAdminActions();
     info('Loading...');
     showLoggedOutMenu();
     jwt = get_cookie('treningheten');

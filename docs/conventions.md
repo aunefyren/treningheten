@@ -267,15 +267,19 @@ There is no build step or framework — `web/js/*.js` is served through Go templ
   `info(msg)`, `success(msg)`, `clearResponse()` — don't roll your own alert markup.
 - **Auth/token plumbing** (`get_login`, `refresh_access_token`, `store_tokens`,
   cookies) lives in `functions.js`; reuse it rather than re-implementing token refresh.
-- **No inline handlers, styles or scripts** (strict CSP, see
-  [security.md](security.md#strict-csp-report-only)). No `on*=` attributes, `javascript:`
-  URLs, `style=` attributes or inline `<script>` blocks, in templates or in JS-built markup.
-  Bind with `addEventListener`; for JS-built lists use one listener on a stable container
-  with `data-action` + `data-*` attributes via `on_action(container, handlers)` in
-  `functions.js`. Show/hide with the `hidden` attribute or a class (`element.style.x = ...`
-  is fine). A page's init goes in its JS file inside a `DOMContentLoaded` listener, with the
-  page globals (`var jwt;` ...) declared at the top level of that file. Never pass a string
-  to `setTimeout`/`setInterval`/library callbacks (no `eval`).
+- **No inline handlers, styles or scripts** (the strict CSP is enforced, see
+  [security.md](security.md#strict-content-security-policy)). No `on*=` attributes,
+  `javascript:` URLs, `style=` attributes, style elements or inline `<script>` blocks, in
+  templates or in JS-built markup; the browser silently blocks them and
+  `TestWebAssetsAreCSPClean` fails. Put `data-action` + `data-*` arguments on the element
+  and add the action to the page's `bind<Page>Actions()` (`on_action(document.body,
+  handlers, eventName)` in `functions.js`); links use the shared `openURL` / `replaceURL` /
+  `openTab` actions with `data-href`. Show/hide with the `hidden` attribute
+  (`element.style.x = ...` is fine too). Per-item values (bar widths, colours, cover art) go
+  in `data-width` / `data-bg-color` / `data-bg-image` / `data-cat-color`; image fallbacks
+  in `data-fallback`. A page's init goes in its JS file inside a `DOMContentLoaded`
+  listener, with the page globals (`var jwt;` ...) declared at the top level of that file.
+  Never pass a string to `setTimeout`/`setInterval`/library callbacks (no `eval`).
 - **Escape every value you interpolate into HTML.** Markup is built as template strings
   and assigned with `innerHTML`, so any value that originated outside the page — a user's
   name, a note, a gear or action name, a track title, a Strava description — must go through
@@ -287,17 +291,17 @@ There is no build step or framework — `web/js/*.js` is served through Go templ
   theoretical — an unescaped day note plus a missing ownership check on its write endpoint
   was a stored-XSS path to another user's session tokens, which are readable from
   `document.cookie` by design.
-- **Never put a free-text value inside a JS string in an inline handler.** The browser
-  HTML-decodes an attribute before running it, so `onclick="f('${escapeHTML(name)}')"` is
-  still injectable: `&#39;` turns back into `'`. Put the value in an escaped `data-*`
-  attribute and read it back (`onclick="f(this.dataset.name)"`, or `on_action`). Values
+- **Pass values to handlers through escaped `data-*` attributes.** Inline handlers are
+  gone, and they were never safe for free text anyway: the browser HTML-decodes an
+  attribute before running it, so `onclick="f('${escapeHTML(name)}')"` was injectable
+  (`&#39;` turns back into `'`). The `on_action` handler reads `element.dataset.name`. Values
   built into URLs (`src`, `href`) go through `encodeURIComponent`, and an external link
   stored from a third party is checked for an `https` scheme server-side before it is saved.
 - **Avoid `innerHTML +=` inside loops** — accumulate a string and assign once (repeated
   `+=` reparses the DOM each iteration).
 - **Images load via `<img src>`, not XHR.** Profile/achievement images are served as raw
   bytes from cookie-authenticated endpoints, so embed them directly:
-  `<img src="${profileImageURL(userID, true)}" onerror="${IMAGE_FALLBACK_ONERROR}">`
+  `<img src="${profileImageURL(userID, true)}" data-fallback="placeholder">`
   (helpers in `functions.js`). The browser caches and dedupes them for free — don't
   re-introduce XHR→base64→`set .src` plumbing. See [image-serving.md](image-serving.md).
 - **Modals use the shared `TRModal`** (`web/js/modal.js` + `web/css/modal.css`, the dark
@@ -331,6 +335,12 @@ sweeps below. Total statement coverage is about 90%.
   `controllers/strava_test.go`.
 - **Pure functions** (image encode/resize, tag derivation, week/date math) are the
   easiest wins — test them directly with no DB. See `controllers/image_test.go`.
+- **Frontend CSP guard:** `TestWebAssetsAreCSPClean` (`web_csp_test.go`, package `main`)
+  scans `web/html` and `web/js` line by line and fails on inline handlers, `style=`
+  attributes, style elements, `javascript:` URLs, `<script>` without `src`,
+  `setAttribute('style'` and `cssText`. Whole-line comments are skipped and the vendored
+  `Winwheel.js` / `TweenMax.min.js` are exempt. `TestCSPViolationPatterns` keeps the
+  patterns honest; extend both when you add a pattern.
 - **`database/` tests** use the in-memory SQLite harness `newTestDB(t)` (in
   `database/setup_test.go`): isolated `:memory:` DB, real `Migrate()`, discarding
   logger, cleanup on `t.Cleanup`. Reuse its helpers (`makeTestUser`, `boolPtr`,

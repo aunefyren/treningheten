@@ -67,33 +67,33 @@ function load_page(result) {
                     specific one — your longest run, a certain padel match, your oldest ride.
                 </div>
                 <div class="btn-group">
-                    <button onclick="window.location.href = '/gear';" class="btn" type="submit">Manage gear</button>
+                    <button data-action="openURL" data-href="/gear" class="btn" type="submit">Manage gear</button>
                 </div>
             </div>
 
             <div class="feed-panel">
 
                 <div class="feed-controls">
-                    <select id="feed-type" class="feed-input" onchange="feedApplyControls()">
+                    <select id="feed-type" class="feed-input" data-action="feedApplyControls">
                         <option value="">All activity types</option>
                     </select>
-                    <select id="feed-sort" class="feed-input" onchange="feedApplyControls()">
+                    <select id="feed-sort" class="feed-input" data-action="feedApplyControls">
                         ${sortOptionsHTML}
                     </select>
-                    <input id="feed-q" class="feed-input" type="text" placeholder="Search notes & types" oninput="feedDebouncedSearch()">
+                    <input id="feed-q" class="feed-input" type="text" placeholder="Search notes & types" data-action="feedDebouncedSearch">
                 </div>
                 <div class="feed-controls feed-controls-secondary">
-                    <label class="feed-daterange">From <input id="feed-start" class="feed-input" type="date" onchange="feedApplyControls()"></label>
-                    <label class="feed-daterange">To <input id="feed-end" class="feed-input" type="date" onchange="feedApplyControls()"></label>
-                    <label class="feed-check"><input type="checkbox" id="feed-hasdist" onchange="feedApplyControls()"> With distance only</label>
+                    <label class="feed-daterange">From <input id="feed-start" class="feed-input" type="date" data-action="feedApplyControls"></label>
+                    <label class="feed-daterange">To <input id="feed-end" class="feed-input" type="date" data-action="feedApplyControls"></label>
+                    <label class="feed-check"><input type="checkbox" id="feed-hasdist" data-action="feedApplyControls"> With distance only</label>
                 </div>
 
                 <div class="feed-count" id="feed-count"></div>
                 <div class="feed-results" id="feed-results"></div>
 
-                <div class="feed-loading" id="feed-loading" style="display:none;"><div class="trh-spinner"></div></div>
-                <div class="feed-more" id="feed-more" style="display:none;">
-                    <button class="btn" onclick="loadFeed(false)">Load more</button>
+                <div class="feed-loading" id="feed-loading" hidden><div class="trh-spinner"></div></div>
+                <div class="feed-more" id="feed-more" hidden>
+                    <button class="btn" data-action="loadMore">Load more</button>
                 </div>
 
             </div>
@@ -217,8 +217,8 @@ function loadFeed(reset) {
         feedState.sessions = [];
     }
     feedState.loading = true;
-    document.getElementById("feed-loading").style.display = "flex";
-    document.getElementById("feed-more").style.display = "none";
+    document.getElementById("feed-loading").hidden = false;
+    document.getElementById("feed-more").hidden = true;
 
     var params = [];
     params.push("sort=" + encodeURIComponent(feedState.sort));
@@ -235,7 +235,7 @@ function loadFeed(reset) {
     xhttp.onreadystatechange = function() {
         if (this.readyState == 4) {
             feedState.loading = false;
-            document.getElementById("feed-loading").style.display = "none";
+            document.getElementById("feed-loading").hidden = true;
 
             try {
                 result = JSON.parse(this.responseText);
@@ -287,7 +287,7 @@ function renderFeed() {
             ? `<div class="feed-empty">No workouts match. Try clearing the filters.</div>`
             : `<div class="feed-empty">Nothing logged yet. Tick a day on the front page and it shows up here.</div>`;
         countEl.textContent = "";
-        moreEl.style.display = "none";
+        moreEl.hidden = true;
         return;
     }
 
@@ -307,7 +307,7 @@ function renderFeed() {
         resultsEl.innerHTML = renderBrowseGroups(feedState.sessions);
     }
 
-    moreEl.style.display = feedState.hasMore ? "block" : "none";
+    moreEl.hidden = !feedState.hasMore;
 }
 
 // renderBrowseGroups groups the (date-descending) sessions under day headers.
@@ -368,7 +368,7 @@ function feedSessionCard(session, opts) {
     // The title is the real link (keyboard focus, middle-click, a new tab); a click anywhere
     // else on the card is a shortcut to the same place (feedSessionClick).
     return `
-        <div class="feed-session clickable" onclick="feedSessionClick(event, '${session.exercise_day_id}')">
+        <div class="feed-session clickable" data-action="feedSessionClick" data-exercise-day-id="${session.exercise_day_id}">
             <div class="feed-session-head">
                 ${rank}
                 <div class="feed-row-icon">${icon}</div>
@@ -447,7 +447,7 @@ function feedActivitiesHTML(session) {
             ${visibleRows}
             <div class="feed-activities-folded" id="${foldID}" hidden>${foldedRows}</div>
             <button type="button" class="feed-activity feed-activities-toggle" aria-expanded="false" aria-controls="${foldID}"
-                data-folded-count="${foldedCount}" onclick="toggleFeedActivities(this)">
+                data-folded-count="${foldedCount}" data-action="toggleFeedActivities">
                 <span class="feed-activity-icon"><img src="/assets/chevron-down.svg" alt=""></span>
                 <span class="feed-activities-toggle-label">Show ${foldedCount} more</span>
             </button>
@@ -510,7 +510,7 @@ function feedActivityRow(item) {
 // feedActionIcon prefers the action's SVG logo, falling back to a type-based glyph.
 function feedActionIcon(item) {
     if (item.action_has_logo && item.action_name) {
-        return `<img src="/assets/actions/${encodeURIComponent(item.action_name)}.svg" class="feed-logo" onerror="this.outerHTML='${feedActionGlyph(item.action_type)}'">`;
+        return `<img src="/assets/actions/${encodeURIComponent(item.action_name)}.svg" class="feed-logo" data-fallback="glyph" data-glyph="${feedActionGlyph(item.action_type)}">`;
     }
     return feedActionGlyph(item.action_type);
 }
@@ -642,7 +642,24 @@ function exerciseRedirect(exerciseDayID) {
 var groups;
 var jwt;
 
+// bindExercisesActions wires the page's delegated handlers once (strict CSP: no inline handlers).
+function bindExercisesActions() {
+    var body = document.body;
+    on_action(body, {
+        loadMore: function() { loadFeed(false); },
+        feedSessionClick: function(element, event) { feedSessionClick(event, element.dataset.exerciseDayId); },
+        toggleFeedActivities: function(element) { toggleFeedActivities(element); }
+    });
+    on_action(body, {
+        feedApplyControls: function() { feedApplyControls(); }
+    }, 'change');
+    on_action(body, {
+        feedDebouncedSearch: function() { feedDebouncedSearch(); }
+    }, 'input');
+}
+
 document.addEventListener('DOMContentLoaded', function() {
+    bindExercisesActions();
     info('Loading...');
     showLoggedOutMenu();
     jwt = get_cookie('treningheten');

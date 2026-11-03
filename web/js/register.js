@@ -17,7 +17,7 @@ function load_page(result) {
                         </div>
 
                         <div class="action-block">
-                            <form action="" onsubmit="event.preventDefault(); send_registration();">
+                            <form action="" data-action="sendRegistration">
 
                                 <input type="email" name="email" id="email" placeholder="Email" autocomplete="email" required/>
 
@@ -136,7 +136,15 @@ function disable_register_button() {
 // Page bootstrap (formerly an inline <script> in web/html/register.html).
 var jwt;
 
+// bindRegisterActions wires the page's delegated handlers once (strict CSP: no inline handlers).
+function bindRegisterActions() {
+    on_action(document.body, {
+        sendRegistration: function(element, event) { event.preventDefault(); send_registration(); }
+    }, 'submit');
+}
+
 document.addEventListener('DOMContentLoaded', function() {
+    bindRegisterActions();
     info('Loading...');
     showLoggedOutMenu();
     jwt = get_cookie('treningheten');

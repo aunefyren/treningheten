@@ -32,7 +32,7 @@ function load_page(result) {
                 You are offline :/
             </div>
             <div class="module">
-                <button type="button" onclick="frontPageRedirect();" class="btn btn--primary"><img src="assets/refresh-cw.svg" class="color-invert">Reload</button>
+                <button type="button" data-action="reload" class="btn btn--primary"><img src="assets/refresh-cw.svg" class="color-invert">Reload</button>
             </div>
         </div>
     `;
@@ -65,7 +65,15 @@ var fireworks_int = 0;
 var user_id = 0;
 var userList = {};
 
+// bindOfflineActions wires the page's delegated handlers once (strict CSP: no inline handlers).
+function bindOfflineActions() {
+    on_action(document.body, {
+        reload: function() { frontPageRedirect(); }
+    });
+}
+
 document.addEventListener('DOMContentLoaded', function() {
+    bindOfflineActions();
     info('Loading...');
     showLoggedOutMenu();
     jwt = get_cookie('treningheten');

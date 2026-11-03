@@ -46,7 +46,7 @@ function generateTagSelectorHTML(operation) {
     const chips = ACTIVITY_TAGS
         .map(t => {
             const isSel = selected.includes(t.slug) ? " tag-chip-selected" : "";
-            return `<span class="tag-chip clickable${isSel}" data-tag="${t.slug}" onclick="toggleTag('${operation.id}', this)">${escapeHTML(t.label)}</span>`;
+            return `<span class="tag-chip clickable${isSel}" data-tag="${t.slug}" data-action="toggleTag" data-operation-id="${operation.id}">${escapeHTML(t.label)}</span>`;
         })
         .join("");
     return `<div class="tag-selector" id="tag-selector-${operation.id}">${chips}</div>`;
@@ -130,7 +130,7 @@ function dayPageHTML(exerciseDayID) {
                         <label for="exercise-day-note" class="field-label">Day note</label>
                         <span class="day-note-status" id="day-note-status" role="status"></span>
                     </div>
-                    <textarea id="exercise-day-note" rows="3" oninput="clearDayNoteStatus()" onchange="updateExerciseDay('${exerciseDayID}')"></textarea>
+                    <textarea id="exercise-day-note" rows="3" data-action="dayNote" data-exercise-day-id="${exerciseDayID}"></textarea>
                 </div>
                 <div class="day-gear" id="day-gear"></div>
             </section>
@@ -140,7 +140,7 @@ function dayPageHTML(exerciseDayID) {
             <div class="day-add" id="day-add"></div>
 
             <div class="btn-group day-combine" id="stravaCombineButtonWrapper" hidden>
-                <button type="button" class="btn btn--ghost" id="day-combine-button" onclick="combineStravaExercises()">Combine workouts</button>
+                <button type="button" class="btn btn--ghost" id="day-combine-button" data-action="combineStravaExercises">Combine workouts</button>
             </div>
 
             <nav class="day-links" id="day-links" aria-label="Related pages">
@@ -252,7 +252,7 @@ function weekDayHTML(day, index) {
         tile = `<a class="${classes}" href="/exercises/${day.id}" aria-label="${label}">${inner}</a>`;
     } else if (day.loggable) {
         // The API numbers weekdays as Go's time.Weekday (Sunday=0); the strip starts on Monday.
-        tile = `<button type="button" class="${classes}" onclick="openWeekDay(${(index + 1) % 7})" aria-label="${label}">${inner}</button>`;
+        tile = `<button type="button" class="${classes}" data-action="openWeekDay" data-weekday="${(index + 1) % 7}" aria-label="${label}">${inner}</button>`;
     } else {
         const reason = isFutureDay(day.date) ? "You can't log workouts on future days" : "Nothing logged";
         tile = `<span class="${classes} is-unavailable" title="${reason}" aria-label="${label}. ${reason}">${inner}</span>`;
@@ -306,7 +306,7 @@ function daySeasonHTML(season) {
         <div class="day-season${complete ? " is-complete" : ""}">
             ${name}
             <span class="day-season-bar" role="progressbar" aria-valuemin="0" aria-valuemax="${season.goal}" aria-valuenow="${Math.min(season.workouts + (season.carry_used || 0), season.goal)}" aria-label="${escapeHTML(season.name)}, weekly goal">
-                <span class="day-season-fill" style="width: ${pct}%"></span>${saved > 0 ? `<span class="day-season-fill day-season-fill--saved" style="width: ${saved}%" title="Made up with saved workouts"></span>` : ""}
+                <span class="day-season-fill" data-width="${pct}"></span>${saved > 0 ? `<span class="day-season-fill day-season-fill--saved" data-width="${saved}" title="Made up with saved workouts"></span>` : ""}
             </span>
             <span class="day-season-figure">${season.workouts}${savedLabel} / ${season.goal}${complete ? `<img src="/assets/check.svg" class="day-season-check" alt="Weekly goal met">` : ""}</span>
         </div>
@@ -332,7 +332,7 @@ function placeDayAdd(viewedDay, future) {
     } else {
         add.innerHTML = `
             <div class="workout-view">
-                <button type="button" class="we-add-exercise" onclick="addExercise('${exerciseDayID}')">
+                <button type="button" class="we-add-exercise" data-action="addExercise" data-exercise-day-id="${exerciseDayID}">
                     <img src="/assets/plus.svg" alt="">Add workout
                 </button>
             </div>
@@ -363,7 +363,7 @@ function placeDayGear() {
     document.getElementById('day-gear').innerHTML = `
         <img src="/assets/sliders.svg" class="day-gear-icon" alt="">
         <span class="day-gear-text">${summary}</span>
-        <button type="button" class="btn btn--ghost btn--sm" onclick="openGearModal()">Manage gear</button>
+        <button type="button" class="btn btn--ghost btn--sm" data-action="openGearModal">Manage gear</button>
     `;
 }
 
@@ -493,7 +493,7 @@ function sessionDeleteButton(exercise, count) {
     if (!isExerciseWeekEditable(exercise)) {
         return `<img src="/assets/trash-2.svg" class="btn_logo wv-action-icon is-frozen" title="Can't delete a workout after its week has ended">`;
     }
-    return `<img src="/assets/trash-2.svg" class="btn_logo clickable wv-action-icon" title="Delete workout" onclick="updateExercise('${exercise.id}', false, ${count}, '${exercise.time}', true)">`;
+    return `<img src="/assets/trash-2.svg" class="btn_logo clickable wv-action-icon" title="Delete workout" data-action="deleteExercise" data-exercise-id="${exercise.id}" data-count="${count}" data-time="${exercise.time}">`;
 }
 
 // sessionRestoreButton renders the "Restore" action for a deleted (is_on=false) session,
@@ -503,7 +503,7 @@ function sessionRestoreButton(exercise, count) {
     if (!isExerciseWeekEditable(exercise)) {
         return `<button type="button" disabled title="Can't restore a workout after its week has ended" class="btn btn--sm is-frozen"><img src="/assets/refresh-cw.svg" class="color-invert">Restore</button>`;
     }
-    return `<button type="submit" onclick="updateExercise('${exercise.id}', true, ${count}, '${exercise.time}', true)" id="restore-exercise-button-${exercise.id}" class="btn btn--sm"><img src="/assets/refresh-cw.svg" class="color-invert">Restore</button>`;
+    return `<button type="submit" data-action="restoreExercise" data-exercise-id="${exercise.id}" data-count="${count}" data-time="${exercise.time}" id="restore-exercise-button-${exercise.id}" class="btn btn--sm"><img src="/assets/refresh-cw.svg" class="color-invert">Restore</button>`;
 }
 
 // generateExerciseHTML returns the session's markup, or "" for a switched-off session with
@@ -590,14 +590,14 @@ function renderSessionActionRow(exercise, count) {
         const ids = exercise.strava_id.join(";");
         combineHTML = `<input class="clickable stravaCombineCheck wv-combine" type="checkbox" id="${ids}" title="Select to combine with another workout">`;
         if (exercise.strava_id.length > 1) {
-            divideHTML = `<img src="/assets/scissors.svg" class="btn_logo clickable wv-action-icon" title="Split into separate workouts" onclick="divideStravaExercises('${exercise.id}')">`;
+            divideHTML = `<img src="/assets/scissors.svg" class="btn_logo clickable wv-action-icon" title="Split into separate workouts" data-action="divideStravaExercises" data-exercise-id="${exercise.id}">`;
         }
     }
     return `
         <div class="wv-actions">
             ${combineHTML}
             ${divideHTML}
-            <img src="/assets/edit.svg" class="btn_logo clickable wv-action-icon" title="Edit workout" onclick="switchToFullEditor('${exercise.id}')">
+            <img src="/assets/edit.svg" class="btn_logo clickable wv-action-icon" title="Edit workout" data-action="switchToFullEditor" data-exercise-id="${exercise.id}">
             ${sessionDeleteButton(exercise, count)}
         </div>
     `;
@@ -609,7 +609,7 @@ function renderSessionActionRow(exercise, count) {
 // Needs the owning operation-set id — that's what stravaSyncOperationSet posts.
 function stravaSyncButtonHTML(setID, stravaID) {
     if (!stravaID || !setID) return "";
-    return `<img src="/assets/refresh-cw.svg" class="btn_logo clickable wv-action-icon" title="Re-sync from Strava" onclick="stravaSyncOperationSet('${setID}')">`;
+    return `<img src="/assets/refresh-cw.svg" class="btn_logo clickable wv-action-icon" title="Re-sync from Strava" data-action="stravaSyncOperationSet" data-set-id="${setID}">`;
 }
 
 function renderActivitySubCard(operation, exercise) {
@@ -670,7 +670,7 @@ function mediaTimelineHTML(exercise) {
     if (!media_enabled) return "";
 
     const items = exercise.media_playback || [];
-    const repull = `<button class="wv-media-repull" title="Match listening history" onclick="mediaSyncExercise('${exercise.id}')"><img src="/assets/refresh-cw.svg" alt="Re-match"></button>`;
+    const repull = `<button class="wv-media-repull" title="Match listening history" data-action="mediaSyncExercise" data-exercise-id="${exercise.id}"><img src="/assets/refresh-cw.svg" alt="Re-match"></button>`;
     const eq = `<span class="wv-eq" aria-hidden="true"><i></i><i></i><i></i></span>`;
 
     if (items.length === 0) {
@@ -1433,7 +1433,7 @@ function renderGradientHTML(buckets) {
         return `
             <div class="wv-grade">
                 <span class="wv-grade-label">${escapeHTML(b.label)}</span>
-                <span class="wv-grade-track"><span class="wv-grade-bar wv-grade-${gradeToneClass(b.label)}" style="width:${pct}%"></span></span>
+                <span class="wv-grade-track"><span class="wv-grade-bar wv-grade-${gradeToneClass(b.label)}" data-width="${pct}"></span></span>
                 <span class="wv-grade-time">${secondsToDurationString(b.seconds)}</span>
                 ${hr}
             </div>`;
@@ -1543,7 +1543,7 @@ function renderSplitsHTML(summary, operation, splitsID, interactive) {
         return `
             <${tag} class="wv-split${fast}"${buttonAttrs} data-from="${s.from_point}" data-to="${s.to_point}">
                 <span class="wv-split-idx">${s.index}</span>
-                <span class="wv-split-track"><span class="wv-split-bar" style="width:${width}%"></span><span class="wv-split-primary">${primary}</span>${partial}</span>
+                <span class="wv-split-track"><span class="wv-split-bar" data-width="${width}"></span><span class="wv-split-primary">${primary}</span>${partial}</span>
                 ${hr}${climb}
             </${tag}>`;
     }).join("");
@@ -1610,7 +1610,7 @@ function renderHRZonesHTML(summary) {
 
     const code = z => escapeHTML(z.code || ("Z" + z.zone));
     const bar = zones.map(z =>
-        `<span class="wv-zone-seg wv-zone-${z.zone}" style="width:${z.percent}%" title="${code(z)} ${escapeHTML(z.name)}"></span>`
+        `<span class="wv-zone-seg wv-zone-${z.zone}" data-width="${z.percent}" title="${code(z)} ${escapeHTML(z.name)}"></span>`
     ).join("");
 
     // Each zone carries its own bpm bounds (server-side, already Karvonen-adjusted when
@@ -2065,13 +2065,13 @@ function renderWorkoutEditor(exercise, count) {
         timeOfDay = date.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', hour12: false });
     }
     const durationStr = exercise.duration ? secondsToDurationString(exercise.duration) : "";
-    const onChange = `updateExercise('${exercise.id}', true, ${count}, '${exercise.time}', true)`;
+    const onChange = `data-action="updateExercise" data-exercise-id="${exercise.id}" data-count="${count}" data-time="${exercise.time}"`;
 
     // The goal-counting toggle freezes with the same rule as delete: only changeable while
     // the session's week is current (the backend rejects the change otherwise).
     const weekEditable = isExerciseWeekEditable(exercise);
     const countsAttrs = weekEditable
-        ? `onchange="${onChange}"`
+        ? onChange
         : `disabled title="Can't change after the week has ended"`;
 
     // Privacy has no week freeze — hiding a session changes nothing about a settled week.
@@ -2080,7 +2080,7 @@ function renderWorkoutEditor(exercise, count) {
     const fromStrava = exercise.strava_id && exercise.strava_id.length > 0;
     const privateAttrs = fromStrava
         ? `disabled title="Set on Strava"`
-        : `onchange="${onChange}"`;
+        : onChange;
 
     // Strava source links + combine/divide (parity with the summary card).
     var stravaLinks = "", combineHTML = "", divideHTML = "";
@@ -2091,7 +2091,7 @@ function renderWorkoutEditor(exercise, count) {
         const ids = exercise.strava_id.join(";");
         combineHTML = `<input class="clickable stravaCombineCheck wv-combine" type="checkbox" id="${ids}" title="Select to combine with another workout">`;
         if (exercise.strava_id.length > 1) {
-            divideHTML = `<img src="/assets/scissors.svg" class="btn_logo clickable wv-action-icon" title="Split into separate workouts" onclick="divideStravaExercises('${exercise.id}')">`;
+            divideHTML = `<img src="/assets/scissors.svg" class="btn_logo clickable wv-action-icon" title="Split into separate workouts" data-action="divideStravaExercises" data-exercise-id="${exercise.id}">`;
         }
     }
 
@@ -2109,11 +2109,11 @@ function renderWorkoutEditor(exercise, count) {
                 <div class="we-session-fields">
                     <label class="we-field">
                         <span class="we-field-label">Time</span>
-                        <input class="we-input" type="time" id="exercise-timeofday-input-${exercise.id}" value="${timeOfDay}" onchange="${onChange}">
+                        <input class="we-input" type="time" id="exercise-timeofday-input-${exercise.id}" value="${timeOfDay}" ${onChange}>
                     </label>
                     <label class="we-field">
                         <span class="we-field-label">Duration</span>
-                        <input class="we-input" type="text" pattern="[0-9:]{0,}" id="exercise-time-input-${exercise.id}" placeholder="hh:mm:ss" value="${durationStr}" onchange="${onChange}">
+                        <input class="we-input" type="text" pattern="[0-9:]{0,}" id="exercise-time-input-${exercise.id}" placeholder="hh:mm:ss" value="${durationStr}" ${onChange}>
                     </label>
                     ${generateGearFieldHTML(exercise)}
                     <label class="we-field we-field-check">
@@ -2125,7 +2125,7 @@ function renderWorkoutEditor(exercise, count) {
                         <input class="clickable" type="checkbox" id="exercise-private-input-${exercise.id}" ${exercise.private ? 'checked' : ''} ${privateAttrs}>
                     </label>
                 </div>
-                <textarea class="we-note" id="exercise-note-${exercise.id}" rows="2" placeholder="Workout note" onchange="${onChange}">${escapeHTML(exercise.note || '')}</textarea>
+                <textarea class="we-note" id="exercise-note-${exercise.id}" rows="2" placeholder="Workout note" ${onChange}>${escapeHTML(exercise.note || '')}</textarea>
                 ${stravaLinks}
                 <div class="we-exercises" id="operationsWrapper-${exercise.id}">
                     ${generateOperationsHTML(exercise.operations, exercise.id)}
@@ -2147,7 +2147,7 @@ function generateOperationsHTML(operations, exerciseID) {
 
 function generateOperationAddButtonHTML(operations, exerciseID) {
     return `
-        <button class="we-add-exercise clickable" onclick="addOperation('${exerciseID}')">
+        <button class="we-add-exercise clickable" data-action="addOperation" data-exercise-id="${exerciseID}">
             <img src="/assets/plus.svg" alt=""><span>Add activity</span>
         </button>
     `;
@@ -2166,36 +2166,36 @@ function generateOperationHTML(operation) {
     if (operationTakesGear(operation)) {
         gearRowHTML = `
             <div class="we-gear-row">
-                <select class="we-input we-op-gear-select" id="operation-gear-${operation.id}" onchange="updateOperation('${operation.id}')">
+                <select class="we-input we-op-gear-select" id="operation-gear-${operation.id}" data-action="updateOperation" data-operation-id="${operation.id}">
                     ${gearOptionsHTML(currentOperationGearID(operation))}
                 </select>
-                <img src="/assets/sliders.svg" class="btn_logo clickable wv-action-icon" title="Manage gear" onclick="openGearModal()">
+                <img src="/assets/sliders.svg" class="btn_logo clickable wv-action-icon" title="Manage gear" data-action="openGearModal">
             </div>
         `;
     }
 
     return `
         <div class="we-exercise-head">
-            <select class="we-type-select" id="operation-type-text-${operation.id}" title="Type" onchange="updateOperation('${operation.id}')">
+            <select class="we-type-select" id="operation-type-text-${operation.id}" title="Type" data-action="updateOperation" data-operation-id="${operation.id}">
                 <option value="lifting" ${liftingSel}>💪</option>
                 <option value="moving" ${movingSel}>🏃</option>
                 <option value="timing" ${timingSel}>⏱️</option>
             </select>
             <div class="we-action" id="operation-action-${operation.id}">
-                <input class="we-input we-action-input" type="text" autocomplete="off" id="operation-action-text-${operation.id}" name="operation-action-text" placeholder="Activity type" value="${escapeHTML(actionName)}" onkeyup="filterFunction('${operation.id}')" onfocus="showSelectDropdown('${operation.id}', true)">
-                <div id="operation-action-text-list-${operation.id}" class="dropdown-actions-wrapper" style="display: none;">
+                <input class="we-input we-action-input" type="text" autocomplete="off" id="operation-action-text-${operation.id}" name="operation-action-text" placeholder="Activity type" value="${escapeHTML(actionName)}" data-action="actionSearch" data-operation-id="${operation.id}">
+                <div id="operation-action-text-list-${operation.id}" class="dropdown-actions-wrapper" hidden>
                     ${processExerciseList(operation.id)}
                 </div>
             </div>
-            <img src="/assets/plus.svg" class="btn_logo clickable wv-action-icon" id="addActionWrapper-${operation.id}" title="Create new activity type" onclick="addAction('${operation.id}')">
-            <img src="/assets/trash-2.svg" class="btn_logo clickable wv-action-icon" title="Remove activity" onclick="deleteOperation('${operation.id}')">
+            <img src="/assets/plus.svg" class="btn_logo clickable wv-action-icon" id="addActionWrapper-${operation.id}" title="Create new activity type" data-action="addAction" data-operation-id="${operation.id}">
+            <img src="/assets/trash-2.svg" class="btn_logo clickable wv-action-icon" title="Remove activity" data-action="deleteOperation" data-operation-id="${operation.id}">
         </div>
 
         ${gearRowHTML}
 
         ${generateTagSelectorHTML(operation)}
 
-        <textarea class="we-note we-op-note" id="operation-description-${operation.id}" name="operation-description" rows="2" placeholder="Description" onchange="updateOperation('${operation.id}')">${operation.description ? escapeHTML(operation.description) : ''}</textarea>
+        <textarea class="we-note we-op-note" id="operation-description-${operation.id}" name="operation-description" rows="2" placeholder="Description" data-action="updateOperation" data-operation-id="${operation.id}">${operation.description ? escapeHTML(operation.description) : ''}</textarea>
 
         <input type="hidden" id="operation-distance-unit-${operation.id}" value="${operation.distance_unit}">
         <input type="hidden" id="operation-weight-unit-${operation.id}" value="${operation.weight_unit}">
@@ -2230,7 +2230,7 @@ function generateOperationSetsHTML(operationSets, operation) {
                 ${rows}
             </div>
         </div>
-        <button class="we-add-set clickable" id="addOperationSetWrapper-${operation.id}" onclick="addOperationSet('${operation.id}')">
+        <button class="we-add-set clickable" id="addOperationSetWrapper-${operation.id}" data-action="addOperationSet" data-operation-id="${operation.id}">
             <img src="/assets/plus.svg" alt=""><span>Add set</span>
         </button>
     `;
@@ -2245,14 +2245,14 @@ function generateOperationSetHTML(operationSet, operation, setCounter) {
     if (operationSet.distance != null && operationSet.time != null && operationSet.time > 0) {
         average = parseFloat(operationSet.distance / (operationSet.time / 3600)).toFixed(2);
     }
-    const onChange = `updateOperationSet('${operationSet.id}', '${setCounter}')`;
+    const onChange = `data-action="updateOperationSet" data-set-id="${operationSet.id}" data-set-counter="${setCounter}"`;
 
     return `
-        <span class="we-col we-col-set we-set-num clickable" id="operation-set-counter-${operationSet.id}" title="Delete set" onclick="deleteOperationSet('${operationSet.id}')">${setCounter}</span>
-        <span class="we-col we-col-weight"><input class="we-set-input" type="number" min="0" inputmode="decimal" id="operation-set-weight-input-${operationSet.id}" placeholder="–" value="${weight}" onchange="${onChange}"></span>
-        <span class="we-col we-col-reps"><input class="we-set-input" type="number" min="0" inputmode="numeric" id="operation-set-rep-input-${operationSet.id}" placeholder="–" value="${reps}" onchange="${onChange}"></span>
-        <span class="we-col we-col-time"><input class="we-set-input" type="text" pattern="[0-9:]{0,}" id="operation-set-time-input-${operationSet.id}" placeholder="0:00" value="${time}" onchange="${onChange}"></span>
-        <span class="we-col we-col-dist"><input class="we-set-input" type="number" min="0" inputmode="decimal" id="operation-set-distance-input-${operationSet.id}" placeholder="–" value="${distance}" onchange="${onChange}"></span>
+        <span class="we-col we-col-set we-set-num clickable" id="operation-set-counter-${operationSet.id}" title="Delete set" data-action="deleteOperationSet" data-set-id="${operationSet.id}">${setCounter}</span>
+        <span class="we-col we-col-weight"><input class="we-set-input" type="number" min="0" inputmode="decimal" id="operation-set-weight-input-${operationSet.id}" placeholder="–" value="${weight}" ${onChange}></span>
+        <span class="we-col we-col-reps"><input class="we-set-input" type="number" min="0" inputmode="numeric" id="operation-set-rep-input-${operationSet.id}" placeholder="–" value="${reps}" ${onChange}></span>
+        <span class="we-col we-col-time"><input class="we-set-input" type="text" pattern="[0-9:]{0,}" id="operation-set-time-input-${operationSet.id}" placeholder="0:00" value="${time}" ${onChange}></span>
+        <span class="we-col we-col-dist"><input class="we-set-input" type="number" min="0" inputmode="decimal" id="operation-set-distance-input-${operationSet.id}" placeholder="–" value="${distance}" ${onChange}></span>
         <span class="we-col we-col-avg we-set-avg">${average}</span>
     `;
 }
@@ -2467,7 +2467,7 @@ function placeNewOperationSet(operationSet, operationID, operation) {
 
 function updateOperation(operationID) {
     console.log('Updating operation...')
-    toggleActionBorder(operationID, 'none');
+    markActionInvalid(operationID, false);
 
     var type = document.getElementById('operation-type-text-' + operationID).value
     var action = document.getElementById('operation-action-text-' + operationID).value
@@ -2512,7 +2512,7 @@ function updateOperation(operationID) {
             
             if(result.error) {
                 console.log(result.error);
-                toggleActionBorder(operationID, 'salmon');
+                markActionInvalid(operationID, true);
             } else {
                 placeOperation(result.operation)
             }
@@ -2740,14 +2740,14 @@ function processExerciseList(operationID) {
     actions.forEach(function(action){
         if(action.name && action.name != "") {
             exerciseListHTML += `
-                <a value="" data-action-name="${escapeHTML(action.name)}" onclick="selectActionForOperation('${operationID}', this.dataset.actionName)" class="dropdown-action clickable">
+                <a value="" data-action="selectActionForOperation" data-operation-id="${operationID}" data-action-name="${escapeHTML(action.name)}" class="dropdown-action clickable">
                     ${escapeHTML(action.name)}
                 </a>
             `
         }
         if(action.norwegian_name && action.norwegian_name != "" && action.norwegian_name != action.name) {
             exerciseListHTML += `
-                <a value="" data-action-name="${escapeHTML(action.norwegian_name)}" onclick="selectActionForOperation('${operationID}', this.dataset.actionName)" class="dropdown-action clickable">
+                <a value="" data-action="selectActionForOperation" data-operation-id="${operationID}" data-action-name="${escapeHTML(action.norwegian_name)}" class="dropdown-action clickable">
                     ${escapeHTML(action.norwegian_name)}
                 </a>
             `
@@ -2899,9 +2899,9 @@ function selectActionForOperation(operationID, actionName) {
     updateOperation(operationID)
 }
 
-function toggleActionBorder(operationID, color) {
-    element = document.getElementById('operation-action-text-' + operationID)
-    element.setAttribute('style', `border:0.2em solid ${color} !important`);
+// markActionInvalid outlines an activity-type input the API rejected, or clears the outline.
+function markActionInvalid(operationID, invalid) {
+    document.getElementById('operation-action-text-' + operationID).classList.toggle('we-action-input-invalid', invalid);
 }
 
 function addAction(operationID) {
@@ -2953,7 +2953,7 @@ function addAction(operationID) {
                 <input class="trm-input" type="text" id="new-action-bodypart-input-${operationID}" name="new-action-bodypart-input" placeholder="Legs" value="">
             </div>
 
-            <button type="submit" class="btn btn--primary" onclick="createAction('${operationID}');"><img src="/assets/done.svg">Add and use</button>
+            <button type="submit" class="btn btn--primary" data-action="createAction" data-operation-id="${operationID}"><img src="/assets/done.svg">Add and use</button>
         </div>
     `;
 
@@ -3056,10 +3056,10 @@ function generateGearFieldHTML(exercise) {
         <label class="we-field">
             <span class="we-field-label">Set gear for all</span>
             <div class="we-gear-row">
-                <select class="we-input we-gear-select" id="exercise-gear-${exercise.id}" onchange="setExerciseGear('${exercise.id}', this.value)">
+                <select class="we-input we-gear-select" id="exercise-gear-${exercise.id}" data-action="setExerciseGear" data-exercise-id="${exercise.id}">
                     ${gearOptionsHTML(currentID)}
                 </select>
-                <img src="/assets/sliders.svg" class="btn_logo clickable wv-action-icon" title="Manage gear" onclick="openGearModal()">
+                <img src="/assets/sliders.svg" class="btn_logo clickable wv-action-icon" title="Manage gear" data-action="openGearModal">
             </div>
         </label>
     `;
@@ -3190,9 +3190,9 @@ window.addEventListener('click', function(e){
 function closeAllLists() {
     lists = document.getElementsByClassName('dropdown-actions-wrapper');
     for(var i = 0; i < lists.length; i++) {
-        if(lists[i].style.display == 'flex') {
+        if(!lists[i].hidden) {
             operationID = lists[i].id.replace('operation-action-text-list-', '')
-            lists[i].style.display = 'none';
+            lists[i].hidden = true;
             updateOperation(operationID)
         }
     }
@@ -3332,7 +3332,56 @@ var groups;
 var jwt;
 var exerciseList = [];
 
+// bindExerciseActions wires the page's delegated handlers once (strict CSP: no inline
+// handlers). The day view and the editor re-render often; every control carries a
+// data-action plus its arguments as data-* attributes.
+function bindExerciseActions() {
+    var body = document.body;
+    var exerciseArgs = function(element, on) {
+        updateExercise(element.dataset.exerciseId, on, Number(element.dataset.count), element.dataset.time, true);
+    };
+    on_action(body, {
+        toggleTag: function(element) { toggleTag(element.dataset.operationId, element); },
+        combineStravaExercises: function() { combineStravaExercises(); },
+        openWeekDay: function(element) { openWeekDay(Number(element.dataset.weekday)); },
+        addExercise: function(element) { addExercise(element.dataset.exerciseDayId); },
+        openGearModal: function() { openGearModal(); },
+        deleteExercise: function(element) { exerciseArgs(element, false); },
+        restoreExercise: function(element) { exerciseArgs(element, true); },
+        divideStravaExercises: function(element) { divideStravaExercises(element.dataset.exerciseId); },
+        switchToFullEditor: function(element) { switchToFullEditor(element.dataset.exerciseId); },
+        stravaSyncOperationSet: function(element) { stravaSyncOperationSet(element.dataset.setId); },
+        mediaSyncExercise: function(element) { mediaSyncExercise(element.dataset.exerciseId); },
+        addOperation: function(element) { addOperation(element.dataset.exerciseId); },
+        addAction: function(element) { addAction(element.dataset.operationId); },
+        deleteOperation: function(element) { deleteOperation(element.dataset.operationId); },
+        addOperationSet: function(element) { addOperationSet(element.dataset.operationId); },
+        deleteOperationSet: function(element) { deleteOperationSet(element.dataset.setId); },
+        selectActionForOperation: function(element) {
+            selectActionForOperation(element.dataset.operationId, element.dataset.actionName);
+        },
+        createAction: function(element) { createAction(element.dataset.operationId); }
+    });
+    on_action(body, {
+        dayNote: function(element) { updateExerciseDay(element.dataset.exerciseDayId); },
+        updateExercise: function(element) { exerciseArgs(element, true); },
+        updateOperation: function(element) { updateOperation(element.dataset.operationId); },
+        updateOperationSet: function(element) { updateOperationSet(element.dataset.setId, element.dataset.setCounter); },
+        setExerciseGear: function(element) { setExerciseGear(element.dataset.exerciseId, element.value); }
+    }, 'change');
+    on_action(body, {
+        dayNote: function() { clearDayNoteStatus(); }
+    }, 'input');
+    on_action(body, {
+        actionSearch: function(element) { filterFunction(element.dataset.operationId); }
+    }, 'keyup');
+    on_action(body, {
+        actionSearch: function(element) { showSelectDropdown(element.dataset.operationId, true); }
+    }, 'focusin');
+}
+
 document.addEventListener('DOMContentLoaded', function() {
+    bindExerciseActions();
     info('Loading...');
     showLoggedOutMenu();
     jwt = get_cookie('treningheten');

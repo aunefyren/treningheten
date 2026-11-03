@@ -197,9 +197,63 @@ function achievementImageURL(achievementID, thumbnail) {
     return url;
 }
 
-// IMAGE_FALLBACK_ONERROR is the inline onerror handler for profile/achievement <img> tags:
-// if the request fails (e.g. expired session), swap in the local placeholder once.
-var IMAGE_FALLBACK_ONERROR = "this.onerror=null;this.src='/assets/images/barbell.gif'";
+// Image fallbacks without inline onerror handlers (strict CSP). An <img> opts in with
+// data-fallback; error events don't bubble, so one capturing listener sees them all:
+//   data-fallback="placeholder": swap in the local placeholder once (profile/achievement
+//     images whose request fails, e.g. on an expired session).
+//   data-fallback="hide": hide the image (an action logo with no SVG).
+//   data-fallback="glyph": replace the image with the text in data-glyph.
+document.addEventListener('error', function(event) {
+    var image = event.target;
+    if (!(image instanceof HTMLImageElement) || !image.dataset.fallback) {
+        return;
+    }
+    var fallback = image.dataset.fallback;
+    delete image.dataset.fallback;
+    if (fallback === 'placeholder') {
+        image.src = '/assets/images/barbell.gif';
+    } else if (fallback === 'hide') {
+        image.hidden = true;
+    } else if (fallback === 'glyph') {
+        image.replaceWith(document.createTextNode(image.dataset.glyph || ''));
+    }
+}, true);
+
+// Dynamic styles without style attributes (strict CSP blocks those, not the CSSOM). JS-built
+// markup carries one of these data attributes, applied as soon as the markup is inserted:
+//   data-width="42": width as a percentage (progress, split and zone bars).
+//   data-bg-color="#4363d8": background colour (wheel swatches).
+//   data-bg-image="https://...": background image URL (soundtrack cover art).
+//   data-cat-color="#e6194b": the --cat-color custom property (achievement category ring).
+var DATA_STYLES = {
+    width: function(style, value) { style.width = parseFloat(value) + '%'; },
+    bgColor: function(style, value) { style.backgroundColor = value; },
+    bgImage: function(style, value) { style.backgroundImage = 'url("' + value.replace(/["\\\n]/g, '\\$&') + '")'; },
+    catColor: function(style, value) { style.setProperty('--cat-color', value); }
+};
+var DATA_STYLES_SELECTOR = '[data-width], [data-bg-color], [data-bg-image], [data-cat-color]';
+
+function applyDataStyles(element) {
+    for (var key in DATA_STYLES) {
+        if (element.dataset[key] !== undefined) {
+            DATA_STYLES[key](element.style, element.dataset[key]);
+        }
+    }
+}
+
+new MutationObserver(function(mutations) {
+    mutations.forEach(function(mutation) {
+        mutation.addedNodes.forEach(function(node) {
+            if (node.nodeType !== Node.ELEMENT_NODE) {
+                return;
+            }
+            if (node.matches(DATA_STYLES_SELECTOR)) {
+                applyDataStyles(node);
+            }
+            node.querySelectorAll(DATA_STYLES_SELECTOR).forEach(applyDataStyles);
+        });
+    });
+}).observe(document.documentElement, { childList: true, subtree: true });
 
 // Make XHTTP requests
 function makeRequest (method, url, data) {
@@ -363,8 +417,8 @@ function invalid_session() {
             <div class="text-body u-text-center" id="front-page-text">
                 Log in to use the platform.
             </div>
-            <div id="log-in-button" style="margin-top: 2em; display: flex; width: 10em;">
-                <button class="btn" id="update-button" type="submit" href="#" onclick="window.location = '/login';">Log in</button>
+            <div id="log-in-button" class="login-cta login-cta--flex">
+                <button class="btn" id="update-button" type="submit" href="#" data-action="openURL" data-href="/login">Log in</button>
             </div>
         </div>
     </div>
@@ -566,6 +620,23 @@ function on_action(container, handlers, eventName) {
         }
     });
 }
+
+// Navigation actions shared by every page's JS-built markup, in place of inline onclick
+// navigation: data-action="openURL" (same tab), "replaceURL" (replaces the history entry) or
+// "openTab" (new tab, without an opener), each with the target in data-href. Pages must not
+// reuse these names.
+document.addEventListener('DOMContentLoaded', function() {
+    // Chart.js would inject its own style element, which the strict CSP blocks; pages that
+    // load Chart.js link its Chart.min.css instead.
+    if (window.Chart && Chart.platform) {
+        Chart.platform.disableCSSInjection = true;
+    }
+    on_action(document.body, {
+        openURL: function(element) { window.location.href = element.dataset.href; },
+        replaceURL: function(element) { window.location.replace(element.dataset.href); },
+        openTab: function(element) { window.open(element.dataset.href, '_blank', 'noopener'); }
+    });
+});
 
 // Close the open mobile dropdown when clicking outside the nav (modal backdrop
 // dismissal is handled by TRModal).
@@ -1021,11 +1092,7 @@ function parseDurationStringToSeconds(duration) {
 }
 
 function showSelectDropdown(operationID, toggle) {
-    if(toggle) {
-        document.getElementById("operation-action-text-list-" + operationID).style.display = "flex";
-    } else {
-        document.getElementById("operation-action-text-list-" + operationID).style.display = "none";
-    }
+    document.getElementById("operation-action-text-list-" + operationID).hidden = !toggle;
     filterFunction(operationID);
 }
 
@@ -1044,7 +1111,7 @@ function filterFunction(operationID) {
             a[i].style.display = "none";
         }
     }
-    toggleActionBorder(operationID, 'none');
+    markActionInvalid(operationID, false);
 }
 
 function logInPageRedirect(errorMessage) {

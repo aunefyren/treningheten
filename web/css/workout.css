@@ -1084,6 +1084,8 @@ button.wv-split:focus-visible { outline: none; box-shadow: 0 0 0 3px var(--focus
 .we-type-select { width: auto; flex-shrink: 0; padding: 0.55rem 0.4rem; text-align: center; }
 .we-action { position: relative; flex: 1; min-width: 0; }
 .we-action-input { width: 100%; }
+/* An activity type the API rejected (markActionInvalid in exercise.js). */
+.we-action-input.we-action-input-invalid { border: 0.2em solid salmon !important; }
 .we-exercise-head .wv-action-icon { padding: 0.5rem; }
 
 .we-op-note { margin-top: 0.6rem; }

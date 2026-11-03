@@ -31,7 +31,7 @@ function load_page(result) {
 
                     <div class="module">
 
-                        <div id="news-title" class="title" style="display: none;">
+                        <div id="news-title" class="title" hidden>
                             News:
                         </div>
 
@@ -40,8 +40,8 @@ function load_page(result) {
                         
                     </div>
 
-                    <div class="module" id="new-news" style="display:none;">
-                        <form action="" onsubmit="event.preventDefault(); create_news();">
+                    <div class="module" id="new-news" hidden>
+                        <form action="" data-action="createNews">
                             
                             <div class="field">
                                 <label for="news_title" class="field-label">Post title</label>
@@ -76,7 +76,7 @@ function load_page(result) {
         closeNotifications("news");
 
         if(admin) {
-            document.getElementById('new-news').style.display = "flex";
+            document.getElementById('new-news').hidden = false;
         }
         
         get_news();
@@ -136,7 +136,7 @@ function place_news(news_array) {
         info("No news posts found.");
         return;
     } else {
-        document.getElementById("news-title").style.display = "inline-block"
+        document.getElementById("news-title").hidden = false
     }
 
     news_object = document.getElementById("news-box")
@@ -157,7 +157,7 @@ function place_news(news_array) {
 
         if(admin) {
             html += `<div class="text-date">`;
-            html += `<img src="assets/trash-2.svg" onclick="deleteNews(${news_array[i].id})" class="btn btn--icon clickable">`
+            html += `<img src="assets/trash-2.svg" data-action="deleteNews" data-news-id="${news_array[i].id}" class="btn btn--icon clickable">`
             html += '</div>';
         }
         
@@ -286,7 +286,18 @@ function deleteNews(newsID) {
 var groups;
 var jwt;
 
+// bindNewsActions wires the page's delegated handlers once (strict CSP: no inline handlers).
+function bindNewsActions() {
+    on_action(document.body, {
+        deleteNews: function(element) { deleteNews(element.dataset.newsId); }
+    });
+    on_action(document.body, {
+        createNews: function(element, event) { event.preventDefault(); create_news(); }
+    }, 'submit');
+}
+
 document.addEventListener('DOMContentLoaded', function() {
+    bindNewsActions();
     info('Loading...');
     showLoggedOutMenu();
     jwt = get_cookie('treningheten');

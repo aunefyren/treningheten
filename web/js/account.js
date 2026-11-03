@@ -71,8 +71,8 @@ function load_page(result) {
             <p id="user_admin"></p>
 
             <div class="btn-group">
-                <button onclick="window.location.href = '/users/${user_id}';" class="btn" type="button">Public profile</button>
-                <button onclick="window.location.href = '/gear';" class="btn" type="button">Manage gear</button>
+                <button data-action="openURL" data-href="/users/${user_id}" class="btn" type="button">Public profile</button>
+                <button data-action="openURL" data-href="/gear" class="btn" type="button">Manage gear</button>
             </div>
 
             ${settingsGroupHTML("Account",
@@ -106,8 +106,8 @@ function load_page(result) {
             </div>
 
             <div class="btn-group">
-                <button onclick="leaveSeason();" class="btn btn--danger" type="button">Leave season</button>
-                <button onclick="deleteAccount();" class="btn btn--danger" type="button">Delete account</button>
+                <button data-action="leaveSeason" class="btn btn--danger" type="button">Leave season</button>
+                <button data-action="deleteAccount" class="btn btn--danger" type="button">Delete account</button>
             </div>
 
         </div>
@@ -160,7 +160,7 @@ function settingsGroupHTML(title, sectionsHTML) {
 function accountSectionHTML(key, title, bodyHTML, bodyClass) {
     return `
         <div class="account-section" id="${key}-section">
-            <button type="button" class="account-section-tab" aria-expanded="false" aria-controls="${key}-wrapper" onclick="toggleSection('${key}-wrapper', 'section-button-${key}')">
+            <button type="button" class="account-section-tab" aria-expanded="false" aria-controls="${key}-wrapper" data-action="toggleSection" data-key="${key}">
                 <span class="account-section-title">${title}<span id="section-status-${key}"></span></span>
                 <img id="section-button-${key}" src="assets/chevron-right.svg" class="u-m-2" alt="">
             </button>
@@ -173,7 +173,7 @@ function accountSectionHTML(key, title, bodyHTML, bodyClass) {
 
 function accountSettingsBodyHTML() {
     return `
-        <form action="" onsubmit="event.preventDefault(); updateAccount('${user_id}');">
+        <form action="" data-action="updateAccount" data-user-id="${user_id}">
 
             <div class="field">
                 <label for="email" class="field-label">Replace email</label>
@@ -186,11 +186,11 @@ function accountSettingsBodyHTML() {
             </div>
 
             <div class="field-check">
-                <input onclick="togglePasswordFields();" type="checkbox" id="password-toggle" name="confirm" value="confirm">
+                <input data-action="togglePasswordFields" type="checkbox" id="password-toggle" name="confirm" value="confirm">
                 <label for="password-toggle">Change my password.</label>
             </div>
 
-            <div id="change-password-box" class="settings-stack" style="display:none;">
+            <div id="change-password-box" class="settings-stack" hidden>
 
                 <div class="field">
                     <label for="password" class="field-label">New password</label>
@@ -254,13 +254,13 @@ function notificationsBodyHTML(vapidPublicKey) {
         </div>
 
         <div class="btn-group">
-            <button type="button" class="btn btn--primary" onclick="create_push('${vapidPublicKey}'); return false;">Notify me on this device</button>
+            <button type="button" class="btn btn--primary" data-action="createPush" data-key="${vapidPublicKey}">Notify me on this device</button>
         </div>
 
         <h3 class="settings-subtitle">E-mail</h3>
 
         <div class="field-check">
-            <input type="checkbox" id="sunday_alert" name="sunday_alert" onchange="updateAccountValue('sunday_alert');">
+            <input type="checkbox" id="sunday_alert" name="sunday_alert" data-action="updateAccountValue">
             <label for="sunday_alert">Send me e-mail logging reminders on Sundays.</label>
         </div>
     `;
@@ -284,7 +284,7 @@ function trainingBodyHTML(goalCountingEnabled) {
         <h3 class="settings-subtitle">Heart rate and age</h3>
         <p class="settings-text">These set the heart-rate zones on your activities.</p>
 
-        <form action="" onsubmit="event.preventDefault(); saveTrainingProfile();">
+        <form action="" data-action="saveTrainingProfile">
 
             <div class="field">
                 <label for="birth_date" class="field-label">Birth date</label>
@@ -294,13 +294,13 @@ function trainingBodyHTML(goalCountingEnabled) {
             <div class="field-row">
                 <div class="field">
                     <label for="max_heartrate" class="field-label">Max heart rate</label>
-                    <input type="number" name="max_heartrate" id="max_heartrate" min="100" max="240" placeholder="Automatic" oninput="updateMaxHRHint(); updateHRZonePreview();" />
+                    <input type="number" name="max_heartrate" id="max_heartrate" min="100" max="240" placeholder="Automatic" data-action="maxHeartrateInput" />
                     <span class="field-hint">Optional. Leave it on automatic and {{.appName}} uses the highest heart rate seen in your activities, or estimates from your age.</span>
                     <span class="field-hint" id="max_heartrate_status"></span>
                 </div>
                 <div class="field">
                     <label for="resting_heartrate" class="field-label">Resting heart rate</label>
-                    <input type="number" name="resting_heartrate" id="resting_heartrate" min="25" max="120" placeholder="e.g. 50" oninput="updateHRZonePreview()" />
+                    <input type="number" name="resting_heartrate" id="resting_heartrate" min="25" max="120" placeholder="e.g. 50" data-action="restingHeartrateInput" />
                     <span class="field-hint">Optional. Only the heart-rate reserve zone system uses it.</span>
                 </div>
             </div>
@@ -309,14 +309,14 @@ function trainingBodyHTML(goalCountingEnabled) {
                 <label for="sport-max-hr-add" class="field-label">Max heart rate per sport</label>
                 <span class="field-hint">Optional. Max heart rate differs between sports — cycling often sits a few beats under running. Sports without one use the max above.</span>
                 <div class="sport-max-hr-list" id="sport-max-hr-list"></div>
-                <select id="sport-max-hr-add" onchange="addSportMaxHR(this.value)">
+                <select id="sport-max-hr-add" data-action="addSportMaxHR">
                     <option value="">Loading sports…</option>
                 </select>
             </div>
 
             <div class="field">
                 <label for="hr_zone_system" class="field-label">Zone system</label>
-                <select name="hr_zone_system" id="hr_zone_system" onchange="updateHRZonePreview()"></select>
+                <select name="hr_zone_system" id="hr_zone_system" data-action="hrZoneSystemChange"></select>
                 <span class="field-hint" id="hr_zone_system_description"></span>
                 <div class="hr-zone-preview" id="hr_zone_preview"></div>
             </div>
@@ -333,7 +333,7 @@ function trainingBodyHTML(goalCountingEnabled) {
 
 function togglePasswordFields() {
     var passwordBox = document.getElementById("change-password-box");
-    passwordBox.style.display = document.getElementById("password-toggle").checked ? "flex" : "none";
+    passwordBox.hidden = !document.getElementById("password-toggle").checked;
 }
 
 // updateAccount sends the password-gated account form: e-mail, password, profile image and
@@ -551,10 +551,10 @@ function updateMaxHRHint() {
     var auto = autoMaxHRDescription();
     if (value !== "") {
         status.innerHTML = "Zones are anchored to " + escapeHTML(value) + " bpm. " +
-            '<a href="#" class="user-link" onclick="clearMaxHRAnchor(); return false;">Use automatic instead</a> (' + auto + ").";
+            '<a href="#" class="user-link" data-action="clearMaxHRAnchor">Use automatic instead</a> (' + auto + ").";
     } else {
         status.innerHTML = "Automatic — zones use " + auto + "." +
-            (hrObservedMax ? ' <a href="#" class="user-link" onclick="useObservedMaxHeartrate(' + hrObservedMax + '); return false;">Pin ' + hrObservedMax + " bpm</a>." : "");
+            (hrObservedMax ? ' <a href="#" class="user-link" data-action="useObservedMaxHeartrate" data-bpm="' + hrObservedMax + '">Pin ' + hrObservedMax + " bpm</a>." : "");
     }
 }
 
@@ -723,14 +723,14 @@ function renderSportMaxHR() {
     list.innerHTML = listed.map(function(sport) {
         var id = escapeHTML(sport.action_id);
         var hint = sport.observed_max_heartrate
-            ? "Highest seen: " + sport.observed_max_heartrate + ' bpm. <a href="#" class="user-link" onclick="pinSportObservedMax(\'' + id + '\'); return false;">Pin it</a>.'
+            ? "Highest seen: " + sport.observed_max_heartrate + ' bpm. <a href="#" class="user-link" data-action="pinSportObservedMax" data-action-id="' + id + '">Pin it</a>.'
             : "No heart rate recorded for this sport yet.";
         return `
             <div class="sport-max-hr-item">
                 <div class="sport-max-hr-row">
                     <label for="sport_max_hr_${id}" class="sport-max-hr-name">${escapeHTML(sport.action_name)}</label>
                     <input type="number" id="sport_max_hr_${id}" min="100" max="240" placeholder="bpm" value="${escapeHTML(sportMaxDraft[sport.action_id])}" />
-                    <button type="button" class="btn btn--ghost btn--sm" onclick="removeSportMaxHR('${id}')">Remove</button>
+                    <button type="button" class="btn btn--ghost btn--sm" data-action="removeSportMaxHR" data-action-id="${id}">Remove</button>
                 </div>
                 <span class="field-hint">${hint}</span>
             </div>
@@ -851,7 +851,7 @@ function renderStravaSection(userObject) {
         </p>
 
         <div class="btn-group">
-            <button onclick="window.location.href='${stravaOauth}';" class="btn btn--primary integration-btn" type="button">Connect Strava</button>
+            <button data-action="openURL" data-href="${escapeHTML(stravaOauth)}" class="btn btn--primary integration-btn" type="button">Connect Strava</button>
         </div>
     `;
 
@@ -863,7 +863,7 @@ function renderStravaSection(userObject) {
         // back in alongside the usual controls.
         var reconnectStravaButton = "";
         if(stravaHealth && stravaHealth.status == "auth_failed") {
-            reconnectStravaButton = `<button onclick="window.location.href='${stravaOauth}';" class="btn integration-btn" type="button">Reconnect Strava</button>`;
+            reconnectStravaButton = `<button data-action="openURL" data-href="${escapeHTML(stravaOauth)}" class="btn integration-btn" type="button">Reconnect Strava</button>`;
         }
 
         stravaHTML = `
@@ -875,7 +875,7 @@ function renderStravaSection(userObject) {
 
             <div class="field-check-group">
                 <div class="field-check">
-                    <input type="checkbox" id="strava_public" name="strava_public" onchange="updateAccountValue('strava_public');" ${userObject.strava_public ? "checked" : ""}>
+                    <input type="checkbox" id="strava_public" name="strava_public" data-action="updateAccountValue" ${userObject.strava_public ? "checked" : ""}>
                     <label for="strava_public">Show my Strava on my profile</label>
                 </div>
             </div>
@@ -884,8 +884,8 @@ function renderStravaSection(userObject) {
 
             <div class="btn-group">
                 ${reconnectStravaButton}
-                <button onclick="syncStrava('${userObject.id}');" class="btn integration-btn" type="button">Sync Strava now</button>
-                <button onclick="disconnectStrava('${userObject.id}');" class="btn btn--danger integration-btn" type="button">Disconnect Strava</button>
+                <button data-action="syncStrava" data-user-id="${userObject.id}" class="btn integration-btn" type="button">Sync Strava now</button>
+                <button data-action="disconnectStrava" data-user-id="${userObject.id}" class="btn btn--danger integration-btn" type="button">Disconnect Strava</button>
             </div>
         `;
     }
@@ -928,7 +928,7 @@ function renderHevySection(userObject) {
 
         <div class="btn-group">
             <input id="hevy_api_key" type="password" placeholder="Hevy API key" autocomplete="off" aria-label="Hevy API key" class="u-w-16">
-            <button onclick="setHevy('${userObject.id}');" class="btn btn--primary integration-btn" type="button">Connect Hevy</button>
+            <button data-action="setHevy" data-user-id="${userObject.id}" class="btn btn--primary integration-btn" type="button">Connect Hevy</button>
         </div>
     `;
 
@@ -942,7 +942,7 @@ function renderHevySection(userObject) {
             </p>
 
             <div class="field-check">
-                <input type="checkbox" id="hevy_public" name="hevy_public" onchange="updateAccountValue('hevy_public');" ${userObject.hevy_public ? "checked" : ""}>
+                <input type="checkbox" id="hevy_public" name="hevy_public" data-action="updateAccountValue" ${userObject.hevy_public ? "checked" : ""}>
                 <label for="hevy_public">Show my Hevy on my profile</label>
             </div>
 
@@ -950,12 +950,12 @@ function renderHevySection(userObject) {
 
             <div class="btn-group">
                 <input id="hevy_api_key" type="password" placeholder="Replace Hevy API key" autocomplete="off" aria-label="Replace Hevy API key" class="u-w-16">
-                <button onclick="setHevy('${userObject.id}');" class="btn integration-btn" type="button">Update key</button>
+                <button data-action="setHevy" data-user-id="${userObject.id}" class="btn integration-btn" type="button">Update key</button>
             </div>
 
             <div class="btn-group">
-                <button onclick="syncHevy('${userObject.id}');" class="btn integration-btn" type="button">Sync Hevy now</button>
-                <button onclick="disconnectHevy('${userObject.id}');" class="btn btn--danger integration-btn" type="button">Disconnect Hevy</button>
+                <button data-action="syncHevy" data-user-id="${userObject.id}" class="btn integration-btn" type="button">Sync Hevy now</button>
+                <button data-action="disconnectHevy" data-user-id="${userObject.id}" class="btn btn--danger integration-btn" type="button">Disconnect Hevy</button>
             </div>
         `;
     }
@@ -1019,7 +1019,7 @@ function placeDuplicateActivities(userObject, sources) {
         </p>
 
         <div class="field-check">
-            <input type="checkbox" id="duplicate_detection" onchange="toggleDuplicateDetection(this.checked);" ${duplicateDetectionOn ? "checked" : ""}>
+            <input type="checkbox" id="duplicate_detection" data-action="toggleDuplicateDetection" ${duplicateDetectionOn ? "checked" : ""}>
             <label for="duplicate_detection">Hide duplicate workouts</label>
         </div>
 
@@ -1039,7 +1039,7 @@ function renderActivitySourceOrder() {
 
     field.style.display = duplicateDetectionOn ? "" : "none";
     list.innerHTML = activitySourceOrder.map(function(source, index) {
-        var moveUp = index === 0 ? "" : `<button type="button" class="btn btn--ghost btn--sm" onclick="moveActivitySourceUp(${index});">Move up</button>`;
+        var moveUp = index === 0 ? "" : `<button type="button" class="btn btn--ghost btn--sm" data-action="moveActivitySourceUp" data-index="${index}">Move up</button>`;
         return `
             <li class="source-priority-row">
                 <span class="source-priority-rank">${index + 1}</span>
@@ -1162,8 +1162,8 @@ function placeGoalCountingSection() {
         </p>
         <div class="goal-exclude">
             <div class="goal-exclude-input-wrap">
-                <input type="text" id="goal-exclude-search" autocomplete="off" aria-label="Search activity types to exclude" placeholder="Search activity types to exclude…" onkeyup="filterGoalExcludeOptions()" onfocus="showGoalExcludeDropdown(true)">
-                <div id="goal-exclude-dropdown" class="goal-exclude-dropdown" style="display: none;"></div>
+                <input type="text" id="goal-exclude-search" autocomplete="off" aria-label="Search activity types to exclude" placeholder="Search activity types to exclude…" data-action="goalExcludeSearch">
+                <div id="goal-exclude-dropdown" class="goal-exclude-dropdown" hidden></div>
             </div>
             <div id="goal-exclude-chips" class="goal-exclude-chips"></div>
         </div>
@@ -1188,7 +1188,7 @@ function renderGoalExcludeChips() {
         return;
     }
     container.innerHTML = excluded.map(function(setting) {
-        return `<span class="goal-exclude-chip">${escapeHTML(setting.action_name)}<button type="button" title="Count this type again" onclick="includeGoalActivity('${setting.action_id}')">×</button></span>`;
+        return `<span class="goal-exclude-chip">${escapeHTML(setting.action_name)}<button type="button" title="Count this type again" data-action="includeGoalActivity" data-action-id="${setting.action_id}">×</button></span>`;
     }).join("");
 }
 
@@ -1207,7 +1207,7 @@ function renderGoalExcludeOptions(filterText) {
         return;
     }
     dropdown.innerHTML = available.map(function(setting) {
-        return `<div class="goal-exclude-option clickable" onclick="excludeGoalActivity('${setting.action_id}')">${escapeHTML(setting.action_name)}</div>`;
+        return `<div class="goal-exclude-option clickable" data-action="excludeGoalActivity" data-action-id="${setting.action_id}">${escapeHTML(setting.action_name)}</div>`;
     }).join("");
 }
 
@@ -1219,7 +1219,7 @@ function filterGoalExcludeOptions() {
 
 function showGoalExcludeDropdown(show) {
     var dropdown = document.getElementById("goal-exclude-dropdown");
-    if(dropdown) dropdown.style.display = show ? 'block' : 'none';
+    if(dropdown) dropdown.hidden = !show;
 }
 
 function excludeGoalActivity(actionID) { updateGoalCounting(actionID, false); }
@@ -1276,7 +1276,7 @@ function openGoalCounting() {
 function goalCountingHintHTML() {
     return `
         <p class="goal-count-hint">
-            Not every activity has to count — pick which types are excluded under <a href="#" class="goal-count-hint-link" onclick="openGoalCounting(); return false;">Training</a>.
+            Not every activity has to count — pick which types are excluded under <a href="#" class="goal-count-hint-link" data-action="openGoalCounting">Training</a>.
         </p>
     `;
 }
@@ -1355,7 +1355,7 @@ function renderPlexSection(connection) {
         </p>
 
         <div class="btn-group">
-            <button onclick="connectPlex();" class="btn btn--primary integration-btn" type="button">Connect Plex</button>
+            <button data-action="connectPlex" class="btn btn--primary integration-btn" type="button">Connect Plex</button>
         </div>
     `;
 
@@ -1379,12 +1379,12 @@ function renderPlexSection(connection) {
             </div>
 
             <div class="btn-group">
-                <button onclick="savePlexServerURL();" class="btn integration-btn" type="button">Save server URL</button>
+                <button data-action="savePlexServerURL" class="btn integration-btn" type="button">Save server URL</button>
             </div>
 
             <div class="btn-group">
-                <button onclick="connectPlex();" class="btn integration-btn" type="button">Reconnect Plex</button>
-                <button onclick="disconnectPlex();" class="btn btn--danger integration-btn" type="button">Disconnect Plex</button>
+                <button data-action="connectPlex" class="btn integration-btn" type="button">Reconnect Plex</button>
+                <button data-action="disconnectPlex" class="btn btn--danger integration-btn" type="button">Disconnect Plex</button>
             </div>
         `;
     }
@@ -1586,7 +1586,7 @@ function renderSpotifySection(connection) {
         </p>
 
         <div class="btn-group">
-            <button onclick="connectSpotify();" class="btn btn--primary integration-btn" type="button">Connect Spotify</button>
+            <button data-action="connectSpotify" class="btn btn--primary integration-btn" type="button">Connect Spotify</button>
         </div>
     `;
 
@@ -1599,8 +1599,8 @@ function renderSpotifySection(connection) {
             </p>
 
             <div class="btn-group">
-                <button onclick="connectSpotify();" class="btn integration-btn" type="button">Reconnect Spotify</button>
-                <button onclick="disconnectSpotify();" class="btn btn--danger integration-btn" type="button">Disconnect Spotify</button>
+                <button data-action="connectSpotify" class="btn integration-btn" type="button">Reconnect Spotify</button>
+                <button data-action="disconnectSpotify" class="btn btn--danger integration-btn" type="button">Disconnect Spotify</button>
             </div>
         `;
     }
@@ -1661,7 +1661,7 @@ function renderAudiobookshelfSection(connection) {
         : `<p class="settings-text">Connect Audiobookshelf to overlay the audiobooks and podcasts you listened to onto your workouts. Enter your server URL and an API token from your Audiobookshelf account settings.</p>`;
 
     var disconnectHTML = connected
-        ? `<button onclick="disconnectAudiobookshelf();" class="btn btn--danger integration-btn" type="button">Disconnect</button>`
+        ? `<button data-action="disconnectAudiobookshelf" class="btn btn--danger integration-btn" type="button">Disconnect</button>`
         : "";
 
     var absHTML = `
@@ -1678,7 +1678,7 @@ function renderAudiobookshelfSection(connection) {
         </div>
 
         <div class="btn-group">
-            <button onclick="connectAudiobookshelf();" class="btn ${connected ? "" : "btn--primary "}integration-btn" type="button">${connected ? "Reconnect" : "Connect"}</button>
+            <button data-action="connectAudiobookshelf" class="btn ${connected ? "" : "btn--primary "}integration-btn" type="button">${connected ? "Reconnect" : "Connect"}</button>
             ${disconnectHTML}
         </div>
     `;
@@ -2046,7 +2046,7 @@ function renderWheelSection(user_object) {
         for (var i = 0; i < wheelPalette.length; i++) {
             var c = wheelPalette[i];
             var sel = (current && current.toLowerCase() === c.toLowerCase()) ? " wheel-swatch-selected" : "";
-            html += `<button type="button" data-color="${c}" class="wheel-swatch${sel}" style="background:${c};" title="${c}" onclick="selectWheelColor('${kind}','${c}')"></button>`;
+            html += `<button type="button" data-color="${c}" data-bg-color="${c}" class="wheel-swatch${sel}" title="${c}" data-action="selectWheelColor" data-kind="${kind}"></button>`;
         }
         return html;
     };
@@ -2063,8 +2063,8 @@ function renderWheelSection(user_object) {
             <label>Color</label>
             <div id="wheel-swatches-color" class="wheel-swatches">${swatches('color', wheelState.color)}</div>
             <div class="wheel-controls">
-                <input type="color" id="wheel-color-custom" value="${colorCustom}" onchange="selectWheelColor('color', this.value)">
-                <button type="button" class="btn btn--sm" onclick="selectWheelColor('color', null)">Auto</button>
+                <input type="color" id="wheel-color-custom" value="${colorCustom}" data-action="pickWheelColor" data-kind="color">
+                <button type="button" class="btn btn--sm" data-action="resetWheelColor" data-kind="color">Auto</button>
             </div>
         </div>
 
@@ -2072,16 +2072,16 @@ function renderWheelSection(user_object) {
             <label>Border</label>
             <div id="wheel-swatches-border" class="wheel-swatches">${swatches('border', wheelState.border)}</div>
             <div class="wheel-controls">
-                <input type="color" id="wheel-border-custom" value="${borderCustom}" onchange="selectWheelColor('border', this.value)">
-                <button type="button" class="btn btn--sm" onclick="selectWheelColor('border', null)">None</button>
+                <input type="color" id="wheel-border-custom" value="${borderCustom}" data-action="pickWheelColor" data-kind="border">
+                <button type="button" class="btn btn--sm" data-action="resetWheelColor" data-kind="border">None</button>
             </div>
         </div>
 
         <div class="wheel-option">
             <label for="wheel-emoji-input">Emoji</label>
             <div class="wheel-controls">
-                <input type="text" id="wheel-emoji-input" maxlength="16" placeholder="🔥" value="${wheelState.emoji ? escapeHTML(wheelState.emoji) : ""}" oninput="previewWheelEmoji(this.value)" onchange="saveWheelEmoji(this.value)">
-                <button type="button" class="btn btn--sm" onclick="document.getElementById('wheel-emoji-input').value=''; saveWheelEmoji('');">Clear</button>
+                <input type="text" id="wheel-emoji-input" maxlength="16" placeholder="🔥" value="${wheelState.emoji ? escapeHTML(wheelState.emoji) : ""}" data-action="wheelEmoji">
+                <button type="button" class="btn btn--sm" data-action="clearWheelEmoji">Clear</button>
             </div>
         </div>
     `;
@@ -2205,7 +2205,7 @@ function renderPATSection(isAdmin) {
         Treat them like passwords &mdash; anyone with a token can act as you.
     </div>
 
-    <form class="pat-form" onsubmit="event.preventDefault(); submitPAT();">
+    <form class="pat-form" data-action="submitPAT">
         <input type="text" id="pat_name" placeholder="Token name (e.g. my laptop script)" required>
 
         <select id="pat_scope" class="clickable">
@@ -2272,7 +2272,7 @@ function renderPATList(pats) {
                 <b>${escapeHTML(p.name)}</b>
                 <span class="pat-meta">${escapeHTML(p.scope)} &middot; expires ${expires} &middot; last used ${lastUsed}</span>
             </div>
-            <button class="btn btn--danger pat-revoke" onclick="revokePAT('${p.id}')">Revoke</button>
+            <button class="btn btn--danger pat-revoke" data-action="revokePAT" data-pat-id="${p.id}">Revoke</button>
         </div>`;
     }
     document.getElementById("pat-list").innerHTML = rows;
@@ -2325,7 +2325,7 @@ function showNewPAT(token) {
             Copy your new token now &mdash; you won't be able to see it again.
         </div>
         <code class="pat-token-value" id="pat-token-value">${escapeHTML(token)}</code>
-        <button class="btn u-w-8 u-mt-sm" type="button" onclick="copyPAT()">Copy</button>
+        <button class="btn u-w-8 u-mt-sm" type="button" data-action="copyPAT">Copy</button>
     </div>`;
     document.getElementById("pat-new-token").innerHTML = html;
 }
@@ -2372,6 +2372,81 @@ function escapeHTML(value) {
 }
 
 
+// bindAccountActions wires the page's delegated handlers once: the sections re-render their
+// markup often, so every control carries a data-action (and data-* arguments) instead of an
+// inline handler (strict CSP, docs/security.md). Links use the shared openURL action from
+// functions.js.
+function bindAccountActions() {
+    var body = document.body;
+    on_action(body, {
+        leaveSeason: function() { leaveSeason(); },
+        deleteAccount: function() { deleteAccount(); },
+        toggleSection: function(element) {
+            toggleSection(element.dataset.key + '-wrapper', 'section-button-' + element.dataset.key);
+        },
+        togglePasswordFields: function() { togglePasswordFields(); },
+        createPush: function(element) { create_push(element.dataset.key); },
+        clearMaxHRAnchor: function(element, event) { event.preventDefault(); clearMaxHRAnchor(); },
+        useObservedMaxHeartrate: function(element, event) {
+            event.preventDefault();
+            useObservedMaxHeartrate(Number(element.dataset.bpm));
+        },
+        pinSportObservedMax: function(element, event) {
+            event.preventDefault();
+            pinSportObservedMax(element.dataset.actionId);
+        },
+        removeSportMaxHR: function(element) { removeSportMaxHR(element.dataset.actionId); },
+        syncStrava: function(element) { syncStrava(element.dataset.userId); },
+        disconnectStrava: function(element) { disconnectStrava(element.dataset.userId); },
+        setHevy: function(element) { setHevy(element.dataset.userId); },
+        syncHevy: function(element) { syncHevy(element.dataset.userId); },
+        disconnectHevy: function(element) { disconnectHevy(element.dataset.userId); },
+        moveActivitySourceUp: function(element) { moveActivitySourceUp(Number(element.dataset.index)); },
+        includeGoalActivity: function(element) { includeGoalActivity(element.dataset.actionId); },
+        excludeGoalActivity: function(element) { excludeGoalActivity(element.dataset.actionId); },
+        openGoalCounting: function(element, event) { event.preventDefault(); openGoalCounting(); },
+        connectPlex: function() { connectPlex(); },
+        savePlexServerURL: function() { savePlexServerURL(); },
+        disconnectPlex: function() { disconnectPlex(); },
+        connectSpotify: function() { connectSpotify(); },
+        disconnectSpotify: function() { disconnectSpotify(); },
+        connectAudiobookshelf: function() { connectAudiobookshelf(); },
+        disconnectAudiobookshelf: function() { disconnectAudiobookshelf(); },
+        selectWheelColor: function(element) { selectWheelColor(element.dataset.kind, element.dataset.color); },
+        resetWheelColor: function(element) { selectWheelColor(element.dataset.kind, null); },
+        clearWheelEmoji: function() {
+            document.getElementById('wheel-emoji-input').value = '';
+            saveWheelEmoji('');
+        },
+        revokePAT: function(element) { revokePAT(element.dataset.patId); },
+        copyPAT: function() { copyPAT(); }
+    });
+    on_action(body, {
+        updateAccountValue: function(element) { updateAccountValue(element.id); },
+        addSportMaxHR: function(element) { addSportMaxHR(element.value); },
+        hrZoneSystemChange: function() { updateHRZonePreview(); },
+        toggleDuplicateDetection: function(element) { toggleDuplicateDetection(element.checked); },
+        pickWheelColor: function(element) { selectWheelColor(element.dataset.kind, element.value); },
+        wheelEmoji: function(element) { saveWheelEmoji(element.value); }
+    }, 'change');
+    on_action(body, {
+        maxHeartrateInput: function() { updateMaxHRHint(); updateHRZonePreview(); },
+        restingHeartrateInput: function() { updateHRZonePreview(); },
+        wheelEmoji: function(element) { previewWheelEmoji(element.value); }
+    }, 'input');
+    on_action(body, {
+        goalExcludeSearch: function() { filterGoalExcludeOptions(); }
+    }, 'keyup');
+    on_action(body, {
+        goalExcludeSearch: function() { showGoalExcludeDropdown(true); }
+    }, 'focusin');
+    on_action(body, {
+        updateAccount: function(element, event) { event.preventDefault(); updateAccount(element.dataset.userId); },
+        saveTrainingProfile: function(element, event) { event.preventDefault(); saveTrainingProfile(); },
+        submitPAT: function(element, event) { event.preventDefault(); submitPAT(); }
+    }, 'submit');
+}
+
 // Page bootstrap (formerly an inline <script> in web/html/account.html).
 var groups;
 var user_id;
@@ -2379,6 +2454,7 @@ var jwt;
 var vapid_public_key = "";
 
 document.addEventListener('DOMContentLoaded', function() {
+    bindAccountActions();
     info('Loading...');
     showLoggedOutMenu();
     jwt = get_cookie('treningheten');

@@ -37,7 +37,7 @@ function load_page(result) {
                         </div>
                     </div>
 
-                    <div class="module" id="achievements-module" style="display: none;">
+                    <div class="module" id="achievements-module" hidden>
 
                         <div id="achievements-title" class="title u-mb-1">
                             Achievements:
@@ -146,7 +146,7 @@ function GetUserAchievements(achievementArray, userID) {
 function PlaceUserAchievements(achievementArrayPersonal, achievementArray, userID) {
 
     if(achievementArray.length > 0) {
-        document.getElementById("achievements-module").style.display = "flex"
+        document.getElementById("achievements-module").hidden = false
     } else {
         return;
     }
@@ -230,7 +230,7 @@ function PlaceUserAchievements(achievementArrayPersonal, achievementArray, userI
 
                 ${delegationSumHTML}
 
-                <div class="achievement-image" style="--cat-color: ${categoryColor};">
+                <div class="achievement-image" data-cat-color="${categoryColor}">
                     <img class="achievement-img achievement-img-logo" id="achievement-img-${achievementArray[i].id}" src="/assets/images/barbell.gif">
                 </div>
 

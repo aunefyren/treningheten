@@ -10,6 +10,22 @@ var gearList = [];
 // onGearChanged runs after the gear list is (re)loaded — each page renders its own view.
 var onGearChanged = function() {};
 
+// The gear controls carry data-action attributes (strict CSP: no inline handlers). One set of
+// delegated listeners covers both the /gear page and the exercise-page modal; the gear* action
+// names keep clear of the pages' own actions.
+document.addEventListener('DOMContentLoaded', function() {
+    on_action(document.body, {
+        createGear: function() { createGear(); },
+        deleteGear: function(element) { deleteGear(element.dataset.gearId); }
+    });
+    on_action(document.body, {
+        updateGearField: function(element) {
+            var value = element.type === "checkbox" ? element.checked : element.value;
+            updateGearField(element.dataset.gearId, element.dataset.field, value);
+        }
+    }, 'change');
+});
+
 function gearTypeGlyph(type) {
     switch (type) {
         case "bike":  return "🚲";
@@ -79,17 +95,17 @@ function gearItemHTML(gear) {
             <div class="gear-glyph">${gearTypeGlyph(gear.type)}</div>
             <div class="gear-main">
                 <div class="gear-row-top">
-                    <input class="gear-input gear-name" type="text" value="${escapeHTML(gear.name)}" ${readonly} onchange="updateGearField('${gear.id}', 'name', this.value)" title="Name">
-                    <select class="gear-select" ${readonly} onchange="updateGearField('${gear.id}', 'type', this.value)" title="Type">${gearTypeOptions(gear.type)}</select>
+                    <input class="gear-input gear-name" type="text" value="${escapeHTML(gear.name)}" ${readonly} data-action="updateGearField" data-gear-id="${gear.id}" data-field="name" title="Name">
+                    <select class="gear-select" ${readonly} data-action="updateGearField" data-gear-id="${gear.id}" data-field="type" title="Type">${gearTypeOptions(gear.type)}</select>
                     ${stravaTag}
                 </div>
                 <div class="gear-row-mid">
-                    <input class="gear-input" type="text" value="${escapeHTML(brand)}" ${readonly} placeholder="Brand" onchange="updateGearField('${gear.id}', 'brand', this.value)">
+                    <input class="gear-input" type="text" value="${escapeHTML(brand)}" ${readonly} placeholder="Brand" data-action="updateGearField" data-gear-id="${gear.id}" data-field="brand">
                 </div>
                 <div class="gear-row-toggles">
-                    <label class="gear-toggle"><input type="checkbox" ${gear.is_primary ? "checked" : ""} onchange="updateGearField('${gear.id}', 'is_primary', this.checked)"> Primary</label>
-                    <label class="gear-toggle"><input type="checkbox" ${gear.retired ? "checked" : ""} onchange="updateGearField('${gear.id}', 'retired', this.checked)"> Retired</label>
-                    <img src="/assets/trash-2.svg" class="gear-del clickable" title="Delete gear" onclick="deleteGear('${gear.id}')">
+                    <label class="gear-toggle"><input type="checkbox" ${gear.is_primary ? "checked" : ""} data-action="updateGearField" data-gear-id="${gear.id}" data-field="is_primary"> Primary</label>
+                    <label class="gear-toggle"><input type="checkbox" ${gear.retired ? "checked" : ""} data-action="updateGearField" data-gear-id="${gear.id}" data-field="retired"> Retired</label>
+                    <img src="/assets/trash-2.svg" class="gear-del clickable" title="Delete gear" data-action="deleteGear" data-gear-id="${gear.id}">
                 </div>
             </div>
             ${gearUsageHTML(gear)}
@@ -114,7 +130,7 @@ function gearAddFormHTML() {
                 <input class="gear-input" type="text" id="new-gear-name" placeholder="e.g. Nike Pegasus">
                 <select class="gear-select" id="new-gear-type">${gearTypeOptions("shoe")}</select>
                 <input class="gear-input" type="text" id="new-gear-brand" placeholder="Brand (optional)">
-                <button class="btn btn--primary" type="submit" onclick="createGear();"><img src="/assets/plus.svg" class="color-invert">Add gear</button>
+                <button class="btn btn--primary" type="submit" data-action="createGear"><img src="/assets/plus.svg" class="color-invert">Add gear</button>
             </div>
         </div>
     `;
