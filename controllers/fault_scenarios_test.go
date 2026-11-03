@@ -134,6 +134,17 @@ func faultScenarios() []faultScenario {
 			h.expect(http.StatusCreated, "POST", "/api/auth/goals", token, models.GoalCreationRequest{ExerciseInterval: 1, Competing: true, SeasonID: w.season.ID})
 			return faultRequest{"POST", "/api/auth/sickleave/" + w.season.ID.String(), token, nil, nil}
 		}),
+		scenario("use saved workouts", 200, func(t *testing.T, h *apiHarness, w faultWorld) faultRequest {
+			// The admin went beyond a goal of one last week, so holds a saved workout.
+			database.Instance.Model(&models.Season{}).Where("id = ?", w.season.ID).Updates(map[string]any{"carry_over_max": 2, "carry_over_weeks": 1})
+			seedExerciseDayWithExercises(t, w.admin.ID, wednesdayOfWeeksAgo(1).AddDate(0, 0, 1), 1)
+			return faultRequest{"POST", "/api/auth/carryover/" + w.season.ID.String(), w.adminToken, nil, nil}
+		}),
+		scenario("stop using saved workouts", 200, func(t *testing.T, h *apiHarness, w faultWorld) faultRequest {
+			database.Instance.Model(&models.Season{}).Where("id = ?", w.season.ID).Updates(map[string]any{"carry_over_max": 2, "carry_over_weeks": 1})
+			seedCarryOverUse(t, w.adminGoal.ID, time.Now())
+			return faultRequest{"DELETE", "/api/auth/carryover/" + w.season.ID.String(), w.adminToken, nil, nil}
+		}),
 		scenario("create season", 201, func(t *testing.T, h *apiHarness, w faultWorld) faultRequest {
 			start := nextMonday(2)
 			return faultRequest{"POST", "/api/admin/seasons", w.adminToken, models.SeasonCreationRequest{

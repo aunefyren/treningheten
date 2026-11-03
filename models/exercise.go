@@ -60,6 +60,10 @@ type ExerciseDayWeekSeason struct {
 	Workouts   int       `json:"workouts"`
 	Completion float64   `json:"completion"`
 	SickLeave  bool      `json:"sick_leave"`
+	// GoalMet includes saved workouts; CarryUsed is how many the week used
+	// (docs/flexible-workouts.md).
+	GoalMet   bool `json:"goal_met"`
+	CarryUsed int  `json:"carry_used"`
 }
 
 type ExerciseDayUpdateRequest struct {

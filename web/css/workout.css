@@ -1434,6 +1434,19 @@ button.day-week-tile:hover { background: var(--white); border-color: var(--modul
 
 .day-season.is-complete .day-season-fill { background: var(--success); }
 
+/* Saved workouts making up the week: the paler --saved segment after the fill, as on the
+   front-page ring, and "+ 1 saved" in the figure (body font, it's a label). */
+.day-season-bar { display: flex; }
+.day-season-fill { flex: none; }
+.day-season.is-complete .day-season-fill--saved,
+.day-season-fill--saved { background: var(--saved); }
+.day-season-saved {
+  font-family: var(--font-body);
+  font-weight: 500;
+  font-size: 0.8rem;
+  color: var(--mediumblue);
+}
+
 .day-season-figure {
   grid-area: figure;
   display: inline-flex;

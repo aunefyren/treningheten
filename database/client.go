@@ -168,6 +168,7 @@ func Migrate() {
 	Instance.AutoMigrate(&models.ExerciseDay{})
 	Instance.AutoMigrate(&models.Exercise{})
 	Instance.AutoMigrate(&models.Sickleave{})
+	Instance.AutoMigrate(&models.CarryOverUse{})
 	Instance.AutoMigrate(&models.News{})
 	Instance.AutoMigrate(&models.Debt{})
 	Instance.AutoMigrate(&models.Prize{})

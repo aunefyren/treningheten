@@ -1,3 +1,8 @@
+// The season and goal the page shows, kept so saved workouts can be turned on and off and
+// the week re-read without reloading the page.
+var currentSeason = null;
+var currentGoal = null;
+
 function load_page(result) {
 
     if(result !== false) {
@@ -34,17 +39,26 @@ function load_page(result) {
                         <!-- Weekly-goal ring: the app's core loop as the hero. The ring fills
                              blue with this week's completion %, snaps green at 100%, and rests
                              (no arc, "Sick leave") when the viewed season is on sick leave this
-                             week. Hidden until a season/week populates it (placeWeekProgress). -->
+                             week. Saved workouts that make up the week show as a second, paler
+                             segment after the arc. Hidden until a season/week populates it
+                             (placeWeekProgress). -->
                         <div class="hero-ring" id="hero-ring" style="display: none;">
                             <div class="hero-ring-figures">
                                 <span class="hero-ring-count hero-ring-week"><a id="workout_this_week">0</a> / <a id="goal_this_week">0</a></span>
-                                <span class="hero-ring-caption hero-ring-week">this week</span>
+                                <span class="hero-ring-caption hero-ring-week" id="hero-ring-caption">this week</span>
                                 <span class="hero-ring-rest hero-ring-resting">Sick leave</span>
                                 <span class="hero-ring-caption hero-ring-resting">Streak kept</span>
                             </div>
                         </div>
 
                         <p class="hero-rest-note" id="hero-rest-note" style="display: none;"></p>
+
+                        <!-- Saved workouts (docs/flexible-workouts.md): the chip says what you hold
+                             and when it runs out, and opens the explanation; the note under it says
+                             what this week does with them, with Undo. Both stay hidden in a season
+                             that doesn't save workouts. -->
+                        <button type="button" class="saved-chip" id="saved-chip" onclick="openSavedWorkouts();" style="display: none;"></button>
+                        <div class="hero-saved-note" id="hero-saved-note" style="display: none;"></div>
 
                         <!-- The nav already shows the app name; the ring + CTA carry the hero, so no
                              redundant title/subtitle here. #front-page-text is used for the logged-out
@@ -237,7 +251,15 @@ function load_page(result) {
 
                                     <button type="submit" onclick="update_exercises(false, 0);" id="goal_amount_button" class="btn btn--block" style="margin-bottom: 0em; transition: 1s;"><img src="assets/done.svg" class="color-invert">Save</button>
 
-                                    <button type="button" class="btn btn--ghost btn--sm sickleave-button" id="sickleave-button" onclick="useSickLeave();" style="display: none;">Use sick leave</button>
+                                    <!-- Week actions: sick leave, and saved workouts when they would make up
+                                         the week. The hint says what using them does before you choose. -->
+                                    <div class="week-actions" id="week-actions" style="display: none;">
+                                        <div class="btn-group">
+                                            <button type="button" class="btn btn--ghost btn--sm" id="sickleave-button" onclick="useSickLeave();" style="display: none;">Use sick leave</button>
+                                            <button type="button" class="btn btn--ghost btn--sm" id="saved-workouts-button" onclick="toggleSavedWorkouts();" style="display: none;">Use saved workouts</button>
+                                        </div>
+                                        <p class="week-actions-hint" id="saved-workouts-hint" style="display: none;"></p>
+                                    </div>
 
                                 </div>
 
@@ -266,6 +288,10 @@ function load_page(result) {
 
                                     <p id="week_goal_title" style="margin: 1em 0 0 0;">Weekly goal: <b><a id="week_goal">0</a></b></p>
                                     <p id="goal_sickleave_title">Sick leave left: <b><a id="goal_sickleave">0</a></b></p>
+                                    <div id="goal_saved_title" class="season-saved" style="display: none;">
+                                        <p class="u-m-0">Saved workouts: <b><a id="goal_saved">0</a></b></p>
+                                        <p class="season-saved-rule" id="goal_saved_rule"></p>
+                                    </div>
 
                                     <p id="prize-title" class="u-mt-1">Potential prize:</p>
                                     <div class="prize-wrapper" id="prize-wrapper">
@@ -1115,8 +1141,12 @@ function get_leaderboard(season, goal, refresh, fireworks){
                     past_weeks = [];
                 }
 
+                currentSeason = season;
+                currentGoal = goal;
+
                 place_current_week(this_week);
                 placeSickLeaveState(isOnSickLeave(this_week), goal.sickleave_left, season.name);
+                placeSavedWorkoutsState(myWeekResult(this_week), season, goal);
 
                 if(refresh) {
                     place_season_details(goal, season);
@@ -1213,10 +1243,21 @@ function place_leaderboard(weeks_array) {
     return
 }
 
-function place_season_details(goal) {
+function place_season_details(goal, season) {
     document.getElementById("week_goal").innerHTML = goal.exercise_interval
     document.getElementById("goal_this_week").innerText  = goal.exercise_interval
     document.getElementById("goal_sickleave").innerHTML = goal.sickleave_left
+
+    // Saved workouts: how many you hold, and the season's rule in one line. Absent in a
+    // season that doesn't save workouts.
+    var savedRow = document.getElementById("goal_saved_title");
+    if(savedRow) {
+        var rule = season ? savedWorkoutsRule(season.carry_over_max, season.carry_over_weeks) : "";
+        savedRow.style.display = rule ? "block" : "none";
+        document.getElementById("goal_saved_rule").textContent = rule;
+        var mine = typeof this_week !== "undefined" ? myWeekResult(this_week) : null;
+        document.getElementById("goal_saved").textContent = mine ? mine.carried_in : 0;
+    }
 }
 
 function place_current_week(week_array) {
@@ -1237,12 +1278,22 @@ function place_current_week(week_array) {
         var transparent = week_array.users[i].sick_leave ? "transparent" : ""
         var current_streak = week_array.users[i].current_streak + streakStatusIcon(week_array.users[i])
 
-        if(completion >= 100) {
+        // Saved workouts that make up the rest of the week: the goal counts as met.
+        var savedMark = "";
+        if(week_array.users[i].carry_used > 0 && !week_array.users[i].sick_leave) {
+            savedMark = " " + statusIcon("💾", countLabel(week_array.users[i].carry_used, "saved workout makes", "saved workouts make") + " up the rest");
+        }
+
+        if(weekGoalMet(week_array.users[i])) {
             transparent += " bold-font "
         }
 
         if(week_array.users[i].user_id == user_id) {
-            placeWeekProgress(completion, week_array.users[i].sick_leave)
+            var savedPercentage = 0;
+            if(currentGoal && currentGoal.exercise_interval > 0) {
+                savedPercentage = Math.round(week_array.users[i].carry_used / currentGoal.exercise_interval * 100);
+            }
+            placeWeekProgress(completion, week_array.users[i].sick_leave, savedPercentage, week_array.users[i].carry_used)
         }
 
         var user = userDisplayName(week_array.users[i].user_id);
@@ -1264,7 +1315,7 @@ function place_current_week(week_array) {
                 <div class="current-week-user-results">
 
                     <div class="current-week-user-completion ` + transparent + `" title="How much of the goal for this week is finished.">
-                        ` + completion + `%
+                        ` + completion + `%` + savedMark + `
                     </div>
 
                     <div class="current-week-user-completion" title="How many weeks in a row have been at least 100%.">
@@ -1314,6 +1365,21 @@ function placeSickLeaveState(isSick, sickleaveLeft, seasonName) {
         button.dataset.left = sickleaveLeft || 0;
         button.style.display = !isSick && sickleaveLeft > 0 ? "inline-flex" : "none";
     }
+    syncWeekActions();
+}
+
+// syncWeekActions hides the week-actions block when none of its buttons or its hint show, so
+// it leaves no gap under the calendar's Save.
+function syncWeekActions() {
+    var block = document.getElementById("week-actions");
+    if(!block) {
+        return;
+    }
+    var shown = ["sickleave-button", "saved-workouts-button", "saved-workouts-hint"].some(function(id) {
+        var element = document.getElementById(id);
+        return element && element.style.display !== "none";
+    });
+    block.style.display = shown ? "flex" : "none";
 }
 
 function useSickLeave() {
@@ -1354,6 +1420,249 @@ function useSickLeave() {
     xhttp.send();
     return false;
 
+}
+
+// myWeekResult picks the signed-in user's result out of a week's results.
+function myWeekResult(weekResults) {
+    var users = (weekResults && weekResults.users) || [];
+    for(var i = 0; i < users.length; i++) {
+        if(users[i].user_id == user_id) {
+            return users[i];
+        }
+    }
+    return null;
+}
+
+// savedWorkoutsView works out everything the page says about saved workouts this week from
+// the user's week result (docs/flexible-workouts.md). The server judges the week; this only
+// phrases it. Returns null in a season that doesn't save workouts.
+function savedWorkoutsView(result, season, goal) {
+    if(!result || !season || !goal || !savedWorkoutsRule(season.carry_over_max, season.carry_over_weeks)) {
+        return null;
+    }
+
+    var goalCount = goal.exercise_interval;
+    var workouts = Math.round(result.week_completion * goalCount);
+    var held = result.carried_in || 0;
+    var expiries = (result.carry_expiries || []).map(calendarDate);
+
+    return {
+        rule: savedWorkoutsRule(season.carry_over_max, season.carry_over_weeks),
+        held: held,
+        expiries: expiries,
+        workouts: workouts,
+        goal: goalCount,
+        shortfall: Math.max(0, goalCount - workouts),
+        optedIn: result.carry_opt_in === true,
+        used: result.carry_used || 0,
+        earned: result.carry_earned || 0,
+        sickLeave: result.sick_leave === true,
+    };
+}
+
+// savedChipText: "2 saved workouts · use by Sun 9 Nov". When they run out on different
+// days it names how many go first: "2 saved workouts · 1 to use by Sun 9 Nov".
+function savedChipText(view) {
+    if(view.held > 0) {
+        var first = view.expiries[0];
+        var goingFirst = view.expiries.filter(function(date) { return date.getTime() == first.getTime(); }).length;
+        var useBy = goingFirst == view.held ? "use by " : goingFirst + " to use by ";
+        return countLabel(view.held, "saved workout", "saved workouts") + " · " + useBy + shortDateString(first);
+    }
+    if(view.earned > 0) {
+        return countLabel(view.earned, "extra workout", "extra workouts") + " will be saved this week";
+    }
+    return "";
+}
+
+// yourSavedWorkouts: "your saved workout", "your 2 saved workouts".
+function yourSavedWorkouts(count) {
+    return count == 1 ? "your saved workout" : "your " + count + " saved workouts";
+}
+
+// savedOfferText says what "Use saved workouts" will do before it is chosen:
+// "Uses 1 of your 2 saved workouts if you end the week at 2/3."
+function savedOfferText(view) {
+    var uses;
+    if(view.shortfall < view.held) {
+        uses = view.shortfall + " of " + yourSavedWorkouts(view.held);
+    } else if(view.held == 1) {
+        uses = "your saved workout";
+    } else if(view.held == 2) {
+        uses = "both your saved workouts";
+    } else {
+        uses = "all " + view.held + " of your saved workouts";
+    }
+    return "Uses " + uses + " if you end the week at " + view.workouts + "/" + view.goal + ".";
+}
+
+// savedOnText says what saved workouts are doing this week once they are on.
+function savedOnText(view) {
+    if(view.used > 0) {
+        return countLabel(view.used, "saved workout makes", "saved workouts make") + " up the rest of this week.";
+    }
+    if(view.shortfall == 0) {
+        return "You've met your goal, so your saved workouts stay saved.";
+    }
+    return "Saved workouts are on. Yours make up the week once you're at " + (view.goal - view.held) + "/" + view.goal + ".";
+}
+
+// placeSavedWorkoutsState shows the viewed season's saved workouts: the chip under the ring,
+// the note saying what this week does with them (with Undo), and in the week actions the
+// "Use saved workouts" button — offered only while the week is short and what you hold
+// covers all of it, which is the only time it can help. Set and cleared on every placement.
+function placeSavedWorkoutsState(result, season, goal) {
+    var view = savedWorkoutsView(result, season, goal);
+
+    var chip = document.getElementById("saved-chip");
+    var note = document.getElementById("hero-saved-note");
+    var button = document.getElementById("saved-workouts-button");
+    var hint = document.getElementById("saved-workouts-hint");
+    if(!chip || !note || !button || !hint) {
+        return;
+    }
+
+    chip.style.display = "none";
+    note.style.display = "none";
+    button.style.display = "none";
+    hint.style.display = "none";
+    showSavedWorkoutsState(view, chip, note, button, hint);
+    syncWeekActions();
+}
+
+function showSavedWorkoutsState(view, chip, note, button, hint) {
+    if(!view) {
+        return;
+    }
+
+    var chipText = savedChipText(view);
+    if(chipText) {
+        chip.innerHTML = `<span class="saved-chip-dot" aria-hidden="true"></span>${chipText}`;
+        chip.title = "What are saved workouts?";
+        chip.style.display = "inline-flex";
+    }
+
+    // A sick-leave week neither uses nor earns saved workouts; the chip still shows what you hold.
+    if(view.sickLeave) {
+        return;
+    }
+
+    if(view.optedIn) {
+        note.innerHTML = `<span>${savedOnText(view)}</span><button type="button" class="btn btn--ghost btn--sm" onclick="toggleSavedWorkouts();">Undo</button>`;
+        note.style.display = "flex";
+        button.textContent = "Stop using saved workouts";
+        button.style.display = "inline-flex";
+        return;
+    }
+
+    if(view.shortfall > 0 && view.held >= view.shortfall) {
+        button.textContent = "Use saved workouts";
+        button.style.display = "inline-flex";
+        hint.textContent = savedOfferText(view);
+        hint.style.display = "block";
+    } else if(view.shortfall > 0 && view.held > 0) {
+        // Explain the missing button: what you hold can't cover the gap yet.
+        var yours = yourSavedWorkouts(view.held);
+        hint.textContent = yours.charAt(0).toUpperCase() + yours.slice(1) +
+            " can make up the week once you're at " + (view.goal - view.held) + "/" + view.goal + ".";
+        hint.style.display = "block";
+    }
+}
+
+// openSavedWorkouts explains saved workouts in plain words, lists what you hold and when each
+// runs out, and offers the same choice as the week actions.
+function openSavedWorkouts() {
+    var view = currentSeason && currentGoal && typeof this_week !== "undefined"
+        ? savedWorkoutsView(myWeekResult(this_week), currentSeason, currentGoal) : null;
+    if(!view) {
+        return;
+    }
+
+    var held = "<p>You have no saved workouts right now.</p>";
+    if(view.held > 0) {
+        var rows = view.expiries.map(function(date) {
+            return `<li class="saved-list-row"><span class="saved-chip-dot" aria-hidden="true"></span>1 saved workout<span class="saved-list-date">use by ${shortDateString(date)}</span></li>`;
+        }).join("");
+        held = `<ul class="saved-list">${rows}</ul>`;
+    }
+
+    var thisWeek = "";
+    if(view.sickLeave) {
+        thisWeek = "<p>This week is sick leave, so it doesn't use or save any.</p>";
+    } else if(view.optedIn) {
+        thisWeek = `<p>${savedOnText(view)}</p>`;
+    } else if(view.shortfall > 0 && view.held >= view.shortfall) {
+        thisWeek = `<p>${savedOfferText(view)}</p>`;
+    }
+    if(!view.sickLeave && view.earned > 0) {
+        thisWeek += `<p>You're beyond your goal: ${countLabel(view.earned, "extra workout", "extra workouts")} will be saved when the week ends.</p>`;
+    }
+
+    var action = "";
+    if(!view.sickLeave && view.optedIn) {
+        action = `<div class="btn-group"><button type="button" class="btn btn--ghost" onclick="toggleSavedWorkouts();">Stop using saved workouts</button></div>`;
+    } else if(!view.sickLeave && view.shortfall > 0 && view.held >= view.shortfall) {
+        action = `<div class="btn-group"><button type="button" class="btn btn--primary" onclick="toggleSavedWorkouts();">Use saved workouts</button></div>`;
+    }
+
+    TRModal.open({
+        eyebrow: currentSeason.name,
+        title: "Saved workouts",
+        body: `
+            <div class="saved-explainer">
+                <p>${view.rule} Do more workouts than your weekly goal and the extras are saved.</p>
+                <p>If a later week falls short, choose <b>Use saved workouts</b> and they make up the difference when the week ends, but only if they cover all of it. You can change your mind until Sunday.</p>
+                <hr class="trm-divider">
+                ${held}
+                ${thisWeek}
+                ${action}
+            </div>
+        `,
+    });
+}
+
+// toggleSavedWorkouts turns "Use saved workouts" on or off for this week, then re-reads the
+// week so the ring, the chip and the buttons follow.
+function toggleSavedWorkouts() {
+    if(!currentSeason || !currentGoal) {
+        return;
+    }
+    var view = typeof this_week !== "undefined" ? savedWorkoutsView(myWeekResult(this_week), currentSeason, currentGoal) : null;
+    var method = view && view.optedIn ? "delete" : "post";
+
+    var xhttp = new XMLHttpRequest();
+    xhttp.onreadystatechange = function() {
+        if (this.readyState == 4) {
+
+            try {
+                result = JSON.parse(this.responseText);
+            } catch(e) {
+                console.log(e +' - Response: ' + this.responseText);
+                error("Could not reach API.");
+                return;
+            }
+
+            if(result.error) {
+                if(typeof TRModal !== "undefined" && TRModal.isOpen()) {
+                    TRModal.setBody(`<p>${result.error}</p>`);
+                } else {
+                    error(result.error);
+                }
+            } else {
+                if(typeof TRModal !== "undefined" && TRModal.isOpen()) {
+                    TRModal.close();
+                }
+                get_leaderboard(currentSeason, currentGoal, false, false);
+            }
+
+        }
+    };
+    xhttp.withCredentials = true;
+    xhttp.open(method, api_url + "auth/carryover/" + currentSeason.id);
+    xhttp.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
+    xhttp.setRequestHeader("Authorization", jwt);
+    xhttp.send();
+    return false;
 }
 
 function placeDebtOverview(overviewArray) {
@@ -1533,12 +1842,19 @@ function placeSeasonProgress(seasonStartObject, seasonEndObject) {
     }
 }
 
-function placeWeekProgress(percentage, sickLeave) {
+// placeWeekProgress fills the hero ring: the arc is the week's workouts, and savedPercentage
+// (saved workouts making up the rest, docs/flexible-workouts.md) is a second, paler segment
+// right after it. The ring turns green once the two together reach the goal.
+function placeWeekProgress(percentage, sickLeave, savedPercentage, savedCount) {
 
     console.log("This weeks progress: " + percentage)
 
     if(percentage > 100) {
         percentage = 100;
+    }
+    var saved = Math.max(0, Math.min(savedPercentage || 0, 100 - percentage));
+    if(saved > 0 && percentage + saved > 99) {
+        saved = 100 - percentage; // rounding never leaves a sliver of track
     }
 
     var ring = document.getElementById("hero-ring");
@@ -1549,18 +1865,26 @@ function placeWeekProgress(percentage, sickLeave) {
     // Reveal the ring (hidden until a season populates it).
     ring.style.display = "flex";
 
+    var caption = document.getElementById("hero-ring-caption");
+    if(caption) {
+        caption.textContent = saved > 0 && sickLeave !== true ? "+ " + savedCount + " saved" : "this week";
+    }
+    ring.classList.toggle("has-saved", saved > 0 && sickLeave !== true);
+
     // A sick-leave week is paused: no arc, no celebration — the ring says so instead.
     ring.classList.toggle("is-resting", sickLeave === true);
     if(sickLeave === true) {
         ring.classList.remove("complete");
         ring.style.setProperty("--pct", 0);
+        ring.style.setProperty("--saved-pct", 0);
         return;
     }
 
-    // Fill the arc to the completion %.
+    // Fill the arc to the completion %, and the saved segment after it.
     ring.style.setProperty("--pct", percentage);
+    ring.style.setProperty("--saved-pct", saved);
 
-    if(percentage > 99) {
+    if(percentage + saved > 99) {
         // Complete: snap the ring green and give it a brief celebratory pulse.
         ring.classList.add("complete");
         setTimeout(function() { ring.classList.add("blink"); }, 1500);

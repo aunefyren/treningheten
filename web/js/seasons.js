@@ -144,6 +144,14 @@ function place_seasons(seasons_array) {
                 html += date_string2
                 html += '</div>';
 
+                // Saved workouts: the season's rule in one line, only when it has them.
+                var savedRule = savedWorkoutsRule(seasons_array[i].carry_over_max, seasons_array[i].carry_over_weeks);
+                if(savedRule) {
+                    html += '<div class="season-date season-saved-line" title="Workouts beyond the weekly goal are saved and can make up a later short week.">';
+                    html += '<span class="saved-chip-dot" aria-hidden="true"></span>' + savedRule;
+                    html += '</div>';
+                }
+
                 html += '<div id="season-button-expand-' + seasons_array[i].id + '" class="season-button minimized">';
                     html += `<button type="button" onclick="get_leaderboard('${seasons_array[i].id}');" class="btn btn--sm">Expand<img id="season-button-image-${seasons_array[i].id}" src="assets/chevron-right.svg" class="color-invert"></button>`;
                 html += '</div>';

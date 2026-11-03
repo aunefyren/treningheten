@@ -32,8 +32,7 @@ func seedPrize(t *testing.T, name string) uuid.UUID {
 }
 
 // seedOngoingSeason inserts a season that started `weeksAgo` weeks ago (on a Monday) and
-// runs for `lengthWeeks`, open for joining at any time. The admin API refuses seasons
-// that start in the past, so tests that need a running season seed it directly.
+// runs for `lengthWeeks`, open for joining at any time, straight into the database.
 func seedOngoingSeason(t *testing.T, name string, weeksAgo int, lengthWeeks int) models.Season {
 	t.Helper()
 
@@ -104,9 +103,9 @@ func TestSeasonAdminCreationValidation(t *testing.T) {
 	unknownPrize := valid
 	unknownPrize.Prize = uuid.New()
 	invalid["unknown prize"] = unknownPrize
-	past := valid
-	past.Start = nextMonday(-3)
-	invalid["start in the past"] = past
+	endBeforeStart := valid
+	endBeforeStart.End = start.AddDate(0, 0, -1)
+	invalid["end before start"] = endBeforeStart
 
 	for name, request := range invalid {
 		if code := h.do("POST", "/api/admin/seasons", adminToken, request).Code; code != http.StatusBadRequest {
@@ -152,6 +151,26 @@ func TestSeasonAdminCreationValidation(t *testing.T) {
 	h.expect(http.StatusUnauthorized, "DELETE", "/api/auth/goals/"+goalID, strangerToken, nil)
 	h.expect(http.StatusBadRequest, "DELETE", "/api/auth/goals/nope", userToken, nil)
 	h.expect(http.StatusCreated, "DELETE", "/api/auth/goals/"+goalID, userToken, nil)
+}
+
+// Seasons only need a monday start and a later sunday end: they may already have started
+// or ended, and one week is the shortest.
+func TestSeasonAdminCreationDates(t *testing.T) {
+	h := newAPIHarness(t)
+	_, adminToken := h.user("admin@season.test", true)
+	prizeID := seedPrize(t, "Pizza")
+
+	request := func(name string, start time.Time, end time.Time) models.SeasonCreationRequest {
+		return models.SeasonCreationRequest{Name: name, Description: "desc", Start: start, End: end, Prize: prizeID, TimeZone: "UTC"}
+	}
+
+	started := nextMonday(-3)
+	h.expect(http.StatusCreated, "POST", "/api/admin/seasons", adminToken, request("Already started", started, started.AddDate(0, 0, 41)))
+	ended := nextMonday(-10)
+	h.expect(http.StatusCreated, "POST", "/api/admin/seasons", adminToken, request("Already ended", ended, ended.AddDate(0, 0, 13)))
+	oneWeek := nextMonday(1)
+	h.expect(http.StatusCreated, "POST", "/api/admin/seasons", adminToken, request("One week only", oneWeek, oneWeek.AddDate(0, 0, 6)))
+	h.expect(http.StatusBadRequest, "POST", "/api/admin/seasons", adminToken, request("Sunday before", oneWeek, oneWeek.AddDate(0, 0, -1)))
 }
 
 func TestOngoingSeasonReads(t *testing.T) {

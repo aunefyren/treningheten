@@ -60,7 +60,7 @@ func TestUserMailsReachTheSMTPServer(t *testing.T) {
 	}{
 		{"verification", func() error { return SendSMTPVerificationEmail(user) }, "Please verify your account", "VERIFY123"},
 		{"reset", func() error { return SendSMTPResetEmail(user) }, "", "RESET456"},
-		{"sunday reminder", func() error { return SendSMTPSundayReminderEmail(user, season, time.Now()) }, "", "Ann"},
+		{"sunday reminder", func() error { return SendSMTPSundayReminderEmail(user, season, time.Now(), "") }, "", "Ann"},
 		{"week lost", func() error { return SendSMTPForWeekLost(user, 12) }, "", "12"},
 		{"wheel spin", func() error { return SendSMTPForWheelSpin(user, 13) }, "", "13"},
 		{"wheel spin check", func() error { return SendSMTPForWheelSpinCheck(user, 14) }, "", "14"},
@@ -150,7 +150,7 @@ func TestEveryMailReportsAnUnreachableServer(t *testing.T) {
 	for name, send := range map[string]func() error{
 		"verification":     func() error { return SendSMTPVerificationEmail(user) },
 		"reset":            func() error { return SendSMTPResetEmail(user) },
-		"sunday reminder":  func() error { return SendSMTPSundayReminderEmail(user, models.Season{}, time.Now()) },
+		"sunday reminder":  func() error { return SendSMTPSundayReminderEmail(user, models.Season{}, time.Now(), "") },
 		"week lost":        func() error { return SendSMTPForWeekLost(user, 1) },
 		"wheel spin":       func() error { return SendSMTPForWheelSpin(user, 1) },
 		"wheel spin check": func() error { return SendSMTPForWheelSpinCheck(user, 1) },
@@ -172,7 +172,7 @@ func TestEveryMailReportsAnUnreachableServer(t *testing.T) {
 	files.ConfigFile.TreninghetenTestEmail = "sink@test.local"
 	for _, send := range []func() error{
 		func() error { return SendSMTPResetEmail(user) },
-		func() error { return SendSMTPSundayReminderEmail(user, models.Season{}, time.Now()) },
+		func() error { return SendSMTPSundayReminderEmail(user, models.Season{}, time.Now(), "") },
 		func() error { return SendSMTPForWeekLost(user, 1) },
 		func() error { return SendSMTPForWheelSpin(user, 1) },
 		func() error { return SendSMTPForWheelSpinCheck(user, 1) },

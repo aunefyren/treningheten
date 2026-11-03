@@ -2,6 +2,7 @@ package controllers
 
 import (
 	"errors"
+	"math"
 	"net/http"
 	"time"
 
@@ -119,8 +120,9 @@ func buildExerciseDayWeek(date time.Time, userID uuid.UUID, now time.Time) (mode
 }
 
 // exerciseDayWeekSeasons computes the week's result in each season that overlaps it and
-// that the user had joined by the week's end. The numbers come from GetWeekResultForGoal —
-// the leaderboard's own rule, sick leave included — rather than a second count.
+// that the user had joined by the week's end. The numbers come from the season walk —
+// the leaderboard's own rule, sick leave and saved workouts included — rather than a second
+// count.
 func exerciseDayWeekSeasons(date time.Time, userID uuid.UUID) ([]models.ExerciseDayWeekSeason, error) {
 	results := []models.ExerciseDayWeekSeason{}
 
@@ -161,23 +163,36 @@ func exerciseDayWeekSeasons(date time.Time, userID uuid.UUID) ([]models.Exercise
 			continue
 		}
 
-		data, err := buildSeasonWeekData(seasonObject, weekEnd)
+		// Walk the season up to this week, like the leaderboard does: the streak and the
+		// saved workouts entering the week depend on every week before it.
+		weeks, err := RetrieveWeekResultsFromSeasonWithinTimeframe(seasonObject.Start, weekEnd, seasonObject)
 		if err != nil {
 			return results, err
 		}
 
-		result, _, err := GetWeekResultForGoal(*goal, weekStart, nil, data)
-		if err != nil {
-			return results, err
+		var result *models.UserWeekResults
+		key := isoWeekKey(weekStart)
+		for i := range weeks {
+			if isoWeekKey(weeks[i].WeekDate) == key {
+				result = userWeekResult(weeks[i], goal.ID)
+				break
+			}
 		}
+		if result == nil {
+			continue
+		}
+
+		workouts := int(math.Round(result.WeekCompletion * float64(goal.ExerciseInterval)))
 
 		results = append(results, models.ExerciseDayWeekSeason{
 			ID:         season.ID,
 			Name:       season.Name,
 			Goal:       goal.ExerciseInterval,
-			Workouts:   data.exerciseCount(userID, isoWeekKey(weekStart)),
+			Workouts:   workouts,
 			Completion: result.WeekCompletion,
 			SickLeave:  result.SickLeave,
+			GoalMet:    result.GoalMet(),
+			CarryUsed:  result.CarryUsed,
 		})
 	}
 

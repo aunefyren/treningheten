@@ -38,6 +38,7 @@ Needs Docker with Compose v2.
 ./setup.sh                    # first time only: writes .env, creates ./data, seeds config.json (SQLite)
 docker compose up -d --build
 ./seed.sh                     # registers the admin user, verifies it, connects Audiobookshelf
+./seed-saved-workouts.sh      # optional: a ready-made saved-workouts scenario (SQLite only)
 ```
 
 `seed.sh` prints the logins when it's done:
@@ -121,6 +122,42 @@ docker compose --profile ollama up -d
 
 then set `"ollama": {"enabled": true, …}` in `data/treningheten/config/config.json`
 (the URL and model are already filled in) and `docker compose restart treningheten`.
+
+## Saved workouts scenario
+
+To look at saved workouts ([`docs/flexible-workouts.md`](../docs/flexible-workouts.md)) without
+waiting weeks for them to build up, run this once on a fresh SQLite harness, after `./seed.sh`:
+
+```
+./seed-saved-workouts.sh
+```
+
+It creates two seasons that **started three weeks ago** — *Saved workouts demo* (up to 2 saved
+workouts, each for 2 weeks) and *Classic demo* (feature off) — and a second member, Kari
+(`kari@test.local`, same password as the admin). Both members are in both seasons:
+
+| Week | Test Admin (goal 3) | Kari (goal 2) |
+| --- | --- | --- |
+| 3 weeks ago | 3 ✅ | 3 ✅, saves 1 |
+| 2 weeks ago | 5 ✅, saves 2 | 1 ❌ (held 1 but didn't choose to use it) |
+| last week | 2 + 1 saved 💾 (chose "Use saved workouts") | 3 ✅, saves 1; the first one runs out |
+| this week | 2 so far, holds 1 saved workout that runs out on Sunday | 1 so far, holds 1 |
+
+So logging in as the admin shows the chip, the "Use saved workouts" offer and a 💾 week at once,
+and *Classic demo* shows the same workouts without the feature (last week is ❌ there).
+
+The API only creates seasons that start in the future and only logs workouts in the running
+week, so the script does everything through the API (invite, registration, seasons, joining,
+workouts) and then moves dates back in SQLite. It runs in a one-shot alpine container
+(`seed-saved-workouts` service) with the config directory writable and `TZ=Europe/Oslo`, the
+app's zone. It refuses to run twice; `./clean.sh` for a fresh start.
+
+**On MariaDB or Postgres** the script stops; do the same by hand: create the two seasons in the
+admin panel, join them as two users and log workouts this week, then in the database move
+`seasons.start`/`seasons.end` back three weeks, `goals.created_at` before the new start, and
+each logged day's `exercise_days.date` (and its `exercises.time`) into the past weeks as in the
+table. Insert one `carry_over_uses` row (`enabled` true, the admin's goal in *Saved workouts
+demo*, `date` = last Monday) for last week's choice.
 
 ## Testing the soundtrack overlay
 

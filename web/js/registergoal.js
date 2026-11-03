@@ -48,6 +48,8 @@ function load_page(result) {
 
                     <p class="u-mt-1 u-text-center" id="register_season_jointext">...</p>
 
+                    <p class="saved-rule-preview u-mt-1" id="register_saved_rule" style="display: none;"></p>
+
                     <hr class="u-my-1">
 
                     <label for="commitment" class="field-label u-text-center" title="How many days a week are you going to work out?">Weekly goal</label>
@@ -190,6 +192,16 @@ function registerGoalModule(season_object) {
     document.getElementById("register_season_desc").innerHTML = season_object.description
     document.getElementById("register_season_jointext").innerHTML = joinText;
     document.getElementById("register-prize-text").innerHTML = season_object.prize.quantity + " " + season_object.prize.name
+
+    // Saved workouts: the season's rule in plain words, and nothing when it doesn't have them.
+    var savedRule = savedWorkoutsRule(season_object.carry_over_max, season_object.carry_over_weeks);
+    var savedRuleElement = document.getElementById("register_saved_rule");
+    if(savedRule) {
+        savedRuleElement.innerHTML = `<span class="saved-chip-dot" aria-hidden="true"></span><span><b>Saved workouts.</b> ${savedRule} Do more than your weekly goal and the extras are saved. If a later week falls short, you can use them to make it up.</span>`;
+        savedRuleElement.style.display = "flex";
+    } else {
+        savedRuleElement.style.display = "none";
+    }
 }
 
 function registerGoal(seasonID) {

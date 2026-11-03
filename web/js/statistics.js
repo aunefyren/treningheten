@@ -1453,7 +1453,7 @@ function placeSeasonStatistics(weeks, weekdays, wheelStatistics) {
         longestStreak = Math.max(longestStreak, user.current_streak);
         bestWeek = Math.max(bestWeek, user.week_completion_interval);
         if (user.sick_leave) { sickWeeks++; }
-        if (user.week_completion_interval >= user.exercise_goal) { weeksAtGoal++; }
+        if (user.goal_met === true || user.week_completion_interval >= user.exercise_goal) { weeksAtGoal++; }
     });
 
     var tiles = [];

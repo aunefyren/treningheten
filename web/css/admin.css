@@ -119,6 +119,31 @@
   width: 32rem;
 }
 
+/* Season form. The shared module rule caps panels at 50rem and centres their content, so a
+   taller form spilled out of both ends and was clipped. This one grows to fit, starts at the
+   top, and is as wide as .admin-module--wide so .field-row pairs sit side by side (they still
+   wrap to one column on a narrow screen). */
+.card .add-season-module {
+  width: 32rem;
+  max-height: none;
+  justify-content: flex-start;
+}
+
+.season-form {
+  width: 100%;
+}
+
+/* "6 weeks, Mon 5 Jan – Sun 15 Feb." under the dates, tucked up against them. */
+.season-length {
+  display: block;
+  text-align: left;
+  margin: calc(-1 * var(--space-2)) 0 var(--space-4);
+}
+
+.season-length:empty {
+  display: none;
+}
+
 .admin-module form + form {
   margin-top: 1rem;
   padding-top: 1rem;

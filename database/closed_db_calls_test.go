@@ -30,6 +30,7 @@ var closedDBCalls = []struct {
 	{"CountStravaActivitiesInExercise", true, func() error { _, err := CountStravaActivitiesInExercise(uuid.UUID{}); return err }},
 	{"CreateActionInDB", true, func() error { _, err := CreateActionInDB(models.Action{}); return err }},
 	{"CreateAuthorizationCode", true, func() error { err := CreateAuthorizationCode(&models.OAuthAuthorizationCode{}); return err }},
+	{"CreateCarryOverUseInDB", true, func() error { err := CreateCarryOverUseInDB(models.CarryOverUse{}); return err }},
 	{"CreateExerciseDayForGoalInDatabase", true, func() error { _, err := CreateExerciseDayForGoalInDatabase(models.ExerciseDay{}); return err }},
 	{"CreateExerciseDayInDB", true, func() error { err := CreateExerciseDayInDB(models.ExerciseDay{}); return err }},
 	{"CreateExerciseForExerciseDayInDatabase", true, func() error { err := CreateExerciseForExerciseDayInDatabase(models.Exercise{}); return err }},
@@ -52,6 +53,7 @@ var closedDBCalls = []struct {
 	{"DeleteInviteByID", true, func() error { err := DeleteInviteByID(uuid.UUID{}); return err }},
 	{"DeleteMediaConnectionForUserProvider", true, func() error { err := DeleteMediaConnectionForUserProvider(uuid.UUID{}, ""); return err }},
 	{"DeleteNewsPost", true, func() error { err := DeleteNewsPost(uuid.UUID{}); return err }},
+	{"DisableCarryOverUsesForGoalWithinWeek", true, func() error { _, err := DisableCarryOverUsesForGoalWithinWeek(time.Time{}, uuid.UUID{}); return err }},
 	{"DisableGoalInDBUsingGoalID", true, func() error { err := DisableGoalInDBUsingGoalID(uuid.UUID{}); return err }},
 	{"DisableGoalsForUserInUnfinishedSeasons", true, func() error { _, err := DisableGoalsForUserInUnfinishedSeasons(uuid.UUID{}, time.Time{}); return err }},
 	{"GenerateRandomInvite", true, func() error { _, err := GenerateRandomInvite(); return err }},
@@ -101,6 +103,11 @@ var closedDBCalls = []struct {
 	{"GetAuthorizationCodeByHash", true, func() error { _, err := GetAuthorizationCodeByHash(""); return err }},
 	{"GetBestEffortRowsForUser", true, func() error { _, err := GetBestEffortRowsForUser(uuid.UUID{}); return err }},
 	{"GetBestEffortsForOperation", true, func() error { _, err := GetBestEffortsForOperation(uuid.UUID{}, uuid.UUID{}); return err }},
+	{"GetCarryOverUseForGoalWithinWeek", true, func() error { _, err := GetCarryOverUseForGoalWithinWeek(time.Time{}, uuid.UUID{}); return err }},
+	{"GetCarryOverUsesForGoalIDsBetweenDates", true, func() error {
+		_, err := GetCarryOverUsesForGoalIDsBetweenDates(nil, time.Time{}, time.Time{})
+		return err
+	}},
 	{"GetDebtByDebtID", true, func() error { _, _, err := GetDebtByDebtID(uuid.UUID{}); return err }},
 	{"GetDebtForWeekForUser", true, func() error { _, _, err := GetDebtForWeekForUser(time.Time{}, uuid.UUID{}); return err }},
 	{"GetDebtForWeekForUserInSeasonID", true, func() error {

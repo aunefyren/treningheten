@@ -16,7 +16,8 @@ owned by a user.
 | `Start`, `End` | The competition window |
 | `Prize` | What the winner receives (see prizes/wheel) |
 | `Sickleave` | How many weeks of sick leave each participant is allowed (see below) |
-| `JoinAnytime` | If false, users may only join before/at the start; if true, they can join mid-season |
+| `JoinAnytime` | If false, users may only join before/at the start; if true, they can join mid-season (never after it has ended) |
+| `CarryOverMax`, `CarryOverWeeks` | **Saved workouts**: how many extra workouts a participant can hold, and how many weeks each lasts. `0` = off, the default. See [flexible-workouts.md](flexible-workouts.md) |
 | `Enabled` | Soft-delete flag |
 
 **Status** is derived from `Start`/`End` relative to now (not stored):
@@ -26,7 +27,11 @@ owned by a user.
 - `now > End` → **ended**
 
 Code: `models/season.go`, `controllers/season.go`, `database/season.go`. Seasons are
-created by admins (`POST /api/admin/seasons`).
+created by admins (`POST /api/admin/seasons`). A season starts on a Monday and ends on a
+Sunday after it, so the shortest is one week. It may lie in the past: an admin can register a
+season that has already started, or even ended. Joining a started season still needs
+`JoinAnytime`, and an ended season can't be joined at all (`POST /api/auth/goals` refuses
+it, and the joinable-season list never offers one).
 
 **Seasons live in the server's zone.** `APIRegisterSeason` keeps the calendar dates the admin
 picked and builds `Start` (Monday 00:00) and `End` (Sunday 23:59:59) in `time.Local` — the
@@ -36,6 +41,9 @@ and a season stored in another one put its final Sunday outside the last window,
 week was never processed. The admin form (`addSeason` in `web/js/admin.js`) validates the
 weekday on the picked calendar date in the browser's zone (`parsePickedDate`) and sends it
 as `YYYY-MM-DDT00:00:00Z`, so the date survives unchanged whatever zone the browser is in.
+The date inputs carry a Monday/Sunday `min` with `step="7"`, so the browser itself only
+accepts those weekdays; `placeSeasonLength` moves the end's `min` to the picked start's
+Sunday and shows the season's length in weeks.
 
 ## Goals — how a user participates
 
@@ -71,9 +79,11 @@ Each week, a goal is evaluated against its target:
 WeekCompletion = exercises_done_that_week / ExerciseInterval
 ```
 
-The week's **goal is met when `WeekCompletion ≥ 1`**. This per-week pass/fail is what
-drives season streaks, debts, and the leaderboard. The computation lives in
-`GetWeekResultForGoal` (`controllers/season.go`).
+The week's **goal is met when `WeekCompletion ≥ 1`**, or when saved workouts make up the rest
+(in a season that has them, see [flexible-workouts.md](flexible-workouts.md)). This per-week
+pass/fail is what drives season streaks, debts, and the leaderboard. The computation lives in
+`GetWeekResultForGoal` (`controllers/season.go`). `WeekCompletion` itself stays the raw
+`workouts / goal`.
 
 A subtlety: `FullWeekParticipation` is `false` when the goal was created in or after
 the week being evaluated (i.e. you joined mid-week), which keeps a just-joined user
@@ -98,6 +108,9 @@ hero ring and a one-line note; "Use sick leave" only appears while it can be use
 already used this week, at least one left). The AI greeting is told about it too (see
 [ollama.md](ollama.md)).
 
+Sick leave takes precedence over **saved workouts** ([flexible-workouts.md](flexible-workouts.md)):
+a sick-leave week neither uses nor earns them, and "Use saved workouts" is refused in it.
+
 Registered via `POST /api/auth/sickleave/:season_id`. Code: `models/sickleave.go`,
 `database/sickleave.go` (`GetUsedSickleaveForGoalWithinWeek`,
 `GetUnusedSickleaveForGoalWithinWeek`).
@@ -109,7 +122,7 @@ weekly rhythm:
 
 | Job | Schedule | What it does |
 |---|---|---|
-| `SendSundayReminders` | 18:00 Sunday (`0 0 18 * * 7`) | Nudges users who haven't hit their goal yet |
+| `SendSundayReminders` | 18:00 Sunday (`0 0 18 * * 7`) | Nudges users who haven't hit their goal yet; in a season with saved workouts, the e-mail says when they would make up the week |
 | `ProcessLastWeek` | 08:00 Monday (`0 0 8 * * 1`) | Finalises the finished week for each ongoing season (`ProcessWeekOfSeason`): generates **debts** (`GenerateDebtForWeek`) and awards weekly/season **achievements**. Week results — including streaks — are computed as part of this; they are not stored on their own. |
 
 A loser whose debt can't be checked or written doesn't stop the others: `GenerateDebtForWeek`
@@ -121,9 +134,10 @@ have a debt for the week are skipped.
 
 For display, the leaderboard rebuilds week results on demand via
 `RetrieveWeekResultsFromSeasonWithinTimeframe`, which walks the season's weeks calling
-`GetWeekResultForGoal` and threading each user's running streak through. **Season
-streaks are therefore recomputed, not stored** — see
-[streaks.md](streaks.md#season-streaks).
+`GetWeekResultForGoal` and threading each goal's running streak and saved workouts through
+(`seasonWalk`). **Season streaks and saved workouts are therefore recomputed, not stored** — see
+[streaks.md](streaks.md#season-streaks) and [flexible-workouts.md](flexible-workouts.md). The
+day header on `/exercises/:id` walks the season the same way, up to the week it shows.
 
 ## Consequences: debts, leaderboard, prizes
 
@@ -140,7 +154,7 @@ achievements and the AI greeting can't judge the same week differently:
 
 | Method | True when |
 |---|---|
-| `GoalMet()` | `WeekCompletion ≥ 1` — on its own, says nothing about sick leave or competing |
+| `GoalMet()` | `WeekCompletion ≥ 1`, or saved workouts made up the rest (`CarryUsed > 0`) — on its own, says nothing about sick leave or competing |
 | `WonWeek()` | competing, goal met, **not** on sick leave — earns a place on the wheel |
 | `OwesSpin()` | competing, goal missed, **not** on sick leave, in the season the whole week — owes a spin (a debt) |
 | `WheelTickets()` | `CurrentStreak + 1`: one entry plus one per streak week carried into the week (meaningful when `WonWeek`) |
@@ -157,8 +171,9 @@ The "only one to hit the goal" achievement counts **competing** members only: it
 `WonWeek`, its losers competing members who missed without sick leave (a mid-week joiner who
 missed still counts there, though they owe no spin). The leaderboards on the front page and
 `/seasons` draw their icons from the same order through `weekStatusIcon` /
-`streakStatusIcon` (`web/js/functions.js`): sick leave first, then the goal, then a mid-week
-join.
+`streakStatusIcon` (`web/js/functions.js`): sick leave first, then the goal (✅ on workouts,
+💾 made up with saved workouts), then a mid-week join. Each icon has a title saying what it
+means.
 
 **Who can see a debt.** A wheel spin is a season-social event, not a private one: the week
 table on the front page and `/seasons` links every participant's debt, so
@@ -173,6 +188,7 @@ user getter — it is a response body, so it must never carry credentials (see
 
 ## Related
 
+- [flexible-workouts.md](flexible-workouts.md) — saved workouts: making up a short week
 - [streaks.md](streaks.md) — personal vs season streaks, in detail
 - [data-conventions.md](data-conventions.md) — the `Convert*Object` read layer, units, durations
 - [mcp.md](mcp.md) — how seasons/goals are exposed (read-only, personal) to LLM clients

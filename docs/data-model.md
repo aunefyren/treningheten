@@ -51,6 +51,7 @@ erDiagram
     Season          ||--o{ Debt            : "produces (losers owe)"
 
     Goal            ||--o{ Sickleave       : "grants"
+    Goal            ||--o{ CarryOverUse    : "uses saved workouts in"
     Goal            ||--o{ ExerciseDay     : "counts toward"
 
     ExerciseDay     ||--o{ Exercise        : "holds sessions"
@@ -86,14 +87,18 @@ Strava and media features read.
   (`ShareActivities`/`ShareStatistics`). `HevyConnected` is `gorm:"-"` (computed, not
   stored). Credential fields are `json:"-"`.
 - **Season** (`models/season.go`) — a time-boxed competition (`Start`/`End`), a
-  `Sickleave` allowance, an awarded `Prize`, and `JoinAnytime`. See
-  [seasons-and-goals.md](seasons-and-goals.md).
+  `Sickleave` allowance, an awarded `Prize`, `JoinAnytime`, and the saved-workouts rule
+  (`CarryOverMax`, `CarryOverWeeks`; 0 = off). See [seasons-and-goals.md](seasons-and-goals.md)
+  and [flexible-workouts.md](flexible-workouts.md).
 - **Goal** (`models/goal.go`) — **one user's participation in one season** (the join
   row). Holds the weekly `ExerciseInterval` (target workouts/week) and whether the user
   is `Competing`. `GoalObject` adds the computed `SickleaveLeft`. A user has one goal
   per season joined.
 - **Sickleave** (`models/sickleave.go`) — a used/available sick-leave token for a
   `Goal` on a `Date`. Excuses a week from breaking a streak.
+- **CarryOverUse** (`models/carryover.go`) — a `Goal` chose "Use saved workouts" for the week
+  holding `Date`; undoing it disables the row. The saved workouts themselves are not stored:
+  the season walk computes them. See [flexible-workouts.md](flexible-workouts.md).
 - **Prize** (`models/prize.go`) — the reward a season awards (`Name`, `Quantity`).
 - **Debt** (`models/debt.go`) — a `Loser` owes a `Winner` within a `Season`; drives the
   wheel-of-fortune. `Winner` is nullable until the wheel is spun.
