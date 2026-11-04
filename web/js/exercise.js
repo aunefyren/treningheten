@@ -1707,9 +1707,12 @@ function renderStrengthSubCard(operation, exercise) {
 function renderTimeSubCard(operation, exercise) {
     const sets = operation.operation_sets || [];
     var secs = 0, stravaID = null, stravaSetID = null, streamSet = null;
+    var floors = 0, hasFloors = false, steps = 0, hasSteps = false;
     sets.forEach(s => {
         if (s.time) secs += s.time;
         else if (s.moving_time) secs += s.moving_time;
+        if (s.floors != null) { floors += s.floors; hasFloors = true; }
+        if (s.steps != null) { steps += s.steps; hasSteps = true; }
         if (!stravaID && s.strava_id) { stravaID = s.strava_id; stravaSetID = s.id; }
         if (!streamSet && s.strava_streams) streamSet = s;
     });
@@ -1731,6 +1734,8 @@ function renderTimeSubCard(operation, exercise) {
             ${activityDescriptionHTML(operation)}
             <div class="wv-stats">
                 ${statTileHTML(durationHTML, "", "Duration")}
+                ${hasFloors ? statTileHTML(wvNum(floors), "", "Floors") : ""}
+                ${hasSteps ? statTileHTML(wvNum(steps), "", "Steps") : ""}
                 ${sensorTilesHTML}
             </div>
             ${sectionsHTML}
@@ -2158,6 +2163,9 @@ function generateOperationHTML(operation) {
     const movingSel  = operation.type == 'moving'  ? 'selected' : '';
     const timingSel  = operation.type == 'timing'  ? 'selected' : '';
     const actionName = operation.action ? operation.action.name : "";
+    // An activity without an action (a Hevy custom exercise) shows its own title as the
+    // placeholder, so the field doesn't look empty; picking an action replaces it.
+    const actionPlaceholder = !operation.action && operation.note && operation.note.trim() !== "" ? operation.note.trim() : "Activity type";
 
     // Gear is edited per operation, on activities that wear it: distance (shoes, a bike)
     // and time-based ones (court shoes for padel). Strength cards omit the selector so
@@ -2182,7 +2190,7 @@ function generateOperationHTML(operation) {
                 <option value="timing" ${timingSel}>⏱️</option>
             </select>
             <div class="we-action" id="operation-action-${operation.id}">
-                <input class="we-input we-action-input" type="text" autocomplete="off" id="operation-action-text-${operation.id}" name="operation-action-text" placeholder="Activity type" value="${escapeHTML(actionName)}" data-action="actionSearch" data-operation-id="${operation.id}">
+                <input class="we-input we-action-input" type="text" autocomplete="off" id="operation-action-text-${operation.id}" name="operation-action-text" placeholder="${escapeHTML(actionPlaceholder)}" value="${escapeHTML(actionName)}" data-action="actionSearch" data-operation-id="${operation.id}">
                 <div id="operation-action-text-list-${operation.id}" class="dropdown-actions-wrapper" hidden>
                     ${processExerciseList(operation.id)}
                 </div>
@@ -2239,7 +2247,10 @@ function generateOperationSetsHTML(operationSets, operation) {
 function generateOperationSetHTML(operationSet, operation, setCounter) {
     const reps = (operationSet.repetitions != null) ? operationSet.repetitions : "";
     const weight = (operationSet.weight != null) ? operationSet.weight : "";
-    const time = operationSet.moving_time ? secondsToDurationString(operationSet.moving_time) : "";
+    // The builder edits moving_time; imports (Hevy, Strava) fill time, so show that until
+    // the set is edited.
+    const timeSecs = operationSet.moving_time || operationSet.time;
+    const time = timeSecs ? secondsToDurationString(timeSecs) : "";
     const distance = (operationSet.distance != null) ? operationSet.distance : "";
     var average = "–";
     if (operationSet.distance != null && operationSet.time != null && operationSet.time > 0) {

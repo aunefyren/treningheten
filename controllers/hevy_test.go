@@ -8,10 +8,12 @@ func TestHevyTypeToActionType(t *testing.T) {
 		"weight_reps":         "lifting",
 		"reps_only":           "lifting",
 		"bodyweight_reps":     "lifting",
-		"weighted_bodyweight": "lifting",
-		"assisted_bodyweight": "lifting",
-		// Time-based → timing
-		"duration": "timing",
+		"bodyweight_weighted": "lifting",
+		"bodyweight_assisted": "lifting",
+		// Time-based → timing, the stair machines included
+		"duration":        "timing",
+		"floors_duration": "timing",
+		"steps_duration":  "timing",
 		// Distance-based → moving
 		"distance_duration":     "moving",
 		"weight_distance":       "moving",

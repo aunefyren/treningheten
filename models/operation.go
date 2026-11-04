@@ -89,14 +89,18 @@ type OperationObject struct {
 
 type OperationSet struct {
 	GormModel
-	Enabled               bool               `json:"enabled" gorm:"not null; default: true;"`
-	OperationID           uuid.UUID          `json:"" gorm:"type:varchar(100);"`
-	Operation             Operation          `json:"operation" gorm:"not null"`
-	Repetitions           *float64           `json:"repetitions" gorm:"default: null"`
-	Weight                *float64           `json:"weight" gorm:"default: null"`
-	Distance              *float64           `json:"distance" gorm:"default: null"`
-	Time                  *int64             `json:"time" gorm:"default: null"`
-	MovingTime            *int64             `json:"moving_time" gorm:"default: null"`
+	Enabled     bool      `json:"enabled" gorm:"not null; default: true;"`
+	OperationID uuid.UUID `json:"" gorm:"type:varchar(100);"`
+	Operation   Operation `json:"operation" gorm:"not null"`
+	Repetitions *float64  `json:"repetitions" gorm:"default: null"`
+	Weight      *float64  `json:"weight" gorm:"default: null"`
+	Distance    *float64  `json:"distance" gorm:"default: null"`
+	Time        *int64    `json:"time" gorm:"default: null"`
+	MovingTime  *int64    `json:"moving_time" gorm:"default: null"`
+	// Floors and Steps are stair-machine counts (Hevy's floors_duration / steps_duration
+	// exercises); NULL for everything else.
+	Floors                *float64           `json:"floors" gorm:"default: null"`
+	Steps                 *float64           `json:"steps" gorm:"default: null"`
 	StravaID              *string            `json:"strava_id" gorm:"default: null;"`
 	StravaStreams         *StravaStreamsJSON `json:"strava_streams" gorm:"size:4294967295;default: null;"`
 	StravaDataRetrievedAt *time.Time         `json:"strava_data_retrieved_at" gorm:"default: null;"`
@@ -129,6 +133,8 @@ type OperationSetObject struct {
 	Distance              *float64           `json:"distance"`
 	Time                  *int64             `json:"time"`
 	MovingTime            *int64             `json:"moving_time"`
+	Floors                *float64           `json:"floors"`
+	Steps                 *float64           `json:"steps"`
 	StravaID              *string            `json:"strava_id"`
 	StravaStreams         *StravaStreamsJSON `json:"strava_streams"`
 	StravaDataRetrievedAt *time.Time         `json:"strava_data_retrieved_at"`

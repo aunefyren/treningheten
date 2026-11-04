@@ -340,6 +340,8 @@ func mapSets(sets []models.OperationSetObject, weightUnit string, distanceUnit s
 			Distance:          s.Distance,
 			TimeSeconds:       copySecondsPtr(s.Time),
 			MovingTimeSeconds: copySecondsPtr(s.MovingTime),
+			Floors:            s.Floors,
+			Steps:             s.Steps,
 		}
 		if s.Weight != nil {
 			set.WeightUnit = weightUnit

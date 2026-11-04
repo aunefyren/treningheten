@@ -234,6 +234,7 @@ func Migrate() {
 	capListenedTimeToPlaySpan()
 	backfillActionCategories()
 	backfillHevyOperationNotes()
+	backfillHevyStairActionTypes()
 
 	logger.Log.Info("Database migration completed.")
 }

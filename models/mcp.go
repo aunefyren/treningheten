@@ -75,6 +75,8 @@ type MCPActivitySet struct {
 	DistanceUnit      string   `json:"distance_unit,omitempty"`
 	TimeSeconds       *int64   `json:"time_seconds,omitempty" jsonschema:"elapsed time for the set, in seconds"`
 	MovingTimeSeconds *int64   `json:"moving_time_seconds,omitempty" jsonschema:"active/moving time (excludes pauses), in seconds; usually only present for Strava-imported activities"`
+	Floors            *float64 `json:"floors,omitempty" jsonschema:"floors climbed on a stair machine"`
+	Steps             *float64 `json:"steps,omitempty" jsonschema:"steps climbed on a stair machine"`
 }
 
 type MCPActivity struct {

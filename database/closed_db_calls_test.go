@@ -119,6 +119,7 @@ var closedDBCalls = []struct {
 	{"GetDebtsForUserIDsBetweenDates", true, func() error { _, err := GetDebtsForUserIDsBetweenDates(nil, time.Time{}, time.Time{}); return err }},
 	{"GetDelegatedAchievementsByUserID", true, func() error { _, _, err := GetDelegatedAchievementsByUserID(uuid.UUID{}); return err }},
 	{"GetDistinctDelegatedAchievementsByUserID", true, func() error { _, _, err := GetDistinctDelegatedAchievementsByUserID(uuid.UUID{}); return err }},
+	{"GetEnabledActionByName", true, func() error { _, err := GetEnabledActionByName(""); return err }},
 	{"GetEnabledWeightsByWeightIDAndUserID", true, func() error { _, err := GetEnabledWeightsByWeightIDAndUserID(uuid.UUID{}, uuid.UUID{}); return err }},
 	{"GetEnabledWeightsForUser", true, func() error { _, err := GetEnabledWeightsForUser(uuid.UUID{}); return err }},
 	{"GetExerciseByExerciseDayID", true, func() error { _, err := GetExerciseByExerciseDayID(uuid.UUID{}); return err }},
