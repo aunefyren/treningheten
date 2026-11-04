@@ -1139,6 +1139,11 @@ button.wv-split:focus-visible { outline: none; box-shadow: 0 0 0 3px var(--focus
 .we-type-timing .we-col-reps,
 .we-type-timing .we-col-dist,
 .we-type-timing .we-col-avg { display: none; }
+/* Stair-machine counts: hidden unless a set of the activity carries one. */
+.we-col-floors,
+.we-col-steps { display: none; }
+.we-has-floors .we-col-floors,
+.we-has-steps .we-col-steps { display: block; }
 
 /* ── Add buttons ─────────────────────────────────────────────────────────── */
 .we-add-set,

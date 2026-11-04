@@ -700,6 +700,8 @@ func APIUpdateOperationSet(context *gin.Context) {
 	operationSet.Repetitions = operationSetUpdateRequest.Repetitions
 	operationSet.MovingTime = operationSetUpdateRequest.MovingTime
 	operationSet.Weight = operationSetUpdateRequest.Weight
+	operationSet.Floors = operationSetUpdateRequest.Floors
+	operationSet.Steps = operationSetUpdateRequest.Steps
 
 	operationSet, err = database.UpdateOperationSetInDB(operationSet)
 	if err != nil {

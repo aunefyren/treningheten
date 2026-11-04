@@ -2224,8 +2224,13 @@ function generateOperationSetsHTML(operationSets, operation) {
         setCounter += 1;
     });
 
+    // Floors/Steps are stair-machine counts: their column shows only when a set carries one.
+    var countClasses = "";
+    if (operationSets.some(s => s.floors != null)) countClasses += " we-has-floors";
+    if (operationSets.some(s => s.steps != null)) countClasses += " we-has-steps";
+
     return `
-        <div class="we-sets we-type-${operation.type}">
+        <div class="we-sets we-type-${operation.type}${countClasses}">
             <div class="we-set-head">
                 <span class="we-col we-col-set">Set</span>
                 <span class="we-col we-col-weight">${operation.weight_unit}</span>
@@ -2233,6 +2238,8 @@ function generateOperationSetsHTML(operationSets, operation) {
                 <span class="we-col we-col-time">Time</span>
                 <span class="we-col we-col-dist">${operation.distance_unit}</span>
                 <span class="we-col we-col-avg">${operation.distance_unit}/h</span>
+                <span class="we-col we-col-floors">Floors</span>
+                <span class="we-col we-col-steps">Steps</span>
             </div>
             <div class="we-set-rows" id="operation-set-wrapper-sub-${operation.id}">
                 ${rows}
@@ -2252,6 +2259,8 @@ function generateOperationSetHTML(operationSet, operation, setCounter) {
     const timeSecs = operationSet.moving_time || operationSet.time;
     const time = timeSecs ? secondsToDurationString(timeSecs) : "";
     const distance = (operationSet.distance != null) ? operationSet.distance : "";
+    const floors = (operationSet.floors != null) ? operationSet.floors : "";
+    const steps = (operationSet.steps != null) ? operationSet.steps : "";
     var average = "–";
     if (operationSet.distance != null && operationSet.time != null && operationSet.time > 0) {
         average = parseFloat(operationSet.distance / (operationSet.time / 3600)).toFixed(2);
@@ -2265,6 +2274,8 @@ function generateOperationSetHTML(operationSet, operation, setCounter) {
         <span class="we-col we-col-time"><input class="we-set-input" type="text" pattern="[0-9:]{0,}" id="operation-set-time-input-${operationSet.id}" placeholder="0:00" value="${time}" ${onChange}></span>
         <span class="we-col we-col-dist"><input class="we-set-input" type="number" min="0" inputmode="decimal" id="operation-set-distance-input-${operationSet.id}" placeholder="–" value="${distance}" ${onChange}></span>
         <span class="we-col we-col-avg we-set-avg">${average}</span>
+        <span class="we-col we-col-floors"><input class="we-set-input" type="number" min="0" inputmode="numeric" id="operation-set-floors-input-${operationSet.id}" placeholder="–" value="${floors}" ${onChange}></span>
+        <span class="we-col we-col-steps"><input class="we-set-input" type="number" min="0" inputmode="numeric" id="operation-set-steps-input-${operationSet.id}" placeholder="–" value="${steps}" ${onChange}></span>
     `;
 }
 
@@ -2561,6 +2572,8 @@ function updateOperationSet(operationSetID, setCount) {
     var weight = parseFloat(document.getElementById('operation-set-weight-input-' + operationSetID).value)
     var time = document.getElementById('operation-set-time-input-' + operationSetID).value
     var distance = parseFloat(document.getElementById('operation-set-distance-input-' + operationSetID).value)
+    var floors = parseFloat(document.getElementById('operation-set-floors-input-' + operationSetID).value)
+    var steps = parseFloat(document.getElementById('operation-set-steps-input-' + operationSetID).value)
 
     var timeFinal = parseDurationStringToSeconds(time);
     
@@ -2569,6 +2582,8 @@ function updateOperationSet(operationSetID, setCount) {
         "weight": weight,
         "moving_time": timeFinal,
         "distance": distance,
+        "floors": floors,
+        "steps": steps,
     };
 
     var form_data = JSON.stringify(form_obj);

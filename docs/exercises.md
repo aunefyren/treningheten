@@ -276,7 +276,9 @@ session. The server leaves speed, splits and the pace-based analysis out of thei
 imported from Hevy adds a **Floors** or **Steps** tile from `OperationSet.Floors`/`Steps`.
 
 In the editor, a set's time field edits `moving_time`, but shows `time` while `moving_time` is
-empty, since imports (Hevy, Strava) fill `time`. An activity without an action (a Hevy custom
+empty, since imports (Hevy, Strava) fill `time`. A **Floors** or **Steps** column appears when
+a set of the activity carries one (`we-has-floors`/`we-has-steps`); the inputs are always in the
+DOM, so every set update sends both and a cleared field clears the count. An activity without an action (a Hevy custom
 exercise with no namesake) shows its title as the activity-type placeholder.
 
 All of it consumes one server-computed `models.StreamSummary` attached to each `OperationObject`

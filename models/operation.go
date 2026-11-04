@@ -122,6 +122,10 @@ type OperationSetUpdateRequest struct {
 	Weight      *float64 `json:"weight"`
 	Distance    *float64 `json:"distance"`
 	MovingTime  *int64   `json:"moving_time"`
+	// Floors and Steps are always sent by the builder (hidden inputs included), so a null
+	// clears them like the other measurements.
+	Floors *float64 `json:"floors"`
+	Steps  *float64 `json:"steps"`
 }
 
 type OperationSetObject struct {
