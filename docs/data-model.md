@@ -178,8 +178,8 @@ Strava and media features read.
   distance), replaced as a set; read through the usual enabled/on joins. See
   [statistics.md](statistics.md#best-efforts).
 - **OperationSet** (`models/operation.go`) — a **set / lap** of an operation:
-  `Repetitions`, `Weight`, `Distance`, `Time`/`MovingTime` (both seconds), plus the
-  Strava per-set data (`StravaStreams` JSON blob, retrieval guards). This is the leaf
+  `Repetitions`, `Weight`, `Distance`, `Time`/`MovingTime` (both seconds), `Floors`/`Steps`
+  (stair-machine counts, only from Hevy so far), plus the Strava per-set data (`StravaStreams` JSON blob, retrieval guards). This is the leaf
   where the raw numbers live.
 - **Action** (`models/operation.go`) — the **catalog** of activity types (run, bench
   press, …): names (incl. `NorwegianName`, `StravaName`, `HevyTemplateID` for import

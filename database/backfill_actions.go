@@ -1,6 +1,7 @@
 package database
 
 import (
+	"encoding/json"
 	"strconv"
 
 	"github.com/aunefyren/treningheten/logger"
@@ -58,5 +59,52 @@ func backfillHevyOperationNotes() {
 	}
 	if result.RowsAffected > 0 {
 		logger.Log.Info("Moved " + strconv.FormatInt(result.RowsAffected, 10) + " Hevy exercise notes into descriptions.")
+	}
+}
+
+// backfillHevyStairActionTypes moves the Hevy stair machines (floors_duration and
+// steps_duration templates) from "lifting" to "timing". They were imported as lifting
+// before the mapping knew those types, which hid their duration behind an empty
+// weight×reps card. The actions are found through the embedded catalog, and their
+// operations follow. Self-limiting: only rows still typed lifting match.
+func backfillHevyStairActionTypes() {
+	var templates []models.HevyExerciseTemplate
+	if err := json.Unmarshal(hevyTemplatesJSON, &templates); err != nil {
+		logger.Log.Warn("Failed to parse embedded Hevy templates for the stair backfill. Error: " + err.Error())
+		return
+	}
+
+	templateIDs := []string{}
+	for _, template := range templates {
+		if models.HevyStairMetric(template.Type) != "" {
+			templateIDs = append(templateIDs, template.ID)
+		}
+	}
+	if len(templateIDs) == 0 {
+		return
+	}
+
+	stairActions := Instance.Model(&models.Action{}).Select("id").Where("actions.hevy_template_id IN ?", templateIDs)
+	operations := Instance.Model(&models.Operation{}).
+		Where("operations.type = ?", "lifting").
+		Where("operations.action_id IN (?)", stairActions).
+		Update("type", "timing")
+	if operations.Error != nil {
+		logger.Log.Warn("Failed to retype Hevy stair machine operations. Error: " + operations.Error.Error())
+		return
+	}
+
+	actions := Instance.Model(&models.Action{}).
+		Where("actions.type = ?", "lifting").
+		Where("actions.hevy_template_id IN ?", templateIDs).
+		Update("type", "timing")
+	if actions.Error != nil {
+		logger.Log.Warn("Failed to retype Hevy stair machine actions. Error: " + actions.Error.Error())
+		return
+	}
+
+	if operations.RowsAffected > 0 || actions.RowsAffected > 0 {
+		logger.Log.Info("Retyped " + strconv.FormatInt(actions.RowsAffected, 10) + " Hevy stair machine actions and " +
+			strconv.FormatInt(operations.RowsAffected, 10) + " of their operations as timing.")
 	}
 }

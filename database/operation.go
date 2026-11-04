@@ -206,6 +206,26 @@ func GetAllEnabledActions() (actions []models.Action, err error) {
 	return
 }
 
+// GetEnabledActionByName finds the one enabled action whose English or Norwegian name
+// matches, ignoring case. It returns (nil, nil) on a miss and when several actions share
+// the name, so a caller matching free text never picks one at random.
+func GetEnabledActionByName(actionName string) (*models.Action, error) {
+	actionName = strings.ToLower(strings.TrimSpace(actionName))
+
+	var actions []models.Action
+	record := Instance.Where("actions.enabled = ?", true).
+		Where("LOWER(actions.name) = ? OR LOWER(actions.norwegian_name) = ?", actionName, actionName).
+		Limit(2).
+		Find(&actions)
+	if record.Error != nil {
+		return nil, record.Error
+	} else if len(actions) != 1 {
+		return nil, nil
+	}
+
+	return &actions[0], nil
+}
+
 func GetActionByName(actionName string) (action models.Action, err error) {
 	action = models.Action{}
 	err = nil

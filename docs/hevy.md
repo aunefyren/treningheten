@@ -71,8 +71,10 @@ own template. The mapping layer lives in `controllers/hevy.go`:
   carries the template id + title, so this map supplies `is_custom`, `type`, and
   `primary_muscle_group`.
 - `models.HevyActionType(hevyType)` — maps a Hevy template type onto Treningheten's
-  `lifting`/`timing`/`moving` vocabulary (`duration`→timing; `*distance*`→moving; the rest,
-  being rep/weight based, →lifting). Lives in `models` (not `controllers`) so the live
+  `lifting`/`timing`/`moving` vocabulary (`duration` and the stair machines'
+  `floors_duration`/`steps_duration`→timing; `*distance*`→moving; the rest, being rep/weight
+  based, →lifting). Stair actions created as lifting before that mapping were retyped, with
+  their operations, by `backfillHevyStairActionTypes`. Lives in `models` (not `controllers`) so the live
   import and the catalog seeder produce identical Actions; the thin `hevyTypeToActionType`
   wrapper in `controllers/hevy.go` is unit-tested in `controllers/hevy_test.go`.
 - `models.HevyExerciseTemplate.ToAction()` — the single template→`Action` builder
@@ -128,11 +130,17 @@ tree, idempotent by `Exercise.HevyWorkoutID`:
 - Each Hevy exercise → `Operation`. Official catalog → `ActionID` set + `Type` from the
   Action; the user's per-exercise note goes in `Operation.Description` (`Operation.Note` is
   the activity's title slot, so a note there would rename the card; older imports were moved
-  over once by `backfillHevyOperationNotes`). Custom exercise →
+  over once by `backfillHevyOperationNotes`). Custom exercise → matched by title to an
+  existing action (`database.GetEnabledActionByName`: case-insensitive, English or Norwegian
+  name, only when exactly one matches) and then treated like a catalog one. With no match:
   `ActionID=nil`, title in `Operation.Note` (the frontend uses note as the title fallback
   and an emoji icon when there's no Action), note in `Description`.
 - Each set → `OperationSet`: `Weight`=`weight_kg`, `Repetitions`=`reps`,
-  `Distance`=`distance_meters`/1000 (km), `Time`=`duration_seconds` (seconds count).
+  `Distance`=`distance_meters`/1000 (km), `Time`=`duration_seconds` (seconds count), and
+  `custom_metric` → `Floors` or `Steps` for the stair machines (`models.HevyStairMetric`).
+- **Order:** activities and sets are listed by `CreatedAt`, so the import staggers it by one
+  millisecond per exercise and per set, in Hevy's order. Identical timestamps came back in
+  arbitrary order.
 - Re-import rebuilds children: existing operations/sets are soft-disabled
   (`hevyDisableExerciseChildren`) and recreated, since Hevy exercises/sets have no stable
   ids to diff against.

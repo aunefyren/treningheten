@@ -157,3 +157,66 @@ func TestActionBackfillsScanFailure(t *testing.T) {
 	backfillActionCategories()
 	backfillHevyOperationNotes()
 }
+
+func TestBackfillHevyStairActionTypes(t *testing.T) {
+	newTestDB(t)
+	user := makeTestUser(t, "hevy-stairs@test.dev", nil)
+
+	day := models.ExerciseDay{UserID: &user.ID, Enabled: true, Date: time.Now()}
+	day.ID = uuid.New()
+	insertRow(t, &day)
+	exercise := models.Exercise{ExerciseDayID: day.ID, Enabled: true, IsOn: true, HevyWorkoutID: strPtr("workout-1")}
+	exercise.ID = uuid.New()
+	insertRow(t, &exercise)
+
+	newAction := func(name string, templateID string) models.Action {
+		action := models.Action{Enabled: true, Name: name, Type: "lifting", HevyTemplateID: strPtr(templateID)}
+		action.ID = uuid.New()
+		insertRow(t, &action)
+		return action
+	}
+	floors := newAction("Stair Machine (Floors)", "4377A52B")
+	steps := newAction("Stair Machine (Steps)", "4377A52C")
+	squat := newAction("Squat (Barbell)", "D04AC939")
+
+	newOperation := func(actionID uuid.UUID) uuid.UUID {
+		operation := models.Operation{ExerciseID: exercise.ID, ActionID: &actionID, Enabled: true, Type: "lifting", WeightUnit: "kg", DistanceUnit: "km"}
+		operation.ID = uuid.New()
+		insertRow(t, &operation)
+		return operation.ID
+	}
+	floorsOperation := newOperation(floors.ID)
+	stepsOperation := newOperation(steps.ID)
+	squatOperation := newOperation(squat.ID)
+
+	backfillHevyStairActionTypes()
+	backfillHevyStairActionTypes() // self-limiting: a second run changes nothing
+
+	for id, want := range map[uuid.UUID]string{floors.ID: "timing", steps.ID: "timing", squat.ID: "lifting"} {
+		if action := loadAction(t, id); action.Type != want {
+			t.Errorf("action %s type = %q, want %q", action.Name, action.Type, want)
+		}
+	}
+	for id, want := range map[uuid.UUID]string{floorsOperation: "timing", stepsOperation: "timing", squatOperation: "lifting"} {
+		if got := loadOperation(t, id).Type; got != want {
+			t.Errorf("operation %s type = %q, want %q", id, got, want)
+		}
+	}
+}
+
+func TestGetEnabledActionByName(t *testing.T) {
+	newTestDB(t)
+	padel := makeAction(t, "Padel Tennis", "timing")
+	makeAction(t, "Twin", "lifting")
+	makeAction(t, "twin", "lifting")
+
+	found, err := GetEnabledActionByName("  padel TENNIS ")
+	if err != nil || found == nil || found.ID != padel.ID {
+		t.Fatalf("GetEnabledActionByName(padel tennis) = %v, %v; want %s", found, err, padel.ID)
+	}
+	for _, name := range []string{"Twin", "Nothing like it", ""} {
+		if found, err := GetEnabledActionByName(name); err != nil || found != nil {
+			t.Errorf("GetEnabledActionByName(%q) = %v, %v; want nil, nil", name, found, err)
+		}
+	}
+}

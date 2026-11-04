@@ -312,12 +312,20 @@ func HevySyncWorkoutForUser(user models.User, workout models.HevyWorkout, templa
 	}
 
 	actionIDs := []uuid.UUID{}
-	for _, hevyExercise := range workout.Exercises {
+	for operationIndex, hevyExercise := range workout.Exercises {
 		template := templates[hevyExercise.ExerciseTemplateID]
 
 		action, err := getOrCreateHevyAction(template)
 		if err != nil {
 			return errors.New("failed to resolve Hevy action: " + err.Error())
+		}
+		if action == nil && strings.TrimSpace(hevyExercise.Title) != "" {
+			// A custom exercise that shares its name with an existing action (a custom
+			// "Padel", or a copy of a catalog lift) is that action.
+			action, err = database.GetEnabledActionByName(hevyExercise.Title)
+			if err != nil {
+				return errors.New("failed to match Hevy custom exercise to an action: " + err.Error())
+			}
 		}
 		if action != nil {
 			actionIDs = append(actionIDs, action.ID)
@@ -325,7 +333,9 @@ func HevySyncWorkoutForUser(user models.User, workout models.HevyWorkout, templa
 
 		operation := models.Operation{}
 		operation.ID = uuid.New()
-		operation.CreatedAt = now
+		// Activities and sets are listed by CreatedAt, so one millisecond per step keeps
+		// Hevy's order; identical timestamps would come back in any order.
+		operation.CreatedAt = now.Add(time.Duration(operationIndex) * time.Millisecond)
 		operation.UpdatedAt = now
 		operation.Enabled = true
 		operation.ExerciseID = finalExercise.ID
@@ -334,7 +344,8 @@ func HevySyncWorkoutForUser(user models.User, workout models.HevyWorkout, templa
 
 		notes := strings.TrimSpace(hevyExercise.Notes)
 		if action != nil {
-			// Official catalog: the Action carries the exercise name. The user's
+			// Official catalog, or a custom exercise matched by name: the Action carries
+			// the exercise name. The user's
 			// per-exercise note is a description, not a title — Note is what the card
 			// shows as the activity title, so it stays empty here.
 			operation.ActionID = &action.ID
@@ -343,7 +354,7 @@ func HevySyncWorkoutForUser(user models.User, workout models.HevyWorkout, templa
 				operation.Description = &notes
 			}
 		} else {
-			// Custom (or unknown) exercise: no global Action, so preserve the title on
+			// Custom (or unknown) exercise with no matching action: preserve the title on
 			// the operation itself (the frontend uses note as the title fallback).
 			operation.Type = hevyTypeToActionType(template.Type)
 			title := strings.TrimSpace(hevyExercise.Title)
@@ -361,10 +372,11 @@ func HevySyncWorkoutForUser(user models.User, workout models.HevyWorkout, templa
 			return errors.New("failed to create operation: " + err.Error())
 		}
 
-		for _, set := range hevyExercise.Sets {
+		stairMetric := models.HevyStairMetric(template.Type)
+		for setIndex, set := range hevyExercise.Sets {
 			operationSet := models.OperationSet{}
 			operationSet.ID = uuid.New()
-			operationSet.CreatedAt = now
+			operationSet.CreatedAt = now.Add(time.Duration(setIndex) * time.Millisecond)
 			operationSet.UpdatedAt = now
 			operationSet.Enabled = true
 			operationSet.OperationID = createdOperation.ID
@@ -379,6 +391,12 @@ func HevySyncWorkoutForUser(user models.User, workout models.HevyWorkout, templa
 				// Stored as a raw seconds count, per the duration convention.
 				duration := int64(*set.DurationSeconds)
 				operationSet.Time = &duration
+			}
+			switch stairMetric {
+			case "floors":
+				operationSet.Floors = set.CustomMetric
+			case "steps":
+				operationSet.Steps = set.CustomMetric
 			}
 
 			if _, err := database.CreateOperationSetInDB(operationSet); err != nil {

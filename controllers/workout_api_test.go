@@ -110,9 +110,13 @@ func TestWorkoutLoggingFlow(t *testing.T) {
 		t.Errorf("stranger adding a set: status = %d, want an error", code)
 	}
 
-	h.ok("PUT", "/api/auth/operation-sets/"+setID, token, models.OperationSetUpdateRequest{
+	updatedSet := h.ok("PUT", "/api/auth/operation-sets/"+setID, token, models.OperationSetUpdateRequest{
 		Repetitions: float64Ptr(12), Weight: float64Ptr(62.5), Distance: float64Ptr(0), MovingTime: int64Ptr(30),
+		Floors: float64Ptr(42), Steps: float64Ptr(900),
 	})
+	if floors, steps := field(t, updatedSet, "operation_set", "floors"), field(t, updatedSet, "operation_set", "steps"); floors != 42.0 || steps != 900.0 {
+		t.Errorf("floors/steps = %v/%v, want 42/900", floors, steps)
+	}
 	if code := h.do("PUT", "/api/auth/operation-sets/"+setID, strangerToken, models.OperationSetUpdateRequest{Repetitions: float64Ptr(1)}).Code; code < 400 {
 		t.Errorf("stranger updating a set: status = %d, want an error", code)
 	}

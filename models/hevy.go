@@ -10,14 +10,29 @@ import (
 // live import path and the catalog seeder produce identical Actions.
 func HevyActionType(hevyType string) string {
 	switch strings.ToLower(strings.TrimSpace(hevyType)) {
-	case "duration":
+	case "duration", "floors_duration", "steps_duration":
+		// The stair machines are timed; their floors/steps count goes in
+		// OperationSet.Floors/Steps (see HevyStairMetric).
 		return "timing"
 	case "distance_duration", "weight_distance", "short_distance_weight":
 		return "moving"
 	default:
-		// weight_reps, reps_only, bodyweight_reps, weighted_bodyweight,
-		// assisted_bodyweight, and anything unrecognised.
+		// weight_reps, reps_only, bodyweight_reps, bodyweight_weighted,
+		// bodyweight_assisted, and anything unrecognised.
 		return "lifting"
+	}
+}
+
+// HevyStairMetric says what a set's custom_metric counts for a Hevy template type:
+// "floors", "steps", or "" when the type carries no custom metric.
+func HevyStairMetric(hevyType string) string {
+	switch strings.ToLower(strings.TrimSpace(hevyType)) {
+	case "floors_duration":
+		return "floors"
+	case "steps_duration":
+		return "steps"
+	default:
+		return ""
 	}
 }
 
@@ -103,7 +118,7 @@ type HevyWorkoutSet struct {
 	DistanceMeters  *float64 `json:"distance_meters"`
 	DurationSeconds *float64 `json:"duration_seconds"`
 	RPE             *float64 `json:"rpe"`
-	CustomMetric    *float64 `json:"custom_metric"`
+	CustomMetric    *float64 `json:"custom_metric"` // floors or steps, per HevyStairMetric
 }
 
 // HevyWorkoutsResponse is one page of the GET /v1/workouts result.

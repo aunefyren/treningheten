@@ -272,7 +272,14 @@ the like — get the same sections minus the distance views: duration plus the s
 route/elevation only when GPS was recorded, the over-time chart and the HR zones. Their trace
 plots the recorded clock rather than moving samples only, since standing still is part of the
 session. The server leaves speed, splits and the pace-based analysis out of their summary (see
-[mcp.md](mcp.md)); the shared sections live in `renderStreamSectionsHTML`.
+[mcp.md](mcp.md)); the shared sections live in `renderStreamSectionsHTML`. A stair machine
+imported from Hevy adds a **Floors** or **Steps** tile from `OperationSet.Floors`/`Steps`.
+
+In the editor, a set's time field edits `moving_time`, but shows `time` while `moving_time` is
+empty, since imports (Hevy, Strava) fill `time`. A **Floors** or **Steps** column appears when
+a set of the activity carries one (`we-has-floors`/`we-has-steps`); the inputs are always in the
+DOM, so every set update sends both and a cleared field clears the count. An activity without an action (a Hevy custom
+exercise with no namesake) shows its title as the activity-type placeholder.
 
 All of it consumes one server-computed `models.StreamSummary` attached to each `OperationObject`
 (`stream_summary` — the same shape the MCP `get_activity_streams` tool returns), rather than
