@@ -2,7 +2,7 @@ console.log("Service-worker loaded.");
 
 // Incrementing OFFLINE_VERSION will kick off the install event and force
 // previously cached resources to be updated from the network.
-const OFFLINE_VERSION = 5;
+const OFFLINE_VERSION = 6;
 const CACHE_NAME = 'treningheten-cache-v' + OFFLINE_VERSION;
 const OFFLINE_URL = '/offline';
 const urlsToCache = [
@@ -51,6 +51,13 @@ self.addEventListener('activate', (event) => {
 });
 
 self.addEventListener('fetch', (event) => {
+    // Leave cross-origin requests (CDN scripts and styles, Google Fonts, map tiles) to the
+    // browser. The worker runs under its own script's CSP, whose connect-src 'self' blocks a
+    // fetch() to any other origin, so re-fetching them here would fail and blank the page.
+    if (new URL(event.request.url).origin !== self.location.origin) {
+        return;
+    }
+
     // Navigation requests (HTML pages): network-first, fall back to offline page.
     if (event.request.mode === 'navigate') {
         event.respondWith((async () => {

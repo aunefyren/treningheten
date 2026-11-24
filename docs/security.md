@@ -125,6 +125,11 @@ Rules for `web/` (`TestWebAssetsAreCSPClean` in `web_csp_test.go` enforces them 
 - **Libraries:** Chart.js would inject a style element, so `functions.js` sets
   `Chart.platform.disableCSSInjection` and the Chart.js pages link its `Chart.min.css`.
   Check a new library for injected style elements, `eval` and inline handlers.
+- **Service worker:** `service-worker.js` is served with the same policy, and a worker's
+  own `fetch()` calls fall under `connect-src 'self'`. Its `fetch` handler therefore
+  ignores cross-origin requests and lets the browser load them under the page's policy;
+  intercepting them blocked Chart.js, Leaflet, map tiles and Google Fonts in the
+  installed PWA.
 
 HSTS is conditional because sending it from a plain-HTTP instance would be meaningless
 at best, and it pins browsers to HTTPS for a year once seen. It omits `includeSubDomains`
