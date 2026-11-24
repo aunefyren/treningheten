@@ -70,6 +70,15 @@ func (f *weekFix) reconcile(dryRun bool, notify bool) models.WeekReconcileReport
 	return f.only(reports)
 }
 
+// spin has the loser spin the wheel for the debt, then waits for the spin's background work:
+// it grants "What you deserve" in a goSafely task, and a row count taken before that lands
+// would see the grant appear later (it did on Postgres in CI).
+func (f *weekFix) spin(debt models.Debt, loserToken string) {
+	f.t.Helper()
+	f.h.ok("POST", "/api/auth/debts/"+debt.ID.String()+"/choose", loserToken, nil)
+	quiesceBackgroundWork(f.t)
+}
+
 // overview runs GET /api/admin/weeks for last week and returns the season's report.
 func (f *weekFix) overview() models.WeekReconcileReport {
 	f.t.Helper()
@@ -458,7 +467,7 @@ func TestWeekFixLeavesSettledDebtsAlone(t *testing.T) {
 		loser, loserToken, _ := f.member("loser@spun.test", 1, 0)
 		f.reconcile(false, false)
 		debt := onlyDebt(t, f.season.ID, loser.ID)
-		f.h.ok("POST", "/api/auth/debts/"+debt.ID.String()+"/choose", loserToken, nil)
+		f.spin(debt, loserToken)
 
 		seedExerciseDayWithExercises(t, loser.ID, f.lastWeek, 1)
 		before := countRows(t)
@@ -480,7 +489,7 @@ func TestWeekFixLeavesSettledDebtsAlone(t *testing.T) {
 		loser, loserToken, _ := f.member("loser@spunlost.test", 1, 0)
 		f.reconcile(false, false)
 		debt := onlyDebt(t, f.season.ID, loser.ID)
-		f.h.ok("POST", "/api/auth/debts/"+debt.ID.String()+"/choose", loserToken, nil)
+		f.spin(debt, loserToken)
 		spunWinner := winnerOf(t, onlyDebt(t, f.season.ID, loser.ID))
 		otherWinner := w1.ID
 		if spunWinner == w1.ID {
@@ -510,7 +519,7 @@ func TestWeekFixLeavesSettledDebtsAlone(t *testing.T) {
 		loser, loserToken, _ := f.member("loser@spunok.test", 1, 0)
 		f.reconcile(false, false)
 		debt := onlyDebt(t, f.season.ID, loser.ID)
-		f.h.ok("POST", "/api/auth/debts/"+debt.ID.String()+"/choose", loserToken, nil)
+		f.spin(debt, loserToken)
 
 		report := f.reconcile(false, false)
 		entry := entryFor(t, report, loser.ID)
