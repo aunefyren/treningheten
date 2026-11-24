@@ -116,14 +116,14 @@ func richFaultScenarios() []faultScenario {
 		callScenario("rich week processing", func(t *testing.T, h *apiHarness, w faultWorld) func() error {
 			withControllerSMTP(t)
 			seedRichWeek(t, w)
-			return func() error { return ProcessWeekOfSeason(w.season, wednesdayOfWeeksAgo(1), true, true, nil) }
+			return func() error { return ProcessWeekOfSeason(w.season, wednesdayOfWeeksAgo(1)) }
 		}),
 		callScenario("season end processing", func(t *testing.T, h *apiHarness, w faultWorld) func() error {
 			withControllerSMTP(t)
 			seedRichWeek(t, w)
 			ended := w.season
 			ended.End = wednesdayOfWeeksAgo(1).AddDate(0, 0, 4)
-			return func() error { return ProcessWeekOfSeason(ended, wednesdayOfWeeksAgo(1), true, true, nil) }
+			return func() error { return ProcessWeekOfSeason(ended, wednesdayOfWeeksAgo(1)) }
 		}),
 		scenario("plex pin", http.StatusOK, func(t *testing.T, h *apiHarness, w faultWorld) faultRequest {
 			withMedia(t)

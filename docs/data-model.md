@@ -101,9 +101,11 @@ Strava and media features read.
   the season walk computes them. See [flexible-workouts.md](flexible-workouts.md).
 - **Prize** (`models/prize.go`) — the reward a season awards (`Name`, `Quantity`).
 - **Debt** (`models/debt.go`) — a `Loser` owes a `Winner` within a `Season`; drives the
-  wheel-of-fortune. `Winner` is nullable until the wheel is spun.
+  wheel-of-fortune. `Winner` is nullable until the wheel is spun. Written only by the week
+  reconciliation ([admin-week-fix.md](admin-week-fix.md)), which also switches a debt off
+  (`Enabled = false`) when the week no longer calls for it — never once it is paid or spun.
 - **Wheelview** (`models/wheelview.go`) — tracks that a user has seen/spun the wheel for
-  a given `Debt`.
+  a given `Debt`. Its existence is how the reconciliation knows a debt's wheel was spun.
 
 ### Logging (the core chain)
 
@@ -213,7 +215,9 @@ Strava and media features read.
   account link and the per-session listening timeline. Credentials are `json:"-"` and
   encrypted at rest. Full design in [media.md](media.md).
 - **Achievement** / **AchievementDelegation** (`models/achievement.go`) — the
-  achievement catalog and the award of one to a user (`GivenAt`, `Seen`).
+  achievement catalog and the award of one to a user (`GivenAt`, `Seen`). A revoked award
+  (a debt achievement whose debt the week reconciliation removed) is switched off
+  (`Enabled = false`), not deleted.
 - **Subscription** (`models/notification.go`) — a Web Push subscription plus its
   per-category alert toggles.
 - **Invite** (`models/invite.go`) — a signup invite `Code`, optionally tied to a

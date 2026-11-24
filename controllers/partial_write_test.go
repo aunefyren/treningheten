@@ -87,7 +87,7 @@ func TestGenerateDebtReportsAFailedDebtWrite(t *testing.T) {
 				failWritesToTable(t, database.Instance, "debts")
 			}
 
-			h.expect(test.wantStatus, "POST", "/api/admin/debts", w.adminToken, map[string]any{"date": wednesdayOfWeeksAgo(1)})
+			h.expect(test.wantStatus, "POST", "/api/admin/weeks/reconcile", w.adminToken, map[string]any{"date": wednesdayOfWeeksAgo(1).Format("2006-01-02")})
 
 			var debts int64
 			if err := database.Instance.Model(&models.Debt{}).Where("enabled = ?", true).Where("loser_id = ?", w.member.ID).Count(&debts).Error; err != nil {

@@ -49,11 +49,14 @@ var closedDBCalls = []struct {
 	{"CreateSubscriptionInDB", true, func() error { _, err := CreateSubscriptionInDB(models.Subscription{}); return err }},
 	{"CreateWeightInDB", true, func() error { _, err := CreateWeightInDB(models.WeightValue{}); return err }},
 	{"CreateWheelview", true, func() error { err := CreateWheelview(models.Wheelview{}); return err }},
+	{"DebtHasWheelviews", true, func() error { _, err := DebtHasWheelviews(uuid.UUID{}); return err }},
 	{"DeleteIntegrationStatus", true, func() error { err := DeleteIntegrationStatus(uuid.UUID{}, ""); return err }},
 	{"DeleteInviteByID", true, func() error { err := DeleteInviteByID(uuid.UUID{}); return err }},
 	{"DeleteMediaConnectionForUserProvider", true, func() error { err := DeleteMediaConnectionForUserProvider(uuid.UUID{}, ""); return err }},
 	{"DeleteNewsPost", true, func() error { err := DeleteNewsPost(uuid.UUID{}); return err }},
+	{"DisableAchievementDelegationByID", true, func() error { _, err := DisableAchievementDelegationByID(uuid.UUID{}); return err }},
 	{"DisableCarryOverUsesForGoalWithinWeek", true, func() error { _, err := DisableCarryOverUsesForGoalWithinWeek(time.Time{}, uuid.UUID{}); return err }},
+	{"DisableDebtIfUnchanged", true, func() error { err := DisableDebtIfUnchanged(uuid.UUID{}, &uuid.UUID{}); return err }},
 	{"DisableGoalInDBUsingGoalID", true, func() error { err := DisableGoalInDBUsingGoalID(uuid.UUID{}); return err }},
 	{"DisableGoalsForUserInUnfinishedSeasons", true, func() error { _, err := DisableGoalsForUserInUnfinishedSeasons(uuid.UUID{}, time.Time{}); return err }},
 	{"GenerateRandomInvite", true, func() error { _, err := GenerateRandomInvite(); return err }},
@@ -116,6 +119,10 @@ var closedDBCalls = []struct {
 	}},
 	{"GetDebtInSeasonLostByUserID", true, func() error { _, _, err := GetDebtInSeasonLostByUserID(uuid.UUID{}, uuid.UUID{}); return err }},
 	{"GetDebtInSeasonWonByUserID", true, func() error { _, _, err := GetDebtInSeasonWonByUserID(uuid.UUID{}, uuid.UUID{}); return err }},
+	{"GetDebtsForSeasonBetweenDates", true, func() error {
+		_, err := GetDebtsForSeasonBetweenDates(uuid.UUID{}, time.Time{}, time.Time{})
+		return err
+	}},
 	{"GetDebtsForUserIDsBetweenDates", true, func() error { _, err := GetDebtsForUserIDsBetweenDates(nil, time.Time{}, time.Time{}); return err }},
 	{"GetDelegatedAchievementsByUserID", true, func() error { _, _, err := GetDelegatedAchievementsByUserID(uuid.UUID{}); return err }},
 	{"GetDistinctDelegatedAchievementsByUserID", true, func() error { _, _, err := GetDistinctDelegatedAchievementsByUserID(uuid.UUID{}); return err }},
@@ -254,6 +261,7 @@ var closedDBCalls = []struct {
 	{"SeedHevyActions", false, func() error { SeedHevyActions(); return nil }},
 	{"SeedOAuthClients", false, func() error { SeedOAuthClients(); return nil }},
 	{"SetAchievementsToSeenForUser", true, func() error { _, err := SetAchievementsToSeenForUser(uuid.UUID{}); return err }},
+	{"SetDebtWinnerIfUnchanged", true, func() error { err := SetDebtWinnerIfUnchanged(uuid.UUID{}, &uuid.UUID{}, &uuid.UUID{}); return err }},
 	{"SetExerciseCountsTowardGoal", true, func() error { err := SetExerciseCountsTowardGoal(uuid.UUID{}, false); return err }},
 	{"SetExerciseIsOn", true, func() error { err := SetExerciseIsOn(uuid.UUID{}, false); return err }},
 	{"SetExerciseMediaRetrievedAt", true, func() error { err := SetExerciseMediaRetrievedAt(uuid.UUID{}, time.Time{}); return err }},

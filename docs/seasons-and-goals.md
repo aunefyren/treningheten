@@ -111,6 +111,10 @@ already used this week, at least one left). The AI greeting is told about it too
 Sick leave takes precedence over **saved workouts** ([flexible-workouts.md](flexible-workouts.md)):
 a sick-leave week neither uses nor earns them, and "Use saved workouts" is refused in it.
 
+An admin can top up the allowance of someone who has used it up: **Grant sick leave** in the
+admin **Fix a week** module (`POST /api/admin/users/:user_id/sickleave`, 1–10 unused weeks on
+the user's goal; see [admin-week-fix.md](admin-week-fix.md)).
+
 Registered via `POST /api/auth/sickleave/:season_id`. Code: `models/sickleave.go`,
 `database/sickleave.go` (`GetUsedSickleaveForGoalWithinWeek`,
 `GetUnusedSickleaveForGoalWithinWeek`).
@@ -123,14 +127,20 @@ weekly rhythm:
 | Job | Schedule | What it does |
 |---|---|---|
 | `SendSundayReminders` | 18:00 Sunday (`0 0 18 * * 7`) | Nudges users who haven't hit their goal yet; in a season with saved workouts, the e-mail says when they would make up the week |
-| `ProcessLastWeek` | 08:00 Monday (`0 0 8 * * 1`) | Finalises the finished week for each ongoing season (`ProcessWeekOfSeason`): generates **debts** (`GenerateDebtForWeek`) and awards weekly/season **achievements**. Week results — including streaks — are computed as part of this; they are not stored on their own. |
+| `ProcessLastWeek` | 08:00 Monday (`0 0 8 * * 1`) | Finalises the finished week for each ongoing season (`ProcessWeekOfSeason`, which runs the week **reconciliation** `ReconcileWeekOfSeason` with notifications on): writes the week's **debts** and awards weekly/season **achievements**. Week results — including streaks — are computed as part of this; they are not stored on their own. |
 
-A loser whose debt can't be checked or written doesn't stop the others: `GenerateDebtForWeek`
-attempts every loser, then returns the collected failures wrapped in
-`ErrDebtPartiallyGenerated`. `ProcessWeekOfSeason` still runs the achievements (the week's
-results are sound) and then returns that error, so the cron logs it and the admin "generate
-debt" action answers 500 instead of claiming success. Re-running is safe — losers who already
-have a debt for the week are skipped.
+The reconciliation compares the debts a week calls for with the debts stored for it. It
+creates the missing ones, switches off the ones no longer owed, re-assigns wrong winners and
+collapses duplicates. It never touches a paid or spun debt. Weekly achievements are granted
+once per day, so **re-running a week is idempotent**. The admin **Fix a week** tool runs the
+same reconciliation after correcting a week. The rules are in
+[admin-week-fix.md](admin-week-fix.md).
+
+A participant whose debt can't be checked or written doesn't stop the others. The
+reconciliation attempts everyone, then returns the collected failures wrapped in
+`ErrDebtPartiallyGenerated`. It still runs the achievements (the week's results are sound)
+and then returns that error. The cron logs it, and the admin action answers 500 instead of
+claiming success.
 
 For display, the leaderboard rebuilds week results on demand via
 `RetrieveWeekResultsFromSeasonWithinTimeframe`, which walks the season's weeks calling

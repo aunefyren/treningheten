@@ -54,6 +54,9 @@ the rules every change follows; plans and open work live in GitHub issues, not h
   (users in seasons / with notifications / with Strava, achievement completion).
 - [admin-users.md](admin-users.md) — disabling and re-enabling users from the admin
   panel: access cut-off, leaving unfinished seasons, and keeping history readable.
+- [admin-week-fix.md](admin-week-fix.md) — the admin **Fix a week** tool: correcting a
+  finished week (adding forgotten workouts, granting sick leave) and the idempotent week
+  reconciliation behind it and the Monday job (debts, the wheel, debt achievements).
 - [invites.md](invites.md) — invite codes and `/register?invite=` links (admin "Copy link",
   the startup `--generateinvite` link).
 - [push-notifications.md](push-notifications.md) — web push categories, what each opens, and

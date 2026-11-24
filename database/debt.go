@@ -7,6 +7,7 @@ import (
 	"github.com/aunefyren/treningheten/models"
 
 	"github.com/google/uuid"
+	"gorm.io/gorm"
 )
 
 // receive a user strcut and save it in the database
@@ -147,7 +148,9 @@ func GetDebtForWeekForUserInSeasonID(time time.Time, userID uuid.UUID, seasonID 
 		}
 	}
 
-	debtRecord := Instance.Where("debts.enabled = ?", true).Where("debts.loser_id = ?", userID).Where("debts.season_id = ?", seasonID).Where("debts.Date >= ?", startDayString).Where("debts.Date <= ?", endDayString).Find(&debtStruct)
+	// Oldest first and only one: a week with duplicate debts (which the week fix collapses)
+	// used to count as "no debt" because more than one row matched.
+	debtRecord := Instance.Where("debts.enabled = ?", true).Where("debts.loser_id = ?", userID).Where("debts.season_id = ?", seasonID).Where("debts.Date >= ?", startDayString).Where("debts.Date <= ?", endDayString).Order("debts.created_at asc").Limit(1).Find(&debtStruct)
 	if debtRecord.Error != nil {
 		return models.Debt{}, false, debtRecord.Error
 	} else if debtRecord.RowsAffected != 1 {
@@ -270,6 +273,77 @@ func GetDebtInSeasonWonByUserID(seasonID uuid.UUID, userID uuid.UUID) ([]models.
 
 	return debtStruct, true, nil
 
+}
+
+// GetDebtsForSeasonBetweenDates returns every enabled debt of the season dated between the two
+// days (inclusive, whole days), oldest first. The week fix reconciles a season-week from it, so
+// a week with duplicate debts for one loser comes back with all of them.
+func GetDebtsForSeasonBetweenDates(seasonID uuid.UUID, startDate time.Time, endDate time.Time) ([]models.Debt, error) {
+	debts := []models.Debt{}
+
+	startDayString := startDate.Format("2006-01-02") + " 00:00:00"
+	endDayString := endDate.Format("2006-01-02") + " 23:59:59"
+
+	debtRecord := Instance.
+		Where("debts.enabled = ?", true).
+		Where("debts.season_id = ?", seasonID).
+		Where("debts.Date >= ?", startDayString).
+		Where("debts.Date <= ?", endDayString).
+		Order("debts.created_at asc").
+		Find(&debts)
+	if debtRecord.Error != nil {
+		return []models.Debt{}, debtRecord.Error
+	}
+
+	return debts, nil
+}
+
+// ErrDebtChanged means a conditional debt update found the debt no longer as the caller read
+// it (spun, paid, disabled or re-assigned in the meantime) and changed nothing.
+var ErrDebtChanged = errors.New("debt changed since it was read")
+
+// debtStillAsSeen narrows an update to a debt that is still enabled, unpaid and holds the
+// winner the caller read. A wheel spin (winner set from NULL), a payment or another fix that
+// lands in between makes the update affect no row instead of overwriting it.
+func debtStillAsSeen(debtID uuid.UUID, seenWinnerID *uuid.UUID) *gorm.DB {
+	query := Instance.Model(&models.Debt{}).
+		Where("debts.id = ?", debtID).
+		Where("debts.enabled = ?", true).
+		Where("debts.paid = ?", false)
+	if seenWinnerID == nil {
+		return query.Where("debts.winner_id IS NULL")
+	}
+	return query.Where("debts.winner_id = ?", *seenWinnerID)
+}
+
+// SetDebtWinnerIfUnchanged replaces an unpaid debt's winner (nil hands it back to the wheel),
+// but only while the debt still holds seenWinnerID. Returns ErrDebtChanged otherwise.
+func SetDebtWinnerIfUnchanged(debtID uuid.UUID, seenWinnerID *uuid.UUID, newWinnerID *uuid.UUID) error {
+	var value any
+	if newWinnerID != nil {
+		value = *newWinnerID
+	}
+	record := debtStillAsSeen(debtID, seenWinnerID).Update("winner_id", value)
+	if record.Error != nil {
+		return record.Error
+	}
+	if record.RowsAffected != 1 {
+		return ErrDebtChanged
+	}
+	return nil
+}
+
+// DisableDebtIfUnchanged switches an unpaid debt off, but only while it still holds
+// seenWinnerID. Returns ErrDebtChanged otherwise.
+func DisableDebtIfUnchanged(debtID uuid.UUID, seenWinnerID *uuid.UUID) error {
+	record := debtStillAsSeen(debtID, seenWinnerID).Update("enabled", false)
+	if record.Error != nil {
+		return record.Error
+	}
+	if record.RowsAffected != 1 {
+		return ErrDebtChanged
+	}
+	return nil
 }
 
 // Get all the debt for a season where the prize is lost by a user ID

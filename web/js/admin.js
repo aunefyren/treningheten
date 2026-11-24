@@ -67,29 +67,24 @@ function load_page(result) {
 
                     </div>
 
-                    <div class="debt-module" id="debt-module">
+                    <div class="admin-module admin-module--wide" id="week-fix-module">
 
-                        <div class="debt-form" id="debt-form">
+                        <h3 id="week-fix-module-title">Fix a week:</h3>
 
-                            <h3 id="debt-module-title">Debt:</h3>
+                        <p class="field-hint week-fix-intro">Pick a finished week to see its results, debts and sick leave. Add forgotten workouts or sick leave, then apply the fix: debts and their achievements are brought in line with the week for everyone in the season. Paid and spun debts are never changed.</p>
 
-                            <form action="" data-action="generateDebt">
+                        <form action="" data-action="loadFixWeek">
 
-                                <div class="field">
-                                    <label for="debt-week" class="field-label">Week with debt</label>
-                                    <input type="date" id="debt-week" name="debt-week" required>
-                                </div>
+                            <div class="field">
+                                <label for="fix-week" class="field-label">A day in the week</label>
+                                <input type="date" id="fix-week" name="fix-week" required>
+                            </div>
 
-                                <div class="field">
-                                    <label for="debt-user" class="field-label">User <span class="field-hint">(optional)</span></label>
-                                    <select id="debt-user" class="admin-user-select" data-placeholder="Choose optional user"></select>
-                                </div>
+                            <button type="submit" id="fix-week-button" class="btn btn--block"><img src="assets/done.svg" class="color-invert">Check week</button>
 
-                                <button type="submit" id="generate-debt-button" class="btn btn--block"><img src="assets/plus.svg" class="color-invert">Generate debt</button>
+                        </form>
 
-                            </form>
-
-                        </div>
+                        <div class="week-fix-result" id="week-fix-result" hidden></div>
 
                     </div>
 
@@ -689,23 +684,204 @@ function deleteInvite(inviteID) {
     });
 }
 
-function generateDebt() {
-    if(!confirm("Are you sure you want to generate debt for the chosen week?")) {
+// --- Fix a week (docs/admin-week-fix.md) ---------------------------------------------------
+
+// The day (YYYY-MM-DD) of the week the panel shows, once one is loaded.
+var fixWeekDate = null;
+
+// loadFixWeek shows the picked week: GET admin/weeks is a dry run of the fix, so the panel
+// lists what applying it would change.
+function loadFixWeek(day) {
+    day = day || document.getElementById("fix-week").value;
+    if(!parsePickedDate(day)) {
+        error("Pick a day in the week.");
         return false;
     }
 
-    // Sent as UTC midnight of the picked day, as it always has been; the server finds the
-    // week from that date.
-    var debtWeekValue = document.getElementById("debt-week").value;
-    if(!parsePickedDate(debtWeekValue)) {
-        error("Failed to parse date request.");
+    return adminRequest("get", "admin/weeks?date=" + encodeURIComponent(day), null, function(result) {
+        fixWeekDate = day;
+        clearResponse();
+        placeFixWeek(result.reports || [], result.message);
+    });
+}
+
+// fixWeekDay cuts a server timestamp down to its day as the server wrote it (the server's
+// zone, not the browser's).
+function fixWeekDay(timestamp) {
+    return String(timestamp || "").slice(0, 10);
+}
+
+function fixWeekUserName(user) {
+    return escapeHTML(((user && user.first_name) || "") + " " + ((user && user.last_name) || ""));
+}
+
+// fixWeekDebtText describes a debt as the report shows it.
+function fixWeekDebtText(debt) {
+    if(!debt) {
+        return "No debt";
+    }
+    var text = debt.winner ? "Debt to " + fixWeekUserName(debt.winner) : "Debt for the wheel";
+    if(debt.paid) {
+        text += " (paid)";
+    } else if(debt.spun) {
+        text += " (spun)";
+    }
+    return text;
+}
+
+function fixWeekStatusBadges(entry) {
+    var badges = [];
+    if(!entry.competing) {
+        badges.push(`<span class="info-badge info-badge--neutral">Not competing</span>`);
+    } else if(entry.sick_leave) {
+        badges.push(`<span class="info-badge info-badge--neutral">Sick leave</span>`);
+    } else if(entry.won_week) {
+        badges.push(`<span class="info-badge info-badge--on">Won</span>`);
+    } else if(entry.owes_spin) {
+        badges.push(`<span class="info-badge info-badge--alert">Owes a spin</span>`);
+    } else if(!entry.full_week_participation) {
+        badges.push(`<span class="info-badge info-badge--off">Joined this week</span>`);
+    } else {
+        badges.push(`<span class="info-badge info-badge--off">Missed</span>`);
+    }
+    if(entry.carry_used > 0) {
+        badges.push(`<span class="info-badge info-badge--neutral">Saved workouts</span>`);
+    }
+    return badges.join(" ");
+}
+
+// fixWeekList renders a list of report lines (changes, warnings, achievements) under a label.
+function fixWeekList(label, items, modifier) {
+    if(!items || items.length === 0) {
+        return "";
+    }
+    var html = `<div class="week-fix-list week-fix-list--` + modifier + `"><span class="week-fix-list-label">` + label + `</span><ul>`;
+    for(var i = 0; i < items.length; i++) {
+        html += `<li>` + escapeHTML(items[i]) + `</li>`;
+    }
+    return html + `</ul></div>`;
+}
+
+function fixWeekAchievementNames(achievements) {
+    return (achievements || []).map(function(achievement) { return achievement.name; });
+}
+
+function placeFixWeekUser(report, entry) {
+    var weekStart = fixWeekDay(report.week_start);
+    var weekEnd = fixWeekDay(report.week_end);
+    var dryRun = report.dry_run;
+    var debtLine = fixWeekDebtText(entry.debt_before);
+    if(JSON.stringify(entry.debt_before) !== JSON.stringify(entry.debt_after)) {
+        debtLine += " → " + fixWeekDebtText(entry.debt_after);
+    }
+
+    return `
+        <div class="week-fix-user">
+            <div class="week-fix-user-head">
+                <span class="admin-user-name">` + fixWeekUserName(entry.user) + `</span>
+                <span class="week-fix-badges">` + fixWeekStatusBadges(entry) + `</span>
+            </div>
+            <div class="week-fix-user-facts">
+                <span>` + entry.workouts + ` of ` + entry.goal + ` workouts</span>
+                <span>` + entry.sickleave_left + ` sick leave left</span>
+                <span>` + debtLine + `</span>
+            </div>
+            ` + fixWeekList(dryRun ? "Will change:" : "Changed:", entry.changes, "changes") + `
+            ` + fixWeekList(dryRun ? "Will give:" : "Gave:", fixWeekAchievementNames(entry.achievements_granted), "changes") + `
+            ` + fixWeekList(dryRun ? "Will take back:" : "Took back:", fixWeekAchievementNames(entry.achievements_revoked), "changes") + `
+            ` + fixWeekList("Check:", entry.warnings, "warnings") + `
+            <div class="week-fix-actions">
+                <form action="" class="week-fix-action" data-action="addFixWorkout" data-user-id="` + escapeHTML(entry.user.id) + `">
+                    <input type="date" name="date" aria-label="Workout day" min="` + weekStart + `" max="` + weekEnd + `" value="` + weekStart + `" required>
+                    <input type="text" name="note" aria-label="Workout note" placeholder="Added by admin" maxlength="255" autocomplete="off">
+                    <button type="submit" class="btn week-fix-action-button">Add workout</button>
+                </form>
+                <form action="" class="week-fix-action" data-action="grantFixSickleave" data-user-id="` + escapeHTML(entry.user.id) + `" data-season-id="` + escapeHTML(report.season_id) + `">
+                    <input type="number" name="count" aria-label="Weeks of sick leave" min="1" max="10" value="1" required>
+                    <button type="submit" class="btn week-fix-action-button">Grant sick leave</button>
+                </form>
+            </div>
+        </div>
+    `;
+}
+
+function placeFixWeek(reports, message) {
+    var container = document.getElementById("week-fix-result");
+    container.hidden = false;
+
+    if(reports.length === 0) {
+        container.innerHTML = `<p class="server-info-loading">` + escapeHTML(message || "No season ran that week.") + `</p>`;
+        return;
+    }
+
+    var html = "";
+    var anyChange = false;
+    for(var i = 0; i < reports.length; i++) {
+        var report = reports[i];
+        anyChange = anyChange || report.changed;
+
+        html += `
+            <div class="week-fix-season">
+                <div class="info-section-head">` + escapeHTML(report.season_name) + `
+                    <span class="info-badge info-badge--neutral">Week ` + report.week_number + `</span>
+                </div>
+                <p class="field-hint">` + fixWeekDay(report.week_start) + ` – ` + fixWeekDay(report.week_end) + ` · ` + report.winners + ` won, ` + report.losers + ` owe a spin</p>
+                ` + fixWeekList("Check:", report.warnings, "warnings") + `
+                <div class="week-fix-users">`;
+        for(var j = 0; j < report.users.length; j++) {
+            html += placeFixWeekUser(report, report.users[j]);
+        }
+        html += `</div></div>`;
+    }
+
+    if(anyChange) {
+        html += `
+            <div class="week-fix-apply">
+                <div class="field-check"><input type="checkbox" id="fix-week-notify"><label for="fix-week-notify">Notify affected users</label></div>
+                <button type="button" class="btn btn--block" data-action="applyFixWeek"><img src="assets/done.svg" class="color-invert">Apply fix</button>
+            </div>`;
+    } else {
+        html += `<p class="week-fix-settled">Nothing to fix: the stored debts match the week.</p>`;
+    }
+
+    container.innerHTML = html;
+}
+
+function applyFixWeek() {
+    if(!fixWeekDate) {
+        return false;
+    }
+    var notify = document.getElementById("fix-week-notify").checked;
+    var question = "Apply the fix for this week? Debts and their achievements are changed as listed" + (notify ? ", and affected users are notified." : ". Nobody is notified.");
+    if(!confirm(question)) {
         return false;
     }
 
-    var debtTargetUser = document.getElementById("debt-user").value || null;
-
-    return adminRequest("post", "admin/debts", { "date": debtWeekValue + "T00:00:00Z", "target_user": debtTargetUser }, function(result) {
+    return adminRequest("post", "admin/weeks/reconcile", { "date": fixWeekDate, "notify": notify }, function(result) {
         success(result.message);
+        loadFixWeek(fixWeekDate);
+    });
+}
+
+function addFixWorkout(form) {
+    var body = {
+        "date": form.querySelector("input[name=date]").value,
+        "note": form.querySelector("input[name=note]").value
+    };
+    return adminRequest("post", "admin/users/" + form.dataset.userId + "/exercises", body, function(result) {
+        success(result.message);
+        loadFixWeek(fixWeekDate);
+    });
+}
+
+function grantFixSickleave(form) {
+    var count = parseInt(form.querySelector("input[name=count]").value, 10);
+    if(!confirm("Grant " + count + " more week(s) of sick leave? The user registers them as usual.")) {
+        return false;
+    }
+    return adminRequest("post", "admin/users/" + form.dataset.userId + "/sickleave", { "season_id": form.dataset.seasonId, "count": count }, function(result) {
+        success(result.message + " " + result.sickleave_left + " left.");
+        loadFixWeek(fixWeekDate);
     });
 }
 
@@ -984,13 +1160,16 @@ function bindAdminActions() {
         generateInvite: function() { generateInvite(); },
         setUserEnabled: function(element) { setUserEnabled(element.dataset.userId, element.dataset.enabled === "true"); },
         copyInviteLink: function(element) { copyInviteLink(element); },
-        deleteInvite: function(element) { deleteInvite(element.dataset.inviteId); }
+        deleteInvite: function(element) { deleteInvite(element.dataset.inviteId); },
+        applyFixWeek: function() { applyFixWeek(); }
     });
     on_action(body, {
         placeSavedWorkoutsRule: function() { placeSavedWorkoutsRule(); }
     }, 'input');
     on_action(body, {
-        generateDebt: function(element, event) { event.preventDefault(); generateDebt(); },
+        loadFixWeek: function(element, event) { event.preventDefault(); loadFixWeek(); },
+        addFixWorkout: function(element, event) { event.preventDefault(); addFixWorkout(element); },
+        grantFixSickleave: function(element, event) { event.preventDefault(); grantFixSickleave(element); },
         addPrize: function(element, event) { event.preventDefault(); addPrize(); },
         addSeason: function(element, event) { event.preventDefault(); addSeason(); },
         giveAchievement: function(element, event) { event.preventDefault(); giveAchievement(); },

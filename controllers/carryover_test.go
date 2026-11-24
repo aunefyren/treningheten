@@ -10,6 +10,7 @@ import (
 
 	"github.com/aunefyren/treningheten/database"
 	"github.com/aunefyren/treningheten/models"
+	"github.com/aunefyren/treningheten/utilities"
 
 	"github.com/google/uuid"
 )
@@ -303,11 +304,20 @@ func TestSavedWeekWinsTheWheelAndOwesNothing(t *testing.T) {
 	seedCarryOverUse(t, saverGoal.ID, wednesdayOfWeeksAgo(1))
 	seedExerciseDayWithExercises(t, rival.ID, wednesdayOfWeeksAgo(1), 1) // missed
 
-	week, err := GenerateDebtForWeek(wednesdayOfWeeksAgo(1), season, nil)
+	if err := ProcessWeekOfSeason(season, wednesdayOfWeeksAgo(1)); err != nil {
+		t.Fatal(err)
+	}
+	seasonObject, err := ConvertSeasonToSeasonObject(season)
 	if err != nil {
 		t.Fatal(err)
 	}
-	saverResult := userWeekResult(week, saverGoal.ID)
+	monday, _ := utilities.FindEarlierMonday(wednesdayOfWeeksAgo(1))
+	sunday, _ := utilities.FindNextSunday(wednesdayOfWeeksAgo(1))
+	weeks, err := RetrieveWeekResultsFromSeasonWithinTimeframe(monday, sunday, seasonObject)
+	if err != nil || len(weeks) != 1 {
+		t.Fatalf("week results = %v, %v; want one week", weeks, err)
+	}
+	saverResult := userWeekResult(weeks[0], saverGoal.ID)
 	if saverResult == nil || !saverResult.SavedByCarryOver() || !saverResult.WonWeek() || saverResult.WheelTickets() != 2 {
 		t.Fatalf("saver's week = %+v, want won with a saved workout and two tickets", saverResult)
 	}
