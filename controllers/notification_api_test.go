@@ -6,6 +6,7 @@ import (
 	"encoding/base64"
 	"net/http"
 	"net/http/httptest"
+	"strconv"
 	"sync/atomic"
 	"testing"
 
@@ -44,6 +45,14 @@ func pushEndpoint(t *testing.T, status int) (*httptest.Server, *atomic.Int32) {
 		}
 		if request.Header.Get("Authorization") == "" || request.Header.Get("Content-Encoding") != "aes128gcm" {
 			t.Errorf("push delivery without VAPID auth or encryption: %v", request.Header)
+		}
+		// Every notification is shown to the user: high urgency so a sleeping phone doesn't
+		// defer it, and a TTL long enough to outlast that sleep.
+		if request.Header.Get("Urgency") != "high" {
+			t.Errorf("push delivery with Urgency %q, want high", request.Header.Get("Urgency"))
+		}
+		if ttl, err := strconv.Atoi(request.Header.Get("TTL")); err != nil || ttl < 3600 {
+			t.Errorf("push delivery with TTL %q, want at least an hour", request.Header.Get("TTL"))
 		}
 		deliveries.Add(1)
 		writer.WriteHeader(status)

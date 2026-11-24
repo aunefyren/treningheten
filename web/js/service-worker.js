@@ -2,7 +2,7 @@ console.log("Service-worker loaded.");
 
 // Incrementing OFFLINE_VERSION will kick off the install event and force
 // previously cached resources to be updated from the network.
-const OFFLINE_VERSION = 6;
+const OFFLINE_VERSION = 7;
 const CACHE_NAME = 'treningheten-cache-v' + OFFLINE_VERSION;
 const OFFLINE_URL = '/offline';
 const urlsToCache = [
@@ -171,6 +171,16 @@ self.addEventListener('notificationclick', event => {
 
 
 
+// notificationTag groups notifications on the device: a debt push per debt, the rest per
+// category. A Sunday reminder is thus no longer replaced by Monday's wheel spin.
+function notificationTag(jsonData) {
+    const category = jsonData.category || "general";
+    if (category === "debt" && jsonData.additional_data) {
+        return "debt-" + jsonData.additional_data;
+    }
+    return category;
+}
+
 self.addEventListener('push', function(event) {
     if (!(self.Notification && self.Notification.permission === "granted")) {
         console.log("Notification permission not given.")
@@ -236,7 +246,9 @@ self.addEventListener('push', function(event) {
                     icon: '/assets/x.svg'
                 },
             ],
-            tag: 'Message'
+            // One tag per kind (and per debt), so a new push replaces an older one of the
+            // same kind instead of every push wiping out whatever was shown before.
+            tag: notificationTag(jsonData)
         };
 
         event.waitUntil(

@@ -4,7 +4,10 @@ import (
 	"encoding/json"
 	"errors"
 	"net/http"
+	"net/url"
+	"strconv"
 	"strings"
+	"time"
 
 	"github.com/aunefyren/treningheten/database"
 	"github.com/aunefyren/treningheten/files"
@@ -17,7 +20,22 @@ import (
 	"github.com/google/uuid"
 )
 
-func PushNotificationToSubscriptions(notificationType string, notificationBody string, notificationTitle string, subscriptions []models.Subscription, notificationAdditionalData *string) (int, error) {
+// How long a push service keeps an undelivered notification. A phone in power-saving sleep
+// (Android Doze) can hold a delivery back for minutes, and a push that expires first is
+// silently dropped, so the TTL is how long the notification stays worth showing.
+const (
+	// pushTTLDefault: achievements, news, wheel spins and account notices stay relevant
+	// for a day.
+	pushTTLDefault = 24 * time.Hour
+	// pushTTLSundayReminder: the reminder goes out at 18:00 and is moot once Sunday ends.
+	pushTTLSundayReminder = 6 * time.Hour
+)
+
+// PushNotificationToSubscriptions sends one notification to each subscription and returns
+// how many push services accepted it. Every notification is shown to the user, so it goes
+// with high urgency: normal urgency lets a sleeping Android phone defer it. ttl is how long
+// the push service may hold it for an unreachable device (pushTTLDefault and friends).
+func PushNotificationToSubscriptions(notificationType string, notificationBody string, notificationTitle string, subscriptions []models.Subscription, notificationAdditionalData *string, ttl time.Duration) (int, error) {
 	vapidSettings, err := GetVAPIDSettings()
 	if err != nil {
 		logger.Log.Info("Failed to get VAPID settings. Error: " + err.Error())
@@ -51,7 +69,8 @@ func PushNotificationToSubscriptions(notificationType string, notificationBody s
 			Subscriber:      vapidSettings.VAPIDContact,
 			VAPIDPublicKey:  vapidSettings.VAPIDPublicKey,
 			VAPIDPrivateKey: vapidSettings.VAPIDSecretKey,
-			TTL:             30,
+			TTL:             int(ttl / time.Second),
+			Urgency:         webpush.UrgencyHigh,
 			RecordSize:      2048,
 		})
 
@@ -67,7 +86,15 @@ func PushNotificationToSubscriptions(notificationType string, notificationBody s
 
 		// A 404 or 410 means the push service considers the subscription permanently
 		// gone, so disable it to stop retrying it on every future push.
+		// Log every outcome, so a "my phone never got it" report can be checked against
+		// what the push service answered. The endpoint itself is a bearer capability, so
+		// only its host is logged.
+		outcome := "Pushed '" + notificationType + "' notification to subscription '" + subscription.ID.String() +
+			"' of user '" + subscription.UserID.String() + "' via " + pushEndpointHost(subscription.Endpoint) +
+			". Push service answered HTTP " + strconv.Itoa(statusCode) + "."
+
 		if statusCode == http.StatusNotFound || statusCode == http.StatusGone {
+			logger.Log.Info(outcome + " The subscription is gone; disabling it.")
 			subscription.Enabled = false
 			if _, err := database.UpdateSubscription(subscription); err != nil {
 				logger.Log.Info("Failed to disable dead subscription. Error: " + err.Error())
@@ -75,10 +102,27 @@ func PushNotificationToSubscriptions(notificationType string, notificationBody s
 			continue
 		}
 
+		// Any other non-2xx (a rejected VAPID signature, a payload too large, rate
+		// limiting) means the push service did not take the notification.
+		if statusCode < 200 || statusCode > 299 {
+			logger.Log.Info(outcome + " Not delivered.")
+			continue
+		}
+
+		logger.Log.Info(outcome)
 		notificationSum += 1
 	}
 
 	return notificationSum, nil
+}
+
+// pushEndpointHost returns the push service host of a subscription endpoint, for logs.
+func pushEndpointHost(endpoint string) string {
+	parsed, err := url.Parse(endpoint)
+	if err != nil || parsed.Host == "" {
+		return "an unparsable endpoint"
+	}
+	return parsed.Host
 }
 
 func GetVAPIDSettings() (models.VAPIDSettings, error) {
@@ -203,7 +247,7 @@ func APIPushNotificationToAllDevicesForUser(context *gin.Context) {
 		return
 	}
 
-	pushedAmount, err := PushNotificationToSubscriptions(notificationRequest.Category, notificationRequest.Body, notificationRequest.Title, subscriptions, notificationRequest.AdditionalData)
+	pushedAmount, err := PushNotificationToSubscriptions(notificationRequest.Category, notificationRequest.Body, notificationRequest.Title, subscriptions, notificationRequest.AdditionalData, pushTTLDefault)
 	if err != nil {
 		logger.Log.Info("Failed to push notification. Error: " + err.Error())
 		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to push notification."})
@@ -306,7 +350,7 @@ func PushNotificationsForAchievements(userID uuid.UUID) (err error) {
 	body := "You just got a new achievement 🏆"
 	category := "achievement"
 
-	_, err = PushNotificationToSubscriptions(category, body, title, subscriptions, nil)
+	_, err = PushNotificationToSubscriptions(category, body, title, subscriptions, nil, pushTTLDefault)
 	if err != nil {
 		logger.Log.Info("Failed to push notification(s). Error: " + err.Error())
 		return errors.New("Failed to push notification(s).")
@@ -337,7 +381,7 @@ func PushNotificationsForNews() (err error) {
 	body := "A news post was just published 📰"
 	category := "news"
 
-	_, err = PushNotificationToSubscriptions(category, body, title, subscriptions, nil)
+	_, err = PushNotificationToSubscriptions(category, body, title, subscriptions, nil, pushTTLDefault)
 	if err != nil {
 		logger.Log.Info("Failed to push notification(s). Error: " + err.Error())
 		return errors.New("Failed to push notification(s).")
@@ -368,7 +412,7 @@ func PushNotificationsForSundayAlerts() (err error) {
 	body := "It's Sunday, remember to log your workouts 🔔"
 	category := "alert"
 
-	_, err = PushNotificationToSubscriptions(category, body, title, subscriptions, nil)
+	_, err = PushNotificationToSubscriptions(category, body, title, subscriptions, nil, pushTTLSundayReminder)
 	if err != nil {
 		logger.Log.Info("Failed to push notification(s). Error: " + err.Error())
 		return errors.New("Failed to push notification(s).")
@@ -399,7 +443,7 @@ func PushNotificationsForWeekLost(userId uuid.UUID) (err error) {
 	body := "You didn't hit your goal this week 😢"
 	category := "alert"
 
-	_, err = PushNotificationToSubscriptions(category, body, title, subscriptions, nil)
+	_, err = PushNotificationToSubscriptions(category, body, title, subscriptions, nil, pushTTLDefault)
 	if err != nil {
 		logger.Log.Info("Failed to push notification(s). Error: " + err.Error())
 		return errors.New("Failed to push notification(s).")
@@ -431,7 +475,7 @@ func PushNotificationsForWheelSpin(userId uuid.UUID, debt models.Debt) (err erro
 	category := "debt"
 	additionalDataString := debt.ID.String()
 
-	_, err = PushNotificationToSubscriptions(category, body, title, subscriptions, &additionalDataString)
+	_, err = PushNotificationToSubscriptions(category, body, title, subscriptions, &additionalDataString, pushTTLDefault)
 	if err != nil {
 		logger.Log.Info("Failed to push notification(s). Error: " + err.Error())
 		return errors.New("Failed to push notification(s).")
@@ -463,7 +507,7 @@ func PushNotificationsForWheelSpinCheck(userId uuid.UUID, debt models.Debt) (err
 	category := "debt"
 	additionalDataString := debt.ID.String()
 
-	_, err = PushNotificationToSubscriptions(category, body, title, subscriptions, &additionalDataString)
+	_, err = PushNotificationToSubscriptions(category, body, title, subscriptions, &additionalDataString, pushTTLDefault)
 	if err != nil {
 		logger.Log.Info("Failed to push notification(s). Error: " + err.Error())
 		return errors.New("Failed to push notification(s).")
@@ -495,7 +539,7 @@ func PushNotificationsForWheelSpinWin(userId uuid.UUID, debt models.Debt) (err e
 	category := "debt"
 	additionalDataString := debt.ID.String()
 
-	_, err = PushNotificationToSubscriptions(category, body, title, subscriptions, &additionalDataString)
+	_, err = PushNotificationToSubscriptions(category, body, title, subscriptions, &additionalDataString, pushTTLDefault)
 	if err != nil {
 		logger.Log.Info("Failed to push notification(s). Error: " + err.Error())
 		return errors.New("Failed to push notification(s).")
@@ -528,7 +572,7 @@ func PushNotificationsForAccountAlert(userID uuid.UUID, body string, section str
 		additionalData = &section
 	}
 
-	if _, err := PushNotificationToSubscriptions("account", body, "Treningheten", subscriptions, additionalData); err != nil {
+	if _, err := PushNotificationToSubscriptions("account", body, "Treningheten", subscriptions, additionalData, pushTTLDefault); err != nil {
 		logger.Log.Info("Failed to push notification(s). Error: " + err.Error())
 		return errors.New("Failed to push notification(s).")
 	}
