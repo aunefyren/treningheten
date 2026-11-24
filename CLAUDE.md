@@ -59,10 +59,10 @@ together with the maintainer; **coding agents** (Sonnet) implement an agreed pla
   [`docs/data-conventions.md`](docs/data-conventions.md); for UI,
   [`docs/styleguide.md`](docs/styleguide.md).
 - **Add tests when finishing a feature**, reusing the existing harnesses (below).
-- **Don't screenshot-verify frontend changes.** No throwaway HTML harnesses or headless
-  browsers: they drift from the real JS-built markup, and headless Edge here ignores the
-  viewport size, so `@media` breakpoints never trigger. Reason about the CSS and let the
-  maintainer look at the real page.
+- **Screenshot-verify frontend changes with a headless browser.** Run the app (`go run .`
+  or the [Docker harness](docker-test/README.md)) and screenshot the real pages, at desktop
+  and phone widths, rather than reasoning about the CSS alone. If no headless browser is
+  available, ask the maintainer for one instead of skipping the check.
 
 ## Gotchas
 
