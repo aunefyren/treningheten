@@ -17,14 +17,16 @@ func TestGetDebtsForSeasonBetweenDates(t *testing.T) {
 
 	loser := makeTestUser(t, "seasonweek@example.com", nil)
 	seasonID := uuid.New()
-	// 2024-01-08 (Mon) .. 2024-01-14 (Sun).
-	monday := time.Date(2024, 1, 8, 0, 0, 0, 0, time.UTC)
-	sunday := time.Date(2024, 1, 14, 23, 59, 59, 0, time.UTC)
+	// 2024-01-08 (Mon) .. 2024-01-14 (Sun), in the server's zone like every caller: the
+	// whole-day bounds are compared as strings, which Postgres/MySQL read in the session zone
+	// (pinned to time.Local by newTestDB), so UTC dates would shift across the edges.
+	monday := time.Date(2024, 1, 8, 0, 0, 0, 0, time.Local)
+	sunday := time.Date(2024, 1, 14, 23, 59, 59, 0, time.Local)
 
 	first := makeDebt(t, seasonID, loser.ID, nil, monday, false)
-	second := makeDebt(t, seasonID, loser.ID, nil, time.Date(2024, 1, 14, 18, 0, 0, 0, time.UTC), true)
-	makeDebt(t, seasonID, loser.ID, nil, time.Date(2024, 1, 15, 0, 0, 0, 0, time.UTC), false) // next week
-	makeDebt(t, seasonID, loser.ID, nil, time.Date(2024, 1, 7, 23, 0, 0, 0, time.UTC), false) // last week
+	second := makeDebt(t, seasonID, loser.ID, nil, time.Date(2024, 1, 14, 18, 0, 0, 0, time.Local), true)
+	makeDebt(t, seasonID, loser.ID, nil, time.Date(2024, 1, 15, 0, 0, 0, 0, time.Local), false) // next week
+	makeDebt(t, seasonID, loser.ID, nil, time.Date(2024, 1, 7, 23, 0, 0, 0, time.Local), false) // last week
 	makeDebt(t, uuid.New(), loser.ID, nil, monday, false)                                     // other season
 	disabled := makeDebt(t, seasonID, loser.ID, nil, monday, false)
 	disableRow(t, &models.Debt{}, disabled.ID)
@@ -50,7 +52,7 @@ func TestGetDebtForWeekForUserInSeasonIDFindsDuplicates(t *testing.T) {
 
 	loser := makeTestUser(t, "dupeweek@example.com", nil)
 	seasonID := uuid.New()
-	inWeek := time.Date(2024, 1, 10, 12, 0, 0, 0, time.UTC)
+	inWeek := time.Date(2024, 1, 10, 12, 0, 0, 0, time.Local)
 	oldest := makeDebt(t, seasonID, loser.ID, nil, inWeek, false)
 	newer := makeDebt(t, seasonID, loser.ID, nil, inWeek, false)
 	Instance.Model(&models.Debt{}).Where("id = ?", newer.ID).Update("created_at", time.Now().Add(time.Hour))
