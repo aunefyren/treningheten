@@ -27,7 +27,7 @@ func TestGetDebtsForSeasonBetweenDates(t *testing.T) {
 	second := makeDebt(t, seasonID, loser.ID, nil, time.Date(2024, 1, 14, 18, 0, 0, 0, time.Local), true)
 	makeDebt(t, seasonID, loser.ID, nil, time.Date(2024, 1, 15, 0, 0, 0, 0, time.Local), false) // next week
 	makeDebt(t, seasonID, loser.ID, nil, time.Date(2024, 1, 7, 23, 0, 0, 0, time.Local), false) // last week
-	makeDebt(t, uuid.New(), loser.ID, nil, monday, false)                                     // other season
+	makeDebt(t, uuid.New(), loser.ID, nil, monday, false)                                       // other season
 	disabled := makeDebt(t, seasonID, loser.ID, nil, monday, false)
 	disableRow(t, &models.Debt{}, disabled.ID)
 	// Oldest first, by creation.
