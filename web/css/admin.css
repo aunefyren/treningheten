@@ -192,3 +192,132 @@
   color: var(--mediumblue);
   word-break: break-all;
 }
+
+/* "Owes a spin" in the week fix. */
+.info-badge--alert {
+  background-color: var(--error);
+}
+
+/* Fix a week: the week's participants as inset rows (the user-list look), each with its
+   facts, what the fix changes, warnings and the add-workout / sick-leave actions. */
+
+.week-fix-intro {
+  margin: 0 0 var(--space-4);
+}
+
+.week-fix-result {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--inset-border);
+}
+
+.week-fix-season,
+.week-fix-users {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.week-fix-season .field-hint {
+  margin: 0;
+}
+
+.week-fix-user {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  border: 1px solid var(--inset-border);
+  border-radius: var(--radius-sm);
+  padding: 0.5rem 0.75rem;
+  background-color: var(--inset-bg);
+}
+
+.week-fix-user-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.week-fix-user-facts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.15rem 1rem;
+  font-size: 0.85rem;
+  color: var(--mediumblue);
+}
+
+.week-fix-list {
+  font-size: 0.85rem;
+}
+
+.week-fix-list-label {
+  font-weight: bold;
+}
+
+.week-fix-list ul {
+  margin: 0.15rem 0 0;
+  padding-left: 1.2rem;
+}
+
+.week-fix-list--warnings {
+  color: var(--error);
+}
+
+.week-fix-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  padding-top: 0.5rem;
+  border-top: 1px solid var(--inset-border);
+}
+
+/* A row, unlike the global `form` (a centred column): the flex-basis below is a width. */
+.week-fix-action {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  justify-content: flex-start;
+  align-items: center;
+  gap: 0.4rem;
+  margin: 0;
+}
+
+/* The two action rows sit together; `.admin-module form + form` would rule them apart. */
+.admin-module .week-fix-action + .week-fix-action {
+  margin-top: 0;
+  padding-top: 0;
+  border-top: 0;
+}
+
+.week-fix-action input {
+  flex: 1 1 8rem;
+  width: auto;
+  min-width: 0;
+  margin: 0;
+}
+
+.week-fix-action input[type="number"] {
+  flex: 0 0 4.5rem;
+}
+
+.week-fix-action-button {
+  flex: 0 0 auto;
+  padding: 0.4rem 0.8rem;
+  font-size: 0.85rem;
+}
+
+.week-fix-apply {
+  padding-top: 1rem;
+  border-top: 1px solid var(--inset-border);
+}
+
+.week-fix-settled {
+  margin: 0;
+  text-align: center;
+  color: var(--mediumblue);
+}

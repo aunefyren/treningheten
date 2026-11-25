@@ -408,11 +408,14 @@ func initRouter(configFile models.ConfigStruct) *gin.Engine {
 
 			admin.GET("/exercise-days", controllers.APIAdminGetExerciseDays)
 
-			admin.POST("/debts", controllers.APIGenerateDebtForWeek)
+			admin.GET("/weeks", controllers.APIAdminGetWeek)
+			admin.POST("/weeks/reconcile", controllers.APIAdminReconcileWeek)
 
 			admin.GET("/users", controllers.APIAdminGetUsers)
 			admin.PUT("/users/:user_id/enabled", controllers.APIAdminSetUserEnabled)
 			admin.POST("/users/:user_id/achievement-delegations", controllers.APIGiveUserAnAchievement)
+			admin.POST("/users/:user_id/exercises", controllers.APIAdminCreateExerciseForUser)
+			admin.POST("/users/:user_id/sickleave", controllers.APIAdminGrantSickleave)
 
 			admin.GET("/prizes", controllers.APIGetPrizes)
 			admin.POST("/prizes", controllers.APIRegisterPrize)

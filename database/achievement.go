@@ -192,6 +192,20 @@ func GetAchievementDelegationByIDAndUserID(delegationID uuid.UUID, userID uuid.U
 	return delegation, true, nil
 }
 
+// DisableAchievementDelegationByID revokes one delegation: it stays in the table, switched off,
+// so every read (which filters on enabled) stops showing it. Returns false when no enabled
+// delegation with that ID exists.
+func DisableAchievementDelegationByID(delegationID uuid.UUID) (bool, error) {
+	record := Instance.Model(&models.AchievementDelegation{}).
+		Where("achievement_delegations.id = ?", delegationID).
+		Where("achievement_delegations.enabled = ?", true).
+		Update("enabled", false)
+	if record.Error != nil {
+		return false, record.Error
+	}
+	return record.RowsAffected == 1, nil
+}
+
 func SetAchievementsToSeenForUser(userID uuid.UUID) (updates int64, err error) {
 	var achievementStruct models.AchievementDelegation
 	err = nil

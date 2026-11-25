@@ -85,3 +85,14 @@ func GetWheelviewByDebtIDAndUserID(userID uuid.UUID, debtID uuid.UUID) (models.W
 	return wheelStruct, true, nil
 
 }
+
+// DebtHasWheelviews reports whether the wheel has been spun for a debt: a spin creates one
+// wheel view per wheel contestant, and nothing else does.
+func DebtHasWheelviews(debtID uuid.UUID) (bool, error) {
+	var count int64
+	record := Instance.Model(&models.Wheelview{}).Where("wheelviews.debt_id = ?", debtID).Count(&count)
+	if record.Error != nil {
+		return false, record.Error
+	}
+	return count > 0, nil
+}

@@ -24,7 +24,7 @@ func hasAchievement(t *testing.T, userID uuid.UUID, achievementID string) bool {
 func processSeasonWeeks(t *testing.T, season models.Season) {
 	t.Helper()
 	for wednesday := season.Start.AddDate(0, 0, 2); wednesday.Before(season.End); wednesday = wednesday.AddDate(0, 0, 7) {
-		if err := ProcessWeekOfSeason(season, wednesday, true, true, nil); err != nil {
+		if err := ProcessWeekOfSeason(season, wednesday); err != nil {
 			t.Fatalf("processing week of %s: %v", wednesday.Format("2006-01-02"), err)
 		}
 	}

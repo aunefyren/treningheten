@@ -64,8 +64,8 @@ func TestWeeklyResultsDebtAndWheel(t *testing.T) {
 	}
 
 	lastWeek := wednesdayOfWeeksAgo(1)
-	h.expect(http.StatusBadRequest, "POST", "/api/admin/debts", adminToken, "{broken")
-	h.ok("POST", "/api/admin/debts", adminToken, models.DebtCreationRequest{Date: lastWeek})
+	h.expect(http.StatusBadRequest, "POST", "/api/admin/weeks/reconcile", adminToken, "{broken")
+	h.ok("POST", "/api/admin/weeks/reconcile", adminToken, models.WeekReconcileRequest{Date: lastWeek.Format("2006-01-02")})
 	// The Monday cron does the same for last week; it must not double-issue the debt.
 	ProcessLastWeek()
 
@@ -164,7 +164,7 @@ func TestSingleWinnerIsAssignedDirectly(t *testing.T) {
 	seedGoal(t, loser.ID, season, 3)
 	seedExerciseDayWithExercises(t, winner.ID, wednesdayOfWeeksAgo(1), 1)
 
-	h.ok("POST", "/api/admin/debts", adminToken, models.DebtCreationRequest{Date: wednesdayOfWeeksAgo(1), TargetUser: &loser.ID})
+	h.ok("POST", "/api/admin/weeks/reconcile", adminToken, models.WeekReconcileRequest{Date: wednesdayOfWeeksAgo(1).Format("2006-01-02")})
 
 	if unchosen := h.ok("GET", "/api/auth/debts/unchosen", loserToken, nil); unchosen["debt"] != nil {
 		t.Errorf("a pre-assigned debt shows up as unchosen: %v", unchosen)
